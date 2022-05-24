@@ -1,0 +1,9 @@
+[Unit]
+Description=Tracks and restarts renderphine if frozen
+
+[Service]
+Type=notify
+ExecStart=/usr/sbin/pinger
+
+[Install]
+WantedBy=multi-user.target

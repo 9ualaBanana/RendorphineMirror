@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Node",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildnode",
+            "program": "${workspaceFolder}/Node/bin/Debug/net6.0/Node.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Pinger",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildpinger",
+            "program": "${workspaceFolder}/Pinger/bin/Debug/net6.0/Pinger.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        }
+    ]
+}
