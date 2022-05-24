@@ -31,7 +31,7 @@ public class Worker : BackgroundService
             Logger.LogInformation(@$"{DateTimeOffset.Now}: Sending ping ({tries + 1}/3)...");
 
             HttpResponseMessage msg;
-            try { msg = await Client.GetAsync("http://127.0.0.1:5000/ping", token).ConfigureAwait(false); }
+            try { msg = await Client.GetAsync(@$"http://127.0.0.1:{Settings.ListenPort}/ping", token).ConfigureAwait(false); }
             catch (Exception ex) { return await restart(@$"{DateTimeOffset.Now}: Could not connect to the node, {ex.Message}, restarting the node...").ConfigureAwait(false); }
 
             if (!msg.IsSuccessStatusCode)

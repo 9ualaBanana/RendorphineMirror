@@ -4,7 +4,7 @@ using System.Net;
 
 
 var listener = new HttpListener();
-listener.Prefixes.Add("http://127.0.0.1:5000/");
+listener.Prefixes.Add(@$"http://127.0.0.1:{Settings.ListenPort}/");
 listener.Start();
 
 while (true)
