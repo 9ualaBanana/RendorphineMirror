@@ -5,6 +5,7 @@ using Pinger;
 
 
 var host = Host.CreateDefaultBuilder(args)
+    .UseWindowsService()
     .UseSystemd()
     .ConfigureServices(services =>
     {
