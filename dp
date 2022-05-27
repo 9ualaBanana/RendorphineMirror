@@ -1,0 +1,9 @@
+#!/bin/bash
+
+dir=$1
+proj=$2
+c=$3
+r=$4
+
+dotnet publish -c $c $proj -r $4
+rsync -ruavP $proj/bin/$c/net6.0/$r/publish/ $PIP:/home/debian/$dir

@@ -1,21 +1,35 @@
 ﻿global using Common;
 using System.Net;
+using Pinger;
+
+
+SystemService.Initialize(Environment.ProcessPath!);
+SystemService.Start();
+
+_ = StartHttpListenerAsync();
+
+Thread.Sleep(-1);
 
 
 
-var listener = new HttpListener();
-listener.Prefixes.Add(@$"http://127.0.0.1:{Settings.ListenPort}/");
-listener.Start();
 
-while (true)
+async Task StartHttpListenerAsync()
 {
-    var context = await listener.GetContextAsync().ConfigureAwait(false);
-    var request = context.Request;
-    using var response = context.Response;
-    using var writer = new StreamWriter(response.OutputStream);
+    var listener = new HttpListener();
+    listener.Prefixes.Add(@$"http://127.0.0.1:{Settings.ListenPort}/");
+    listener.Start();
+    Console.WriteLine(@$"Listener started @ {string.Join(", ", listener.Prefixes)}");
 
-    if (request.Url is null) continue;
+    while (true)
+    {
+        var context = await listener.GetContextAsync().ConfigureAwait(false);
+        var request = context.Request;
+        using var response = context.Response;
+        using var writer = new StreamWriter(response.OutputStream);
 
-    if (request.Url.AbsoluteUri.EndsWith("/ping"))
-        response.StatusCode = (int) HttpStatusCode.OK;
+        if (request.Url is null) continue;
+
+        if (request.Url.AbsoluteUri.EndsWith("/ping"))
+            response.StatusCode = (int) HttpStatusCode.OK;
+    }
 }
