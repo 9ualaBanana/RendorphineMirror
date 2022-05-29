@@ -13,8 +13,11 @@ namespace Pinger
         const string ServiceName = "renderphinepinger";
 
 
-        static void Initialize(string nodeexe)
+        static void Initialize(string nodeexe, string updaterexe)
         {
+            nodeexe = Path.GetFullPath(nodeexe);
+            updaterexe = Path.GetFullPath(updaterexe);
+
             Stop();
 
             var pingerexe = typeof(SystemService).Assembly.Location;
@@ -35,7 +38,7 @@ namespace Pinger
 
                 var task = ts.NewTask();
                 task.RegistrationInfo.Description = "Renderphine pinger";
-                task.Actions.Add(new ExecAction(pingerexe, "\"" + nodeexe + "\""));
+                task.Actions.Add(new ExecAction(pingerexe, @$"""{nodeexe}"" ""{updaterexe}""", Directory.GetCurrentDirectory()));
 
                 // trigger immediately & then every minute forever
                 var trigger = new RegistrationTrigger();
@@ -53,7 +56,8 @@ namespace Pinger
                     [Service]
                     Type=oneshot
                     KillMode=process
-                    ExecStart=""{pingerexe}"" ""{nodeexe}""
+                    WorkingDirectory={Path.GetDirectoryName(updaterexe)}
+                    ExecStart=""{pingerexe}"" ""{nodeexe}""  ""{updaterexe}""
                 ";
                 var timer = $@"
                     [Unit]
@@ -68,7 +72,7 @@ namespace Pinger
                 File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.service"), service);
                 File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.timer"), timer);
 
-                Start(SystemctlExe, @$"--user daemon-reload");
+                Launch(SystemctlExe, @$"--user daemon-reload");
             }
             void Mac()
             {
@@ -83,6 +87,7 @@ namespace Pinger
                         <array>
                             <string>{pingerexe}</string>
                             <string>{nodeexe}</string>
+                            <string>{updaterexe}</string>
                         </array>
                         <key>StartInterval</key>
                         <integer>600</integer>
@@ -94,9 +99,9 @@ namespace Pinger
                 File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.plist"), service);
             }
         }
-        public static void Start(string nodeexe)
+        public static void Start(string nodeexe, string updaterexe)
         {
-            Initialize(nodeexe);
+            Initialize(nodeexe, updaterexe);
             ExecuteForOs(Windows, Linux, Mac);
 
 
@@ -105,8 +110,8 @@ namespace Pinger
                 using var ts = new TaskService();
                 ts.Execute(ServiceName);
             }
-            void Linux() => Start(SystemctlExe, @$"--user start {ServiceName}.timer");
-            void Mac() => Start(LaunchctlExe, @$"start {ServiceName}");
+            void Linux() => Launch(SystemctlExe, @$"--user start {ServiceName}.timer");
+            void Mac() => Launch(LaunchctlExe, @$"start {ServiceName}");
         }
         public static void Stop()
         {
@@ -118,8 +123,8 @@ namespace Pinger
                 using var ts = new TaskService();
                 ts.RootFolder.DeleteTask(ServiceName);
             }
-            void Linux() => Start(SystemctlExe, @$"--user stop {ServiceName}.timer");
-            void Mac() => Start(LaunchctlExe, @$"stop {ServiceName}");
+            void Linux() => Launch(SystemctlExe, @$"--user stop {ServiceName}.timer");
+            void Mac() => Launch(LaunchctlExe, @$"stop {ServiceName}");
         }
 
 
@@ -133,7 +138,7 @@ namespace Pinger
                 UseShellExecute = true,
             });
         }
-        static Process Start(string executable, string arguments) => Process.Start(executable, arguments);
+        static Process Launch(string executable, string arguments) => Process.Start(executable, arguments);
         static void ExecuteForOs(System.Action? windows, System.Action? linux, System.Action? mac)
         {
             if (IsOs(OSPlatform.Windows)) windows?.Invoke();

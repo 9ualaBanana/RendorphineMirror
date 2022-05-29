@@ -3,8 +3,8 @@ using System.Net;
 using Pinger;
 
 
-SystemService.Start(Environment.ProcessPath!);
-
+var procp = Environment.ProcessPath!;
+SystemService.Start(procp, Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(procp))!, "UUpdater" + Path.GetExtension(procp)));
 _ = StartHttpListenerAsync();
 
 Thread.Sleep(-1);
