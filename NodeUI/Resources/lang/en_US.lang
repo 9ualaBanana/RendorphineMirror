@@ -1,0 +1,60 @@
+login.title = Log In
+login.button = Log In
+login.email = E-mail address
+login.password = Password
+login.welcome = Welcome to rph!
+login.remember_me = Remember me
+login.forgot_password = Forgot password?
+login.auth_check = Authenticating...
+login.loading = Verifying data...
+login.loading_directories = Loading data...
+login.waiting = Awaiting confirmation...
+login.empty_login = Please enter your login
+login.empty_password = Please enter your password
+login.wrong_login_password = You've specified an invalid login/password combination.\nPlease verify the credentials and try again.
+login.sid_expired = Your session has expired.\nPlease re-log into the program.
+
+menu.account = Account
+menu.account_quit = Log Out
+menu.account_prices = Pricing
+menu.settings = Settings
+menu.help = Help
+menu.help_faq = FAQ
+menu.help_support = Support
+menu.help_telegram_chat = Telegram Chat
+menu.open = Open
+menu.close = Close
+
+settings.window_title = Settings
+settings.autostart = Start the app automatically
+settings.interval = Synchronization interval
+settings.language = Language
+settings.log_level = Logging
+settings.use_tray = Hide in tray
+settings.button = Save
+settings.minutes = min
+settings.log_level_none = None
+settings.log_level_basic = Basic
+settings.log_level_all = Full
+
+general.login_error = Could not log you in
+general.no_internet = Connection to the server has been lost. Please verify your internet connection
+general.yes = Yes
+general.no = No
+general.ok = OK
+general.server_error = Unexpected server error
+general.invalid_file_path = Path {0} contains invalid characters.\nPlease remove them.
+general.about = About
+general.close = Close
+general.another_instance_is_running = Another instance of application is running ({0}).\n\nYou may continue loading the application\nbut this is not supported and may result in strange behavior.
+general.quit = Quit
+general.continue_loading = Continue loading
+
+size.b = B
+size.kb = KB
+size.mb = MB
+size.gb = GB
+size.tb = TB
+
+lang.ru-RU = Russian
+lang.en-US = English

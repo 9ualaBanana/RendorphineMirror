@@ -1,10 +1,15 @@
 ﻿global using Common;
+using System.Diagnostics;
 using System.Net;
 using Pinger;
 
 
-var procp = Environment.ProcessPath!;
-SystemService.Start(procp, Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(procp))!, "UUpdater" + Path.GetExtension(procp)));
+if (!Debugger.IsAttached)
+{
+    var procp = Environment.ProcessPath!;
+    SystemService.Start(procp, Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(procp))!, "UUpdater" + Path.GetExtension(procp)));
+}
+
 _ = StartHttpListenerAsync();
 
 Thread.Sleep(-1);

@@ -13,6 +13,17 @@
             ]
         },
         {
+            "label": "buildnodeui",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/NodeUI/NodeUI.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ]
+        },
+        {
             "label": "buildpinger",
             "command": "dotnet",
             "type": "process",

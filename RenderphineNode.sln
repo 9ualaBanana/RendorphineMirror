@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node", "Node\Node.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{741B7F51-0DA7-4BF5-89C0-1CEE0D0E7DBB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeUI", "NodeUI\NodeUI.csproj", "{72E0929E-95B7-4114-89FB-D736B4F1891A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{741B7F51-0DA7-4BF5-89C0-1CEE0D0E7DBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{741B7F51-0DA7-4BF5-89C0-1CEE0D0E7DBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{741B7F51-0DA7-4BF5-89C0-1CEE0D0E7DBB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72E0929E-95B7-4114-89FB-D736B4F1891A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72E0929E-95B7-4114-89FB-D736B4F1891A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72E0929E-95B7-4114-89FB-D736B4F1891A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72E0929E-95B7-4114-89FB-D736B4F1891A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

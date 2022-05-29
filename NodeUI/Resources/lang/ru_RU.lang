@@ -1,0 +1,60 @@
+login.title = Вход
+login.button = Войти
+login.email = E-mail адрес
+login.password = Пароль
+login.welcome = Добро пожаловать в rph!
+login.remember_me = Запомнить меня
+login.forgot_password = Забыли пароль?
+login.auth_check = Проверка авторизации...
+login.loading = Проверка данных...
+login.loading_directories = Загрузка информации...
+login.waiting = Ожидание подтверждения...
+login.empty_login = Введите логин
+login.empty_password = Введите пароль
+login.wrong_login_password = Неправильный логин и/или пароль\nПроверьте данные для входа
+login.sid_expired = Недействительный ключ сессии\nВойдите, чтобы обновить
+
+menu.account = Аккаунт
+menu.account_quit = Сменить аккаунт
+menu.account_prices = Тарифные планы
+menu.settings = Настройки
+menu.help = Помощь
+menu.help_faq = FAQ
+menu.help_support = Поддержка
+menu.help_telegram_chat = Чат в Telegram
+menu.open = Открыть
+menu.close = Закрыть
+
+settings.window_title = Настройки
+settings.autostart = Автозапуск приложения
+settings.interval = Интервал проверок
+settings.language = Язык
+settings.log_level = Логгирование
+settings.button = Сохранить
+settings.minutes = мин
+settings.use_tray = Сворачивать в трей
+settings.log_level_none = Выключить
+settings.log_level_basic = Базовое
+settings.log_level_all = Полное
+
+general.login_error = Произошла ошибка при входе
+general.no_internet = Потеряно соединение с сервером. Проверьте подключение к интернету
+general.yes = Да
+general.no = Нет
+general.ok = ОК
+general.server_error = Неизвестная ошибка сервера
+general.invalid_file_path = Путь {0} имеет в себе недопустимые символы.\nПожалуйста, уберите их для синхронизации.
+general.about = О программе
+general.close = Закрыть
+general.another_instance_is_running = Обнаружен другой работающий экземпляр программы ({0}).\n\nВы можете продолжить запуск, но это не поддерживается\nи может привести к сбоям.
+general.quit = Выйти
+general.continue_loading = Продолжить запуск
+
+size.b = Б
+size.kb = КБ
+size.mb = МБ
+size.gb = ГБ
+size.tb = ТБ
+
+lang.ru-RU = Русский
+lang.en-US = Английский
