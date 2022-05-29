@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 
 namespace Common
 {
@@ -57,13 +58,26 @@ namespace Common
                 return res.Substring(index2 + 1, res.Length - index).Replace('_', '-');
             }
 
-            var files = typeof(LocalizedString).Assembly.GetManifestResourceNames().Where(x => x.EndsWith(".lang"));
-            var streams = files.Select(x => (getLocaleName(x), typeof(LocalizedString).Assembly.GetManifestResourceStream(x))).Where(x => x.Item1 is { });
-            var texts = streams.Where(x => x.Item2 is { }).Select(x => (x.Item1, new StreamReader(x.Item2!).ReadToEnd() + "\nempty="));
+            Translations =
+                new[] { Assembly.GetCallingAssembly()!, Assembly.GetEntryAssembly()!, Assembly.GetExecutingAssembly()!, }
+                .Where(x => x is not null)
+                .Distinct()
+                .SelectMany(loadlocale)
+                .Select(x => ParseFile(x.Item1!, x.Item2))
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .ToImmutableDictionary(x => x.locale, x => x.keys);
 
-            Translations = texts.Select(x => ParseFile(x.Item1!, x.Item2)).Where(x => x.HasValue).Select(x => x!.Value).ToImmutableDictionary(x => x.locale, x => x.keys);
             ((WeakEventManager) ChangeLangWeakEvent).Invoke();
             CheckTranslations();
+
+
+            IEnumerable<(string?, string)> loadlocale(Assembly assembly) =>
+                assembly.GetManifestResourceNames()
+                    .Where(x => x.EndsWith(".lang"))
+                    .Select(x => (getLocaleName(x), assembly.GetManifestResourceStream(x)))
+                    .Where(x => x.Item1 is not null && x.Item2 is not null)
+                    .Select(x => (x.Item1, new StreamReader(x.Item2!).ReadToEnd() + "\nempty="));
         }
         [Conditional("DEBUG")]
         static void CheckTranslations()
