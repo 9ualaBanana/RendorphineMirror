@@ -3,8 +3,7 @@ using System.Net;
 using Pinger;
 
 
-SystemService.Initialize(Environment.ProcessPath!);
-SystemService.Start();
+SystemService.Start(Environment.ProcessPath!);
 
 _ = StartHttpListenerAsync();
 

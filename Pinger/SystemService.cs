@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.Win32.TaskScheduler;
 
 namespace Pinger
 {
@@ -12,25 +13,36 @@ namespace Pinger
         const string ServiceName = "renderphinepinger";
 
 
-        public static void Initialize(string nodeexe)
+        static void Initialize(string nodeexe)
         {
+            Stop();
+
             var pingerexe = typeof(SystemService).Assembly.Location;
             if (IsOs(OSPlatform.Windows)) pingerexe = Path.ChangeExtension(pingerexe, "exe");
-            else pingerexe = Path.ChangeExtension(pingerexe, null);
+            else
+            {
+                pingerexe = Path.ChangeExtension(pingerexe, null);
+                MakeExecutable(pingerexe);
+                MakeExecutable(nodeexe);
+            }
 
             ExecuteForOs(Windows, Linux, Mac);
 
 
             void Windows()
             {
-                // delete old service
-                Start(WindowsServiceExe, @$"delete {ServiceName}");
+                using var ts = new TaskService();
 
-                // create a windows service
-                Start(WindowsServiceExe, @$"create {ServiceName} binPath=""\""{pingerexe}\"" \""{nodeexe}\""""");
+                var task = ts.NewTask();
+                task.RegistrationInfo.Description = "Renderphine pinger";
+                task.Actions.Add(new ExecAction(pingerexe, "\"" + nodeexe + "\""));
 
-                // make it restart after crash
-                Start(WindowsServiceExe, @$"failure {ServiceName} reset=0 actions=restart/60000/restart/60000/run/1000");
+                // trigger immediately & then every minute forever
+                var trigger = new RegistrationTrigger();
+                trigger.Repetition = new RepetitionPattern(TimeSpan.FromMinutes(1), TimeSpan.Zero, false);
+                task.Triggers.Add(trigger);
+
+                ts.RootFolder.RegisterTask(ServiceName, task.XmlText, createType: TaskCreation.CreateOrUpdate, logonType: TaskLogonType.S4U);
             }
             void Linux()
             {
@@ -39,13 +51,22 @@ namespace Pinger
                     Description=Renderphine tracker
 
                     [Service]
-                    Type=notify
-                    Restart=on-failure
+                    Type=oneshot
+                    KillMode=process
                     ExecStart=""{pingerexe}"" ""{nodeexe}""
+                ";
+                var timer = $@"
+                    [Unit]
+                    Description=Renderphine tracker
+
+                    [Timer]
+                    OnActiveSec=1min
+                    OnUnitActiveSec=1min
                 ";
 
                 var configdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "systemd/user/");
                 File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.service"), service);
+                File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.timer"), timer);
 
                 Start(SystemctlExe, @$"--user daemon-reload");
             }
@@ -63,8 +84,8 @@ namespace Pinger
                             <string>{pingerexe}</string>
                             <string>{nodeexe}</string>
                         </array>
-                        <key>KeepAlive</key>
-                        <true/>
+                        <key>StartInterval</key>
+                        <integer>600</integer>
                     </dict>
                     </plist>
                 ";
@@ -73,14 +94,18 @@ namespace Pinger
                 File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.plist"), service);
             }
         }
-
-        public static void Start()
+        public static void Start(string nodeexe)
         {
+            Initialize(nodeexe);
             ExecuteForOs(Windows, Linux, Mac);
 
 
-            void Windows() => Start(WindowsServiceExe, @$"start {ServiceName}");
-            void Linux() => Start(SystemctlExe, @$"--user start {ServiceName}.service");
+            void Windows()
+            {
+                using var ts = new TaskService();
+                ts.Execute(ServiceName);
+            }
+            void Linux() => Start(SystemctlExe, @$"--user start {ServiceName}.timer");
             void Mac() => Start(LaunchctlExe, @$"start {ServiceName}");
         }
         public static void Stop()
@@ -88,14 +113,28 @@ namespace Pinger
             ExecuteForOs(Windows, Linux, Mac);
 
 
-            void Windows() => Start(WindowsServiceExe, @$"stop {ServiceName}");
-            void Linux() => Start(SystemctlExe, @$"--user stop {ServiceName}.service");
+            void Windows()
+            {
+                using var ts = new TaskService();
+                ts.RootFolder.DeleteTask(ServiceName);
+            }
+            void Linux() => Start(SystemctlExe, @$"--user stop {ServiceName}.timer");
             void Mac() => Start(LaunchctlExe, @$"stop {ServiceName}");
         }
 
 
+        static void MakeExecutable(string path)
+        {
+            if (Environment.OSVersion.Platform != PlatformID.Unix) return;
+
+            Process.Start(new ProcessStartInfo("/usr/bin/chmod")
+            {
+                ArgumentList = { "+x", path },
+                UseShellExecute = true,
+            });
+        }
         static Process Start(string executable, string arguments) => Process.Start(executable, arguments);
-        static void ExecuteForOs(Action? windows, Action? linux, Action? mac)
+        static void ExecuteForOs(System.Action? windows, System.Action? linux, System.Action? mac)
         {
             if (IsOs(OSPlatform.Windows)) windows?.Invoke();
             else if (IsOs(OSPlatform.Linux)) linux?.Invoke();
