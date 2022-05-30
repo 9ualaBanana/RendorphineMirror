@@ -11,7 +11,7 @@ namespace NodeUI
 
         static App()
         {
-            Version = Variables.Version;
+            Version = Init.Version;
             AppName = "Renderphine   v" + Version;
         }
         public override void Initialize()

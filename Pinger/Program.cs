@@ -6,7 +6,7 @@ var nodeexe = GetPath(args, 0, "Node");
 var updaterexe = GetPath(args, 1, "Updater");
 
 Log(@$"Pinger started");
-Log(@$"Config directory: {Variables.ConfigDirectory}");
+Log(@$"Config directory: {Init.ConfigDirectory}");
 Log(@$"Node executable: {nodeexe}");
 Log(@$"Updater executable: {updaterexe}");
 
@@ -30,7 +30,7 @@ static void Log(string text) => Console.WriteLine(DateTimeOffset.Now + ": " + te
 static string GetCurrentTimeStr() => DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
 void AppendStartSession() => AppendSession("+" + GetCurrentTimeStr());
 void AppendEndSession() => AppendSession("-" + GetCurrentTimeStr());
-void AppendSession(string text) => File.AppendAllText(Path.Combine(Variables.ConfigDirectory, "sessions"), text + "\n");
+void AppendSession(string text) => File.AppendAllText(Path.Combine(Init.ConfigDirectory, "sessions"), text + "\n");
 
 async Task<bool> Ping(HttpClient client, CancellationToken token, int tries = 0)
 {
