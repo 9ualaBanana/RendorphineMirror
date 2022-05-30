@@ -4,12 +4,17 @@ namespace Common
 {
     public static class Init
     {
+        public static readonly string ConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "renderphine");
+        public static readonly string Version = GetVersion();
+
+        static Init() => Directory.CreateDirectory(ConfigDirectory);
+
         public static void InitLogger()
         {
             Logger.InitializeExceptionLogging();
-            Logger.Log(ConsoleColor.White, "Renderphine " + GetVersion() + " on " + GetOSInfo() + " w UTC+" + TimeZoneInfo.Local.BaseUtcOffset, writeToConsole: false);
+            Logger.Log(ConsoleColor.White, "Renderphine " + Version + " on " + GetOSInfo() + " w UTC+" + TimeZoneInfo.Local.BaseUtcOffset, writeToConsole: false);
 
-            try { Logger.Log($"Current process name: { Process.GetCurrentProcess().ProcessName }", writeToConsole: false); }
+            try { Logger.Log($"Current process name: {Process.GetCurrentProcess().ProcessName}", writeToConsole: false); }
             catch { }
         }
         static string GetOSInfo()
@@ -32,11 +37,11 @@ namespace Common
             return str;
         }
 
-        public static string GetVersion()
+        static string GetVersion()
         {
             DateTime? time = null;
-            try { time = File.GetCreationTimeUtc(Environment.ProcessPath!); }
-            catch { }
+            try { time = Directory.GetFiles(Path.GetDirectoryName(Environment.ProcessPath!)!, "*", SearchOption.AllDirectories).Select(File.GetCreationTimeUtc).Max(); }
+            catch (Exception ex) { Console.WriteLine("err getting version " + ex.Message); }
 
             return time?.ToString("ddMMyy") ?? "UNKNOWNVERSION";
         }
