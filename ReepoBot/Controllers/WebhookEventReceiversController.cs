@@ -1,7 +1,9 @@
+using Hardware;
 using Microsoft.AspNetCore.Mvc;
 using ReepoBot.Controllers.Binders;
 using ReepoBot.Services;
 using ReepoBot.Services.GitHub;
+using ReepoBot.Services.Hardware;
 using ReepoBot.Services.Telegram;
 using System.Text.Json;
 using Telegram.Bot.Types;
@@ -49,5 +51,13 @@ public class WebhookEventReceiversController : ControllerBase
 
         await eventHandler.HandleAsync(payloadContent);
         return Ok();
+    }
+
+    [HttpPost("hardware_info")]
+    public async Task ReceiveHardwareInformation(
+        [FromServices] HardwareInfoForwarder hardwareInfoForwarder,
+        [FromBody] HardwareInfo hardwareInfo)
+    {
+        await hardwareInfoForwarder.HandleAsync(hardwareInfo);
     }
 }

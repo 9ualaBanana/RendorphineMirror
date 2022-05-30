@@ -1,5 +1,6 @@
 using ReepoBot.Services;
 using ReepoBot.Services.GitHub;
+using ReepoBot.Services.Hardware;
 using ReepoBot.Services.Telegram;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -12,13 +13,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var token = Environment.GetEnvironmentVariable("BOT_TOKEN", EnvironmentVariableTarget.User)!;
-var bot = new TelegramBot(token);
-bot.SetWebhookAsync("https://d66a-213-87-161-72.eu.ngrok.io/telegram");
-builder.Services.AddSingleton(bot);
+await InitializeBot();
 
 builder.Services.AddScoped<WebhookEventHandlerFactory<TelegramUpdateHandler, Update>, TelegramUpdateHandlerFactory>();
 builder.Services.AddScoped<WebhookEventHandlerFactory<GitHubWebhookEventForwarder, string>, GitHubWebhookEventForwarderFactory>();
+builder.Services.AddScoped<HardwareInfoForwarder>();
 
 var app = builder.Build();
 
@@ -35,3 +34,11 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+async Task InitializeBot()
+{
+    var token = Environment.GetEnvironmentVariable("BOT_TOKEN", EnvironmentVariableTarget.User)!;
+    var bot = new TelegramBot(token);
+    await bot.SetWebhookAsync("135.125.237.7/telegram");
+    builder.Services.AddSingleton(bot);
+}

@@ -1,5 +1,4 @@
 ﻿using ReepoBot.Services.Telegram;
-using Telegram.Bot;
 
 namespace ReepoBot.Services;
 
