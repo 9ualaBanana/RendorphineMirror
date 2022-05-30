@@ -3,18 +3,18 @@ using System.Management.Automation;
 
 namespace Hardware;
 
-public readonly record struct RamInfo(string SerialNumber, double Capacity, uint MemoryClock)
+public readonly record struct RamInfo(string DeviceLocator, double Capacity, uint MemoryClock)
 {
-    public static RamInfo GetFor(string serialNumber)
+    public static RamInfo GetFor(string deviceLocator)
     {
-        return GetForAll().SingleOrDefault(ram => ram.SerialNumber == serialNumber);
+        return GetForAll().SingleOrDefault(ram => ram.DeviceLocator == deviceLocator);
     }
 
-    public static ReadOnlyCollection<RamInfo> GetForAll()
+    public static List<RamInfo> GetForAll()
     {
         return QueryRamInfoForAll()
             .Select(ramInfoQueryResult => GetRamInfoFrom(ramInfoQueryResult))
-            .ToList().AsReadOnly();
+            .ToList();
     }
 
     static Collection<PSObject> QueryRamInfoForAll()
@@ -27,7 +27,7 @@ public readonly record struct RamInfo(string SerialNumber, double Capacity, uint
             {
                 { "Property", new()
                     {
-                        "SerialNumber",
+                        "DeviceLocator",
                         "Capacity",
                         "Speed"
                     }
@@ -38,7 +38,7 @@ public readonly record struct RamInfo(string SerialNumber, double Capacity, uint
 
     static RamInfo GetRamInfoFrom(PSObject queryResult)
     {
-        var serialNumber = queryResult.Properties["SerialNumber"].Value.ToString()!;
+        var serialNumber = queryResult.Properties["DeviceLocator"].Value.ToString()!;
         var capacity = ((ulong)queryResult.Properties["Capacity"].Value).KB().MB().GB();
         var memoryClock = (uint)queryResult.Properties["Speed"].Value;
         return new(serialNumber, capacity, memoryClock);

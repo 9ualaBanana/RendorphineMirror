@@ -14,11 +14,11 @@ public readonly record struct DiskInfo(
         return GetForAll().SingleOrDefault(disk => disk.VolumeSerialNumber == volumeSerialNumber);
     }
 
-    public static ReadOnlyCollection<DiskInfo> GetForAll()
+    public static List<DiskInfo> GetForAll()
     {
         return QueryDiskInfoForAll()
             .Select(diskInfoQueryResult => GetDiskInfoFrom(diskInfoQueryResult))
-            .ToList().AsReadOnly();
+            .ToList();
     }
 
     static Collection<PSObject> QueryDiskInfoForAll()

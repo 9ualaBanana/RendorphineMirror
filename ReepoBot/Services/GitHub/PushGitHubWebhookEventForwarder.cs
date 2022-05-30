@@ -21,10 +21,10 @@ public class PushGitHubWebhookEventForwarder : GitHubWebhookEventForwarder
         var commitMessages = GetCommitMessages(payload.GetProperty("commits"));
 
         var textBuilder = new StringBuilder();
-        textBuilder.Append($"{sender.GetProperty("login")} made {commitMessages.Count()} new push(es) to {repo.GetProperty("name")}:\n");
+        textBuilder.AppendLine($"{sender.GetProperty("login")} made {commitMessages.Count()} new push(es) to {repo.GetProperty("name")}:");
         foreach (var commitMessage in commitMessages)
         {
-            textBuilder.Append(commitMessage + '\n');
+            textBuilder.AppendLine(commitMessage);
         }
         var text = textBuilder.ToString();
 

@@ -16,11 +16,11 @@ public readonly record struct CpuInfo(
         return GetForAll().SingleOrDefault(cpu => cpu.Id == hardwareId);
     }
 
-    public static ReadOnlyCollection<CpuInfo> GetForAll()
+    public static List<CpuInfo> GetForAll()
     {
         return QueryCpuInfoForAll()
             .Select(cpuInfoQueryResult => GetCpuInfoFrom(cpuInfoQueryResult))
-            .ToList().AsReadOnly();
+            .ToList();
     }
 
     static Collection<PSObject> QueryCpuInfoForAll()

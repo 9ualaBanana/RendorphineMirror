@@ -1,11 +1,10 @@
-﻿using System.Collections.ObjectModel;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace Hardware;
 
 public readonly record struct GpuInfo(Guid Id, string Name, MemoryInfo Memory, GpuClockInfo GpuClockInfo)
 {
-    public static ReadOnlyCollection<GpuInfo> GetForAll()
+    public static List<GpuInfo> GetForAll()
     {
         using var queryResult = Process.Start(GetForAllStartInfo())!;
         var allGpuHardwareIds = queryResult.StandardOutput.ReadToEnd()!;
@@ -13,7 +12,7 @@ public readonly record struct GpuInfo(Guid Id, string Name, MemoryInfo Memory, G
         return allGpuHardwareIds
             .Split(Environment.NewLine.ToCharArray(), StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Select(hardwareId => GetFor(hardwareId))
-            .ToList().AsReadOnly();
+            .ToList();
     }
 
     static ProcessStartInfo GetForAllStartInfo()
@@ -61,7 +60,7 @@ public readonly record struct GpuInfo(Guid Id, string Name, MemoryInfo Memory, G
 
     static GpuInfo GetGpuInfoFrom(string queryResult, Guid guid)
     {
-        var splitQueryResult = queryResult.Split(',');
+        var splitQueryResult = queryResult.Split(',', StringSplitOptions.TrimEntries);
 
         var name = splitQueryResult[1];
 
