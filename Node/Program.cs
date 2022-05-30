@@ -18,7 +18,7 @@ async Task SendHardwareInfo()
 {
     await new HttpClient().PostAsync(
         $"{Environment.GetEnvironmentVariable("SERVER_HOST", EnvironmentVariableTarget.Machine)}/hardware_info",
-        JsonContent.Create(HardwareInfo.GetForAll()));
+        JsonContent.Create(await HardwareInfo.GetForAll()));
 }
 
 async Task StartHttpListenerAsync()

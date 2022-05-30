@@ -6,12 +6,12 @@ public readonly record struct HardwareInfo(
     List<RamInfo> RamInfo,
     List<DiskInfo> DiskInfo)
 {
-    public static HardwareInfo GetForAll()
+    public async static Task<HardwareInfo> GetForAll()
     {
-        var cpuInfo = Hardware.CpuInfo.GetForAll();
+        var cpuInfo = await Hardware.CpuInfo.GetForAll();
         var gpuInfo = Hardware.GpuInfo.GetForAll();
-        var ramInfo = Hardware.RamInfo.GetForAll();
-        var diskInfo = Hardware.DiskInfo.GetForAll();
+        var ramInfo = await Hardware.RamInfo.GetForAll();
+        var diskInfo = await Hardware.DiskInfo.GetForAll();
         return new HardwareInfo(cpuInfo, gpuInfo, ramInfo, diskInfo);
     }
 }
