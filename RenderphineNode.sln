@@ -1,23 +1,22 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30114.105
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32421.90
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pinger", "Pinger\Pinger.csproj", "{8F086137-D166-490E-A07C-C84A8C0C9B2C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pinger", "Pinger\Pinger.csproj", "{8F086137-D166-490E-A07C-C84A8C0C9B2C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node", "Node\Node.csproj", "{CCBCE57D-CC5E-4FA5-A9CC-542373F59239}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node", "Node\Node.csproj", "{CCBCE57D-CC5E-4FA5-A9CC-542373F59239}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{741B7F51-0DA7-4BF5-89C0-1CEE0D0E7DBB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "Common\Common.csproj", "{741B7F51-0DA7-4BF5-89C0-1CEE0D0E7DBB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeUI", "NodeUI\NodeUI.csproj", "{72E0929E-95B7-4114-89FB-D736B4F1891A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeUI", "NodeUI\NodeUI.csproj", "{72E0929E-95B7-4114-89FB-D736B4F1891A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReepoBot", "..\Reepo\Reepo\ReepoBot.csproj", "{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{8F086137-D166-490E-A07C-C84A8C0C9B2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -36,5 +35,15 @@ Global
 		{72E0929E-95B7-4114-89FB-D736B4F1891A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{72E0929E-95B7-4114-89FB-D736B4F1891A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{72E0929E-95B7-4114-89FB-D736B4F1891A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1449F403-A78E-4A78-B65E-3DC50B1949C0}
 	EndGlobalSection
 EndGlobal
