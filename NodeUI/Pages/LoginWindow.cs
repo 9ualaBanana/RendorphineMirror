@@ -90,6 +90,7 @@ namespace NodeUI.Pages
             var auth = await Api.AuthenticateAsync(login, password, CancellationToken.None);
             if (!auth) return OperationResult.Err(Localized.Login.WrongLoginPassword);
 
+            var ap = await Api.GetUserInfo(auth.Result.SessionId, CancellationToken.None).ConfigureAwait(false);
             return auth.Result;
         }
         async Task<OperationResult> CheckAuth(string sid, string userid)
@@ -97,7 +98,7 @@ namespace NodeUI.Pages
             try
             {
                 Login.StartLoginAnimation(Localized.Login.AuthCheck);
-                return (await Api.GetDirectories(sid, userid, CancellationToken.None).ConfigureAwait(false)).GetResult();
+                return (await Api.GetUserInfo(sid, CancellationToken.None).ConfigureAwait(false)).GetResult();
             }
             catch (Exception ex) { return OperationResult.Err(ex); }
             finally { Login.StopLoginAnimation(); }

@@ -23,12 +23,14 @@ namespace Common
                 token
             );
 
-        // TODO: this method is just for checking if auth was successful; replace with something better
-        public ValueTask<OperationResult<JToken>> GetDirectories(string sid, string userid, CancellationToken token) =>
-            Fetch<JToken>("contentdb/directories/fulllist", sid, "archive", "0", "list", token);
+
+        public ValueTask<OperationResult<JToken>> GetUserInfo(string sid, CancellationToken token) =>
+            Fetch<JToken>("contentdb/users/getinfo", sid, "list", token);
 
         ValueTask<OperationResult<T>> Fetch<T>(string urladd, string sid, string valueName, string value, string responseJsonName, CancellationToken token) where T : class =>
             Send<T>(true, urladd, sid, valueName, value, responseJsonName, token);
+        ValueTask<OperationResult<T>> Fetch<T>(string urladd, string sid, string responseJsonName, CancellationToken token) where T : class =>
+            Send<T>(true, urladd, sid, Enumerable.Empty<KeyValuePair<string, string>>(), responseJsonName, token);
         ValueTask<OperationResult<T>> Post<T>(string urladd, string sid, string valueName, string value, string responseJsonName, CancellationToken token) where T : class =>
             Send<T>(false, urladd, sid, valueName, value, responseJsonName, token);
         ValueTask<OperationResult<T>> Send<T>(bool get, string urladd, string sid, string valueName, string value, string responseJsonName, CancellationToken token) where T : class =>
