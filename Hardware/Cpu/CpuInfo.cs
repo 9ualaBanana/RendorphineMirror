@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.Management.Automation;
+﻿using System.Management.Automation;
 
 namespace Hardware;
 
@@ -11,19 +10,19 @@ public readonly record struct CpuInfo(
     CpuClockInfo CpuClockInfo,
     ushort LoadPercentage)
 {
-    public static CpuInfo GetFor(string hardwareId)
+    public async static Task<CpuInfo> GetFor(string hardwareId)
     {
-        return GetForAll().SingleOrDefault(cpu => cpu.Id == hardwareId);
+        return (await GetForAll()).SingleOrDefault(cpu => cpu.Id == hardwareId);
     }
 
-    public static List<CpuInfo> GetForAll()
+    public async static Task<List<CpuInfo>> GetForAll()
     {
-        return QueryCpuInfoForAll()
+        return (await QueryCpuInfoForAll())
             .Select(cpuInfoQueryResult => GetCpuInfoFrom(cpuInfoQueryResult))
             .ToList();
     }
 
-    static Collection<PSObject> QueryCpuInfoForAll()
+    async static Task<PSDataCollection<PSObject>> QueryCpuInfoForAll()
     {
         var powerShell = PowerShell.Create();
         powerShell
@@ -44,7 +43,7 @@ public readonly record struct CpuInfo(
                     }
                 }
             });
-        return powerShell.Invoke();
+        return await powerShell.InvokeAsync();
     }
 
     static CpuInfo GetCpuInfoFrom(PSObject queryResult)

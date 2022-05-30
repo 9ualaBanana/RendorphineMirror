@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.Management.Automation;
+﻿using System.Management.Automation;
 
 namespace Hardware;
 
@@ -9,19 +8,19 @@ public readonly record struct DiskInfo(
     MemoryInfo StorageSpace,
     string FileSystem)
 {
-    public static DiskInfo GetFor(string volumeSerialNumber)
+    public async static Task<DiskInfo> GetFor(string volumeSerialNumber)
     {
-        return GetForAll().SingleOrDefault(disk => disk.VolumeSerialNumber == volumeSerialNumber);
+        return (await GetForAll()).SingleOrDefault(disk => disk.VolumeSerialNumber == volumeSerialNumber);
     }
 
-    public static List<DiskInfo> GetForAll()
+    public async static Task<List<DiskInfo>> GetForAll()
     {
-        return QueryDiskInfoForAll()
+        return (await QueryDiskInfoForAll())
             .Select(diskInfoQueryResult => GetDiskInfoFrom(diskInfoQueryResult))
             .ToList();
     }
 
-    static Collection<PSObject> QueryDiskInfoForAll()
+    async static Task<PSDataCollection<PSObject>> QueryDiskInfoForAll()
     {
         var powerShell = PowerShell.Create();
         powerShell
@@ -40,7 +39,7 @@ public readonly record struct DiskInfo(
                     }
                 }
             });
-        return powerShell.Invoke();
+        return await powerShell.InvokeAsync();
     }
 
     static DiskInfo GetDiskInfoFrom(PSObject queryResult)

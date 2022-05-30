@@ -34,6 +34,12 @@ public readonly record struct GpuInfo(Guid Id, string Name, MemoryInfo Memory, G
         return GetGpuInfoFrom(QueryGpuInfoFor(hardwareId), guid);
     }
 
+    static string QueryGpuInfoFor(string hardwareId)
+    {
+        using var process = Process.Start(GetForStartInfo(hardwareId))!;
+        return process.StandardOutput.ReadLine()!;
+    }
+
     static ProcessStartInfo GetForStartInfo(string hardwareId)
     {
         var query = "--query-gpu=" +
@@ -50,12 +56,6 @@ public readonly record struct GpuInfo(Guid Id, string Name, MemoryInfo Memory, G
             RedirectStandardOutput = true,
             Arguments = $"{query} -i={hardwareId} {format}"
         };
-    }
-
-    static string QueryGpuInfoFor(string hardwareId)
-    {
-        using var process = Process.Start(GetForStartInfo(hardwareId))!;
-        return process.StandardOutput.ReadLine()!;
     }
 
     static GpuInfo GetGpuInfoFrom(string queryResult, Guid guid)

@@ -1,23 +1,22 @@
-﻿using System.Collections.ObjectModel;
-using System.Management.Automation;
+﻿using System.Management.Automation;
 
 namespace Hardware;
 
 public readonly record struct RamInfo(string DeviceLocator, double Capacity, uint MemoryClock)
 {
-    public static RamInfo GetFor(string deviceLocator)
+    public async static Task<RamInfo> GetFor(string deviceLocator)
     {
-        return GetForAll().SingleOrDefault(ram => ram.DeviceLocator == deviceLocator);
+        return (await GetForAll()).SingleOrDefault(ram => ram.DeviceLocator == deviceLocator);
     }
 
-    public static List<RamInfo> GetForAll()
+    public async static Task<List<RamInfo>> GetForAll()
     {
-        return QueryRamInfoForAll()
+        return (await QueryRamInfoForAll())
             .Select(ramInfoQueryResult => GetRamInfoFrom(ramInfoQueryResult))
             .ToList();
     }
 
-    static Collection<PSObject> QueryRamInfoForAll()
+    async static Task<PSDataCollection<PSObject>> QueryRamInfoForAll()
     {
         var powerShell = PowerShell.Create()
             .AddCommand("Get-CIMInstance")
@@ -33,7 +32,7 @@ public readonly record struct RamInfo(string DeviceLocator, double Capacity, uin
                     }
                 }
             });
-        return powerShell.Invoke();
+        return await powerShell.InvokeAsync();
     }
 
     static RamInfo GetRamInfoFrom(PSObject queryResult)
