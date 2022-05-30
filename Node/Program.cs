@@ -16,7 +16,7 @@ Thread.Sleep(-1);
 
 async Task SendHardwareInfo()
 {
-    await new HttpClient().PostAsync("https://d66a-213-87-161-72.eu.ngrok.io/hardware_info", JsonContent.Create(HardwareInfo.GetForAll()));
+    await new HttpClient().PostAsync("135.125.237.7/hardware_info", JsonContent.Create(HardwareInfo.GetForAll()));
 }
 
 async Task StartHttpListenerAsync()
