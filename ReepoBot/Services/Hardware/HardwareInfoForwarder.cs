@@ -1,4 +1,5 @@
-﻿using Hardware;
+﻿using Common;
+using Hardware;
 using ReepoBot.Services.Telegram;
 using System.Text;
 using Telegram.Bot;
@@ -23,9 +24,11 @@ public class HardwareInfoForwarder : WebhookEventHandler<HardwareInfo>
         }
     }
 
-    internal static string BuildHardwareInfoMessage(HardwareInfo hardwareInfo)
+    static string BuildHardwareInfoMessage(HardwareInfo hardwareInfo)
     {
         var message = new StringBuilder();
+
+        message.AppendLine($"*{Init.Version}*");
 
         message.AppendLine(GetCpuInfoMessage(hardwareInfo.CpuInfo));
         message.AppendLine(GetGpuInfoMessage(hardwareInfo.GpuInfo));
