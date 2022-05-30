@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Reepo.Controllers.Binders;
+using ReepoBot.Controllers.Binders;
 using ReepoBot.Services;
 using ReepoBot.Services.GitHub;
 using ReepoBot.Services.Telegram;

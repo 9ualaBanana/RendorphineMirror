@@ -14,7 +14,7 @@ builder.Services.AddSwaggerGen();
 
 var token = Environment.GetEnvironmentVariable("BOT_TOKEN", EnvironmentVariableTarget.User)!;
 var bot = new TelegramBot(token);
-bot.SetWebhookAsync("https://1903-213-87-161-72.eu.ngrok.io/telegram", dropPendingUpdates: true);
+bot.SetWebhookAsync("https://d66a-213-87-161-72.eu.ngrok.io/telegram");
 builder.Services.AddSingleton(bot);
 
 builder.Services.AddScoped<WebhookEventHandlerFactory<TelegramUpdateHandler, Update>, TelegramUpdateHandlerFactory>();

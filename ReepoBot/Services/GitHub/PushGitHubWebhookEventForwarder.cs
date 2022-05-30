@@ -1,4 +1,5 @@
 ﻿using ReepoBot.Services.Telegram;
+using System.Text;
 using System.Text.Json;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -17,7 +18,16 @@ public class PushGitHubWebhookEventForwarder : GitHubWebhookEventForwarder
         var repo = payload.GetProperty("repository");
         var sender = payload.GetProperty("sender");
         var diff = payload.GetProperty("compare");
-        var text = $@"New push to {repo.GetProperty("name")} by {sender.GetProperty("login")}";
+        var commitMessages = GetCommitMessages(payload.GetProperty("commits"));
+
+        var textBuilder = new StringBuilder();
+        textBuilder.Append($"{sender.GetProperty("login")} made {commitMessages.Count()} new push(es) to {repo.GetProperty("name")}:\n");
+        foreach (var commitMessage in commitMessages)
+        {
+            textBuilder.Append(commitMessage + '\n');
+        }
+        var text = textBuilder.ToString();
+
         var replyMarkup = new InlineKeyboardMarkup(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]
@@ -35,5 +45,10 @@ public class PushGitHubWebhookEventForwarder : GitHubWebhookEventForwarder
         {
             await Bot.SendTextMessageAsync(new(subscriber), text, replyMarkup: replyMarkup);
         }
+    }
+
+    static IEnumerable<string> GetCommitMessages(JsonElement commits)
+    {
+        return commits.EnumerateArray().Select(commit => commit.GetProperty("message").ToString());
     }
 }
