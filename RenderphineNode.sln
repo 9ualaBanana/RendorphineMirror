@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeUI", "NodeUI\NodeUI.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReepoBot", "..\Reepo\Reepo\ReepoBot.csproj", "{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hardware", "..\Reepo\Hardware\Hardware.csproj", "{BD0EF2A9-4FF9-4ACE-B1A8-650F1426C865}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD0EF2A9-4FF9-4ACE-B1A8-650F1426C865}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD0EF2A9-4FF9-4ACE-B1A8-650F1426C865}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD0EF2A9-4FF9-4ACE-B1A8-650F1426C865}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD0EF2A9-4FF9-4ACE-B1A8-650F1426C865}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
