@@ -39,6 +39,6 @@ async Task InitializeBot()
 {
     var token = Environment.GetEnvironmentVariable("BOT_TOKEN", EnvironmentVariableTarget.User)!;
     var bot = new TelegramBot(token);
-    await bot.SetWebhookAsync("135.125.237.7/telegram");
+    await bot.SetWebhookAsync($"{Environment.GetEnvironmentVariable("SERVER_HOST", EnvironmentVariableTarget.Machine)}/telegram");
     builder.Services.AddSingleton(bot);
 }
