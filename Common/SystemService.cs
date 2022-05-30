@@ -2,33 +2,27 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.TaskScheduler;
 
-namespace Pinger
+namespace Common
 {
     public static class SystemService
     {
-        const string WindowsServiceExe = @"C:\Windows\System32\sc.exe";
         const string SystemctlExe = "/usr/bin/systemctl"; // TODO: what if no systemd
         const string LaunchctlExe = "/usr/bin/launchctl";
 
         const string ServiceName = "renderphinepinger";
 
 
-        static void Initialize(string nodeexe, string updaterexe)
+        static void Initialize()
         {
-            nodeexe = Path.GetFullPath(nodeexe);
-            updaterexe = Path.GetFullPath(updaterexe);
+            try { Stop(); }
+            catch { }
 
-            Stop();
+            var nodeexe = FileList.GetNodeExe();
+            var nodeuiexe = FileList.GetNodeUIExe();
+            var updaterexe = FileList.GetUpdaterExe();
+            var pingerexe = FileList.GetPingerExe();
 
-            var pingerexe = typeof(SystemService).Assembly.Location;
-            if (IsOs(OSPlatform.Windows)) pingerexe = Path.ChangeExtension(pingerexe, "exe");
-            else
-            {
-                pingerexe = Path.ChangeExtension(pingerexe, null);
-                MakeExecutable(pingerexe);
-                MakeExecutable(nodeexe);
-            }
-
+            MakeExecutable(pingerexe, updaterexe, nodeexe, nodeuiexe);
             ExecuteForOs(Windows, Linux, Mac);
 
 
@@ -99,9 +93,9 @@ namespace Pinger
                 File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.plist"), service);
             }
         }
-        public static void Start(string nodeexe, string updaterexe)
+        public static void Start()
         {
-            Initialize(nodeexe, updaterexe);
+            Initialize();
             ExecuteForOs(Windows, Linux, Mac);
 
 
@@ -128,15 +122,19 @@ namespace Pinger
         }
 
 
-        static void MakeExecutable(string path)
+        static void MakeExecutable(params string[] paths)
         {
             if (Environment.OSVersion.Platform != PlatformID.Unix) return;
 
-            Process.Start(new ProcessStartInfo("/usr/bin/chmod")
+            var p = new ProcessStartInfo("/usr/bin/chmod")
             {
-                ArgumentList = { "+x", path },
+                ArgumentList = { "+x" },
                 UseShellExecute = true,
-            });
+            };
+            foreach (var path in paths)
+                p.ArgumentList.Add(path);
+
+            Process.Start(p);
         }
         static Process Launch(string executable, string arguments) => Process.Start(executable, arguments);
         static void ExecuteForOs(System.Action? windows, System.Action? linux, System.Action? mac)

@@ -28,7 +28,7 @@ namespace NodeUI.Controls
                 if (!CachedSources.TryGetValue(value, out var source))
                 {
                     var xml = new XmlDocument();
-                    xml.Load(Resource.LoadStream(value));
+                    xml.Load(Resource.LoadStream(this, value));
 
 
                     static SolidColorBrush parseColor(string color)
