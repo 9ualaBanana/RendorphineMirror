@@ -19,6 +19,7 @@ global using Avalonia.VisualTree;
 global using Common;
 global using NodeUI.Controls;
 global using NodeUI.Pages;
+using System.Runtime.InteropServices;
 
 namespace NodeUI;
 
@@ -26,6 +27,25 @@ static class Program
 {
     public static void Main(string[] args)
     {
+        // check and elevate privileges
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            try { File.OpenWrite(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "temp")).Dispose(); }
+            catch (UnauthorizedAccessException)
+            {
+                var proc = new ProcessStartInfo(Environment.ProcessPath!)
+                {
+                    UseShellExecute = true,
+                    Verb = "runas",
+                };
+                foreach (var arg in args) proc.ArgumentList.Add(arg);
+                Process.Start(proc);
+
+                return;
+            }
+        }
+
+
         Init.InitLogger();
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }

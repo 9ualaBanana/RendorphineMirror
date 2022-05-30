@@ -138,7 +138,7 @@ namespace NodeUI.Pages
                 var image = new Image
                 {
                     Stretch = Stretch.Fill,
-                    Source = new Bitmap(Resource.LoadStream("img.login_image.jpg"))
+                    Source = new Bitmap(Resource.LoadStream(this, "img.login_image.jpg"))
                 };
 
                 var text = new TextBlock
