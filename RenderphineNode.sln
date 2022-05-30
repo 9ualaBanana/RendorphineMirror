@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "Common\Common.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeUI", "NodeUI\NodeUI.csproj", "{72E0929E-95B7-4114-89FB-D736B4F1891A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReepoBot", "..\Reepo\Reepo\ReepoBot.csproj", "{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReepoBot", "ReepoBot\ReepoBot.csproj", "{EB1A09E5-A2E4-4CF3-B99D-DAD8D310B79D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
