@@ -63,6 +63,7 @@ namespace Common
                 ";
 
                 var configdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "systemd/user/");
+                Directory.CreateDirectory(configdir);
                 File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.service"), service);
                 File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.timer"), timer);
 

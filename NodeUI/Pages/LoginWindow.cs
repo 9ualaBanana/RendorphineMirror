@@ -90,7 +90,6 @@ namespace NodeUI.Pages
             var auth = await Api.AuthenticateAsync(login, password, CancellationToken.None);
             if (!auth) return OperationResult.Err(Localized.Login.WrongLoginPassword);
 
-            var ap = await Api.GetUserInfo(auth.Result.SessionId, CancellationToken.None).ConfigureAwait(false);
             return auth.Result;
         }
         async Task<OperationResult> CheckAuth(string sid, string userid)
@@ -101,14 +100,13 @@ namespace NodeUI.Pages
                 return (await Api.GetUserInfo(sid, CancellationToken.None).ConfigureAwait(false)).GetResult();
             }
             catch (Exception ex) { return OperationResult.Err(ex); }
-            finally { Login.StopLoginAnimation(); }
+            finally { Dispatcher.UIThread.Post(Login.StopLoginAnimation); }
         }
 
         void ShowMainWindow(in LoginResult info)
         {
-            Settings.SessionId = Login.IsRememberMeToggled ? info.SessionId : null;
-            Settings.UserId = Login.IsRememberMeToggled ? info.UserId : null;
-            Settings.Username = Login.IsRememberMeToggled ? info.Username : null;
+            if (Login.IsRememberMeToggled) info.SaveToConfig();
+            else default(LoginResult).SaveToConfig();
 
             new MainWindow().Show();
             Close();

@@ -6,6 +6,7 @@ project.lock.json
 *.pyc
 nupkg/
 **/default.profraw
+.directory
 
 # Rider
 .idea
