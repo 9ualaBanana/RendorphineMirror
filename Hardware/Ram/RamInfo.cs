@@ -1,8 +1,9 @@
-﻿using System.Management.Automation;
+﻿using System.Diagnostics;
+using System.Management.Automation;
 
 namespace Hardware;
 
-public readonly record struct RamInfo(string DeviceLocator, double Capacity, uint MemoryClock)
+public readonly record struct RamInfo(string DeviceLocator, MemoryInfo Memory, uint MemoryClock)
 {
     public async static Task<RamInfo> GetFor(string deviceLocator)
     {
@@ -11,12 +12,19 @@ public readonly record struct RamInfo(string DeviceLocator, double Capacity, uin
 
     public async static Task<List<RamInfo>> GetForAll()
     {
-        return (await QueryRamInfoForAll())
+        if (OperatingSystem.IsWindows()) return await WinGetForAll();
+        if (OperatingSystem.IsLinux()) return await LinuxGetForAll();
+        throw new NotImplementedException();
+    }
+
+    async static Task<List<RamInfo>> WinGetForAll()
+    {
+        return (await WinQueryRamInfoForAll())
             .Select(ramInfoQueryResult => GetRamInfoFrom(ramInfoQueryResult))
             .ToList();
     }
 
-    async static Task<PSDataCollection<PSObject>> QueryRamInfoForAll()
+    async static Task<PSDataCollection<PSObject>> WinQueryRamInfoForAll()
     {
         var powerShell = PowerShell.Create()
             .AddCommand("Get-CIMInstance")
@@ -35,11 +43,44 @@ public readonly record struct RamInfo(string DeviceLocator, double Capacity, uin
         return await powerShell.InvokeAsync();
     }
 
-    static RamInfo GetRamInfoFrom(PSObject queryResult)
+
+    async static Task<List<RamInfo>> LinuxGetForAll()
     {
-        var serialNumber = queryResult.Properties["DeviceLocator"].Value.ToString()!;
-        var capacity = ((ulong)queryResult.Properties["Capacity"].Value).KB().MB().GB();
-        var memoryClock = (uint)queryResult.Properties["Speed"].Value;
-        return new(serialNumber, capacity, memoryClock);
+        return new() { GetRamInfoFrom(await UnixQueryRamInfoForAll()) };
+    }
+
+    async static Task<string> UnixQueryRamInfoForAll()
+    {
+        var startInfo = new ProcessStartInfo("lscpu")
+        {
+            CreateNoWindow = true,
+            RedirectStandardOutput = true
+        };
+        return (await Process.Start(startInfo)!
+            .StandardOutput.ReadToEndAsync())
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .First();
+    }
+
+    static RamInfo GetRamInfoFrom(PSObject powerShellQueryResult)
+    {
+        var deviceLocator = powerShellQueryResult.Properties["DeviceLocator"].Value.ToString()!;
+        var capacity = ((ulong)powerShellQueryResult.Properties["Capacity"].Value).KB().MB();
+        var memoryClock = (uint)powerShellQueryResult.Properties["Speed"].Value;
+        return new(deviceLocator, new(default, capacity), memoryClock);
+    }
+
+    static RamInfo GetRamInfoFrom(string linuxQueryResult)
+    {
+        var queryResults = linuxQueryResult.Split();
+
+        var deviceLocator = "All available RAM";
+        uint memoryClock = default;
+
+        var used = ulong.Parse(queryResults[2]);
+        var total = ulong.Parse(queryResults[1]);
+        var memoryInfo = new MemoryInfo(used, total);
+
+        return new(deviceLocator, memoryInfo, memoryClock);
     }
 }
