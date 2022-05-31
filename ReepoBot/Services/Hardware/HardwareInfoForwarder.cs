@@ -79,7 +79,7 @@ public class HardwareInfoForwarder : WebhookEventHandler<HardwareInfo>
         result.AppendLine("---------".Sanitize());
         foreach (var ramInfo in ramInfoForAll)
         {
-            result.AppendLine($"{ramInfo.DeviceLocator} [ *{ramInfo.Capacity}* GB | *{ramInfo.MemoryClock}* MHz ]".Sanitize());
+            result.AppendLine($"{ramInfo.DeviceLocator} [ *{ramInfo.Memory.Total}* MB | *{ramInfo.MemoryClock}* MHz ]".Sanitize());
             result.AppendLine();
         }
         return result.ToString();

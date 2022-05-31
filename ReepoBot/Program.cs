@@ -33,12 +33,12 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+app.Run($"{builder.Configuration["HostServer"]}");
 
 async Task InitializeBot()
 {
-    var token = Environment.GetEnvironmentVariable("BOT_TOKEN", EnvironmentVariableTarget.User)!;
+    var token = builder.Configuration["BotToken"];
     var bot = new TelegramBot(token);
-    await bot.SetWebhookAsync($"{Environment.GetEnvironmentVariable("SERVER_HOST", EnvironmentVariableTarget.Machine)}/telegram");
+    await bot.SetWebhookAsync($"{builder.Configuration["HostServer"]}/telegram");
     builder.Services.AddSingleton(bot);
 }

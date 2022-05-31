@@ -1,5 +1,4 @@
-﻿using ReepoBot.Services;
-using ReepoBot.Services.Telegram;
+﻿using ReepoBot.Services.Telegram;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -13,11 +12,10 @@ public abstract class GitHubWebhookEventForwarder : WebhookEventHandler<JsonElem
     {
     }
 
-    internal bool HasMatchingSignature(JsonElement payload, string signature)
+    internal bool SignaturesMatch(JsonElement payload, string signature, string secret)
     {
-        var secret = Environment.GetEnvironmentVariable("GITHUB_SECRET", EnvironmentVariableTarget.User)!;
         using var hmac256 = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
-        // GitHub advises to use UTF-8 for payload deserializing.
+        // GitHubGitHub advises to use UTF-8 for payload deserializing.
         var ourSignature = "sha256=" + BitConverter.ToString(
             hmac256.ComputeHash(Encoding.UTF8.GetBytes(payload.GetRawText()))
             )

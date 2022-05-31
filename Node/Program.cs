@@ -17,7 +17,7 @@ Thread.Sleep(-1);
 async Task SendHardwareInfo()
 {
     await new HttpClient().PostAsync(
-        $"{Environment.GetEnvironmentVariable("SERVER_HOST", EnvironmentVariableTarget.Machine)}/hardware_info",
+        $"https://t.microstock.plus:8443/hardware_info",
         JsonContent.Create(await HardwareInfo.GetForAll()));
 }
 

@@ -35,6 +35,7 @@ public class WebhookEventReceiversController : ControllerBase
         [FromHeader(Name = "X-Hub-Signature-256")] string signature,
         [FromHeader(Name = "X-GitHub-Event")] string eventType,
         [FromServices] WebhookEventHandlerFactory<GitHubWebhookEventForwarder, string> handlerFactory,
+        [FromServices] IConfiguration configuration,
         [FromBody] JsonDocument payload)
     {
         var eventHandler = handlerFactory.Resolve(eventType);
@@ -44,7 +45,7 @@ public class WebhookEventReceiversController : ControllerBase
         }
 
         var payloadContent = payload.RootElement;
-        if (!eventHandler.HasMatchingSignature(payloadContent, signature))
+        if (!eventHandler.SignaturesMatch(payloadContent, signature, configuration["GitHubSecret"]))
         {
             return BadRequest();
         }
