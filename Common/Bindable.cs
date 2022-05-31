@@ -1,14 +1,15 @@
 namespace Common
 {
+    public delegate void ChangedDelegate<T>(T oldv, T newv);
     public interface IReadOnlyBindable<T>
     {
-        public event Action<T, T> Changed;
+        public event ChangedDelegate<T> Changed;
         T Value { get; }
     }
     public class Bindable<T> : IReadOnlyBindable<T>
     {
         // <old, new>
-        public event Action<T, T> Changed = delegate { };
+        public event ChangedDelegate<T> Changed = delegate { };
 
         T _Value;
         public virtual T Value { get => _Value; set => Changed(Value!, _Value = value); }
@@ -17,7 +18,7 @@ namespace Common
         public Bindable(T defaultValue = default!) => _Value = DefaultValue = defaultValue;
 
         public void RaiseChangedEvent() => Changed(Value!, Value!);
-        public void SubscribeChanged(Action<T, T> action, bool invokeImmediately = false)
+        public void SubscribeChanged(ChangedDelegate<T> action, bool invokeImmediately = false)
         {
             Changed += action;
             if (invokeImmediately) action(Value, Value);

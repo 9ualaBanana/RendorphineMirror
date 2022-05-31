@@ -1,10 +1,9 @@
-﻿namespace Common
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Common
 {
-    // TODO: make non-static
     public static class Settings
     {
-        public static event Action OnUpdate = delegate { };
-
         // TODO: make \/ bindable
         public static int ListenPort => 5000; // Get<int>("listenport");
 
@@ -17,26 +16,26 @@
         public static readonly Bindable<string?> BSessionId, BUsername, BUserId, BLanguage;
         public static readonly Bindable<LogLevel> BLogLevel;
 
+        static readonly JsonConfig Config;
+
         static Settings()
         {
-            BSessionId = CreateBindable<string?>();
-            BUsername = CreateBindable<string?>();
-            BUserId = CreateBindable<string?>();
-            BLanguage = CreateBindable<string?>();
-            BLogLevel = CreateBindable(LogLevel.Basic);
+            Config = new JsonConfig(Path.Combine(Init.ConfigDirectory, "config.json"));
+
+            BSessionId = CreateBindable<string?>(nameof(BSessionId), null);
+            BUsername = CreateBindable<string?>(nameof(BUsername), null);
+            BUserId = CreateBindable<string?>(nameof(BUserId), null);
+            BLanguage = CreateBindable<string?>(nameof(BLanguage), null);
+            BLogLevel = CreateBindable(nameof(BLogLevel), LogLevel.Basic);
 
 
-            Bindable<T> CreateBindable<T>(T defaultValue = default!)
+            Bindable<T> CreateBindable<T>(string path, T defaultValue)
             {
-                var bindable = new Bindable<T>(defaultValue!);
-                bindable.Changed += (_, _) => OnUpdate();
-                // TODO: update values in db when changed
+                var bindable = new Bindable<T>(Config.TryGet(path, defaultValue!));
+                bindable.Changed += (oldv, newv) => Config.Set(path, newv);
 
                 return bindable;
             }
         }
-
-
-        // TODO: sqliteconnection stuff
     }
 }
