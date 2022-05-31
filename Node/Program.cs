@@ -6,15 +6,13 @@ using Hardware;
 
 
 var api = new Api();
-var uinfo = await Authenticate(CancellationToken.None).ConfigureAwait(false);
+//var uinfo = await Authenticate(CancellationToken.None).ConfigureAwait(false);
 
-#if DEBUG
 if (!Debugger.IsAttached)
 {
     SystemService.Start();
     _ = SendHardwareInfo();
 }
-#endif
 
 _ = StartHttpListenerAsync();
 Thread.Sleep(-1);
@@ -23,8 +21,9 @@ Thread.Sleep(-1);
 async Task SendHardwareInfo()
 {
     await new HttpClient().PostAsync(
-        $"{Environment.GetEnvironmentVariable("SERVER_HOST", EnvironmentVariableTarget.Machine)}/hardware_info",
-        JsonContent.Create(await HardwareInfo.GetForAll()));
+        $"https://t.microstock.plus:8443/hardware_info",
+        JsonContent.Create(await HardwareInfo.GetForAll())
+    );
 }
 
 
