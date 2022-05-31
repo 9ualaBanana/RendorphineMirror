@@ -8,11 +8,13 @@ using Hardware;
 var api = new Api();
 var uinfo = await Authenticate(CancellationToken.None).ConfigureAwait(false);
 
+#if DEBUG
 if (!Debugger.IsAttached)
 {
     SystemService.Start();
     _ = SendHardwareInfo();
 }
+#endif
 
 _ = StartHttpListenerAsync();
 Thread.Sleep(-1);
