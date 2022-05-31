@@ -101,7 +101,7 @@ namespace NodeUI.Pages
                 return (await Api.GetUserInfo(sid, CancellationToken.None).ConfigureAwait(false)).GetResult();
             }
             catch (Exception ex) { return OperationResult.Err(ex); }
-            finally { Login.StopLoginAnimation(); }
+            finally { Dispatcher.UIThread.Post(Login.StopLoginAnimation); }
         }
 
         void ShowMainWindow(in LoginResult info)
