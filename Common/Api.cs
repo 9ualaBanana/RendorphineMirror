@@ -24,19 +24,19 @@ namespace Common
             );
 
 
-        public ValueTask<OperationResult<JToken>> GetUserInfo(string sid, CancellationToken token) =>
-            Fetch<JToken>("contentdb/users/getinfo", sid, "list", token);
+        public ValueTask<OperationResult<UserInfo>> GetUserInfo(string sid, CancellationToken token) =>
+            Fetch<UserInfo>("contentdb/users/getinfo", sid, "info", token);
 
-        ValueTask<OperationResult<T>> Fetch<T>(string urladd, string sid, string valueName, string value, string responseJsonName, CancellationToken token) where T : class =>
+        ValueTask<OperationResult<T>> Fetch<T>(string urladd, string sid, string valueName, string value, string responseJsonName, CancellationToken token) =>
             Send<T>(true, urladd, sid, valueName, value, responseJsonName, token);
-        ValueTask<OperationResult<T>> Fetch<T>(string urladd, string sid, string responseJsonName, CancellationToken token) where T : class =>
+        ValueTask<OperationResult<T>> Fetch<T>(string urladd, string sid, string responseJsonName, CancellationToken token) =>
             Send<T>(true, urladd, sid, Enumerable.Empty<KeyValuePair<string, string>>(), responseJsonName, token);
-        ValueTask<OperationResult<T>> Post<T>(string urladd, string sid, string valueName, string value, string responseJsonName, CancellationToken token) where T : class =>
+        ValueTask<OperationResult<T>> Post<T>(string urladd, string sid, string valueName, string value, string responseJsonName, CancellationToken token) =>
             Send<T>(false, urladd, sid, valueName, value, responseJsonName, token);
-        ValueTask<OperationResult<T>> Send<T>(bool get, string urladd, string sid, string valueName, string value, string responseJsonName, CancellationToken token) where T : class =>
+        ValueTask<OperationResult<T>> Send<T>(bool get, string urladd, string sid, string valueName, string value, string responseJsonName, CancellationToken token) =>
             Send<T>(get, urladd, sid, new[] { KeyValuePair.Create(valueName, value) }, responseJsonName, token);
         async ValueTask<OperationResult<T>> Send<T>(bool get, string urladd, string sid, IEnumerable<KeyValuePair<string, string>> parameters,
-            string responseJsonName, CancellationToken token) where T : class
+            string responseJsonName, CancellationToken token)
         {
             var response = await Send(get, urladd, sid, parameters, token).ConfigureAwait(false);
             if (!response) return response.GetResult();
@@ -45,7 +45,13 @@ namespace Common
             if (false && Debugger.IsAttached && Directory.Exists("/tmp"))
                 WriteTempFile("/tmp", urladd, response.Result);
 
-            try { return response.Result[responseJsonName]?.ToObject<T>()!; }
+            try
+            {
+                var j = response.Result[responseJsonName];
+                if (j is null) return default!;
+
+                return j.ToObject<T>()!;
+            }
             catch (Exception ex) { return OperationResult.Err(ex); }
         }
         async ValueTask<OperationResult<JObject>> Send(bool get, string urladd, string sid, IEnumerable<KeyValuePair<string, string>> parameters, CancellationToken token)
@@ -229,6 +235,24 @@ namespace Common
             SessionId = sid;
         }
 
+        public void SaveToConfig()
+        {
+            Settings.SessionId = SessionId;
+            Settings.UserId = UserId;
+            Settings.Username = Username;
+        }
+
         public override string ToString() => "Username: " + Username + ", Uid:" + UserId + ", Sid:" + SessionId;
+    }
+    public readonly struct UserInfo
+    {
+        public readonly string UserId, Email, Id;
+
+        public UserInfo(string userId, string email, string id)
+        {
+            UserId = userId;
+            Email = email;
+            Id = id;
+        }
     }
 }
