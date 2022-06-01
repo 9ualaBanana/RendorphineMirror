@@ -63,7 +63,12 @@ public class Subscriptions : ICollection<long>
         var result = _subscriptions.Remove(item);
         if (result)
         {
-            File.WriteAllLines(_fileName, _subscriptions.Cast<string>());
+            var stringSubscriptions = new List<string>();
+            foreach (var subscription in _subscriptions)
+            {
+                stringSubscriptions.Add(subscription.ToString());
+            }
+            File.WriteAllLines(_fileName, stringSubscriptions);
         }
         return result;
     }
