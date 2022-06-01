@@ -27,6 +27,8 @@ static class Program
 {
     public static void Main(string[] args)
     {
+        WindowsTrayRefreshFix.RefreshTrayArea();
+
         // check and elevate privileges
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
