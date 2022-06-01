@@ -1,18 +1,19 @@
-﻿namespace Hardware;
+﻿using System.ComponentModel;
+
+namespace Hardware;
 
 public readonly record struct HardwareInfo(
-    List<CpuInfo> CpuInfo,
-    List<GpuInfo> GpuInfo,
-    List<RamInfo> RamInfo,
-    List<DiskInfo> DiskInfo)
+    Container CPU,
+    Container GPU,
+    Container RAM,
+    Container Disks)
 {
-    public async static Task<HardwareInfo> GetForAll()
+    public static HardwareInfo Get()
     {
-        var cpuInfo = await Hardware.CpuInfo.GetForAll();
-        var gpuInfo = Hardware.GpuInfo.GetForAll();
-        var diskInfo = await Hardware.DiskInfo.GetForAll();
-        var ramInfo = await Hardware.RamInfo.GetForAll();
-
-        return new HardwareInfo(cpuInfo, gpuInfo, ramInfo, diskInfo);
+        return new(
+            Hardware.CPU.Info(),
+            Hardware.GPU.Info(),
+            Hardware.RAM.Info(),
+            Hardware.Disk.Info());
     }
 }
