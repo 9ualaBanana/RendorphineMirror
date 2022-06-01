@@ -3,8 +3,8 @@ namespace Common
     public enum LogLevel { None, Basic, All }
     public static class Logger
     {
-        static readonly string LatestLogName = Path.Combine(Init.ConfigDirectory, "latest.log");
-        static readonly string SecondLogName = Path.Combine(Init.ConfigDirectory, "latest_0.log");
+        static readonly string LatestLogName = Path.Combine(Init.ConfigDirectory, Path.GetFileNameWithoutExtension(Environment.ProcessPath!) + "_latest.log");
+        static readonly string SecondLogName = Path.Combine(Init.ConfigDirectory, Path.GetFileNameWithoutExtension(Environment.ProcessPath!) + "_latest_0.log");
 
         public static bool Enabled = true;
 
