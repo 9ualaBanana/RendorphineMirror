@@ -1,13 +1,30 @@
 namespace NodeUI
 {
-    public class TrayIndicator
+    public static class TrayIndicator
     {
-        public void Initialize()
+        public static void InitializeTrayIndicator(this Window window, bool interceptClosing)
         {
-            var items = new (LocalizedString, Action)?[] { (Localized.Menu.Close, exit), }.ToImmutableArray();
-            var icon = new TrayIcon() { ToolTipText = App.AppName, Icon = new WindowIcon(Resource.LoadStream(typeof(TrayIndicator).Assembly, "img.tray_icon.png")) };
+            var items = new (LocalizedString, Action)?[]
+            {
+                (Localized.Menu.Open, open),
+                null,
+                (Localized.Menu.Close, exit),
+            }.ToImmutableArray();
 
-            LocalizedString.ChangeLangWeakEvent.Subscribe(this, updateMenus);
+            var icon = new TrayIcon() { ToolTipText = App.AppName, Icon = new WindowIcon(Resource.LoadStream(typeof(TrayIndicator).Assembly, "img.tray_icon.png")) };
+            icon.FixException();
+
+            if (interceptClosing)
+                window.Closing += (_, e) =>
+                {
+                    e.Cancel = true;
+                    window.Hide();
+                };
+
+            window.Closed += (_, _) => icon.Dispose();
+
+
+            LocalizedString.ChangeLangWeakEvent.Subscribe(window, updateMenus);
             updateMenus();
 
             void updateMenus()
@@ -27,6 +44,14 @@ namespace NodeUI
 
                 try { icon.Menu = menu; }
                 catch { }
+            }
+            void open()
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (window.IsVisible) window.Hide();
+                    else window.Show();
+                });
             }
             void exit()
             {

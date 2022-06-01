@@ -5,8 +5,19 @@ using System.Net.Http.Json;
 using Hardware;
 
 
+
 var api = new Api();
-//var uinfo = await Authenticate(CancellationToken.None).ConfigureAwait(false);
+
+var uinfor = await Authenticate(CancellationToken.None).ConfigureAwait(false);
+if (uinfor is null)
+{
+    await AuthenticateWithUI(CancellationToken.None).ConfigureAwait(false);
+    return;
+}
+
+var uinfo = uinfor.Value;
+Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
+
 
 if (!Debugger.IsAttached)
 {
@@ -27,7 +38,27 @@ async Task SendHardwareInfo()
 }
 
 
-async Task<UserInfo> Authenticate(CancellationToken token)
+// TODO: починить костыли бесят
+async Task<UserInfo> AuthenticateWithUI(CancellationToken token)
+{
+    Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
+
+    Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate or create auth.txt file in {Directory.GetCurrentDirectory()} with your login and password divided by space");
+    Console.WriteLine(@$"Example: ""makov@gmail.com password123""");
+
+    var l = new HttpListener();
+    l.Prefixes.Add(@$"http://127.0.0.1:{Settings.ListenPort}/");
+    l.Start();
+    Console.WriteLine(@$"Waiting for auth or exit...");
+    var context = await l.GetContextAsync().ConfigureAwait(false);
+    var request = context.Request;
+    if (request.Url?.LocalPath.EndsWith("auth") ?? false)
+        Process.Start(Environment.ProcessPath!);
+
+    Environment.Exit(0);
+    return default;
+}
+async Task<UserInfo?> Authenticate(CancellationToken token)
 {
     // either check sid
     if (Settings.SessionId is not null)
@@ -54,12 +85,6 @@ async Task<UserInfo> Authenticate(CancellationToken token)
         }
     }
 
-    var txt = @$"You are not authenticated. Please use NodeUI app to authenticate or create auth.txt file in {Directory.GetCurrentDirectory()} with your login and password divided by space";
-    Console.WriteLine(txt);
-    Console.WriteLine(@$"Example: ""makov@gmail.com password123""");
-    Console.ReadLine();
-
-    Environment.Exit(0);
     return default;
 }
 async Task StartHttpListenerAsync()

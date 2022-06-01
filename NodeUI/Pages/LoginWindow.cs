@@ -16,6 +16,9 @@ namespace NodeUI.Pages
             Title = App.AppName;
             Icon = App.Icon;
 
+            this.InitializeTrayIndicator(false);
+
+
             async Task authenticate(Func<ValueTask<OperationResult<LoginResult>>> func)
             {
                 var auth = await func();
@@ -108,7 +111,11 @@ namespace NodeUI.Pages
             if (Login.IsRememberMeToggled) info.SaveToConfig();
             else default(LoginResult).SaveToConfig();
 
-            new MainWindow().Show();
+            var w = new MainWindow();
+            w.Show();
+            if (Environment.GetCommandLineArgs().Contains("hidden"))
+                w.Hide();
+
             Close();
         }
     }

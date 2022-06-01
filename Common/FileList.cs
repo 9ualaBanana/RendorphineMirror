@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Common
 {
@@ -8,7 +10,6 @@ namespace Common
         {
             var thisdir = Path.GetDirectoryName(Environment.ProcessPath!)!;
             var executables = GetExecutables(thisdir, true, false).ToArray();
-            Console.WriteLine("Should be killing " + string.Join(',', executables));
 
             return Process.GetProcesses().Where(x => filter(x, executables.Contains));
 
@@ -19,9 +20,7 @@ namespace Common
                     var module = proc.MainModule;
                     if (module?.FileName is null) return false;
 
-                    var fpath = Path.GetFullPath(module.FileName);
-                    Console.WriteLine(fpath);
-                    return check(fpath);
+                    return check(Path.GetFullPath(module.FileName));
                 }
                 catch { return false; }
             }
@@ -43,9 +42,13 @@ namespace Common
 
         static string GetExe(string filename)
         {
-            var thispath = Environment.ProcessPath!;
-            var exeextenion = Path.GetExtension(thispath);
-            return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thispath)!, filename + exeextenion));
+            var extension = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "exe" : null;
+
+            string thispath;
+            if (Debugger.IsAttached) thispath = Assembly.GetCallingAssembly().Location;
+            else thispath = Environment.ProcessPath!;
+
+            return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thispath)!, filename + extension));
         }
     }
 }

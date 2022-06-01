@@ -24,6 +24,19 @@
             "stopAtEntry": false
         },
         {
+            "name": "NodeUI_hidden",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildnodeui",
+            "program": "${workspaceFolder}/NodeUI/bin/Debug/net6.0/NodeUI.dll",
+            "args": [
+                "hidden"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Pinger",
             "type": "coreclr",
             "request": "launch",

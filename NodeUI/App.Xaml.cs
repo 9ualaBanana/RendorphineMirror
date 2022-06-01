@@ -7,18 +7,13 @@ namespace NodeUI
     {
         public static readonly string AppName, Version;
         public static readonly WindowIcon Icon = new WindowIcon(Resource.LoadStream(typeof(App).Assembly, "img.icon.ico"));
-        readonly TrayIndicator Tray = new();
 
         static App()
         {
             Version = Init.Version;
             AppName = "Renderphine   v" + Version;
         }
-        public override void Initialize()
-        {
-            Tray.Initialize();
-            AvaloniaXamlLoader.Load(this);
-        }
+        public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
         public override void OnFrameworkInitializationCompleted()
         {
@@ -40,7 +35,10 @@ namespace NodeUI
 
                 var window = new LoginWindow();
                 desktop.MainWindow = window;
-                window.Show();
+
+                if (!Environment.GetCommandLineArgs().Contains("hidden"))
+                    window.Show();
+                else  Dispatcher.UIThread.Post(window.Hide);
             }
         }
     }
