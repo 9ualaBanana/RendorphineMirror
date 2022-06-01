@@ -10,8 +10,9 @@ public readonly record struct HardwareInfo(
     {
         var cpuInfo = await Hardware.CpuInfo.GetForAll();
         var gpuInfo = Hardware.GpuInfo.GetForAll();
-        var ramInfo = await Hardware.RamInfo.GetForAll();
         var diskInfo = await Hardware.DiskInfo.GetForAll();
+        var ramInfo = await Hardware.RamInfo.GetForAll();
+
         return new HardwareInfo(cpuInfo, gpuInfo, ramInfo, diskInfo);
     }
 }

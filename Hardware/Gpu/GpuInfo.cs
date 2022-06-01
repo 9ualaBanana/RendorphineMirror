@@ -10,7 +10,7 @@ public readonly record struct GpuInfo(Guid Id, string Name, MemoryInfo Memory, G
         var allGpuHardwareIds = queryResult.StandardOutput.ReadToEnd()!;
 
         return allGpuHardwareIds
-            .Split(Environment.NewLine.ToCharArray(), StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Split(Environment.NewLine, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Select(hardwareId => GetFor(hardwareId))
             .ToList();
     }
@@ -64,14 +64,14 @@ public readonly record struct GpuInfo(Guid Id, string Name, MemoryInfo Memory, G
 
         var name = splitQueryResult[1];
 
-        var memoryUsed = ulong.Parse(splitQueryResult[2]);
-        var memoryTotal = ulong.Parse(splitQueryResult[3]);
+        _ = ulong.TryParse(splitQueryResult[2], out var memoryUsed);
+        _ = ulong.TryParse(splitQueryResult[3], out var memoryTotal);
         var memoryInfo = new MemoryInfo(memoryUsed, memoryTotal);
 
-        var currentGraphicsClock = int.Parse(splitQueryResult[4]);
-        var maxGraphicsClock = int.Parse(splitQueryResult[5]);
-        var currentMemoryClock = int.Parse(splitQueryResult[6]);
-        var maxMemoryClock = int.Parse(splitQueryResult[7]);
+        _ = int.TryParse(splitQueryResult[4], out var currentGraphicsClock);
+        _ = int.TryParse(splitQueryResult[5], out var maxGraphicsClock);
+        _ = int.TryParse(splitQueryResult[6], out var currentMemoryClock);
+        _ = int.TryParse(splitQueryResult[7], out var maxMemoryClock);
         var clockInfo = new GpuClockInfo(
             currentGraphicsClock, maxGraphicsClock,
             currentMemoryClock, maxMemoryClock);

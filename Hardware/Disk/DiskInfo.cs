@@ -4,10 +4,10 @@ using System.Management.Automation;
 namespace Hardware;
 
 public readonly record struct DiskInfo(
-    string SerialNumber,
-    string Caption,
+    string? SerialNumber,
+    string? Caption,
     MemoryInfo StorageSpace,
-    string FileSystem)
+    string? FileSystem)
 {
     public async static Task<DiskInfo> GetFor(string volumeSerialNumber)
     {
@@ -52,14 +52,19 @@ public readonly record struct DiskInfo(
 
     static DiskInfo GetDiskInfoFrom(PSObject powerShellQueryResult)
     {
-        var volumeSerialNumber = powerShellQueryResult.Properties["VolumeSerialNumber"].Value.ToString()!;
-        var caption = powerShellQueryResult.Properties["Caption"].Value.ToString()!;
-        var fileSystem = powerShellQueryResult.Properties["FileSystem"].Value.ToString()!;
+        var volumeSerialNumber = powerShellQueryResult.Properties["VolumeSerialNumber"]?.Value.ToString();
+        var caption = powerShellQueryResult.Properties["Caption"]?.Value.ToString();
+        var fileSystem = powerShellQueryResult.Properties["FileSystem"]?.Value.ToString();
 
-        var freeStorageSpace = (ulong)powerShellQueryResult.Properties["FreeSpace"].Value;
-        var size = (ulong)powerShellQueryResult.Properties["Size"].Value;
-        var usedStorageSpace = (size - freeStorageSpace).KB().MB().GB();
-        var storageSpace = new MemoryInfo(usedStorageSpace, size.KB().MB().GB());
+        var freeStorageSpace = powerShellQueryResult.Properties["FreeSpace"].Value<ulong?>();
+        var size = powerShellQueryResult.Properties["Size"].Value<ulong?>();
+
+        double? usedStorageSpace = null;
+        if (freeStorageSpace is not null && size is not null)
+        {
+            usedStorageSpace = ((ulong)size - (ulong)freeStorageSpace).KB().MB().GB();
+        }
+        var storageSpace = new MemoryInfo(usedStorageSpace, size?.KB().MB().GB());
 
         return new(volumeSerialNumber, caption, storageSpace, fileSystem);
     }
@@ -88,8 +93,8 @@ public readonly record struct DiskInfo(
         var linuxQueryResults = linuxQueryResult.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         var diskSerialNumber = linuxQueryResults[1].Value();
-        var caption = "Unknown";
-        var fileSystem = "Unknown";
+        string? caption = null;
+        string? fileSystem = null;
 
         var size = double.Parse(linuxQueryResults[2].Value(true));
         var storageSpace = new MemoryInfo(default, size);

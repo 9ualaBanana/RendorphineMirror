@@ -4,12 +4,12 @@ using System.Management.Automation;
 namespace Hardware;
 
 public readonly record struct CpuInfo(
-    string Id,
-    string Name,
-    uint CoreCount,
-    uint ThreadCount,
+    string? Id,
+    string? Name,
+    uint? CoreCount,
+    uint? ThreadCount,
     CpuClockInfo CpuClockInfo,
-    ushort LoadPercentage)
+    ushort? LoadPercentage)
 {
     public async static Task<CpuInfo> GetFor(string hardwareId)
     {
@@ -56,16 +56,16 @@ public readonly record struct CpuInfo(
 
     static CpuInfo GetCpuInfoFrom(PSObject powerShellQueryResult)
     {
-        var id = powerShellQueryResult.Properties["ProcessorId"].Value.ToString()!;
-        var name = powerShellQueryResult.Properties["Name"].Value.ToString()!;
+        var id = powerShellQueryResult.Properties["ProcessorId"]?.Value.ToString();
+        var name = powerShellQueryResult.Properties["Name"]?.Value.ToString();
 
-        var currentClockSpeed = (uint)powerShellQueryResult.Properties["CurrentClockSpeed"].Value;
-        var maxClockSpeed = (uint)powerShellQueryResult.Properties["MaxClockSpeed"].Value;
+        uint? currentClockSpeed = powerShellQueryResult.Properties["CurrentClockSpeed"].Value<uint?>();
+        uint? maxClockSpeed = powerShellQueryResult.Properties["MaxClockSpeed"].Value<uint?>();
         var clockInfo = new CpuClockInfo(currentClockSpeed, maxClockSpeed);
 
-        var coreCount = (uint)powerShellQueryResult.Properties["NumberOfCores"].Value;
-        var threadCount = (uint)powerShellQueryResult.Properties["ThreadCount"].Value;
-        var loadPercentage = (ushort)powerShellQueryResult.Properties["LoadPercentage"].Value;
+        var coreCount = powerShellQueryResult.Properties["NumberOfCores"].Value<uint?>();
+        var threadCount = powerShellQueryResult.Properties["ThreadCount"].Value<uint?>();
+        var loadPercentage = powerShellQueryResult.Properties["LoadPercentage"].Value<ushort?>();
 
         return new(id, name, coreCount, threadCount, clockInfo, loadPercentage);
     }
@@ -75,7 +75,6 @@ public readonly record struct CpuInfo(
         return (await LinuxQueryCpuInfoForAll())
             .Select(cpuInfoQueryResult => GetCpuInfoFrom(cpuInfoQueryResult))
             .ToList();
-
     }
 
     async static Task<List<string>> LinuxQueryCpuInfoForAll()

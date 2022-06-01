@@ -3,7 +3,7 @@ using System.Management.Automation;
 
 namespace Hardware;
 
-public readonly record struct RamInfo(string DeviceLocator, MemoryInfo Memory, uint MemoryClock)
+public readonly record struct RamInfo(string? DeviceLocator, MemoryInfo Memory, uint? MemoryClock)
 {
     public async static Task<RamInfo> GetFor(string deviceLocator)
     {
@@ -64,9 +64,14 @@ public readonly record struct RamInfo(string DeviceLocator, MemoryInfo Memory, u
 
     static RamInfo GetRamInfoFrom(PSObject powerShellQueryResult)
     {
-        var deviceLocator = powerShellQueryResult.Properties["DeviceLocator"].Value.ToString()!;
-        var capacity = ((ulong)powerShellQueryResult.Properties["Capacity"].Value).KB().MB();
-        var memoryClock = (uint)powerShellQueryResult.Properties["Speed"].Value;
+        var deviceLocator = powerShellQueryResult.Properties["DeviceLocator"]?.Value.ToString();
+        var rawCapacity = powerShellQueryResult.Properties["Capacity"].Value<ulong?>();
+        double? capacity = null;
+        if (rawCapacity is not null)
+        {
+            capacity = ((ulong)rawCapacity).KB().MB();
+        }
+        var memoryClock = powerShellQueryResult.Properties["Speed"].Value<uint?>();
         return new(deviceLocator, new(default, capacity), memoryClock);
     }
 
