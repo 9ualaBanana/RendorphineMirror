@@ -1,5 +1,5 @@
 #!/bin/bash
 
-./dp uupdater/win/app Node Release win-x64
+./dp uupdater/win/app Node Release win7-x64
 ./dp uupdater/lin/app Node Release linux-x64
 ./dp uupdater/mac/app Node Release osx-x64
