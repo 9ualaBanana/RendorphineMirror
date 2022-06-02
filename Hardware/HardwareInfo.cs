@@ -22,7 +22,7 @@ public readonly record struct HardwareInfo(
 
     public string ToTelegramMessage(bool verbose = false)
     {
-        if (OperatingSystem.IsWindows()) return new WindowsHardwareInfoMessageBuilder(this).Build(verbose);
+        if (OperatingSystem.IsWindows()) return new WindowsHardwareInfoMessageBuilder(this).Build(verbose).Sanitize();
         throw new PlatformNotSupportedException();
     }
 

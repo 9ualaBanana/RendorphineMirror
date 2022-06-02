@@ -18,11 +18,13 @@ public class HardwareInfoForwarder : WebhookEventHandler<string>
     [SupportedOSPlatform("windows")]
     public override async Task HandleAsync(string hardwareInfoMessage)
     {
+        Logger.LogDebug("Sending the hardware info message...");
         foreach (var subscriber in Bot.Subscriptions)
         {
             await Bot.SendTextMessageAsync(
                 subscriber, hardwareInfoMessage,
                 parseMode: ParseMode.MarkdownV2);
         }
+        Logger.LogDebug("Hardware info message is sent.");
     }
 }
