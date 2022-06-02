@@ -1,3 +1,5 @@
+using Avalonia.Controls.ApplicationLifetimes;
+
 namespace NodeUI.Pages
 {
     public class LoginWindow : LoginWindowUI
@@ -6,6 +8,7 @@ namespace NodeUI.Pages
 
         readonly List<CancellationTokenSource> WaitingExternalAuths = new List<CancellationTokenSource>();
 
+        public LoginWindow(LocalizedString error) : this(false) => Login.ShowError(error);
         public LoginWindow(bool tryAutoAuth = true)
         {
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -16,7 +19,7 @@ namespace NodeUI.Pages
             Title = App.AppName;
             Icon = App.Icon;
 
-            this.InitializeTrayIndicator(false);
+            this.PreventClosing();
 
 
             async Task authenticate(Func<ValueTask<OperationResult<LoginResult>>> func)
@@ -62,7 +65,6 @@ namespace NodeUI.Pages
                     Dispatcher.UIThread.Post(() => ShowMainWindow(new LoginResult(Settings.Username!, Settings.UserId!, Settings.SessionId!)));
                 });
         }
-        public LoginWindow(LocalizedString error) : this(false) => Login.ShowError(error);
 
 
         async ValueTask<OperationResult<LoginResult>> TryAuthenticateExternal(LoginType type)
@@ -108,10 +110,12 @@ namespace NodeUI.Pages
 
         void ShowMainWindow(in LoginResult info)
         {
-            if (Login.IsRememberMeToggled) info.SaveToConfig();
-            else default(LoginResult).SaveToConfig();
+            info.SaveToConfig();
+            try { new HttpClient().GetAsync(@$"http://127.0.0.1:{Settings.ListenPort}/auth"); }
+            catch { }
 
             var w = new MainWindow();
+            ((IClassicDesktopStyleApplicationLifetime) Application.Current!.ApplicationLifetime!).MainWindow = w;
             w.Show();
             if (Environment.GetCommandLineArgs().Contains("hidden"))
                 w.Hide();

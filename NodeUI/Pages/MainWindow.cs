@@ -11,7 +11,7 @@ namespace NodeUI.Pages
             Title = App.AppName;
             Icon = App.Icon;
 
-            this.InitializeTrayIndicator(true);
+            this.PreventClosing();
 
 
             Content = new TextBlock()

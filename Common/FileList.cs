@@ -42,7 +42,7 @@ namespace Common
 
         static string GetExe(string filename)
         {
-            var extension = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "exe" : null;
+            var extension = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : null;
 
             string thispath;
             if (Debugger.IsAttached) thispath = Assembly.GetCallingAssembly().Location;

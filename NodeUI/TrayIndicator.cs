@@ -1,8 +1,18 @@
+using Avalonia.Controls.ApplicationLifetimes;
+
 namespace NodeUI
 {
     public static class TrayIndicator
     {
-        public static void InitializeTrayIndicator(this Window window, bool interceptClosing)
+        public static void PreventClosing(this Window window)
+        {
+            window.Closing += (_, e) =>
+            {
+                e.Cancel = true;
+                window.Hide();
+            };
+        }
+        public static void InitializeTrayIndicator(this Application app)
         {
             var items = new (LocalizedString, Action)?[]
             {
@@ -14,17 +24,8 @@ namespace NodeUI
             var icon = new TrayIcon() { ToolTipText = App.AppName, Icon = new WindowIcon(Resource.LoadStream(typeof(TrayIndicator).Assembly, "img.tray_icon.png")) };
             icon.FixException();
 
-            if (interceptClosing)
-                window.Closing += (_, e) =>
-                {
-                    e.Cancel = true;
-                    window.Hide();
-                };
 
-            window.Closed += (_, _) => icon.Dispose();
-
-
-            LocalizedString.ChangeLangWeakEvent.Subscribe(window, updateMenus);
+            LocalizedString.ChangeLangWeakEvent.Subscribe(app, updateMenus);
             updateMenus();
 
             void updateMenus()
@@ -49,11 +50,13 @@ namespace NodeUI
             {
                 Dispatcher.UIThread.Post(() =>
                 {
+                    var window = ((IClassicDesktopStyleApplicationLifetime) app.ApplicationLifetime!).MainWindow;
+
                     if (window.IsVisible) window.Hide();
                     else window.Show();
                 });
             }
-            void exit()
+            void exit() => new Thread(() =>
             {
                 try { SystemService.Stop(); }
                 catch (Exception ex) { Console.WriteLine(ex); }
@@ -66,7 +69,7 @@ namespace NodeUI
                 }
 
                 Environment.Exit(0);
-            }
+            }).Start();
         }
     }
 }

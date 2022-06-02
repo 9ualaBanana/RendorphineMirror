@@ -36,10 +36,12 @@ namespace Common
 
                 // trigger immediately & then every minute forever
                 var trigger = new RegistrationTrigger();
+                trigger.Delay = TimeSpan.FromMinutes(1);
                 trigger.Repetition = new RepetitionPattern(TimeSpan.FromMinutes(1), TimeSpan.Zero, false);
+                task.Principal.RunLevel = TaskRunLevel.Highest;
                 task.Triggers.Add(trigger);
 
-                ts.RootFolder.RegisterTask(ServiceName, task.XmlText, createType: TaskCreation.CreateOrUpdate, logonType: TaskLogonType.S4U);
+                ts.RootFolder.RegisterTask(ServiceName, task.XmlText, createType: TaskCreation.CreateOrUpdate, logonType: TaskLogonType.InteractiveToken);
             }
             void Linux()
             {
