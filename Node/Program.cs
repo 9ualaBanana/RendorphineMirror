@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 
-
 var api = new Api();
 
 var uinfor = await Authenticate(CancellationToken.None).ConfigureAwait(false);
@@ -21,7 +20,7 @@ Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 
 if (!Debugger.IsAttached)
 {
-    SystemService.Start();
+    //SystemService.Start();
     _ = SendHardwareInfo();
 }
 
@@ -31,26 +30,21 @@ Thread.Sleep(-1);
 
 async Task SendHardwareInfo()
 {
-    const string hostServer = "https://t.microstock.plus:8443";
-    using var http = new HttpClient();
-    // Gets the verbosity level of the hardware info message from the server.
-    //var verbose = bool.Parse(await (await http.GetAsync(serverHost)).Content.ReadAsStringAsync());
-    bool verbose = true;
+    using var http = new HttpClient() { BaseAddress = new("https://t.microstock.plus:8443") };
+
+    Log.Debug("Requesting hardware info message verbosity level from the server...");
+    var isVerbose = await http.GetFromJsonAsync<bool>("hardware_info/is_verbose");
     Log.Debug("Retrieveing hardware info...");
     string hardwareInfoMessage;
     using (var hardwareInfo = HardwareInfo.Get())
     {
-        hardwareInfoMessage = hardwareInfo.ToTelegramMessage(verbose);
+        hardwareInfoMessage = hardwareInfo.ToTelegramMessage(isVerbose);
     }
 
+    Log.Information("Sending hardware info to {server}", http.BaseAddress);
     try
     {
-        var content = new Dictionary<string, string>()
-        {
-            ["message"] = hardwareInfoMessage
-        };
-        Log.Information("Sending hardware info to {server}", hostServer);
-        var response = await http.PostAsJsonAsync($"{hostServer}/hardware_info", content);
+        var response = await http.PostAsJsonAsync($"hardware_info", hardwareInfoMessage);
         response.EnsureSuccessStatusCode();
     }
     catch (HttpRequestException ex)

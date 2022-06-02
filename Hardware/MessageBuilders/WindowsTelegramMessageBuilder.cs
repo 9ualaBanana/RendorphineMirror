@@ -44,7 +44,6 @@ internal class WindowsHardwareInfoMessageBuilder
         {
             var cpuInfo = (cpuInfoComponent as ManagementBaseObject)!;
             result.AppendLine($"{cpuInfo["Name"]}  [ *{cpuInfo["NumberOfCores"]}* cores | *{cpuInfo["ThreadCount"]}* threads ]");
-            result.AppendLine();
             result.AppendLine($"*Clock*: *{cpuInfo["CurrentClockSpeed"]}* MHz / *{cpuInfo["MaxClockSpeed"]}* MHz");
             result.AppendLine($"*Load*: *{cpuInfo["LoadPercentage"]}* %");
             result.AppendLine();

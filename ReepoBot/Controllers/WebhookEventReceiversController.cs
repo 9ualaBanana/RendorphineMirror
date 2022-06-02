@@ -52,25 +52,4 @@ public class WebhookEventReceiversController : ControllerBase
         await eventHandler.HandleAsync(payloadContent);
         return Ok();
     }
-
-    [HttpPost("hardware_info")]
-    public async Task ReceiveHardwareInformation(
-        JsonElement hardwareInfoMessageJson,
-        [FromServices] HardwareInfoForwarder hardwareInfoForwarder,
-        [FromServices] ILogger<WebhookEventReceiversController> logger
-        )
-    {
-        try
-        {
-            logger.LogDebug("JSON with the hardware info message is received.");
-            var hardwareInfoMessage = hardwareInfoMessageJson.GetProperty("message").GetString();
-            logger.LogDebug("Hardware message is retrieved from JSON.");
-            await hardwareInfoForwarder.HandleAsync(hardwareInfoMessage);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "{receiver} couldn't handle JSON hardware info message with the following content:\n{message}",
-                nameof(ReceiveHardwareInformation), hardwareInfoMessageJson);
-        }
-    }
 }
