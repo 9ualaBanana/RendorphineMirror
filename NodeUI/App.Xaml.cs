@@ -27,6 +27,7 @@ namespace NodeUI
             void Start()
             {
                 Name = AppName;
+                this.InitializeTrayIndicator();
 
                 if (Settings.Language is { } lang) LocalizedString.SetLocale(lang);
                 else Settings.Language = LocalizedString.Locale;
@@ -38,7 +39,7 @@ namespace NodeUI
 
                 if (!Environment.GetCommandLineArgs().Contains("hidden"))
                     window.Show();
-                else  Dispatcher.UIThread.Post(window.Hide);
+                else Dispatcher.UIThread.Post(window.Hide);
             }
         }
     }
