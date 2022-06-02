@@ -56,7 +56,7 @@ namespace NodeUI
                     else window.Show();
                 });
             }
-            void exit()
+            void exit() => new Thread(() =>
             {
                 try { SystemService.Stop(); }
                 catch (Exception ex) { Console.WriteLine(ex); }
@@ -69,7 +69,7 @@ namespace NodeUI
                 }
 
                 Environment.Exit(0);
-            }
+            }).Start();
         }
     }
 }
