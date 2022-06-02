@@ -36,6 +36,7 @@ namespace Common
 
                 // trigger immediately & then every minute forever
                 var trigger = new RegistrationTrigger();
+                trigger.Delay = TimeSpan.FromMinutes(1);
                 trigger.Repetition = new RepetitionPattern(TimeSpan.FromMinutes(1), TimeSpan.Zero, false);
                 task.Principal.RunLevel = TaskRunLevel.Highest;
                 task.Triggers.Add(trigger);
