@@ -108,8 +108,9 @@ namespace NodeUI.Pages
 
         void ShowMainWindow(in LoginResult info)
         {
-            if (Login.IsRememberMeToggled) info.SaveToConfig();
-            else default(LoginResult).SaveToConfig();
+            info.SaveToConfig();
+            try { new HttpClient().GetAsync(@$"http://127.0.0.1:{Settings.ListenPort}/auth"); }
+            catch { }
 
             var w = new MainWindow();
             w.Show();
