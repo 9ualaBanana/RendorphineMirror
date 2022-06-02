@@ -28,7 +28,7 @@ internal class WindowsHardwareInfoMessageBuilder
         var message = new StringBuilder();
 
         message.AppendLine(BuildCPUInfoMessage(_hardwareInfo.CPU));
-        //message.AppendLine(BuildGPUInfoMessage(_hardwareInfo.GPU));
+        message.AppendLine(BuildGPUInfoMessage(_hardwareInfo.GPU));
         message.AppendLine(BuildRAMInfoMessage(_hardwareInfo.RAM));
         message.AppendLine(BuildDisksInfoMessage(_hardwareInfo.Disks));
 
@@ -52,23 +52,20 @@ internal class WindowsHardwareInfoMessageBuilder
         return result.ToString();
     }
 
-    //static string BuildGPUInfoMessage(Container gpuUnitsInfo)
-    //{
-    //    var result = new StringBuilder();
-    //    result.AppendLine("*GPU:*");
-    //    result.AppendLine("---------".Sanitize());
-    //    foreach (var gpuInfoComponent in gpuUnitsInfo.Components)
-    //    {
-    //        var gpuInfo = (gpuInfoComponent as ManagementBaseObject)!;
-    //        result.AppendLine($"{gpuInfo["Name"]}  [ *{gpuInfo.Memory.Used}* MB / *{gpuInfo.Memory.Total}* MB ]".Sanitize());
-    //        result.AppendLine();
-    //        result.AppendLine($"*Clocks:*");
-    //        result.AppendLine($"\t*Core:* *{gpuInfo.GpuClockInfo.CurrentCoreClock}* MHz / *{gpuInfo.GpuClockInfo.MaxCoreClock}* MHz");
-    //        result.AppendLine($"\t*Memory:* *{gpuInfo.GpuClockInfo.CurrentMemoryClock}* MHz / *{gpuInfo.GpuClockInfo.MaxMemoryClock}* MHz");
-    //        result.AppendLine();
-    //    }
-    //    return result.ToString();
-    //}
+    static string BuildGPUInfoMessage(IEnumerable<Dictionary<string, object>> gpuUnitsInfo)
+    {
+        var result = new StringBuilder();
+        result.AppendLine("*GPU:*");
+        result.AppendLine("---------".Sanitize());
+        foreach (var gpuInfo in gpuUnitsInfo)
+        {
+            result.AppendLine($"{gpuInfo["Name"]}  [ *{gpuInfo["UsedMemory"]}* MB / *{gpuInfo["TotalMemory"]}* MB ]".Sanitize());
+            result.AppendLine($"*Core Clock:* *{gpuInfo["CurrentCoreClock"]}* MHz / *{gpuInfo["MaxCoreClock"]}* MHz");
+            result.AppendLine($"*Memory Clock:* *{gpuInfo["CurrentMemoryClock"]}* MHz / *{gpuInfo["MaxMemoryClock"]}* MHz");
+            result.AppendLine();
+        }
+        return result.ToString();
+    }
 
     static string BuildRAMInfoMessage(Container ramInfoForAll)
     {
@@ -78,12 +75,11 @@ internal class WindowsHardwareInfoMessageBuilder
         foreach (var ramInfoComponent in ramInfoForAll.Components)
         {
             var ramInfo = (ramInfoComponent as ManagementBaseObject)!;
-            double capacity = default;
-            if (ulong.TryParse(ramInfo["Capacity"].ToString(), out var byteCapacity))
+            if (double.TryParse(ramInfo["Capacity"].ToString(), out var capacity))
             {
-                capacity = Information.FromBytes((double)byteCapacity).Megabytes;
+                capacity = Information.FromBytes(capacity).Gigabytes;
             }
-            result.AppendLine($"{ramInfo["DeviceLocator"]} [ *{capacity}* MB | *{ramInfo["Speed"]}* MHz ]".Sanitize());
+            result.AppendLine($"{ramInfo["DeviceLocator"]} [ *{capacity:#}* GB | *{ramInfo["Speed"]}* MHz ]".Sanitize());
             result.AppendLine();
         }
         return result.ToString();
@@ -102,7 +98,8 @@ internal class WindowsHardwareInfoMessageBuilder
             {
                 usedStorageSpace = size - freeSpace;
             }
-            result.AppendLine($"{diskInfo["Caption"]}  [ *{Information.FromBytes((double)usedStorageSpace).Gigabytes:.##}* GB / *{Information.FromBytes((double)size).Gigabytes:.##}* GB ]".Sanitize());
+            result.AppendLine($"{diskInfo["Caption"]}  [ *{Information.FromBytes((double)usedStorageSpace).Gigabytes:.#}* GB /" +
+                              $" *{Information.FromBytes((double)size).Gigabytes:.#}* GB ]".Sanitize());
             result.AppendLine();
         }
         return result.ToString();

@@ -5,7 +5,7 @@ namespace Hardware;
 
 public readonly record struct HardwareInfo(
     Container CPU,
-    Container GPU,
+    IEnumerable<Dictionary<string, object>> GPU,    // Adapts to project-scoped required behaviors.
     Container RAM,
     Container Disks,
     Container Network) : IDisposable
@@ -29,7 +29,6 @@ public readonly record struct HardwareInfo(
     public void Dispose()
     {
         CPU.Dispose();
-        GPU.Dispose();
         RAM.Dispose();
         Disks.Dispose();
         Network.Dispose();
