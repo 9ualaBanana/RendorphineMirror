@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Globalization;
 using Common;
 
+ConsoleHide.Hide();
+
 var nodeexe = GetPath(args, 0, "Node");
 var updaterexe = GetPath(args, 1, "Updater");
 

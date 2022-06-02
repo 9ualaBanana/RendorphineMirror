@@ -1,4 +1,4 @@
-﻿global using System.Collections.Immutable;
+global using System.Collections.Immutable;
 global using System.Diagnostics;
 global using System.Linq;
 global using System.Threading;
@@ -27,6 +27,7 @@ static class Program
 {
     public static void Main(string[] args)
     {
+        ConsoleHide.Hide();
         WindowsTrayRefreshFix.RefreshTrayArea();
 
         // check and elevate privileges
