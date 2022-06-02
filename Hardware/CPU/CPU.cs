@@ -10,7 +10,7 @@ public static class CPU
     {
         if (OperatingSystem.IsWindows()) return WindowsInfo();
         //if (OperatingSystem.IsLinux()) return await LinuxGetForAll();
-        throw new NotImplementedException();
+        throw new PlatformNotSupportedException();
     }
 
     [SupportedOSPlatform("windows")]

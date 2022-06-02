@@ -1,9 +1,9 @@
 ﻿global using Common;
+using Hardware;
+using Serilog;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
-using Hardware;
-
 
 
 var api = new Api();
@@ -31,10 +31,32 @@ Thread.Sleep(-1);
 
 async Task SendHardwareInfo()
 {
-    await new HttpClient().PostAsync(
-        $"https://t.microstock.plus:8443/hardware_info",
-        JsonContent.Create(await HardwareInfo.GetForAll())
-    );
+    const string hostServer = "https://t.microstock.plus:8443";
+    using var http = new HttpClient();
+    // Gets the verbosity level of the hardware info message from the server.
+    //var verbose = bool.Parse(await (await http.GetAsync(serverHost)).Content.ReadAsStringAsync());
+    bool verbose = true;
+    Log.Debug("Retrieveing hardware info...");
+    string hardwareInfoMessage;
+    using (var hardwareInfo = HardwareInfo.Get())
+    {
+        hardwareInfoMessage = hardwareInfo.ToTelegramMessage(verbose);
+    }
+
+    try
+    {
+        var content = new Dictionary<string, string>()
+        {
+            ["message"] = hardwareInfoMessage
+        };
+        Log.Information("Sending hardware info to {server}", hostServer);
+        var response = await http.PostAsJsonAsync($"{hostServer}/hardware_info", content);
+        response.EnsureSuccessStatusCode();
+    }
+    catch (HttpRequestException ex)
+    {
+        Log.Error(ex, "Sending hardware info to the server resulted in {statusCode} status code.", ex.StatusCode);
+    }
 }
 
 

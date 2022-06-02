@@ -1,4 +1,4 @@
-﻿namespace ReepoBot.Services;
+﻿namespace Hardware.MessageBuilders;
 
 public static class MarkdownSanitizerHelper
 {

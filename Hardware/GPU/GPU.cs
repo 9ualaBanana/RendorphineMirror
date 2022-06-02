@@ -9,7 +9,7 @@ public static class GPU
     public static Container Info()
     {
         if (OperatingSystem.IsWindows()) return WindowsInfo();
-        throw new NotImplementedException();
+        throw new PlatformNotSupportedException();
     }
 
     [SupportedOSPlatform("windows")]

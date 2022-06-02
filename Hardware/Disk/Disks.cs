@@ -4,13 +4,13 @@ using System.Runtime.Versioning;
 
 namespace Hardware;
 
-public static class Disk
+public static class Disks
 {
     public static Container Info()
     {
         if (OperatingSystem.IsWindows()) return WindowsInfo();
         //if (OperatingSystem.IsLinux()) return await LinuxGetForAll();
-        throw new NotImplementedException();
+        throw new PlatformNotSupportedException();
     }
 
     [SupportedOSPlatform("windows")]

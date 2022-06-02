@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="System.Management" Version="6.0.0" />
+    <PackageReference Include="UnitsNet" Version="4.132.0" />
   </ItemGroup>
 
 </Project>

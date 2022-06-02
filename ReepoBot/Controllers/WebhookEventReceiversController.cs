@@ -1,4 +1,3 @@
-using Hardware;
 using Microsoft.AspNetCore.Mvc;
 using ReepoBot.Controllers.Binders;
 using ReepoBot.Services;
@@ -56,9 +55,17 @@ public class WebhookEventReceiversController : ControllerBase
 
     [HttpPost("hardware_info")]
     public async Task ReceiveHardwareInformation(
-        [FromServices] HardwareInfoForwarder hardwareInfoForwarder,
-        [FromBody] HardwareInfo hardwareInfo)
+        JsonElement hardwareInfoMessageJson,
+        [FromServices] HardwareInfoForwarder hardwareInfoForwarder
+        )
     {
-        await hardwareInfoForwarder.HandleAsync(hardwareInfo);
+        try
+        {
+            var hardwareInfoMessage = hardwareInfoMessageJson.GetProperty("message").GetString();
+            await hardwareInfoForwarder.HandleAsync(hardwareInfoMessage);
+        }
+        catch
+        {
+        }
     }
 }

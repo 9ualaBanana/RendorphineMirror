@@ -10,7 +10,7 @@ public static class RAM
     {
         if (OperatingSystem.IsWindows()) return WindowsInfo();
         //if (OperatingSystem.IsLinux()) return LinuxGetForAll();
-        throw new NotImplementedException();
+        throw new PlatformNotSupportedException();
     }
 
     [SupportedOSPlatform("windows")]
