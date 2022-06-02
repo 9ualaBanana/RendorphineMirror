@@ -1,6 +1,6 @@
-﻿namespace Hardware.MessageBuilders;
+﻿namespace TelegramHelper;
 
-public static class MarkdownSanitizerHelper
+public static class MarkdownSanitizer
 {
     public static string Sanitize(this string unsanitizedString)
     {

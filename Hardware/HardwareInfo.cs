@@ -1,5 +1,6 @@
 ﻿using Hardware.MessageBuilders;
 using System.ComponentModel;
+using TelegramHelper;
 
 namespace Hardware;
 
