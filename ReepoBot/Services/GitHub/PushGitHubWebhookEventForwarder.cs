@@ -46,7 +46,7 @@ public class PushGitHubWebhookEventForwarder : GitHubWebhookEventForwarder
         {
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithUrl($"{repo.GetProperty("name")}".Sanitize(), repo.GetProperty("html_url").ToString().Sanitize()),
+                InlineKeyboardButton.WithUrl($"{repo.GetProperty("name")}".Sanitize(), repo.GetProperty("html_url").ToString()),
                 InlineKeyboardButton.WithUrl($"{sender.GetProperty("login")}".Sanitize(), sender.GetProperty("html_url").ToString())
             },
             new InlineKeyboardButton[]
