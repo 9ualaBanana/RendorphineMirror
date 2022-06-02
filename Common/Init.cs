@@ -40,10 +40,10 @@ namespace Common
         static string GetVersion()
         {
             DateTime? time = null;
-            try { time = Directory.GetFiles(Path.GetDirectoryName(Environment.ProcessPath!)!, "*", SearchOption.AllDirectories).Select(File.GetCreationTimeUtc).Max(); }
+            try { time = Directory.GetFiles(Path.GetDirectoryName(typeof(Init).Assembly.Location ?? Environment.ProcessPath!)!, "*", SearchOption.AllDirectories).Select(File.GetCreationTimeUtc).Max(); }
             catch (Exception ex) { Console.WriteLine("err getting version " + ex.Message); }
 
-            return time?.ToString("ddMMyy") ?? "UNKNOWNVERSION";
+            return time?.ToString("ddMMyy_hhmm") ?? "UNKNOWNVERSION";
         }
     }
 }
