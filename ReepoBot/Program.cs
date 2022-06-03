@@ -18,6 +18,7 @@ await InitializeBot();
 builder.Services.AddScoped<WebhookEventHandlerFactory<TelegramUpdateHandler, Update>, TelegramUpdateHandlerFactory>();
 builder.Services.AddScoped<WebhookEventHandlerFactory<GitHubWebhookEventForwarder, string>, GitHubWebhookEventForwarderFactory>();
 builder.Services.AddScoped<HardwareInfoForwarder>();
+builder.Services.AddSingleton<NodeSupervisor>();
 
 var app = builder.Build();
 

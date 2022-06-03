@@ -8,6 +8,17 @@ namespace ReepoBot.Controllers;
 [ApiController]
 public class NodeController : ControllerBase
 {
+    [HttpGet("ping")]
+    public async Task UpdateNodeStatus(
+        [FromQuery] NodeInfo nodeInfo,
+        [FromServices] NodeSupervisor nodeSupervisor,
+        [FromServices] ILogger<NodeController> logger)
+    {
+        logger.LogDebug("Received ping from {name} (v.{version}).", nodeInfo.Name, nodeInfo.Version);
+        await nodeSupervisor.HandleAsync(nodeInfo);
+    }
+
+
     [HttpPost("hardware_info")]
     public async Task ForwardHardwareInfoMessageToTelegramAsync(
         [FromBody] string hardwareInfoMessage,
@@ -22,7 +33,7 @@ public class NodeController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{receiver} couldn't handle following hardware info message:\n{message}",
+            logger.LogError(ex, "{receiver} couldn't forward following hardware info message:\n{message}",
                 nameof(ForwardHardwareInfoMessageToTelegramAsync), hardwareInfoMessage);
         }
     }
