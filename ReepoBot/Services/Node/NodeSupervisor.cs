@@ -69,7 +69,7 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
     {
         var offlineNode = NodesOnline.Single(node => node.Value == sender);
         var offlineNodeInfo = offlineNode.Key;
-        Logger.LogError("{name} (v.{version}) went offline after {time} ms since the last ping.",
+        Logger.LogError("{Name} (v.{Version}) went offline after {Time} ms since the last ping.",
             offlineNodeInfo.Name, offlineNodeInfo.Version, TimeBeforeNodeGoesOffline);
         NodesOnline.Remove(offlineNodeInfo);
     }

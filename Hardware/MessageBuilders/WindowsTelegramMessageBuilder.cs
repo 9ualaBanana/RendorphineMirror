@@ -27,8 +27,7 @@ internal class WindowsHardwareInfoMessageBuilder
         if (!verbose)
         {
             var pcName = (_hardwareInfo.System.Components[0] as ManagementObject)?["UserName"];
-            var (v4, v6) = await HardwareInfo.IP();
-            return $"{pcName} IPv4:{v4}|IPv6:{v6}";
+            return $"{pcName} {await HardwareInfo.IP()}";
         }
 
         message.AppendLine(BuildCPUInfoMessage(_hardwareInfo.CPU));

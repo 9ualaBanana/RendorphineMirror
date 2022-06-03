@@ -1,4 +1,5 @@
-﻿using Hardware.MessageBuilders;
+﻿using Common;
+using Hardware.MessageBuilders;
 using System.ComponentModel;
 using System.Management;
 using System.Net;
@@ -15,18 +16,7 @@ public readonly record struct HardwareInfo(
     Container Disks) : IDisposable
 {
     readonly public string? Name = ((ManagementObject?)System.Components[0])?["Name"]?.ToString();
-    public static async Task<(IPAddress? v4, IPAddress? v6)> IP()
-    {
-        try
-        {
-            var ips = await Dns.GetHostAddressesAsync(Dns.GetHostName(), AddressFamily.InterNetwork | AddressFamily.InterNetworkV6);
-            return (ips[0], ips[1]);
-        }
-        catch
-        {
-            return (null, null);
-        }
-    }
+    public static async Task<IPAddress> IP() => await PortForwarding.GetPublicIPAsync();
 
     public static HardwareInfo Get()
     {
