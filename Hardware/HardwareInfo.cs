@@ -5,6 +5,7 @@ using TelegramHelper;
 namespace Hardware;
 
 public readonly record struct HardwareInfo(
+    Container System,
     Container CPU,
     IEnumerable<Dictionary<string, object>> GPU,    // Adapts to project-scoped required behaviors.
     Container RAM,
@@ -14,6 +15,7 @@ public readonly record struct HardwareInfo(
     public static HardwareInfo Get()
     {
         return new(
+            Hardware.System.Info(),
             Hardware.CPU.Info(),
             Hardware.GPU.Info(),
             Hardware.RAM.Info(),
@@ -29,6 +31,7 @@ public readonly record struct HardwareInfo(
 
     public void Dispose()
     {
+        System.Dispose();
         CPU.Dispose();
         RAM.Dispose();
         Disks.Dispose();

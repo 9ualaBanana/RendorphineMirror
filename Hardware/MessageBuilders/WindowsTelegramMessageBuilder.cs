@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using Common;
+using System.ComponentModel;
 using System.Management;
 using System.Runtime.Versioning;
 using System.Text;
@@ -18,14 +19,17 @@ internal class WindowsHardwareInfoMessageBuilder
 
     internal string Build(bool verbose = false)
     {
+        var message = new StringBuilder();
+
+        message.AppendLine($"v.{Init.Version}");
+        message.AppendLine();
+
         if (!verbose)
         {
-            var pcName = (_hardwareInfo.CPU.Components[0] as ManagementObject)?["SystemName"];
+            var pcName = (_hardwareInfo.System.Components[0] as ManagementObject)?["Name"];
             var ip = ((_hardwareInfo.Network.Components[1] as ManagementBaseObject)?["IPAddress"] as string[])?[0];
             return $"{pcName}: {ip}";
         }
-
-        var message = new StringBuilder();
 
         message.AppendLine(BuildCPUInfoMessage(_hardwareInfo.CPU));
         message.AppendLine(BuildGPUInfoMessage(_hardwareInfo.GPU));
