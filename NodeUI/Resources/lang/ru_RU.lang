@@ -50,11 +50,16 @@ general.another_instance_is_running = Обнаружен другой работ
 general.quit = Выйти
 general.continue_loading = Продолжить запуск
 
+tab.dashboard = Дашборд
+tab.plugins = Плагины
+tab.benchmark = Бенчмарк
+
 size.b = Б
 size.kb = КБ
 size.mb = МБ
 size.gb = ГБ
 size.tb = ТБ
 
+lang.current = Русский
 lang.ru-RU = Русский
 lang.en-US = Английский

@@ -39,6 +39,12 @@ namespace NodeUI
 
             static General() => Init(typeof(General));
         }
+        public static class Tab
+        {
+            public static readonly LocalizedString Dashboard, Plugins, Benchmark;
+
+            static Tab() => Init(typeof(Tab));
+        }
         public static class Size
         {
             public static readonly LocalizedString B, KB, MB, GB, TB;
@@ -48,6 +54,7 @@ namespace NodeUI
 
         public static class Lang
         {
+            public static readonly LocalizedString Current = new LocalizedString("lang.current");
             public static readonly LocalizedString Russian = new LocalizedString("lang.ru-RU");
             public static readonly LocalizedString English = new LocalizedString("lang.en-US");
 

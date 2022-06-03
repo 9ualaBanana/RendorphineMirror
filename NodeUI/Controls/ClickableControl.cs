@@ -2,7 +2,7 @@ namespace NodeUI.Controls
 {
     public class ClickableControl : UserControl
     {
-        public event Action OnClick = delegate { };
+        public Action OnClick = delegate { };
         bool IsPressed;
 
         public ClickableControl()

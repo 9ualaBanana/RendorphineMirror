@@ -50,11 +50,16 @@ general.another_instance_is_running = Another instance of application is running
 general.quit = Quit
 general.continue_loading = Continue loading
 
+tab.dashboard = Dashboard
+tab.plugins = Plugins
+tab.benchmark = Benchmark
+
 size.b = B
 size.kb = KB
 size.mb = MB
 size.gb = GB
 size.tb = TB
 
+lang.current = English
 lang.ru-RU = Russian
 lang.en-US = English
