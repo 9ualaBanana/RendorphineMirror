@@ -17,6 +17,7 @@ if (uinfor is null)
 var uinfo = uinfor.Value;
 Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 
+var http = new HttpClient() { BaseAddress = new(Settings.ServerUrl) };
 
 if (!Debugger.IsAttached)
 {
@@ -30,8 +31,6 @@ Thread.Sleep(-1);
 
 async Task SendHardwareInfo()
 {
-    using var http = new HttpClient() { BaseAddress = new("https://t.microstock.plus:8443") };
-
     Log.Debug("Requesting hardware info message verbosity level from the server...");
     var isVerbose = await http.GetFromJsonAsync<bool>("hardware_info/is_verbose");
     Log.Debug("Retrieveing hardware info...");
