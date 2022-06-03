@@ -1,5 +1,6 @@
 ﻿global using Common;
 using Hardware;
+using Node;
 using Serilog;
 using System.Diagnostics;
 using System.Net;
@@ -26,6 +27,7 @@ if (!Debugger.IsAttached)
 }
 
 _ = StartHttpListenerAsync();
+new ServerPinger(TimeSpan.FromMinutes(5), http).Start();
 Thread.Sleep(-1);
 
 
