@@ -22,6 +22,7 @@ namespace NodeUI
             }.ToImmutableArray();
 
             var icon = new TrayIcon() { ToolTipText = App.AppName, Icon = new WindowIcon(Resource.LoadStream(typeof(TrayIndicator).Assembly, "img.tray_icon.png")) };
+            icon.Clicked += (_, _) => open();
             icon.FixException();
 
 
@@ -61,13 +62,7 @@ namespace NodeUI
                 try { SystemService.Stop(); }
                 catch (Exception ex) { Console.WriteLine(ex); }
 
-                foreach (var process in FileList.GetProcesses())
-                {
-                    Console.WriteLine("Killing " + process.ProcessName);
-                    try { process.Kill(); }
-                    catch (Exception ex) { Console.WriteLine("fail " + ex); }
-                }
-
+                FileList.KillProcesses();
                 Environment.Exit(0);
             }).Start();
         }

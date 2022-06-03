@@ -6,34 +6,29 @@ namespace Common
 {
     public static class FileList
     {
-        public static IEnumerable<Process> GetProcesses()
+        public static void KillProcesses()
         {
-            var thisdir = Path.GetDirectoryName(Environment.ProcessPath!)!;
-            var executables = GetExecutables(thisdir, true, false).ToArray();
+            var thisid = Environment.ProcessId;
+            var thisdir = Path.GetFullPath(Path.GetDirectoryName(Path.GetDirectoryName(Environment.ProcessPath!))!);
 
-            return Process.GetProcesses().Where(x => filter(x, executables.Contains));
-
-            static bool filter(Process proc, Func<string, bool> check)
+            foreach (var proc in Process.GetProcesses())
             {
-                try
-                {
-                    var module = proc.MainModule;
-                    if (module?.FileName is null) return false;
+                if (proc.Id == thisid) continue;
+                if (!FilterProcCheck(proc, check)) continue;
 
-                    return check(Path.GetFullPath(module.FileName));
-                }
+                Console.WriteLine(@$"Found old process {proc.Id} {proc.ProcessName}, killing");
+                try { proc.Kill(); }
+                catch { }
+            }
+
+            static bool FilterProcCheck(Process proc, Func<string?, bool> check)
+            {
+                try { return check(proc.MainModule?.FileName); }
                 catch { return false; }
             }
+            bool check(string? path) => path?.StartsWith(thisdir, StringComparison.Ordinal) ?? false;
         }
 
-        public static IEnumerable<string> GetExecutables(string directory, bool withUpdater, bool withUI)
-        {
-            yield return GetNodeExe();
-            yield return GetPingerExe();
-
-            if (withUI) yield return GetNodeUIExe();
-            if (withUpdater) yield return GetUpdaterExe();
-        }
         public static string GetUpdaterExe() => GetExe("../UUpdater");
         public static string GetNodeExe() => GetExe("Node");
         public static string GetNodeUIExe() => GetExe("NodeUI");
