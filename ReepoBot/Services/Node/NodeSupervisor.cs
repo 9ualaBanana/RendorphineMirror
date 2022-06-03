@@ -7,9 +7,9 @@ namespace ReepoBot.Services.Node;
 
 public class NodeSupervisor : WebhookEventHandler<NodeInfo>
 {
-    readonly Dictionary<NodeInfo, Timer> _nodesOnline = new();
+    internal readonly Dictionary<NodeInfo, Timer> NodesOnline = new();
     double _timeBeforeGoingOffline = -1;
-    double TimeBeforeNodeGoesOffline
+    internal double TimeBeforeNodeGoesOffline
     {
         get
         {
@@ -46,10 +46,10 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
 
     void UpdateNodeStatus(NodeInfo nodeInfo)
     {
-        if (!_nodesOnline.ContainsKey(nodeInfo)) _nodesOnline.Add(nodeInfo, Timer);
+        if (!NodesOnline.ContainsKey(nodeInfo)) NodesOnline.Add(nodeInfo, Timer);
 
-        _nodesOnline[nodeInfo].Stop();
-        _nodesOnline[nodeInfo].Start();
+        NodesOnline[nodeInfo].Stop();
+        NodesOnline[nodeInfo].Start();
     }
 
     Timer Timer
@@ -64,11 +64,11 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
 
     void OnNodeWentOffline(object? sender, ElapsedEventArgs e)
     {
-        var offlineNode = _nodesOnline.Single(node => node.Value == sender);
+        var offlineNode = NodesOnline.Single(node => node.Value == sender);
         var offlineNodeInfo = offlineNode.Key;
         Logger.LogError("{name} (v.{version}) went offline after {time} ms since the last ping.",
             offlineNodeInfo.Name, offlineNodeInfo.Version, TimeBeforeNodeGoesOffline);
-        _nodesOnline.Remove(offlineNodeInfo);
+        NodesOnline.Remove(offlineNodeInfo);
     }
 
 

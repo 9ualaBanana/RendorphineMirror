@@ -24,6 +24,7 @@ internal class ServerPinger : IDisposable
         HttpClient httpClient,
         int failedPingAttemptsLogLimit = 3)
     {
+        _nodeHardwareInfo = nodeHardwareInfo;
         _timer = new Timer(interval);
         _timer.Elapsed += PingServer;
         _timer.AutoReset = true;
