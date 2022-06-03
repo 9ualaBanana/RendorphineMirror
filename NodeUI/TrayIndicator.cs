@@ -22,6 +22,7 @@ namespace NodeUI
             }.ToImmutableArray();
 
             var icon = new TrayIcon() { ToolTipText = App.AppName, Icon = new WindowIcon(Resource.LoadStream(typeof(TrayIndicator).Assembly, "img.tray_icon.png")) };
+            icon.Clicked += (_, _) => open();
             icon.FixException();
 
 
