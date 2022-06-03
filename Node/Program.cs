@@ -1,9 +1,9 @@
-global using Common;
-using Hardware;
-using Serilog;
+﻿global using Common;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
+using Hardware;
+using Serilog;
 
 var api = new Api();
 
@@ -13,9 +13,14 @@ if (uinfor is null)
     await AuthenticateWithUI(CancellationToken.None).ConfigureAwait(false);
     return;
 }
-
 var uinfo = uinfor.Value;
 
+PortForwarding.Initialize();
+_ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
+{
+    Console.WriteLine($"UPnP was {(PortForwarding.Initialized ? null : "not ")}initialized");
+    Console.WriteLine($"Public port: {PortForwarding.Port}; Public IP: {t.Result}");
+});
 
 if (!Debugger.IsAttached)
 {

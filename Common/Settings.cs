@@ -3,13 +3,14 @@
     public static class Settings
     {
         public static ushort ListenPort { get => BListenPort.Value; set => BListenPort.Value = value; }
+        public static ushort UPnpPort { get => BUPnpPort.Value; set => BUPnpPort.Value = value; }
         public static string? SessionId { get => BSessionId.Value; set => BSessionId.Value = value; }
         public static string? UserId { get => BUserId.Value; set => BUserId.Value = value; }
         public static string? Username { get => BUsername.Value; set => BUsername.Value = value; }
         public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
         public static LogLevel LogLevel { get => BLogLevel.Value; set => BLogLevel.Value = value; }
 
-        public static readonly Bindable<ushort> BListenPort;
+        public static readonly Bindable<ushort> BListenPort, BUPnpPort;
         public static readonly Bindable<string?> BSessionId, BUsername, BUserId, BLanguage;
         public static readonly Bindable<LogLevel> BLogLevel;
 
@@ -19,12 +20,13 @@
         {
             Config = new JsonConfig(Path.Combine(Init.ConfigDirectory, "config.json"));
 
-            BListenPort = CreateBindable<ushort>(nameof(BListenPort), 5123);
-            BSessionId = CreateBindable<string?>(nameof(BSessionId), null);
-            BUsername = CreateBindable<string?>(nameof(BUsername), null);
-            BUserId = CreateBindable<string?>(nameof(BUserId), null);
-            BLanguage = CreateBindable<string?>(nameof(BLanguage), null);
-            BLogLevel = CreateBindable(nameof(BLogLevel), LogLevel.Basic);
+            BListenPort = CreateBindable<ushort>(nameof(ListenPort), 5123);
+            BUPnpPort = CreateBindable<ushort>(nameof(UPnpPort), 5124);
+            BSessionId = CreateBindable<string?>(nameof(SessionId), null);
+            BUsername = CreateBindable<string?>(nameof(Username), null);
+            BUserId = CreateBindable<string?>(nameof(UserId), null);
+            BLanguage = CreateBindable<string?>(nameof(Language), null);
+            BLogLevel = CreateBindable(nameof(LogLevel), LogLevel.Basic);
 
 
             Bindable<T> CreateBindable<T>(string path, T defaultValue)
