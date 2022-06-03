@@ -4,7 +4,7 @@ using Timer = System.Timers.Timer;
 
 namespace Node;
 
-internal class ServerPinger
+internal class ServerPinger : IDisposable
 {
     readonly Timer _timer;
     readonly HttpClient _http;
@@ -34,7 +34,7 @@ internal class ServerPinger
     {
         try
         {
-            var response = await _http.GetAsync($"{Settings.ServerUrl}/node_ping");
+            var response = await _http.GetAsync($"{Settings.ServerUrl}/node/ping");
             response.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
@@ -45,5 +45,10 @@ internal class ServerPinger
                 Log.Error(ex, "Node v.{version} was not able to ping the server.", Init.Version);
             }
         }
+    }
+
+    public void Dispose()
+    {
+        _timer?.Close();
     }
 }
