@@ -12,7 +12,6 @@
         public static LogLevel LogLevel { get => BLogLevel.Value; set => BLogLevel.Value = value; }
 
         public static readonly Bindable<string> BServerUrl;
-        public static readonly Bindable<ushort> BListenPort;
         public static readonly Bindable<ushort> BListenPort, BUPnpPort;
         public static readonly Bindable<string?> BSessionId, BUsername, BUserId, BLanguage;
         public static readonly Bindable<LogLevel> BLogLevel;
