@@ -13,7 +13,6 @@ Log(@$"Config directory: {Init.ConfigDirectory}");
 Log(@$"Node executable: {nodeexe}");
 Log(@$"Updater executable: {updaterexe}");
 
-AppendStartSession();
 await Ping(new HttpClient(), CancellationToken.None).ConfigureAwait(false);
 
 
@@ -69,7 +68,7 @@ void RestartNode()
     AppendEndSession();
     FileList.KillProcesses();
 
-    _ = Process.Start(File.ReadAllText(Path.Combine(Init.ConfigDirectory, "updater")).Trim()) ?? throw new Exception("Could not start updater process");
+    _ = Process.Start(updaterexe) ?? throw new Exception("Could not start updater process");
     AppendStartSession();
 }
 static bool Filter(Process proc, Func<string, bool> check)
