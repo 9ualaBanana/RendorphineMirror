@@ -1,5 +1,6 @@
 ﻿using Hardware.MessageBuilders;
 using System.ComponentModel;
+using System.Management;
 using TelegramHelper;
 
 namespace Hardware;
@@ -12,6 +13,8 @@ public readonly record struct HardwareInfo(
     Container Disks,
     Container Network) : IDisposable
 {
+    readonly public string? Name = ((ManagementObject?)System.Components[0])?["Name"]?.ToString();
+
     public static HardwareInfo Get()
     {
         return new(

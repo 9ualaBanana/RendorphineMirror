@@ -20,6 +20,9 @@ Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 
 var http = new HttpClient() { BaseAddress = new(Settings.ServerUrl) };
 
+Log.Debug("Retrieveing hardware info...");
+var hardwareInfo = HardwareInfo.Get();
+
 if (!Debugger.IsAttached)
 {
     //SystemService.Start();
@@ -27,7 +30,7 @@ if (!Debugger.IsAttached)
 }
 
 _ = StartHttpListenerAsync();
-new ServerPinger(TimeSpan.FromMinutes(5), http).Start();
+new ServerPinger(hardwareInfo, TimeSpan.FromMinutes(5), http).Start();
 Thread.Sleep(-1);
 
 
@@ -35,13 +38,7 @@ async Task SendHardwareInfo()
 {
     Log.Debug("Requesting hardware info message verbosity level from the server...");
     var isVerbose = await http.GetFromJsonAsync<bool>("node/hardware_info/is_verbose");
-    Log.Debug("Retrieveing hardware info...");
-    string hardwareInfoMessage;
-    using (var hardwareInfo = HardwareInfo.Get())
-    {
-        hardwareInfoMessage = hardwareInfo.ToTelegramMessage(isVerbose);
-    }
-
+    var hardwareInfoMessage = hardwareInfo.ToTelegramMessage(isVerbose);
     Log.Information("Sending hardware info to {server}", http.BaseAddress);
     try
     {
