@@ -3,7 +3,7 @@ using System.Runtime.Versioning;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 
-namespace ReepoBot.Services.Hardware;
+namespace ReepoBot.Services.Node;
 
 public class HardwareInfoForwarder : WebhookEventHandler<string>
 {

@@ -1,6 +1,6 @@
 using ReepoBot.Services;
 using ReepoBot.Services.GitHub;
-using ReepoBot.Services.Hardware;
+using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;
 using Telegram.Bot;
 using Telegram.Bot.Types;

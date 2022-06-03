@@ -1,17 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ReepoBot.Services.Hardware;
+using ReepoBot.Models;
+using ReepoBot.Services.Node;
 
 namespace ReepoBot.Controllers;
 
-[Route("hardware_info")]
+[Route("node")]
 [ApiController]
-public class HardwareInfoController : ControllerBase
+public class NodeController : ControllerBase
 {
-    [HttpPost]
+    [HttpPost("hardware_info")]
     public async Task ForwardHardwareInfoMessageToTelegramAsync(
         [FromBody] string hardwareInfoMessage,
         [FromServices] HardwareInfoForwarder hardwareInfoForwarder,
-        [FromServices] ILogger<HardwareInfoController> logger
+        [FromServices] ILogger<NodeController> logger
         )
     {
         logger.LogDebug("Hardware info message is received.");
@@ -26,22 +27,23 @@ public class HardwareInfoController : ControllerBase
         }
     }
 
-    [HttpGet("is_verbose")]
+    [HttpGet("hardware_info/is_verbose")]
     public bool IsVerbose(
         [FromServices] IConfiguration configuration,
-        [FromServices] ILogger<HardwareInfoController> logger)
+        [FromServices] ILogger<NodeController> logger)
     {
+        const string configKey = "IsVerbose";
         try
         {
-            return bool.Parse(configuration["IsVerbose"]);
+            return bool.Parse(configuration[configKey]);
         }
         catch (ArgumentNullException ex)
         {
-            logger.LogError(ex, "`IsVerbose` property is null.");
+            logger.LogError(ex, "\"{configKey}\" config key is not defined.", configKey);
         }
         catch (FormatException ex)
         {
-            logger.LogError(ex, "`IsVerbose` value can't be parsed as bool.");
+            logger.LogError(ex, "Value of \"{configKey}\" can't be parsed as bool.", configKey);
         }
         return false;
     }

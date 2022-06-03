@@ -34,7 +34,7 @@ Thread.Sleep(-1);
 async Task SendHardwareInfo()
 {
     Log.Debug("Requesting hardware info message verbosity level from the server...");
-    var isVerbose = await http.GetFromJsonAsync<bool>("hardware_info/is_verbose");
+    var isVerbose = await http.GetFromJsonAsync<bool>("node/hardware_info/is_verbose");
     Log.Debug("Retrieveing hardware info...");
     string hardwareInfoMessage;
     using (var hardwareInfo = HardwareInfo.Get())
@@ -45,7 +45,7 @@ async Task SendHardwareInfo()
     Log.Information("Sending hardware info to {server}", http.BaseAddress);
     try
     {
-        var response = await http.PostAsJsonAsync($"hardware_info", hardwareInfoMessage);
+        var response = await http.PostAsJsonAsync($"node/hardware_info", hardwareInfoMessage);
         response.EnsureSuccessStatusCode();
     }
     catch (HttpRequestException ex)
