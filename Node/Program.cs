@@ -1,4 +1,4 @@
-﻿global using Common;
+global using Common;
 using Hardware;
 using Serilog;
 using System.Diagnostics;
@@ -15,11 +15,11 @@ if (uinfor is null)
 }
 
 var uinfo = uinfor.Value;
-Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 
 
 if (!Debugger.IsAttached)
 {
+    Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
     SystemService.Start();
     _ = SendHardwareInfo();
 }
