@@ -26,7 +26,7 @@ internal class WindowsHardwareInfoMessageBuilder
 
         if (!verbose)
         {
-            var pcName = (_hardwareInfo.System.Components[0] as ManagementObject)?["Name"];
+            var pcName = (_hardwareInfo.System.Components[0] as ManagementObject)?["UserName"];
             var ip = ((_hardwareInfo.Network.Components[1] as ManagementBaseObject)?["IPAddress"] as string[])?[0];
             return $"{pcName}: {ip}";
         }
