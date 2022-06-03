@@ -6,10 +6,17 @@ public static class GPU
 {
     public static IEnumerable<Dictionary<string, object>> Info()
     {
-        return NvidiaInfo();
+        try
+        {
+            return NvidiaInfo();
+        }
+        catch
+        {
+            return new List<Dictionary<string, object>>();
+        }
     }
 
-    public static IEnumerable<Dictionary<string, object>> NvidiaInfo()
+    static IEnumerable<Dictionary<string, object>> NvidiaInfo()
     {
         using var queryResult = Process.Start(GetForAllStartInfo())!;
         var allGpuHardwareIds = queryResult.StandardOutput.ReadToEnd()!;
