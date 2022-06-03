@@ -26,24 +26,30 @@ internal class ServerPinger : IDisposable
     {
         _nodeHardwareInfo = nodeHardwareInfo;
         _timer = new Timer(interval);
-        _timer.Elapsed += PingServer;
+        _timer.Elapsed += OnTimerElapsed;
         _timer.AutoReset = true;
         _http = httpClient;
         _failedPingAttemptsLogLimit = failedPingAttemptsLogLimit;
         Log.Debug("{service} is initialized with interval of {interval} ms.", nameof(ServerPinger), interval);
     }
 
-    internal void Start()
+    internal async Task Start()
     {
+        await PingServerAsync();
         _timer.Start();
         Log.Debug("{service} is started.", nameof(ServerPinger));
     }
 
-    async void PingServer(object? sender, ElapsedEventArgs e)
+    async void OnTimerElapsed(object? s, ElapsedEventArgs e)
+    {
+        await PingServerAsync();
+    }
+
+    async Task PingServerAsync()
     {
         try
         {
-            var queryString = $"name={_nodeHardwareInfo.Name}&version={Init.Version}";
+            var queryString = $"nodeInfo={_nodeHardwareInfo.Name},{Init.Version}";
             var response = await _http.GetAsync($"{Settings.ServerUrl}/node/ping?{queryString}");
             response.EnsureSuccessStatusCode();
             Log.Debug("{service} successfuly sent ping to {server}", nameof(ServerPinger), Settings.ServerUrl);

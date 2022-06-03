@@ -1,15 +1,14 @@
 ﻿using ReepoBot.Models;
 using ReepoBot.Services.Telegram;
 using System.Timers;
-using Timer = System.Timers.Timer;
 
 namespace ReepoBot.Services.Node;
 
 public class NodeSupervisor : WebhookEventHandler<NodeInfo>
 {
-    internal readonly Dictionary<NodeInfo, Timer> NodesOnline = new();
+    internal readonly Dictionary<NodeInfo, TimerPlus> NodesOnline = new();
     double _timeBeforeGoingOffline = -1;
-    internal double TimeBeforeNodeGoesOffline
+    double TimeBeforeNodeGoesOffline
     {
         get
         {
@@ -23,15 +22,15 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
             }
             catch (ArgumentNullException ex)
             {
-                Logger.LogError(ex, "\"{configKey}\" config key is not defined.", configKey);
+                Logger.LogWarning(ex, "\"{configKey}\" config key is not defined.", configKey);
             }
             catch (FormatException ex)
             {
-                Logger.LogError(ex, "Value of \"{configKey}\" can't be parsed as double.", configKey);
+                Logger.LogWarning(ex, "Value of \"{configKey}\" can't be parsed as double.", configKey);
             }
             catch (OverflowException ex)
             {
-                Logger.LogError(ex, "Value of \"{configKey}\" overflows.", configKey);
+                Logger.LogWarning(ex, "Value of \"{configKey}\" overflows.", configKey);
             }
             return _timeBeforeGoingOffline = result;
         }
@@ -46,17 +45,21 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
 
     void UpdateNodeStatus(NodeInfo nodeInfo)
     {
-        if (!NodesOnline.ContainsKey(nodeInfo)) NodesOnline.Add(nodeInfo, Timer);
+        if (!NodesOnline.ContainsKey(nodeInfo))
+        {
+            Logger.LogDebug("New node is online: {node} (v.{version}).", nodeInfo.Name, nodeInfo.Version);
+            NodesOnline.Add(nodeInfo, Timer);
+        }
 
         NodesOnline[nodeInfo].Stop();
         NodesOnline[nodeInfo].Start();
     }
 
-    Timer Timer
+    TimerPlus Timer
     {
         get
         {
-            var timer = new Timer(TimeBeforeNodeGoesOffline) { AutoReset = false };
+            var timer = new TimerPlus(TimeBeforeNodeGoesOffline) { AutoReset = false };
             timer.Elapsed += OnNodeWentOffline;
             return timer;
         }
@@ -71,6 +74,16 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
         NodesOnline.Remove(offlineNodeInfo);
     }
 
+    /// <returns>
+    /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="node"/>;
+    /// <c>null</c> if <paramref name="node"/> is offline.
+    /// </returns>
+    internal TimeSpan? ElapsedSinceLastPingFrom(NodeInfo node)
+    {
+        if (!NodesOnline.ContainsKey(node)) return null;
+
+        return NodesOnline[node].ElapsedTime;
+    }
 
     public override Task HandleAsync(NodeInfo nodeInfo)
     {

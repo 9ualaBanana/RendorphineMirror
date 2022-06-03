@@ -19,23 +19,16 @@ public class NodeInfo
     {
         nodeInfo = default;
 
-        var queryStringParameters = s.Split('&');
+        var queryStringParameters = s.Split(',');
         if (queryStringParameters.Length != 2)
         {
             return false;
         }
 
-        var nameParameter = queryStringParameters[0].ToLower();
-        var versionParameter = queryStringParameters[1].ToLower();
-
-        if (nameParameter.StartsWith("name=") && versionParameter.StartsWith("version="))
-        {
-            var name = nameParameter.Split('=')[1];
-            var version = nameParameter.Split('=')[1];
-            nodeInfo = new(name, version);
-            return true;
-        }
-        return false;
+        var name = queryStringParameters[0];
+        var version = queryStringParameters[1];
+        nodeInfo = new(name, version);
+        return true;
     }
 }
 

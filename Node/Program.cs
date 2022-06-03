@@ -30,7 +30,7 @@ if (!Debugger.IsAttached)
 }
 
 _ = StartHttpListenerAsync();
-new ServerPinger(hardwareInfo, TimeSpan.FromMinutes(5), http).Start();
+_ = new ServerPinger(hardwareInfo, TimeSpan.FromMinutes(5), http).Start();
 Thread.Sleep(-1);
 
 
