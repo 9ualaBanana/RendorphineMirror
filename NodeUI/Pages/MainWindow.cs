@@ -31,7 +31,7 @@ namespace NodeUI.Pages
                 {
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Text = "dashboard window says hello world from " + DateTimeOffset.Now,
+                    Text = "dashboard window says hello world\nui start time: " + DateTimeOffset.Now,
                 });
 
                 var langbtn = new MPButton()

@@ -20,7 +20,7 @@ Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 
 if (!Debugger.IsAttached)
 {
-    //SystemService.Start();
+    SystemService.Start();
     _ = SendHardwareInfo();
 }
 

@@ -19,8 +19,10 @@ namespace Common
 
             var nodeexe = FileList.GetNodeExe();
             var nodeuiexe = FileList.GetNodeUIExe();
-            var updaterexe = FileList.GetUpdaterExe();
             var pingerexe = FileList.GetPingerExe();
+
+            var updaterexe = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault();
+            if (updaterexe is null || !File.Exists(updaterexe)) updaterexe = FileList.GetPingerExe();
 
             MakeExecutable(pingerexe, updaterexe, nodeexe, nodeuiexe);
             ExecuteForOs(Windows, Linux, Mac);

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Common;
 
@@ -7,7 +8,7 @@ ConsoleHide.Hide();
 var nodeexe = GetPath(args, 0, "Node");
 var updaterexe = GetPath(args, 1, "Updater");
 
-Log(@$"Pinger started");
+Log(@$"Pinger v{Init.Version} started");
 Log(@$"Config directory: {Init.ConfigDirectory}");
 Log(@$"Node executable: {nodeexe}");
 Log(@$"Updater executable: {updaterexe}");
@@ -34,45 +35,41 @@ void AppendStartSession() => AppendSession("+" + GetCurrentTimeStr());
 void AppendEndSession() => AppendSession("-" + GetCurrentTimeStr());
 void AppendSession(string text) => File.AppendAllText(Path.Combine(Init.ConfigDirectory, "sessions"), text + "\n");
 
-async Task<bool> Ping(HttpClient client, CancellationToken token, int tries = 0)
+async Task<bool> Ping(HttpClient client, CancellationToken token)
 {
-    if (tries >= 3) throw new Exception(@$"Application does not respond after {tries} restarts");
-
-
     if (!Process.GetProcesses().Any(proc => Filter(proc, fname => fname == updaterexe)))
-        return await restart(@$"Updater process was not found, starting...").ConfigureAwait(false);
+        restart(@$"Updater process was not found, starting...");
 
     var sw = Stopwatch.StartNew();
-    Log(@$"Sending ping ({tries + 1}/3)...");
+    Log(@$"Sending ping...");
 
     HttpResponseMessage msg;
     try { msg = await client.GetAsync(@$"http://127.0.0.1:{Settings.ListenPort}/ping", token).ConfigureAwait(false); }
-    catch (Exception ex) { return await restart(@$"Could not connect to the node, {ex.Message}, starting...").ConfigureAwait(false); }
+    catch (Exception ex) { restart(@$"Could not connect to the node, {ex.Message}, starting..."); }
 
     if (!msg.IsSuccessStatusCode)
-        return await restart(@$"Ping bad, HTTP {msg.StatusCode}, restarting...").ConfigureAwait(false);
+        restart(@$"Ping bad, HTTP {msg.StatusCode}, restarting...");
 
     Log(@$"Ping good ({sw.ElapsedMilliseconds}ms)...");
     return true;
 
 
-    Task<bool> restart(string message) => resend(5000, true, message);
-    async Task<bool> resend(int delay, bool restart, string message)
+    [DoesNotReturn]
+    void restart(string message)
     {
         Log(message);
-        if (restart) RestartNode();
+        RestartNode();
 
-        await Task.Delay(delay, token).ConfigureAwait(false);
-        return await Ping(client, token, tries + 1).ConfigureAwait(false);
+        Environment.Exit(0);
+        throw new InvalidOperationException();
     }
 }
 void RestartNode()
 {
-    foreach (var p in Process.GetProcesses().Where(proc => Filter(proc, fpath => fpath == nodeexe || fpath == updaterexe)))
-        p.Kill();
-
     AppendEndSession();
-    _ = Process.Start(updaterexe) ?? throw new Exception("Could not start updater process");
+    FileList.KillProcesses();
+
+    _ = Process.Start(File.ReadAllText(Path.Combine(Init.ConfigDirectory, "updater")).Trim()) ?? throw new Exception("Could not start updater process");
     AppendStartSession();
 }
 static bool Filter(Process proc, Func<string, bool> check)
