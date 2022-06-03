@@ -1,6 +1,6 @@
 using ReepoBot.Services;
 using ReepoBot.Services.GitHub;
-using ReepoBot.Services.Hardware;
+using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -18,6 +18,7 @@ await InitializeBot();
 builder.Services.AddScoped<WebhookEventHandlerFactory<TelegramUpdateHandler, Update>, TelegramUpdateHandlerFactory>();
 builder.Services.AddScoped<WebhookEventHandlerFactory<GitHubWebhookEventForwarder, string>, GitHubWebhookEventForwarderFactory>();
 builder.Services.AddScoped<HardwareInfoForwarder>();
+builder.Services.AddSingleton<NodeSupervisor>();
 
 var app = builder.Build();
 

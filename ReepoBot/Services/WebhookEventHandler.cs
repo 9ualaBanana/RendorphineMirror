@@ -14,4 +14,9 @@ public abstract class WebhookEventHandler<TPayload>
     }
 
     public abstract Task HandleAsync(TPayload payload);
+
+    protected void LogUnresolvedEvent(object eventType)
+    {
+        Logger.LogError("'{eventType}' event can't be handled by any handler.", eventType);
+    }
 }

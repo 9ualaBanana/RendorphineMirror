@@ -1,4 +1,5 @@
 ﻿using ReepoBot.Services;
+using ReepoBot.Services.Node;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -6,24 +7,25 @@ namespace ReepoBot.Services.Telegram;
 
 public class TelegramUpdateHandlerFactory : WebhookEventHandlerFactory<TelegramUpdateHandler, Update>
 {
+    NodeSupervisor _nodeSupervisor;
+
     public TelegramUpdateHandlerFactory(
         ILogger<TelegramUpdateHandlerFactory> logger,
         ILoggerFactory loggerFactory,
-        TelegramBot bot) : base(logger, loggerFactory, bot)
+        TelegramBot bot,
+        NodeSupervisor nodeSupervisor) : base(logger, loggerFactory, bot)
     {
+        _nodeSupervisor = nodeSupervisor;
     }
 
     public override TelegramUpdateHandler? Resolve(Update update)
     {
-        switch (update.Type)
+        return update.Type switch
         {
-            case UpdateType.MyChatMember:
-                return ResolveMyChatMember(update);
-            case UpdateType.Message:
-                return ResolveMessage(update);
-            default:
-                throw new ArgumentException("Unknown update type.", update.Type.ToString());
-        }
+            UpdateType.MyChatMember => ResolveMyChatMember(update),
+            UpdateType.Message => ResolveMessage(update),
+            _ => throw new ArgumentException("Unknown update type.", update.Type.ToString()),
+        };
     }
 
     TelegramUpdateHandler? ResolveMyChatMember(Update update)
@@ -35,17 +37,29 @@ public class TelegramUpdateHandlerFactory : WebhookEventHandlerFactory<TelegramU
         }
         if (BotIsRemovedFromChat(update))
         {
-            return new BotIsRemovedFromChatTelegramHandler(
-                LoggerFactory.CreateLogger<BotIsRemovedFromChatTelegramHandler>(), Bot);
+            return new BotIsRemovedFromChatTelegramUpdateHandler(
+                LoggerFactory.CreateLogger<BotIsRemovedFromChatTelegramUpdateHandler>(), Bot);
         }
         return null;
     }
 
     TelegramUpdateHandler? ResolveMessage(Update update)
     {
+        string? text;
+        if ((text = update.Message!.Text) is not null && text.StartsWith('/'))
+            return new CommandTelegramUpdateHandler(
+                LoggerFactory.CreateLogger<CommandTelegramUpdateHandler>(), Bot, _nodeSupervisor);
         if (update.Message!.LeftChatMember?.Id == Bot.BotId || update.Message!.NewChatMembers?.First().Id == Bot.BotId)
             return null;    // Bot adding and removal are handled via `UpdateType.MyChatMember` updates.
         return null;
+    }
+
+    void ResolveCommand(string command)
+    {
+        if (command == "ping")
+        {
+
+        }
     }
 
     bool IsServiceMessage(Update update)

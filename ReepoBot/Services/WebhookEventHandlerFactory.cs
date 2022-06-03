@@ -22,6 +22,6 @@ public abstract class WebhookEventHandlerFactory<THandler, TEvent>
 
     protected void LogUnresolvedEvent(object eventType)
     {
-        Logger.LogError("'{eventType}' event can't be handled by any {handler}", eventType, typeof(THandler).Name);
+        Logger.LogError("'{eventType}' event can't be handled by any {handler}.", eventType, typeof(THandler).Name);
     }
 }

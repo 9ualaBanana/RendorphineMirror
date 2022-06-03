@@ -2,10 +2,10 @@
 
 namespace ReepoBot.Services.Telegram;
 
-internal class BotIsRemovedFromChatTelegramHandler : TelegramUpdateHandler
+internal class BotIsRemovedFromChatTelegramUpdateHandler : TelegramUpdateHandler
 {
-    public BotIsRemovedFromChatTelegramHandler(
-        ILogger<BotIsRemovedFromChatTelegramHandler> logger,
+    public BotIsRemovedFromChatTelegramUpdateHandler(
+        ILogger<BotIsRemovedFromChatTelegramUpdateHandler> logger,
         TelegramBot bot)
         : base(logger, bot)
     {

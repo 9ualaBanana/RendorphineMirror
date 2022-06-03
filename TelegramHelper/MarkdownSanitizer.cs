@@ -10,6 +10,7 @@ public static class MarkdownSanitizer
             .Replace("]", @"\]")
             .Replace(".", @"\.")
             .Replace("-", @"\-")
+            .Replace("_", @"\_")
             .Replace("(", @"\(")
             .Replace(")", @"\)");
     }

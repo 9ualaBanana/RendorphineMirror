@@ -1,9 +1,10 @@
 ﻿global using Common;
+using Hardware;
+using Node;
+using Serilog;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
-using Hardware;
-using Serilog;
 
 var api = new Api();
 
@@ -23,6 +24,9 @@ _ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
     Console.WriteLine($"Public port: {PortForwarding.Port}; Public IP: {t.Result}");
 });
 
+Log.Debug("Retrieveing hardware info...");
+var hardwareInfo = HardwareInfo.Get();
+
 if (!Debugger.IsAttached)
 {
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
@@ -31,24 +35,19 @@ if (!Debugger.IsAttached)
 }
 
 _ = StartHttpListenerAsync();
+_ = new ServerPinger(hardwareInfo, TimeSpan.FromMinutes(5), http).Start();
 Thread.Sleep(-1);
 
 
 async Task SendHardwareInfo()
 {
     Log.Debug("Requesting hardware info message verbosity level from the server...");
-    var isVerbose = await http.GetFromJsonAsync<bool>("hardware_info/is_verbose");
-    Log.Debug("Retrieveing hardware info...");
-    string hardwareInfoMessage;
-    using (var hardwareInfo = HardwareInfo.Get())
-    {
-        hardwareInfoMessage = hardwareInfo.ToTelegramMessage(isVerbose);
-    }
-
+    var isVerbose = await http.GetFromJsonAsync<bool>("node/hardware_info/is_verbose");
+    var hardwareInfoMessage = hardwareInfo.ToTelegramMessage(isVerbose);
     Log.Information("Sending hardware info to {server}", http.BaseAddress);
     try
     {
-        var response = await http.PostAsJsonAsync($"hardware_info", hardwareInfoMessage);
+        var response = await http.PostAsJsonAsync($"node/hardware_info", hardwareInfoMessage);
         response.EnsureSuccessStatusCode();
     }
     catch (HttpRequestException ex)

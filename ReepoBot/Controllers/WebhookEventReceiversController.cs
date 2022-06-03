@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using ReepoBot.Controllers.Binders;
 using ReepoBot.Services;
 using ReepoBot.Services.GitHub;
-using ReepoBot.Services.Hardware;
+using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;
 using System.Text.Json;
 using Telegram.Bot.Types;
