@@ -52,7 +52,7 @@ async Task SendHardwareInfo()
     }
     catch (HttpRequestException ex)
     {
-        Log.Error(ex, "Sending hardware info to the server resulted in {statusCode} status code.", ex.StatusCode);
+        Log.Error(ex, "Sending hardware info to the server resulted in {StatusCode} status code.", ex.StatusCode);
     }
 }
 

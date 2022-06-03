@@ -15,7 +15,7 @@ public class PingGitHubWebhookEventForwarder : GitHubWebhookEventForwarder
         var eventSourceRepo = payload.GetProperty("repository").GetProperty("name");
         var hookId = payload.GetProperty("hook").GetProperty("url").ToString();
         Logger.LogInformation(
-            "'ping' event is received from '{repo}' repository.", eventSourceRepo);
+            "'ping' event is received from '{Repo}' repository.", eventSourceRepo);
 
         return Task.CompletedTask;
     }

@@ -26,8 +26,8 @@ public abstract class GitHubWebhookEventForwarder : WebhookEventHandler<JsonElem
         {
             Logger.LogError(
                 "Signatures didn't match:\n\t" +
-                "Received: {received}\n\t" +
-                "Calculated: {calculated}", signature, ourSignature);
+                "Received: {Received}\n\t" +
+                "Calculated: {Calculated}", signature, ourSignature);
         }
         return matched;
     }

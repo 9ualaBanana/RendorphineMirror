@@ -22,15 +22,15 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
             }
             catch (ArgumentNullException ex)
             {
-                Logger.LogWarning(ex, "\"{configKey}\" config key is not defined.", configKey);
+                Logger.LogWarning(ex, "\"{ConfigKey}\" config key is not defined.", configKey);
             }
             catch (FormatException ex)
             {
-                Logger.LogWarning(ex, "Value of \"{configKey}\" can't be parsed as double.", configKey);
+                Logger.LogWarning(ex, "Value of \"{ConfigKey}\" can't be parsed as double.", configKey);
             }
             catch (OverflowException ex)
             {
-                Logger.LogWarning(ex, "Value of \"{configKey}\" overflows.", configKey);
+                Logger.LogWarning(ex, "Value of \"{ConfigKey}\" overflows.", configKey);
             }
             return _timeBeforeGoingOffline = result;
         }
@@ -47,7 +47,7 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
     {
         if (!NodesOnline.ContainsKey(nodeInfo))
         {
-            Logger.LogDebug("New node is online: {node} (v.{version}).", nodeInfo.Name, nodeInfo.Version);
+            Logger.LogDebug("New node is online: {Node} (v.{Version}).", nodeInfo.Name, nodeInfo.Version);
             NodesOnline.Add(nodeInfo, Timer);
         }
 

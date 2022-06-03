@@ -30,14 +30,14 @@ internal class ServerPinger : IDisposable
         _timer.AutoReset = true;
         _http = httpClient;
         _failedPingAttemptsLogLimit = failedPingAttemptsLogLimit;
-        Log.Debug("{service} is initialized with interval of {interval} ms.", nameof(ServerPinger), interval);
+        Log.Debug("{Service} is initialized with interval of {Interval} ms.", nameof(ServerPinger), interval);
     }
 
     internal async Task Start()
     {
         await PingServerAsync();
         _timer.Start();
-        Log.Debug("{service} is started.", nameof(ServerPinger));
+        Log.Debug("{Service} is started.", nameof(ServerPinger));
     }
 
     async void OnTimerElapsed(object? s, ElapsedEventArgs e)
@@ -52,14 +52,14 @@ internal class ServerPinger : IDisposable
             var queryString = $"nodeInfo={_nodeHardwareInfo.Name},{Init.Version}";
             var response = await _http.GetAsync($"{Settings.ServerUrl}/node/ping?{queryString}");
             response.EnsureSuccessStatusCode();
-            Log.Debug("{service} successfuly sent ping to {server}", nameof(ServerPinger), Settings.ServerUrl);
+            Log.Debug("{Service} successfuly sent ping to {Server}", nameof(ServerPinger), Settings.ServerUrl);
         }
         catch (Exception ex)
         {
             _failedPingAttempts++;
             if (_failedPingAttempts <= _failedPingAttemptsLogLimit)
             {
-                Log.Error(ex, "Node v.{version} was not able to ping the server.", Init.Version);
+                Log.Error(ex, "Node v.{Version} was not able to ping the server.", Init.Version);
             }
         }
     }
@@ -67,6 +67,6 @@ internal class ServerPinger : IDisposable
     public void Dispose()
     {
         _timer?.Close();
-        Log.Debug("{service} is disposed.", nameof(ServerPinger));
+        Log.Debug("{Service} is disposed.", nameof(ServerPinger));
     }
 }

@@ -15,6 +15,6 @@ public class BotAddedToChatTelegramUpdateHandler : TelegramUpdateHandler
         var chatId = update.MyChatMember!.Chat.Id;
         Bot.Subscriptions.Add(chatId);
         await Bot.SendTextMessageAsync(chatId, "You are subscribed to events now. Remove me from the chat to unsubscribe.");
-        Logger.LogInformation("Subscriber added: {id}", chatId);
+        Logger.LogInformation("Subscriber added: {Id}", chatId);
     }
 }

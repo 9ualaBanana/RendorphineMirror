@@ -17,7 +17,7 @@ internal class WindowsHardwareInfoMessageBuilder
         _hardwareInfo = hardwareInfo;
     }
 
-    internal string Build(bool verbose = false)
+    internal async Task<string> Build(bool verbose = false)
     {
         var message = new StringBuilder();
 
@@ -27,8 +27,8 @@ internal class WindowsHardwareInfoMessageBuilder
         if (!verbose)
         {
             var pcName = (_hardwareInfo.System.Components[0] as ManagementObject)?["UserName"];
-            var ip = ((_hardwareInfo.Network.Components[1] as ManagementBaseObject)?["IPAddress"] as string[])?[0];
-            return $"{pcName}: {ip}";
+            var (v4, v6) = await HardwareInfo.IP();
+            return $"{pcName} IPv4:{v4}|IPv6:{v6}";
         }
 
         message.AppendLine(BuildCPUInfoMessage(_hardwareInfo.CPU));

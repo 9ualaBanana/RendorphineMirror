@@ -15,7 +15,7 @@ internal class BotIsRemovedFromChatTelegramUpdateHandler : TelegramUpdateHandler
     {
         var chatId = update.MyChatMember!.Chat.Id;
         Bot.Subscriptions.Remove(chatId);
-        Logger.LogInformation("Subscriber removed: {id}", chatId);
+        Logger.LogInformation("Subscriber removed: {Id}", chatId);
         return Task.CompletedTask;
     }
 }

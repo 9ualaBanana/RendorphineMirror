@@ -14,7 +14,7 @@ public class NodeController : ControllerBase
         [FromServices] NodeSupervisor nodeSupervisor,
         [FromServices] ILogger<NodeController> logger)
     {
-        logger.LogDebug("Received ping from {name} (v.{version}).", nodeInfo.Name, nodeInfo.Version);
+        logger.LogDebug("Received ping from {Name} (v.{Version}).", nodeInfo.Name, nodeInfo.Version);
         await nodeSupervisor.HandleAsync(nodeInfo);
     }
 
@@ -33,7 +33,7 @@ public class NodeController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{receiver} couldn't forward following hardware info message:\n{message}",
+            logger.LogError(ex, "{Receiver} couldn't forward following hardware info message:\n{Message}",
                 nameof(ForwardHardwareInfoMessageToTelegramAsync), hardwareInfoMessage);
         }
     }
@@ -50,11 +50,11 @@ public class NodeController : ControllerBase
         }
         catch (ArgumentNullException ex)
         {
-            logger.LogError(ex, "\"{configKey}\" config key is not defined.", configKey);
+            logger.LogError(ex, "\"{ConfigKey}\" config key is not defined.", configKey);
         }
         catch (FormatException ex)
         {
-            logger.LogError(ex, "Value of \"{configKey}\" can't be parsed as bool.", configKey);
+            logger.LogError(ex, "Value of \"{ConfigKey}\" can't be parsed as bool.", configKey);
         }
         return false;
     }
