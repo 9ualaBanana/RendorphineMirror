@@ -41,7 +41,11 @@ internal class CommandTelegramUpdateHandler : TelegramUpdateHandler
         messageBuilder.AppendLine("------------------------------------------------");
         foreach (var nodeStatus in _nodeSupervisor.NodesOnline)
         {
-            messageBuilder.AppendLine($"{nodeStatus.Key.Name} (v.{nodeStatus.Key.Version}) | {_nodeSupervisor.ElapsedSinceLastPingFrom(nodeStatus.Key):d.hh:mm}");
+            var elapsedSinceLastPing = _nodeSupervisor.ElapsedSinceLastPingFrom(nodeStatus.Key);
+            // It could already go offline.
+            if (elapsedSinceLastPing is null) continue;
+            var escapedElapsedSinceLastPing= $"{elapsedSinceLastPing:d\\.hh\\:mm}";
+            messageBuilder.AppendLine($"{nodeStatus.Key.Name} (v.{nodeStatus.Key.Version}) | {escapedElapsedSinceLastPing}");
         }
         var message = messageBuilder.ToString().Sanitize();
         Logger.LogDebug("Sending the message to subscribers...");
