@@ -43,7 +43,7 @@ namespace Common
             try { time = Directory.GetFiles(Path.GetDirectoryName(typeof(Init).Assembly.Location ?? Environment.ProcessPath!)!, "*", SearchOption.AllDirectories).Select(File.GetLastWriteTimeUtc).Max(); }
             catch (Exception ex) { Console.WriteLine("err getting version " + ex.Message); }
 
-            return time?.ToString("ddMMyy_hhmm") ?? "UNKNOWNVERSION";
+            return time?.ToString("ddMMyy_HHmm") ?? "UNKNOWNVERSION";
         }
     }
 }
