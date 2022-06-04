@@ -8,4 +8,9 @@ r=$4
 PIP=debian@t.microstock.plus
 
 dotnet publish -c $c $proj -r $4
+
+if [[ "$5" == "1" ]]; then
+    wine editbin/editbin.exe /subsystem:windows $(find Node/bin/Release/net6.0/win7-x64/publish -name '*.exe')
+fi
+
 rsync -ruavP $proj/bin/$c/net6.0/$r/publish/ $PIP:/home/debian/$dir
