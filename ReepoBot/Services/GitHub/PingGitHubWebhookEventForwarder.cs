@@ -1,20 +1,20 @@
-﻿using ReepoBot.Services.Telegram;
-using System.Text.Json;
+﻿using ReepoBot.Models;
 
 namespace ReepoBot.Services.GitHub;
 
-public class PingGitHubWebhookEventForwarder : GitHubWebhookEventForwarder
+public class PingGitHubWebhookEventForwarder : IGitHubWebhookEventHandler
 {
-    public PingGitHubWebhookEventForwarder(ILogger<PingGitHubWebhookEventForwarder> logger, TelegramBot bot)
-        : base(logger, bot)
+    readonly ILogger _logger;
+
+    public PingGitHubWebhookEventForwarder(ILoggerFactory loggerFactory)
     {
+        _logger = loggerFactory.CreateLogger<PingGitHubWebhookEventForwarder>();
     }
 
-    public override Task HandleAsync(JsonElement payload)
+    public Task HandleAsync(GitHubWebhookEvent gitHubEvent)
     {
-        var eventSourceRepo = payload.GetProperty("repository").GetProperty("name");
-        var hookId = payload.GetProperty("hook").GetProperty("url").ToString();
-        Logger.LogInformation(
+        var eventSourceRepo = gitHubEvent.Payload.GetProperty("repository").GetProperty("name");
+        _logger.LogInformation(
             "'ping' event is received from '{Repo}' repository.", eventSourceRepo);
 
         return Task.CompletedTask;

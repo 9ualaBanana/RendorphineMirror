@@ -2,6 +2,7 @@ using ReepoBot.Services;
 using ReepoBot.Services.GitHub;
 using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;
+using ReepoBot.Services.Telegram.UpdateHandlers;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -15,8 +16,8 @@ builder.Services.AddSwaggerGen();
 
 await InitializeBot();
 
-builder.Services.AddScoped<WebhookEventHandlerFactory<TelegramUpdateHandler, Update>, TelegramUpdateHandlerFactory>();
-builder.Services.AddScoped<WebhookEventHandlerFactory<GitHubWebhookEventForwarder, string>, GitHubWebhookEventForwarderFactory>();
+builder.Services.AddScoped<TelegramUpdateHandler>();
+builder.Services.AddScoped<GitHubWebhookEventForwarder>();
 builder.Services.AddScoped<HardwareInfoForwarder>();
 builder.Services.AddSingleton<NodeSupervisor>();
 

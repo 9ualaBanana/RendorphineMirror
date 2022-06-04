@@ -1,4 +1,5 @@
-﻿using ReepoBot.Services.Telegram;
+﻿using ReepoBot.Models;
+using ReepoBot.Services.Telegram;
 using System.Text;
 using System.Text.Json;
 using Telegram.Bot;
@@ -8,15 +9,20 @@ using TelegramHelper;
 
 namespace ReepoBot.Services.GitHub;
 
-public class PushGitHubWebhookEventForwarder : GitHubWebhookEventForwarder
+public class PushGitHubWebhookEventForwarder : IGitHubWebhookEventHandler
 {
-    public PushGitHubWebhookEventForwarder(ILogger<PushGitHubWebhookEventForwarder> logger, TelegramBot bot)
-        : base(logger, bot)
+    readonly ILogger _logger;
+    readonly TelegramBot _bot;
+
+    public PushGitHubWebhookEventForwarder(ILoggerFactory loggerFactory, TelegramBot bot)
     {
+        _logger = loggerFactory.CreateLogger<PushGitHubWebhookEventForwarder>();
+        _bot = bot;
     }
 
-    public override async Task HandleAsync(JsonElement payload)
+    public async Task HandleAsync(GitHubWebhookEvent githubEvent)
     {
+        var payload = githubEvent.Payload;
         var repo = payload.GetProperty("repository");
         var sender = payload.GetProperty("sender");
         var diff = payload.GetProperty("compare");
@@ -55,9 +61,9 @@ public class PushGitHubWebhookEventForwarder : GitHubWebhookEventForwarder
             }
         });
 
-        foreach (var subscriber in Bot.Subscriptions)
+        foreach (var subscriber in _bot.Subscriptions)
         {
-            await Bot.SendTextMessageAsync(
+            await _bot.SendTextMessageAsync(
                 new(subscriber),
                 text,
                 replyMarkup: replyMarkup,

@@ -1,11 +1,11 @@
 ﻿using ReepoBot.Models;
-using ReepoBot.Services.Telegram;
 using System.Timers;
 
 namespace ReepoBot.Services.Node;
 
-public class NodeSupervisor : WebhookEventHandler<NodeInfo>
+public class NodeSupervisor : IEventHandler<NodeInfo>
 {
+    readonly ILogger<NodeSupervisor> _logger;
     internal readonly Dictionary<NodeInfo, TimerPlus> NodesOnline = new();
     double _timeBeforeGoingOffline = -1;
     double TimeBeforeNodeGoesOffline
@@ -22,32 +22,40 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
             }
             catch (ArgumentNullException ex)
             {
-                Logger.LogWarning(ex, "\"{ConfigKey}\" config key is not defined.", configKey);
+                _logger.LogWarning(ex, "\"{ConfigKey}\" config key is not defined.", configKey);
             }
             catch (FormatException ex)
             {
-                Logger.LogWarning(ex, "Value of \"{ConfigKey}\" can't be parsed as double.", configKey);
+                _logger.LogWarning(ex, "Value of \"{ConfigKey}\" can't be parsed as double.", configKey);
             }
             catch (OverflowException ex)
             {
-                Logger.LogWarning(ex, "Value of \"{ConfigKey}\" overflows.", configKey);
+                _logger.LogWarning(ex, "Value of \"{ConfigKey}\" overflows.", configKey);
             }
             return _timeBeforeGoingOffline = result;
         }
     }
     readonly IConfiguration _configuration;
 
-    public NodeSupervisor(ILogger<NodeSupervisor> logger, TelegramBot _, IConfiguration configuration)
-        : base(logger, _)
+    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration)
     {
+        _logger = logger;
         _configuration = configuration;
+    }
+
+    public Task HandleAsync(NodeInfo nodeInfo)
+    {
+        _logger.LogDebug("Updating node status...");
+        UpdateNodeStatus(nodeInfo);
+        _logger.LogDebug("Node status is updated.");
+        return Task.CompletedTask;
     }
 
     void UpdateNodeStatus(NodeInfo nodeInfo)
     {
         if (!NodesOnline.ContainsKey(nodeInfo))
         {
-            Logger.LogDebug("New node is online: {Node} (v.{Version}).", nodeInfo.Name, nodeInfo.Version);
+            _logger.LogDebug("New node is online: {Name} | v.{Version} | {IP}", nodeInfo.Name, nodeInfo.Version, nodeInfo.IP);
             NodesOnline.Add(nodeInfo, Timer);
         }
 
@@ -69,8 +77,8 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
     {
         var offlineNode = NodesOnline.Single(node => node.Value == sender);
         var offlineNodeInfo = offlineNode.Key;
-        Logger.LogError("{Name} (v.{Version}) went offline after {Time} ms since the last ping.",
-            offlineNodeInfo.Name, offlineNodeInfo.Version, TimeBeforeNodeGoesOffline);
+        _logger.LogError("{Name} | v.{Version} | {IP} went offline after {Time} ms since the last ping.",
+            offlineNodeInfo.Name, offlineNodeInfo.Version, offlineNodeInfo.IP, TimeBeforeNodeGoesOffline);
         NodesOnline.Remove(offlineNodeInfo);
     }
 
@@ -78,18 +86,10 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
     /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="node"/>;
     /// <c>null</c> if <paramref name="node"/> is offline.
     /// </returns>
-    internal TimeSpan? ElapsedSinceLastPingFrom(NodeInfo node)
+    internal TimeSpan? GetUptimeFor(NodeInfo node)
     {
         if (!NodesOnline.ContainsKey(node)) return null;
 
         return NodesOnline[node].ElapsedTime;
-    }
-
-    public override Task HandleAsync(NodeInfo nodeInfo)
-    {
-        Logger.LogDebug("Updating node status...");
-        UpdateNodeStatus(nodeInfo);
-        Logger.LogDebug("Node status is updated.");
-        return Task.CompletedTask;
     }
 }

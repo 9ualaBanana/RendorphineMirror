@@ -5,23 +5,28 @@ using Telegram.Bot.Types.Enums;
 
 namespace ReepoBot.Services.Node;
 
-public class HardwareInfoForwarder : WebhookEventHandler<string>
+public class HardwareInfoForwarder : IEventHandler<string>
 {
+    readonly ILogger<HardwareInfoForwarder> _logger;
+    readonly TelegramBot _bot;
+
     public HardwareInfoForwarder(ILogger<HardwareInfoForwarder> logger, TelegramBot bot)
-        : base(logger, bot)
     {
+        _logger = logger;
+        _bot = bot;
     }
 
     [SupportedOSPlatform("windows")]
-    public override async Task HandleAsync(string hardwareInfoMessage)
+    public async Task HandleAsync(string hardwareInfoMessage)
     {
-        Logger.LogDebug("Forwarding the hardware info message to Telegram subsribers...");
-        foreach (var subscriber in Bot.Subscriptions)
+        _logger.LogDebug("Forwarding the hardware info message to Telegram subscribers...");
+        foreach (var subscriber in _bot.Subscriptions)
         {
-            await Bot.SendTextMessageAsync(
-                subscriber, hardwareInfoMessage,
+            await _bot.SendTextMessageAsync(
+                subscriber,
+                hardwareInfoMessage,
                 parseMode: ParseMode.MarkdownV2);
         }
-        Logger.LogDebug("Hardware info message is forwarded.");
+        _logger.LogDebug("Hardware info message is forwarded.");
     }
 }

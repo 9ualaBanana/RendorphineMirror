@@ -1,33 +1,52 @@
-﻿using ReepoBot.Services.Telegram;
+﻿using ReepoBot.Models;
+using ReepoBot.Services.Telegram;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 
 namespace ReepoBot.Services.GitHub;
 
-public abstract class GitHubWebhookEventForwarder : WebhookEventHandler<JsonElement>
+public class GitHubWebhookEventForwarder : IGitHubWebhookEventHandler
 {
-    protected GitHubWebhookEventForwarder(ILogger<GitHubWebhookEventForwarder> logger, TelegramBot bot)
-        : base(logger, bot)
+    readonly ILoggerFactory _loggerFactory;
+    readonly ILogger<GitHubWebhookEventForwarder> _logger;
+    readonly TelegramBot _bot;
+
+    public GitHubWebhookEventForwarder(ILoggerFactory loggerFactory, TelegramBot bot)
     {
+        _loggerFactory = loggerFactory;
+        _logger = loggerFactory.CreateLogger<GitHubWebhookEventForwarder>();
+        _bot = bot;
     }
 
-    internal bool SignaturesMatch(JsonElement payload, string signature, string secret)
+    public async Task HandleAsync(GitHubWebhookEvent githubEvent)
+    {
+        switch (githubEvent.EventType)
+        {
+            case "ping":
+                await new PingGitHubWebhookEventForwarder(_loggerFactory).HandleAsync(githubEvent);
+                break;
+            case "push":
+                await new PushGitHubWebhookEventForwarder(_loggerFactory, _bot).HandleAsync(githubEvent);
+                break;
+        }
+    }
+
+    internal bool SignaturesMatch(GitHubWebhookEvent gitHubEvent, string secret)
     {
         using var hmac256 = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
         // GitHubGitHub advises to use UTF-8 for payload deserializing.
         var ourSignature = "sha256=" + BitConverter.ToString(
-            hmac256.ComputeHash(Encoding.UTF8.GetBytes(payload.GetRawText()))
+            hmac256.ComputeHash(Encoding.UTF8.GetBytes(gitHubEvent.Payload.GetRawText()))
             )
             .Replace("-", "").ToLower();
 
-        var matched = ourSignature == signature;
+        var matched = ourSignature == gitHubEvent.Signature;
         if (!matched)
         {
-            Logger.LogError(
-                "Signatures didn't match:\n\t" +
-                "Received: {Received}\n\t" +
-                "Calculated: {Calculated}", signature, ourSignature);
+            _logger.LogError(
+               @"Signatures didn't match:\n\t
+                 Received: {Received}\n\t
+                 Calculated: {Calculated}", gitHubEvent.Signature, ourSignature);
         }
         return matched;
     }
