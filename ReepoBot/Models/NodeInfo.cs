@@ -4,7 +4,7 @@ using System.Globalization;
 namespace ReepoBot.Models;
 
 [TypeConverter(typeof(GeoPointConverter))]
-public class NodeInfo
+public record struct NodeInfo
 {
     public string Name { get; }
     public string Version { get; }
