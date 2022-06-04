@@ -1,10 +1,8 @@
-using ReepoBot.Services;
 using ReepoBot.Services.GitHub;
 using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;
 using ReepoBot.Services.Telegram.UpdateHandlers;
 using Telegram.Bot;
-using Telegram.Bot.Types;
 
 var builder = WebApplication.CreateBuilder(args);
 
