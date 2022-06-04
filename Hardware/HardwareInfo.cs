@@ -1,9 +1,7 @@
 ﻿using Common;
 using Hardware.MessageBuilders;
 using System.ComponentModel;
-using System.Management;
 using System.Net;
-using System.Net.Sockets;
 using TelegramHelper;
 
 namespace Hardware;
@@ -15,7 +13,7 @@ public readonly record struct HardwareInfo(
     Container RAM,
     Container Disks) : IDisposable
 {
-    readonly public string? Name = ((ManagementObject?)System.Components[0])?["Name"]?.ToString();
+    readonly public string Name = Environment.UserName;
     public static async Task<IPAddress> IP() => await PortForwarding.GetPublicIPAsync();
 
     public static HardwareInfo Get()
