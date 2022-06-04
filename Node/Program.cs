@@ -43,8 +43,8 @@ async Task SendHardwareInfo()
 {
     Log.Debug("Requesting hardware info message verbosity level from the server...");
     var isVerbose = await http.GetFromJsonAsync<bool>("node/hardware_info/is_verbose");
-    var hardwareInfoMessage = hardwareInfo.ToTelegramMessage(isVerbose);
-    Log.Information("Sending hardware info to {server}", http.BaseAddress);
+    var hardwareInfoMessage = await hardwareInfo.ToTelegramMessageAsync(isVerbose);
+    Log.Information("Sending hardware info to {Server}", http.BaseAddress);
     try
     {
         var response = await http.PostAsJsonAsync($"node/hardware_info", hardwareInfoMessage);

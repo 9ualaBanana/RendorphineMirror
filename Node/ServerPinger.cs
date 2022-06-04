@@ -49,7 +49,7 @@ internal class ServerPinger : IDisposable
     {
         try
         {
-            var queryString = $"nodeInfo={_nodeHardwareInfo.Name},{Init.Version}";
+            var queryString = $"nodeInfo={await HardwareInfo.GetBriefAsync()}";
             var response = await _http.GetAsync($"{Settings.ServerUrl}/node/ping?{queryString}");
             response.EnsureSuccessStatusCode();
             Log.Debug("{Service} successfuly sent ping to {Server}", nameof(ServerPinger), Settings.ServerUrl);
@@ -59,7 +59,7 @@ internal class ServerPinger : IDisposable
             _failedPingAttempts++;
             if (_failedPingAttempts <= _failedPingAttemptsLogLimit)
             {
-                Log.Error(ex, "Node v.{Version} was not able to ping the server.", Init.Version);
+                Log.Error(ex, "Node v.{Version} was not able to ping the server.", HardwareInfo.Version);
             }
         }
     }

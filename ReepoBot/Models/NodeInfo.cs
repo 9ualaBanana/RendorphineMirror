@@ -4,15 +4,17 @@ using System.Globalization;
 namespace ReepoBot.Models;
 
 [TypeConverter(typeof(GeoPointConverter))]
-public class NodeInfo
+public record struct NodeInfo
 {
     public string Name { get; }
     public string Version { get; }
+    public string IP { get; }
 
-    public NodeInfo(string name, string version)
+    public NodeInfo(string name, string version, string ip)
     {
         Name = name;
         Version = version;
+        IP = ip;
     }
 
     public static bool TryParse(string s, out NodeInfo? nodeInfo)
@@ -20,14 +22,15 @@ public class NodeInfo
         nodeInfo = default;
 
         var queryStringParameters = s.Split(',');
-        if (queryStringParameters.Length != 2)
+        if (queryStringParameters.Length != 3)
         {
             return false;
         }
 
         var name = queryStringParameters[0];
         var version = queryStringParameters[1];
-        nodeInfo = new(name, version);
+        var ip = queryStringParameters[2];
+        nodeInfo = new(name, version, ip);
         return true;
     }
 }

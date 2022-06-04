@@ -1,9 +1,7 @@
 ﻿using Common;
 using Hardware.MessageBuilders;
 using System.ComponentModel;
-using System.Management;
 using System.Net;
-using System.Net.Sockets;
 using TelegramHelper;
 
 namespace Hardware;
@@ -15,8 +13,10 @@ public readonly record struct HardwareInfo(
     Container RAM,
     Container Disks) : IDisposable
 {
-    readonly public string? Name = ((ManagementObject?)System.Components[0])?["Name"]?.ToString();
-    public static async Task<IPAddress> IP() => await PortForwarding.GetPublicIPAsync();
+    readonly public static string Name = Environment.UserName;
+    readonly public static string Version = Init.Version;
+    public static async Task<IPAddress> GetIPAsync() => await PortForwarding.GetPublicIPAsync();
+    public static async Task<string> GetBriefAsync() => $"{Name} | {Version} | {await GetIPAsync()}";
 
     public static HardwareInfo Get()
     {
@@ -28,7 +28,7 @@ public readonly record struct HardwareInfo(
             Hardware.Disks.Info());
     }
 
-    public async Task<string> ToTelegramMessage(bool verbose = false)
+    public async Task<string> ToTelegramMessageAsync(bool verbose = false)
     {
         if (OperatingSystem.IsWindows()) return (await new WindowsHardwareInfoMessageBuilder(this).Build(verbose)).Sanitize();
         throw new PlatformNotSupportedException();

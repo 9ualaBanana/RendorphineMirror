@@ -14,7 +14,7 @@ public class NodeController : ControllerBase
         [FromServices] NodeSupervisor nodeSupervisor,
         [FromServices] ILogger<NodeController> logger)
     {
-        logger.LogDebug("Received ping from {Name} (v.{Version}).", nodeInfo.Name, nodeInfo.Version);
+        logger.LogDebug("Received ping from {Name} (v.{Version}) | {IP}.", nodeInfo.Name, nodeInfo.Version, nodeInfo.IP);
         await nodeSupervisor.HandleAsync(nodeInfo);
     }
 

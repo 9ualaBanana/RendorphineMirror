@@ -26,8 +26,7 @@ internal class WindowsHardwareInfoMessageBuilder
 
         if (!verbose)
         {
-            var pcName = (_hardwareInfo.System.Components[0] as ManagementObject)?["UserName"];
-            return $"{pcName} {await HardwareInfo.IP()}";
+            return $"{await HardwareInfo.GetBriefAsync()}";
         }
 
         message.AppendLine(BuildCPUInfoMessage(_hardwareInfo.CPU));
