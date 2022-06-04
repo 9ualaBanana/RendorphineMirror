@@ -25,6 +25,7 @@ public class TelegramUpdateHandler : ITelegramUpdateHandler
 
     public async Task HandleAsync(Update update)
     {
+        _logger.LogDebug("Dispatching update type...");
         switch (update.Type)
         {
             case UpdateType.MyChatMember:
@@ -34,7 +35,7 @@ public class TelegramUpdateHandler : ITelegramUpdateHandler
                 await new MessageTelegramUpdateHandler(_loggerFactory, _bot, _nodeSupervisor).HandleAsync(update);
                 break;
             default:
-                _logger.LogWarning("{type} update couldn't be handled by {handler}", update.Type, nameof(TelegramUpdateHandler));
+                _logger.LogWarning("Update with {Type} type couldn't be handled", update.Type);
                 break;
         }
     }

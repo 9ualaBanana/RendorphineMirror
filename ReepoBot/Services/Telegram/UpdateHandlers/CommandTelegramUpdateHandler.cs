@@ -25,27 +25,29 @@ internal class CommandTelegramUpdateHandler : ITelegramUpdateHandler
 
     public async Task HandleAsync(Update update)
     {
-        _logger.LogDebug("Dispatching bot command...");
         var command = update.Message!.Text![1..];
+        _logger.LogDebug("Dispatching {Command} bot command...", command);
         switch (command)
         {
             case "ping":
                 await HandlePing();
-                break;
+                return;
         };
+        _logger.LogWarning("No handler for {Command} command is found", command);
     }
 
     async Task HandlePing()
     {
-        _logger.LogDebug("Building the message with online nodes status...");
+        _logger.LogDebug("Building the message with online nodes statuses...");
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*Node* | *Uptime*");
         messageBuilder.AppendLine("------------------------------------------------");
-        foreach (var(node, _) in _nodeSupervisor.NodesOnline)
+        foreach (var (node, _) in _nodeSupervisor.NodesOnline)
         {
             var uptime = _nodeSupervisor.GetUptimeFor(node);
             // It could already go offline.
             if (uptime is null) continue;
+
             var escapedUptime = $"{uptime:d\\.hh\\:mm}";
             messageBuilder.AppendLine($"*{node.Name}* (v.{node.Version}) *{node.IP}* | {escapedUptime}");
         }
@@ -63,7 +65,7 @@ internal class CommandTelegramUpdateHandler : ITelegramUpdateHandler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Something went wrong when trying to send the message.");
+            _logger.LogError(ex, "Something went wrong when trying to send the message\n{Message}", message);
         }
     }
 }
