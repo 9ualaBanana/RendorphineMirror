@@ -26,7 +26,7 @@ internal class WindowsHardwareInfoMessageBuilder
 
         if (!verbose)
         {
-            return $"{_hardwareInfo.Name} {await HardwareInfo.IP()}";
+            return $"{_hardwareInfo.Name} | {await HardwareInfo.IP()} | v.{_hardwareInfo.Version}";
         }
 
         message.AppendLine(BuildCPUInfoMessage(_hardwareInfo.CPU));

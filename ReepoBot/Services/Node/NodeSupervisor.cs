@@ -78,7 +78,7 @@ public class NodeSupervisor : WebhookEventHandler<NodeInfo>
     /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="node"/>;
     /// <c>null</c> if <paramref name="node"/> is offline.
     /// </returns>
-    internal TimeSpan? ElapsedSinceLastPingFrom(NodeInfo node)
+    internal TimeSpan? GetUptimeFor(NodeInfo node)
     {
         if (!NodesOnline.ContainsKey(node)) return null;
 

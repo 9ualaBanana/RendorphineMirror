@@ -14,6 +14,7 @@ public readonly record struct HardwareInfo(
     Container Disks) : IDisposable
 {
     readonly public string Name = Environment.UserName;
+    readonly public string Version = Init.Version;
     public static async Task<IPAddress> IP() => await PortForwarding.GetPublicIPAsync();
 
     public static HardwareInfo Get()
