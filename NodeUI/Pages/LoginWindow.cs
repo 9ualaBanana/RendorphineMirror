@@ -22,55 +22,81 @@ namespace NodeUI.Pages
             this.PreventClosing();
 
 
-            async Task authenticate(Func<ValueTask<OperationResult<LoginResult>>> func)
+            async Task authenticate(LocalizedString str, Func<ValueTask<OperationResult<LoginResult>>> func)
             {
-                var auth = await func();
-                if (!auth)
+                try
                 {
-                    Login.ShowError(auth.Message);
-                    return;
+                    Login.StartLoginAnimation(str);
+
+                    while (true)
+                    {
+                        var auth = await OperationResult.WrapException(func);
+                        if (!auth)
+                        {
+                            if (auth.Message?.Contains("443") ?? false)
+                            {
+                                Login.StartLoginAnimation(Localized.General.NoInternet);
+                                await Task.Delay(1000);
+                                continue;
+                            }
+
+                            Login.ShowError(auth.Message);
+                            return;
+                        }
+
+                        Login.StartLoginAnimation(Localized.Login.Loading);
+                        ShowMainWindow(auth.Result);
+                        return;
+                    }
                 }
-
-                Login.StartLoginAnimation(Localized.Login.LoadingDirectories);
-                ShowMainWindow(auth.Result);
-
-                foreach (var t in WaitingExternalAuths)
+                catch (Exception ex) { Login.ShowError(ex.Message); }
+                finally
                 {
-                    try { t.Cancel(); }
-                    catch { }
+                    foreach (var t in WaitingExternalAuths)
+                    {
+                        try { t.Cancel(); }
+                        catch { }
+                    }
+                    WaitingExternalAuths.Clear();
+                    Login.StopLoginAnimation();
                 }
-                WaitingExternalAuths.Clear();
-                Login.StopLoginAnimation();
             }
-            Login.OnPressLogin += (login, password) => _ = authenticate(() => TryAuthenticate(login, password));
-            Login.OnPressLoginWith += t => _ = authenticate(() => TryAuthenticateExternal(t));
+            Login.OnPressLogin += (login, password) => _ = authenticate(Localized.Login.Loading, () => TryAuthenticate(login, password));
+            Login.OnPressLoginWith += t => _ = authenticate(Localized.Login.Waiting, () => TryAuthenticateExternal(t));
             Login.OnPressForgotPassword += () => Process.Start(new ProcessStartInfo("https://accounts.stocksubmitter.com/resetpasswordrequest") { UseShellExecute = true });
 
             var hasSavedCreds = !string.IsNullOrWhiteSpace(Settings.SessionId) && !string.IsNullOrWhiteSpace(Settings.UserId) && !string.IsNullOrWhiteSpace(Settings.Username);
-            Login.IsRememberMeToggled = hasSavedCreds;
-
             if (tryAutoAuth && hasSavedCreds)
                 Task.Run(async () =>
                 {
-                    var result = await Dispatcher.UIThread.InvokeAsync(() => CheckAuth(Settings.SessionId!, Settings.UserId!)).ConfigureAwait(false);
-
-                    if (!result)
+                    while (true)
                     {
-                        Settings.SessionId = null;
-                        Dispatcher.UIThread.Post(() => Login.ShowError(Localized.Login.SidExpired));
+                        var result = await Dispatcher.UIThread.InvokeAsync(() => CheckAuth(Settings.SessionId!, Settings.UserId!)).ConfigureAwait(false);
+                        if (!result)
+                        {
+                            Dispatcher.UIThread.Post(Login.UnlockButtons);
 
+                            if (result.Message?.Contains("443") ?? false)
+                            {
+                                await Task.Delay(1000);
+                                continue;
+                            }
+
+                            Settings.SessionId = null;
+                            Dispatcher.UIThread.Post(() => Login.ShowError(Localized.Login.SidExpired));
+
+                            return;
+                        }
+
+                        Dispatcher.UIThread.Post(() => ShowMainWindow(new LoginResult(Settings.Username!, Settings.UserId!, Settings.SessionId!)));
                         return;
                     }
-
-                    Dispatcher.UIThread.Post(() => ShowMainWindow(new LoginResult(Settings.Username!, Settings.UserId!, Settings.SessionId!)));
                 });
         }
 
 
         async ValueTask<OperationResult<LoginResult>> TryAuthenticateExternal(LoginType type)
         {
-            Login.StartLoginAnimation(Localized.Login.Waiting);
-
             var source = new CancellationTokenSource();
             WaitingExternalAuths.Add(source);
             _ = Task.Delay(10_000).ContinueWith(_ => Dispatcher.UIThread.Post(Login.UnlockButtons), source.Token);
@@ -89,8 +115,6 @@ namespace NodeUI.Pages
         {
             if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err(Localized.Login.EmptyLogin);
             if (string.IsNullOrEmpty(password)) return OperationResult.Err(Localized.Login.EmptyPassword);
-
-            Login.StartLoginAnimation(Localized.Login.Loading);
 
             var auth = await Api.AuthenticateAsync(login, password, CancellationToken.None);
             if (!auth) return OperationResult.Err(Localized.Login.WrongLoginPassword);
@@ -177,17 +201,11 @@ namespace NodeUI.Pages
 
             public TextBox LoginInput => LoginPasswordInput.LoginInput;
             public TextBox PasswordInput => LoginPasswordInput.PasswordInput;
-            public bool IsRememberMeToggled
-            {
-                get => RememberMeSwitch.IsToggled;
-                set => RememberMeSwitch.IsToggled = value;
-            }
 
             readonly LoginPasswordInputUI LoginPasswordInput;
             readonly TextBlock ErrorText;
             readonly LoginStatusUI LoginStatus;
             readonly ExternalLoginButtonsUI ExternalLoginButtons;
-            readonly RememberMeSwitchUI RememberMeSwitch;
             readonly MPButton LoginButton;
 
             public LoginControl()
@@ -203,7 +221,6 @@ namespace NodeUI.Pages
 
                 var buttonsAndRemember = new Panel { Margin = new Thickness(30, 0) };
                 buttonsAndRemember.Children.Add(ExternalLoginButtons = new ExternalLoginButtonsUI());
-                buttonsAndRemember.Children.Add(RememberMeSwitch = new RememberMeSwitchUI());
 
 
                 var grid = new Grid();
@@ -242,8 +259,6 @@ namespace NodeUI.Pages
                 ExternalLoginButtons.HorizontalAlignment = HorizontalAlignment.Left;
                 ExternalLoginButtons.Width = 160;
                 ExternalLoginButtons.OnPressLogin += t => OnPressLoginWith(t);
-
-                RememberMeSwitch.HorizontalAlignment = HorizontalAlignment.Right;
 
                 LoginPasswordInput.Margin = new Thickness(30, 0);
                 forgotPasswordButton.Margin = new Thickness(0, 0, 0, 50);
