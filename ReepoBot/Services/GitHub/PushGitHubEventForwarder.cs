@@ -9,18 +9,18 @@ using TelegramHelper;
 
 namespace ReepoBot.Services.GitHub;
 
-public class PushGitHubWebhookEventForwarder : IGitHubWebhookEventHandler
+public class PushGitHubEventForwarder : IGitHubEventHandler
 {
     readonly ILogger _logger;
     readonly TelegramBot _bot;
 
-    public PushGitHubWebhookEventForwarder(ILoggerFactory loggerFactory, TelegramBot bot)
+    public PushGitHubEventForwarder(ILoggerFactory loggerFactory, TelegramBot bot)
     {
-        _logger = loggerFactory.CreateLogger<PushGitHubWebhookEventForwarder>();
+        _logger = loggerFactory.CreateLogger<PushGitHubEventForwarder>();
         _bot = bot;
     }
 
-    public async Task HandleAsync(GitHubWebhookEvent githubEvent)
+    public async Task HandleAsync(GitHubEvent githubEvent)
     {
         var payload = githubEvent.Payload;
         var repo = payload.GetProperty("repository");

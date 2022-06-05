@@ -28,7 +28,7 @@ public readonly record struct HardwareInfo(
 
     public async Task<string> ToTelegramMessageAsync(bool verbose = false)
     {
-        if (OperatingSystem.IsWindows()) return (await new WindowsHardwareInfoMessageBuilder(this).Build(verbose)).Sanitize();
+        if (OperatingSystem.IsWindows()) return (await new WindowsHardwareInfoMessageBuilder(this).BuildAsync(verbose)).Sanitize();
         throw new PlatformNotSupportedException();
     }
 

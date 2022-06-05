@@ -17,7 +17,7 @@ internal class WindowsHardwareInfoMessageBuilder
         _hardwareInfo = hardwareInfo;
     }
 
-    internal async Task<string> Build(bool verbose = false)
+    internal async Task<string> BuildAsync(bool verbose = false)
     {
         var message = new StringBuilder();
 

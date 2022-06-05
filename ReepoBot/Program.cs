@@ -15,7 +15,7 @@ builder.Services.AddSwaggerGen();
 await InitializeBot();
 
 builder.Services.AddScoped<TelegramUpdateHandler>();
-builder.Services.AddScoped<GitHubWebhookEventForwarder>();
+builder.Services.AddScoped<GitHubEventForwarder>();
 builder.Services.AddScoped<HardwareInfoForwarder>();
 builder.Services.AddSingleton<NodeSupervisor>();
 

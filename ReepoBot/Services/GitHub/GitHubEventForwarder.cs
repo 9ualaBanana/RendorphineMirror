@@ -5,33 +5,33 @@ using System.Text;
 
 namespace ReepoBot.Services.GitHub;
 
-public class GitHubWebhookEventForwarder : IGitHubWebhookEventHandler
+public class GitHubEventForwarder : IGitHubEventHandler
 {
     readonly ILoggerFactory _loggerFactory;
-    readonly ILogger<GitHubWebhookEventForwarder> _logger;
+    readonly ILogger<GitHubEventForwarder> _logger;
     readonly TelegramBot _bot;
 
-    public GitHubWebhookEventForwarder(ILoggerFactory loggerFactory, TelegramBot bot)
+    public GitHubEventForwarder(ILoggerFactory loggerFactory, TelegramBot bot)
     {
         _loggerFactory = loggerFactory;
-        _logger = loggerFactory.CreateLogger<GitHubWebhookEventForwarder>();
+        _logger = loggerFactory.CreateLogger<GitHubEventForwarder>();
         _bot = bot;
     }
 
-    public async Task HandleAsync(GitHubWebhookEvent githubEvent)
+    public async Task HandleAsync(GitHubEvent githubEvent)
     {
         switch (githubEvent.EventType)
         {
             case "ping":
-                await new PingGitHubWebhookEventForwarder(_loggerFactory).HandleAsync(githubEvent);
+                await new PingGitHubEventForwarder(_loggerFactory).HandleAsync(githubEvent);
                 break;
             case "push":
-                await new PushGitHubWebhookEventForwarder(_loggerFactory, _bot).HandleAsync(githubEvent);
+                await new PushGitHubEventForwarder(_loggerFactory, _bot).HandleAsync(githubEvent);
                 break;
         }
     }
 
-    internal bool SignaturesMatch(GitHubWebhookEvent gitHubEvent, string secret)
+    internal bool SignaturesMatch(GitHubEvent gitHubEvent, string secret)
     {
         using var hmac256 = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
         // GitHubGitHub advises to use UTF-8 for payload deserializing.

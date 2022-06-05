@@ -2,16 +2,16 @@
 
 namespace ReepoBot.Services.GitHub;
 
-public class PingGitHubWebhookEventForwarder : IGitHubWebhookEventHandler
+public class PingGitHubEventForwarder : IGitHubEventHandler
 {
     readonly ILogger _logger;
 
-    public PingGitHubWebhookEventForwarder(ILoggerFactory loggerFactory)
+    public PingGitHubEventForwarder(ILoggerFactory loggerFactory)
     {
-        _logger = loggerFactory.CreateLogger<PingGitHubWebhookEventForwarder>();
+        _logger = loggerFactory.CreateLogger<PingGitHubEventForwarder>();
     }
 
-    public Task HandleAsync(GitHubWebhookEvent gitHubEvent)
+    public Task HandleAsync(GitHubEvent gitHubEvent)
     {
         var eventSourceRepo = gitHubEvent.Payload.GetProperty("repository").GetProperty("name");
         _logger.LogInformation(
