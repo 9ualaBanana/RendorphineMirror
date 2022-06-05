@@ -1,10 +1,21 @@
 ﻿global using Common;
-using Hardware;
-using Node;
-using Serilog;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
+using Hardware;
+using Node;
+using Serilog;
+
+
+AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
+{
+    try { Console.WriteLine(ex.ExceptionObject); }
+    catch
+    {
+        try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexp"), ex.ExceptionObject?.ToString()); }
+        catch { File.WriteAllText(Path.GetTempPath(), ex.ExceptionObject?.ToString()); }
+    }
+};
 
 var api = new Api();
 

@@ -35,15 +35,33 @@ namespace Common
                 var task = ts.NewTask();
                 task.RegistrationInfo.Description = "Renderphine pinger";
                 task.Actions.Add(new ExecAction(pingerexe, @$"""{nodeexe}"" ""{updaterexe}""", Directory.GetCurrentDirectory()));
+                task.Principal.RunLevel = TaskRunLevel.Highest;
+                task.Settings.DisallowStartIfOnBatteries = false;
+                task.Settings.StopIfGoingOnBatteries = false;
+                task.Settings.Enabled = true;
+                task.Settings.WakeToRun = true;
 
                 // trigger immediately & then every minute forever
-                var trigger = new RegistrationTrigger();
-                trigger.Delay = TimeSpan.FromMinutes(1);
-                trigger.Repetition = new RepetitionPattern(TimeSpan.FromMinutes(1), TimeSpan.Zero, false);
-                task.Principal.RunLevel = TaskRunLevel.Highest;
-                task.Triggers.Add(trigger);
+                task.Triggers.Add(repeated(new RegistrationTrigger()));
+                task.Triggers.Add(repeated(new BootTrigger()));
+                task.Triggers.Add(repeated(new LogonTrigger()));
+
+                // trigger on unhibernation
+                try { task.Triggers.Add(repeated(new EventTrigger("Microsoft-Windows-Diagnostics-Performance/Operational", "PowerTroubleshooter", 1))); }
+                catch { }
+                try { task.Triggers.Add(repeated(new EventTrigger("System", "PowerTroubleshooter", 1))); }
+                catch { }
 
                 ts.RootFolder.RegisterTask(ServiceName, task.XmlText, createType: TaskCreation.CreateOrUpdate, logonType: TaskLogonType.InteractiveToken);
+
+
+                static T repeated<T>(T trigger) where T : Trigger, ITriggerDelay
+                {
+                    trigger.Delay = TimeSpan.FromMinutes(1);
+                    trigger.Repetition = new RepetitionPattern(TimeSpan.FromMinutes(1), TimeSpan.Zero, false);
+
+                    return trigger;
+                }
             }
             void Linux()
             {
@@ -88,6 +106,8 @@ namespace Common
                             <string>{nodeexe}</string>
                             <string>{updaterexe}</string>
                         </array>
+                        <key>RunAtLoad</key>
+                        <true/>
                         <key>StartInterval</key>
                         <integer>600</integer>
                     </dict>
@@ -109,7 +129,7 @@ namespace Common
                 using var ts = new TaskService();
                 ts.Execute(ServiceName);
             }
-            void Linux() => Launch(SystemctlExe, @$"--user start {ServiceName}.timer");
+            void Linux() => Launch(SystemctlExe, @$"--user enable --now {ServiceName}.timer");
             void Mac() => Launch(LaunchctlExe, @$"start {ServiceName}");
         }
         public static void Stop()

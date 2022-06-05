@@ -54,8 +54,10 @@ namespace Common
         void Save()
         {
             using var file = File.OpenWrite(Path);
-            using var utf = new Utf8JsonWriter(file);
-            JObject.WriteTo(utf);
+            using (var utf = new Utf8JsonWriter(file))
+                JObject.WriteTo(utf);
+
+            file.SetLength(file.Position);
         }
     }
 }
