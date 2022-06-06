@@ -13,7 +13,7 @@ public class PingGitHubEventForwarder : IGitHubEventHandler
 
     public Task HandleAsync(GitHubEvent gitHubEvent)
     {
-        var eventSourceRepo = gitHubEvent.Payload.GetProperty("repository").GetProperty("name");
+        var eventSourceRepo = gitHubEvent.Payload["repository"]!["name"]!.ToString();
         _logger.LogInformation(
             "'ping' event is received from '{Repo}' repository.", eventSourceRepo);
 

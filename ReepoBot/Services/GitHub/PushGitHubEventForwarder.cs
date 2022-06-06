@@ -1,7 +1,7 @@
-﻿using ReepoBot.Models;
+﻿using Newtonsoft.Json.Linq;
+using ReepoBot.Models;
 using ReepoBot.Services.Telegram;
 using System.Text;
-using System.Text.Json;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -23,10 +23,10 @@ public class PushGitHubEventForwarder : IGitHubEventHandler
     public async Task HandleAsync(GitHubEvent githubEvent)
     {
         var payload = githubEvent.Payload;
-        var repo = payload.GetProperty("repository");
-        var sender = payload.GetProperty("sender");
-        var diff = payload.GetProperty("compare");
-        var commitMessages = GetCommitMessages(payload.GetProperty("commits"));
+        var repo = payload["repository"]!;
+        var sender = payload["sender"]!;
+        var diff = payload["compare"]!;
+        var commitMessages = GetCommitMessages(payload["commits"]!);
         string[] markers = new string[] { "🟠", "🟡", "🔴", "🟢", "🔵", "🟣" };
         var random = new Random();
         var previousMarker = markers.First();
@@ -41,7 +41,7 @@ public class PushGitHubEventForwarder : IGitHubEventHandler
         };
 
         var textBuilder = new StringBuilder();
-        textBuilder.AppendLine($"*{sender.GetProperty("login")}* made *{commitMessages.Count()}* new push(es) to *{repo.GetProperty("name")}*:".Sanitize());
+        textBuilder.AppendLine($"*{sender["login"]}* made *{commitMessages.Count()}* new push(es) to *{repo["name"]}*:".Sanitize());
         foreach (var commitMessage in commitMessages)
         {
             textBuilder.AppendLine($"   {randomMarker()} {commitMessage}");
@@ -52,8 +52,8 @@ public class PushGitHubEventForwarder : IGitHubEventHandler
         {
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithUrl($"{repo.GetProperty("name")}".Sanitize(), repo.GetProperty("html_url").ToString()),
-                InlineKeyboardButton.WithUrl($"{sender.GetProperty("login")}".Sanitize(), sender.GetProperty("html_url").ToString())
+                InlineKeyboardButton.WithUrl($"{repo["name"]}".Sanitize(), repo["html_url"]!.ToString()),
+                InlineKeyboardButton.WithUrl($"{sender["login"]}".Sanitize(), sender["html_url"]!.ToString())
             },
             new InlineKeyboardButton[]
             {
@@ -71,8 +71,8 @@ public class PushGitHubEventForwarder : IGitHubEventHandler
         }
     }
 
-    static IEnumerable<string> GetCommitMessages(JsonElement commits)
+    static IEnumerable<string> GetCommitMessages(JToken commits)
     {
-        return commits.EnumerateArray().Select(commit => commit.GetProperty("message").ToString().Sanitize());
+        return commits.ToArray().Select(commit => commit["message"]!.ToString().Sanitize());
     }
 }

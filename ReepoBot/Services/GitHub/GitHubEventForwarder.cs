@@ -1,7 +1,9 @@
-﻿using ReepoBot.Models;
+﻿using Newtonsoft.Json;
+using ReepoBot.Models;
 using ReepoBot.Services.Telegram;
 using System.Security.Cryptography;
 using System.Text;
+
 
 namespace ReepoBot.Services.GitHub;
 
@@ -20,6 +22,7 @@ public class GitHubEventForwarder : IGitHubEventHandler
 
     public async Task HandleAsync(GitHubEvent githubEvent)
     {
+        _logger.LogDebug("Dispatching GitHub event with {Type} type...", githubEvent.EventType);
         switch (githubEvent.EventType)
         {
             case "ping":
@@ -27,6 +30,9 @@ public class GitHubEventForwarder : IGitHubEventHandler
                 break;
             case "push":
                 await new PushGitHubEventForwarder(_loggerFactory, _bot).HandleAsync(githubEvent);
+                break;
+            default:
+                _logger.LogDebug("GitHub event with {Type} type couldn't be handled", githubEvent.EventType);
                 break;
         }
     }
@@ -36,7 +42,7 @@ public class GitHubEventForwarder : IGitHubEventHandler
         using var hmac256 = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
         // GitHubGitHub advises to use UTF-8 for payload deserializing.
         var ourSignature = "sha256=" + BitConverter.ToString(
-            hmac256.ComputeHash(Encoding.UTF8.GetBytes(gitHubEvent.Payload.GetRawText()))
+            hmac256.ComputeHash(Encoding.UTF8.GetBytes(gitHubEvent.Payload.ToString(Formatting.None)))
             )
             .Replace("-", "").ToLower();
 

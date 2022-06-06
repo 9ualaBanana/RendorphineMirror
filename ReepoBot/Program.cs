@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.AddFile("log.txt");
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -33,7 +33,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run($"{builder.Configuration["HostServer"]}");
+app.Run(builder.Configuration["HostServer"]);
 
 async Task InitializeBot()
 {

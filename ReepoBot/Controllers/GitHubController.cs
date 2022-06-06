@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using ReepoBot.Models;
 using ReepoBot.Services.GitHub;
-using System.Text.Json;
 
 namespace ReepoBot.Controllers;
 
@@ -16,15 +16,26 @@ public class GitHubController : ControllerBase
         [FromHeader(Name = "X-Hub-Signature-256")] string signature,
         [FromHeader(Name = "X-GitHub-Event")] string eventType,
         [FromServices] GitHubEventForwarder gitHubEventForwarder,
+        [FromServices] ILogger<GitHubController> logger,
         [FromServices] IConfiguration configuration,
-        [FromBody] JsonDocument payload)
+        [FromBody] JObject payload)
     {
-        var gitHubEvent = new GitHubEvent(eventType, signature, payload.RootElement);
+        logger.LogDebug("GitHub event with {Type} is received", eventType);
+        var gitHubEvent = new GitHubEvent(eventType, signature, payload.Root);
         if (!gitHubEventForwarder.SignaturesMatch(gitHubEvent, configuration["GitHubSecret"]))
         {
             return BadRequest();
         }
-        await gitHubEventForwarder.HandleAsync(gitHubEvent);
+        try
+        {
+            await gitHubEventForwarder.HandleAsync(gitHubEvent);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex, @"Something went wrong when trying to handle {Type} GitHub event.\nPayload:\n{Payload}",
+                eventType, payload.ToString());
+        }
         return Ok();
     }
 }

@@ -1,4 +1,5 @@
 ﻿using ReepoBot.Services.Node;
+using ReepoBot.Services.Telegram.UpdateTypeHandlers;
 using Telegram.Bot.Types;
 
 namespace ReepoBot.Services.Telegram.UpdateHandlers;
@@ -29,6 +30,7 @@ internal class MessageTelegramUpdateHandler : ITelegramUpdateHandler
         }
         if (IsSystem(message))
         {
+            _logger.LogDebug("System messages are handled by {Handler}", nameof(MyChatMemberTelegramUpdateHandler));
             return;    // Bot adding and removal are handled via `UpdateType.MyChatMember` updates.
         }
         _logger.LogWarning("The following message couldn't be handled:\n{Message}", message.Text);
