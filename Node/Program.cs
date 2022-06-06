@@ -68,7 +68,6 @@ async Task SendHardwareInfo()
 }
 
 
-// TODO: починить костыли бесят
 async Task<UserInfo> AuthenticateWithUI(CancellationToken token)
 {
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
@@ -76,14 +75,22 @@ async Task<UserInfo> AuthenticateWithUI(CancellationToken token)
     Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate or create auth.txt file in {Directory.GetCurrentDirectory()} with your login and password divided by space");
     Console.WriteLine(@$"Example: ""makov@gmail.com password123""");
 
-    var l = new HttpListener();
-    l.Prefixes.Add(@$"http://127.0.0.1:{Settings.ListenPort}/");
-    l.Start();
-    Console.WriteLine(@$"Waiting for auth or exit...");
-    var context = await l.GetContextAsync().ConfigureAwait(false);
-    var request = context.Request;
-    if (request.Url?.LocalPath.EndsWith("auth") ?? false)
+    while (true)
+    {
+        await Task.Delay(1000);
+
+        Settings.BSessionId.Reload();
+        if (Settings.SessionId is null) continue;
+
+        Settings.BUserId.Reload();
+        if (Settings.UserId is null) break;
+
+        Settings.BUsername.Reload();
+        if (Settings.Username is null) break;
+
         Process.Start(Environment.ProcessPath!);
+        break;
+    }
 
     Environment.Exit(0);
     return default;

@@ -1,7 +1,9 @@
 namespace Common
 {
     public delegate void ChangedDelegate<T>(T oldv, T newv);
-    public interface IReadOnlyBindable<T>
+
+    public interface IBindable { }
+    public interface IReadOnlyBindable<T> : IBindable
     {
         public event ChangedDelegate<T> Changed;
         T Value { get; }
@@ -11,7 +13,7 @@ namespace Common
         // <old, new>
         public event ChangedDelegate<T> Changed = delegate { };
 
-        T _Value;
+        protected T _Value;
         public virtual T Value { get => _Value; set => Changed(Value!, _Value = value); }
         public readonly T DefaultValue;
 
