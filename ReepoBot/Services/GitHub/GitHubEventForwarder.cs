@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using ReepoBot.Models;
 using ReepoBot.Services.Telegram;
 using System.Security.Cryptography;
@@ -38,23 +37,24 @@ public class GitHubEventForwarder : IGitHubEventHandler
         }
     }
 
-    internal bool SignaturesMatch(GitHubEvent gitHubEvent, string secret)
-    {
-        using var hmac256 = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
-        var rawJsonPayload = gitHubEvent.Payload.ToString(Formatting.None);
-        // GitHubGitHub advises to use UTF-8 for payload deserializing.
-        var ourSignature = "sha256=" + BitConverter.ToString(
-            hmac256.ComputeHash(Encoding.UTF8.GetBytes(rawJsonPayload))
-            )
-            .Replace("-", "").ToLower();
+    // This piece of shit doesn't work on linux for some reason.
+    //internal bool SignaturesMatch(GitHubEvent gitHubEvent, string secret)
+    //{
+    //    using var hmac256 = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
+    //    var rawJsonPayload = gitHubEvent.Payload.ToString(Formatting.None);
+    //    // GitHubGitHub advises to use UTF-8 for payload deserializing.
+    //    var ourSignature = "sha256=" + BitConverter.ToString(
+    //        hmac256.ComputeHash(Encoding.UTF8.GetBytes(rawJsonPayload))
+    //        )
+    //        .Replace("-", "").ToLower();
 
-        var matched = ourSignature == gitHubEvent.Signature;
-        if (!matched)
-        {
-            _logger.LogError(
-               "Signatures didn't match:\n\tReceived: {Received}\n\tCalculated: {Calculated}",
-               gitHubEvent.Signature, ourSignature);
-        }
-        return matched;
-    }
+    //    var matched = ourSignature == gitHubEvent.Signature;
+    //    if (!matched)
+    //    {
+    //        _logger.LogError(
+    //           "Signatures didn't match:\n\tReceived: {Received}\n\tCalculated: {Calculated}",
+    //           gitHubEvent.Signature, ourSignature);
+    //    }
+    //    return matched;
+    //}
 }

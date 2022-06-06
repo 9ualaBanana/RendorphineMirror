@@ -22,10 +22,6 @@ public class GitHubController : ControllerBase
     {
         logger.LogDebug("GitHub event with {Type} type is received", eventType);
         var gitHubEvent = new GitHubEvent(eventType, signature, payload);
-        if (!gitHubEventForwarder.SignaturesMatch(gitHubEvent, configuration["GitHubSecret"]))
-        {
-            return BadRequest();
-        }
         try
         {
             await gitHubEventForwarder.HandleAsync(gitHubEvent);
