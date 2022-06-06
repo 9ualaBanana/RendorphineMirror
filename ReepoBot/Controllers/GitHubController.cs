@@ -20,8 +20,8 @@ public class GitHubController : ControllerBase
         [FromServices] IConfiguration configuration,
         [FromBody] JObject payload)
     {
-        logger.LogDebug("GitHub event with {Type} is received", eventType);
-        var gitHubEvent = new GitHubEvent(eventType, signature, payload.Root);
+        logger.LogDebug("GitHub event with {Type} type is received", eventType);
+        var gitHubEvent = new GitHubEvent(eventType, signature, payload);
         if (!gitHubEventForwarder.SignaturesMatch(gitHubEvent, configuration["GitHubSecret"]))
         {
             return BadRequest();
@@ -33,7 +33,7 @@ public class GitHubController : ControllerBase
         catch (Exception ex)
         {
             logger.LogError(
-                ex, @"Something went wrong when trying to handle {Type} GitHub event.\nPayload:\n{Payload}",
+                ex, "Something went wrong when trying to handle {Type} GitHub event.\nPayload:\n{Payload}",
                 eventType, payload.ToString());
         }
         return Ok();

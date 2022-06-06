@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using ReepoBot.Models;
 using ReepoBot.Services.Telegram;
 using System.Security.Cryptography;
@@ -40,9 +41,10 @@ public class GitHubEventForwarder : IGitHubEventHandler
     internal bool SignaturesMatch(GitHubEvent gitHubEvent, string secret)
     {
         using var hmac256 = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
+        var rawJsonPayload = gitHubEvent.Payload.ToString(Formatting.None);
         // GitHubGitHub advises to use UTF-8 for payload deserializing.
         var ourSignature = "sha256=" + BitConverter.ToString(
-            hmac256.ComputeHash(Encoding.UTF8.GetBytes(gitHubEvent.Payload.ToString(Formatting.None)))
+            hmac256.ComputeHash(Encoding.UTF8.GetBytes(rawJsonPayload))
             )
             .Replace("-", "").ToLower();
 
@@ -50,9 +52,8 @@ public class GitHubEventForwarder : IGitHubEventHandler
         if (!matched)
         {
             _logger.LogError(
-               @"Signatures didn't match:\n\t
-                 Received: {Received}\n\t
-                 Calculated: {Calculated}", gitHubEvent.Signature, ourSignature);
+               "Signatures didn't match:\n\tReceived: {Received}\n\tCalculated: {Calculated}",
+               gitHubEvent.Signature, ourSignature);
         }
         return matched;
     }
