@@ -126,7 +126,7 @@ namespace NodeUI.Pages
             try
             {
                 Login.StartLoginAnimation(Localized.Login.AuthCheck);
-                return (await Api.GetUserInfo(sid, CancellationToken.None).ConfigureAwait(false)).GetResult();
+                return (await Api.CheckAuthenticationAsync(sid, CancellationToken.None).ConfigureAwait(false)).GetResult();
             }
             catch (Exception ex) { return OperationResult.Err(ex); }
             finally { Dispatcher.UIThread.Post(Login.StopLoginAnimation); }

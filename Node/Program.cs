@@ -1,10 +1,10 @@
 ﻿global using Common;
+global using Serilog;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using Hardware;
 using Node;
-using Serilog;
 
 
 AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
@@ -100,7 +100,7 @@ async Task<UserInfo?> Authenticate(CancellationToken token)
     // either check sid
     if (Settings.SessionId is not null)
     {
-        var userinfo = await api.GetUserInfo(Settings.SessionId, token).ConfigureAwait(false);
+        var userinfo = await api.CheckAuthenticationAsync(Settings.SessionId, token).ConfigureAwait(false);
         if (userinfo) return userinfo.Value;
     }
 
@@ -116,7 +116,7 @@ async Task<UserInfo?> Authenticate(CancellationToken token)
             {
                 auth.Result.SaveToConfig();
 
-                var userinfo = await api.GetUserInfo(Settings.SessionId!, token).ConfigureAwait(false);
+                var userinfo = await api.CheckAuthenticationAsync(Settings.SessionId!, token).ConfigureAwait(false);
                 if (userinfo) return userinfo.Value;
             }
         }
@@ -129,7 +129,7 @@ async Task StartHttpListenerAsync()
     var listener = new HttpListener();
     listener.Prefixes.Add(@$"http://127.0.0.1:{Settings.ListenPort}/");
     listener.Start();
-    Logger.Log(@$"Listener started @ {string.Join(", ", listener.Prefixes)}");
+    Log.Information(@$"Local listener started @ {string.Join(", ", listener.Prefixes)}");
 
     while (true)
     {

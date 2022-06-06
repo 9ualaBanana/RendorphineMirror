@@ -35,8 +35,7 @@ namespace Common
             Send<T>(false, urladd, sid, valueName, value, responseJsonName, token);
         ValueTask<OperationResult<T>> Send<T>(bool get, string urladd, string sid, string valueName, string value, string responseJsonName, CancellationToken token) =>
             Send<T>(get, urladd, sid, new[] { KeyValuePair.Create(valueName, value) }, responseJsonName, token);
-        async ValueTask<OperationResult<T>> Send<T>(bool get, string urladd, string sid, IEnumerable<KeyValuePair<string, string>> parameters,
-            string responseJsonName, CancellationToken token)
+        async ValueTask<OperationResult<T>> Send<T>(bool get, string urladd, string sid, IEnumerable<KeyValuePair<string, string>> parameters, string responseJsonName, CancellationToken token)
         {
             var response = await Send(get, urladd, sid, parameters, token).ConfigureAwait(false);
             if (!response) return response.GetResult();
@@ -57,18 +56,25 @@ namespace Common
         async ValueTask<OperationResult<JObject>> Send(bool get, string urladd, string sid, IEnumerable<KeyValuePair<string, string>> parameters, CancellationToken token)
         {
             parameters = parameters.Append(KeyValuePair.Create("sid", sid)).ToArray();
-
-            _ = Task.Run(() => Logger.Log((get ? "GET " : "POST ") + urladd + "  " + string.Join('&', parameters.Select(x => x.Key + "=" + x.Value)), false));
+            Log.Debug((get ? "GET " : "POST ") + urladd + "  " + string.Join('&', parameters.Select(x => x.Key + "=" + x.Value)), false);
 
             var response = await
                 (get
                 ? SendGetRequestAsync(Url + urladd, parameters, token)
                 : SendPostRequestAsync(Url + urladd, parameters, token));
 
-            _ = Task.Run(() => Logger.Log("RET  " + (response is { Success: true } ? response.Result.ToString(Formatting.None) : response.Message), false, false));
+            Log.Debug("RET  " + (response is { Success: true } ? response.Result.ToString(Formatting.None) : response.Message), false, false);
             return response;
         }
 
+
+        public async ValueTask<OperationResult<UserInfo>> CheckAuthenticationAsync(string sid, CancellationToken token)
+        {
+            var uinfor = await GetUserInfo(sid, token).ConfigureAwait(false);
+            if (uinfor) Log.Debug(@$"Successful login: {JsonConvert.SerializeObject(uinfor.Result)}");
+
+            return uinfor;
+        }
 
         public async Task<OperationResult<(string url, TaskCompletionSource<OperationResult<LoginResult>> task)>> GetExternalAuthLink(LoginType type, CancellationToken token)
         {
@@ -98,7 +104,7 @@ namespace Common
                         var email = infoResp.Result["email"]?.Value<string>() ?? throw new NullReferenceException();
 
                         var result = new LoginResult(email, uid, sid);
-                        Logger.Log("Successful login: " + result);
+                        Log.Debug(@$"Successful login: {JsonConvert.SerializeObject(result)}");
                         task.SetResult(result);
 
                         return;
@@ -139,7 +145,7 @@ namespace Common
             var uid = response.Result["userid"]?.Value<string>() ?? throw new NullReferenceException();
             var sid = response.Result["sid"]?.Value<string>() ?? throw new NullReferenceException();
             var result = new LoginResult(login, uid, sid);
-            Logger.Log("Successful login: " + result);
+            Log.Debug(@$"Successful login: {JsonConvert.SerializeObject(result)}");
 
             return result;
         }

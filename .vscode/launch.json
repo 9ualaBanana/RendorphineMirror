@@ -9,7 +9,8 @@
             "program": "${workspaceFolder}/Node/bin/Debug/net6.0/Node.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
             "stopAtEntry": false
         },
         {
@@ -20,7 +21,8 @@
             "program": "${workspaceFolder}/NodeUI/bin/Debug/net6.0/NodeUI.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
             "stopAtEntry": false
         },
         {
@@ -33,7 +35,8 @@
                 "hidden"
             ],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
             "stopAtEntry": false
         },
         {
@@ -44,7 +47,8 @@
             "program": "${workspaceFolder}/Pinger/bin/Debug/net6.0/Pinger.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
             "stopAtEntry": false
         }
     ]

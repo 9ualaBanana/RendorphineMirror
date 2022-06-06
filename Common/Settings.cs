@@ -14,12 +14,10 @@ namespace Common
         public static string? UserId { get => BUserId.Value; set => BUserId.Value = value; }
         public static string? Username { get => BUsername.Value; set => BUsername.Value = value; }
         public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
-        public static LogLevel LogLevel { get => BLogLevel.Value; set => BLogLevel.Value = value; }
 
         public static readonly DatabaseBindable<string> BServerUrl;
         public static readonly DatabaseBindable<ushort> BListenPort, BUPnpPort;
         public static readonly DatabaseBindable<string?> BSessionId, BUsername, BUserId, BLanguage;
-        public static readonly DatabaseBindable<LogLevel> BLogLevel;
 
         static readonly SQLiteConnection Connection;
         const string ConfigTable = "config";
@@ -40,7 +38,6 @@ namespace Common
             BUsername = new(nameof(Username), null);
             BUserId = new(nameof(UserId), null);
             BLanguage = new(nameof(Language), null);
-            BLogLevel = new(nameof(LogLevel), LogLevel.Basic);
         }
 
 
@@ -64,7 +61,7 @@ namespace Common
             try { ExecuteNonQuery(@$"create table if not exists {ConfigTable} (key text primary key unique, value text null);"); }
             catch (SQLiteException ex)
             {
-                Logger.LogErr(ex);
+                Log.Fatal(ex.ToString());
                 throw;
             }
         }
