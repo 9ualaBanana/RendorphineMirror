@@ -1,9 +1,5 @@
-﻿using Newtonsoft.Json;
-using ReepoBot.Models;
+﻿using ReepoBot.Models;
 using ReepoBot.Services.Telegram;
-using System.Security.Cryptography;
-using System.Text;
-
 
 namespace ReepoBot.Services.GitHub;
 

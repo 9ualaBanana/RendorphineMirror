@@ -1,12 +1,9 @@
 using ReepoBot.Services.GitHub;
 using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;
-using ReepoBot.Services.Telegram.UpdateHandlers;
 using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Logging.AddFile("log.txt");
 
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddEndpointsApiExplorer();

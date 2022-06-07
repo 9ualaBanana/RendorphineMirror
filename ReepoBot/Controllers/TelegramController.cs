@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ReepoBot.Services.Telegram.UpdateHandlers;
+using ReepoBot.Services.Telegram;
 using Telegram.Bot.Types;
 
 namespace ReepoBot.Controllers;
