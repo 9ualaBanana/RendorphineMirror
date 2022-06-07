@@ -100,8 +100,22 @@ async Task<UserInfo?> Authenticate(CancellationToken token)
     // either check sid
     if (Settings.SessionId is not null)
     {
-        var userinfo = await api.CheckAuthenticationAsync(Settings.SessionId, token).ConfigureAwait(false);
-        if (userinfo) return userinfo.Value;
+        while (true)
+        {
+            var auth = await OperationResult.WrapException(() => api.CheckAuthenticationAsync(Settings.SessionId, token)).ConfigureAwait(false);
+            if (!auth)
+            {
+                if (auth.Message?.Contains("443") ?? false)
+                {
+                    await Task.Delay(1000);
+                    continue;
+                }
+
+                break;
+            }
+
+            return auth.Value;
+        }
     }
 
     // or try to auth from auth.txt
