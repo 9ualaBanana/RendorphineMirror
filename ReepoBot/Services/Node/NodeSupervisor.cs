@@ -68,7 +68,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
             }
             else
             {
-                UpdateNodeVersion(previousVersionOfNode.Value, nodeInfo.Version);
+                UpdateNodeVersion(previousVersionOfNode.Value, nodeInfo);
             }
         }
 
@@ -107,11 +107,10 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         _logger.LogDebug("New node is online: {PCName} {UserName} (v.{Version}) {IP}", nodeInfo.PCName, nodeInfo.UserName, nodeInfo.Version, nodeInfo.IP);
     }
 
-    void UpdateNodeVersion(NodeInfo nodeOnline, string newVersion)
+    void UpdateNodeVersion(NodeInfo nodeOnline, NodeInfo updatedNode)
     {
         var uptimeTimer = NodesOnline[nodeOnline];
         NodesOnline.Remove(nodeOnline);
-        var updatedNode = nodeOnline with { Version = newVersion };
         NodesOnline.Add(updatedNode, uptimeTimer);
 
         foreach (var subscriber in _bot.Subscriptions)
