@@ -6,15 +6,16 @@ namespace ReepoBot.Models;
 [TypeConverter(typeof(GeoPointConverter))]
 public record struct NodeInfo
 {
-    public string UserName { get; }
     public string PCName { get; }
+    public string UserName { get; }
     public string Version { get; set; }
     public string IP { get; }
+    public string BriefInfoMDv2 => $"*{PCName}* {UserName} (v.*{Version}*) | *{IP}*";
 
     public NodeInfo(string userName, string pcName, string version, string ip)
     {
-        UserName = userName;
         PCName = pcName;
+        UserName = userName;
         Version = version;
         IP = ip;
     }
@@ -29,11 +30,11 @@ public record struct NodeInfo
             return false;
         }
 
-        var userName = queryStringParameters[0];
-        var pcName = queryStringParameters[1];
+        var pcName = queryStringParameters[0];
+        var userName = queryStringParameters[1];
         var version = queryStringParameters[2];
         var ip = queryStringParameters[3];
-        nodeInfo = new(userName, pcName, version, ip);
+        nodeInfo = new(pcName, userName, version, ip);
         return true;
     }
 }

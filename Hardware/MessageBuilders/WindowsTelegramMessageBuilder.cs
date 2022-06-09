@@ -21,7 +21,7 @@ internal class WindowsHardwareInfoMessageBuilder
     {
         if (!verbose)
         {
-            return $"{await HardwareInfo.GetBriefAsync()}";
+            return $"{await HardwareInfo.GetBriefInfoAsync()}";
         }
 
         var message = new StringBuilder();

@@ -89,14 +89,14 @@ public class TelegramUpdateHandler
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*Node* | *Uptime*");
         messageBuilder.AppendLine("------------------------------------------------");
-        foreach (var (node, _) in _nodeSupervisor.NodesOnline)
+        foreach (var (nodeInfo, _) in _nodeSupervisor.NodesOnline.OrderBy(nodeOnline => nodeOnline.Key.PCName))
         {
-            var uptime = _nodeSupervisor.GetUptimeFor(node);
+            var uptime = _nodeSupervisor.GetUptimeFor(nodeInfo);
             // It could already go offline.
             if (uptime is null) continue;
 
             var escapedUptime = $"{uptime:d\\.hh\\:mm}";
-            messageBuilder.AppendLine($"*{node.UserName}* {node.PCName} (v.{node.Version}) *{node.IP}* | {escapedUptime}");
+            messageBuilder.AppendLine($"{nodeInfo.BriefInfoMDv2} | {escapedUptime}");
         }
         var message = messageBuilder.ToString().Sanitize();
         _logger.LogDebug("Sending the message to subscribers...");

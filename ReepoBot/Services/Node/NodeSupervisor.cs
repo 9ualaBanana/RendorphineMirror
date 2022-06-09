@@ -92,7 +92,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         {
             try
             {
-                var message = $"New node is online: {nodeInfo.UserName} {nodeInfo.PCName} | v.{nodeInfo.Version} | {nodeInfo.IP}".Sanitize();
+                var message = $"{nodeInfo.BriefInfoMDv2} is online".Sanitize();
                 _bot.SendTextMessageAsync(
                     subscriber,
                     message,
@@ -104,7 +104,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
                 _logger.LogError(ex, "Couldn't add new node.");
             }
         }
-        _logger.LogDebug("New node is online: {Name} {PCName} | v.{Version} | {IP}", nodeInfo.UserName, nodeInfo.PCName, nodeInfo.Version, nodeInfo.IP);
+        _logger.LogDebug("New node is online: {PCName} {UserName} (v.{Version}) {IP}", nodeInfo.PCName, nodeInfo.UserName, nodeInfo.Version, nodeInfo.IP);
     }
 
     void UpdateNodeVersion(NodeInfo nodeOnline, string newVersion)
@@ -118,7 +118,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         {
             try
             {
-                var message = $"{updatedNode.UserName} {updatedNode.PCName} | {updatedNode.IP} was updated from v.*{nodeOnline.Version}* to v.*{updatedNode.Version}*.".Sanitize();
+                var message = $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *->* v.*{updatedNode.Version}*.".Sanitize();
                 _bot.SendTextMessageAsync(
                     subscriber,
                     message,
@@ -146,8 +146,8 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     {
         var offlineNode = NodesOnline.Single(node => node.Value == sender);
         var offlineNodeInfo = offlineNode.Key;
-        _logger.LogError("{Name} {PCName} | v.{Version} | {IP} went offline after {Time} ms since the last ping.",
-            offlineNodeInfo.UserName, offlineNodeInfo.PCName, offlineNodeInfo.Version, offlineNodeInfo.IP, TimeBeforeNodeGoesOffline);
+        _logger.LogError("{PCName} {UserName} (v.{Version}) {IP} went offline after {Time} ms since the last ping.",
+            offlineNodeInfo.PCName, offlineNodeInfo.UserName, offlineNodeInfo.Version, offlineNodeInfo.IP, TimeBeforeNodeGoesOffline);
         NodesOnline.Remove(offlineNodeInfo);
     }
 
