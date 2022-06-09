@@ -12,7 +12,7 @@ public record struct NodeInfo
     public string IP { get; }
     public string BriefInfoMDv2 => $"*{PCName}* {UserName} (v.*{Version}*) | *{IP}*";
 
-    public NodeInfo(string userName, string pcName, string version, string ip)
+    public NodeInfo(string pcName, string userName, string version, string ip)
     {
         PCName = pcName;
         UserName = userName;
