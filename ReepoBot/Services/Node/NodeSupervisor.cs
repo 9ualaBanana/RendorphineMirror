@@ -11,6 +11,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
 {
     readonly ILogger<NodeSupervisor> _logger;
     readonly TelegramBot _bot;
+    internal readonly List<NodeInfo> AllNodes = new();
     internal readonly Dictionary<NodeInfo, TimerPlus> NodesOnline = new();
     double _timeBeforeGoingOffline = -1;
     double TimeBeforeNodeGoesOffline
@@ -49,26 +50,25 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         _bot = bot;
     }
 
-    public Task HandleAsync(NodeInfo nodeInfo)
+    public async Task HandleAsync(NodeInfo nodeInfo)
     {
         _logger.LogDebug("Updating node status...");
-        UpdateNodeStatus(nodeInfo);
+        await UpdateNodeStatus(nodeInfo);
         _logger.LogDebug("Node status is updated.");
-        return Task.CompletedTask;
     }
 
-    void UpdateNodeStatus(NodeInfo nodeInfo)
+    async Task UpdateNodeStatus(NodeInfo nodeInfo)
     {
         if (!NodesOnline.ContainsKey(nodeInfo))
         {
             var previousVersionOfNode = GetPreviousVersionIfOnline(nodeInfo);
             if (previousVersionOfNode is null)
             {
-                AddNewNode(nodeInfo);
+                await AddNewNode(nodeInfo);
             }
             else
             {
-                UpdateNodeVersion(previousVersionOfNode.Value, nodeInfo);
+                await UpdateNodeVersion(previousVersionOfNode.Value, nodeInfo);
             }
         }
 
@@ -85,15 +85,16 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         catch (Exception) { return null; }
     }
 
-    void AddNewNode(NodeInfo nodeInfo)
+    async Task AddNewNode(NodeInfo nodeInfo)
     {
+        AllNodes.Add(nodeInfo);
         NodesOnline.Add(nodeInfo, Timer);
         foreach (var subscriber in _bot.Subscriptions)
         {
             try
             {
                 var message = $"{nodeInfo.BriefInfoMDv2} is online".Sanitize();
-                _bot.SendTextMessageAsync(
+                await _bot.SendTextMessageAsync(
                     subscriber,
                     message,
                     parseMode: ParseMode.MarkdownV2
@@ -107,7 +108,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         _logger.LogDebug("New node is online: {PCName} {UserName} (v.{Version}) {IP}", nodeInfo.PCName, nodeInfo.UserName, nodeInfo.Version, nodeInfo.IP);
     }
 
-    void UpdateNodeVersion(NodeInfo nodeOnline, NodeInfo updatedNode)
+    async Task UpdateNodeVersion(NodeInfo nodeOnline, NodeInfo updatedNode)
     {
         var uptimeTimer = NodesOnline[nodeOnline];
         NodesOnline.Remove(nodeOnline);
@@ -118,7 +119,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
             try
             {
                 var message = $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *->* v.*{updatedNode.Version}*.".Sanitize();
-                _bot.SendTextMessageAsync(
+                await _bot.SendTextMessageAsync(
                     subscriber,
                     message,
                     parseMode: ParseMode.MarkdownV2
