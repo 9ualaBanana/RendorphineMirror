@@ -47,8 +47,8 @@ namespace Common
                 task.Triggers.Add(repeated(new LogonTrigger()));
 
                 // trigger on unhibernation
-                try { task.Triggers.Add(repeated(new EventTrigger("Microsoft-Windows-Diagnostics-Performance/Operational", "PowerTroubleshooter", 1))); }
-                catch { }
+                //try { task.Triggers.Add(repeated(new EventTrigger("Microsoft-Windows-Diagnostics-Performance/Operational", "PowerTroubleshooter", 1))); }
+                //catch { }
                 try { task.Triggers.Add(repeated(new EventTrigger("System", "PowerTroubleshooter", 1))); }
                 catch { }
 

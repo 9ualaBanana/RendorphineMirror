@@ -29,6 +29,8 @@ static class Program
     {
         ConsoleHide.Hide();
         WindowsTrayRefreshFix.RefreshTrayArea();
+        if (!Debugger.IsAttached)
+            FileList.KillNodeUI();
 
         // check and elevate privileges
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

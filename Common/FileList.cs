@@ -6,6 +6,19 @@ namespace Common
 {
     public static class FileList
     {
+        public static void KillNodeUI()
+        {
+            var thisid = Environment.ProcessId;
+            foreach (var proc in Process.GetProcesses())
+            {
+                if (proc.Id == thisid) continue;
+                if (proc.ProcessName != "NodeUI") continue;
+
+                Console.WriteLine(@$"Killing process {proc.Id} {proc.ProcessName}");
+                try { proc.Kill(); proc.WaitForExit(); }
+                catch { }
+            }
+        }
         public static void KillProcesses()
         {
             var thisid = Environment.ProcessId;

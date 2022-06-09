@@ -22,7 +22,9 @@ namespace Common
                 if (Mapping is not null && !Mapping.IsExpired()) return;
 
                 Device = args.Device;
-                Device.CreatePortMap(new Mapping(Protocol.Tcp, Settings.UPnpPort, Settings.UPnpPort, 0, "renderphine"));
+
+                try { Device.CreatePortMap(new Mapping(Protocol.Tcp, Settings.UPnpPort, Settings.UPnpPort, 0, "renderphine")); }
+                catch (MappingException ex) { Log.Error(ex.Message); }
 
                 Mapping = Device.GetSpecificMapping(Protocol.Tcp, Settings.UPnpPort);
                 Console.WriteLine("Found UPnP mapping: " + Mapping.ToString());
