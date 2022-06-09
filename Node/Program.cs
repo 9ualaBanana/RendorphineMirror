@@ -9,11 +9,11 @@ using Node;
 
 AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
 {
-    try { Console.WriteLine(ex.ExceptionObject); }
+    try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexp"), ex.ExceptionObject?.ToString()); }
     catch
     {
-        try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexp"), ex.ExceptionObject?.ToString()); }
-        catch { File.WriteAllText(Path.GetTempPath(), ex.ExceptionObject?.ToString()); }
+        try { File.WriteAllText(Path.GetTempPath(), ex.ExceptionObject?.ToString()); }
+        catch { }
     }
 };
 
