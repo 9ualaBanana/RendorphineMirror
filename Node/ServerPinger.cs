@@ -49,7 +49,7 @@ internal class ServerPinger : IDisposable
     {
         try
         {
-            var queryString = $"nodeInfo={await HardwareInfo.GetBriefAsync()}";
+            var queryString = $"nodeInfo={HardwareInfo.Name},{HardwareInfo.Version},{await HardwareInfo.GetIPAsync()}";
             var response = await _http.GetAsync($"{Settings.ServerUrl}/node/ping?{queryString}");
             response.EnsureSuccessStatusCode();
             Log.Debug("{Service} successfuly sent ping to {Server}", nameof(ServerPinger), Settings.ServerUrl);
