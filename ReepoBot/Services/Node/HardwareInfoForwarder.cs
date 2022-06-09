@@ -22,10 +22,17 @@ public class HardwareInfoForwarder : IEventHandler<string>
         _logger.LogDebug("Forwarding the hardware info message to Telegram subscribers...");
         foreach (var subscriber in _bot.Subscriptions)
         {
-            await _bot.SendTextMessageAsync(
+            try
+            {
+                await _bot.SendTextMessageAsync(
                 subscriber,
                 hardwareInfoMessage,
                 parseMode: ParseMode.MarkdownV2);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "The message couldn't be sent to subscriber ({Subscriber}):\n{Message}", subscriber, hardwareInfoMessage);
+            }
         }
         _logger.LogDebug("Hardware info message is forwarded.");
     }
