@@ -42,7 +42,6 @@ if (!Debugger.IsAttached)
 {
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
     SystemService.Start();
-    _ = SendHardwareInfo();
 }
 
 _ = StartHttpListenerAsync();
@@ -50,22 +49,22 @@ _ = new ServerPinger(hardwareInfo, TimeSpan.FromMinutes(5), http).StartAsync();
 Thread.Sleep(-1);
 
 
-async Task SendHardwareInfo()
-{
-    Log.Debug("Requesting hardware info message verbosity level from the server...");
-    var isVerbose = await http.GetFromJsonAsync<bool>("node/hardware_info/is_verbose");
-    var hardwareInfoMessage = await hardwareInfo.ToTelegramMessageAsync(isVerbose);
-    Log.Information("Sending hardware info to {Server}", http.BaseAddress);
-    try
-    {
-        var response = await http.PostAsJsonAsync($"node/hardware_info", hardwareInfoMessage);
-        response.EnsureSuccessStatusCode();
-    }
-    catch (HttpRequestException ex)
-    {
-        Log.Error(ex, "Sending hardware info to the server resulted in {StatusCode} status code.", ex.StatusCode);
-    }
-}
+//async Task SendHardwareInfo()
+//{
+//    Log.Debug("Requesting hardware info message verbosity level from the server...");
+//    var isVerbose = await http.GetFromJsonAsync<bool>("node/hardware_info/is_verbose");
+//    var hardwareInfoMessage = await hardwareInfo.ToTelegramMessageAsync(isVerbose);
+//    Log.Information("Sending hardware info to {Server}", http.BaseAddress);
+//    try
+//    {
+//        var response = await http.PostAsJsonAsync($"node/hardware_info", hardwareInfoMessage);
+//        response.EnsureSuccessStatusCode();
+//    }
+//    catch (HttpRequestException ex)
+//    {
+//        Log.Error(ex, "Sending hardware info to the server resulted in {StatusCode} status code.", ex.StatusCode);
+//    }
+//}
 
 
 async Task<UserInfo> AuthenticateWithUI(CancellationToken token)

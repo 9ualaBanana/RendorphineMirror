@@ -2,6 +2,7 @@
 using ReepoBot.Services.Telegram;
 using System.Timers;
 using Telegram.Bot;
+using Telegram.Bot.Types.Enums;
 using TelegramHelper;
 
 namespace ReepoBot.Services.Node;
@@ -93,7 +94,8 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
             {
                 _bot.SendTextMessageAsync(
                     subscriber,
-                    $"New node is online: {nodeInfo.UserName} {nodeInfo.PCName} | v.{nodeInfo.Version} | {nodeInfo.IP}".Sanitize()
+                    $"New node is online: {nodeInfo.UserName} {nodeInfo.PCName} | v.{nodeInfo.Version} | {nodeInfo.IP}",
+                    parseMode: ParseMode.MarkdownV2
                     );
             }
             catch (Exception ex)
@@ -117,7 +119,8 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
             {
                 _bot.SendTextMessageAsync(
                     subscriber,
-                    $"{updatedNode.UserName} {updatedNode.PCName} | {updatedNode.IP} was updated from v.*{updatedNode.Version}* to v.*{updatedNode.Version}*.".Sanitize()
+                    $"{updatedNode.UserName} {updatedNode.PCName} | {updatedNode.IP} was updated from v.*{nodeOnline.Version}* to v.*{updatedNode.Version}*.",
+                    parseMode: ParseMode.MarkdownV2
                     );
             }
             catch (Exception ex)
