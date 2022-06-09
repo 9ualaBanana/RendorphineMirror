@@ -8,7 +8,7 @@ public record struct NodeInfo
 {
     public string UserName { get; }
     public string PCName { get; }
-    public string Version { get; }
+    public string Version { get; set; }
     public string IP { get; }
 
     public NodeInfo(string userName, string pcName, string version, string ip)

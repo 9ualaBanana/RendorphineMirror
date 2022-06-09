@@ -1,11 +1,15 @@
 ﻿using ReepoBot.Models;
+using ReepoBot.Services.Telegram;
 using System.Timers;
+using Telegram.Bot;
+using TelegramHelper;
 
 namespace ReepoBot.Services.Node;
 
 public class NodeSupervisor : IEventHandler<NodeInfo>
 {
     readonly ILogger<NodeSupervisor> _logger;
+    readonly TelegramBot _bot;
     internal readonly Dictionary<NodeInfo, TimerPlus> NodesOnline = new();
     double _timeBeforeGoingOffline = -1;
     double TimeBeforeNodeGoesOffline
@@ -37,10 +41,11 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     }
     readonly IConfiguration _configuration;
 
-    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration)
+    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot)
     {
         _logger = logger;
         _configuration = configuration;
+        _bot = bot;
     }
 
     public Task HandleAsync(NodeInfo nodeInfo)
@@ -58,13 +63,11 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
             var previousVersionOfNode = GetPreviousVersionIfOnline(nodeInfo);
             if (previousVersionOfNode is null)
             {
-                NodesOnline.Add(nodeInfo, Timer);
-                _logger.LogDebug("New node is online: {Name} {PCName} | v.{Version} | {IP}", nodeInfo.UserName, nodeInfo.PCName, nodeInfo.Version, nodeInfo.IP);
+                AddNewNode(nodeInfo);
             }
             else
             {
-                NodesOnline.Remove((NodeInfo)previousVersionOfNode);
-                NodesOnline.Add(nodeInfo, Timer);
+                UpdateNodeVersion(previousVersionOfNode.Value, nodeInfo.Version);
             }
         }
 
@@ -76,9 +79,52 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     {
         try
         {
-            return NodesOnline.Single(nodeOnline => nodeOnline.Key.IP == nodeInfo.IP).Key;
+            return NodesOnline.Single(nodeOnline => nodeOnline.Key.UserName == nodeInfo.UserName).Key;
         }
         catch (Exception) { return null; }
+    }
+
+    void AddNewNode(NodeInfo nodeInfo)
+    {
+        NodesOnline.Add(nodeInfo, Timer);
+        foreach (var subscriber in _bot.Subscriptions)
+        {
+            try
+            {
+                _bot.SendTextMessageAsync(
+                    subscriber,
+                    $"New node is online: {nodeInfo.UserName} {nodeInfo.PCName} | v.{nodeInfo.Version} | {nodeInfo.IP}".Sanitize()
+                    );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Couldn't add new node.");
+            }
+        }
+        _logger.LogDebug("New node is online: {Name} {PCName} | v.{Version} | {IP}", nodeInfo.UserName, nodeInfo.PCName, nodeInfo.Version, nodeInfo.IP);
+    }
+
+    void UpdateNodeVersion(NodeInfo nodeOnline, string newVersion)
+    {
+        var uptimeTimer = NodesOnline[nodeOnline];
+        NodesOnline.Remove(nodeOnline);
+        var updatedNode = nodeOnline with { Version = newVersion };
+        NodesOnline.Add(updatedNode, uptimeTimer);
+
+        foreach (var subscriber in _bot.Subscriptions)
+        {
+            try
+            {
+                _bot.SendTextMessageAsync(
+                    subscriber,
+                    $"{updatedNode.UserName} {updatedNode.PCName} | {updatedNode.IP} was updated from v.*{updatedNode.Version}* to v.*{updatedNode.Version}*.".Sanitize()
+                    );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Couldn't send node version update message.");
+            }
+        }
     }
 
     TimerPlus Timer
@@ -101,7 +147,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     }
 
     /// <returns>
-    /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="node"/>;
+    /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="node" />;
     /// <c>null</c> if <paramref name="node"/> is offline.
     /// </returns>
     internal TimeSpan? GetUptimeFor(NodeInfo node)
