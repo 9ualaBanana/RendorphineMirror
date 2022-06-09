@@ -1,3 +1,4 @@
+global using Serilog;
 using System.Diagnostics;
 
 namespace Common
@@ -7,14 +8,25 @@ namespace Common
         public static readonly string ConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "renderphine");
         public static readonly string Version = GetVersion();
 
-        static Init() => Directory.CreateDirectory(ConfigDirectory);
+        static Init()
+        {
+            Directory.CreateDirectory(ConfigDirectory);
+
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.Console()
+#if DEBUG
+                    .MinimumLevel.Verbose()
+#else
+                    .MinimumLevel.Information()
+#endif
+                .CreateLogger();
+        }
 
         public static void InitLogger()
         {
-            Logger.InitializeExceptionLogging();
-            Logger.Log(ConsoleColor.White, "Renderphine " + Version + " on " + GetOSInfo() + " w UTC+" + TimeZoneInfo.Local.BaseUtcOffset, writeToConsole: false);
+            Log.Information($"Renderphine {Version} on {GetOSInfo()} w UTC+{TimeZoneInfo.Local.BaseUtcOffset}");
 
-            try { Logger.Log($"Current process name: {Process.GetCurrentProcess().ProcessName}", writeToConsole: false); }
+            try { Log.Debug($"Current process: PID {Environment.ProcessId} {Process.GetCurrentProcess().ProcessName}"); }
             catch { }
         }
         static string GetOSInfo()

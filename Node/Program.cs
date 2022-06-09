@@ -1,10 +1,10 @@
 ﻿global using Common;
+global using Serilog;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using Hardware;
 using Node;
-using Serilog;
 
 
 AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
@@ -68,7 +68,6 @@ async Task SendHardwareInfo()
 }
 
 
-// TODO: починить костыли бесят
 async Task<UserInfo> AuthenticateWithUI(CancellationToken token)
 {
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
@@ -76,14 +75,22 @@ async Task<UserInfo> AuthenticateWithUI(CancellationToken token)
     Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate or create auth.txt file in {Directory.GetCurrentDirectory()} with your login and password divided by space");
     Console.WriteLine(@$"Example: ""makov@gmail.com password123""");
 
-    var l = new HttpListener();
-    l.Prefixes.Add(@$"http://127.0.0.1:{Settings.ListenPort}/");
-    l.Start();
-    Console.WriteLine(@$"Waiting for auth or exit...");
-    var context = await l.GetContextAsync().ConfigureAwait(false);
-    var request = context.Request;
-    if (request.Url?.LocalPath.EndsWith("auth") ?? false)
+    while (true)
+    {
+        await Task.Delay(1000);
+
+        Settings.BSessionId.Reload();
+        if (Settings.SessionId is null) continue;
+
+        Settings.BUserId.Reload();
+        if (Settings.UserId is null) break;
+
+        Settings.BUsername.Reload();
+        if (Settings.Username is null) break;
+
         Process.Start(Environment.ProcessPath!);
+        break;
+    }
 
     Environment.Exit(0);
     return default;
@@ -93,8 +100,22 @@ async Task<UserInfo?> Authenticate(CancellationToken token)
     // either check sid
     if (Settings.SessionId is not null)
     {
-        var userinfo = await api.GetUserInfo(Settings.SessionId, token).ConfigureAwait(false);
-        if (userinfo) return userinfo.Value;
+        while (true)
+        {
+            var auth = await OperationResult.WrapException(() => api.CheckAuthenticationAsync(Settings.SessionId, token)).ConfigureAwait(false);
+            if (!auth)
+            {
+                if (auth.Message?.Contains("443") ?? false)
+                {
+                    await Task.Delay(1000);
+                    continue;
+                }
+
+                break;
+            }
+
+            return auth.Value;
+        }
     }
 
     // or try to auth from auth.txt
@@ -109,7 +130,7 @@ async Task<UserInfo?> Authenticate(CancellationToken token)
             {
                 auth.Result.SaveToConfig();
 
-                var userinfo = await api.GetUserInfo(Settings.SessionId!, token).ConfigureAwait(false);
+                var userinfo = await api.CheckAuthenticationAsync(Settings.SessionId!, token).ConfigureAwait(false);
                 if (userinfo) return userinfo.Value;
             }
         }
@@ -122,7 +143,7 @@ async Task StartHttpListenerAsync()
     var listener = new HttpListener();
     listener.Prefixes.Add(@$"http://127.0.0.1:{Settings.ListenPort}/");
     listener.Start();
-    Logger.Log(@$"Listener started @ {string.Join(", ", listener.Prefixes)}");
+    Log.Information(@$"Local listener started @ {string.Join(", ", listener.Prefixes)}");
 
     while (true)
     {

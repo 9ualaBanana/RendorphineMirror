@@ -35,7 +35,7 @@ namespace Common
         {
             if (!Translations.ContainsKey(culture))
             {
-                Logger.Log("Tried to set non-existing translation");
+                Log.Error("Tried to set non-existing translation " + culture);
                 return;
             }
 
@@ -92,7 +92,7 @@ namespace Common
                 if (values.Count == maxcount) continue;
 
                 var nonExisting = keys.Except(values.Select(x => x.Key));
-                Logger.LogWarn("Translations not found: " + key + " " + string.Join(", ", nonExisting));
+                Log.Error("Translations not found: " + key + " " + string.Join(", ", nonExisting));
             }
         }
 
@@ -105,7 +105,7 @@ namespace Common
             }
             catch (CultureNotFoundException ex)
             {
-                Logger.LogErr(ex);
+                Log.Error(ex.ToString());
                 return null;
             }
 
