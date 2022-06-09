@@ -29,9 +29,6 @@ namespace Common
             }
         }
 
-        public static Task<IPAddress> GetPublicIPAsync() => Device?.GetExternalIPAsync() ?? FetchPublicIpAsync();
-
-
         static readonly ImmutableArray<string> IpServices = new[]
         {
             "https://ipv4.icanhazip.com",
@@ -41,7 +38,7 @@ namespace Common
             "https://wtfismyip.com/text",
             "http://icanhazip.com",
         }.ToImmutableArray();
-        static async Task<IPAddress> FetchPublicIpAsync()
+        public static async Task<IPAddress> GetPublicIPAsync()
         {
             using var client = new HttpClient();
             foreach (var service in IpServices)
