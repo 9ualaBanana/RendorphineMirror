@@ -17,6 +17,9 @@ AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
     }
 };
 
+if (!Debugger.IsAttached)
+    FileList.KillNodeUI();
+
 var api = new Api();
 
 var uinfor = await Authenticate(CancellationToken.None).ConfigureAwait(false);
