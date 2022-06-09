@@ -25,7 +25,7 @@ namespace Common
         static Settings()
         {
             var dbfile = Path.Combine(Init.ConfigDirectory, "config.db");
-            Connection = new SQLiteConnection("Data Source=" + dbfile + ";Version=3;");
+            Connection = new SQLiteConnection("Data Source=" + dbfile + ";Version=3;cache=shared");
             if (!File.Exists(dbfile)) SQLiteConnection.CreateFile(dbfile);
             Connection.Open();
             CreateDBTable();
@@ -44,7 +44,7 @@ namespace Common
         [return: NotNullIfNotNull("defaultValue")]
         static T? Get<T>(string path, T defaultValue)
         {
-            var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
+            using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
             if (!query.Read()) return defaultValue;
 
             var str = query.GetString(0);
@@ -58,7 +58,11 @@ namespace Common
 
         static void CreateDBTable()
         {
-            try { ExecuteNonQuery(@$"create table if not exists {ConfigTable} (key text primary key unique, value text null);"); }
+            try
+            {
+                ExecuteNonQuery($"create table if not exists {ConfigTable} (key text primary key unique, value text null);");
+                ExecuteNonQuery("PRAGMA cache=shared;");
+            }
             catch (SQLiteException ex)
             {
                 Log.Fatal(ex.ToString());
@@ -66,11 +70,15 @@ namespace Common
             }
         }
 
-        static int ExecuteNonQuery(string command) => new SQLiteCommand(command, Connection).ExecuteNonQuery();
+        static int ExecuteNonQuery(string command)
+        {
+            using var cmd = new SQLiteCommand(command, Connection);
+            return cmd.ExecuteNonQuery();
+        }
         static int ExecuteNonQuery(string command, params DbParameter[] parameters) => ExecuteNonQuery(command, parameters.AsEnumerable());
         static int ExecuteNonQuery(string command, IEnumerable<DbParameter> parameters)
         {
-            var cmd = new SQLiteCommand(command, Connection);
+            using var cmd = new SQLiteCommand(command, Connection);
 
             foreach (var parameter in parameters)
                 cmd.Parameters.Add(parameter);
@@ -78,11 +86,15 @@ namespace Common
             return cmd.ExecuteNonQuery();
         }
 
-        static DbDataReader ExecuteQuery(string command) => new SQLiteCommand(command, Connection).ExecuteReader();
+        static DbDataReader ExecuteQuery(string command)
+        {
+            using var cmd = new SQLiteCommand(command, Connection);
+            return cmd.ExecuteReader();
+        }
         static DbDataReader ExecuteQuery(string command, params DbParameter[] parameters) => ExecuteQuery(command, parameters.AsEnumerable());
         static DbDataReader ExecuteQuery(string command, IEnumerable<DbParameter> parameters)
         {
-            var cmd = new SQLiteCommand(command, Connection);
+            using var cmd = new SQLiteCommand(command, Connection);
 
             foreach (var parameter in parameters)
                 cmd.Parameters.Add(parameter);
@@ -107,7 +119,7 @@ namespace Common
                     );
             }
 
-            public void Reload() => _Value = Get<T>(Name, _Value)!;
+            public void Reload() => _Value = Get(Name, _Value)!;
         }
     }
 }

@@ -135,8 +135,6 @@ namespace NodeUI.Pages
         void ShowMainWindow(in LoginResult info)
         {
             info.SaveToConfig();
-            try { new HttpClient().GetAsync(@$"http://127.0.0.1:{Settings.ListenPort}/auth"); }
-            catch { }
 
             var w = new MainWindow();
             ((IClassicDesktopStyleApplicationLifetime) Application.Current!.ApplicationLifetime!).MainWindow = w;
