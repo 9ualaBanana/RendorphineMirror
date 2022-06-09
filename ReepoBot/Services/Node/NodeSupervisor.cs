@@ -92,9 +92,10 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         {
             try
             {
+                var message = $"New node is online: {nodeInfo.UserName} {nodeInfo.PCName} | v.{nodeInfo.Version} | {nodeInfo.IP}".Sanitize();
                 _bot.SendTextMessageAsync(
                     subscriber,
-                    $"New node is online: {nodeInfo.UserName} {nodeInfo.PCName} | v.{nodeInfo.Version} | {nodeInfo.IP}",
+                    message,
                     parseMode: ParseMode.MarkdownV2
                     );
             }
@@ -117,9 +118,10 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         {
             try
             {
+                var message = $"{updatedNode.UserName} {updatedNode.PCName} | {updatedNode.IP} was updated from v.*{nodeOnline.Version}* to v.*{updatedNode.Version}*.".Sanitize();
                 _bot.SendTextMessageAsync(
                     subscriber,
-                    $"{updatedNode.UserName} {updatedNode.PCName} | {updatedNode.IP} was updated from v.*{nodeOnline.Version}* to v.*{updatedNode.Version}*.",
+                    message,
                     parseMode: ParseMode.MarkdownV2
                     );
             }
