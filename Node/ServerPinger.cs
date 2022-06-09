@@ -33,7 +33,7 @@ internal class ServerPinger : IDisposable
         Log.Debug("{Service} is initialized with interval of {Interval} ms.", nameof(ServerPinger), interval);
     }
 
-    internal async Task Start()
+    internal async Task StartAsync()
     {
         await PingServerAsync();
         _timer.Start();
@@ -49,7 +49,7 @@ internal class ServerPinger : IDisposable
     {
         try
         {
-            var queryString = $"nodeInfo={HardwareInfo.Name},{HardwareInfo.Version},{await HardwareInfo.GetIPAsync()}";
+            var queryString = $"nodeInfo={HardwareInfo.UserName},{HardwareInfo.PCName},{HardwareInfo.Version},{await HardwareInfo.GetIPAsync()}";
             var response = await _http.GetAsync($"{Settings.ServerUrl}/node/ping?{queryString}");
             response.EnsureSuccessStatusCode();
             Log.Debug("{Service} successfuly sent ping to {Server}", nameof(ServerPinger), Settings.ServerUrl);

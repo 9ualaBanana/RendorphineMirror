@@ -55,12 +55,30 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     {
         if (!NodesOnline.ContainsKey(nodeInfo))
         {
-            _logger.LogDebug("New node is online: {Name} | v.{Version} | {IP}", nodeInfo.Name, nodeInfo.Version, nodeInfo.IP);
-            NodesOnline.Add(nodeInfo, Timer);
+            var previousVersionOfNode = GetPreviousVersionIfOnline(nodeInfo);
+            if (previousVersionOfNode is null)
+            {
+                NodesOnline.Add(nodeInfo, Timer);
+                _logger.LogDebug("New node is online: {Name} {PCName} | v.{Version} | {IP}", nodeInfo.UserName, nodeInfo.PCName, nodeInfo.Version, nodeInfo.IP);
+            }
+            else
+            {
+                NodesOnline.Remove((NodeInfo)previousVersionOfNode);
+                NodesOnline.Add(nodeInfo, Timer);
+            }
         }
 
         NodesOnline[nodeInfo].Stop();
         NodesOnline[nodeInfo].Start();
+    }
+
+    NodeInfo? GetPreviousVersionIfOnline(NodeInfo nodeInfo)
+    {
+        try
+        {
+            return NodesOnline.Single(nodeOnline => nodeOnline.Key.IP == nodeInfo.IP).Key;
+        }
+        catch (Exception) { return null; }
     }
 
     TimerPlus Timer
@@ -77,8 +95,8 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     {
         var offlineNode = NodesOnline.Single(node => node.Value == sender);
         var offlineNodeInfo = offlineNode.Key;
-        _logger.LogError("{Name} | v.{Version} | {IP} went offline after {Time} ms since the last ping.",
-            offlineNodeInfo.Name, offlineNodeInfo.Version, offlineNodeInfo.IP, TimeBeforeNodeGoesOffline);
+        _logger.LogError("{Name} {PCName} | v.{Version} | {IP} went offline after {Time} ms since the last ping.",
+            offlineNodeInfo.UserName, offlineNodeInfo.PCName, offlineNodeInfo.Version, offlineNodeInfo.IP, TimeBeforeNodeGoesOffline);
         NodesOnline.Remove(offlineNodeInfo);
     }
 

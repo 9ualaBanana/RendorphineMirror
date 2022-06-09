@@ -96,7 +96,7 @@ public class TelegramUpdateHandler
             if (uptime is null) continue;
 
             var escapedUptime = $"{uptime:d\\.hh\\:mm}";
-            messageBuilder.AppendLine($"*{node.Name}* (v.{node.Version}) *{node.IP}* | {escapedUptime}");
+            messageBuilder.AppendLine($"*{node.UserName}* (v.{node.Version}) *{node.IP}* | {escapedUptime}");
         }
         var message = messageBuilder.ToString().Sanitize();
         _logger.LogDebug("Sending the message to subscribers...");

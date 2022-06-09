@@ -19,15 +19,15 @@ internal class WindowsHardwareInfoMessageBuilder
 
     internal async Task<string> BuildAsync(bool verbose = false)
     {
-        var message = new StringBuilder();
-
-        message.AppendLine($"v.{Init.Version}");
-        message.AppendLine();
-
         if (!verbose)
         {
             return $"{await HardwareInfo.GetBriefAsync()}";
         }
+
+        var message = new StringBuilder();
+
+        message.AppendLine($"v.{Init.Version}");
+        message.AppendLine();
 
         message.AppendLine(BuildCPUInfoMessage(_hardwareInfo.CPU));
         message.AppendLine(BuildGPUInfoMessage(_hardwareInfo.GPU));
