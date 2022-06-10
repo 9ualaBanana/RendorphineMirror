@@ -166,6 +166,7 @@ public class TelegramUpdateHandler
             {
                 _logger.LogError(ex, "Message wasn't sent.");
             }
+            return;
         }
         var indexOfNodeToRemove = _nodeSupervisor.AllNodes.FindIndex(node => node.PCName.ToLower() == lcNodePCName);
         if (indexOfNodeToRemove == -1)
@@ -182,6 +183,7 @@ public class TelegramUpdateHandler
             {
                 _logger.LogError(ex, "Message wasn't sent.");
             }
+            return;
         }
 
         _nodeSupervisor.AllNodes.RemoveAt(indexOfNodeToRemove);

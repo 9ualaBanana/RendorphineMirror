@@ -9,10 +9,11 @@ namespace ReepoBot.Services.Node;
 
 public class NodeSupervisor : IEventHandler<NodeInfo>
 {
-    readonly ILogger<NodeSupervisor> _logger;
-    readonly TelegramBot _bot;
     internal readonly List<NodeInfo> AllNodes = new();
     internal readonly Dictionary<NodeInfo, TimerPlus> NodesOnline = new();
+
+    readonly ILogger<NodeSupervisor> _logger;
+    readonly TelegramBot _bot;
     double _timeBeforeGoingOffline = -1;
     double TimeBeforeNodeGoesOffline
     {
@@ -80,7 +81,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     {
         try
         {
-            return NodesOnline.Single(nodeOnline => nodeOnline.Key.UserName == nodeInfo.UserName).Key;
+            return NodesOnline.Single(nodeOnline => nodeOnline.Key.PCName == nodeInfo.PCName).Key;
         }
         catch (Exception) { return null; }
     }
@@ -111,7 +112,10 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     async Task UpdateNodeVersion(NodeInfo nodeOnline, NodeInfo updatedNode)
     {
         var uptimeTimer = NodesOnline[nodeOnline];
+        AllNodes.Remove(nodeOnline);
         NodesOnline.Remove(nodeOnline);
+
+        AllNodes.Add(updatedNode);
         NodesOnline.Add(updatedNode, uptimeTimer);
 
         foreach (var subscriber in _bot.Subscriptions)
