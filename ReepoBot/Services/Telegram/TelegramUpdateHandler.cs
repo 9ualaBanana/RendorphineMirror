@@ -84,6 +84,11 @@ public class TelegramUpdateHandler
             await HandlePing(update);
             return;
         }
+        if (command.StartsWith("online"))
+        {
+            await HandleOnline(update);
+            return;
+        }
         if (command.StartsWith("remove"))
         {
             await HandleRemove(update);
@@ -144,6 +149,22 @@ public class TelegramUpdateHandler
         catch (Exception ex)
         {
             _logger.LogError(ex, "Something went wrong when trying to send the message\n{Message}", message);
+        }
+    }
+
+    async Task HandleOnline(Update update)
+    {
+        var message = $"*{_nodeSupervisor.NodesOnline.Count}* nodes online.".Sanitize();
+        try
+        {
+            await _bot.SendTextMessageAsync(
+                update.Message!.Chat.Id,
+                message,
+                parseMode: ParseMode.MarkdownV2);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Message wasn't sent.");
         }
     }
 
