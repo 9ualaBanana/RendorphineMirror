@@ -1,5 +1,6 @@
 ﻿using ReepoBot.Models;
 using ReepoBot.Services.Telegram;
+using System.Collections.Concurrent;
 using System.Timers;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
@@ -9,17 +10,18 @@ namespace ReepoBot.Services.Node;
 
 public class NodeSupervisor : IEventHandler<NodeInfo>
 {
-    internal readonly List<NodeInfo> AllNodes = new();
-    internal readonly Dictionary<NodeInfo, TimerPlus> NodesOnline = new();
+    internal readonly HashSet<NodeInfo> AllNodes = new();
+    internal readonly ConcurrentDictionary<NodeInfo, TimerPlus> NodesOnline = new();
 
+    readonly object _allNodesLock = new();
     readonly ILogger<NodeSupervisor> _logger;
     readonly TelegramBot _bot;
-    double _timeBeforeGoingOffline = -1;
-    double TimeBeforeNodeGoesOffline
+    double _idleTimeBeforeGoingOffline = -1;
+    double IdleTimeBeforeNodeGoesOffline
     {
         get
         {
-            if (_timeBeforeGoingOffline != -1) return _timeBeforeGoingOffline;
+            if (_idleTimeBeforeGoingOffline != -1) return _idleTimeBeforeGoingOffline;
 
             const string configKey = "TimeBeforeNodeGoesOffline";
             double result = TimeSpan.FromMinutes(10).TotalMilliseconds;
@@ -39,7 +41,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
             {
                 _logger.LogWarning(ex, "Value of \"{ConfigKey}\" overflows.", configKey);
             }
-            return _timeBeforeGoingOffline = result;
+            return _idleTimeBeforeGoingOffline = result;
         }
     }
     readonly IConfiguration _configuration;
@@ -73,8 +75,11 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
             }
         }
 
-        NodesOnline[nodeInfo].Stop();
-        NodesOnline[nodeInfo].Start();
+        if (NodesOnline.TryGetValue(nodeInfo, out var nodeUptimeTimer))
+        {
+            nodeUptimeTimer.Stop();
+            nodeUptimeTimer.Start();
+        }
     }
 
     NodeInfo? GetPreviousVersionIfOnline(NodeInfo nodeInfo)
@@ -89,7 +94,8 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     async Task AddNewNode(NodeInfo nodeInfo)
     {
         AllNodes.Add(nodeInfo);
-        NodesOnline.Add(nodeInfo, Timer);
+        if (!NodesOnline.TryAdd(nodeInfo, Timer)) return;
+        
         foreach (var subscriber in _bot.Subscriptions)
         {
             try
@@ -111,12 +117,14 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
 
     async Task UpdateNodeVersion(NodeInfo nodeOnline, NodeInfo updatedNode)
     {
-        var uptimeTimer = NodesOnline[nodeOnline];
-        AllNodes.Remove(nodeOnline);
-        NodesOnline.Remove(nodeOnline);
+        if (!NodesOnline.TryRemove(nodeOnline, out var uptimeTimer)) return;
+        NodesOnline.TryAdd(updatedNode, uptimeTimer);
 
-        AllNodes.Add(updatedNode);
-        NodesOnline.Add(updatedNode, uptimeTimer);
+        lock (_allNodesLock)
+        {
+            if (AllNodes.Contains(nodeOnline)) AllNodes.Remove(nodeOnline);
+            AllNodes.Add(updatedNode);
+        }
 
         foreach (var subscriber in _bot.Subscriptions)
         {
@@ -140,7 +148,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     {
         get
         {
-            var timer = new TimerPlus(TimeBeforeNodeGoesOffline) { AutoReset = false };
+            var timer = new TimerPlus(IdleTimeBeforeNodeGoesOffline) { AutoReset = false };
             timer.Elapsed += OnNodeWentOffline;
             return timer;
         }
@@ -151,18 +159,17 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         var offlineNode = NodesOnline.Single(node => node.Value == sender);
         var offlineNodeInfo = offlineNode.Key;
         _logger.LogError("{PCName} {UserName} (v.{Version}) {IP} went offline after {Time} ms since the last ping.",
-            offlineNodeInfo.PCName, offlineNodeInfo.UserName, offlineNodeInfo.Version, offlineNodeInfo.IP, TimeBeforeNodeGoesOffline);
-        NodesOnline.Remove(offlineNodeInfo);
+            offlineNodeInfo.PCName, offlineNodeInfo.UserName, offlineNodeInfo.Version, offlineNodeInfo.IP, IdleTimeBeforeNodeGoesOffline);
+        NodesOnline.TryRemove(offlineNodeInfo, out var _);
     }
 
     /// <returns>
-    /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="node" />;
-    /// <c>null</c> if <paramref name="node"/> is offline.
+    /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="nodeInfo" />;
+    /// <c>null</c> if <paramref name="nodeInfo"/> is offline.
     /// </returns>
-    internal TimeSpan? GetUptimeFor(NodeInfo node)
+    internal TimeSpan? GetUptimeFor(NodeInfo nodeInfo)
     {
-        if (!NodesOnline.ContainsKey(node)) return null;
-
-        return NodesOnline[node].ElapsedTime;
+        NodesOnline.TryGetValue(nodeInfo, out var uptime);
+        return uptime?.ElapsedTime;
     }
 }
