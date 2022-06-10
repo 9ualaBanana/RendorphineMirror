@@ -1,4 +1,5 @@
-﻿using ReepoBot.Services.Node;
+﻿using ReepoBot.Models;
+using ReepoBot.Services.Node;
 using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -124,11 +125,31 @@ public class TelegramUpdateHandler
 
     async Task HandlePing(Update update)
     {
+        var splitCommand = update.Message!.Text!.Split();
         _logger.LogDebug("Building the message with online nodes...");
+
+        IEnumerable<KeyValuePair<NodeInfo, TimerPlus>> nodesOnlineToList;
+
+        if (splitCommand.Length > 1)
+        {
+            var lcNodeNamesToList = splitCommand[1..]
+                .Select(nodeName => nodeName.ToLower())
+                .ToHashSet();
+
+            nodesOnlineToList = _nodeSupervisor.NodesOnline
+                .Where(nodeInfo => lcNodeNamesToList.Contains(
+                    nodeInfo.Key.PCName.ToLower())
+                );
+        }
+        else
+        {
+            nodesOnlineToList = _nodeSupervisor.NodesOnline;
+        }
+
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*Node* | *Uptime*");
         messageBuilder.AppendLine("------------------------------------------------");
-        foreach (var (nodeInfo, _) in _nodeSupervisor.NodesOnline.OrderBy(nodeOnline => nodeOnline.Key.PCName))
+        foreach (var (nodeInfo, _) in nodesOnlineToList.OrderBy(nodeOnline => nodeOnline.Key.PCName))
         {
             var uptime = _nodeSupervisor.GetUptimeFor(nodeInfo);
             // It could already go offline.
