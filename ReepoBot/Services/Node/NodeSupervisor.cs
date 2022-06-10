@@ -12,6 +12,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
 {
     internal readonly HashSet<NodeInfo> AllNodes = new();
     internal readonly ConcurrentDictionary<NodeInfo, TimerPlus> NodesOnline = new();
+    internal HashSet<NodeInfo> NodesOffline => AllNodes.ToHashSet().Except(NodesOnline.Keys).ToHashSet();
 
     readonly object _allNodesLock = new();
     readonly ILogger<NodeSupervisor> _logger;

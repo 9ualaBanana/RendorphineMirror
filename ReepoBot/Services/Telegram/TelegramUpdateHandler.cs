@@ -90,6 +90,11 @@ public class TelegramUpdateHandler
             await HandleOnline(update);
             return;
         }
+        if (command.StartsWith("offline"))
+        {
+            await HandleOffline(update);
+            return;
+        }
         if (command.StartsWith("remove"))
         {
             await HandleRemove(update);
@@ -106,7 +111,9 @@ public class TelegramUpdateHandler
         messageBuilder.AppendLine("------------------------------------------------");
         foreach (var nodeInfo in _nodeSupervisor.AllNodes.OrderBy(node => node.PCName))
         {
-            messageBuilder.AppendLine(nodeInfo.BriefInfoMDv2);
+            messageBuilder.Append(nodeInfo.BriefInfoMDv2);
+            if (_nodeSupervisor.NodesOffline.Contains(nodeInfo)) messageBuilder.AppendLine(" - *OFFLINE*");
+            else messageBuilder.AppendLine();
         }
         var message = messageBuilder.ToString().Sanitize();
 
@@ -175,7 +182,32 @@ public class TelegramUpdateHandler
 
     async Task HandleOnline(Update update)
     {
-        var message = $"*{_nodeSupervisor.NodesOnline.Count}* nodes online.".Sanitize();
+        var message = $"Online: *{_nodeSupervisor.NodesOnline.Count}*\nOffline: {_nodeSupervisor.NodesOffline.Count}".Sanitize();
+        try
+        {
+            await _bot.SendTextMessageAsync(
+                update.Message!.Chat.Id,
+                message,
+                parseMode: ParseMode.MarkdownV2);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Message wasn't sent.");
+        }
+    }
+
+    async Task HandleOffline(Update update)
+    {
+        _logger.LogDebug("Listing offline nodes...");
+        var messageBuilder = new StringBuilder();
+        messageBuilder.AppendLine("*Offline Nodes*");
+        messageBuilder.AppendLine("------------------------------------------------");
+        foreach (var nodeInfo in _nodeSupervisor.NodesOffline.OrderBy(node => node.PCName))
+        {
+            messageBuilder.AppendLine(nodeInfo.BriefInfoMDv2);
+        }
+        var message = messageBuilder.ToString().Sanitize();
+
         try
         {
             await _bot.SendTextMessageAsync(
