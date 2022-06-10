@@ -22,7 +22,7 @@ namespace Common
             var pingerexe = FileList.GetPingerExe();
 
             var updaterexe = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault();
-            if (updaterexe is null || !File.Exists(updaterexe)) updaterexe = FileList.GetPingerExe();
+            if (updaterexe is null || !File.Exists(updaterexe)) updaterexe = FileList.GetUpdaterExe();
 
             MakeExecutable(pingerexe, updaterexe, nodeexe, nodeuiexe);
             ExecuteForOs(Windows, Linux, Mac);
