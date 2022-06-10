@@ -149,34 +149,22 @@ public class TelegramUpdateHandler
 
     async Task HandleRemove(Update update)
     {
-        var rawNodePCName = update.Message!.Text!.Split()[1];
-        var lcNodePCName = rawNodePCName.ToLower();
+        var nodePCNames = update.Message!.Text!
+            .Split()[1..]
+            .Select(nodePCName => nodePCName.ToLower())
+            .ToArray();
 
-        if (_nodeSupervisor.NodesOnline.Any(nodeOnline => nodeOnline.Key.PCName.ToLower() == lcNodePCName))
+        int nodesRemoved = _nodeSupervisor.TryRemoveNodesWithNames(nodePCNames);
+
+
+        if (nodesRemoved == 0)
         {
-            var message = $"Node {rawNodePCName} can't be removed. It's still online.".Sanitize();
+            var unsuccessfulMessage = $"Nodes with specified names are either online or not found.".Sanitize();
             try
             {
                 await _bot.SendTextMessageAsync(
                     update.Message!.Chat.Id,
-                    message,
-                    parseMode: ParseMode.MarkdownV2);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Message wasn't sent.");
-            }
-            return;
-        }
-        var indexOfNodeToRemove = _nodeSupervisor.AllNodes.FindIndex(node => node.PCName.ToLower() == lcNodePCName);
-        if (indexOfNodeToRemove == -1)
-        {
-            var message = $"Node {rawNodePCName} is not found.".Sanitize();
-            try
-            {
-                await _bot.SendTextMessageAsync(
-                    update.Message!.Chat.Id,
-                    message,
+                    unsuccessfulMessage,
                     parseMode: ParseMode.MarkdownV2);
             }
             catch (Exception ex)
@@ -186,7 +174,18 @@ public class TelegramUpdateHandler
             return;
         }
 
-        _nodeSupervisor.AllNodes.RemoveAt(indexOfNodeToRemove);
+        var message = $"{nodesRemoved} out of {nodePCNames.Length} were removed.".Sanitize();
+        try
+        {
+            await _bot.SendTextMessageAsync(
+                update.Message!.Chat.Id,
+                message,
+                parseMode: ParseMode.MarkdownV2);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Message wasn't sent.");
+        }
     }
 
     async Task HandleChatMember(ChatMemberUpdated chatMemberUpdate)

@@ -172,4 +172,13 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         NodesOnline.TryGetValue(nodeInfo, out var uptime);
         return uptime?.ElapsedTime;
     }
+
+    internal int TryRemoveNodesWithNames(params string[] nodeNames)
+    {
+        var names = nodeNames.ToHashSet();
+        lock (_allNodesLock)
+        {
+            return AllNodes.RemoveWhere(nodeInfo => names.Contains(nodeInfo.PCName));
+        }
+    }
 }
