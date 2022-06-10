@@ -1,5 +1,6 @@
 global using Serilog;
 using System.Diagnostics;
+using Serilog.Events;
 
 namespace Common
 {
@@ -13,12 +14,14 @@ namespace Common
             Directory.CreateDirectory(ConfigDirectory);
 
             Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console()
+                .WriteTo.Console(restrictedToMinimumLevel:
 #if DEBUG
-                    .MinimumLevel.Verbose()
+                    LogEventLevel.Verbose
 #else
-                    .MinimumLevel.Information()
+                    LogEventLevel.Information
 #endif
+                )
+                .WriteTo.File(Path.Combine(ConfigDirectory, "logs", "log" + Path.GetFileNameWithoutExtension(Environment.ProcessPath!)) + ".log", restrictedToMinimumLevel: LogEventLevel.Information)
                 .CreateLogger();
         }
 
