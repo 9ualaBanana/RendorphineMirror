@@ -23,11 +23,34 @@ namespace Common
 
                 Device = args.Device;
 
-                try { Device.CreatePortMap(new Mapping(Protocol.Tcp, Settings.UPnpPort, Settings.UPnpPort, 0, "renderphine")); }
-                catch (MappingException ex) { Log.Error(ex.Message); }
+                var name = "renderphine-" + Environment.MachineName;
+                var mappings = Device.GetAllMappings();
+                var mapping = mappings.FirstOrDefault(x => x.Description == name);
+                if (mapping is not null)
+                {
+                    Log.Information($"[UPnP] Found already existing mapping: {mapping}");
+                    Settings.UPnpPort = (ushort) mapping.PublicPort;
+                }
+                else
+                {
+                    Log.Information($"[UPnP] Could not find valid existing mapping");
+
+                    try
+                    {
+                        for (ushort port = Settings.UPnpPort; port < ushort.MaxValue; port++)
+                        {
+                            if (mappings.Any(x => x.PublicPort == port)) continue;
+
+                            Log.Information($"[UPnP] Creating mapping on port {port} with name {name}");
+                            Settings.UPnpPort = port;
+                            Device.CreatePortMap(new Mapping(Protocol.Tcp, port, port, 0, name));
+                            break;
+                        }
+                    }
+                    catch (MappingException ex) { Log.Error(ex.Message); }
+                }
 
                 Mapping = Device.GetSpecificMapping(Protocol.Tcp, Settings.UPnpPort);
-                Console.WriteLine("Found UPnP mapping: " + Mapping.ToString());
             }
         }
 

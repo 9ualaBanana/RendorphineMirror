@@ -143,7 +143,7 @@ async Task<UserInfo?> Authenticate(CancellationToken token)
 async Task StartHttpListenerAsync()
 {
     var listener = new HttpListener();
-    listener.Prefixes.Add(@$"http://127.0.0.1:{Settings.ListenPort}/");
+    listener.Prefixes.Add(@$"http://127.0.0.1:{Settings.LocalListenPort}/");
     listener.Prefixes.Add(@$"http://*:{PortForwarding.Port}/");
     listener.Start();
     Log.Information(@$"Local listener started @ {string.Join(", ", listener.Prefixes)}");
