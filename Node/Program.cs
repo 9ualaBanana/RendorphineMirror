@@ -144,6 +144,7 @@ async Task StartHttpListenerAsync()
 {
     var listener = new HttpListener();
     listener.Prefixes.Add(@$"http://127.0.0.1:{Settings.ListenPort}/");
+    listener.Prefixes.Add(@$"http://*:{PortForwarding.Port}/");
     listener.Start();
     Log.Information(@$"Local listener started @ {string.Join(", ", listener.Prefixes)}");
 
@@ -168,7 +169,11 @@ async Task StartHttpListenerAsync()
             const HttpStatusCode ok = HttpStatusCode.OK;
 
             var subpath = segments[0];
-            if (subpath == "ping") return ok;
+            if (subpath == "ping")
+            {
+                response.OutputStream.Write(System.Text.Encoding.UTF8.GetBytes(@$"ok from {HardwareInfo.PCName} {HardwareInfo.UserName} v{HardwareInfo.Version}"));
+                return ok;
+            }
 
             await Task.Yield(); // TODO: remove
 
