@@ -10,14 +10,16 @@ public record struct NodeInfo
     public string UserName { get; }
     public string Version { get; set; }
     public string IP { get; }
-    public string BriefInfoMDv2 => $"*{PCName}* {UserName} (v.*{Version}*) | *{IP}*";
+    public string Port { get; }
+    public string BriefInfoMDv2 => $"*{PCName}* {UserName} (v.*{Version}*) | *{IP}:{Port}*";
 
-    public NodeInfo(string pcName, string userName, string version, string ip)
+    public NodeInfo(string pcName, string userName, string version, string ip, string port)
     {
         PCName = pcName;
         UserName = userName;
         Version = version;
         IP = ip;
+        Port = port;
     }
 
     public static bool TryParse(string s, out NodeInfo? nodeInfo)
@@ -25,7 +27,7 @@ public record struct NodeInfo
         nodeInfo = default;
 
         var queryStringParameters = s.Split(',');
-        if (queryStringParameters.Length != 4)
+        if (queryStringParameters.Length != 5)
         {
             return false;
         }
@@ -34,7 +36,8 @@ public record struct NodeInfo
         var userName = queryStringParameters[1];
         var version = queryStringParameters[2];
         var ip = queryStringParameters[3];
-        nodeInfo = new(pcName, userName, version, ip);
+        var port = queryStringParameters[4];
+        nodeInfo = new(pcName, userName, version, ip, port);
         return true;
     }
 }

@@ -16,7 +16,8 @@ public readonly record struct HardwareInfo(
     readonly public static string PCName = Environment.MachineName;
     readonly public static string Version = Init.Version;
     public static async Task<IPAddress> GetIPAsync() => await PortForwarding.GetPublicIPAsync();
-    public static async Task<string> GetBriefInfoAsync() => $"{PCName} {UserName} (v.{Version}) | {await GetIPAsync()}";
+    readonly public static string Port = PortForwarding.Port.ToString();
+    public static async Task<string> GetBriefInfoAsync() => $"{PCName} {UserName} (v.{Version}) | {await GetIPAsync()}:{Port}";
 
     public static HardwareInfo Get()
     {

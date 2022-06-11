@@ -113,7 +113,7 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
                 _logger.LogError(ex, "Couldn't add new node.");
             }
         }
-        _logger.LogDebug("New node is online: {PCName} {UserName} (v.{Version}) {IP}", nodeInfo.PCName, nodeInfo.UserName, nodeInfo.Version, nodeInfo.IP);
+        _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
     }
 
     async Task UpdateNodeVersion(NodeInfo nodeOnline, NodeInfo updatedNode)
@@ -159,8 +159,8 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
     {
         var offlineNode = NodesOnline.Single(node => node.Value == sender);
         var offlineNodeInfo = offlineNode.Key;
-        _logger.LogError("{PCName} {UserName} (v.{Version}) {IP} went offline after {Time} ms since the last ping.",
-            offlineNodeInfo.PCName, offlineNodeInfo.UserName, offlineNodeInfo.Version, offlineNodeInfo.IP, IdleTimeBeforeNodeGoesOffline);
+        _logger.LogError("{Node} went offline after {Time} ms since the last ping.",
+            offlineNodeInfo.BriefInfoMDv2, IdleTimeBeforeNodeGoesOffline);
         NodesOnline.TryRemove(offlineNodeInfo, out var _);
     }
 
