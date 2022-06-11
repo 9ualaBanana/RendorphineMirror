@@ -22,10 +22,10 @@ public class GitHubEventForwarder : IGitHubEventHandler
         switch (githubEvent.EventType)
         {
             case "ping":
-                await new PingGitHubEventForwarder(_loggerFactory).HandleAsync(githubEvent);
+                await new PingGitHubEventForwarder(_loggerFactory).Handle(githubEvent);
                 break;
             case "push":
-                await new PushGitHubEventForwarder(_loggerFactory, _bot).HandleAsync(githubEvent);
+                await new PushGitHubEventForwarder(_loggerFactory, _bot).Handle(githubEvent);
                 break;
             default:
                 _logger.LogDebug("GitHub event with {Type} type couldn't be handled", githubEvent.EventType);

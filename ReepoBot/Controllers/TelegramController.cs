@@ -18,7 +18,7 @@ public class TelegramController : ControllerBase
         logger.LogDebug("Update with {Type} is received", update.Type);
         try
         {
-            telegramUpdateHandler.HandleAsync(update);
+            telegramUpdateHandler.Handle(update);
         }
         catch (Exception ex)
         {

@@ -2,13 +2,10 @@
 using ReepoBot.Services.Telegram;
 using System.Collections.Concurrent;
 using System.Timers;
-using Telegram.Bot;
-using Telegram.Bot.Types.Enums;
-using TelegramHelper;
 
 namespace ReepoBot.Services.Node;
 
-public class NodeSupervisor : IEventHandler<NodeInfo>
+public class NodeSupervisor
 {
     internal readonly HashSet<NodeInfo> AllNodes = new();
     internal readonly ConcurrentDictionary<NodeInfo, TimerPlus> NodesOnline = new();
@@ -54,26 +51,18 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         _bot = bot;
     }
 
-    public async Task HandleAsync(NodeInfo nodeInfo)
+    internal void UpdateNodeStatus(NodeInfo nodeInfo)
     {
         _logger.LogDebug("Updating node status...");
-        await UpdateNodeStatus(nodeInfo);
-        _logger.LogDebug("Node status is updated.");
-    }
 
-    async Task UpdateNodeStatus(NodeInfo nodeInfo)
-    {
         if (!NodesOnline.ContainsKey(nodeInfo))
         {
             var previousVersionOfNode = GetPreviousVersionIfOnline(nodeInfo);
+
             if (previousVersionOfNode is null)
-            {
-                await AddNewNode(nodeInfo);
-            }
+                AddNewNode(nodeInfo);
             else
-            {
-                await UpdateNodeVersion(previousVersionOfNode.Value, nodeInfo);
-            }
+                UpdateNodeVersion(previousVersionOfNode.Value, nodeInfo);
         }
 
         if (NodesOnline.TryGetValue(nodeInfo, out var nodeUptimeTimer))
@@ -81,6 +70,8 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
             nodeUptimeTimer.Stop();
             nodeUptimeTimer.Start();
         }
+
+        _logger.LogDebug("Node status is updated");
     }
 
     NodeInfo? GetPreviousVersionIfOnline(NodeInfo nodeInfo)
@@ -92,31 +83,16 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         catch (Exception) { return null; }
     }
 
-    async Task AddNewNode(NodeInfo nodeInfo)
+    void AddNewNode(NodeInfo nodeInfo)
     {
         AllNodes.Add(nodeInfo);
         if (!NodesOnline.TryAdd(nodeInfo, Timer)) return;
-        
-        foreach (var subscriber in _bot.Subscriptions)
-        {
-            try
-            {
-                var message = $"{nodeInfo.BriefInfoMDv2} is online".Sanitize();
-                await _bot.SendTextMessageAsync(
-                    subscriber,
-                    message,
-                    parseMode: ParseMode.MarkdownV2
-                    );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Couldn't add new node.");
-            }
-        }
+
+        _bot.TryNotifySubscribers($"{nodeInfo.BriefInfoMDv2} is online", _logger);
         _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
     }
 
-    async Task UpdateNodeVersion(NodeInfo nodeOnline, NodeInfo updatedNode)
+    void UpdateNodeVersion(NodeInfo nodeOnline, NodeInfo updatedNode)
     {
         if (!NodesOnline.TryRemove(nodeOnline, out var uptimeTimer)) return;
         NodesOnline.TryAdd(updatedNode, uptimeTimer);
@@ -127,22 +103,9 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         }
         AllNodes.Add(updatedNode);
 
-        foreach (var subscriber in _bot.Subscriptions)
-        {
-            try
-            {
-                var message = $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *->* v.*{updatedNode.Version}*.".Sanitize();
-                await _bot.SendTextMessageAsync(
-                    subscriber,
-                    message,
-                    parseMode: ParseMode.MarkdownV2
-                    );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Couldn't send node version update message.");
-            }
-        }
+        _bot.TryNotifySubscribers(
+            $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{updatedNode.Version}*.",
+            _logger);
     }
 
     TimerPlus Timer
@@ -157,11 +120,11 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
 
     void OnNodeWentOffline(object? sender, ElapsedEventArgs e)
     {
-        var offlineNode = NodesOnline.Single(node => node.Value == sender);
-        var offlineNodeInfo = offlineNode.Key;
+        var offlineNodeInfo = NodesOnline.Single(node => node.Value == sender).Key;
+        NodesOnline.TryRemove(offlineNodeInfo, out var _);
+
         _logger.LogError("{Node} went offline after {Time} ms since the last ping.",
             offlineNodeInfo.BriefInfoMDv2, IdleTimeBeforeNodeGoesOffline);
-        NodesOnline.TryRemove(offlineNodeInfo, out var _);
     }
 
     /// <returns>

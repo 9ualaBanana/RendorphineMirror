@@ -2,7 +2,6 @@
 using Hardware.MessageBuilders;
 using System.ComponentModel;
 using System.Net;
-using TelegramHelper;
 
 namespace Hardware;
 
@@ -30,7 +29,7 @@ public readonly record struct HardwareInfo(
 
     public async Task<string> ToTelegramMessageAsync(bool verbose = false)
     {
-        if (OperatingSystem.IsWindows()) return (await new WindowsHardwareInfoMessageBuilder(this).BuildAsync(verbose)).Sanitize();
+        if (OperatingSystem.IsWindows()) return (await new WindowsHardwareInfoMessageBuilder(this).BuildAsync(verbose));
         throw new PlatformNotSupportedException();
     }
 

@@ -17,7 +17,6 @@ public class GitHubController : ControllerBase
         [FromHeader(Name = "X-GitHub-Event")] string eventType,
         [FromServices] GitHubEventForwarder gitHubEventForwarder,
         [FromServices] ILogger<GitHubController> logger,
-        [FromServices] IConfiguration configuration,
         [FromBody] JObject payload)
     {
         logger.LogDebug("GitHub event with {Type} type is received", eventType);

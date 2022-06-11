@@ -9,12 +9,12 @@ builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-await InitializeBot();
+Task<TelegramBot> botInitialization = InitializeBot();
 
 builder.Services.AddScoped<TelegramUpdateHandler>();
 builder.Services.AddScoped<GitHubEventForwarder>();
-builder.Services.AddScoped<HardwareInfoForwarder>();
 builder.Services.AddSingleton<NodeSupervisor>();
+builder.Services.AddSingleton(await botInitialization);
 
 var app = builder.Build();
 
@@ -32,10 +32,10 @@ app.MapControllers();
 
 app.Run(builder.Configuration["HostServer"]);
 
-async Task InitializeBot()
+async Task<TelegramBot> InitializeBot()
 {
     var token = builder.Configuration["BotToken"];
     var bot = new TelegramBot(token);
     await bot.SetWebhookAsync($"{builder.Configuration["HostServer"]}/telegram");
-    builder.Services.AddSingleton(bot);
+    return bot;
 }

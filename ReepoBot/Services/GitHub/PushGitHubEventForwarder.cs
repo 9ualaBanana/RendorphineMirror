@@ -2,14 +2,11 @@
 using ReepoBot.Models;
 using ReepoBot.Services.Telegram;
 using System.Text;
-using Telegram.Bot;
-using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-using TelegramHelper;
 
 namespace ReepoBot.Services.GitHub;
 
-public class PushGitHubEventForwarder : IGitHubEventHandler
+public class PushGitHubEventForwarder
 {
     readonly ILogger _logger;
     readonly TelegramBot _bot;
@@ -20,7 +17,7 @@ public class PushGitHubEventForwarder : IGitHubEventHandler
         _bot = bot;
     }
 
-    public async Task HandleAsync(GitHubEvent githubEvent)
+    public void Handle(GitHubEvent githubEvent)
     {
         var payload = githubEvent.Payload;
         var repo = payload["repository"]!;
@@ -41,7 +38,7 @@ public class PushGitHubEventForwarder : IGitHubEventHandler
         };
 
         var textBuilder = new StringBuilder();
-        textBuilder.AppendLine($"*{sender["login"]}* made *{commitMessages.Count()}* new push(es) to *{repo["name"]}*:".Sanitize());
+        textBuilder.AppendLine($"*{sender["login"]}* made *{commitMessages.Count()}* new push(es) to *{repo["name"]}*:");
         foreach (var commitMessage in commitMessages)
         {
             textBuilder.AppendLine($"   {randomMarker()} {commitMessage}");
@@ -61,18 +58,11 @@ public class PushGitHubEventForwarder : IGitHubEventHandler
             }
         });
 
-        foreach (var subscriber in _bot.Subscriptions)
-        {
-            await _bot.SendTextMessageAsync(
-                new(subscriber),
-                text,
-                replyMarkup: replyMarkup,
-                parseMode: ParseMode.MarkdownV2);
-        }
+        _bot.TryNotifySubscribers(text, _logger, replyMarkup: replyMarkup);
     }
 
     static IEnumerable<string> GetCommitMessages(JToken commits)
     {
-        return commits.ToArray().Select(commit => commit["message"]!.ToString().Sanitize());
+        return commits.ToArray().Select(commit => commit["message"]!.ToString());
     }
 }

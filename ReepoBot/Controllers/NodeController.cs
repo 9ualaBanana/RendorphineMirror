@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ReepoBot.Models;
 using ReepoBot.Services.Node;
+using ReepoBot.Services.Telegram;
 
 namespace ReepoBot.Controllers;
 
@@ -9,33 +10,26 @@ namespace ReepoBot.Controllers;
 public class NodeController : ControllerBase
 {
     [HttpGet("ping")]
-    public async Task UpdateNodeStatus(
+    public void UpdateNodeStatus(
         [FromQuery] NodeInfo nodeInfo,
         [FromServices] NodeSupervisor nodeSupervisor,
         [FromServices] ILogger<NodeController> logger)
     {
-        logger.LogDebug("Received ping from {PCName} {UserName} (v.{Version}) | {IP}.", nodeInfo.PCName, nodeInfo.UserName, nodeInfo.Version, nodeInfo.IP);
-        await nodeSupervisor.HandleAsync(nodeInfo);
+        logger.LogDebug("Received ping from {Node}", nodeInfo.BriefInfoMDv2);
+
+        nodeSupervisor.UpdateNodeStatus(nodeInfo);
     }
 
-
     [HttpPost("hardware_info")]
-    public async Task ForwardHardwareInfoMessageToTelegramAsync(
+    public void ForwardHardwareInfoMessageToTelegram(
         [FromBody] string hardwareInfoMessage,
-        [FromServices] HardwareInfoForwarder hardwareInfoForwarder,
+        [FromServices] TelegramBot bot,
         [FromServices] ILogger<NodeController> logger
         )
     {
-        logger.LogDebug("Hardware info message is received.");
-        try
-        {
-            await hardwareInfoForwarder.HandleAsync(hardwareInfoMessage);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "{Receiver} couldn't forward following hardware info message:\n{Message}",
-                nameof(ForwardHardwareInfoMessageToTelegramAsync), hardwareInfoMessage);
-        }
+        logger.LogDebug("Hardware info message is received");
+
+        bot.TryNotifySubscribers(hardwareInfoMessage, logger);
     }
 
     [HttpGet("hardware_info/is_verbose")]
@@ -50,11 +44,11 @@ public class NodeController : ControllerBase
         }
         catch (ArgumentNullException ex)
         {
-            logger.LogError(ex, "\"{ConfigKey}\" config key is not defined.", configKey);
+            logger.LogError(ex, "\"{ConfigKey}\" config key is not defined", configKey);
         }
         catch (FormatException ex)
         {
-            logger.LogError(ex, "Value of \"{ConfigKey}\" can't be parsed as bool.", configKey);
+            logger.LogError(ex, "Value of \"{ConfigKey}\" can't be parsed as bool", configKey);
         }
         return false;
     }

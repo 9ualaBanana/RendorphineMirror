@@ -24,7 +24,7 @@ public class TelegramUpdateHandler
         _bot = bot;
     }
 
-    public void HandleAsync(Update update)
+    public void Handle(Update update)
     {
         _logger.LogDebug("Dispatching update type...");
         switch (update.Type)
