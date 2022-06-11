@@ -124,8 +124,8 @@ public class NodeSupervisor : IEventHandler<NodeInfo>
         lock (_allNodesLock)
         {
             if (AllNodes.Contains(nodeOnline)) AllNodes.Remove(nodeOnline);
-            AllNodes.Add(updatedNode);
         }
+        AllNodes.Add(updatedNode);
 
         foreach (var subscriber in _bot.Subscriptions)
         {

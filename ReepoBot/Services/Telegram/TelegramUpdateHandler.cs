@@ -1,10 +1,8 @@
 ﻿using ReepoBot.Models;
 using ReepoBot.Services.Node;
 using System.Text;
-using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using TelegramHelper;
 
 namespace ReepoBot.Services.Telegram;
 
@@ -26,16 +24,16 @@ public class TelegramUpdateHandler
         _bot = bot;
     }
 
-    public async Task HandleAsync(Update update)
+    public void HandleAsync(Update update)
     {
         _logger.LogDebug("Dispatching update type...");
         switch (update.Type)
         {
             case UpdateType.Message:
-                await HandleMessageUpdate(update);
+                HandleMessageUpdate(update);
                 break;
             case UpdateType.MyChatMember:
-                await HandleChatMember(update.MyChatMember!);
+                HandleChatMember(update.MyChatMember!);
                 break;
             default:
                 _logger.LogWarning("Update with {Type} type couldn't be handled", update.Type);
@@ -43,13 +41,13 @@ public class TelegramUpdateHandler
         }
     }
 
-    async Task HandleMessageUpdate(Update update)
+    void HandleMessageUpdate(Update update)
     {
         var message = update.Message!;
         _logger.LogDebug("Dispatching text message...");
         if (IsCommand(message))
         {
-            await HandleCommandUpdate(update);
+            HandleCommandUpdate(update);
             return;
         }
         if (IsSystem(message))
@@ -71,39 +69,39 @@ public class TelegramUpdateHandler
         return message.LeftChatMember?.Id == _bot.BotId || message.NewChatMembers?.First().Id == _bot.BotId;
     }
 
-    async Task HandleCommandUpdate(Update update)
+    void HandleCommandUpdate(Update update)
     {
         var command = update.Message!.Text![1..];
         _logger.LogDebug("Dispatching {Command} bot command...", command);
         if (command.StartsWith("pinglist"))
         {
-            await HandlePingList(update);
+            HandlePingList(update);
             return;
         }
         if (command.StartsWith("ping"))
         {
-            await HandlePing(update);
+            HandlePing(update);
             return;
         }
         if (command.StartsWith("online"))
         {
-            await HandleOnline(update);
+            HandleOnline(update);
             return;
         }
         if (command.StartsWith("offline"))
         {
-            await HandleOffline(update);
+            HandleOffline(update);
             return;
         }
         if (command.StartsWith("remove"))
         {
-            await HandleRemove(update);
+            HandleRemove(update);
             return;
         }
         _logger.LogWarning("No handler for {Command} command is found", command);
     }
 
-    async Task HandlePingList(Update update)
+    void HandlePingList(Update update)
     {
         _logger.LogDebug("Listing all nodes...");
         var messageBuilder = new StringBuilder();
@@ -115,22 +113,12 @@ public class TelegramUpdateHandler
             if (_nodeSupervisor.NodesOffline.Contains(nodeInfo)) messageBuilder.AppendLine(" - *OFFLINE*");
             else messageBuilder.AppendLine();
         }
-        var message = messageBuilder.ToString().Sanitize();
+        var message = messageBuilder.ToString();
 
-        try
-        {
-            await _bot.SendTextMessageAsync(
-                update.Message!.Chat.Id,
-                message,
-                parseMode: ParseMode.MarkdownV2);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ping message wasn't sent.");
-        }
+        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
-    async Task HandlePing(Update update)
+    void HandlePing(Update update)
     {
         var splitCommand = update.Message!.Text!.Split();
         _logger.LogDebug("Building the message with online nodes...");
@@ -166,38 +154,18 @@ public class TelegramUpdateHandler
             var escapedUptime = $"{uptime:d\\.hh\\:mm}";
             messageBuilder.AppendLine($"{nodeInfo.BriefInfoMDv2} | {escapedUptime}");
         }
-        var message = messageBuilder.ToString().Sanitize();
+        var message = messageBuilder.ToString();
 
-        try
-        {
-            await _bot.SendTextMessageAsync(
-                update.Message!.Chat.Id,
-                message,
-                parseMode: ParseMode.MarkdownV2);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Something went wrong when trying to send the message\n{Message}", message);
-        }
+        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
-    async Task HandleOnline(Update update)
+    void HandleOnline(Update update)
     {
-        var message = $"Online: *{_nodeSupervisor.NodesOnline.Count}*\nOffline: {_nodeSupervisor.NodesOffline.Count}".Sanitize();
-        try
-        {
-            await _bot.SendTextMessageAsync(
-                update.Message!.Chat.Id,
-                message,
-                parseMode: ParseMode.MarkdownV2);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Message wasn't sent.");
-        }
+        var message = $"Online: *{_nodeSupervisor.NodesOnline.Count}*\nOffline: {_nodeSupervisor.NodesOffline.Count}";
+        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
-    async Task HandleOffline(Update update)
+    void HandleOffline(Update update)
     {
         _logger.LogDebug("Listing offline nodes...");
         var messageBuilder = new StringBuilder();
@@ -207,22 +175,12 @@ public class TelegramUpdateHandler
         {
             messageBuilder.AppendLine(nodeInfo.BriefInfoMDv2);
         }
-        var message = messageBuilder.ToString().Sanitize();
+        var message = messageBuilder.ToString();
 
-        try
-        {
-            await _bot.SendTextMessageAsync(
-                update.Message!.Chat.Id,
-                message,
-                parseMode: ParseMode.MarkdownV2);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Message wasn't sent.");
-        }
+        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
-    async Task HandleRemove(Update update)
+    void HandleRemove(Update update)
     {
         var nodePCNames = update.Message!.Text!
             .Split()[1..]
@@ -231,55 +189,30 @@ public class TelegramUpdateHandler
 
         int nodesRemoved = _nodeSupervisor.TryRemoveNodesWithNames(nodePCNames);
 
+        var message = nodesRemoved == 0 ?
+            $"Nodes with specified names are either online or not found." :
+            $"{nodesRemoved} out of {nodePCNames.Length} were removed.";
 
-        if (nodesRemoved == 0)
-        {
-            var unsuccessfulMessage = $"Nodes with specified names are either online or not found.".Sanitize();
-            try
-            {
-                await _bot.SendTextMessageAsync(
-                    update.Message!.Chat.Id,
-                    unsuccessfulMessage,
-                    parseMode: ParseMode.MarkdownV2);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Message wasn't sent.");
-            }
-            return;
-        }
-
-        var message = $"{nodesRemoved} out of {nodePCNames.Length} were removed.".Sanitize();
-        try
-        {
-            await _bot.SendTextMessageAsync(
-                update.Message!.Chat.Id,
-                message,
-                parseMode: ParseMode.MarkdownV2);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Message wasn't sent.");
-        }
+        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
-    async Task HandleChatMember(ChatMemberUpdated chatMemberUpdate)
+    void HandleChatMember(ChatMemberUpdated chatMemberUpdate)
     {
         _logger.LogDebug("Dispatching MyChatMember update...");
         if (BotIsAddedToChat(chatMemberUpdate))
         {
-            await HandleBotIsAddedToChatAsync(chatMemberUpdate);
+            HandleBotIsAddedToChatAsync(chatMemberUpdate);
             return;
         }
         if (BotIsRemovedFromChat(chatMemberUpdate))
         {
-            await HandleBotIsRemovedFromChatAsync(chatMemberUpdate);
+            HandleBotIsRemovedFromChatAsync(chatMemberUpdate);
             return;
         }
         _logger.LogDebug("No handler for {Update} is found", chatMemberUpdate);
     }
 
-    async Task HandleBotIsAddedToChatAsync(ChatMemberUpdated chatMemberUpdate)
+    void HandleBotIsAddedToChatAsync(ChatMemberUpdated chatMemberUpdate)
     {
         var subscriber = chatMemberUpdate.Chat.Id;
         _logger.LogDebug("Adding new subscriber: {Subscriber}", subscriber);
@@ -292,21 +225,11 @@ public class TelegramUpdateHandler
             return;
         }
 
-        var message = $"You are subscribed to events now. Remove me from the chat to unsubscribe.".Sanitize();
-        try
-        {
-            await _bot.SendTextMessageAsync(
-                subscriber,
-                message,
-                parseMode: ParseMode.MarkdownV2);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Subscription notification wasn't sent");
-        }
+        var message = $"You are subscribed to events now. Remove me from the chat to unsubscribe.";
+        _ = _bot.TrySendTextMessageAsync(subscriber, message, _logger);
     }
 
-    Task HandleBotIsRemovedFromChatAsync(ChatMemberUpdated chatMemberUpdate)
+    void HandleBotIsRemovedFromChatAsync(ChatMemberUpdated chatMemberUpdate)
     {
         var subscriber = chatMemberUpdate.Chat.Id;
         _logger.LogDebug("Removing subscriber: {Subscriber}", subscriber);
@@ -317,7 +240,6 @@ public class TelegramUpdateHandler
         {
             _logger.LogError("Subscriber wasn't removed");
         }
-        return Task.CompletedTask;
     }
 
     bool BotIsAddedToChat(ChatMemberUpdated chatMemberUpdate)

@@ -10,7 +10,7 @@ public class TelegramController : ControllerBase
 {
     // Telegram.Bot works only with Newtonsoft.
     [HttpPost]
-    public async Task ReceiveUpdate(
+    public void ReceiveUpdate(
         [FromBody] Update update,
         [FromServices] TelegramUpdateHandler telegramUpdateHandler,
         [FromServices] ILogger<TelegramController> logger)
@@ -18,7 +18,7 @@ public class TelegramController : ControllerBase
         logger.LogDebug("Update with {Type} is received", update.Type);
         try
         {
-            await telegramUpdateHandler.HandleAsync(update);
+            telegramUpdateHandler.HandleAsync(update);
         }
         catch (Exception ex)
         {

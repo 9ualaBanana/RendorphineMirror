@@ -1,5 +1,4 @@
 ﻿using ReepoBot.Services.Telegram;
-using System.Runtime.Versioning;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 
@@ -16,7 +15,6 @@ public class HardwareInfoForwarder : IEventHandler<string>
         _bot = bot;
     }
 
-    [SupportedOSPlatform("windows")]
     public async Task HandleAsync(string hardwareInfoMessage)
     {
         _logger.LogDebug("Forwarding the hardware info message to Telegram subscribers...");
