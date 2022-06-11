@@ -143,9 +143,10 @@ public class TelegramUpdateHandler
                 .Select(nodeName => nodeName.ToLower())
                 .ToHashSet();
 
-            nodesOnlineToList = _nodeSupervisor.NodesOnline
-                .Where(nodeInfo => lcNodeNamesToList.Contains(
-                    nodeInfo.Key.PCName.ToLower())
+            nodesOnlineToList = _nodeSupervisor.NodesOnline.Where(
+                nodeInfo => lcNodeNamesToList.Any(
+                    lcNodeNameToList => nodeInfo.Key.PCName.ToLower().StartsWith(lcNodeNameToList)
+                    )
                 );
         }
         else
