@@ -24,6 +24,51 @@ public static class Disks
         return container;
     }
 
+    [SupportedOSPlatform("windows")]
+    public static long GetFreeSpaceOnDisk(string diskId)
+    {
+        var logicalDrivesOnDisk = GetLogicalDrivesOnDisk(diskId);
+        long freeSpace = 0;
+        foreach (var logicalDrive in Info().Components)
+        {
+            var typedLogicalDrive = (ManagementBaseObject)logicalDrive;
+            if (logicalDrivesOnDisk.Any(logicalDriveOnDisk => $"{logicalDriveOnDisk}:" == typedLogicalDrive["DeviceID"].ToString()))
+            {
+                freeSpace += long.Parse(typedLogicalDrive["FreeSpace"].ToString()!);
+            }
+        }
+        return freeSpace;
+    }
+
+    [SupportedOSPlatform("windows")]
+    public static IList<char> GetLogicalDrivesOnDisk(string diskId)
+    {
+        using var diskToPartitionSearcher = new ManagementObjectSearcher("SELECT Antecedent, Dependent FROM Win32_LogicalDiskToPartition");
+        using var disksToPartition = diskToPartitionSearcher.Get();
+
+        var driveNames = new List<char>();
+        foreach (var diskToPartition in disksToPartition)
+        {
+            if (diskId == ParseDiskID(diskToPartition))
+                driveNames.Add(ParseDriveName(diskToPartition));
+        }
+        return driveNames;
+    }
+
+    [SupportedOSPlatform("windows")]
+    static string ParseDiskID(ManagementBaseObject diskToPartition)
+    {
+        return string.Join(
+            null,
+            diskToPartition["Antecedent"].ToString()!.Split("Disk #")[1].TakeWhile(c => char.IsDigit(c)));
+    }
+
+    [SupportedOSPlatform("windows")]
+    static char ParseDriveName(ManagementBaseObject diskToPartition)
+    {
+        return diskToPartition["Dependent"].ToString()!.SkipWhile(c => c != '"').Skip(1).Take(1).First();
+    }
+
     //async static Task<List<Disk>> LinuxGetForAll()
     //{
     //    return (await LinuxQueryDiskInfoForAll())
