@@ -56,14 +56,14 @@ namespace Common
         async ValueTask<OperationResult<JObject>> Send(bool get, string urladd, string sid, IEnumerable<KeyValuePair<string, string>> parameters, CancellationToken token)
         {
             parameters = parameters.Append(KeyValuePair.Create("sid", sid)).ToArray();
-            Log.Debug((get ? "GET " : "POST ") + urladd + "  " + string.Join('&', parameters.Select(x => x.Key + "=" + x.Value)), false);
+            Log.Verbose((get ? "GET " : "POST ") + urladd + "  " + string.Join('&', parameters.Select(x => x.Key + "=" + x.Value)));
 
             var response = await
                 (get
                 ? SendGetRequestAsync(Url + urladd, parameters, token)
                 : SendPostRequestAsync(Url + urladd, parameters, token));
 
-            Log.Debug("RET  " + (response is { Success: true } ? response.Result.ToString(Formatting.None) : response.Message), false, false);
+            Log.Verbose("RET  " + (response is { Success: true } ? response.Result.ToString(Formatting.None) : response.Message));
             return response;
         }
 

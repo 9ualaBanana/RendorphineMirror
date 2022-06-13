@@ -20,9 +20,9 @@ namespace Common
             Directory.CreateDirectory(ConfigDirectory);
 
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
-                .WriteTo.Console(restrictedToMinimumLevel: IsDebug ? LogEventLevel.Verbose : LogEventLevel.Information)
+                .WriteTo.Console(restrictedToMinimumLevel: IsDebug ? LogEventLevel.Debug : LogEventLevel.Information)
                 .WriteTo.File(Path.Combine(ConfigDirectory, "logs", "log" + Path.GetFileNameWithoutExtension(Environment.ProcessPath!)) + ".log", restrictedToMinimumLevel: LogEventLevel.Information)
+                .MinimumLevel.Debug()
                 .CreateLogger();
         }
 

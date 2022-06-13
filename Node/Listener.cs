@@ -3,6 +3,8 @@ using System.Text;
 using MonoTorrent;
 using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Node
 {
@@ -38,14 +40,27 @@ namespace Node
         }
 
         static Task<HttpStatusCode> WriteErr(HttpListenerResponse response, string text) => Write(response, text, HttpStatusCode.BadRequest);
-        static Task<HttpStatusCode> Write(HttpListenerResponse response, string text, HttpStatusCode code) => Write(response, Encoding.UTF8.GetBytes(text), code);
-        static async Task<HttpStatusCode> Write(HttpListenerResponse response, ReadOnlyMemory<byte> bytes, HttpStatusCode code)
+        static Task<HttpStatusCode> Write(HttpListenerResponse response, string text, HttpStatusCode code = HttpStatusCode.OK) => Write(response, Encoding.UTF8.GetBytes(text), code);
+        static async Task<HttpStatusCode> Write(HttpListenerResponse response, JObject json, HttpStatusCode code = HttpStatusCode.OK)
+        {
+            using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+            using var jwriter = new JsonTextWriter(writer) { CloseOutput = false };
+            await json.WriteToAsync(jwriter).ConfigureAwait(false);
+
+            return code;
+        }
+        static async Task<HttpStatusCode> Write(HttpListenerResponse response, ReadOnlyMemory<byte> bytes, HttpStatusCode code = HttpStatusCode.OK)
         {
             await response.OutputStream.WriteAsync(bytes).ConfigureAwait(false); ;
             return code;
         }
+        static async Task<HttpStatusCode> Write(HttpListenerResponse response, Stream bytes, HttpStatusCode code = HttpStatusCode.OK)
+        {
+            await bytes.CopyToAsync(response.OutputStream).ConfigureAwait(false);
+            return code;
+        }
 
-        static void LogRequest(HttpListenerRequest request) => Log.Information(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.Url}");
+        static void LogRequest(HttpListenerRequest request) => Log.Verbose(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.Url}");
 
 
         public static Task StartLocalListenerAsync() => Start(@$"http://127.0.0.1:{Settings.LocalListenPort}/", LocalListener);
@@ -74,11 +89,28 @@ namespace Node
             }
             async ValueTask<HttpStatusCode> get()
             {
-                await Task.Yield(); // TODO: remove
                 var subpath = segments[0].ToLowerInvariant();
 
                 if (subpath == "ping") return OK;
 
+                var query = request.QueryString;
+
+                if (subpath == "uploadtorrent")
+                {
+                    var url = query["url"];
+                    if (url is null) return await WriteErr(response, "no url").ConfigureAwait(false);
+                    var dir = query["dir"];
+                    if (dir is null) return await WriteErr(response, "no dir").ConfigureAwait(false);
+
+                    var peerid = TorrentClient.PeerId.UrlEncode();
+                    var peerurl = PortForwarding.GetPublicIPAsync().ConfigureAwait(false);
+                    var (data, manager) = await TorrentClient.CreateAddTorrent(dir).ConfigureAwait(false);
+                    var postresponse = await new HttpClient().PostAsync($"http://{url}/downloadtorrent?peerid={peerid}&peerurl={await peerurl}:{TorrentClient.ListenPort}", new ByteArrayContent(data)).ConfigureAwait(false);
+                    if (!postresponse.IsSuccessStatusCode)
+                        return await Write(response, await postresponse.Content.ReadAsStreamAsync().ConfigureAwait(false), postresponse.StatusCode).ConfigureAwait(false);
+
+                    return await Write(response, manager.InfoHash.ToArray()).ConfigureAwait(false);
+                }
 
                 return HttpStatusCode.NotFound;
             }
@@ -117,17 +149,36 @@ namespace Node
             }
             async ValueTask<HttpStatusCode> get()
             {
-                await Task.Yield(); // TODO: remove
                 var subpath = segments[0].ToLowerInvariant();
 
                 if (subpath == "ping")
                     return await Write(response, $"ok from {HardwareInfo.PCName} {HardwareInfo.UserName} v{HardwareInfo.Version}", OK).ConfigureAwait(false);
 
+                var query = request.QueryString;
+
+                if (subpath == "torrentinfo")
+                {
+                    var hash = query["hash"];
+                    if (hash is null) return await WriteErr(response, "no hash").ConfigureAwait(false);
+
+                    var ihash = InfoHash.FromHex(hash);
+                    var manager = TorrentClient.Client.Torrents.FirstOrDefault(x => x.InfoHash == ihash);
+                    if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
+
+                    var data = new JObject()
+                    {
+                        ["peers"] = JObject.FromObject(manager.Peers),
+                        ["progress"] = new JValue(manager.PartialProgress),
+                        ["monitor"] = JObject.FromObject(manager.Monitor),
+                    };
+
+                    return await Write(response, data).ConfigureAwait(false);
+                }
+
                 return HttpStatusCode.NotFound;
             }
             async ValueTask<HttpStatusCode> post()
             {
-                await Task.Yield(); // TODO: remove
                 var subpath = segments[0].ToLowerInvariant();
 
                 var query = request.QueryString;
