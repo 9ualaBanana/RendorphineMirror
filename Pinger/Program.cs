@@ -43,7 +43,7 @@ async Task<bool> Ping(HttpClient client, CancellationToken token)
     Log(@$"Sending ping...");
 
     HttpResponseMessage msg;
-    try { msg = await client.GetAsync(@$"http://127.0.0.1:{Settings.ListenPort}/ping", token).ConfigureAwait(false); }
+    try { msg = await client.GetAsync(@$"http://127.0.0.1:{Settings.LocalListenPort}/ping", token).ConfigureAwait(false); }
     catch (Exception ex) { restart(@$"Could not connect to the node, {ex.Message}, starting..."); }
 
     if (!msg.IsSuccessStatusCode)

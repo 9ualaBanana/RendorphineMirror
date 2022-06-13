@@ -8,7 +8,7 @@ namespace Common
     public static class Settings
     {
         public static string ServerUrl { get => BServerUrl.Value; set => BServerUrl.Value = value; }
-        public static ushort ListenPort { get => BListenPort.Value; set => BListenPort.Value = value; }
+        public static ushort LocalListenPort { get => BLocalListenPort.Value; set => BLocalListenPort.Value = value; }
         public static ushort UPnpPort { get => BUPnpPort.Value; set => BUPnpPort.Value = value; }
         public static string? SessionId { get => BSessionId.Value; set => BSessionId.Value = value; }
         public static string? UserId { get => BUserId.Value; set => BUserId.Value = value; }
@@ -16,7 +16,7 @@ namespace Common
         public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
 
         public static readonly DatabaseBindable<string> BServerUrl;
-        public static readonly DatabaseBindable<ushort> BListenPort, BUPnpPort;
+        public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort;
         public static readonly DatabaseBindable<string?> BSessionId, BUsername, BUserId, BLanguage;
 
         static readonly SQLiteConnection Connection;
@@ -32,7 +32,7 @@ namespace Common
 
 
             BServerUrl = new(nameof(ServerUrl), "https://t.microstock.plus:8443");
-            BListenPort = new(nameof(ListenPort), 5123);
+            BLocalListenPort = new(nameof(LocalListenPort), 5123);
             BUPnpPort = new(nameof(UPnpPort), 5124);
             BSessionId = new(nameof(SessionId), null);
             BUsername = new(nameof(Username), null);
