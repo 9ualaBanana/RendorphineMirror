@@ -6,21 +6,22 @@ namespace Common
 {
     public static class Init
     {
+        public static readonly bool IsDebug = false;
+        static readonly bool DebugFileExists = false;
         public static readonly string ConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "renderphine");
         public static readonly string Version = GetVersion();
 
         static Init()
         {
+            try { DebugFileExists = File.Exists(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Environment.ProcessPath!))!, "_debugupd")); }
+            catch { }
+            IsDebug = Debugger.IsAttached || DebugFileExists;
+
             Directory.CreateDirectory(ConfigDirectory);
 
             Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console(restrictedToMinimumLevel:
-#if DEBUG
-                    LogEventLevel.Verbose
-#else
-                    LogEventLevel.Information
-#endif
-                )
+                .MinimumLevel.Verbose()
+                .WriteTo.Console(restrictedToMinimumLevel: IsDebug ? LogEventLevel.Verbose : LogEventLevel.Information)
                 .WriteTo.File(Path.Combine(ConfigDirectory, "logs", "log" + Path.GetFileNameWithoutExtension(Environment.ProcessPath!)) + ".log", restrictedToMinimumLevel: LogEventLevel.Information)
                 .CreateLogger();
         }
