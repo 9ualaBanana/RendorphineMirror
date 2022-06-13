@@ -1,4 +1,5 @@
-﻿using ReepoBot.Models;
+﻿using Hardware;
+using ReepoBot.Models;
 using ReepoBot.Services.Node;
 using System.Text;
 using Telegram.Bot.Types;
@@ -24,7 +25,7 @@ public class TelegramUpdateHandler
         _bot = bot;
     }
 
-    public void Handle(Update update)
+    internal void Handle(Update update)
     {
         _logger.LogDebug("Dispatching update type...");
         switch (update.Type)
@@ -69,10 +70,13 @@ public class TelegramUpdateHandler
         return message.LeftChatMember?.Id == _bot.BotId || message.NewChatMembers?.First().Id == _bot.BotId;
     }
 
+
+
     void HandleCommandUpdate(Update update)
     {
         var command = update.Message!.Text![1..];
         _logger.LogDebug("Dispatching {Command} bot command...", command);
+
         if (command.StartsWith("pinglist"))
         {
             HandlePingList(update);
@@ -98,19 +102,21 @@ public class TelegramUpdateHandler
             HandleRemove(update);
             return;
         }
+
         _logger.LogWarning("No handler for {Command} command is found", command);
     }
 
     void HandlePingList(Update update)
     {
         _logger.LogDebug("Listing all nodes...");
+
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*All Nodes*");
-        messageBuilder.AppendLine("------------------------------------------------");
+        messageBuilder.AppendLine("------------------------------------------------------------------------------------------------");
         foreach (var nodeInfo in _nodeSupervisor.AllNodes.OrderBy(node => node.PCName))
         {
-            messageBuilder.Append(nodeInfo.BriefInfoMDv2);
-            if (_nodeSupervisor.NodesOffline.Contains(nodeInfo)) messageBuilder.AppendLine(" - *OFFLINE*");
+            messageBuilder.Append(nodeInfo.GetBriefInfoMDv2());
+            if (_nodeSupervisor.NodesOffline.Contains(nodeInfo)) messageBuilder.AppendLine(" *--OFFLINE--*");
             else messageBuilder.AppendLine();
         }
         var message = messageBuilder.ToString();
@@ -120,10 +126,10 @@ public class TelegramUpdateHandler
 
     void HandlePing(Update update)
     {
-        var splitCommand = update.Message!.Text!.Split();
         _logger.LogDebug("Building the message with online nodes...");
 
-        IEnumerable<KeyValuePair<NodeInfo, TimerPlus>> nodesOnlineToList;
+        IEnumerable<KeyValuePair<HardwareInfo.DTO, TimerPlus>> nodesOnlineToList;
+        var splitCommand = update.Message!.Text!.Split();
 
         if (splitCommand.Length > 1)
         {
@@ -144,7 +150,7 @@ public class TelegramUpdateHandler
 
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*Node* | *Uptime*");
-        messageBuilder.AppendLine("------------------------------------------------");
+        messageBuilder.AppendLine("------------------------------------------------------------------------------------------------");
         foreach (var (nodeInfo, _) in nodesOnlineToList.OrderBy(nodeOnline => nodeOnline.Key.PCName))
         {
             var uptime = _nodeSupervisor.GetUptimeFor(nodeInfo);
@@ -152,7 +158,7 @@ public class TelegramUpdateHandler
             if (uptime is null) continue;
 
             var escapedUptime = $"{uptime:d\\.hh\\:mm}";
-            messageBuilder.AppendLine($"{nodeInfo.BriefInfoMDv2} | {escapedUptime}");
+            messageBuilder.AppendLine($"{nodeInfo.GetBriefInfoMDv2} | {escapedUptime}");
         }
         var message = messageBuilder.ToString();
 
@@ -168,12 +174,13 @@ public class TelegramUpdateHandler
     void HandleOffline(Update update)
     {
         _logger.LogDebug("Listing offline nodes...");
+
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*Offline Nodes*");
-        messageBuilder.AppendLine("------------------------------------------------");
+        messageBuilder.AppendLine("------------------------------------------------------------------------------------------------");
         foreach (var nodeInfo in _nodeSupervisor.NodesOffline.OrderBy(node => node.PCName))
         {
-            messageBuilder.AppendLine(nodeInfo.BriefInfoMDv2);
+            messageBuilder.AppendLine(nodeInfo.GetBriefInfoMDv2());
         }
         var message = messageBuilder.ToString();
 
@@ -199,6 +206,7 @@ public class TelegramUpdateHandler
     void HandleChatMember(ChatMemberUpdated chatMemberUpdate)
     {
         _logger.LogDebug("Dispatching MyChatMember update...");
+
         if (BotIsAddedToChat(chatMemberUpdate))
         {
             HandleBotIsAddedToChatAsync(chatMemberUpdate);
@@ -209,6 +217,7 @@ public class TelegramUpdateHandler
             HandleBotIsRemovedFromChatAsync(chatMemberUpdate);
             return;
         }
+
         _logger.LogDebug("No handler for {Update} is found", chatMemberUpdate);
     }
 

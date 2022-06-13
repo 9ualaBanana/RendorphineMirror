@@ -1,5 +1,4 @@
 ﻿using Hardware;
-using Serilog;
 using System.Timers;
 using Timer = System.Timers.Timer;
 
@@ -7,24 +6,24 @@ namespace Node;
 
 internal class ServerPinger : IDisposable
 {
-    readonly HardwareInfo _nodeHardwareInfo;
+    readonly string _serverUri;
     readonly Timer _timer;
     readonly HttpClient _http;
     readonly int _failedPingAttemptsLogLimit;
     int _failedPingAttempts;
 
-    internal ServerPinger(HardwareInfo nodeHardwareInfo, TimeSpan timeSpan, HttpClient httpClient)
-        : this(nodeHardwareInfo, timeSpan.TotalMilliseconds, httpClient)
+    internal ServerPinger(string serverUri, TimeSpan timeSpan, HttpClient httpClient)
+        : this(serverUri, timeSpan.TotalMilliseconds, httpClient)
     {
     }
 
     internal ServerPinger(
-        HardwareInfo nodeHardwareInfo,
+        string serverUri,
         double interval,
         HttpClient httpClient,
         int failedPingAttemptsLogLimit = 3)
     {
-        _nodeHardwareInfo = nodeHardwareInfo;
+        _serverUri = serverUri;
         _timer = new Timer(interval);
         _timer.Elapsed += OnTimerElapsed;
         _timer.AutoReset = true;
@@ -49,8 +48,7 @@ internal class ServerPinger : IDisposable
     {
         try
         {
-            var queryString = $"nodeInfo={HardwareInfo.PCName},{HardwareInfo.UserName},{HardwareInfo.Version},{await HardwareInfo.GetIPAsync()},{PortForwarding.Port}";
-            var response = await _http.GetAsync($"{Settings.ServerUrl}/node/ping?{queryString}");
+            var response = await _http.GetAsync($"{_serverUri}?{(await HardwareInfo.AsDTOAsync()).ToQueryString()}");
             response.EnsureSuccessStatusCode();
             Log.Debug("{Service} successfuly sent ping to {Server}", nameof(ServerPinger), Settings.ServerUrl);
         }

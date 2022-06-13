@@ -39,7 +39,6 @@ _ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
 });
 
 Log.Debug("Retrieveing hardware info...");
-var hardwareInfo = HardwareInfo.Get();
 
 if (!Debugger.IsAttached)
 {
@@ -48,7 +47,7 @@ if (!Debugger.IsAttached)
 }
 
 _ = StartHttpListenerAsync();
-_ = new ServerPinger(hardwareInfo, TimeSpan.FromMinutes(5), http).StartAsync();
+_ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
 Thread.Sleep(-1);
 
 

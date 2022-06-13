@@ -8,31 +8,19 @@ using UnitsNet;
 namespace Hardware.MessageBuilders;
 
 [SupportedOSPlatform("windows")]
-internal class WindowsHardwareInfoMessageBuilder
+internal class WindowsHardwareInfoMessage
 {
-    readonly HardwareInfo _hardwareInfo;
-
-    internal WindowsHardwareInfoMessageBuilder(HardwareInfo hardwareInfo)
+    internal static string Build()
     {
-        _hardwareInfo = hardwareInfo;
-    }
-
-    internal async Task<string> BuildAsync(bool verbose = false)
-    {
-        if (!verbose)
-        {
-            return $"{await HardwareInfo.GetBriefInfoAsync()}";
-        }
-
         var message = new StringBuilder();
 
         message.AppendLine($"v.{Init.Version}");
         message.AppendLine();
 
-        message.AppendLine(BuildCPUInfoMessage(_hardwareInfo.CPU));
-        message.AppendLine(BuildGPUInfoMessage(_hardwareInfo.GPU));
-        message.AppendLine(BuildRAMInfoMessage(_hardwareInfo.RAM));
-        message.AppendLine(BuildDisksInfoMessage(_hardwareInfo.Disks));
+        message.AppendLine(BuildCPUInfoMessage(CPU.Info()));
+        message.AppendLine(BuildGPUInfoMessage(GPU.Info()));
+        message.AppendLine(BuildRAMInfoMessage(RAM.Info()));
+        message.AppendLine(BuildDisksInfoMessage(Disks.Info()));
 
         return message.ToString();
     }
@@ -44,7 +32,7 @@ internal class WindowsHardwareInfoMessageBuilder
         result.AppendLine("---------");
         foreach (var cpuInfoComponent in cpuUnitsInfo.Components)
         {
-            var cpuInfo = (cpuInfoComponent as ManagementBaseObject)!;
+            var cpuInfo = (ManagementBaseObject)cpuInfoComponent;
             result.AppendLine($"{cpuInfo["Name"]}  [ *{cpuInfo["NumberOfCores"]}* cores | *{cpuInfo["ThreadCount"]}* threads ]");
             result.AppendLine($"*Clock*: *{cpuInfo["CurrentClockSpeed"]}* MHz / *{cpuInfo["MaxClockSpeed"]}* MHz");
             result.AppendLine($"*Load*: *{cpuInfo["LoadPercentage"]}* %");
@@ -53,7 +41,7 @@ internal class WindowsHardwareInfoMessageBuilder
         return result.ToString();
     }
 
-    static string BuildGPUInfoMessage(IEnumerable<Dictionary<string, object>> gpuUnitsInfo)
+    static string BuildGPUInfoMessage(IEnumerable<IDictionary<string, object>> gpuUnitsInfo)
     {
         var result = new StringBuilder();
         result.AppendLine("*GPU:*");
@@ -75,7 +63,7 @@ internal class WindowsHardwareInfoMessageBuilder
         result.AppendLine("---------");
         foreach (var ramInfoComponent in ramInfoForAll.Components)
         {
-            var ramInfo = (ramInfoComponent as ManagementBaseObject)!;
+            var ramInfo = (ManagementBaseObject)ramInfoComponent;
             if (double.TryParse(ramInfo["Capacity"].ToString(), out var capacity))
             {
                 capacity = Information.FromBytes(capacity).Gigabytes;
@@ -93,7 +81,7 @@ internal class WindowsHardwareInfoMessageBuilder
         result.AppendLine("---------");
         foreach (var diskInfoComponent in diskInfoForAll.Components)
         {
-            var diskInfo = (diskInfoComponent as ManagementBaseObject)!;
+            var diskInfo = (ManagementBaseObject)diskInfoComponent;
             ulong usedStorageSpace = default;
             if (ulong.TryParse(diskInfo["Size"].ToString(), out var size) && ulong.TryParse(diskInfo["FreeSpace"].ToString(), out var freeSpace))
             {

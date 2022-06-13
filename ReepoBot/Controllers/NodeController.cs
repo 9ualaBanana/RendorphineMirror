@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using ReepoBot.Models;
+﻿using Hardware;
+using Microsoft.AspNetCore.Mvc;
 using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;
 
@@ -11,17 +11,18 @@ public class NodeController : ControllerBase
 {
     [HttpGet("ping")]
     public void UpdateNodeStatus(
-        [FromQuery] NodeInfo nodeInfo,
+        [FromQuery] HardwareInfo.DTO nodeInfo,
         [FromServices] NodeSupervisor nodeSupervisor,
         [FromServices] ILogger<NodeController> logger)
     {
-        logger.LogDebug("Received ping from {Node}", nodeInfo.BriefInfoMDv2);
+        logger.LogDebug("Received ping from {Node}", nodeInfo.GetBriefInfoMDv2());
 
         nodeSupervisor.UpdateNodeStatus(nodeInfo);
     }
 
     [HttpPost("hardware_info")]
     public void ForwardHardwareInfoMessageToTelegram(
+        // Should likely be HardwareInfo.DTO.
         [FromBody] string hardwareInfoMessage,
         [FromServices] TelegramBot bot,
         [FromServices] ILogger<NodeController> logger

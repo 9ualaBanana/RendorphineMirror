@@ -1,15 +1,11 @@
 ﻿using Common;
 using Hardware.MessageBuilders;
-using System.ComponentModel;
 using System.Net;
+using System.Text;
 
 namespace Hardware;
 
-public readonly record struct HardwareInfo(
-    Container CPU,
-    IEnumerable<Dictionary<string, object>> GPU,    // Adapted to project-scoped required behaviors.
-    Container RAM,
-    Container Disks) : IDisposable
+public record HardwareInfo
 {
     readonly public static string UserName = Environment.UserName;
     readonly public static string PCName = Environment.MachineName;
@@ -18,25 +14,31 @@ public readonly record struct HardwareInfo(
     readonly public static string Port = PortForwarding.Port.ToString();
     public static async Task<string> GetBriefInfoAsync() => $"{PCName} {UserName} (v.{Version}) | {await GetIPAsync()}:{Port}";
 
-    public static HardwareInfo Get()
+    public static async Task<string> ToTelegramMessageAsync(bool verbose = false)
     {
-        return new(
-            Hardware.CPU.Info(),
-            Hardware.GPU.Info(),
-            Hardware.RAM.Info(),
-            Hardware.Disks.Info());
-    }
+        if (!verbose) return await GetBriefInfoAsync();
 
-    public async Task<string> ToTelegramMessageAsync(bool verbose = false)
-    {
-        if (OperatingSystem.IsWindows()) return (await new WindowsHardwareInfoMessageBuilder(this).BuildAsync(verbose));
+        if (OperatingSystem.IsWindows()) return WindowsHardwareInfoMessage.Build();
         throw new PlatformNotSupportedException();
     }
 
-    public void Dispose()
+    public static async Task<DTO> AsDTOAsync() => new(PCName, UserName, Version, (await GetIPAsync()).ToString(), Port);
+
+
+    public record class DTO(string PCName, string UserName, string Version, string IP, string Port)
     {
-        CPU.Dispose();
-        RAM.Dispose();
-        Disks.Dispose();
+        public string GetBriefInfoMDv2() => $"*{PCName}* {UserName} (v.*{Version}*) | *{IP}:{Port}*";
+
+        public string ToQueryString()
+        {
+            var queryStringBuilder = new StringBuilder();
+            var properties = typeof(DTO).GetProperties();
+            foreach (var property in properties)
+            {
+                queryStringBuilder.Append($"{property.Name}={property.GetValue(this)}&");
+            }
+            queryStringBuilder.Length--;    // Removes dangling query parameter separator ('&').
+            return queryStringBuilder.ToString();
+        }
     }
 }

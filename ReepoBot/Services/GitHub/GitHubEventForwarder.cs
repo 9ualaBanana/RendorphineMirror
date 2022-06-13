@@ -3,7 +3,7 @@ using ReepoBot.Services.Telegram;
 
 namespace ReepoBot.Services.GitHub;
 
-public class GitHubEventForwarder : IGitHubEventHandler
+public class GitHubEventForwarder
 {
     readonly ILoggerFactory _loggerFactory;
     readonly ILogger<GitHubEventForwarder> _logger;
@@ -16,16 +16,16 @@ public class GitHubEventForwarder : IGitHubEventHandler
         _bot = bot;
     }
 
-    public async Task HandleAsync(GitHubEvent githubEvent)
+    public void Handle(GitHubEvent githubEvent)
     {
         _logger.LogDebug("Dispatching GitHub event with {Type} type...", githubEvent.EventType);
         switch (githubEvent.EventType)
         {
             case "ping":
-                await new PingGitHubEventForwarder(_loggerFactory).Handle(githubEvent);
+                new PingGitHubEventForwarder(_loggerFactory).Handle(githubEvent);
                 break;
             case "push":
-                await new PushGitHubEventForwarder(_loggerFactory, _bot).Handle(githubEvent);
+                new PushGitHubEventForwarder(_loggerFactory, _bot).Handle(githubEvent);
                 break;
             default:
                 _logger.LogDebug("GitHub event with {Type} type couldn't be handled", githubEvent.EventType);

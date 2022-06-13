@@ -1,4 +1,4 @@
-﻿using ReepoBot.Models;
+﻿using Hardware;
 using ReepoBot.Services.Telegram;
 using System.Collections.Concurrent;
 using System.Timers;
@@ -7,9 +7,9 @@ namespace ReepoBot.Services.Node;
 
 public class NodeSupervisor
 {
-    internal readonly HashSet<NodeInfo> AllNodes = new();
-    internal readonly ConcurrentDictionary<NodeInfo, TimerPlus> NodesOnline = new();
-    internal HashSet<NodeInfo> NodesOffline => AllNodes.ToHashSet().Except(NodesOnline.Keys).ToHashSet();
+    internal readonly HashSet<HardwareInfo.DTO> AllNodes = new();
+    internal readonly ConcurrentDictionary<HardwareInfo.DTO, TimerPlus> NodesOnline = new();
+    internal HashSet<HardwareInfo.DTO> NodesOffline => AllNodes.ToHashSet().Except(NodesOnline.Keys).ToHashSet();
 
     readonly object _allNodesLock = new();
     readonly ILogger<NodeSupervisor> _logger;
@@ -51,7 +51,7 @@ public class NodeSupervisor
         _bot = bot;
     }
 
-    internal void UpdateNodeStatus(NodeInfo nodeInfo)
+    internal void UpdateNodeStatus(HardwareInfo.DTO nodeInfo)
     {
         _logger.LogDebug("Updating node status...");
 
@@ -62,7 +62,7 @@ public class NodeSupervisor
             if (previousVersionOfNode is null)
                 AddNewNode(nodeInfo);
             else
-                UpdateNodeVersion(previousVersionOfNode.Value, nodeInfo);
+                UpdateNodeVersion(previousVersionOfNode, nodeInfo);
         }
 
         if (NodesOnline.TryGetValue(nodeInfo, out var nodeUptimeTimer))
@@ -74,7 +74,7 @@ public class NodeSupervisor
         _logger.LogDebug("Node status is updated");
     }
 
-    NodeInfo? GetPreviousVersionIfOnline(NodeInfo nodeInfo)
+    HardwareInfo.DTO? GetPreviousVersionIfOnline(HardwareInfo.DTO nodeInfo)
     {
         try
         {
@@ -83,16 +83,16 @@ public class NodeSupervisor
         catch (Exception) { return null; }
     }
 
-    void AddNewNode(NodeInfo nodeInfo)
+    void AddNewNode(HardwareInfo.DTO nodeInfo)
     {
         AllNodes.Add(nodeInfo);
         if (!NodesOnline.TryAdd(nodeInfo, Timer)) return;
 
-        _bot.TryNotifySubscribers($"{nodeInfo.BriefInfoMDv2} is online", _logger);
-        _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
+        _bot.TryNotifySubscribers($"{nodeInfo.GetBriefInfoMDv2()} is online", _logger);
+        _logger.LogDebug("New node is online: {Node}", nodeInfo.GetBriefInfoMDv2());
     }
 
-    void UpdateNodeVersion(NodeInfo nodeOnline, NodeInfo updatedNode)
+    void UpdateNodeVersion(HardwareInfo.DTO nodeOnline, HardwareInfo.DTO updatedNode)
     {
         if (!NodesOnline.TryRemove(nodeOnline, out var uptimeTimer)) return;
         NodesOnline.TryAdd(updatedNode, uptimeTimer);
@@ -104,7 +104,7 @@ public class NodeSupervisor
         AllNodes.Add(updatedNode);
 
         _bot.TryNotifySubscribers(
-            $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{updatedNode.Version}*.",
+            $"{updatedNode.GetBriefInfoMDv2()} was updated: v.*{nodeOnline.Version}* *=>* v.*{updatedNode.Version}*.",
             _logger);
     }
 
@@ -124,14 +124,14 @@ public class NodeSupervisor
         NodesOnline.TryRemove(offlineNodeInfo, out var _);
 
         _logger.LogError("{Node} went offline after {Time} ms since the last ping.",
-            offlineNodeInfo.BriefInfoMDv2, IdleTimeBeforeNodeGoesOffline);
+            offlineNodeInfo.GetBriefInfoMDv2(), IdleTimeBeforeNodeGoesOffline);
     }
 
     /// <returns>
     /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="nodeInfo" />;
     /// <c>null</c> if <paramref name="nodeInfo"/> is offline.
     /// </returns>
-    internal TimeSpan? GetUptimeFor(NodeInfo nodeInfo)
+    internal TimeSpan? GetUptimeFor(HardwareInfo.DTO nodeInfo)
     {
         NodesOnline.TryGetValue(nodeInfo, out var uptime);
         return uptime?.ElapsedTime;

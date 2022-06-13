@@ -4,7 +4,7 @@ namespace Hardware;
 
 public static class GPU
 {
-    public static IEnumerable<Dictionary<string, object>> Info()
+    public static IEnumerable<IDictionary<string, object>> Info()
     {
         try
         {
@@ -16,7 +16,7 @@ public static class GPU
         }
     }
 
-    static IEnumerable<Dictionary<string, object>> NvidiaInfo()
+    static IEnumerable<IDictionary<string, object>> NvidiaInfo()
     {
         using var queryResult = Process.Start(GetForAllStartInfo())!;
         var allGpuHardwareIds = queryResult.StandardOutput.ReadToEnd()!;
@@ -39,7 +39,7 @@ public static class GPU
         };
     }
 
-    public static Dictionary<string, object> GetFor(string hardwareId)
+    public static IDictionary<string, object> GetFor(string hardwareId)
     {
         var guid = GetGuidFromHardwareId(hardwareId);
         return GetGPUInfoFrom(QueryGPUInfoFor(hardwareId), guid);
@@ -69,7 +69,7 @@ public static class GPU
         };
     }
 
-    static Dictionary<string, object> GetGPUInfoFrom(string queryResult, Guid guid)
+    static IDictionary<string, object> GetGPUInfoFrom(string queryResult, Guid guid)
     {
         var splitQueryResult = queryResult.Split(',', StringSplitOptions.TrimEntries);
 
