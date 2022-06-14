@@ -8,13 +8,36 @@ using Newtonsoft.Json.Linq;
 
 namespace Node
 {
+    // TODO: maybe aspnet instead of this but idk
     public static class Listener
     {
         const HttpStatusCode OK = HttpStatusCode.OK;
 
         static readonly HttpClient Client = new();
 
-        static async Task Start(string prefix, Func<HttpListenerContext, Task> func)
+        static Task<HttpStatusCode> WriteErr(HttpListenerResponse response, string text) => Write(response, text, HttpStatusCode.BadRequest);
+        static Task<HttpStatusCode> Write(HttpListenerResponse response, string text, HttpStatusCode code = HttpStatusCode.OK) => Write(response, Encoding.UTF8.GetBytes(text), code);
+        static async Task<HttpStatusCode> Write(HttpListenerResponse response, JObject json, HttpStatusCode code = HttpStatusCode.OK)
+        {
+            using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+            using var jwriter = new JsonTextWriter(writer) { CloseOutput = false };
+            await json.WriteToAsync(jwriter).ConfigureAwait(false);
+
+            return code;
+        }
+        static async Task<HttpStatusCode> Write(HttpListenerResponse response, ReadOnlyMemory<byte> bytes, HttpStatusCode code = HttpStatusCode.OK)
+        {
+            await response.OutputStream.WriteAsync(bytes).ConfigureAwait(false); ;
+            return code;
+        }
+        static async Task<HttpStatusCode> Write(HttpListenerResponse response, Stream bytes, HttpStatusCode code = HttpStatusCode.OK)
+        {
+            await bytes.CopyToAsync(response.OutputStream).ConfigureAwait(false);
+            return code;
+        }
+
+        static void LogRequest(HttpListenerRequest request) => Log.Information(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
+        static async ValueTask Start(string prefix, Func<HttpListenerContext, ValueTask> func)
         {
             var listener = new HttpListener();
             listener.Prefixes.Add(prefix);
@@ -39,55 +62,13 @@ namespace Node
             }
         }
 
-        static Task<HttpStatusCode> WriteErr(HttpListenerResponse response, string text) => Write(response, text, HttpStatusCode.BadRequest);
-        static Task<HttpStatusCode> Write(HttpListenerResponse response, string text, HttpStatusCode code = HttpStatusCode.OK) => Write(response, Encoding.UTF8.GetBytes(text), code);
-        static async Task<HttpStatusCode> Write(HttpListenerResponse response, JObject json, HttpStatusCode code = HttpStatusCode.OK)
+        public static ValueTask StartLocalListenerAsync() => Start(@$"http://127.0.0.1:{Settings.LocalListenPort}/", LocalListener);
+        static ValueTask LocalListener(HttpListenerContext context)
         {
-            using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-            using var jwriter = new JsonTextWriter(writer) { CloseOutput = false };
-            await json.WriteToAsync(jwriter).ConfigureAwait(false);
-
-            return code;
-        }
-        static async Task<HttpStatusCode> Write(HttpListenerResponse response, ReadOnlyMemory<byte> bytes, HttpStatusCode code = HttpStatusCode.OK)
-        {
-            await response.OutputStream.WriteAsync(bytes).ConfigureAwait(false); ;
-            return code;
-        }
-        static async Task<HttpStatusCode> Write(HttpListenerResponse response, Stream bytes, HttpStatusCode code = HttpStatusCode.OK)
-        {
-            await bytes.CopyToAsync(response.OutputStream).ConfigureAwait(false);
-            return code;
-        }
-
-        static void LogRequest(HttpListenerRequest request) => Log.Information(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
+            return Execute(context, get, post);
 
 
-        public static Task StartLocalListenerAsync() => Start(@$"http://127.0.0.1:{Settings.LocalListenPort}/", LocalListener);
-        static async Task LocalListener(HttpListenerContext context)
-        {
-            var request = context.Request;
-            if (request.Url is null) return;
-
-            using var response = context.Response;
-            using var writer = new StreamWriter(response.OutputStream);
-
-            var segments = request.Url.LocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (segments.Length == 0) return;
-
-            response.StatusCode = (int) await execute().ConfigureAwait(false);
-
-
-
-            ValueTask<HttpStatusCode> execute()
-            {
-                LogRequest(request);
-                if (request.HttpMethod == "GET") return get();
-                if (request.HttpMethod == "POST") return post();
-
-                return HttpStatusCode.NotFound.AsVTask();
-            }
-            async ValueTask<HttpStatusCode> get()
+            async ValueTask<HttpStatusCode> get(HttpListenerRequest request, string[] segments, HttpListenerResponse response)
             {
                 var subpath = segments[0].ToLowerInvariant();
 
@@ -114,7 +95,7 @@ namespace Node
 
                 return HttpStatusCode.NotFound;
             }
-            async ValueTask<HttpStatusCode> post()
+            async ValueTask<HttpStatusCode> post(HttpListenerRequest request, string[] segments, HttpListenerResponse response)
             {
                 await Task.Yield(); // TODO: remove
                 var subpath = segments[0].ToLowerInvariant();
@@ -123,31 +104,13 @@ namespace Node
             }
         }
 
-        public static Task StartPublicListenerAsync() => Start(@$"http://*:{PortForwarding.Port}/", PublicListener);
-        static async Task PublicListener(HttpListenerContext context)
+        public static ValueTask StartPublicListenerAsync() => Start(@$"http://*:{PortForwarding.Port}/", PublicListener);
+        static ValueTask PublicListener(HttpListenerContext context)
         {
-            var request = context.Request;
-            if (request.Url is null) return;
-
-            using var response = context.Response;
-            using var writer = new StreamWriter(response.OutputStream);
-
-            var segments = request.Url.LocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (segments.Length == 0) return;
-
-            response.StatusCode = (int) await execute().ConfigureAwait(false);
+            return Execute(context, get, post);
 
 
-
-            ValueTask<HttpStatusCode> execute()
-            {
-                LogRequest(request);
-                if (request.HttpMethod == "GET") return get();
-                if (request.HttpMethod == "POST") return post();
-
-                return HttpStatusCode.NotFound.AsVTask();
-            }
-            async ValueTask<HttpStatusCode> get()
+            async ValueTask<HttpStatusCode> get(HttpListenerRequest request, string[] segments, HttpListenerResponse response)
             {
                 var subpath = segments[0].ToLowerInvariant();
 
@@ -177,7 +140,7 @@ namespace Node
 
                 return HttpStatusCode.NotFound;
             }
-            async ValueTask<HttpStatusCode> post()
+            async ValueTask<HttpStatusCode> post(HttpListenerRequest request, string[] segments, HttpListenerResponse response)
             {
                 var subpath = segments[0].ToLowerInvariant();
 
@@ -199,7 +162,7 @@ namespace Node
 
                     var torrent = await Torrent.LoadAsync(stream).ConfigureAwait(false);
                     var manager = await TorrentClient.AddTorrent(torrent, "torrenttest_" + torrent.InfoHash.ToHex()).ConfigureAwait(false);
-                    
+
                     Log.Debug(@$"Downloading torrent {torrent.InfoHash.ToHex()} from peer {peerurl}");
 
                     var peer = new Peer(BEncodedString.FromUrlEncodedString(peerid), new Uri("ipv4://" + peerurl));
@@ -216,6 +179,27 @@ namespace Node
 
                 return HttpStatusCode.NotFound;
             }
+        }
+
+
+        delegate ValueTask<HttpStatusCode> ExecuteDelegate(HttpListenerRequest request, string[] segments, HttpListenerResponse response);
+        static async ValueTask Execute(HttpListenerContext context, ExecuteDelegate getf, ExecuteDelegate postf)
+        {
+            var request = context.Request;
+            if (request.Url is null) return;
+
+            var segments = request.Url.LocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (segments.Length == 0) return;
+
+            using var response = context.Response;
+            using var stream = response.OutputStream;
+            LogRequest(request);
+            response.StatusCode = (int) await (request.HttpMethod switch
+            {
+                "GET" => getf(request, segments, response),
+                "POST" => postf(request, segments, response),
+                _ => HttpStatusCode.NotFound.AsVTask(),
+            }).ConfigureAwait(false);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using MonoTorrent;
+using MonoTorrent;
 using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
 
@@ -40,25 +40,20 @@ namespace Common
 
         public static async Task<TorrentManager> AddTorrent(Torrent torrent, string targetdir)
         {
-            if (Client.DhtEngine.State != MonoTorrent.Dht.DhtState.Ready)
+            if (Client.DhtEngine.State == MonoTorrent.Dht.DhtState.NotReady)
                 _ = Client.DhtEngine.StartAsync();
 
 
             var manager = await Client.AddAsync(torrent, targetdir).ConfigureAwait(false);
 
-            manager.PeersFound += (obj, e) =>
+            if (Init.IsDebug)
             {
-                //if (e is DhtPeersAdded de)
-                //    Console.WriteLine("DhtPeersAdded " + torrent.InfoHash.ToHex() + " " + de.NewPeers + string.Join(", ", manager.GetPeersAsync().Result.Select(x => x.Uri)));
-                Console.WriteLine("PeersFound " + torrent.InfoHash.ToHex() + " " + e.GetType().Name + " " + e.NewPeers + " " + string.Join(", ", manager.GetPeersAsync().Result.Select(x => x.Uri)));
-            };
-            manager.PeerConnected += (obj, e) => Console.WriteLine("PeerConnected " + torrent.InfoHash.ToHex() + " " + e.Peer.Uri);
-            manager.PeerDisconnected += (obj, e) => Console.WriteLine("PeerDisconnected " + torrent.InfoHash.ToHex() + " " + e.Peer.Uri);
-            manager.TorrentStateChanged += (obj, e) => Console.WriteLine("TorrentStateChanged " + torrent.InfoHash.ToHex() + " " + e.NewState);
-            manager.ConnectionAttemptFailed += (obj, e) => Console.WriteLine("ConnectionAttemptFailed " + torrent.InfoHash.ToHex() + " " + e);
-
-            // manager.TrackerManager.AnnounceComplete += (obj, e) => Console.WriteLine("AnnounceComplete " + torrent.InfoHash.ToHex() + " " + e.Tracker.Uri + string.Join(", ", e.Peers.Select(x => x.ConnectionUri)));
-            // manager.TrackerManager.ScrapeComplete += (obj, e) => Console.WriteLine("ScrapeComplete " + torrent.InfoHash.ToHex() + " " + e.Successful + " " + e.Tracker.Uri);
+                manager.PeersFound += (obj, e) => Console.WriteLine("PeersFound " + torrent.InfoHash.ToHex() + " " + e.GetType().Name + " " + e.NewPeers + " " + string.Join(", ", manager.GetPeersAsync().Result.Select(x => x.Uri)));
+                manager.PeerConnected += (obj, e) => Console.WriteLine("PeerConnected " + torrent.InfoHash.ToHex() + " " + e.Peer.Uri);
+                manager.PeerDisconnected += (obj, e) => Console.WriteLine("PeerDisconnected " + torrent.InfoHash.ToHex() + " " + e.Peer.Uri);
+                manager.TorrentStateChanged += (obj, e) => Console.WriteLine("TorrentStateChanged " + torrent.InfoHash.ToHex() + " " + e.NewState);
+                manager.ConnectionAttemptFailed += (obj, e) => Console.WriteLine("ConnectionAttemptFailed " + torrent.InfoHash.ToHex() + " " + e);
+            }
 
             await manager.HashCheckAsync(autoStart: true).ConfigureAwait(false);
             return manager;

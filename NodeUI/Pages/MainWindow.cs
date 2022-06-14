@@ -22,7 +22,7 @@ namespace NodeUI.Pages
             tabs.Add(Localized.Tab.Dashboard, new DashboardTab());
             tabs.Add(Localized.Tab.Plugins, new PluginsTab());
             tabs.Add(Localized.Tab.Benchmark, new BenchmarkTab());
-            tabs.Add(new("debug"), new DebugTab());
+            tabs.Add(new("torrent test"), new TorrentTab());
 
             Content = tabs;
         }
@@ -76,17 +76,14 @@ namespace NodeUI.Pages
                 });
             }
         }
-        class DebugTab : Panel
+        class TorrentTab : Panel
         {
-            public DebugTab()
-            {
-                CreateTorrentUI();
-            }
+            public TorrentTab() => CreateTorrentUI();
 
             void CreateTorrentUI()
             {
-                var info = new TextBlock() { Text = $"this pc:  ip: {PortForwarding.GetPublicIPAsync().Result}  public port: {PortForwarding.Port}" };
-                var info2 = new TextBlock() { Text = $"this pc:  ip: {PortForwarding.GetPublicIPAsync().Result}  public port: {PortForwarding.Port}" };
+                var info = new TextBlock() { Text = "loading info..." };
+                var info2 = new TextBlock() { Text = $"waiting for upload.." };
 
                 var urltb = new TextBox() { Text = "URL" };
                 var dirtb = new TextBox() { Text = "/home/i3ym/Документы/Projects/tzn/Debug/" };
@@ -107,6 +104,10 @@ namespace NodeUI.Pages
                     },
                 };
                 Children.Add(torrentgrid);
+
+                PortForwarding.GetPublicIPAsync().ContinueWith(t => Dispatcher.UIThread.Post(() =>
+                    info.Text = $"this pc:  pub ip: {t.Result}  pub port: {PortForwarding.Port}  torrent port: {TorrentClient.ListenPort}"
+                ));
 
 
                 async void click()
