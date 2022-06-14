@@ -129,7 +129,7 @@ namespace Node
                     if (hash is null) return await WriteErr(response, "no hash").ConfigureAwait(false);
 
                     var ihash = InfoHash.FromHex(hash);
-                    var manager = TorrentClient.Client.Torrents.FirstOrDefault(x => x.InfoHash == ihash);
+                    var manager = TorrentClient.TryGet(ihash);
                     if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
 
                     var data = new JObject()
@@ -140,6 +140,22 @@ namespace Node
                     };
 
                     return await Write(response, data).ConfigureAwait(false);
+                }
+
+                if (subpath == "stoptorrent")
+                {
+                    var hash = query["hash"];
+                    if (hash is null) return await WriteErr(response, "no hash").ConfigureAwait(false);
+
+                    var ihash = InfoHash.FromHex(hash);
+                    var manager = TorrentClient.TryGet(ihash);
+                    if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
+
+                    Log.Information($"Stopping torrent {hash}");
+                    await manager.StopAsync().ConfigureAwait(false);
+                    await TorrentClient.Client.RemoveAsync(manager).ConfigureAwait(false);
+
+                    return OK;
                 }
 
                 return HttpStatusCode.NotFound;
@@ -165,21 +181,15 @@ namespace Node
                     stream.Position = 0;
 
                     var torrent = await Torrent.LoadAsync(stream).ConfigureAwait(false);
-                    var manager = await TorrentClient.AddTorrent(torrent, "torrenttest_" + torrent.InfoHash.ToHex()).ConfigureAwait(false);
+                    var manager = await TorrentClient.AddOrGetTorrent(torrent, "torrenttest_" + torrent.InfoHash.ToHex()).ConfigureAwait(false);
 
                     Log.Debug(@$"Downloading torrent {torrent.InfoHash.ToHex()} from peer {peerurl}");
 
                     var peer = new Peer(BEncodedString.FromUrlEncodedString(peerid), new Uri("ipv4://" + peerurl));
-                    var success = await manager.AddPeerAsync(peer).ConfigureAwait(false);
-                    if (!success)
-                    {
-                        await TorrentClient.Client.RemoveAsync(manager).ConfigureAwait(false);
-                        return await Write(response, $"Could not add a peer {peer}", HttpStatusCode.BadRequest).ConfigureAwait(false);
-                    }
+                    await manager.AddPeerAsync(peer).ConfigureAwait(false);
 
                     return OK;
                 }
-
 
                 return HttpStatusCode.NotFound;
             }
