@@ -44,20 +44,24 @@ namespace Node
             listener.Start();
             Log.Information(@$"HTTP listener started @ {string.Join(", ", listener.Prefixes)}");
 
-            int repeats = 0;
             while (true)
             {
-                if (repeats > 3) Environment.Exit(0);
-
+                HttpListenerContext? context = null;
                 try
                 {
-                    var context = await listener.GetContextAsync().ConfigureAwait(false);
+                    context = await listener.GetContextAsync().ConfigureAwait(false);
                     await func(context).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
-                    repeats++;
                     Log.Error(ex.ToString());
+
+                    try
+                    {
+                        if (context is not null)
+                            await Write(context.Response, ex.Message, HttpStatusCode.InternalServerError).ConfigureAwait(false);
+                    }
+                    catch { }
                 }
             }
         }
@@ -86,7 +90,7 @@ namespace Node
                     var peerid = TorrentClient.PeerId.UrlEncode();
                     var peerurl = PortForwarding.GetPublicIPAsync().ConfigureAwait(false);
                     var (data, manager) = await TorrentClient.CreateAddTorrent(dir).ConfigureAwait(false);
-                    var postresponse = await new HttpClient().PostAsync($"http://{url}/downloadtorrent?peerid={peerid}&peerurl={await peerurl}:{TorrentClient.ListenPort}", new ByteArrayContent(data)).ConfigureAwait(false);
+                    var postresponse = await Client.PostAsync($"http://{url}/downloadtorrent?peerid={peerid}&peerurl={await peerurl}:{TorrentClient.ListenPort}", new ByteArrayContent(data)).ConfigureAwait(false);
                     if (!postresponse.IsSuccessStatusCode)
                         return await Write(response, await postresponse.Content.ReadAsStreamAsync().ConfigureAwait(false), postresponse.StatusCode).ConfigureAwait(false);
 
