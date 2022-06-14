@@ -1,5 +1,6 @@
 using System.Web;
 using MonoTorrent;
+using Newtonsoft.Json.Linq;
 
 namespace NodeUI.Pages
 {
@@ -135,13 +136,30 @@ namespace NodeUI.Pages
 
                         new Thread(async () =>
                         {
+                            bool die = false;
                             while (true)
                             {
                                 var info = await client.GetAsync($"http://{url}/torrentinfo?hash={HttpUtility.UrlEncode(hash.ToHex())}").ConfigureAwait(false);
                                 var ifo = await info.Content.ReadAsStringAsync().ConfigureAwait(false);
 
+                                try
+                                {
+                                    if (JObject.Parse(ifo)["progress"]?.Value<double>() > 99)
+                                        Dispatcher.UIThread.Post(() => info2.Text = ifo + "\nUpload completed.");
+
+                                    if (!die && JObject.Parse(ifo)["progress"]?.Value<double>() > 99)
+                                    {
+                                        die = true;
+                                        Thread.Sleep(500);
+                                        continue;
+                                    }
+                                }
+                                catch { }
+
+                                if (die) break;
+
                                 Dispatcher.UIThread.Post(() => info2.Text = ifo);
-                                Thread.Sleep(100);
+                                Thread.Sleep(200);
                             }
                         })
                         { IsBackground = true }.Start();
