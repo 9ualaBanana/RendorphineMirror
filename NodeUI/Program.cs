@@ -19,6 +19,7 @@ global using Avalonia.VisualTree;
 global using Common;
 global using NodeUI.Controls;
 global using NodeUI.Pages;
+global using Serilog;
 using System.Runtime.InteropServices;
 
 namespace NodeUI;

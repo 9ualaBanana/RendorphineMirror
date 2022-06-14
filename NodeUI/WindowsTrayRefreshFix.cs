@@ -45,7 +45,7 @@ namespace NodeUI
                             SendMessage(foor, WM_MOUSEMOVE, 0, x | (y << 16));
                 }
             }
-            catch { };
+            catch (Exception ex) { Log.Error(ex.ToString()); }
         }
     }
 }
