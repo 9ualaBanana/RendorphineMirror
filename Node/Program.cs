@@ -1,9 +1,7 @@
 ﻿global using Common;
+global using Hardware;
 global using Serilog;
 using System.Diagnostics;
-using System.Net;
-using System.Net.Http.Json;
-using Hardware;
 using Node;
 
 
@@ -22,32 +20,40 @@ if (!Debugger.IsAttached)
 
 var api = new Api();
 
-var uinfor = await Authenticate(CancellationToken.None).ConfigureAwait(false);
-if (uinfor is null)
+if (!Init.IsDebug)
 {
-    await AuthenticateWithUI(CancellationToken.None).ConfigureAwait(false);
-    return;
+    var uinfor = await Authenticate(CancellationToken.None).ConfigureAwait(false);
+    if (uinfor is null)
+    {
+        await AuthenticateWithUI(CancellationToken.None).ConfigureAwait(false);
+        return;
+    }
+    var uinfo = uinfor.Value;
 }
-var uinfo = uinfor.Value;
 
 var http = new HttpClient() { BaseAddress = new(Settings.ServerUrl) };
 PortForwarding.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
 {
     Console.WriteLine($"UPnP was {(PortForwarding.Initialized ? null : "not ")}initialized");
-    Console.WriteLine($"Public port: {PortForwarding.Port}; Public IP: {t.Result}");
+    Console.WriteLine($"Public IP: {t.Result}:{PortForwarding.Port}");
 });
 
-Log.Debug("Retrieveing hardware info...");
 
 if (!Debugger.IsAttached)
-{
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
+
+if (!Init.IsDebug)
+{
     SystemService.Start();
+
+    Log.Debug("Retrieveing hardware info...");
+    _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
 }
 
-_ = StartHttpListenerAsync();
-_ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
+_ = Listener.StartLocalListenerAsync();
+_ = Listener.StartPublicListenerAsync();
+
 Thread.Sleep(-1);
 
 
@@ -73,7 +79,7 @@ async Task<UserInfo> AuthenticateWithUI(CancellationToken token)
 {
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
 
-    Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate or create auth.txt file in {Directory.GetCurrentDirectory()} with your login and password divided by space");
+    Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate or create auth.txt file in {Path.GetFullPath(".")} with your login and password divided by space");
     Console.WriteLine(@$"Example: ""makov@gmail.com password123""");
 
     while (true)
@@ -104,6 +110,8 @@ async Task<UserInfo?> Authenticate(CancellationToken token)
         while (true)
         {
             var auth = await OperationResult.WrapException(() => api.CheckAuthenticationAsync(Settings.SessionId, token)).ConfigureAwait(false);
+            auth.LogIfError();
+
             if (!auth)
             {
                 if (auth.Message?.Contains("443") ?? false)
@@ -127,6 +135,8 @@ async Task<UserInfo?> Authenticate(CancellationToken token)
         if (data.Length == 2)
         {
             var auth = await api.AuthenticateAsync(data[0], data[1], token).ConfigureAwait(false);
+            auth.LogIfError();
+
             if (auth)
             {
                 auth.Result.SaveToConfig();
@@ -138,46 +148,4 @@ async Task<UserInfo?> Authenticate(CancellationToken token)
     }
 
     return default;
-}
-async Task StartHttpListenerAsync()
-{
-    var listener = new HttpListener();
-    listener.Prefixes.Add(@$"http://127.0.0.1:{Settings.LocalListenPort}/");
-    listener.Prefixes.Add(@$"http://*:{PortForwarding.Port}/");
-    listener.Start();
-    Log.Information(@$"Local listener started @ {string.Join(", ", listener.Prefixes)}");
-
-    while (true)
-    {
-        var context = await listener.GetContextAsync().ConfigureAwait(false);
-        var request = context.Request;
-        using var response = context.Response;
-        using var writer = new StreamWriter(response.OutputStream);
-
-        if (request.Url is null) continue;
-
-        var segments = request.Url.LocalPath.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (segments.Length == 0) continue;
-
-        response.StatusCode = (int) await execute().ConfigureAwait(false);
-
-
-
-        async ValueTask<HttpStatusCode> execute()
-        {
-            const HttpStatusCode ok = HttpStatusCode.OK;
-
-            var subpath = segments[0];
-            if (subpath == "ping")
-            {
-                response.OutputStream.Write(System.Text.Encoding.UTF8.GetBytes(@$"ok from {HardwareInfo.PCName} {HardwareInfo.UserName} v{HardwareInfo.Version}"));
-                return ok;
-            }
-
-            await Task.Yield(); // TODO: remove
-
-
-            return HttpStatusCode.NotFound;
-        }
-    }
 }

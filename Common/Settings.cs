@@ -10,13 +10,15 @@ namespace Common
         public static string ServerUrl { get => BServerUrl.Value; set => BServerUrl.Value = value; }
         public static ushort LocalListenPort { get => BLocalListenPort.Value; set => BLocalListenPort.Value = value; }
         public static ushort UPnpPort { get => BUPnpPort.Value; set => BUPnpPort.Value = value; }
+        public static ushort DhtPort { get => BDhtPort.Value; set => BDhtPort.Value = value; }
+        public static ushort TorrentPort { get => BTorrentPort.Value; set => BTorrentPort.Value = value; }
         public static string? SessionId { get => BSessionId.Value; set => BSessionId.Value = value; }
         public static string? UserId { get => BUserId.Value; set => BUserId.Value = value; }
         public static string? Username { get => BUsername.Value; set => BUsername.Value = value; }
         public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
 
         public static readonly DatabaseBindable<string> BServerUrl;
-        public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort;
+        public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort, BDhtPort, BTorrentPort;
         public static readonly DatabaseBindable<string?> BSessionId, BUsername, BUserId, BLanguage;
 
         static readonly SQLiteConnection Connection;
@@ -34,6 +36,8 @@ namespace Common
             BServerUrl = new(nameof(ServerUrl), "https://t.microstock.plus:8443");
             BLocalListenPort = new(nameof(LocalListenPort), 5123);
             BUPnpPort = new(nameof(UPnpPort), 5124);
+            BDhtPort = new(nameof(DhtPort), 6223);
+            BTorrentPort = new(nameof(TorrentPort), 6224);
             BSessionId = new(nameof(SessionId), null);
             BUsername = new(nameof(Username), null);
             BUserId = new(nameof(UserId), null);

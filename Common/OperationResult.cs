@@ -100,6 +100,17 @@ namespace Common
         public static ValueTask<T> AsVTask<T>(this T value) => ValueTask.FromResult(value);
         public static ValueTask<OperationResult<T>> AsTaskResult<T>(this T value) => value.AsOpResult().AsVTask();
 
+        public static OperationResult LogIfError(in this OperationResult opr)
+        {
+            if (!opr) Log.Error(opr.AsString());
+            return opr;
+        }
+        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr)
+        {
+            if (!opr) Log.Error(opr.AsString());
+            return opr;
+        }
+
 
         #region Next
         // opres => opres
