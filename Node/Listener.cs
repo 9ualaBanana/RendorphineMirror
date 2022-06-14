@@ -36,7 +36,7 @@ namespace Node
             return code;
         }
 
-        static void LogRequest(HttpListenerRequest request) => Log.Information(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
+        static void LogRequest(HttpListenerRequest request) => Log.Debug(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
         static async ValueTask Start(string prefix, Func<HttpListenerContext, ValueTask> func)
         {
             var listener = new HttpListener();
