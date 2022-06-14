@@ -122,7 +122,7 @@ namespace NodeUI.Pages
                     try
                     {
                         var client = new HttpClient();
-                        var get = await client.GetAsync($"http://127.0.0.1:{Settings.LocalListenPort}/uploadtorrent?url={url}&dir={HttpUtility.UrlEncode(dir)}").ConfigureAwait(false);
+                        var get = await client.GetAsync($"http://127.0.0.1:{Settings.LocalListenPort}/uploadtorrent?url={HttpUtility.UrlEncode(url)}&dir={HttpUtility.UrlEncode(dir)}").ConfigureAwait(false);
                         if (!get.IsSuccessStatusCode)
                         {
                             var err = await get.Content.ReadAsStringAsync().ConfigureAwait(false);

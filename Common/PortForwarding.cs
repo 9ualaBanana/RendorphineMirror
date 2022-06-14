@@ -6,12 +6,13 @@ namespace Common
 {
     public static class PortForwarding
     {
-        public static bool Initialized => Mapping is not null;
-        public static int Port => Mapping?.PublicPort ?? Settings.UPnpPort;
+        public static bool Initialized { get; private set; }
+        public static int Port => Settings.UPnpPort;
         static INatDevice? Device;
-        static Mapping? Mapping;
 
-        public static void Initialize()
+        // empty method to trigger static ctor
+        public static void Initialize() { }
+        static PortForwarding()
         {
             NatUtility.DeviceFound += found;
             NatUtility.StartDiscovery(NatProtocol.Upnp);
@@ -19,17 +20,31 @@ namespace Common
 
             static void found(object? _, DeviceEventArgs args)
             {
-                if (Mapping is not null && !Mapping.IsExpired()) return;
-
                 Device = args.Device;
 
-                var name = "renderphine-" + Environment.MachineName;
-                var mappings = Device.GetAllMappings();
+                try
+                {
+                    var mappings = Device.GetAllMappings();
+                    map(mappings, "renderphine", Settings.BUPnpPort);
+                    map(mappings, "renderphine-dht", Settings.BDhtPort);
+                    map(mappings, "renderphine-trt", Settings.BTorrentPort);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("[UPnP] Could not create mapping: " + ex.Message);
+                    Initialized = false;
+                }
+            }
+
+            static void map(Mapping[] mappings, string name, Bindable<ushort> portb)
+            {
+                name += "-" + Environment.MachineName;
                 var mapping = mappings.FirstOrDefault(x => x.Description == name);
                 if (mapping is not null)
                 {
                     Log.Information($"[UPnP] Found already existing mapping: {mapping}");
-                    Settings.UPnpPort = (ushort) mapping.PublicPort;
+                    portb.Value = (ushort) mapping.PublicPort;
+                    Initialized = true;
                 }
                 else
                 {
@@ -37,20 +52,20 @@ namespace Common
 
                     try
                     {
-                        for (ushort port = Settings.UPnpPort; port < ushort.MaxValue; port++)
+                        for (ushort port = portb.Value; port < ushort.MaxValue; port++)
                         {
                             if (mappings.Any(x => x.PublicPort == port)) continue;
 
                             Log.Information($"[UPnP] Creating mapping on port {port} with name {name}");
-                            Settings.UPnpPort = port;
+                            portb.Value = port;
                             Device.CreatePortMap(new Mapping(Protocol.Tcp, port, port, 0, name));
+                            Initialized = true;
+
                             break;
                         }
                     }
                     catch (MappingException ex) { Log.Error(ex.Message); }
                 }
-
-                Mapping = Device.GetSpecificMapping(Protocol.Tcp, Settings.UPnpPort);
             }
         }
 

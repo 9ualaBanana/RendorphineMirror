@@ -60,7 +60,7 @@ namespace Node
             return code;
         }
 
-        static void LogRequest(HttpListenerRequest request) => Log.Verbose(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.Url}");
+        static void LogRequest(HttpListenerRequest request) => Log.Information(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
 
 
         public static Task StartLocalListenerAsync() => Start(@$"http://127.0.0.1:{Settings.LocalListenPort}/", LocalListener);
@@ -199,6 +199,8 @@ namespace Node
 
                     var torrent = await Torrent.LoadAsync(stream).ConfigureAwait(false);
                     var manager = await TorrentClient.AddTorrent(torrent, "torrenttest_" + torrent.InfoHash.ToHex()).ConfigureAwait(false);
+                    
+                    Log.Debug(@$"Downloading torrent {torrent.InfoHash.ToHex()} from peer {peerurl}");
 
                     var peer = new Peer(BEncodedString.FromUrlEncodedString(peerid), new Uri("ipv4://" + peerurl));
                     var success = await manager.AddPeerAsync(peer).ConfigureAwait(false);

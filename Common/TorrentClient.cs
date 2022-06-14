@@ -1,14 +1,13 @@
 ﻿using MonoTorrent;
 using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
-using MonoTorrent.Client.PortForwarding;
 
 namespace Common
 {
     public static class TorrentClient
     {
-        public static int? DhtPort => Client.PortMappings.Created.FirstOrDefault(x => x.Protocol == Protocol.Udp)?.PublicPort;
-        public static int? ListenPort => Client.PortMappings.Created.FirstOrDefault(x => x.Protocol == Protocol.Tcp)?.PublicPort;
+        public static ushort DhtPort => Settings.DhtPort;
+        public static ushort ListenPort => Settings.TorrentPort;
         public static BEncodedString PeerId => Client.PeerId;
 
         static readonly TorrentCreator Creator = new TorrentCreator() { CreatedBy = "Renderphine v" + Init.Version };
@@ -16,8 +15,12 @@ namespace Common
 
         static TorrentClient()
         {
-            var esettings = new EngineSettingsBuilder();
-            Client = new ClientEngine();
+            var esettings = new EngineSettingsBuilder()
+            {
+                DhtPort = DhtPort,
+                ListenPort = ListenPort,
+            };
+            Client = new ClientEngine(esettings.ToSettings());
         }
 
 
