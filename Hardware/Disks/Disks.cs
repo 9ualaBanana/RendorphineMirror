@@ -25,7 +25,7 @@ public static class Disks
     }
 
     [SupportedOSPlatform("windows")]
-    public static long GetFreeSpaceOnDisk(string diskId)
+    public static long GetFreeSpaceOnDisk(uint diskId)
     {
         var logicalDrivesNamesOnDisk = GetLogicalDrivesNamesOnDisk(diskId);
 
@@ -44,7 +44,18 @@ public static class Disks
     }
 
     [SupportedOSPlatform("windows")]
-    public static IEnumerable<string> GetLogicalDrivesNamesOnDisk(string diskId)
+    public static IEnumerable<string> LogicalDrivesNamesFromDistinctDisks
+    {
+        get
+        {
+            return LogicalDrivesNamesToDisks
+                .DistinctBy(logicalDriveNameToDisk => logicalDriveNameToDisk.DiskID)
+                .Select(logicalDriveNameToDisk => logicalDriveNameToDisk.LogicalDriveName);
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    public static IEnumerable<string> GetLogicalDrivesNamesOnDisk(uint diskId)
     {
         using var disksToPartitionsSearcher = new ManagementObjectSearcher("SELECT Antecedent, Dependent FROM Win32_LogicalDiskToPartition");
         using var disksToPartitions = disksToPartitionsSearcher.Get();
@@ -55,14 +66,14 @@ public static class Disks
     }
 
     [SupportedOSPlatform("windows")]
-    static IList<(string LogicalDriveName, string DiskID)> LogicalDrivesNamesToDisks
+    static IList<(string LogicalDriveName, uint DiskID)> LogicalDrivesNamesToDisks
     {
         get
         {
             using var disksToPartitionsSearcher = new ManagementObjectSearcher("SELECT Antecedent, Dependent FROM Win32_LogicalDiskToPartition");
             using var disksToPartitions = disksToPartitionsSearcher.Get();
 
-            var logicalDrivesNamesToDisks = new List<(string , string)>(disksToPartitions.Count);
+            var logicalDrivesNamesToDisks = new List<(string , uint)>(disksToPartitions.Count);
             foreach (var diskToPartition in disksToPartitions)
             {
                 var logicalDriveName = ParseLogicalDriveNameFromDiskToPartition(diskToPartition);
@@ -76,11 +87,13 @@ public static class Disks
     }
 
     [SupportedOSPlatform("windows")]
-    static string ParseDiskIDFromDiskToPartition(ManagementBaseObject diskToPartition)
+    static uint ParseDiskIDFromDiskToPartition(ManagementBaseObject diskToPartition)
     {
-        return string.Join(
-            null,
-            diskToPartition["Antecedent"].ToString()!.Split("Disk #")[1].TakeWhile(c => char.IsDigit(c)));
+        return uint.Parse(
+            string.Join(
+                null,
+                diskToPartition["Antecedent"].ToString()!.Split("Disk #")[1].TakeWhile(c => char.IsDigit(c)))
+            );
     }
 
     [SupportedOSPlatform("windows")]

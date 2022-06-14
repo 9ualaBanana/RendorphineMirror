@@ -80,16 +80,16 @@ internal class BenchmarkService
     async Task<DisksPayload[]> ComputePayloadWithDisksBenchmarkResultsAsync()
     {
         var disksBenchmarkResults = new List<(BenchmarkResult Read, BenchmarkResult Write)>();
-        foreach (var driveName in ReadWriteBenchmark.DriveNamesFromDistinctDisks)
+        foreach (var logicalDriveName in Disks.LogicalDrivesNamesFromDistinctDisks)
         {
-            disksBenchmarkResults.Add(await new ReadWriteBenchmark(_testDataSize).RunAsync(driveName));
+            disksBenchmarkResults.Add(await new ReadWriteBenchmark(_testDataSize).RunAsync(logicalDriveName));
         }
         DisksPayload[] disksPayloads = new DisksPayload[disksBenchmarkResults.Count];
         for (var diskId = 0; diskId < disksBenchmarkResults.Count; diskId++)
         {
             disksPayloads[diskId] = new()
             {
-                freespace = Disks.GetFreeSpaceOnDisk(diskId.ToString()),
+                freespace = Disks.GetFreeSpaceOnDisk((uint)diskId),
                 writespeed = disksBenchmarkResults[diskId].Write.Rate
             };
         }
