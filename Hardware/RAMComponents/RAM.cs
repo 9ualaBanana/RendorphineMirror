@@ -1,29 +1,21 @@
-﻿using System.ComponentModel;
-using System.Management;
-using System.Runtime.Versioning;
+﻿namespace Hardware;
 
-namespace Hardware;
-
-public static class RAM
+public record RAM(
+    uint Speed,
+    ulong Capacity,
+    ulong FreeMemory,
+    string DeviceLocator,
+    string SerialNumber)
 {
-    public static Container Info()
+    public static List<RAM> Info
     {
-        if (OperatingSystem.IsWindows()) return WindowsInfo();
-        //if (OperatingSystem.IsLinux()) return LinuxGetForAll();
-        throw new PlatformNotSupportedException();
+        get
+        {
+            if (OperatingSystem.IsWindows()) return WindowsRAM.Info();
+            //if (OperatingSystem.IsLinux()) return LinuxGetForAll();
+            throw new PlatformNotSupportedException();
+        }
     }
-
-    [SupportedOSPlatform("windows")]
-    static Container WindowsInfo()
-    {
-        using var ramSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory");
-        using var ramUnits = ramSearcher.Get();
-
-        var container = new Container();
-        foreach (var ramUnit in ramUnits) container.Add(ramUnit);
-        return container;
-    }
-
 
     //async static Task<List<RAM>> LinuxGetForAll()
     //{
