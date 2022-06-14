@@ -20,7 +20,11 @@ namespace NodeUI
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
 
-            try
+            OperationResult.WrapException(UpdateTray).LogIfError();
+            OperationResult.WrapException(UpdateHiddenTray).LogIfError();
+
+
+            static void UpdateTray()
             {
                 //Taskbar window
                 int one = FindWindow("Shell_TrayWnd", null);
@@ -35,17 +39,27 @@ namespace NodeUI
                 int foor;
                 if (three > 0) foor = FindWindowEx(three, 0, "ToolbarWindow32", null);
                 else foor = FindWindowEx(two, 0, "ToolbarWindow32", null);
-                if (foor > 0)
-                {
-                    System.Drawing.Rectangle r = new System.Drawing.Rectangle();
-                    GetWindowRect(foor, ref r);
 
-                    for (int x = 0; x < (r.Right - r.Left) - r.X; x += 8)
-                        for (int y = 0; y < (r.Bottom - r.Top) - r.Y; y += 8)
-                            SendMessage(foor, WM_MOUSEMOVE, 0, x | (y << 16));
-                }
+                Update(foor);
             }
-            catch { };
+            static void UpdateHiddenTray()
+            {
+                int iconw = FindWindow("NotifyIconOverflowWindow", null);
+                int toolbar = FindWindowEx(iconw, 0, "ToolbarWindow32", null);
+
+                Update(toolbar);
+            }
+            static void Update(int hwnd)
+            {
+                if (hwnd <= 0) return;
+
+                var rect = new System.Drawing.Rectangle();
+                GetWindowRect(hwnd, ref rect);
+
+                for (int x = 0; x < (rect.Right - rect.Left) - rect.X; x += 8)
+                    for (int y = 0; y < (rect.Bottom - rect.Top) - rect.Y; y += 8)
+                        SendMessage(hwnd, WM_MOUSEMOVE, 0, x | (y << 16));
+            }
         }
     }
 }
