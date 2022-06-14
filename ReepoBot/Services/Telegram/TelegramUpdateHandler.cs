@@ -158,7 +158,7 @@ public class TelegramUpdateHandler
             if (uptime is null) continue;
 
             var escapedUptime = $"{uptime:d\\.hh\\:mm}";
-            messageBuilder.AppendLine($"{nodeInfo.GetBriefInfoMDv2} | {escapedUptime}");
+            messageBuilder.AppendLine($"{nodeInfo.GetBriefInfoMDv2()} | {escapedUptime}");
         }
         var message = messageBuilder.ToString();
 

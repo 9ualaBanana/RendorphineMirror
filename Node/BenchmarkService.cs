@@ -1,5 +1,4 @@
 ﻿using Benchmark;
-using Hardware;
 using System.Management;
 using System.Net.Http.Json;
 using System.Reflection;

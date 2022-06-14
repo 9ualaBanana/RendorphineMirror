@@ -47,7 +47,6 @@ if (!Init.IsDebug)
 {
     SystemService.Start();
 
-    Log.Debug("Retrieveing hardware info...");
     _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
 }
 
