@@ -10,9 +10,13 @@ public record HardwareInfo
     readonly public static string UserName = Environment.UserName;
     readonly public static string PCName = Environment.MachineName;
     readonly public static string Version = Init.Version;
-    public static async Task<IPAddress> GetIPAsync() => await PortForwarding.GetPublicIPAsync();
+    public static async Task<IPAddress> GetPublicIPAsync()
+    {
+        try { return await PortForwarding.GetPublicIPAsync(); }
+        catch (Exception) { return IPAddress.None; }
+    }
     readonly public static string Port = PortForwarding.Port.ToString();
-    public static async Task<string> GetBriefInfoAsync() => $"{PCName} {UserName} (v.{Version}) | {await GetIPAsync()}:{Port}";
+    public static async Task<string> GetBriefInfoAsync() => $"{PCName} {UserName} (v.{Version}) | {await GetPublicIPAsync()}:{Port}";
 
     public static async Task<string> ToTelegramMessageAsync(bool verbose = false)
     {
@@ -22,7 +26,7 @@ public record HardwareInfo
         throw new PlatformNotSupportedException();
     }
 
-    public static async Task<DTO> AsDTOAsync() => new(PCName, UserName, Version, (await GetIPAsync()).ToString(), Port);
+    public static async Task<DTO> AsDTOAsync() => new(PCName, UserName, Version, (await GetPublicIPAsync()).ToString(), Port);
 
 
     public record class DTO(string PCName, string UserName, string Version, string IP, string Port)

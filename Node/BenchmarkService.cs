@@ -110,12 +110,13 @@ internal class BenchmarkService
 
     async static Task<JSONPayload> BuildJSONPayloadAsync(HardwarePayload? hardwarePayload)
     {
+        var publicIp = await HardwareInfo.GetPublicIPAsync();
         return new()
         {
             nickname = HardwareInfo.UserName,
-            ip = (await HardwareInfo.GetIPAsync()).ToString(),
+            ip = publicIp.ToString(),
             port = int.Parse(HardwareInfo.Port),
-            publicip = default,
+            publicip = publicIp == System.Net.IPAddress.None ? 0 : 1,
             hardware = hardwarePayload
         };
     }
