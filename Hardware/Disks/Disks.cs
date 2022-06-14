@@ -16,47 +16,67 @@ public static class Disks
     [SupportedOSPlatform("windows")]
     public static Container WindowsInfo()
     {
-        using var diskSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_LogicalDisk");
-        using var disks = diskSearcher.Get();
+        using var logicalDrivesSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_LogicalDisk");
+        using var logicalDrives = logicalDrivesSearcher.Get();
 
         var container = new Container();
-        foreach (var disk in disks) container.Add(disk);
+        foreach (var logicalDrive in logicalDrives) container.Add(logicalDrive);
         return container;
     }
 
     [SupportedOSPlatform("windows")]
     public static long GetFreeSpaceOnDisk(string diskId)
     {
-        var logicalDrivesOnDisk = GetLogicalDrivesOnDisk(diskId);
-        long freeSpace = 0;
+        var logicalDrivesNamesOnDisk = GetLogicalDrivesNamesOnDisk(diskId);
+
+        long freeSpaceOnDisk = 0;
         foreach (var logicalDrive in Info().Components)
         {
             var typedLogicalDrive = (ManagementBaseObject)logicalDrive;
-            if (logicalDrivesOnDisk.Any(logicalDriveOnDisk => $"{logicalDriveOnDisk}:" == typedLogicalDrive["DeviceID"].ToString()))
+            var currentLogicalDriveName = typedLogicalDrive["DeviceID"].ToString();
+            if (logicalDrivesNamesOnDisk.Any(logicalDriveNameOnDisk => logicalDriveNameOnDisk == currentLogicalDriveName))
             {
-                freeSpace += long.Parse(typedLogicalDrive["FreeSpace"].ToString()!);
+                var freeSpaceOnLogicalDriveFromThatDisk = long.Parse(typedLogicalDrive["FreeSpace"].ToString()!);
+                freeSpaceOnDisk += freeSpaceOnLogicalDriveFromThatDisk;
             }
         }
-        return freeSpace;
+        return freeSpaceOnDisk;
     }
 
     [SupportedOSPlatform("windows")]
-    public static IList<char> GetLogicalDrivesOnDisk(string diskId)
+    public static IEnumerable<string> GetLogicalDrivesNamesOnDisk(string diskId)
     {
-        using var diskToPartitionSearcher = new ManagementObjectSearcher("SELECT Antecedent, Dependent FROM Win32_LogicalDiskToPartition");
-        using var disksToPartition = diskToPartitionSearcher.Get();
+        using var disksToPartitionsSearcher = new ManagementObjectSearcher("SELECT Antecedent, Dependent FROM Win32_LogicalDiskToPartition");
+        using var disksToPartitions = disksToPartitionsSearcher.Get();
 
-        var driveNames = new List<char>();
-        foreach (var diskToPartition in disksToPartition)
-        {
-            if (diskId == ParseDiskID(diskToPartition))
-                driveNames.Add(ParseDriveName(diskToPartition));
-        }
-        return driveNames;
+        return LogicalDrivesNamesToDisks
+            .Where(logicalDriveNameToDisk => logicalDriveNameToDisk.DiskID == diskId)
+            .Select(logicalDriveNameToDisk => logicalDriveNameToDisk.LogicalDriveName);
     }
 
     [SupportedOSPlatform("windows")]
-    static string ParseDiskID(ManagementBaseObject diskToPartition)
+    static IList<(string LogicalDriveName, string DiskID)> LogicalDrivesNamesToDisks
+    {
+        get
+        {
+            using var disksToPartitionsSearcher = new ManagementObjectSearcher("SELECT Antecedent, Dependent FROM Win32_LogicalDiskToPartition");
+            using var disksToPartitions = disksToPartitionsSearcher.Get();
+
+            var logicalDrivesNamesToDisks = new List<(string , string)>(disksToPartitions.Count);
+            foreach (var diskToPartition in disksToPartitions)
+            {
+                var logicalDriveName = ParseLogicalDriveNameFromDiskToPartition(diskToPartition);
+                var diskId = ParseDiskIDFromDiskToPartition(diskToPartition);
+
+                logicalDrivesNamesToDisks.Add((logicalDriveName, diskId));
+            }
+
+            return logicalDrivesNamesToDisks;
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    static string ParseDiskIDFromDiskToPartition(ManagementBaseObject diskToPartition)
     {
         return string.Join(
             null,
@@ -64,9 +84,11 @@ public static class Disks
     }
 
     [SupportedOSPlatform("windows")]
-    static char ParseDriveName(ManagementBaseObject diskToPartition)
+    static string ParseLogicalDriveNameFromDiskToPartition(ManagementBaseObject diskToPartition)
     {
-        return diskToPartition["Dependent"].ToString()!.SkipWhile(c => c != '"').Skip(1).Take(1).First();
+        return string.Join(
+            null,
+            diskToPartition["Dependent"].ToString()!.SkipWhile(c => c != '"').Skip(1).Take(2));
     }
 
     //async static Task<List<Disk>> LinuxGetForAll()
