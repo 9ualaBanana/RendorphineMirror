@@ -2,4 +2,3 @@
 
 ./dp rph/files/renderphine-win/app Node Release win7-x64 1
 ./dp rph/files/renderphine-lin/app Node Release linux-x64
-./dp rph/files/renderphine-mac/app Node Release osx-x64
