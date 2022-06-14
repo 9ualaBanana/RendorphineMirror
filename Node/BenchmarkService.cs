@@ -80,7 +80,7 @@ internal class BenchmarkService
     async Task<DisksPayload[]> ComputePayloadWithDisksBenchmarkResultsAsync()
     {
         var disksBenchmarkResults = new List<(BenchmarkResult Read, BenchmarkResult Write)>();
-        foreach (var logicalDriveName in Disks.LogicalDrivesNamesFromDistinctDisks)
+        foreach (var logicalDriveName in Disks.DrivesNamesFromDistinctDisks)
         {
             disksBenchmarkResults.Add(await new ReadWriteBenchmark(_testDataSize).RunAsync(logicalDriveName));
         }
