@@ -124,7 +124,7 @@ internal class MachineInfoService
         var payloadContent = new Dictionary<string, string>()
         {
             ["sessionid"] = Guid.NewGuid().ToString(),
-            ["nickname"] = MachineInfo.UserName,
+            ["nickname"] = MachineInfo.PCName,
             ["ip"] = (await MachineInfo.GetPublicIPAsync()).ToString(),
             ["port"] = MachineInfo.Port,
             ["hardware"] = JsonSerializer.Serialize(hardwarePayload)
