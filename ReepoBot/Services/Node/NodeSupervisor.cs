@@ -9,7 +9,9 @@ public class NodeSupervisor
 {
     internal readonly HashSet<MachineInfo.DTO> AllNodes = new();
     internal readonly ConcurrentDictionary<MachineInfo.DTO, TimerPlus> NodesOnline = new();
-    internal HashSet<MachineInfo.DTO> NodesOffline => AllNodes.ToHashSet().Except(NodesOnline.Keys).ToHashSet();
+    internal HashSet<MachineInfo.DTO> NodesOffline => AllNodes.ToHashSet()
+        .ExceptBy(NodesOnline.Keys.Select(its => its.PCName), node => node.PCName)
+        .ToHashSet();
 
     readonly object _allNodesLock = new();
     readonly ILogger<NodeSupervisor> _logger;
