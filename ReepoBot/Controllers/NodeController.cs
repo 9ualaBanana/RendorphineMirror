@@ -30,7 +30,6 @@ public class NodeController : ControllerBase
         )
     {
         logger.LogDebug("Hardware info message is received");
-
         
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine($"{hardwareInfoMessage.nickname} Info:");
@@ -38,24 +37,28 @@ public class NodeController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(hardwareInfoMessage.hardware))
         {
-            var hardware = JsonSerializer.Deserialize<BenchmarkResults>(hardwareInfoMessage.hardware)!;
-            messageBuilder.AppendLine();
-            messageBuilder.AppendLine("CPU:");
-            messageBuilder.AppendLine($"Rating: {hardware.cpu.rating:##}");
-            messageBuilder.AppendLine($"FFmpeg Rating: {hardware.cpu.rating:##}");
-            messageBuilder.AppendLine($"Load: {hardware.cpu.rating:##}");
-            messageBuilder.AppendLine("GPU:");
-            messageBuilder.AppendLine($"Rating: {hardware.gpu.rating:##}");
-            messageBuilder.AppendLine($"FFmpeg Rating: {hardware.gpu.rating:##}");
-            messageBuilder.AppendLine($"Load: {hardware.gpu.rating:##}");
-            messageBuilder.AppendLine("RAM:");
-            messageBuilder.AppendLine($"Capacity: {hardware.ram.total:##}");
-            messageBuilder.AppendLine($"Free: {hardware.ram.free:##}");
-            messageBuilder.AppendLine("Drives:");
-            foreach (var drive in hardware.disks)
+            var hardware = JsonSerializer.Deserialize<BenchmarkResults>(hardwareInfoMessage.hardware);
+            if (hardware is not null)
             {
-                messageBuilder.AppendLine($"Free Space: {drive.freespace:##}");
-                messageBuilder.AppendLine($"Write Speed: {drive.writespeed:##}");
+                messageBuilder.AppendLine()
+                    .AppendLine("CPU:")
+                    .AppendLine($"Rating: {hardware.cpu.rating:.#}")
+                    .AppendLine($"FFmpeg Rating: {hardware.cpu.rating:.#}")
+                    .AppendLine($"Load: {hardware.cpu.rating:.#}")
+                    .AppendLine("GPU:")
+                    .AppendLine($"Rating: {hardware.gpu.rating:.#}")
+                    .AppendLine($"FFmpeg Rating: {hardware.gpu.rating:.#}")
+                    .AppendLine($"Load: {hardware.gpu.rating:.#}")
+                    .AppendLine("RAM:")
+                    .AppendLine($"Capacity: {hardware.ram.total:.#}")
+                    .AppendLine($"Free: {hardware.ram.free:.#}")
+                    .AppendLine("Drives:");
+
+                foreach (var drive in hardware.disks)
+                {
+                    messageBuilder.AppendLine($"Free Space: {drive.freespace:.#}");
+                    messageBuilder.AppendLine($"Write Speed: {drive.writespeed:.#}");
+                }
             }
         }
 
