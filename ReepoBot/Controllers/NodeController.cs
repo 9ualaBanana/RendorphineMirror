@@ -13,7 +13,7 @@ public class NodeController : ControllerBase
 {
     [HttpGet("ping")]
     public void UpdateNodeStatus(
-        [FromQuery] HardwareInfo.DTO nodeInfo,
+        [FromQuery] MachineInfo.DTO nodeInfo,
         [FromServices] NodeSupervisor nodeSupervisor,
         [FromServices] ILogger<NodeController> logger)
     {
@@ -24,15 +24,28 @@ public class NodeController : ControllerBase
 
     [HttpPost("hardware_info")]
     public void ForwardHardwareInfoMessageToTelegram(
-        // Should likely be HardwareInfo.DTO.
-        [FromBody] string hardwareInfoMessage,
+        [FromForm] MachineInfoPayload hardwareInfoMessage,
         [FromServices] TelegramBot bot,
         [FromServices] ILogger<NodeController> logger
         )
     {
         logger.LogDebug("Hardware info message is received");
 
-        bot.TryNotifySubscribers(hardwareInfoMessage, logger);
+        
+        var messageBuilder = new StringBuilder();
+        messageBuilder.AppendLine($"{hardwareInfoMessage.nickname} Info:");
+        messageBuilder.AppendLine($"IP: {hardwareInfoMessage.ip}:{hardwareInfoMessage.port}");
+
+        if (!string.IsNullOrWhiteSpace(hardwareInfoMessage.hardware))
+        {
+            var hardware = JsonSerializer.Deserialize<BenchmarkResults>(hardwareInfoMessage.hardware)!;
+            messageBuilder.AppendLine(hardware.cpu.ToString());
+            messageBuilder.AppendLine(hardware.gpu.ToString());
+            messageBuilder.AppendLine(hardware.ram.ToString());
+            messageBuilder.AppendLine(hardware.disks.ToString());
+        }
+
+        bot.TryNotifySubscribers(messageBuilder.ToString(), logger);
     }
 
     [HttpGet("hardware_info/is_verbose")]
