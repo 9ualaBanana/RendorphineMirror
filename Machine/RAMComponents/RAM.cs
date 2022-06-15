@@ -1,4 +1,4 @@
-﻿namespace Hardware;
+﻿namespace Machine;
 
 public record RAM(
     uint Speed,

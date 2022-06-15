@@ -5,7 +5,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using UnitsNet;
 
-namespace Hardware.MessageBuilders;
+namespace Machine.MessageBuilders;
 
 [SupportedOSPlatform("windows")]
 internal class WindowsHardwareInfoMessage

@@ -1,9 +1,9 @@
 ﻿using Common;
-using Hardware.MessageBuilders;
+using Machine.MessageBuilders;
 using System.Net;
 using System.Text;
 
-namespace Hardware;
+namespace Machine;
 
 public record MachineInfo
 {

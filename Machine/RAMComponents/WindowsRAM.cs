@@ -1,7 +1,7 @@
 ﻿using System.Management;
 using System.Runtime.Versioning;
 
-namespace Hardware;
+namespace Machine;
 
 [SupportedOSPlatform("Windows")]
 internal static class WindowsRAM

@@ -2,7 +2,7 @@
 using System.Management;
 using System.Runtime.Versioning;
 
-namespace Hardware;
+namespace Machine;
 
 public static class CPU
 {

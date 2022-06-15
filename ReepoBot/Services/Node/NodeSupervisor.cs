@@ -1,4 +1,4 @@
-﻿using Hardware;
+﻿using Machine;
 using ReepoBot.Services.Telegram;
 using System.Collections.Concurrent;
 using System.Timers;
@@ -7,8 +7,8 @@ namespace ReepoBot.Services.Node;
 
 public class NodeSupervisor
 {
-    internal readonly HashSet<MachineInfo.DTO> AllNodes = new();
-    internal readonly ConcurrentDictionary<MachineInfo.DTO, TimerPlus> NodesOnline = new();
+    internal readonly HashSet<MachineInfo.DTO> AllNodes = new(new MachineInfoDTOEqualityComparer());
+    internal readonly ConcurrentDictionary<MachineInfo.DTO, TimerPlus> NodesOnline = new(new MachineInfoDTOEqualityComparer());
     internal HashSet<MachineInfo.DTO> NodesOffline => AllNodes.ToHashSet()
         .ExceptBy(NodesOnline.Keys.Select(its => its.PCName), node => node.PCName)
         .ToHashSet();

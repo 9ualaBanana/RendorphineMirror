@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Hardware;
+namespace Machine;
 
 public static class GPU
 {
