@@ -6,6 +6,8 @@ namespace Node;
 
 internal class MachineInfoService
 {
+    readonly string _sessionId;
+    readonly string _nickname;
     readonly HttpClient _http;
 
     readonly static string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
@@ -31,8 +33,10 @@ internal class MachineInfoService
         }
     }
 
-    internal MachineInfoService(HttpClient httpClient)
+    internal MachineInfoService(string sessionId, string nickname, HttpClient httpClient)
     {
+        _sessionId = sessionId;
+        _nickname = nickname;
         _http = httpClient;
     }
 
@@ -120,12 +124,12 @@ internal class MachineInfoService
         catch (Exception) { }
     }
 
-    async static Task<FormUrlEncodedContent> BuildPayloadAsync(BenchmarkResults? hardwarePayload)
+    async Task<FormUrlEncodedContent> BuildPayloadAsync(BenchmarkResults? hardwarePayload)
     {
         var payloadContent = new Dictionary<string, string>()
         {
-            ["sessionid"] = Guid.NewGuid().ToString(),
-            ["nickname"] = MachineInfo.PCName,
+            ["sessionid"] = _sessionId,
+            ["nickname"] = _nickname,
             ["ip"] = (await MachineInfo.GetPublicIPAsync()).ToString(),
             ["port"] = MachineInfo.Port,
             ["hardware"] = JsonSerializer.Serialize(hardwarePayload)

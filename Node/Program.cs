@@ -62,8 +62,14 @@ if (!Init.IsDebug)
     SystemService.Start();
 
     _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
-    var machineInfoService = new MachineInfoService(http);
+
+    var sessionManager = new SessionManager("email", "password", "https://tasks.microstock.plus", http);
+    string sessionId = await sessionManager.LoginAsync();
+    string nickName = await sessionManager.RequestNicknameAsync();
+
+    var machineInfoService = new MachineInfoService(sessionId, nickName, http);
     var benchmarkResults = await MachineInfoService.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824);
+
     _ = machineInfoService.SendMachineInfoAsync($"{Settings.ServerUrl}/node/hardware_info", benchmarkResults);
 }
 
