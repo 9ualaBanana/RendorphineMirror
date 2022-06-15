@@ -157,7 +157,11 @@ namespace NodeUI.Pages
                                 }
                                 catch { }
 
-                                if (die) break;
+                                if (die)
+                                {
+                                    await client.GetAsync($"http://127.0.0.1:{Settings.LocalListenPort}/stoptorrent?url={hash.ToHex()}").ConfigureAwait(false);
+                                    break;
+                                }
 
                                 Dispatcher.UIThread.Post(() => info2.Text = ifo);
                                 Thread.Sleep(200);

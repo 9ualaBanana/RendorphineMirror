@@ -4,6 +4,7 @@ using System.Globalization;
 using Common;
 
 ConsoleHide.Hide();
+Process.Start(new ProcessStartInfo(FileList.GetUpdaterExe()) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden })!.WaitForExit();
 
 var nodeexe = GetPath(args, 0, "Node");
 var updaterexe = GetPath(args, 1, "Updater");

@@ -6,10 +6,25 @@ using Node;
 
 AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
 {
+    try { Log.Error(ex.ExceptionObject?.ToString() ?? "null unhandled exception"); }
+    catch { }
+
     try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexp"), ex.ExceptionObject?.ToString()); }
     catch
     {
         try { File.WriteAllText(Path.GetTempPath(), ex.ExceptionObject?.ToString()); }
+        catch { }
+    }
+};
+TaskScheduler.UnobservedTaskException += (obj, ex) =>
+{
+    try { Log.Error(ex.Exception.ToString()); }
+    catch { }
+
+    try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexpt"), ex.Exception.ToString()); }
+    catch
+    {
+        try { File.WriteAllText(Path.GetTempPath(), ex.Exception.ToString()); }
         catch { }
     }
 };

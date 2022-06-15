@@ -33,18 +33,22 @@ namespace Common
             var encoded = data.Encode();
             var torrent = await Torrent.LoadAsync(encoded).ConfigureAwait(false);
             var manager = Client.Torrents.FirstOrDefault(x => x.InfoHash == torrent.InfoHash);
-            if (manager is null) manager = await AddTorrent(torrent, Path.GetFullPath(Path.Combine(directory, ".."))).ConfigureAwait(false);
+            if (manager is null) manager = await AddOrGetTorrent(torrent, Path.GetFullPath(Path.Combine(directory, ".."))).ConfigureAwait(false);
 
             return (encoded, manager);
         }
 
-        public static async Task<TorrentManager> AddTorrent(Torrent torrent, string targetdir)
+        public static TorrentManager? TryGet(InfoHash hash) => Client.Torrents.FirstOrDefault(x => x.InfoHash == hash);
+        public static async Task<TorrentManager> AddOrGetTorrent(Torrent torrent, string targetdir)
         {
             if (Client.DhtEngine.State == MonoTorrent.Dht.DhtState.NotReady)
                 _ = Client.DhtEngine.StartAsync();
 
 
-            var manager = await Client.AddAsync(torrent, targetdir).ConfigureAwait(false);
+            var manager = TryGet(torrent.InfoHash);
+            if (manager is not null) return manager;
+
+            manager = await Client.AddAsync(torrent, targetdir).ConfigureAwait(false);
 
             if (Init.IsDebug)
             {
