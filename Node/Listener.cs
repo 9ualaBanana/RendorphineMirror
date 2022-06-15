@@ -119,7 +119,7 @@ namespace Node
                 var subpath = segments[0].ToLowerInvariant();
 
                 if (subpath == "ping")
-                    return await Write(response, $"ok from {HardwareInfo.PCName} {HardwareInfo.UserName} v{HardwareInfo.Version}", OK).ConfigureAwait(false);
+                    return await Write(response, $"ok from {MachineInfo.PCName} {MachineInfo.UserName} v{MachineInfo.Version}", OK).ConfigureAwait(false);
 
                 var query = request.QueryString;
 

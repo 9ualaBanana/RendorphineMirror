@@ -128,7 +128,7 @@ public class TelegramUpdateHandler
     {
         _logger.LogDebug("Building the message with online nodes...");
 
-        IEnumerable<KeyValuePair<HardwareInfo.DTO, TimerPlus>> nodesOnlineToList;
+        IEnumerable<KeyValuePair<MachineInfo.DTO, TimerPlus>> nodesOnlineToList;
         var splitCommand = update.Message!.Text!.Split();
 
         if (splitCommand.Length > 1)

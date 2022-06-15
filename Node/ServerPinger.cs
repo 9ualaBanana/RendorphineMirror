@@ -24,7 +24,7 @@ internal class ServerPinger : IDisposable
     {
         _serverUri = serverUri;
         _timer = new Timer(interval);
-        _timer.Elapsed += OnTimerElapsed;
+        _timer.Elapsed += (_, _) => _ = PingServerAsync();
         _timer.AutoReset = true;
         _http = httpClient;
         _failedPingAttemptsLogLimit = failedPingAttemptsLogLimit;
@@ -38,16 +38,11 @@ internal class ServerPinger : IDisposable
         Log.Debug("{Service} is started.", nameof(ServerPinger));
     }
 
-    async void OnTimerElapsed(object? s, ElapsedEventArgs e)
-    {
-        await PingServerAsync();
-    }
-
     async Task PingServerAsync()
     {
         try
         {
-            var response = await _http.GetAsync($"{_serverUri}?{(await HardwareInfo.AsDTOAsync()).ToQueryString()}");
+            var response = await _http.GetAsync($"{_serverUri}?{(await MachineInfo.AsDTOAsync()).ToQueryString()}");
             response.EnsureSuccessStatusCode();
             Log.Debug("{Service} successfuly sent ping to {Server}", nameof(ServerPinger), Settings.ServerUrl);
         }
@@ -56,7 +51,7 @@ internal class ServerPinger : IDisposable
             _failedPingAttempts++;
             if (_failedPingAttempts <= _failedPingAttemptsLogLimit)
             {
-                Log.Error(ex, "{Node} was not able to ping the server.", await HardwareInfo.GetBriefInfoAsync());
+                Log.Error(ex, "{Node} was not able to ping the server.", await MachineInfo.GetBriefInfoAsync());
             }
         }
     }

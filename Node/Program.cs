@@ -4,7 +4,6 @@ global using Serilog;
 using System.Diagnostics;
 using Node;
 
-
 AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
 {
     try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexp"), ex.ExceptionObject?.ToString()); }
@@ -48,30 +47,15 @@ if (!Init.IsDebug)
     SystemService.Start();
 
     _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
+    var machineInfoService = new MachineInfoService(http);
+    var benchmarkResults = await MachineInfoService.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824);
+    _ = machineInfoService.SendMachineInfoAsync($"{Settings.ServerUrl}/node/hardware_info", benchmarkResults);
 }
 
 _ = Listener.StartLocalListenerAsync();
 _ = Listener.StartPublicListenerAsync();
 
 Thread.Sleep(-1);
-
-
-//async Task SendHardwareInfo()
-//{
-//    Log.Debug("Requesting hardware info message verbosity level from the server...");
-//    var isVerbose = await http.GetFromJsonAsync<bool>("node/hardware_info/is_verbose");
-//    var hardwareInfoMessage = await hardwareInfo.ToTelegramMessageAsync(isVerbose);
-//    Log.Information("Sending hardware info to {Server}", http.BaseAddress);
-//    try
-//    {
-//        var response = await http.PostAsJsonAsync($"node/hardware_info", hardwareInfoMessage);
-//        response.EnsureSuccessStatusCode();
-//    }
-//    catch (HttpRequestException ex)
-//    {
-//        Log.Error(ex, "Sending hardware info to the server resulted in {StatusCode} status code.", ex.StatusCode);
-//    }
-//}
 
 
 async Task<UserInfo> AuthenticateWithUI(CancellationToken token)
