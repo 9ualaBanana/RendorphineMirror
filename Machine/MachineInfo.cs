@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Hardware;
 
-public record HardwareInfo
+public record MachineInfo
 {
     readonly public static string UserName = Environment.UserName;
     readonly public static string PCName = Environment.MachineName;

@@ -7,9 +7,9 @@ namespace ReepoBot.Services.Node;
 
 public class NodeSupervisor
 {
-    internal readonly HashSet<HardwareInfo.DTO> AllNodes = new();
-    internal readonly ConcurrentDictionary<HardwareInfo.DTO, TimerPlus> NodesOnline = new();
-    internal HashSet<HardwareInfo.DTO> NodesOffline => AllNodes.ToHashSet().Except(NodesOnline.Keys).ToHashSet();
+    internal readonly HashSet<MachineInfo.DTO> AllNodes = new();
+    internal readonly ConcurrentDictionary<MachineInfo.DTO, TimerPlus> NodesOnline = new();
+    internal HashSet<MachineInfo.DTO> NodesOffline => AllNodes.ToHashSet().Except(NodesOnline.Keys).ToHashSet();
 
     readonly object _allNodesLock = new();
     readonly ILogger<NodeSupervisor> _logger;
@@ -51,7 +51,7 @@ public class NodeSupervisor
         _bot = bot;
     }
 
-    internal void UpdateNodeStatus(HardwareInfo.DTO nodeInfo)
+    internal void UpdateNodeStatus(MachineInfo.DTO nodeInfo)
     {
         _logger.LogDebug("Updating node status...");
 
@@ -74,7 +74,7 @@ public class NodeSupervisor
         _logger.LogDebug("Node status is updated");
     }
 
-    HardwareInfo.DTO? GetPreviousVersionIfOnline(HardwareInfo.DTO nodeInfo)
+    MachineInfo.DTO? GetPreviousVersionIfOnline(MachineInfo.DTO nodeInfo)
     {
         try
         {
@@ -83,7 +83,7 @@ public class NodeSupervisor
         catch (Exception) { return null; }
     }
 
-    void AddNewNode(HardwareInfo.DTO nodeInfo)
+    void AddNewNode(MachineInfo.DTO nodeInfo)
     {
         AllNodes.Add(nodeInfo);
         if (!NodesOnline.TryAdd(nodeInfo, Timer)) return;
@@ -92,7 +92,7 @@ public class NodeSupervisor
         _logger.LogDebug("New node is online: {Node}", nodeInfo.GetBriefInfoMDv2());
     }
 
-    void UpdateNodeVersion(HardwareInfo.DTO nodeOnline, HardwareInfo.DTO updatedNode)
+    void UpdateNodeVersion(MachineInfo.DTO nodeOnline, MachineInfo.DTO updatedNode)
     {
         if (!NodesOnline.TryRemove(nodeOnline, out var uptimeTimer)) return;
         NodesOnline.TryAdd(updatedNode, uptimeTimer);
@@ -131,7 +131,7 @@ public class NodeSupervisor
     /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="nodeInfo" />;
     /// <c>null</c> if <paramref name="nodeInfo"/> is offline.
     /// </returns>
-    internal TimeSpan? GetUptimeFor(HardwareInfo.DTO nodeInfo)
+    internal TimeSpan? GetUptimeFor(MachineInfo.DTO nodeInfo)
     {
         NodesOnline.TryGetValue(nodeInfo, out var uptime);
         return uptime?.ElapsedTime;
