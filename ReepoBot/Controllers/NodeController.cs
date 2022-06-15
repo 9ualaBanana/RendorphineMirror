@@ -39,10 +39,24 @@ public class NodeController : ControllerBase
         if (!string.IsNullOrWhiteSpace(hardwareInfoMessage.hardware))
         {
             var hardware = JsonSerializer.Deserialize<BenchmarkResults>(hardwareInfoMessage.hardware)!;
-            messageBuilder.AppendLine(hardware.cpu.ToString());
-            messageBuilder.AppendLine(hardware.gpu.ToString());
-            messageBuilder.AppendLine(hardware.ram.ToString());
-            messageBuilder.AppendLine(hardware.disks.ToString());
+            messageBuilder.AppendLine();
+            messageBuilder.AppendLine("CPU:");
+            messageBuilder.AppendLine($"Rating: {hardware.cpu.rating:##}");
+            messageBuilder.AppendLine($"FFmpeg Rating: {hardware.cpu.rating:##}");
+            messageBuilder.AppendLine($"Load: {hardware.cpu.rating:##}");
+            messageBuilder.AppendLine("GPU:");
+            messageBuilder.AppendLine($"Rating: {hardware.gpu.rating:##}");
+            messageBuilder.AppendLine($"FFmpeg Rating: {hardware.gpu.rating:##}");
+            messageBuilder.AppendLine($"Load: {hardware.gpu.rating:##}");
+            messageBuilder.AppendLine("RAM:");
+            messageBuilder.AppendLine($"Capacity: {hardware.ram.total:##}");
+            messageBuilder.AppendLine($"Free: {hardware.ram.free:##}");
+            messageBuilder.AppendLine("Drives:");
+            foreach (var drive in hardware.disks)
+            {
+                messageBuilder.AppendLine($"Free Space: {drive.freespace:##}");
+                messageBuilder.AppendLine($"Write Speed: {drive.writespeed:##}");
+            }
         }
 
         bot.TryNotifySubscribers(messageBuilder.ToString(), logger);

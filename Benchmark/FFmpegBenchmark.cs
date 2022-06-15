@@ -4,28 +4,30 @@ namespace Benchmark;
 
 public class FFmpegBenchmark
 {
+    readonly string _ffmpegPath;
     readonly string _inputFilePath;
 
-    public FFmpegBenchmark(string fileName)
+    public FFmpegBenchmark(string fileName, string ffmpegPath = "ffmpeg")
     {
+        _ffmpegPath = ffmpegPath;
         _inputFilePath = fileName;
     }
 
     public async Task<BenchmarkResult> RunAsync()
     {
         if (FFmpegIsNotInstalled)
-            throw new FileNotFoundException("FFmpeg is not on the PATH.");
+            throw new FileNotFoundException("FFmpeg executable is not found.");
         if (!File.Exists(_inputFilePath))
             throw new FileNotFoundException("Specified file does not exist.", _inputFilePath);
 
         return new((await File.ReadAllBytesAsync(_inputFilePath)).LongLength, await RunFFmpegProcessingAsync());
     }
 
-    static bool FFmpegIsNotInstalled => Process.Start(new ProcessStartInfo("ffmpeg", "-version") { CreateNoWindow = true }) is null;
+    bool FFmpegIsNotInstalled => Process.Start(new ProcessStartInfo(_ffmpegPath, "-version") { CreateNoWindow = true }) is null;
 
     async Task<TimeSpan> RunFFmpegProcessingAsync()
     {
-        var processStartInfo = new ProcessStartInfo("ffmpeg", $"-benchmark -i {_inputFilePath} -f null output.null")
+        var processStartInfo = new ProcessStartInfo(_ffmpegPath, $"-benchmark -i {_inputFilePath} -f null -")
         {
             CreateNoWindow = true,
             RedirectStandardError = true,

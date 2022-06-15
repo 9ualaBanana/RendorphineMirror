@@ -55,6 +55,7 @@ public static class TelegramHelperExtensions
             .Replace("_", @"\_")
             .Replace(">", @"\>")
             .Replace("(", @"\(")
-            .Replace(")", @"\)");
+            .Replace(")", @"\)")
+            .Replace("=", @"\=");
     }
 }

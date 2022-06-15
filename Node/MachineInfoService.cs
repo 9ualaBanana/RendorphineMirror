@@ -70,7 +70,7 @@ internal class MachineInfoService
         double ffmpegRating = default;
         try
         {
-            ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath).RunAsync()).Rate;
+            ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunAsync()).Rate;
         }
         catch (Exception) { }
         return new()
