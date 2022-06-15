@@ -77,6 +77,7 @@ internal class MachineInfoService
         {
             rating = (await new ZipBenchmark(testDataSize).RunAsync()).Rate,
             ffmpegrating = ffmpegRating,
+            load = default,
         };
     }
 
