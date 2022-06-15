@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Common;
+using Serilog;
 
 ConsoleHide.Hide();
 Process.Start(new ProcessStartInfo(FileList.GetUpdaterExe()) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden })!.WaitForExit();
@@ -28,7 +29,7 @@ static string GetPath(string[] args, int index, string info)
     return Path.GetFullPath(path);
 }
 
-static void Log(string text) => Console.WriteLine(DateTimeOffset.Now + ": " + text);
+static void Log(string text) => Serilog.Log.Information(text);
 
 static string GetCurrentTimeStr() => DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
 void AppendStartSession() => AppendSession("+" + GetCurrentTimeStr());
@@ -37,9 +38,6 @@ void AppendSession(string text) => File.AppendAllText(Path.Combine(Init.ConfigDi
 
 async Task<bool> Ping(HttpClient client, CancellationToken token)
 {
-    if (!Process.GetProcesses().Any(proc => Filter(proc, fname => fname == updaterexe)))
-        restart(@$"Updater process was not found, starting...");
-
     var sw = Stopwatch.StartNew();
     Log(@$"Sending ping...");
 
