@@ -1,4 +1,4 @@
-﻿using Hardware;
+﻿using Machine;
 using Microsoft.AspNetCore.Mvc;
 using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;

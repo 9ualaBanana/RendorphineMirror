@@ -1,5 +1,5 @@
 ﻿global using Common;
-global using Hardware;
+global using Machine;
 global using Serilog;
 using System.Diagnostics;
 using Node;

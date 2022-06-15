@@ -1,5 +1,4 @@
-﻿using Hardware;
-using ReepoBot.Models;
+﻿using Machine;
 using ReepoBot.Services.Node;
 using System.Text;
 using Telegram.Bot.Types;
