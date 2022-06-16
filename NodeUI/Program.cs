@@ -30,12 +30,14 @@ static class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleHide.Hide();
-        WindowsTrayRefreshFix.RefreshTrayArea();
+        Task.Run(ConsoleHide.Hide);
+        Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
         if (!Debugger.IsAttached)
+        {
             FileList.KillNodeUI();
+            Task.Run(CreateShortcuts);
+        }
 
-        CreateShortcuts();
 
         // check and elevate privileges
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
