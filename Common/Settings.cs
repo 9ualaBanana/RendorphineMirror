@@ -16,10 +16,12 @@ namespace Common
         public static string? UserId { get => BUserId.Value; set => BUserId.Value = value; }
         public static string? Username { get => BUsername.Value; set => BUsername.Value = value; }
         public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
+        public static bool ShortcutsCreated { get => BShortcutsCreated.Value; set => BShortcutsCreated.Value = value; }
 
         public static readonly DatabaseBindable<string> BServerUrl;
         public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort, BDhtPort, BTorrentPort;
-        public static readonly DatabaseBindable<string?> BUserId, BUsername, BSessionId, BLanguage;
+        public static readonly DatabaseBindable<string?> BSessionId, BUsername, BUserId, BLanguage;
+        public static readonly DatabaseBindable<bool> BShortcutsCreated;
 
         static readonly SQLiteConnection Connection;
         const string ConfigTable = "config";
@@ -42,6 +44,7 @@ namespace Common
             BUsername = new(nameof(Username), null);
             BUserId = new(nameof(UserId), null);
             BLanguage = new(nameof(Language), null);
+            BShortcutsCreated = new(nameof(ShortcutsCreated), false);
         }
 
 

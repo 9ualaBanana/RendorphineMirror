@@ -21,6 +21,9 @@
     </AvaloniaResource>
 
     <EmbeddedResource Include="Resources/**" />
+    <None Include="Resources/img/icon.ico">
+      <CopyToOutputDirectory>always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

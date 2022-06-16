@@ -24,15 +24,13 @@ namespace Common
                 .WriteTo.File(Path.Combine(ConfigDirectory, "logs", "log" + Path.GetFileNameWithoutExtension(Environment.ProcessPath!)) + ".log", restrictedToMinimumLevel: LogEventLevel.Information, retainedFileTimeLimit: TimeSpan.FromDays(7))
                 .MinimumLevel.Debug()
                 .CreateLogger();
-        }
 
-        public static void InitLogger()
-        {
-            Log.Information($"Renderphine {Version} on {GetOSInfo()} w UTC+{TimeZoneInfo.Local.BaseUtcOffset}");
+            Log.Information($"{Path.GetFileName(Environment.ProcessPath)} {Version} on {GetOSInfo()} w UTC+{TimeZoneInfo.Local.BaseUtcOffset}");
 
-            try { Log.Debug($"Current process: PID {Environment.ProcessId} {Process.GetCurrentProcess().ProcessName}"); }
+            try { Log.Debug($"Current process: {Environment.ProcessId} {Process.GetCurrentProcess().ProcessName}"); }
             catch { }
         }
+
         static string GetOSInfo()
         {
             var version = Environment.OSVersion;
@@ -52,7 +50,6 @@ namespace Common
 
             return str;
         }
-
         static string GetVersion()
         {
             DateTime? time = null;
