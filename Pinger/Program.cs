@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Common;
-using Serilog;
 
 ConsoleHide.Hide();
 Process.Start(new ProcessStartInfo(FileList.GetUpdaterExe()) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden })!.WaitForExit();
@@ -67,18 +66,6 @@ void RestartNode()
     AppendEndSession();
     FileList.KillProcesses();
 
-    _ = Process.Start(updaterexe) ?? throw new Exception("Could not start updater process");
+    _ = Process.Start(new ProcessStartInfo(updaterexe) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden }) ?? throw new Exception("Could not start updater process");
     AppendStartSession();
-}
-static bool Filter(Process proc, Func<string, bool> check)
-{
-    try
-    {
-        var module = proc.MainModule;
-        if (module?.FileName is null) return false;
-
-        var fpath = Path.GetFullPath(module.FileName);
-        return check(fpath);
-    }
-    catch { return false; }
 }
