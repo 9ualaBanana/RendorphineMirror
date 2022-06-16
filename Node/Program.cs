@@ -3,6 +3,9 @@ global using Machine;
 global using Serilog;
 using System.Diagnostics;
 using Node;
+using Node.Profiler;
+
+var http = new HttpClient() { BaseAddress = new(Settings.ServerUrl) };
 
 AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
 {
@@ -45,7 +48,6 @@ if (!Init.IsDebug)
     var uinfo = uinfor.Value;
 }
 
-var http = new HttpClient() { BaseAddress = new(Settings.ServerUrl) };
 PortForwarding.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
 {
@@ -63,14 +65,16 @@ if (!Init.IsDebug)
 
     _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
 
-    var sessionManager = new SessionManager("email", "password", "https://tasks.microstock.plus", http);
-    string sessionId = await sessionManager.LoginAsync();
-    string nickName = await sessionManager.RequestNicknameAsync();
+    var sessionManager = new SessionManager("mephisto123@gmail.com", "123", "https://tasks.microstock.plus", http);
+    Settings.SessionId = await sessionManager.LoginAsync();
+    Settings.Username ??= await sessionManager.RequestNicknameAsync();
 
-    var machineInfoService = new MachineInfoService(sessionId, nickName, http);
-    var benchmarkResults = await MachineInfoService.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824);
+    var profiler = new NodeProfiler(http);
+    var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824);
 
-    _ = machineInfoService.SendMachineInfoAsync($"{Settings.ServerUrl}/node/hardware_info", benchmarkResults);
+    _ = profiler.SendNodeProfileAsync($"{Settings.ServerUrl}/node/profile", benchmarkResults);
+    // Move domain to Settings.ServerUrl when the server on VPS will be integrated to this server.
+    _ = profiler.SendNodeProfileAsync($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults);
 }
 
 _ = Listener.StartLocalListenerAsync();

@@ -19,7 +19,7 @@ namespace Common
 
         public static readonly DatabaseBindable<string> BServerUrl;
         public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort, BDhtPort, BTorrentPort;
-        public static readonly DatabaseBindable<string?> BSessionId, BUsername, BUserId, BLanguage;
+        public static readonly DatabaseBindable<string?> BUserId, BUsername, BSessionId, BLanguage;
 
         static readonly SQLiteConnection Connection;
         const string ConfigTable = "config";

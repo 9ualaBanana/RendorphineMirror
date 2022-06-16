@@ -1,9 +1,11 @@
 ﻿using Machine;
 using Microsoft.AspNetCore.Mvc;
+using Node.Profiler;
 using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;
 using System.Text;
 using System.Text.Json;
+using UnitsNet;
 
 namespace ReepoBot.Controllers;
 
@@ -22,42 +24,46 @@ public class NodeController : ControllerBase
         nodeSupervisor.UpdateNodeStatus(nodeInfo);
     }
 
-    [HttpPost("hardware_info")]
-    public void ForwardHardwareInfoMessageToTelegram(
-        [FromForm] MachineInfoPayload hardwareInfoMessage,
+    [HttpPost("profile")]
+    public void ForwardNodeProfileMessageToTelegram(
+        [FromForm] NodeProfile nodeProfile,
         [FromServices] TelegramBot bot,
         [FromServices] ILogger<NodeController> logger
         )
     {
         logger.LogDebug("Hardware info message is received");
-        
-        var messageBuilder = new StringBuilder();
-        messageBuilder.AppendLine($"{hardwareInfoMessage.nickname} Info:");
-        messageBuilder.AppendLine($"IP: {hardwareInfoMessage.ip}:{hardwareInfoMessage.port}");
 
-        if (!string.IsNullOrWhiteSpace(hardwareInfoMessage.hardware))
+        if (string.IsNullOrWhiteSpace(nodeProfile.Info)) return;
+        var info = JsonSerializer.Deserialize<Info>(nodeProfile.Info, NodeProfile.JsonOptions);
+        if (info is null) return;
+
+        var messageBuilder = new StringBuilder();
+        messageBuilder.AppendLine($"{info.Nickname} Info:");
+        messageBuilder.AppendLine($"IP: {info.IP}:{info.Port}");
+
+        if (!string.IsNullOrWhiteSpace(info.Hardware))
         {
-            var hardware = JsonSerializer.Deserialize<BenchmarkResults>(hardwareInfoMessage.hardware);
+            var hardware = JsonSerializer.Deserialize<BenchmarkResults>(info.Hardware, NodeProfile.JsonOptions);
             if (hardware is not null)
             {
                 messageBuilder.AppendLine()
                     .AppendLine("CPU:")
-                    .AppendLine($"Rating: {hardware.cpu.rating:.#}")
-                    .AppendLine($"FFmpeg Rating: {hardware.cpu.rating:.#}")
-                    .AppendLine($"Load: {hardware.cpu.rating:.#}")
+                    .AppendLine($"Rating: {Information.FromBytes(hardware.CPU.Rating).Megabytes:.#}")
+                    .AppendLine($"FFmpeg Rating: {Information.FromBytes(hardware.CPU.FFmpegRating).Megabytes:.#}")
+                    .AppendLine($"Load: {hardware.CPU.Load:.#}")
                     .AppendLine("GPU:")
-                    .AppendLine($"Rating: {hardware.gpu.rating:.#}")
-                    .AppendLine($"FFmpeg Rating: {hardware.gpu.rating:.#}")
-                    .AppendLine($"Load: {hardware.gpu.rating:.#}")
+                    .AppendLine($"Rating: {Information.FromBytes(hardware.GPU.Rating).Megabytes:.#}")
+                    .AppendLine($"FFmpeg Rating: {Information.FromBytes(hardware.GPU.FFmpegRating).Megabytes:.#}")
+                    .AppendLine($"Load: {hardware.GPU.Load:.#}")
                     .AppendLine("RAM:")
-                    .AppendLine($"Capacity: {hardware.ram.total:.#}")
-                    .AppendLine($"Free: {hardware.ram.free:.#}")
+                    .AppendLine($"Capacity: {Information.FromBytes((double)hardware.RAM.Total).Gigabytes:.#}")
+                    .AppendLine($"Free: {Information.FromBytes((double)hardware.RAM.Free).Gigabytes:.#}")
                     .AppendLine("Drives:");
 
-                foreach (var drive in hardware.disks)
+                foreach (var drive in hardware.Disks)
                 {
-                    messageBuilder.AppendLine($"Free Space: {drive.freespace:.#}");
-                    messageBuilder.AppendLine($"Write Speed: {drive.writespeed:.#}");
+                    messageBuilder.AppendLine($"Free Space: {Information.FromBytes((double)drive.FreeSpace).Gigabytes:.#}");
+                    messageBuilder.AppendLine($"Write Speed: {Information.FromBytes((double)drive.WriteSpeed).Gigabytes:.#}");
                 }
             }
         }

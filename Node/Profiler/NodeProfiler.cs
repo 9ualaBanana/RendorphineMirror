@@ -1,14 +1,11 @@
 ﻿using Benchmark;
-using Machine;
 using System.Reflection;
 using System.Text.Json;
 
-namespace Node;
+namespace Node.Profiler;
 
-internal class MachineInfoService
+internal class NodeProfiler
 {
-    readonly string _sessionId;
-    readonly string _nickname;
     readonly HttpClient _http;
 
     readonly static string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
@@ -34,10 +31,8 @@ internal class MachineInfoService
         }
     }
 
-    internal MachineInfoService(string sessionId, string nickname, HttpClient httpClient)
+    internal NodeProfiler(HttpClient httpClient)
     {
-        _sessionId = sessionId;
-        _nickname = nickname;
         _http = httpClient;
     }
 
@@ -58,15 +53,15 @@ internal class MachineInfoService
     {
         return new()
         {
-            cpu = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize),
-            gpu = new()
+            CPU = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize),
+            GPU = new()
             {
-                rating = default,
-                ffmpegrating = default,
-                load = default,
+                Rating = default,
+                FFmpegRating = default,
+                Load = default,
             },
-            ram = GetRAMPayload(),
-            disks = await ComputePayloadWithDrivesBenchmarkResultsAsync(testDataSize)
+            RAM = GetRAMPayload(),
+            Disks = await ComputePayloadWithDrivesBenchmarkResultsAsync(testDataSize)
         };
     }
 
@@ -80,9 +75,9 @@ internal class MachineInfoService
         catch (Exception) { }
         return new()
         {
-            rating = (await new ZipBenchmark(testDataSize).RunAsync()).Rate,
-            ffmpegrating = ffmpegRating,
-            load = default,
+            Rating = (await new ZipBenchmark(testDataSize).RunAsync()).Rate,
+            FFmpegRating = ffmpegRating,
+            Load = default,
         };
     }
 
@@ -97,8 +92,8 @@ internal class MachineInfoService
         return Drive.Info.Zip(drivesBenchmarkResults)
             .Select(zip => new DrivesPayload()
             {
-                freespace = zip.First.FreeSpace,
-                writespeed = zip.Second.Write.Rate
+                FreeSpace = zip.First.FreeSpace,
+                WriteSpeed = zip.Second.Write.Rate
             })
             .ToArray();
     }
@@ -108,14 +103,14 @@ internal class MachineInfoService
         var ramInfo = RAM.Info;
         return new()
         {
-            total = ramInfo.Aggregate(0ul, (totalCapacity, ramUnit) => totalCapacity += ramUnit.Capacity),
-            free = ramInfo.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory)
+            Total = ramInfo.Aggregate(0ul, (totalCapacity, ramUnit) => totalCapacity += ramUnit.Capacity),
+            Free = ramInfo.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory)
         };
     }
 
-    internal async Task SendMachineInfoAsync(string serverUri, BenchmarkResults? hardwarePayload)
+    internal async Task SendNodeProfileAsync(string serverUri, BenchmarkResults? benchmarkResults)
     {
-        var requestPayload = await BuildPayloadAsync(hardwarePayload);
+        var requestPayload = await BuildPayloadAsync(benchmarkResults);
 
         try
         {
@@ -125,16 +120,42 @@ internal class MachineInfoService
         catch (Exception) { }
     }
 
-    async Task<FormUrlEncodedContent> BuildPayloadAsync(BenchmarkResults? hardwarePayload)
+    static async Task<FormUrlEncodedContent> BuildPayloadAsync(BenchmarkResults? benchmarkResults)
     {
         var payloadContent = new Dictionary<string, string>()
         {
-            ["sessionid"] = _sessionId,
-            ["nickname"] = _nickname,
-            ["ip"] = (await MachineInfo.GetPublicIPAsync()).ToString(),
-            ["port"] = MachineInfo.Port,
-            ["hardware"] = JsonSerializer.Serialize(hardwarePayload)
+            ["sessionid"] = Settings.SessionId!,
+            ["info"] = await SerializeNodeProfileAsync(benchmarkResults),
         };
         return new FormUrlEncodedContent(payloadContent);
+    }
+
+    static async Task<string> SerializeNodeProfileAsync(BenchmarkResults? benchmarkResults)
+    {
+        if (benchmarkResults is null)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
+                port = int.Parse(MachineInfo.Port),
+                nickname = Settings.Username,
+                allowedinputs = new { User = 1 },
+                allowedoutputs = new { User = 1 },
+                allowedtypes = new { },
+            });
+        }
+        else
+        {
+            return JsonSerializer.Serialize(new
+            {
+                ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
+                port = int.Parse(MachineInfo.Port),
+                nickname = Settings.Username,
+                allowedinputs = new { User = 1 },
+                allowedoutputs = new { User = 1 },
+                allowedtypes = new { },
+                hardware = benchmarkResults,
+            });
+        }
     }
 }
