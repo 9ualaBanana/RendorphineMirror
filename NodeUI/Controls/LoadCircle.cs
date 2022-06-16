@@ -1,5 +1,3 @@
-using Path = Avalonia.Controls.Shapes.Path;
-
 namespace NodeUI.Controls
 {
     public class LoadCircle : UserControl
@@ -21,7 +19,7 @@ namespace NodeUI.Controls
                 Stroke = circleColor,
             };
 
-            var loadbar = new Path
+            var loadbar = new APath
             {
                 Data = BarGeometry,
                 Fill = barColor,

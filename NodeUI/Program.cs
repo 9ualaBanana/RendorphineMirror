@@ -20,6 +20,8 @@ global using Common;
 global using NodeUI.Controls;
 global using NodeUI.Pages;
 global using Serilog;
+global using APath = Avalonia.Controls.Shapes.Path;
+global using Path = System.IO.Path;
 using System.Runtime.InteropServices;
 
 namespace NodeUI;
@@ -28,10 +30,14 @@ static class Program
 {
     public static void Main(string[] args)
     {
-        ConsoleHide.Hide();
-        WindowsTrayRefreshFix.RefreshTrayArea();
+        Task.Run(ConsoleHide.Hide);
+        Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
         if (!Debugger.IsAttached)
+        {
             FileList.KillNodeUI();
+            Task.Run(CreateShortcuts);
+        }
+
 
         // check and elevate privileges
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -52,7 +58,6 @@ static class Program
         }
 
 
-        Init.InitLogger();
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
     static AppBuilder BuildAvaloniaApp() =>
@@ -60,4 +65,38 @@ static class Program
         .UsePlatformDetect()
         .With(new X11PlatformOptions { UseDBusMenu = true })
         .LogToTrace();
+
+
+    static void CreateShortcuts()
+    {
+        if (Settings.ShortcutsCreated) return;
+
+        try
+        {
+            var ico = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, "Resources", "img", "icon.ico");
+            var data = @$"
+                [InternetShortcut]
+                URL=file:///{Environment.ProcessPath}
+                IconIndex=0
+                IconFile={ico.Replace('\\', '/')}
+            ".TrimLines();
+
+
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            write(Path.Combine(desktop, "Renderphine.url"), data);
+
+            var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+            Directory.CreateDirectory(startmenu);
+            write(Path.Combine(startmenu, "Renderphine.url"), data);
+        }
+        catch { }
+        finally { Settings.ShortcutsCreated = true; }
+
+
+        static void write(string linkpath, string data)
+        {
+            Log.Information($"Creating shortcut {linkpath}");
+            File.WriteAllText(linkpath, data);
+        }
+    }
 }

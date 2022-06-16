@@ -1,5 +1,4 @@
 using System.Xml;
-using Path = Avalonia.Controls.Shapes.Path;
 
 namespace NodeUI.Controls
 {
@@ -16,7 +15,7 @@ namespace NodeUI.Controls
                 _Stretch = value;
 
                 if (Child is Panel panel)
-                    foreach (var child in panel.Children.OfType<Path>())
+                    foreach (var child in panel.Children.OfType<APath>())
                         child.Stretch = value;
             }
         }
@@ -42,12 +41,12 @@ namespace NodeUI.Controls
                 }
 
                 var panel = new Panel();
-                panel.Children.AddRange(source.Select(x => new Path() { Stretch = Stretch, Data = x.geometry, Fill = x.fill, Stroke = x.stroke, StrokeThickness = 1 }));
+                panel.Children.AddRange(source.Select(x => new APath() { Stretch = Stretch, Data = x.geometry, Fill = x.fill, Stroke = x.stroke, StrokeThickness = 1 }));
 
                 Child = panel;
             }
         }
 
-        public IEnumerable<Path> Children => (Child as Panel)?.Children.OfType<Path>() ?? throw new NullReferenceException();
+        public IEnumerable<APath> Children => (Child as Panel)?.Children.OfType<APath>() ?? throw new NullReferenceException();
     }
 }
