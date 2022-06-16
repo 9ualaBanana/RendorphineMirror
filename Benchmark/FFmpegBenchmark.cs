@@ -4,13 +4,20 @@ namespace Benchmark;
 
 public class FFmpegBenchmark
 {
-    readonly string _ffmpegPath;
+    readonly string _ffmpegExecutablePath;
     readonly string _inputFilePath;
 
     public FFmpegBenchmark(string fileName, string ffmpegPath = "ffmpeg")
     {
-        _ffmpegPath = ffmpegPath;
+        _ffmpegExecutablePath = GetPathToExecutable(ffmpegPath);
         _inputFilePath = fileName;
+    }
+
+    static string GetPathToExecutable(string path)
+    {
+        if (!Directory.Exists(path)) return path;
+
+        return Path.Combine(path, "ffmpeg");
     }
 
     public async Task<BenchmarkResult> RunAsync()
@@ -23,11 +30,11 @@ public class FFmpegBenchmark
         return new((await File.ReadAllBytesAsync(_inputFilePath)).LongLength, await RunFFmpegProcessingAsync());
     }
 
-    bool FFmpegIsNotInstalled => Process.Start(new ProcessStartInfo(_ffmpegPath, "-version") { CreateNoWindow = true }) is null;
+    bool FFmpegIsNotInstalled => Process.Start(new ProcessStartInfo(_ffmpegExecutablePath, "-version") { CreateNoWindow = true }) is null;
 
     async Task<TimeSpan> RunFFmpegProcessingAsync()
     {
-        var processStartInfo = new ProcessStartInfo(_ffmpegPath, $"-benchmark -i {_inputFilePath} -f null -")
+        var processStartInfo = new ProcessStartInfo(_ffmpegExecutablePath, $"-benchmark -i {_inputFilePath} -f null -")
         {
             CreateNoWindow = true,
             RedirectStandardError = true,
