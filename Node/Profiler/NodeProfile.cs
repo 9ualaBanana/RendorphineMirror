@@ -14,41 +14,41 @@ public class Info
     public string IP { get; init; } = null!;
     public int Port { get; init; }
     public string Nickname { get; init; } = null!;
-    public string AllowedInputs { get; init; } = null!;
-    public string AllowedOutputs { get; init; } = null!;
-    public string AllowedTypes { get; init; } = null!;
+    public IDictionary<string, int> AllowedInputs { get; init; } = null!;
+    public IDictionary<string, int> AllowedOutputs { get; init; } = null!;
+    public IDictionary<TaskType, int> AllowedTypes { get; init; } = null!;
     public string? Hardware { get; init; }
 }
 
 public class BenchmarkResults
 {
-    public CPUPayload CPU { get; init; } = null!;
-    public GPUPayload GPU { get; init; } = null!;
-    public RAMPayload RAM { get; init; } = null!;
-    public DrivesPayload[] Disks { get; init; } = null!;
+    public CPUBenchmarkResults CPU { get; init; } = null!;
+    public GPUBenchmarkResults GPU { get; init; } = null!;
+    public RAMBenchmarkResults RAM { get; init; } = null!;
+    public DrivesBenchmarkResults[] Disks { get; init; } = null!;
 }
 
-public class CPUPayload
+public class CPUBenchmarkResults
 {
     public double Rating { get; init; }
     public double FFmpegRating { get; init; }
     public int Load { get; init; }
 }
 
-public class GPUPayload
+public class GPUBenchmarkResults
 {
     public double Rating { get; init; }
     public double FFmpegRating { get; init; }
     public int Load { get; init; }
 }
 
-public class RAMPayload
+public class RAMBenchmarkResults
 {
     public ulong Total { get; init; }
     public ulong Free { get; init; }
 }
 
-public class DrivesPayload
+public class DrivesBenchmarkResults
 {
     public ulong FreeSpace { get; init; }
     public double WriteSpeed { get; init; }

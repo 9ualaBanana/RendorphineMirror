@@ -1,6 +1,7 @@
 ﻿using Benchmark;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Node.Profiler;
 
@@ -65,7 +66,7 @@ internal class NodeProfiler
         };
     }
 
-    static async Task<CPUPayload> ComputePayloadWithCPUBenchmarkResultsAsync(uint testDataSize)
+    static async Task<CPUBenchmarkResults> ComputePayloadWithCPUBenchmarkResultsAsync(uint testDataSize)
     {
         double ffmpegRating = default;
         try
@@ -81,7 +82,7 @@ internal class NodeProfiler
         };
     }
 
-    static async Task<DrivesPayload[]> ComputePayloadWithDrivesBenchmarkResultsAsync(uint testDataSize)
+    static async Task<DrivesBenchmarkResults[]> ComputePayloadWithDrivesBenchmarkResultsAsync(uint testDataSize)
     {
         var drivesBenchmarkResults = new List<(BenchmarkResult Read, BenchmarkResult Write)>();
         foreach (var logicalDiskName in Drive.LogicalDisksNamesFromDistinctDrives)
@@ -90,7 +91,7 @@ internal class NodeProfiler
         }
 
         return Drive.Info.Zip(drivesBenchmarkResults)
-            .Select(zip => new DrivesPayload()
+            .Select(zip => new DrivesBenchmarkResults()
             {
                 FreeSpace = zip.First.FreeSpace,
                 WriteSpeed = zip.Second.Write.Rate
@@ -98,7 +99,7 @@ internal class NodeProfiler
             .ToArray();
     }
 
-    static RAMPayload GetRAMPayload()
+    static RAMBenchmarkResults GetRAMPayload()
     {
         var ramInfo = RAM.Info;
         return new()
@@ -132,30 +133,15 @@ internal class NodeProfiler
 
     static async Task<string> SerializeNodeProfileAsync(BenchmarkResults? benchmarkResults)
     {
-        if (benchmarkResults is null)
+        return JsonSerializer.Serialize(new
         {
-            return JsonSerializer.Serialize(new
-            {
-                ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
-                port = int.Parse(MachineInfo.Port),
-                nickname = Settings.Username,
-                allowedinputs = new { User = 1 },
-                allowedoutputs = new { User = 1 },
-                allowedtypes = new { },
-            });
-        }
-        else
-        {
-            return JsonSerializer.Serialize(new
-            {
-                ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
-                port = int.Parse(MachineInfo.Port),
-                nickname = Settings.Username,
-                allowedinputs = new { User = 1 },
-                allowedoutputs = new { User = 1 },
-                allowedtypes = new { },
-                hardware = benchmarkResults,
-            });
-        }
+            ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
+            port = int.Parse(MachineInfo.Port),
+            nickname = Settings.Username,
+            allowedinputs = new { User = 1 },
+            allowedoutputs = new { User = 1 },
+            allowedtypes = new { },
+            hardware = benchmarkResults,
+        }, new JsonSerializerOptions() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
     }
 }
