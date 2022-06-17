@@ -71,7 +71,23 @@ internal class NodeProfiler
         double ffmpegRating = default;
         try
         {
-            ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunAsync()).Rate;
+            ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnCpuAsync()).Rate;
+        }
+        catch (Exception) { }
+        return new()
+        {
+            Rating = (await new ZipBenchmark(testDataSize).RunAsync()).Rate,
+            FFmpegRating = ffmpegRating,
+            Load = default,
+        };
+    }
+
+    static async Task<CPUBenchmarkResults> ComputePayloadWithGPUBenchmarkResultsAsync(uint testDataSize)
+    {
+        double ffmpegRating = default;
+        try
+        {
+            ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnGpuAsync()).Rate;
         }
         catch (Exception) { }
         return new()

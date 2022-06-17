@@ -20,21 +20,28 @@ public class FFmpegBenchmark
         return Path.Combine(path, "ffmpeg");
     }
 
-    public async Task<BenchmarkResult> RunAsync()
+    public async Task<BenchmarkResult> RunOnCpuAsync() => await RunAsync();
+
+    public async Task<BenchmarkResult> RunOnGpuAsync() => await RunAsync("-hwaccel cuda");
+
+    public async Task<BenchmarkResult> RunAsync(string? additionalArguments = null)
     {
         if (FFmpegIsNotInstalled)
             throw new FileNotFoundException("FFmpeg executable is not found.");
         if (!File.Exists(_inputFilePath))
             throw new FileNotFoundException("Specified file does not exist.", _inputFilePath);
 
-        return new((await File.ReadAllBytesAsync(_inputFilePath)).LongLength, await RunFFmpegProcessingAsync());
+        return new(
+            (await File.ReadAllBytesAsync(_inputFilePath)).LongLength,
+            await RunFFmpegProcessingAsync(additionalArguments ?? string.Empty)
+            );
     }
 
     bool FFmpegIsNotInstalled => Process.Start(new ProcessStartInfo(_ffmpegExecutablePath, "-version") { CreateNoWindow = true }) is null;
 
-    async Task<TimeSpan> RunFFmpegProcessingAsync()
+    async Task<TimeSpan> RunFFmpegProcessingAsync(string additionalArguments)
     {
-        var processStartInfo = new ProcessStartInfo(_ffmpegExecutablePath, $"-benchmark -i {_inputFilePath} -f null -")
+        var processStartInfo = new ProcessStartInfo(_ffmpegExecutablePath, $"-benchmark {additionalArguments} -i {_inputFilePath} -f null -")
         {
             CreateNoWindow = true,
             RedirectStandardError = true,
