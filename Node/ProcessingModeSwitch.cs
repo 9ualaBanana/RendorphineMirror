@@ -9,7 +9,6 @@ public class ProcessesingModeSwitch
     readonly string[] _minerProcesses = new string[] { "NiceHashMiner", "app_nhm", "nicehashquickminer", "excavator", "nbminer", "miner", "CryptoDredge", "xmrig", "z-enemy", "nanominer", "TT - Miner" };
     readonly string[] _minerExecutables = new string[] { "C:\\Users\\" + Environment.UserName + "\\AppData\\Local\\Programs\\NiceHash Miner\\NiceHashMiner.exe" };
 
-    bool _wasBlocked;
     public bool IsBlocked
     {
         get
@@ -22,7 +21,7 @@ public class ProcessesingModeSwitch
         }
     }
 
-    public async Task StartMonitoring()
+    public async Task StartMonitoringAsync()
     {
         while (true)
         {
@@ -33,13 +32,8 @@ public class ProcessesingModeSwitch
 
     void CheckMode()
     {
-        var isBlocked = IsBlocked;
-        if (isBlocked != _wasBlocked)
-        {
-            _wasBlocked = isBlocked;
-            if (isBlocked) KillMiners();
-            else LaunchMiners();
-        }
+        if (IsBlocked) KillMiners();
+        else LaunchMiners();
     }
 
     void KillMiners()
@@ -56,18 +50,9 @@ public class ProcessesingModeSwitch
         foreach (var minerExecutable in _minerExecutables)
         {
             var existingMinerProcesses = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(minerExecutable));
-            if (existingMinerProcesses.Any()) return;
+            if (existingMinerProcesses.Any()) continue;
 
-            using var process = new Process()
-            {
-                StartInfo = new()
-                {
-                    WorkingDirectory = Path.GetDirectoryName(minerExecutable),
-                    FileName = Path.GetFileName(minerExecutable),
-                }
-            };
-
-            try { process.Start(); }
+            try { Process.Start(minerExecutable); }
             catch (Exception e)
             {
                 Console.WriteLine("[" + minerExecutable + "] " + e.Message);
