@@ -122,8 +122,14 @@ internal class SessionManager : IAsyncDisposable
             if (Settings.Username is null)
             {
                 var nickr = await Repeat(RequestNicknameAsync).ConfigureAwait(false);
+
                 if (nickr) Settings.Username = nickr.Value;
-                else Settings.Username = uinfo.Info.Username;
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(uinfo.Info.Username))
+                        Settings.Username = Guid.NewGuid().ToString();
+                    else Settings.Username = uinfo.Info.Username;
+                }
             }
             else Settings.Username = uinfo.Info.Username;
         }
