@@ -137,7 +137,7 @@ internal class NodeProfiler
         {
             ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
             port = int.Parse(MachineInfo.Port),
-            nickname = Settings.Username,
+            nickname = Settings.NodeName,
             allowedinputs = new { User = 1 },
             allowedoutputs = new { User = 1 },
             allowedtypes = new { },

@@ -58,8 +58,7 @@ async Task WaitForAuth(CancellationToken token)
         await Task.Delay(1000).ConfigureAwait(false);
 
         if (Settings.SessionId is null) continue;
-        if (Settings.UserId is null) break;
-        if (Settings.Username is null) break;
+        if (Settings.NodeName is null) break;
 
         Process.Start(Environment.ProcessPath!);
         break;

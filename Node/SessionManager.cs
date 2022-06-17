@@ -32,7 +32,7 @@ internal class SessionManager : IAsyncDisposable
         return _sessionId = responseJson.GetProperty("sessionid").GetString()!;
     }
 
-    internal async Task<UserInfo> CheckSessionAsync(string sid)
+    internal async Task CheckSessionAsync(string sid)
     {
         var credentials = new FormUrlEncodedContent(
             new Dictionary<string, string>
@@ -43,8 +43,6 @@ internal class SessionManager : IAsyncDisposable
         JsonElement responseJson = GetJsonFromResponseIfSuccessful(
             await _httpClient.PostAsync($"{_AccountsEndpoint}/checksession", credentials)
             );
-
-        return responseJson.GetProperty("account").Deserialize<UserInfo>();
     }
 
     internal async Task<string> RequestNicknameAsync()
@@ -102,39 +100,31 @@ internal class SessionManager : IAsyncDisposable
     }
 
 
-    internal async Task<OperationResult<UserInfo>> AuthAsync(string email, string password)
+    internal async Task<OperationResult> AuthAsync(string email, string password)
     {
         var login = await Repeat(() => LoginAsync(email, password)).ConfigureAwait(false);
         if (!login) return login.GetResult();
 
         return await CheckAsync().ConfigureAwait(false);
     }
-    internal async ValueTask<OperationResult<UserInfo>> CheckAsync()
+    internal async ValueTask<OperationResult> CheckAsync()
     {
-        if (_sessionId is null) return OperationResult.Err("Session id is null");
+        if (_sessionId is null) return OperationResult.Err();
 
-        var check = await Repeat(() => CheckSessionAsync(_sessionId)).ConfigureAwait(false);
+        var check = await Repeat(async () => { await CheckSessionAsync(_sessionId).ConfigureAwait(false); return true; }).ConfigureAwait(false);
         if (check)
         {
             var uinfo = check.Value;
-            Settings.UserId = uinfo.Id;
-
-            if (Settings.Username is null)
+            if (Settings.NodeName is null)
             {
                 var nickr = await Repeat(RequestNicknameAsync).ConfigureAwait(false);
 
-                if (nickr) Settings.Username = nickr.Value;
-                else
-                {
-                    if (string.IsNullOrWhiteSpace(uinfo.Info.Username))
-                        Settings.Username = Guid.NewGuid().ToString();
-                    else Settings.Username = uinfo.Info.Username;
-                }
+                if (nickr) Settings.NodeName = nickr.Value;
+                else Settings.NodeName = Guid.NewGuid().ToString();
             }
-            else Settings.Username = uinfo.Info.Username;
         }
 
-        return check;
+        return check.GetResult();
     }
     async Task<OperationResult<T>> Repeat<T>(Func<Task<T>> func)
     {

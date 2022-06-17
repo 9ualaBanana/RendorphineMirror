@@ -38,7 +38,7 @@ namespace NodeUI.Pages
                                 continue;
                             }
 
-                            Login.ShowError(auth.Message);
+                            Login.ShowError(auth.AsString());
                             return;
                         }
 
@@ -48,12 +48,12 @@ namespace NodeUI.Pages
                     }
 
 
-                    async ValueTask<OperationResult<UserInfo>> TryAuthenticate(string login, string password)
+                    async ValueTask<OperationResult> TryAuthenticate(string login, string password)
                     {
                         if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err(Localized.Login.EmptyLogin);
                         if (string.IsNullOrEmpty(password)) return OperationResult.Err(Localized.Login.EmptyPassword);
 
-                        return await LocalApi.Send<UserInfo>($"auth?email={HttpUtility.UrlEncode(login)}&password={HttpUtility.UrlEncode(password)}").ConfigureAwait(false);
+                        return await LocalApi.Send($"auth?email={HttpUtility.UrlEncode(login)}&password={HttpUtility.UrlEncode(password)}").ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex) { Login.ShowError(ex.Message); }
@@ -87,7 +87,7 @@ namespace NodeUI.Pages
             try
             {
                 Dispatcher.UIThread.Post(() => Login.StartLoginAnimation(Localized.Login.AuthCheck));
-                return (await LocalApi.Send<UserInfo>("checkauth").ConfigureAwait(false)).GetResult();
+                return await LocalApi.Send("checkauth").ConfigureAwait(false);
             }
             catch (Exception ex) { return OperationResult.Err(ex); }
             finally { Dispatcher.UIThread.Post(Login.StopLoginAnimation); }
@@ -95,6 +95,8 @@ namespace NodeUI.Pages
 
         void ShowMainWindow()
         {
+            Settings.Reload();
+
             var w = new MainWindow();
             ((IClassicDesktopStyleApplicationLifetime) Application.Current!.ApplicationLifetime!).MainWindow = w;
             w.Show();
