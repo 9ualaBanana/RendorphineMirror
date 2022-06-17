@@ -11,7 +11,7 @@ public record RAM(
     {
         get
         {
-            if (OperatingSystem.IsWindows()) return WindowsRAM.Info();
+            if (OperatingSystem.IsWindows()) return WindowsRAM.Info;
             //if (OperatingSystem.IsLinux()) return LinuxGetForAll();
             throw new PlatformNotSupportedException();
         }

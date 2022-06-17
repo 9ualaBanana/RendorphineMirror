@@ -7,23 +7,26 @@ namespace Machine;
 internal static class WindowsRAM
 {
 
-    internal static List<RAM> Info()
+    internal static List<RAM> Info
     {
-        using var ramSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory");
-        using var ramMbos = ramSearcher.Get();
-
-        var ramUnits = new List<RAM>(ramMbos.Count);
-        foreach (var ramMbo in ramMbos)
+        get
         {
-            _ = uint.TryParse(ramMbo["ConfiguredClockSpeed"].ToString(), out var speed);
-            _ = ulong.TryParse(ramMbo["Capacity"].ToString(), out var capacity);
-            var deviceLocator = ramMbo["DeviceLocator"].ToString()!;
-            var serialNumber = ramMbo["SerialNumber"].ToString()!;
+            using var ramSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory");
+            using var ramMbos = ramSearcher.Get();
 
-            ramUnits.Add(new(speed, capacity, FreeMemory, deviceLocator, serialNumber));
+            var ramUnits = new List<RAM>(ramMbos.Count);
+            foreach (var ramMbo in ramMbos)
+            {
+                _ = uint.TryParse(ramMbo["ConfiguredClockSpeed"].ToString(), out var speed);
+                _ = ulong.TryParse(ramMbo["Capacity"].ToString(), out var capacity);
+                var deviceLocator = ramMbo["DeviceLocator"].ToString()!;
+                var serialNumber = ramMbo["SerialNumber"].ToString()!;
+
+                ramUnits.Add(new(speed, capacity, FreeMemory, deviceLocator, serialNumber));
+            }
+
+            return ramUnits;
         }
-
-        return ramUnits;
     }
 
     static ulong FreeMemory

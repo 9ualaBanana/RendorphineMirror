@@ -18,9 +18,9 @@ internal class WindowsHardwareInfoMessage
         message.AppendLine();
 
         message.AppendLine(BuildCPUInfoMessage(CPU.Info()));
-        message.AppendLine(BuildGPUInfoMessage(GPU.Info()));
-        //message.AppendLine(BuildRAMInfoMessage(RAM.Info()));
-        //message.AppendLine(BuildDisksInfoMessage(Disks.Info()));
+        //message.AppendLine(BuildGPUInfoMessage(GPU.Info));
+        //message.AppendLine(BuildRAMInfoMessage(RAM.Info));
+        //message.AppendLine(BuildDisksInfoMessage(Disks.Info));
 
         return message.ToString();
     }
