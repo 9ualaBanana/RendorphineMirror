@@ -77,7 +77,7 @@ if (!Init.IsDebug)
     _ = profiler.SendNodeProfileAsync($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults);
 }
 
-_ = new ProcessesingModeSwitch().StartMonitoring();
+_ = new ProcessesingModeSwitch().StartMonitoringAsync();
 _ = Listener.StartLocalListenerAsync();
 _ = Listener.StartPublicListenerAsync();
 
