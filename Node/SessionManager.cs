@@ -1,32 +1,28 @@
-﻿using System.Text.Json;
+﻿using System.Net.Sockets;
+using System.Text.Json;
 
 namespace Node;
 
 internal class SessionManager : IAsyncDisposable
 {
     readonly HttpClient _httpClient;
-    readonly string _serverUri;
+    const string _serverUri = "https://tasks.microstock.plus";
     string _AccountsEndpoint => $"{_serverUri}/rphaccounts";
     string _TaskManagerEndpoint => $"{_serverUri}/rphtaskmgr";
-    readonly string _email;
-    readonly string _password;
-    string _sessionId = null!;
+    string _sessionId { get => Settings.SessionId!; set => Settings.SessionId = value!; }
 
-    internal SessionManager(string email, string password, string serverUri, HttpClient httpClient)
+    internal SessionManager(HttpClient? httpClient = null)
     {
-        _httpClient = httpClient;
-        _serverUri = serverUri;
-        _email = email;
-        _password = password;
+        _httpClient = httpClient ?? new();
     }
 
-    internal async Task<string> LoginAsync()
+    internal async Task<string> LoginAsync(string email, string password)
     {
         var credentials = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["email"] = _email,
-                ["password"] = _password
+                ["email"] = email,
+                ["password"] = password,
             });
 
         JsonElement responseJson = GetJsonFromResponseIfSuccessful(
@@ -34,6 +30,21 @@ internal class SessionManager : IAsyncDisposable
             );
 
         return _sessionId = responseJson.GetProperty("sessionid").GetString()!;
+    }
+
+    internal async Task<UserInfo> CheckSessionAsync(string sid)
+    {
+        var credentials = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["sessionid"] = sid,
+            });
+
+        JsonElement responseJson = GetJsonFromResponseIfSuccessful(
+            await _httpClient.PostAsync($"{_AccountsEndpoint}/checksession", credentials)
+            );
+
+        return responseJson.GetProperty("account").Deserialize<UserInfo>();
     }
 
     internal async Task<string> RequestNicknameAsync()
@@ -72,7 +83,15 @@ internal class SessionManager : IAsyncDisposable
         var responseJson = JsonDocument.Parse(response.Content.ReadAsStream()).RootElement;
         var responseStatusCode = responseJson.GetProperty("ok").GetInt32();
         if (responseStatusCode != 1)
+        {
+            if (responseJson.TryGetProperty("errormessage", out var errmsgp) && errmsgp.GetString() is { } errmsg)
+                throw new HttpRequestException(errmsg);
+
+            if (responseJson.TryGetProperty("errorcode", out var errcodep) && errcodep.GetString() is { } errcode)
+                throw new HttpRequestException($"Couldn't login. Server responded with {errcode} error code");
+
             throw new HttpRequestException($"Couldn't login. Server responded with {responseStatusCode} status code");
+        }
 
         return responseJson;
     }
@@ -80,5 +99,48 @@ internal class SessionManager : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await Logout();
+    }
+
+
+    internal async Task<OperationResult<UserInfo>> AuthAsync(string email, string password)
+    {
+        var login = await Repeat(() => LoginAsync(email, password)).ConfigureAwait(false);
+        if (!login) return login.GetResult();
+
+        return await CheckAsync().ConfigureAwait(false);
+    }
+    internal async ValueTask<OperationResult<UserInfo>> CheckAsync()
+    {
+        if (_sessionId is null) return OperationResult.Err("Session id is null");
+
+        var check = await Repeat(() => CheckSessionAsync(_sessionId)).ConfigureAwait(false);
+        if (check)
+        {
+            var uinfo = check.Value;
+            Settings.UserId = uinfo.Id;
+
+            if (Settings.Username is null || Settings.Username.Contains('@')) // TODO: remove contains @ check
+            {
+                var nickr = await Repeat(RequestNicknameAsync).ConfigureAwait(false);
+                if (nickr) Settings.Username = nickr.Value;
+                else Settings.Username = uinfo.Info.Username;
+            }
+            else Settings.Username = uinfo.Info.Username;
+        }
+
+        return check;
+    }
+    async Task<OperationResult<T>> Repeat<T>(Func<Task<T>> func)
+    {
+        while (true)
+        {
+            try { return await func().ConfigureAwait(false); }
+            catch (SocketException)
+            {
+                await Task.Delay(1000).ConfigureAwait(false);
+                continue;
+            }
+            catch (Exception ex) { return OperationResult.Err(ex); }
+        }
     }
 }

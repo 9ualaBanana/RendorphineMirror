@@ -7,6 +7,8 @@ namespace Common
 {
     public static class Settings
     {
+        public static event Action? AnyChanged;
+
         public static string ServerUrl { get => BServerUrl.Value; set => BServerUrl.Value = value; }
         public static ushort LocalListenPort { get => BLocalListenPort.Value; set => BLocalListenPort.Value = value; }
         public static ushort UPnpPort { get => BUPnpPort.Value; set => BUPnpPort.Value = value; }
@@ -124,9 +126,10 @@ namespace Common
                         new SQLiteParameter("key", name),
                         new SQLiteParameter("value", JsonSerializer.Serialize(newv))
                     );
+                Changed += (_, _) => AnyChanged?.Invoke();
             }
 
-            public void Reload() => _Value = Get(Name, _Value)!;
+            public void Reload() => Value = Get(Name, _Value)!;
         }
     }
 }

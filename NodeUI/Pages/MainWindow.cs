@@ -32,12 +32,16 @@ namespace NodeUI.Pages
         {
             public DashboardTab()
             {
-                Children.Add(new TextBlock()
+                var starttime = DateTimeOffset.Now;
+                var infotb = new TextBlock()
                 {
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Text = "dashboard window says hello world\nui start time: " + DateTimeOffset.Now,
-                });
+                    TextWrapping = TextWrapping.Wrap,
+                };
+                Children.Add(infotb);
+                updatetext();
+                Settings.AnyChanged += updatetext;
 
                 var langbtn = new MPButton()
                 {
@@ -49,6 +53,22 @@ namespace NodeUI.Pages
                     OnClick = () => Settings.Language = Settings.Language == "ru-RU" ? "en-US" : "ru-RU",
                 };
                 Children.Add(langbtn);
+
+
+                void updatetext()
+                {
+                    var values = typeof(Settings).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)
+                        .Where(x => x.FieldType.IsAssignableTo(typeof(IBindable)))
+                        .Select(x => x.Name.Substring(1) + ": " + x.GetValue(null)!.GetType().GetProperty("Value")!.GetValue(x.GetValue(null)));
+
+                    Dispatcher.UIThread.Post(() => infotb.Text =
+                        @$"
+                        Settings:
+                        {string.Join("; ", values)}
+                        ui start time: {starttime}
+                        ".TrimLines()
+                    );
+                }
             }
         }
         class PluginsTab : Panel

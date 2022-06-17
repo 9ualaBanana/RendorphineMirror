@@ -1,13 +1,11 @@
+using System.Net.Sockets;
+using System.Web;
 using Avalonia.Controls.ApplicationLifetimes;
 
 namespace NodeUI.Pages
 {
     public class LoginWindow : LoginWindowUI
     {
-        static readonly Api Api = new Api();
-
-        readonly List<CancellationTokenSource> WaitingExternalAuths = new List<CancellationTokenSource>();
-
         public LoginWindow(LocalizedString error) : this(false) => Login.ShowError(error);
         public LoginWindow(bool tryAutoAuth = true)
         {
@@ -22,18 +20,18 @@ namespace NodeUI.Pages
             this.PreventClosing();
 
 
-            async Task authenticate(LocalizedString str, Func<ValueTask<OperationResult<LoginResult>>> func)
+            async Task authenticate(string login, string password)
             {
                 try
                 {
-                    Login.StartLoginAnimation(str);
+                    Login.StartLoginAnimation(Localized.Login.Loading);
 
                     while (true)
                     {
-                        var auth = await OperationResult.WrapException(func);
+                        var auth = await OperationResult.WrapException(() => TryAuthenticate(login, password));
                         if (!auth)
                         {
-                            if (auth.Message?.Contains("443") ?? false)
+                            if (auth.Exception is SocketException)
                             {
                                 Login.StartLoginAnimation(Localized.General.NoInternet);
                                 await Task.Delay(1000);
@@ -44,98 +42,59 @@ namespace NodeUI.Pages
                             return;
                         }
 
-                        Login.StartLoginAnimation(Localized.Login.Loading);
-                        ShowMainWindow(auth.Result);
+                        Dispatcher.UIThread.Post(() => Login.StartLoginAnimation(Localized.Login.Loading));
+                        ShowMainWindow();
                         return;
+                    }
+
+
+                    async ValueTask<OperationResult<UserInfo>> TryAuthenticate(string login, string password)
+                    {
+                        if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err(Localized.Login.EmptyLogin);
+                        if (string.IsNullOrEmpty(password)) return OperationResult.Err(Localized.Login.EmptyPassword);
+
+                        return await LocalApi.Send<UserInfo>($"auth?email={HttpUtility.UrlEncode(login)}&password={HttpUtility.UrlEncode(password)}").ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex) { Login.ShowError(ex.Message); }
-                finally
-                {
-                    foreach (var t in WaitingExternalAuths)
-                    {
-                        try { t.Cancel(); }
-                        catch { }
-                    }
-                    WaitingExternalAuths.Clear();
-                    Login.StopLoginAnimation();
-                }
+                finally { Login.StopLoginAnimation(); }
             }
-            Login.OnPressLogin += (login, password) => _ = authenticate(Localized.Login.Loading, () => TryAuthenticate(login, password));
-            Login.OnPressLoginWith += t => _ = authenticate(Localized.Login.Waiting, () => TryAuthenticateExternal(t));
+            Login.OnPressLogin += (login, password) => _ = authenticate(login, password);
             Login.OnPressForgotPassword += () => Process.Start(new ProcessStartInfo("https://accounts.stocksubmitter.com/resetpasswordrequest") { UseShellExecute = true });
 
-            var hasSavedCreds = !string.IsNullOrWhiteSpace(Settings.SessionId) && !string.IsNullOrWhiteSpace(Settings.UserId) && !string.IsNullOrWhiteSpace(Settings.Username);
-            if (tryAutoAuth && hasSavedCreds)
+            if (tryAutoAuth)
                 Task.Run(async () =>
                 {
-                    while (true)
+                    var result = await Dispatcher.UIThread.InvokeAsync(CheckAuth).ConfigureAwait(false);
+                    if (!result)
                     {
-                        var result = await Dispatcher.UIThread.InvokeAsync(() => CheckAuth(Settings.SessionId!, Settings.UserId!)).ConfigureAwait(false);
-                        if (!result)
+                        Dispatcher.UIThread.Post(() =>
                         {
-                            Dispatcher.UIThread.Post(Login.UnlockButtons);
+                            Login.UnlockButtons();
+                            Login.ShowError(result.AsString());
+                        });
 
-                            if (result.Message?.Contains("443") ?? false)
-                            {
-                                await Task.Delay(1000);
-                                continue;
-                            }
-
-                            Settings.SessionId = null;
-                            Dispatcher.UIThread.Post(() => Login.ShowError(Localized.Login.SidExpired));
-
-                            return;
-                        }
-
-                        Dispatcher.UIThread.Post(() => ShowMainWindow(new LoginResult(Settings.Username!, Settings.UserId!, Settings.SessionId!)));
                         return;
                     }
+
+                    Dispatcher.UIThread.Post(ShowMainWindow);
                 });
         }
 
 
-        async ValueTask<OperationResult<LoginResult>> TryAuthenticateExternal(LoginType type)
-        {
-            var source = new CancellationTokenSource();
-            WaitingExternalAuths.Add(source);
-            _ = Task.Delay(10_000).ContinueWith(_ => Dispatcher.UIThread.Post(Login.UnlockButtons), source.Token);
-
-
-            var auth = await Api.AuthenticateExternalAsync(type, source.Token);
-            if (!auth)
-            {
-                source.Cancel();
-                Dispatcher.UIThread.Post(Login.UnlockButtons);
-            }
-
-            return auth;
-        }
-        async ValueTask<OperationResult<LoginResult>> TryAuthenticate(string login, string password)
-        {
-            if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err(Localized.Login.EmptyLogin);
-            if (string.IsNullOrEmpty(password)) return OperationResult.Err(Localized.Login.EmptyPassword);
-
-            var auth = await Api.AuthenticateAsync(login, password, CancellationToken.None);
-            if (!auth) return OperationResult.Err(Localized.Login.WrongLoginPassword);
-
-            return auth.Result;
-        }
-        async Task<OperationResult> CheckAuth(string sid, string userid)
+        async Task<OperationResult> CheckAuth()
         {
             try
             {
-                Login.StartLoginAnimation(Localized.Login.AuthCheck);
-                return (await Api.CheckAuthenticationAsync(sid, CancellationToken.None).ConfigureAwait(false)).GetResult();
+                Dispatcher.UIThread.Post(() => Login.StartLoginAnimation(Localized.Login.AuthCheck));
+                return (await LocalApi.Send<UserInfo>("checkauth").ConfigureAwait(false)).GetResult();
             }
             catch (Exception ex) { return OperationResult.Err(ex); }
             finally { Dispatcher.UIThread.Post(Login.StopLoginAnimation); }
         }
 
-        void ShowMainWindow(in LoginResult info)
+        void ShowMainWindow()
         {
-            info.SaveToConfig();
-
             var w = new MainWindow();
             ((IClassicDesktopStyleApplicationLifetime) Application.Current!.ApplicationLifetime!).MainWindow = w;
             w.Show();
@@ -195,7 +154,6 @@ namespace NodeUI.Pages
         {
             public event Action<string, string> OnPressLogin = delegate { };
             public event Action OnPressForgotPassword = delegate { };
-            public event Action<LoginType> OnPressLoginWith = delegate { };
 
             public TextBox LoginInput => LoginPasswordInput.LoginInput;
             public TextBox PasswordInput => LoginPasswordInput.PasswordInput;
@@ -203,7 +161,6 @@ namespace NodeUI.Pages
             readonly LoginPasswordInputUI LoginPasswordInput;
             readonly TextBlock ErrorText;
             readonly LoginStatusUI LoginStatus;
-            readonly ExternalLoginButtonsUI ExternalLoginButtons;
             readonly MPButton LoginButton;
 
             public LoginControl()
@@ -218,7 +175,6 @@ namespace NodeUI.Pages
                 };
 
                 var buttonsAndRemember = new Panel { Margin = new Thickness(30, 0) };
-                buttonsAndRemember.Children.Add(ExternalLoginButtons = new ExternalLoginButtonsUI());
 
 
                 var grid = new Grid();
@@ -254,10 +210,6 @@ namespace NodeUI.Pages
                 LoginStatus.HorizontalAlignment = HorizontalAlignment.Center;
                 LoginStatus.VerticalAlignment = VerticalAlignment.Center;
 
-                ExternalLoginButtons.HorizontalAlignment = HorizontalAlignment.Left;
-                ExternalLoginButtons.Width = 160;
-                ExternalLoginButtons.OnPressLogin += t => OnPressLoginWith(t);
-
                 LoginPasswordInput.Margin = new Thickness(30, 0);
                 forgotPasswordButton.Margin = new Thickness(0, 0, 0, 50);
 
@@ -283,8 +235,8 @@ namespace NodeUI.Pages
                 };
             }
 
-            public void LockButtons() => LoginButton.IsEnabled = ExternalLoginButtons.IsEnabled = false;
-            public void UnlockButtons() => LoginButton.IsEnabled = ExternalLoginButtons.IsEnabled = true;
+            public void LockButtons() => LoginButton.IsEnabled = false;
+            public void UnlockButtons() => LoginButton.IsEnabled = true;
             public void StartLoginAnimation(LocalizedString text)
             {
                 HideError();
@@ -455,112 +407,6 @@ namespace NodeUI.Pages
                 }
             }
 
-            class ExternalLoginButtonsUI : UserControl
-            {
-                public event Action<LoginType> OnPressLogin = delegate { };
-
-                public ExternalLoginButtonsUI()
-                {
-                    #region icons
-
-                    const string yapath = @"M 5.703125 0.38867188 C 1.081962 0.80453588 -0.080191906 7.6430096 3.5136719 10.173828
-                        L 0.50976562 16.796875 L 3.4882812 16.796875 L 6.1386719 10.888672 L 6.6972656 10.888672 L 6.6972656 16.796875
-                        L 9.3730469 16.796875 L 9.3984375 0.39453125 L 6.671875 0.39453125 C 6.3334215 0.36198505 6.0112025 0.36094761
-                        5.703125 0.38867188 z M 6.1386719 2.6875 C 6.3139771 2.6893829 6.5003943 2.7225039 6.6972656 2.7890625 L 6.6972656
-                        8.5195312 C 3.341276 9.4260765 3.5090929 2.6592561 6.1386719 2.6875 z ";
-
-                    const string vkpath = @"M18.0191 0.995034C18.1402 0.555581 18.0191 0.232143 17.4364 0.232143H15.5081C15.017 0.232143
-                        14.7911 0.509878 14.67 0.819253C14.67 0.819253 13.6878 3.38917 12.2998 5.05558C11.8512 5.53722 11.645 5.69191 11.3995
-                        5.69191C11.2783 5.69191 11.0917 5.53722 11.0917 5.09777V0.995034C11.0917 0.46769 10.9542 0.232143 10.5483 0.232143H7.51672C7.20898
-                        0.232143 7.02565 0.478237 7.02565 0.706753C7.02565 1.20597 7.7197 1.32199 7.79172 2.72824V5.7798C7.79172 6.44777 7.68041 6.57082
-                        7.43487 6.57082C6.78011 6.57082 5.18904 3.99035 4.24618 1.03722C4.0563 0.464175 3.8697 0.232143 3.37535 0.232143H1.44708C0.897076
-                        0.232143 0.785767 0.509878 0.785767 0.819253C0.785767 1.36769 1.44053 4.0923 3.83368 7.6923C5.42803 10.1497 7.67386 11.4821 9.71672
-                        11.4821C10.9444 11.4821 11.095 11.1868 11.095 10.6771C11.095 8.32863 10.9837 8.10714 11.5992 8.10714C11.884 8.10714 12.3751 8.26183
-                        13.5209 9.4466C14.8304 10.8528 15.0465 11.4821 15.7798 11.4821H17.7081C18.2581 11.4821 18.5364 11.1868 18.3759 10.6032C18.0093 9.37628
-                        15.531 6.85207 15.4197 6.68332C15.1349 6.28957 15.2167 6.11378 15.4197 5.76222C15.423 5.75871 17.7768 2.20089 18.0191 0.995034Z";
-
-                    const string fpath = @"M8.77487 10.5L9.25098 7.39754H6.27409V5.38426C6.27409 4.53549 6.68994 3.70815 8.02319
-                        3.70815H9.37654V1.06674C9.37654 1.06674 8.14842 0.857143 6.9742 0.857143C4.52264 0.857143 2.92018 2.34308 2.92018
-                        5.03304V7.39754H0.195068V10.5H2.92018V18H6.27409V10.5H8.77487Z";
-
-                    const string gpath = @"M15.042 8.60335C15.042 12.8673 12.122 15.9018 7.80988 15.9018C3.67551 15.9018 0.33667 12.5629 0.33667
-                        8.42857C0.33667 4.2942 3.67551 0.955357 7.80988 0.955357C9.82283 0.955357 11.5164 1.69364 12.8212 2.91105L10.7871 4.86674C8.12629
-                        2.29933 3.1783 4.2279 3.1783 8.42857C3.1783 11.0352 5.26055 13.1475 7.80988 13.1475C10.769 13.1475 11.878 11.0261 12.0527
-                        9.92623H7.80988V7.3558H14.9245C14.9938 7.7385 15.042 8.10614 15.042 8.60335Z";
-
-                    #endregion
-
-                    var yaButton = new ExternalLoginButtonUI(yapath) { BorderPadding = new Thickness(0, 0, 3, 0) };
-                    var vkButton = new ExternalLoginButtonUI(vkpath) { BorderPadding = new Thickness(0, 0, 2, 0) };
-                    var fButton = new ExternalLoginButtonUI(fpath);
-                    var gButton = new ExternalLoginButtonUI(gpath) { BorderPadding = new Thickness(0, 0, 1, 0) };
-
-                    var grid = new Grid();
-                    grid.ColumnDefinitions.Add(new ColumnDefinition());
-                    grid.ColumnDefinitions.Add(new ColumnDefinition());
-                    grid.ColumnDefinitions.Add(new ColumnDefinition());
-                    grid.ColumnDefinitions.Add(new ColumnDefinition());
-
-                    grid.Children.Add(yaButton);
-                    grid.Children.Add(vkButton);
-                    grid.Children.Add(fButton);
-                    grid.Children.Add(gButton);
-
-                    Grid.SetColumn(vkButton, 1);
-                    Grid.SetColumn(fButton, 2);
-                    Grid.SetColumn(gButton, 3);
-
-                    yaButton.OnClick += () => OnPressLogin(LoginType.Yandex);
-                    vkButton.OnClick += () => OnPressLogin(LoginType.VKontakte);
-                    fButton.OnClick += () => OnPressLogin(LoginType.Facebook);
-                    gButton.OnClick += () => OnPressLogin(LoginType.Google);
-
-                    Content = grid;
-                }
-
-
-                class ExternalLoginButtonUI : ClickableControl
-                {
-                    public Thickness BorderPadding { set => Border.Padding = value; }
-
-                    readonly Border Border;
-
-                    public ExternalLoginButtonUI(string pathstr)
-                    {
-                        Width = Height = 30;
-
-                        var path = new Avalonia.Controls.Shapes.Path
-                        {
-                            Data = Geometry.Parse(pathstr)
-                        };
-                        path.Stroke = path.Fill = Colors.GrayButton;
-                        path.HorizontalAlignment = HorizontalAlignment.Center;
-                        path.VerticalAlignment = VerticalAlignment.Center;
-
-                        Border = new Border
-                        {
-                            BorderThickness = new Thickness(2),
-                            CornerRadius = new CornerRadius(Width),
-                            BorderBrush = Colors.GrayButton,
-                            Child = path
-                        };
-
-                        Content = Border;
-
-
-                        PointerEnter += (_, _) =>
-                        {
-                            if (IsEnabled) path.Stroke = path.Fill = Border.BorderBrush = Colors.Accent;
-                        };
-                        PointerLeave += (_, _) =>
-                        {
-                            if (IsEnabled) path.Stroke = path.Fill = Border.BorderBrush = Colors.GrayButton;
-                        };
-                        this.GetObservable(IsEnabledProperty).Subscribe(v =>
-                            Border.BorderBrush = path.Stroke = path.Fill = v ? Colors.GrayButton : Colors.BorderColor);
-                    }
-                }
-            }
             class RememberMeSwitchUI : UserControl
             {
                 public bool IsToggled

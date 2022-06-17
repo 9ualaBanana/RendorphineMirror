@@ -7,46 +7,13 @@ using Node.Profiler;
 
 var http = new HttpClient() { BaseAddress = new(Settings.ServerUrl) };
 
-AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
-{
-    try { Log.Error(ex.ExceptionObject?.ToString() ?? "null unhandled exception"); }
-    catch { }
-
-    try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexp"), ex.ExceptionObject?.ToString()); }
-    catch
-    {
-        try { File.WriteAllText(Path.GetTempPath(), ex.ExceptionObject?.ToString()); }
-        catch { }
-    }
-};
-TaskScheduler.UnobservedTaskException += (obj, ex) =>
-{
-    try { Log.Error(ex.Exception.ToString()); }
-    catch { }
-
-    try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexpt"), ex.Exception.ToString()); }
-    catch
-    {
-        try { File.WriteAllText(Path.GetTempPath(), ex.Exception.ToString()); }
-        catch { }
-    }
-};
-
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
 
-var api = new Api();
+var sessionManager = new SessionManager(http);
 
-if (!Init.IsDebug)
-{
-    var uinfor = await Authenticate(CancellationToken.None).ConfigureAwait(false);
-    if (uinfor is null)
-    {
-        await AuthenticateWithUI(CancellationToken.None).ConfigureAwait(false);
-        return;
-    }
-    var uinfo = uinfor.Value;
-}
+_ = Listener.StartLocalListenerAsync();
+if (!Init.IsDebug) await Authenticate().ConfigureAwait(false);
 
 PortForwarding.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
@@ -65,10 +32,6 @@ if (!Init.IsDebug)
 
     _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
 
-    var sessionManager = new SessionManager("mephisto123@gmail.com", "123", "https://tasks.microstock.plus", http);
-    Settings.SessionId = await sessionManager.LoginAsync();
-    Settings.Username ??= await sessionManager.RequestNicknameAsync();
-
     var profiler = new NodeProfiler(http);
     var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824);
 
@@ -78,13 +41,12 @@ if (!Init.IsDebug)
 }
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
-_ = Listener.StartLocalListenerAsync();
 _ = Listener.StartPublicListenerAsync();
 
 Thread.Sleep(-1);
 
 
-async Task<UserInfo> AuthenticateWithUI(CancellationToken token)
+async Task WaitForAuth(CancellationToken token)
 {
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
 
@@ -93,15 +55,10 @@ async Task<UserInfo> AuthenticateWithUI(CancellationToken token)
 
     while (true)
     {
-        await Task.Delay(1000);
+        await Task.Delay(1000).ConfigureAwait(false);
 
-        Settings.BSessionId.Reload();
         if (Settings.SessionId is null) continue;
-
-        Settings.BUserId.Reload();
         if (Settings.UserId is null) break;
-
-        Settings.BUsername.Reload();
         if (Settings.Username is null) break;
 
         Process.Start(Environment.ProcessPath!);
@@ -109,52 +66,35 @@ async Task<UserInfo> AuthenticateWithUI(CancellationToken token)
     }
 
     Environment.Exit(0);
-    return default;
+    throw new Exception();
 }
-async Task<UserInfo?> Authenticate(CancellationToken token)
+async ValueTask Authenticate()
 {
-    // either check sid
-    if (Settings.SessionId is not null)
-    {
-        while (true)
-        {
-            var auth = await OperationResult.WrapException(() => api.CheckAuthenticationAsync(Settings.SessionId, token)).ConfigureAwait(false);
-            auth.LogIfError();
+    var check = await sessionManager.CheckAsync().ConfigureAwait(false);
+    check.LogIfError();
+    if (check) return;
 
-            if (!auth)
-            {
-                if (auth.Message?.Contains("443") ?? false)
-                {
-                    await Task.Delay(1000);
-                    continue;
-                }
-
-                break;
-            }
-
-            return auth.Value;
-        }
-    }
-
+    await Auth().ConfigureAwait(false);
+}
+async ValueTask<OperationResult> Auth()
+{
     // or try to auth from auth.txt
-    string? file = null;
-    if (File.Exists(file = "auth.txt") || File.Exists(file = "../auth.txt"))
+    // string? file = null;
+    //if (File.Exists(file = "auth.txt") || File.Exists(file = "../auth.txt"))
     {
-        var data = File.ReadAllText(file).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (data.Length == 2)
+        // TODO: remove/fix when registration is done
+        var data = new[] { "mephisto123@gmail.com", "123" };
+
+        // var data = File.ReadAllText(file).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (data.Length < 2) Log.Error("Not enough arguments in auth.txt");
+        else
         {
-            var auth = await api.AuthenticateAsync(data[0], data[1], token).ConfigureAwait(false);
+            var auth = await sessionManager.AuthAsync(data[0], data[1]).ConfigureAwait(false);
             auth.LogIfError();
-
-            if (auth)
-            {
-                auth.Result.SaveToConfig();
-
-                var userinfo = await api.CheckAuthenticationAsync(Settings.SessionId!, token).ConfigureAwait(false);
-                if (userinfo) return userinfo.Value;
-            }
+            if (auth) return true;
         }
     }
 
-    return default;
+    await WaitForAuth(CancellationToken.None).ConfigureAwait(false);
+    return OperationResult.Err();
 }

@@ -14,6 +14,24 @@ namespace Node
         const HttpStatusCode OK = HttpStatusCode.OK;
 
         static readonly HttpClient Client = new();
+        static readonly SessionManager SessionManager = new();
+
+        static JObject JsonFromOpResult(in OperationResult result)
+        {
+            var json = new JObject() { ["ok"] = new JValue(result.Success), };
+            if (!result) json["errormsg"] = result.AsString();
+
+            return json;
+        }
+        static JObject JsonFromOpResult<T>(in OperationResult<T> result)
+        {
+            var json = JsonFromOpResult(result.EString);
+            if (result) json["value"] = JValue.FromObject(result.Value!);
+
+            return json;
+        }
+        static Task<HttpStatusCode> WriteJson<T>(HttpListenerResponse response, in OperationResult<T> result) => Write(response, JsonFromOpResult(result));
+        static Task<HttpStatusCode> WriteJson(HttpListenerResponse response, in OperationResult result) => Write(response, JsonFromOpResult(result));
 
         static Task<HttpStatusCode> WriteErr(HttpListenerResponse response, string text) => Write(response, text, HttpStatusCode.BadRequest);
         static Task<HttpStatusCode> Write(HttpListenerResponse response, string text, HttpStatusCode code = HttpStatusCode.OK) => Write(response, Encoding.UTF8.GetBytes(text), code);
@@ -95,6 +113,22 @@ namespace Node
                         return await Write(response, await postresponse.Content.ReadAsStreamAsync().ConfigureAwait(false), postresponse.StatusCode).ConfigureAwait(false);
 
                     return await Write(response, manager.InfoHash.ToArray()).ConfigureAwait(false);
+                }
+
+                if (subpath == "checkauth")
+                {
+                    var check = await SessionManager.CheckAsync().ConfigureAwait(false);
+                    return await WriteJson(response, check).ConfigureAwait(false);
+                }
+                if (subpath == "auth")
+                {
+                    var email = query["email"];
+                    if (email is null) return await WriteErr(response, "no email").ConfigureAwait(false);
+                    var password = query["password"];
+                    if (password is null) return await WriteErr(response, "no password").ConfigureAwait(false);
+
+                    var auth = await SessionManager.AuthAsync(email, password).ConfigureAwait(false);
+                    return await WriteJson(response, auth).ConfigureAwait(false);
                 }
 
                 return HttpStatusCode.NotFound;
