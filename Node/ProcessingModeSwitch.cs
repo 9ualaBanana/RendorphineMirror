@@ -5,8 +5,10 @@ namespace Node;
 public class ProcessesingModeSwitch
 {
     const int loopDelay = 30000;
+    //readonly string[] _blockingProcesses = new string[] { "3dsmax", "AfterFX" };
     readonly string[] _blockingProcesses = new string[] { "3dsmax", "AfterFX" };
     readonly string[] _minerProcesses = new string[] { "NiceHashMiner", "app_nhm", "nicehashquickminer", "excavator", "nbminer", "miner", "CryptoDredge", "xmrig", "z-enemy", "nanominer", "TT - Miner" };
+    //readonly string[] _minerExecutables = new string[] { "C:\\Users\\" + Environment.UserName + "\\AppData\\Local\\Programs\\NiceHash Miner\\NiceHashMiner.exe" };
     readonly string[] _minerExecutables = new string[] { "C:\\Users\\" + Environment.UserName + "\\AppData\\Local\\Programs\\NiceHash Miner\\NiceHashMiner.exe" };
 
     public bool IsBlocked
@@ -52,7 +54,14 @@ public class ProcessesingModeSwitch
             var existingMinerProcesses = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(minerExecutable));
             if (existingMinerProcesses.Any()) continue;
 
-            try { Process.Start(minerExecutable); }
+            var process = new Process()
+            {
+                StartInfo = new(Path.GetFileName(minerExecutable))
+                {
+                    WorkingDirectory = Path.GetDirectoryName(minerExecutable)
+                }
+            };
+            try { process.Start(); }
             catch (Exception e)
             {
                 Console.WriteLine("[" + minerExecutable + "] " + e.Message);
