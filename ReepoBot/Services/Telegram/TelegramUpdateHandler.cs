@@ -112,7 +112,7 @@ public class TelegramUpdateHandler
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*All Nodes*");
         messageBuilder.AppendLine("------------------------------------------------------------------------------------------------");
-        foreach (var nodeInfo in _nodeSupervisor.AllNodes.OrderBy(node => node.PCName))
+        foreach (var nodeInfo in _nodeSupervisor.AllNodes.OrderBy(node => node.NodeName))
         {
             messageBuilder.Append(nodeInfo.GetBriefInfoMDv2());
             if (_nodeSupervisor.NodesOffline.Contains(nodeInfo)) messageBuilder.AppendLine(" *--OFFLINE--*");
@@ -138,7 +138,7 @@ public class TelegramUpdateHandler
 
             nodesOnlineToList = _nodeSupervisor.NodesOnline.Where(
                 nodeInfo => lcNodeNamesToList.Any(
-                    lcNodeNameToList => nodeInfo.Key.PCName.ToLower().StartsWith(lcNodeNameToList)
+                    lcNodeNameToList => nodeInfo.Key.NodeName.ToLower().Contains(lcNodeNameToList)
                     )
                 );
         }
@@ -150,7 +150,7 @@ public class TelegramUpdateHandler
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*Node* | *Uptime*");
         messageBuilder.AppendLine("------------------------------------------------------------------------------------------------");
-        foreach (var (nodeInfo, _) in nodesOnlineToList.OrderBy(nodeOnline => nodeOnline.Key.PCName))
+        foreach (var (nodeInfo, _) in nodesOnlineToList.OrderBy(nodeOnline => nodeOnline.Key.NodeName))
         {
             var uptime = _nodeSupervisor.GetUptimeFor(nodeInfo);
             // It could already go offline.
@@ -177,7 +177,7 @@ public class TelegramUpdateHandler
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*Offline Nodes*");
         messageBuilder.AppendLine("------------------------------------------------------------------------------------------------");
-        foreach (var nodeInfo in _nodeSupervisor.NodesOffline.OrderBy(node => node.PCName))
+        foreach (var nodeInfo in _nodeSupervisor.NodesOffline.OrderBy(node => node.NodeName))
         {
             messageBuilder.AppendLine(nodeInfo.GetBriefInfoMDv2());
         }

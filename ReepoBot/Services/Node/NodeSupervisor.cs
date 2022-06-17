@@ -7,11 +7,9 @@ namespace ReepoBot.Services.Node;
 
 public class NodeSupervisor
 {
-    internal readonly HashSet<MachineInfo.DTO> AllNodes = new(new MachineInfoDTOEqualityComparer());
-    internal readonly ConcurrentDictionary<MachineInfo.DTO, TimerPlus> NodesOnline = new(new MachineInfoDTOEqualityComparer());
-    internal HashSet<MachineInfo.DTO> NodesOffline => AllNodes.ToHashSet()
-        .ExceptBy(NodesOnline.Keys.Select(its => its.PCName), node => node.PCName)
-        .ToHashSet();
+    internal readonly HashSet<MachineInfo.DTO> AllNodes = new();
+    internal readonly ConcurrentDictionary<MachineInfo.DTO, TimerPlus> NodesOnline = new();
+    internal HashSet<MachineInfo.DTO> NodesOffline => AllNodes.ToHashSet().Except(NodesOnline.Keys).ToHashSet();
 
     readonly object _allNodesLock = new();
     readonly ILogger<NodeSupervisor> _logger;
@@ -80,7 +78,7 @@ public class NodeSupervisor
     {
         try
         {
-            return NodesOnline.Single(nodeOnline => nodeOnline.Key.PCName == nodeInfo.PCName).Key;
+            return NodesOnline.Single(nodeOnline => nodeOnline.Key == nodeInfo).Key;
         }
         catch (Exception) { return null; }
     }
@@ -144,7 +142,7 @@ public class NodeSupervisor
         var names = nodeNames.ToHashSet();
         lock (_allNodesLock)
         {
-            return AllNodes.RemoveWhere(nodeInfo => names.Contains(nodeInfo.PCName));
+            return AllNodes.RemoveWhere(nodeInfo => names.Contains(nodeInfo.NodeName));
         }
     }
 }
