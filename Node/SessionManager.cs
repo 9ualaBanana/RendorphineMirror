@@ -119,7 +119,7 @@ internal class SessionManager : IAsyncDisposable
             var uinfo = check.Value;
             Settings.UserId = uinfo.Id;
 
-            if (Settings.Username is null || Settings.Username.Contains('@')) // TODO: remove contains @ check
+            if (Settings.Username is null)
             {
                 var nickr = await Repeat(RequestNicknameAsync).ConfigureAwait(false);
                 if (nickr) Settings.Username = nickr.Value;
