@@ -1,7 +1,6 @@
 ﻿using Machine;
 using Microsoft.AspNetCore.Mvc;
 using Node.Profiler;
-using ReepoBot.Models;
 using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;
 using System.Text;
