@@ -2,7 +2,8 @@
 using System.Data.Common;
 using System.Data.SQLite;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Common
 {
@@ -43,7 +44,7 @@ namespace Common
             BUPnpPort = new(nameof(UPnpPort), 5124);
             BDhtPort = new(nameof(DhtPort), 6223);
             BTorrentPort = new(nameof(TorrentPort), 6224);
-            BSessionId = new(nameof(SessionId), null);
+            BSessionId = new(nameof(SessionId), null) { Hidden = true };
             BNodeName = new(nameof(NodeName), null);
             BLanguage = new(nameof(Language), null);
             BShortcutsCreated = new(nameof(ShortcutsCreated), false);
@@ -55,21 +56,6 @@ namespace Common
                 .ToImmutableArray();
         }
 
-
-        [return: NotNullIfNotNull("defaultValue")]
-        static T? Get<T>(string path, T defaultValue)
-        {
-            using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
-            if (!query.Read()) return defaultValue;
-
-            var str = query.GetString(0);
-            return JsonSerializer.Deserialize<T>(str);
-        }
-        static void Set<T>(string path, T value) =>
-            ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
-                new SQLiteParameter("key", path),
-                new SQLiteParameter("value", JsonSerializer.Serialize(value))
-            );
 
         static void CreateDBTable()
         {
@@ -126,11 +112,18 @@ namespace Common
 
         public interface IDatabaseBindable
         {
+            bool Hidden { get; init; }
+            string Name { get; }
+
             void Reload();
+
+            JToken ToJson();
+            void SetFromJson(string json);
         }
         public class DatabaseBindable<T> : Bindable<T>, IDatabaseBindable
         {
-            readonly string Name;
+            public bool Hidden { get; init; }
+            public string Name { get; }
 
             public DatabaseBindable(string name, T defaultValue = default!) : base(defaultValue)
             {
@@ -145,6 +138,25 @@ namespace Common
             }
 
             public void Reload() => Value = Get(Name, _Value)!;
+
+            public JToken ToJson() => JToken.FromObject(Value!);
+            public void SetFromJson(string json) => Value = JsonConvert.DeserializeObject<T>(json)!;
+
+
+            [return: NotNullIfNotNull("defaultValue")]
+            static T? Get(string path, T defaultValue)
+            {
+                using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
+                if (!query.Read()) return defaultValue;
+
+                var str = query.GetString(0);
+                return JsonConvert.DeserializeObject<T>(str);
+            }
+            static void Set(string path, T value) =>
+                ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
+                    new SQLiteParameter("key", path),
+                    new SQLiteParameter("value", JsonConvert.SerializeObject(value))
+                );
         }
     }
 }
