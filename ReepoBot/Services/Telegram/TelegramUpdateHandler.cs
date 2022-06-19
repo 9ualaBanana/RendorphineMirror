@@ -188,16 +188,16 @@ public class TelegramUpdateHandler
 
     void HandleRemove(Update update)
     {
-        var nodePCNames = update.Message!.Text!
+        var nodeNames = update.Message!.Text!
             .Split()[1..]
-            .Select(nodePCName => nodePCName.ToLower())
+            .Select(nodeName => nodeName.ToLower())
             .ToArray();
 
-        int nodesRemoved = _nodeSupervisor.TryRemoveNodesWithNames(nodePCNames);
+        int nodesRemoved = _nodeSupervisor.TryRemoveNodesWithNames(nodeNames);
 
         var message = nodesRemoved == 0 ?
             $"Nodes with specified names are either online or not found." :
-            $"{nodesRemoved} out of {nodePCNames.Length} were removed.";
+            $"{nodesRemoved} out of {nodeNames.Length} were removed.";
 
         _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
     }

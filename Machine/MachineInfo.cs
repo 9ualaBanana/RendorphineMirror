@@ -75,12 +75,12 @@ public record MachineInfo
 
         public bool Equals(DTO? other)
         {
-            return NodeName == other?.NodeName;
+            return NodeName.ToLower() == other?.NodeName.ToLower();
         }
 
         public override int GetHashCode()
         {
-            return NodeName.GetHashCode();
+            return NodeName.ToLower().GetHashCode();
         }
         #endregion
     }

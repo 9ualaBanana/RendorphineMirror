@@ -142,7 +142,7 @@ public class NodeSupervisor
         var names = nodeNames.ToHashSet();
         lock (_allNodesLock)
         {
-            return AllNodes.RemoveWhere(nodeInfo => names.Contains(nodeInfo.NodeName));
+            return AllNodes.RemoveWhere(nodeInfo => names.Contains(nodeInfo.NodeName.ToLower()));
         }
     }
 }
