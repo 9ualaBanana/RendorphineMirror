@@ -139,10 +139,15 @@ public class NodeSupervisor
 
     internal int TryRemoveNodesWithNames(params string[] nodeNames)
     {
-        var names = nodeNames.ToHashSet();
+        var namesToRemove = nodeNames.Select(nodeName => nodeName.ToLower());
+        var nodesOffline = NodesOffline;
         lock (_allNodesLock)
         {
-            return AllNodes.RemoveWhere(nodeInfo => names.Contains(nodeInfo.NodeName.ToLower()));
+            return AllNodes.RemoveWhere(
+                nodeInfo => namesToRemove.Any(
+                    nodeNameToRemove => nodeInfo.NodeName.ToLower().Contains(nodeNameToRemove)
+                    ) && nodesOffline.Contains(nodeInfo)
+                );
         }
     }
 }
