@@ -69,14 +69,10 @@ async Task WaitForAuth(CancellationToken token)
         await Task.Delay(1000).ConfigureAwait(false);
 
         if (Settings.SessionId is null) continue;
-        if (Settings.NodeName is null) break;
+        if (Settings.NodeName is null) continue;
 
-        Process.Start(Environment.ProcessPath!);
-        break;
+        return;
     }
-
-    Environment.Exit(0);
-    throw new Exception();
 }
 async ValueTask Authenticate()
 {
@@ -89,13 +85,10 @@ async ValueTask Authenticate()
 async ValueTask<OperationResult> Auth()
 {
     // or try to auth from auth.txt
-    // string? file = null;
-    //if (File.Exists(file = "auth.txt") || File.Exists(file = "../auth.txt"))
+    string? file = null;
+    if (File.Exists(file = "auth.txt") || File.Exists(file = "../auth.txt"))
     {
-        // TODO: remove/fix when registration is done
-        var data = new[] { "mephisto123@gmail.com", "123" };
-
-        // var data = File.ReadAllText(file).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var data = File.ReadAllText(file).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (data.Length < 2) Log.Error("Not enough arguments in auth.txt");
         else
         {
