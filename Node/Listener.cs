@@ -11,8 +11,6 @@ namespace Node
     // TODO: maybe aspnet instead of this but idk
     public static class Listener
     {
-        const HttpStatusCode OK = HttpStatusCode.OK;
-
         static readonly HttpClient Client = new();
         static readonly SessionManager SessionManager = new();
 
@@ -26,16 +24,23 @@ namespace Node
         static JObject JsonFromOpResult<T>(in OperationResult<T> result)
         {
             var json = JsonFromOpResult(result.EString);
-            if (result) json["value"] = JValue.FromObject(result.Value!);
+            if (result) json["value"] = JToken.FromObject(result.Value!);
 
             return json;
         }
-        static Task<HttpStatusCode> WriteJson<T>(HttpListenerResponse response, in OperationResult<T> result) => Write(response, JsonFromOpResult(result));
-        static Task<HttpStatusCode> WriteJson(HttpListenerResponse response, in OperationResult result) => Write(response, JsonFromOpResult(result));
+        static JObject JsonFromOpResult(JToken token)
+        {
+            var json = JsonFromOpResult((OperationResult) true);
+            json["value"] = token;
 
-        static Task<HttpStatusCode> WriteErr(HttpListenerResponse response, string text) => Write(response, text, HttpStatusCode.BadRequest);
-        static Task<HttpStatusCode> Write(HttpListenerResponse response, string text, HttpStatusCode code = HttpStatusCode.OK) => Write(response, Encoding.UTF8.GetBytes(text), code);
-        static async Task<HttpStatusCode> Write(HttpListenerResponse response, JObject json, HttpStatusCode code = HttpStatusCode.OK)
+            return json;
+        }
+        static Task<HttpStatusCode> WriteSuccess(HttpListenerResponse response) => _Write(response, JsonFromOpResult((OperationResult) true));
+        static Task<HttpStatusCode> WriteJson<T>(HttpListenerResponse response, in OperationResult<T> result) => _Write(response, JsonFromOpResult(result));
+        static Task<HttpStatusCode> WriteJson(HttpListenerResponse response, in OperationResult result) => _Write(response, JsonFromOpResult(result));
+        static Task<HttpStatusCode> WriteJToken(HttpListenerResponse response, JToken json) => _Write(response, JsonFromOpResult(json));
+
+        static async Task<HttpStatusCode> _Write(HttpListenerResponse response, JObject json, HttpStatusCode code = HttpStatusCode.OK)
         {
             using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
             using var jwriter = new JsonTextWriter(writer) { CloseOutput = false };
@@ -43,6 +48,10 @@ namespace Node
 
             return code;
         }
+
+        static Task<HttpStatusCode> WriteErr(HttpListenerResponse response, string text) => WriteJson(response, OperationResult.Err(text));
+        static Task<HttpStatusCode> WriteText(HttpListenerResponse response, string text, HttpStatusCode code = HttpStatusCode.OK) => Write(response, Encoding.UTF8.GetBytes(text), code);
+
         static async Task<HttpStatusCode> Write(HttpListenerResponse response, ReadOnlyMemory<byte> bytes, HttpStatusCode code = HttpStatusCode.OK)
         {
             await response.OutputStream.WriteAsync(bytes).ConfigureAwait(false); ;
@@ -54,7 +63,7 @@ namespace Node
             return code;
         }
 
-        static void LogRequest(HttpListenerRequest request) => Log.Debug(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
+        static void LogRequest(HttpListenerRequest request) => Log.Verbose(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
         static async ValueTask Start(string prefix, Func<HttpListenerContext, ValueTask> func)
         {
             var listener = new HttpListener();
@@ -77,7 +86,7 @@ namespace Node
                     try
                     {
                         if (context is not null)
-                            await Write(context.Response, ex.Message, HttpStatusCode.InternalServerError).ConfigureAwait(false);
+                            await WriteText(context.Response, ex.Message, HttpStatusCode.InternalServerError).ConfigureAwait(false);
                     }
                     catch { }
                 }
@@ -94,25 +103,22 @@ namespace Node
             {
                 var subpath = segments[0].ToLowerInvariant();
 
-                if (subpath == "ping") return OK;
+                if (subpath == "ping") return HttpStatusCode.OK;
 
                 var query = request.QueryString;
 
                 if (subpath == "uploadtorrent")
                 {
-                    var url = query["url"];
-                    if (url is null) return await WriteErr(response, "no url").ConfigureAwait(false);
-                    var dir = query["dir"];
-                    if (dir is null) return await WriteErr(response, "no dir").ConfigureAwait(false);
+                    return await Test(request, response, "url", "dir", async (url, dir) =>
+                    {
+                        var peerid = TorrentClient.PeerId.UrlEncode();
+                        var peerurl = PortForwarding.GetPublicIPAsync().ConfigureAwait(false);
+                        var (data, manager) = await TorrentClient.CreateAddTorrent(dir).ConfigureAwait(false);
+                        var downloadr = await LocalApi.Post(url, $"downloadtorrent?peerid={peerid}&peerurl={await peerurl}:{TorrentClient.ListenPort}", new ByteArrayContent(data)).ConfigureAwait(false);
+                        if (!downloadr) return await WriteJson(response, downloadr).ConfigureAwait(false);
 
-                    var peerid = TorrentClient.PeerId.UrlEncode();
-                    var peerurl = PortForwarding.GetPublicIPAsync().ConfigureAwait(false);
-                    var (data, manager) = await TorrentClient.CreateAddTorrent(dir).ConfigureAwait(false);
-                    var postresponse = await Client.PostAsync($"http://{url}/downloadtorrent?peerid={peerid}&peerurl={await peerurl}:{TorrentClient.ListenPort}", new ByteArrayContent(data)).ConfigureAwait(false);
-                    if (!postresponse.IsSuccessStatusCode)
-                        return await Write(response, await postresponse.Content.ReadAsStreamAsync().ConfigureAwait(false), postresponse.StatusCode).ConfigureAwait(false);
-
-                    return await Write(response, manager.InfoHash.ToArray()).ConfigureAwait(false);
+                        return await WriteJson(response, manager.InfoHash.ToHex().AsOpResult()).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
                 }
 
                 if (subpath == "checkauth")
@@ -122,16 +128,50 @@ namespace Node
                 }
                 if (subpath == "auth")
                 {
-                    var email = query["email"];
-                    if (email is null) return await WriteErr(response, "no email").ConfigureAwait(false);
-                    var password = query["password"];
-                    if (password is null) return await WriteErr(response, "no password").ConfigureAwait(false);
-
-                    var auth = await SessionManager.AuthAsync(email, password).ConfigureAwait(false);
-                    return await WriteJson(response, auth).ConfigureAwait(false);
+                    return await Test(request, response, "email", "password", async (email, password) =>
+                    {
+                        var auth = await SessionManager.AuthAsync(email, password).ConfigureAwait(false);
+                        return await WriteJson(response, auth).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
                 }
 
+                if (subpath == "setnick")
+                {
+                    return await Test(request, response, "nick", async nick =>
+                    {
+                        var resp = await SessionManager.Execute(() => SessionManager.RenameServerAsync(nick)).ConfigureAwait(false);
+                        if (resp) Settings.NodeName = nick;
+
+                        return await WriteJson(response, resp).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                }
+                if (subpath == "setcfg")
+                {
+                    return await Test(request, response, "key", "value", async (key, value) =>
+                    {
+                        var bindable = Settings.Bindables.FirstOrDefault(x => x.Name == key);
+                        if (bindable is null) return await WriteErr(response, "no such cfg").ConfigureAwait(false);
+
+                        try { bindable.SetFromJson(value); }
+                        catch (Exception ex) { return await WriteErr(response, "invalid value: " + ex.Message).ConfigureAwait(false); }
+
+                        return await writeConfig().ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                }
+                if (subpath == "getcfg") return await writeConfig().ConfigureAwait(false);
+
                 return HttpStatusCode.NotFound;
+
+
+                async Task<HttpStatusCode> writeConfig()
+                {
+                    var cfg = new JObject();
+                    foreach (var setting in Settings.Bindables)
+                        if (!setting.Hidden)
+                            cfg[setting.Name] = setting.ToJson();
+
+                    return await WriteJToken(response, cfg).ConfigureAwait(false);
+                }
             }
             async ValueTask<HttpStatusCode> post(HttpListenerRequest request, string[] segments, HttpListenerResponse response)
             {
@@ -153,43 +193,42 @@ namespace Node
                 var subpath = segments[0].ToLowerInvariant();
 
                 if (subpath == "ping")
-                    return await Write(response, $"ok from {MachineInfo.PCName} {MachineInfo.UserName} v{MachineInfo.Version}", OK).ConfigureAwait(false);
+                    return await WriteText(response, $"ok from {MachineInfo.PCName} {MachineInfo.UserName} v{MachineInfo.Version}", HttpStatusCode.OK).ConfigureAwait(false);
 
                 var query = request.QueryString;
 
                 if (subpath == "torrentinfo")
                 {
-                    var hash = query["hash"];
-                    if (hash is null) return await WriteErr(response, "no hash").ConfigureAwait(false);
-
-                    var ihash = InfoHash.FromHex(hash);
-                    var manager = TorrentClient.TryGet(ihash);
-                    if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
-
-                    var data = new JObject()
+                    return await Test(request, response, "hash", async (hash) =>
                     {
-                        ["peers"] = JObject.FromObject(manager.Peers),
-                        ["progress"] = new JValue(manager.PartialProgress),
-                        ["monitor"] = JObject.FromObject(manager.Monitor),
-                    };
+                        var ihash = InfoHash.FromHex(hash);
+                        var manager = TorrentClient.TryGet(ihash);
+                        if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
 
-                    return await Write(response, data).ConfigureAwait(false);
+                        var data = new JObject()
+                        {
+                            ["peers"] = JObject.FromObject(manager.Peers),
+                            ["progress"] = new JValue(manager.PartialProgress),
+                            ["monitor"] = JObject.FromObject(manager.Monitor),
+                        };
+
+                        return await WriteJToken(response, data).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
                 }
-
                 if (subpath == "stoptorrent")
                 {
-                    var hash = query["hash"];
-                    if (hash is null) return await WriteErr(response, "no hash").ConfigureAwait(false);
+                    return await Test(request, response, "hash", async (hash) =>
+                    {
+                        var ihash = InfoHash.FromHex(hash);
+                        var manager = TorrentClient.TryGet(ihash);
+                        if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
 
-                    var ihash = InfoHash.FromHex(hash);
-                    var manager = TorrentClient.TryGet(ihash);
-                    if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
+                        Log.Information($"Stopping torrent {hash}");
+                        await manager.StopAsync().ConfigureAwait(false);
+                        await TorrentClient.Client.RemoveAsync(manager).ConfigureAwait(false);
 
-                    Log.Information($"Stopping torrent {hash}");
-                    await manager.StopAsync().ConfigureAwait(false);
-                    await TorrentClient.Client.RemoveAsync(manager).ConfigureAwait(false);
-
-                    return OK;
+                        return await WriteSuccess(response).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
                 }
 
                 return HttpStatusCode.NotFound;
@@ -202,27 +241,23 @@ namespace Node
 
                 if (subpath == "downloadtorrent")
                 {
-                    var peerurl = query["peerurl"];
-                    if (peerurl is null) return await WriteErr(response, "no peerurl").ConfigureAwait(false);
-                    var peerid = query["peerid"];
-                    if (peerid is null) return await WriteErr(response, "no peerid").ConfigureAwait(false);
+                    return await Test(request, response, "peerurl", "peerid", async (peerurl, peerid) =>
+                    {
+                        // using memorystream since request.InputStream doesnt support seeking
+                        var stream = new MemoryStream();
+                        await request.InputStream.CopyToAsync(stream).ConfigureAwait(false);
+                        stream.Position = 0;
 
+                        var torrent = await Torrent.LoadAsync(stream).ConfigureAwait(false);
+                        var manager = await TorrentClient.AddOrGetTorrent(torrent, "torrenttest_" + torrent.InfoHash.ToHex()).ConfigureAwait(false);
 
+                        Log.Debug(@$"Downloading torrent {torrent.InfoHash.ToHex()} from peer {peerurl}");
 
-                    // using memorystream since request.InputStream doesnt support seeking
-                    var stream = new MemoryStream();
-                    await request.InputStream.CopyToAsync(stream).ConfigureAwait(false);
-                    stream.Position = 0;
+                        var peer = new Peer(BEncodedString.FromUrlEncodedString(peerid), new Uri("ipv4://" + peerurl));
+                        await manager.AddPeerAsync(peer).ConfigureAwait(false);
 
-                    var torrent = await Torrent.LoadAsync(stream).ConfigureAwait(false);
-                    var manager = await TorrentClient.AddOrGetTorrent(torrent, "torrenttest_" + torrent.InfoHash.ToHex()).ConfigureAwait(false);
-
-                    Log.Debug(@$"Downloading torrent {torrent.InfoHash.ToHex()} from peer {peerurl}");
-
-                    var peer = new Peer(BEncodedString.FromUrlEncodedString(peerid), new Uri("ipv4://" + peerurl));
-                    await manager.AddPeerAsync(peer).ConfigureAwait(false);
-
-                    return OK;
+                        return await WriteSuccess(response).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
                 }
 
                 return HttpStatusCode.NotFound;
@@ -249,5 +284,23 @@ namespace Node
                 _ => HttpStatusCode.NotFound.AsVTask(),
             }).ConfigureAwait(false);
         }
+
+
+        static Task<HttpStatusCode> WriteNoArgument(HttpListenerResponse response, string key) => WriteErr(response, "no " + key);
+        static Task<HttpStatusCode> Test(HttpListenerRequest request, HttpListenerResponse response, string c1, Func<string, Task<HttpStatusCode>> func)
+        {
+            var c1v = request.QueryString[c1];
+            if (c1v is null) return WriteNoArgument(response, c1);
+
+            return func(c1v);
+        }
+        static Task<HttpStatusCode> Test(HttpListenerRequest request, HttpListenerResponse response, string c1, string c2, Func<string, string, Task<HttpStatusCode>> func) =>
+            Test(request, response, c1, c1v =>
+            {
+                var c2v = request.QueryString[c2];
+                if (c2v is null) return WriteNoArgument(response, c2);
+
+                return func(c1v, c2v);
+            });
     }
 }

@@ -22,6 +22,7 @@ namespace NodeUI.Pages
             tabs.Add(Localized.Tab.Dashboard, new DashboardTab());
             tabs.Add(Localized.Tab.Plugins, new PluginsTab());
             tabs.Add(Localized.Tab.Benchmark, new BenchmarkTab());
+            tabs.Add(Localized.Menu.Settings, new SettingsTab());
             tabs.Add(new("torrent test"), new TorrentTab());
 
             Content = tabs;
@@ -96,6 +97,40 @@ namespace NodeUI.Pages
                 });
             }
         }
+        class SettingsTab : Panel
+        {
+            public SettingsTab()
+            {
+                var nicktb = new TextBox()
+                {
+
+                };
+                Settings.BNodeName.SubscribeChanged((oldv, newv) => Dispatcher.UIThread.Post(() => nicktb.Text = newv), true);
+
+                var nicksb = new MPButton()
+                {
+                    Text = new("set nick"),
+                };
+                nicksb.OnClick += async () =>
+                {
+                    var set = await LocalApi.Send($"setnick?nick={HttpUtility.UrlEncode(nicktb.Text)}").ConfigureAwait(false);
+                    Settings.Reload();
+
+                    if (!set) Dispatcher.UIThread.Post(() => nicksb.Text = new(set.AsString()));
+                };
+
+                var nickgrid = new Grid()
+                {
+                    RowDefinitions = RowDefinitions.Parse("* *"),
+                    Children =
+                    {
+                        nicktb.WithRow(0),
+                        nicksb.WithRow(1),
+                    }
+                };
+                Children.Add(nickgrid);
+            }
+        }
         class TorrentTab : Panel
         {
             public TorrentTab() => CreateTorrentUI();
@@ -144,31 +179,33 @@ namespace NodeUI.Pages
                     try
                     {
                         var client = new HttpClient();
-                        var get = await client.GetAsync($"http://127.0.0.1:{Settings.LocalListenPort}/uploadtorrent?url={HttpUtility.UrlEncode(url)}&dir={HttpUtility.UrlEncode(dir)}").ConfigureAwait(false);
-                        if (!get.IsSuccessStatusCode)
+                        var get = await LocalApi.Send<string>($"uploadtorrent?url={HttpUtility.UrlEncode(url)}&dir={HttpUtility.UrlEncode(dir)}").ConfigureAwait(false);
+                        if (!get)
                         {
-                            var err = await get.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            Dispatcher.UIThread.Post(() => button.Text = new("err " + get.StatusCode + " " + err));
+                            Dispatcher.UIThread.Post(() => button.Text = new("err " + get.AsString()));
                             return;
                         }
-
-                        var hashbytes = await get.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                        var hash = new InfoHash(hashbytes);
+                        var hash = InfoHash.FromHex(get.Value);
 
                         new Thread(async () =>
                         {
                             bool die = false;
                             while (true)
                             {
-                                var info = await client.GetAsync($"http://{url}/torrentinfo?hash={HttpUtility.UrlEncode(hash.ToHex())}").ConfigureAwait(false);
-                                var ifo = await info.Content.ReadAsStringAsync().ConfigureAwait(false);
+                                var info = await LocalApi.Send<JObject>(url, $"torrentinfo?hash={HttpUtility.UrlEncode(hash.ToHex())}").ConfigureAwait(false);
+                                if (!info)
+                                {
+                                    Thread.Sleep(200);
+                                    continue;
+                                }
+                                var ifo = info.Value;
 
                                 try
                                 {
-                                    if (JObject.Parse(ifo)["progress"]?.Value<double>() > 99)
-                                        Dispatcher.UIThread.Post(() => info2.Text = ifo + "\nUpload completed.");
+                                    if (ifo["progress"]?.Value<double>() > 99)
+                                        Dispatcher.UIThread.Post(() => info2.Text = ifo.ToString(Newtonsoft.Json.Formatting.None) + "\nUpload completed.");
 
-                                    if (!die && JObject.Parse(ifo)["progress"]?.Value<double>() > 99)
+                                    if (!die && ifo["progress"]?.Value<double>() > 99)
                                     {
                                         die = true;
                                         Thread.Sleep(500);
@@ -183,7 +220,7 @@ namespace NodeUI.Pages
                                     break;
                                 }
 
-                                Dispatcher.UIThread.Post(() => info2.Text = ifo);
+                                Dispatcher.UIThread.Post(() => info2.Text = ifo.ToString(Newtonsoft.Json.Formatting.None));
                                 Thread.Sleep(200);
                             }
                         })

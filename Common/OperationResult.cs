@@ -59,7 +59,6 @@ namespace Common
 
         public static implicit operator bool(OperationResult es) => es.Success;
         public static implicit operator OperationResult(bool success) => new OperationResult(success, null);
-        public static implicit operator OperationResult(string? output) => new OperationResult(true, output);
     }
     public readonly struct OperationResult<T>
     {

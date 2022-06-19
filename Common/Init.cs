@@ -20,9 +20,13 @@ namespace Common
             Directory.CreateDirectory(ConfigDirectory);
 
             Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console(restrictedToMinimumLevel: IsDebug ? LogEventLevel.Debug : LogEventLevel.Information)
-                .WriteTo.File(Path.Combine(ConfigDirectory, "logs", "log" + Path.GetFileNameWithoutExtension(Environment.ProcessPath!)) + ".log", restrictedToMinimumLevel: LogEventLevel.Information, retainedFileTimeLimit: TimeSpan.FromDays(7))
-                .MinimumLevel.Debug()
+                .WriteTo.Console(restrictedToMinimumLevel: IsDebug ? LogEventLevel.Verbose : LogEventLevel.Information)
+                .WriteTo.File(
+                    Path.Combine(ConfigDirectory, "logs", "log" + Path.GetFileNameWithoutExtension(Environment.ProcessPath!)) + ".log",
+                    restrictedToMinimumLevel: IsDebug ? LogEventLevel.Verbose : LogEventLevel.Information,
+                    retainedFileTimeLimit: TimeSpan.FromDays(7)
+                )
+                .MinimumLevel.Is(IsDebug ? LogEventLevel.Verbose : LogEventLevel.Debug)
                 .CreateLogger();
 
             Log.Information($"{Path.GetFileName(Environment.ProcessPath)} {Version} on {GetOSInfo()} w UTC+{TimeZoneInfo.Local.BaseUtcOffset}");

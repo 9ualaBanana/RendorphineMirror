@@ -26,7 +26,7 @@ namespace NodeUI
             icon.FixException();
 
 
-            LocalizedString.ChangeLangWeakEvent.Subscribe(app, updateMenus);
+            LocalizedString.ChangeLangWeakEvent.Subscribe(app, () => Dispatcher.UIThread.Post(updateMenus));
             updateMenus();
 
             void updateMenus()
