@@ -5,7 +5,7 @@ namespace NodeUI
         public static void Bind(this AvaloniaObject obj, AvaloniaProperty property, LocalizedString text)
         {
             obj[property] = text.ToString();
-            LocalizedString.ChangeLangWeakEvent.Subscribe(obj, () => obj[property] = text.ToString());
+            LocalizedString.ChangeLangWeakEvent.Subscribe(obj, () => Dispatcher.UIThread.Post(() => obj[property] = text.ToString()));
         }
         public static T Binded<T>(this T obj, AvaloniaProperty property, LocalizedString text) where T : AvaloniaObject
         {

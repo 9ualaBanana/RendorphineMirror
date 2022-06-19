@@ -59,6 +59,20 @@ internal class SessionManager : IAsyncDisposable
 
         return responseJson.GetProperty("nickname").GetString()!;
     }
+    internal async Task RenameServerAsync(string name)
+    {
+        var data = new FormUrlEncodedContent(
+            new Dictionary<string, string>()
+            {
+                ["sessionid"] = _sessionId,
+                ["oldname"] = Settings.NodeName,
+                ["newname"] = name,
+            });
+
+        JsonElement responseJson = GetJsonFromResponseIfSuccessful(
+            await _httpClient.PostAsync($"{_TaskManagerEndpoint}/renameserver", data)
+            );
+    }
 
     internal async Task Logout()
     {
@@ -102,7 +116,7 @@ internal class SessionManager : IAsyncDisposable
 
     internal async Task<OperationResult> AuthAsync(string email, string password)
     {
-        var login = await Repeat(() => LoginAsync(email, password)).ConfigureAwait(false);
+        var login = await Execute(() => LoginAsync(email, password)).ConfigureAwait(false);
         if (!login) return login.GetResult();
 
         return await CheckAsync().ConfigureAwait(false);
@@ -111,22 +125,39 @@ internal class SessionManager : IAsyncDisposable
     {
         if (_sessionId is null) return OperationResult.Err();
 
-        var check = await Repeat(async () => { await CheckSessionAsync(_sessionId).ConfigureAwait(false); return true; }).ConfigureAwait(false);
+        var check = await Execute(() => CheckSessionAsync(_sessionId)).ConfigureAwait(false);
         if (check)
         {
-            var uinfo = check.Value;
             if (Settings.NodeName is null)
             {
-                var nickr = await Repeat(RequestNicknameAsync).ConfigureAwait(false);
+                var nickr = await Execute(RequestNicknameAsync).ConfigureAwait(false);
 
                 if (nickr) Settings.NodeName = nickr.Value;
                 else Settings.NodeName = Guid.NewGuid().ToString();
             }
         }
 
-        return check.GetResult();
+        return check;
     }
-    async Task<OperationResult<T>> Repeat<T>(Func<Task<T>> func)
+
+    internal async Task<OperationResult> Execute(Func<Task> func)
+    {
+        while (true)
+        {
+            try
+            {
+                await func().ConfigureAwait(false);
+                return true;
+            }
+            catch (SocketException)
+            {
+                await Task.Delay(1000).ConfigureAwait(false);
+                continue;
+            }
+            catch (Exception ex) { return OperationResult.Err(ex); }
+        }
+    }
+    internal async Task<OperationResult<T>> Execute<T>(Func<Task<T>> func)
     {
         while (true)
         {

@@ -22,6 +22,7 @@ namespace NodeUI.Pages
             tabs.Add(Localized.Tab.Dashboard, new DashboardTab());
             tabs.Add(Localized.Tab.Plugins, new PluginsTab());
             tabs.Add(Localized.Tab.Benchmark, new BenchmarkTab());
+            tabs.Add(Localized.Menu.Settings, new SettingsTab());
             tabs.Add(new("torrent test"), new TorrentTab());
 
             Content = tabs;
@@ -94,6 +95,40 @@ namespace NodeUI.Pages
                     VerticalAlignment = VerticalAlignment.Center,
                     Text = "beach mark",
                 });
+            }
+        }
+        class SettingsTab : Panel
+        {
+            public SettingsTab()
+            {
+                var nicktb = new TextBox()
+                {
+
+                };
+                Settings.BNodeName.SubscribeChanged((oldv, newv) => Dispatcher.UIThread.Post(() => nicktb.Text = newv), true);
+
+                var nicksb = new MPButton()
+                {
+                    Text = new("set nick"),
+                };
+                nicksb.OnClick += async () =>
+                {
+                    var set = await LocalApi.Send($"setnick?nick={HttpUtility.UrlEncode(nicktb.Text)}").ConfigureAwait(false);
+                    Settings.Reload();
+
+                    if (!set) Dispatcher.UIThread.Post(() => nicksb.Text = new(set.AsString()));
+                };
+
+                var nickgrid = new Grid()
+                {
+                    RowDefinitions = RowDefinitions.Parse("* *"),
+                    Children =
+                    {
+                        nicktb.WithRow(0),
+                        nicksb.WithRow(1),
+                    }
+                };
+                Children.Add(nickgrid);
             }
         }
         class TorrentTab : Panel

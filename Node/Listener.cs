@@ -135,6 +135,16 @@ namespace Node
                     }).ConfigureAwait(false);
                 }
 
+                if (subpath == "setnick")
+                {
+                    return await Test(request, response, "nick", async nick =>
+                    {
+                        var resp = await SessionManager.Execute(() => SessionManager.RenameServerAsync(nick)).ConfigureAwait(false);
+                        if (resp) Settings.NodeName = nick;
+
+                        return await WriteJson(response, resp).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                }
                 if (subpath == "setcfg")
                 {
                     return await Test(request, response, "key", "value", async (key, value) =>

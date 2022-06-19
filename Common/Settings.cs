@@ -18,7 +18,7 @@ namespace Common
         public static ushort DhtPort { get => BDhtPort.Value; set => BDhtPort.Value = value; }
         public static ushort TorrentPort { get => BTorrentPort.Value; set => BTorrentPort.Value = value; }
         public static string? SessionId { get => BSessionId.Value; set => BSessionId.Value = value; }
-        public static string? NodeName { get => BNodeName.Value; set => BNodeName.Value = value; }
+        public static string NodeName { get => BNodeName.Value!; set => BNodeName.Value = value!; }
         public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
         public static bool ShortcutsCreated { get => BShortcutsCreated.Value; set => BShortcutsCreated.Value = value; }
 
@@ -158,5 +158,9 @@ namespace Common
                     new SQLiteParameter("value", JsonConvert.SerializeObject(value))
                 );
         }
+    }
+    class SettingsInstance
+    {
+        
     }
 }
