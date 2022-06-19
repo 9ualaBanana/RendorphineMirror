@@ -1,6 +1,4 @@
-﻿using Node.Plugins.Discoverers;
-
-namespace Node.Plugins.Plugins;
+﻿namespace Node.Plugins.Plugins;
 
 internal abstract record Plugin
 {
@@ -8,9 +6,6 @@ internal abstract record Plugin
     internal string Version => _version ??= DetermineVersion();
     string _version = null!;
     readonly internal string Path;
-    internal PluginDiscoverer Discoverer => _discoverer ??= DiscovererImpl;
-    PluginDiscoverer? _discoverer;
-    protected abstract PluginDiscoverer DiscovererImpl { get; }
 
     internal Plugin(string path)
     {

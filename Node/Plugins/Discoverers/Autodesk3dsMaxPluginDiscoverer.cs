@@ -9,7 +9,7 @@ internal class Autodesk3dsMaxPluginDiscoverer : PluginDiscoverer
         @"C:\Program Files\Autodesk",
     };
 
-    protected override string ParentDirectoryPattern => "3ds Max 2018 ????";
+    protected override string ParentDirectoryPattern => "3ds Max ????";
 
     protected override string ExecutableName => "3dsmax.exe";
 

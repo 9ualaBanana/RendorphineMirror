@@ -3,13 +3,12 @@ using Node.Plugins.Plugins;
 
 namespace Node.Plugins;
 
-// * Starts in background when node is being launched.
 internal class PluginsManager
 {
     // Delegates tasks to them and manages their properties.
-    readonly IEnumerable<Plugin> _plugins = new HashSet<Plugin>(_pluginsCount);
-    static HashSet<PluginDiscoverer> _pluginsDiscoverers = new(_pluginsCount);
-    readonly static int _pluginsCount = typeof(PluginType).GetFields().Length - 1;
+    readonly IEnumerable<Plugin> _plugins = new HashSet<Plugin>(_pluginsTypesCount);
+    static HashSet<PluginDiscoverer> _pluginsDiscoverers = new(_pluginsTypesCount);
+    readonly static int _pluginsTypesCount = typeof(PluginType).GetFields().Length - 1;
 
     internal PluginsManager(IEnumerable<Plugin> plugins)
     {
@@ -17,16 +16,15 @@ internal class PluginsManager
     }
 
     #region Discovering
-    internal static Dictionary<PluginType, Plugin> DiscoverInstalledPlugins()
+    internal static async Task<IEnumerable<Plugin>> DiscoverInstalledPluginsInBackground() =>
+        await Task.Run(() => DiscoverInstalledPlugins());
+
+    internal static IEnumerable<Plugin> DiscoverInstalledPlugins()
     {
-        return new(_pluginsDiscoverers
-            .SelectMany(pluginDiscoverer => pluginDiscoverer.Discover())
-            .Select(installedPlugin => new KeyValuePair<PluginType, Plugin>(installedPlugin.Type, installedPlugin))
-            );
+        return _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover());
     }
 
-    internal static void RegisterPlugin(Plugin plugin) => RegisterPluginDiscoverer(plugin.Discoverer);
-
+    internal static void RegisterPluginDiscoverers(params PluginDiscoverer[] pluginDiscoverers) => _pluginsDiscoverers.UnionWith(pluginDiscoverers);
     internal static void RegisterPluginDiscoverer(PluginDiscoverer pluginDiscoverer) => _pluginsDiscoverers.Add(pluginDiscoverer);
     #endregion
 }

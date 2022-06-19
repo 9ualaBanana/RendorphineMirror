@@ -3,9 +3,19 @@ global using Machine;
 global using Serilog;
 using System.Diagnostics;
 using Node;
+using Node.Plugins;
+using Node.Plugins.Discoverers;
 using Node.Profiler;
 
 var http = new HttpClient() { BaseAddress = new(Settings.ServerUrl) };
+
+PluginsManager.RegisterPluginDiscoverers(
+    new BlenderPluginDiscoverer(),
+    new Autodesk3dsMaxPluginDiscoverer(),
+    new TopazGigapixelAIPluginDiscoverer(),
+    new DaVinciResolvePluginDiscoverer()
+    );
+var discoveringPlugins = PluginsManager.DiscoverInstalledPluginsInBackground();
 
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
@@ -33,7 +43,7 @@ if (!Init.IsDebug)
     _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
 
     var profiler = new NodeProfiler(http);
-    var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824);
+    var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
 
     _ = profiler.SendNodeProfileAsync($"{Settings.ServerUrl}/node/profile", benchmarkResults);
     // Move domain to Settings.ServerUrl when the server on VPS will be integrated to this server.
@@ -42,6 +52,7 @@ if (!Init.IsDebug)
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 _ = Listener.StartPublicListenerAsync();
+var pluginsManager = new PluginsManager(await discoveringPlugins);
 
 Thread.Sleep(-1);
 

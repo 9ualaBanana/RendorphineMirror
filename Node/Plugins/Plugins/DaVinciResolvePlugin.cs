@@ -1,6 +1,4 @@
-﻿using Node.Plugins.Discoverers;
-
-namespace Node.Plugins.Plugins;
+﻿namespace Node.Plugins.Plugins;
 
 internal record DaVinciResolvePlugin : Plugin
 {
@@ -8,7 +6,6 @@ internal record DaVinciResolvePlugin : Plugin
     {
     }
 
-    protected override PluginDiscoverer DiscovererImpl => new DaVinciResolvePluginDiscoverer();
     internal override PluginType Type => PluginType.DaVinciResolve;
 
     protected override string DetermineVersion() => "Unknown";
