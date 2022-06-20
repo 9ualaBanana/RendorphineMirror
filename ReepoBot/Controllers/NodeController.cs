@@ -1,6 +1,8 @@
 ﻿using Machine;
 using Microsoft.AspNetCore.Mvc;
+using Node.Plugins;
 using Node.Profiler;
+using ReepoBot.Models;
 using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram;
 using System.Text;
@@ -66,6 +68,30 @@ public class NodeController : ControllerBase
                     messageBuilder.AppendLine($"Write Speed: {Information.FromBytes((double)drive.WriteSpeed).Gigabytes:.#}");
                 }
             }
+        }
+
+        bot.TryNotifySubscribers(messageBuilder.ToString(), logger);
+    }
+
+    [HttpPost("plugins")]
+    public void ForwardPluginsInstalledOnNodeToTelegram(
+        NodePlugins plugins,
+        [FromServices] TelegramBot bot,
+        [FromServices] ILogger<NodeController> logger)
+    {
+        var messageBuilder = new StringBuilder();
+        messageBuilder.AppendLine($"Plugins installed on {plugins.NodeInfo.GetBriefInfoMDv2()}");
+        messageBuilder.AppendLine(TelegramHelperExtensions.HorizontalDelimeter);
+        foreach (var groupedPlugins in plugins.Plugins.GroupBy(nodePlugin => nodePlugin.Type))
+        {
+            messageBuilder.AppendLine($"{Enum.GetName(groupedPlugins.Key)}");
+            foreach (var plugin in groupedPlugins)
+            {
+                messageBuilder
+                    .AppendLine($"\tVersion: {plugin.Version}")
+                    .AppendLine($"\tPath: {plugin.Path.Replace(@"\", @"\\")}");
+            }
+            messageBuilder.AppendLine();
         }
 
         bot.TryNotifySubscribers(messageBuilder.ToString(), logger);

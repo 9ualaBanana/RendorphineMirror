@@ -6,7 +6,7 @@ internal record BlenderPlugin : Plugin
     {
     }
 
-    internal override PluginType Type => PluginType.Blender;
+    public override PluginType Type => PluginType.Blender;
 
     protected override string DetermineVersion() => Directory.GetParent(Path)!.Name.Split().Last();
 }

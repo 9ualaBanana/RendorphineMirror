@@ -44,6 +44,8 @@ public class TelegramBot : TelegramBotClient
 
 public static class TelegramHelperExtensions
 {
+    public const string HorizontalDelimeter = "------------------------------------------------------------------------------------------------";
+
     public static string Sanitize(this string unsanitizedString)
     {
         return unsanitizedString

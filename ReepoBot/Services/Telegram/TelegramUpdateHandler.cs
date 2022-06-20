@@ -111,7 +111,7 @@ public class TelegramUpdateHandler
 
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*All Nodes*");
-        messageBuilder.AppendLine("------------------------------------------------------------------------------------------------");
+        messageBuilder.AppendLine(TelegramHelperExtensions.HorizontalDelimeter);
         foreach (var nodeInfo in _nodeSupervisor.AllNodes.OrderBy(node => node.NodeName))
         {
             messageBuilder.Append(nodeInfo.GetBriefInfoMDv2());
@@ -149,7 +149,7 @@ public class TelegramUpdateHandler
 
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*Node* | *Uptime*");
-        messageBuilder.AppendLine("------------------------------------------------------------------------------------------------");
+        messageBuilder.AppendLine(TelegramHelperExtensions.HorizontalDelimeter);
         foreach (var (nodeInfo, _) in nodesOnlineToList.OrderBy(nodeOnline => nodeOnline.Key.NodeName))
         {
             var uptime = _nodeSupervisor.GetUptimeFor(nodeInfo);
@@ -176,7 +176,7 @@ public class TelegramUpdateHandler
 
         var messageBuilder = new StringBuilder();
         messageBuilder.AppendLine("*Offline Nodes*");
-        messageBuilder.AppendLine("------------------------------------------------------------------------------------------------");
+        messageBuilder.AppendLine(TelegramHelperExtensions.HorizontalDelimeter);
         foreach (var nodeInfo in _nodeSupervisor.NodesOffline.OrderBy(node => node.NodeName))
         {
             messageBuilder.AppendLine(nodeInfo.GetBriefInfoMDv2());

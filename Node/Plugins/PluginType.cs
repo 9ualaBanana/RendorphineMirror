@@ -1,6 +1,6 @@
 ﻿namespace Node.Plugins;
 
-internal enum PluginType
+public enum PluginType
 {
     FFmpeg,
     DaVinciResolve,

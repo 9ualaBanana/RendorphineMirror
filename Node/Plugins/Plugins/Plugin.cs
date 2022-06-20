@@ -1,11 +1,11 @@
 ﻿namespace Node.Plugins.Plugins;
 
-internal abstract record Plugin
+public abstract record Plugin
 {
-    internal abstract PluginType Type { get; }
-    internal string Version => _version ??= DetermineVersion();
+    public abstract PluginType Type { get; }
+    public string Version => _version ??= DetermineVersion();
     string _version = null!;
-    readonly internal string Path;
+    public string Path { get; }
 
     internal Plugin(string path)
     {

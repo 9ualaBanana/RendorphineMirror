@@ -6,7 +6,7 @@ internal record Autodesk3dsMaxPlugin : Plugin
     {
     }
 
-    internal override PluginType Type => PluginType.Autodesk3dsMax;
+    public override PluginType Type => PluginType.Autodesk3dsMax;
 
     protected override string DetermineVersion() => Directory.GetParent(Path)!.Name.Split().Last();
 }

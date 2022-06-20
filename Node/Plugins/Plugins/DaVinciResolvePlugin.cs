@@ -6,7 +6,7 @@ internal record DaVinciResolvePlugin : Plugin
     {
     }
 
-    internal override PluginType Type => PluginType.DaVinciResolve;
+    public override PluginType Type => PluginType.DaVinciResolve;
 
     protected override string DetermineVersion() => "Unknown";
 }
