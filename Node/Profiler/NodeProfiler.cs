@@ -10,7 +10,7 @@ internal class NodeProfiler
     readonly HttpClient _http;
 
     readonly static string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
-    static string SampleVideoPath => Path.Combine(_assetsPath, "4k_sample_long.mp4");
+    static string SampleVideoPath => Path.Combine(_assetsPath, "4k_sample.mp4");
     static Version? _lastExecutedBenchmarkVersion;
     static Version? LastExecutedBenchmarkVersion
     {
@@ -55,12 +55,7 @@ internal class NodeProfiler
         return new()
         {
             CPU = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize),
-            GPU = new()
-            {
-                Rating = default,
-                FFmpegRating = default,
-                Load = default,
-            },
+            GPU = await ComputePayloadWithGPUBenchmarkResultsAsync(testDataSize),
             RAM = GetRAMPayload(),
             Disks = await ComputePayloadWithDrivesBenchmarkResultsAsync(testDataSize)
         };
@@ -82,7 +77,7 @@ internal class NodeProfiler
         };
     }
 
-    static async Task<CPUBenchmarkResults> ComputePayloadWithGPUBenchmarkResultsAsync(uint testDataSize)
+    static async Task<GPUBenchmarkResults> ComputePayloadWithGPUBenchmarkResultsAsync(uint testDataSize)
     {
         double ffmpegRating = default;
         try
@@ -92,7 +87,7 @@ internal class NodeProfiler
         catch (Exception) { }
         return new()
         {
-            Rating = (await new ZipBenchmark(testDataSize).RunAsync()).Rate,
+            Rating = default,
             FFmpegRating = ffmpegRating,
             Load = default,
         };
