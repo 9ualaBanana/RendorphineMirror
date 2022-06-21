@@ -86,6 +86,11 @@ public class TelegramUpdateHandler
             HandlePing(update);
             return;
         }
+        if (command.StartsWith("plugins"))
+        {
+            HandlePlugins(update);
+            return;
+        }
         if (command.StartsWith("online"))
         {
             HandleOnline(update);
@@ -162,6 +167,21 @@ public class TelegramUpdateHandler
         var message = messageBuilder.ToString();
 
         _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
+    }
+
+    void HandlePlugins(Update update)
+    {
+        var nodesNamesWhosePluginsToShow = update.Message!.Text!.Split('"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[1..];
+        var nodesWhosePluginsToShow = _nodeSupervisor.AllNodes.Where(node => node.NameContainsAny(nodesNamesWhosePluginsToShow));
+
+        var messageBuilder = new StringBuilder();
+        foreach (var node in nodesWhosePluginsToShow)
+        {
+            messageBuilder.AppendLine(node.InstalledPluginsAsText);
+            messageBuilder.AppendLine();
+        }
+
+        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, messageBuilder.ToString(), _logger);
     }
 
     void HandleOnline(Update update)
