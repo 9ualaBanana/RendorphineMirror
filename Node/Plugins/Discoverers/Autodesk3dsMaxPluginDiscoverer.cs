@@ -6,7 +6,7 @@ internal class Autodesk3dsMaxPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {
-        @"C:\Program Files\Autodesk",
+        @"Program Files\Autodesk",
     };
 
     protected override string ParentDirectoryPattern => "3ds Max ????";

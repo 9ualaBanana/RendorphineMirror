@@ -6,7 +6,7 @@ internal class DaVinciResolvePluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {
-        @"C:\Program Files\Blackmagic Design",
+        @"Program Files\Blackmagic Design",
     };
     protected override string ParentDirectoryPattern => "DaVinci Resolve";
     protected override string ExecutableName => "Resolve.exe";

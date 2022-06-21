@@ -5,7 +5,11 @@ namespace Node.Plugins.Discoverers;
 internal abstract class PluginDiscoverer
 {
     protected IEnumerable<string> InstallationPaths => _installationPaths ??=
-        InstallationPathsImpl.Select(path => Path.TrimEndingDirectorySeparator(path));
+        DriveInfo.GetDrives()
+            .SelectMany(drive => InstallationPathsImpl.Select(
+                path => Path.Combine(drive.Name, Path.TrimEndingDirectorySeparator(path))
+            )
+        );
     IEnumerable<string>? _installationPaths;
     protected abstract IEnumerable<string> InstallationPathsImpl { get; }
     protected abstract string ParentDirectoryPattern { get; }

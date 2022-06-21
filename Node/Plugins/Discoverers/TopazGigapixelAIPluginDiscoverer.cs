@@ -6,7 +6,7 @@ internal class TopazGigapixelAIPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {
-        @"C:\Program Files\Topaz Labs LLC",
+        @"Program Files\Topaz Labs LLC",
     };
     protected override string ParentDirectoryPattern => "Topaz Video Enhance AI";
     protected override string ExecutableName => "Topaz Video Enhance AI.exe";

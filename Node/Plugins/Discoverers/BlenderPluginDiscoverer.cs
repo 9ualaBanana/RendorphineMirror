@@ -6,7 +6,7 @@ internal class BlenderPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {
-        @"C:\Program Files\Blender Foundation",
+        @"Program Files\Blender Foundation",
     };
     protected override string ParentDirectoryPattern => "Blender ?.?";
     protected override string ExecutableName => "blender.exe";
