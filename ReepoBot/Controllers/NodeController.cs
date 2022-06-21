@@ -88,7 +88,7 @@ public class NodeController : ControllerBase
             {
                 messageBuilder
                     .AppendLine($"\tVersion: {plugin.Version}")
-                    .AppendLine($"\tPath: {plugin.Path.Replace(@"\", @"\\")}");
+                    .AppendLine($"\tPath: {Directory.GetDirectoryRoot(plugin.Path).Replace(@"\", @"\\")}");
             }
             messageBuilder.AppendLine();
         }
