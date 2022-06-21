@@ -1,4 +1,4 @@
-﻿namespace Node.Plugins.Plugins;
+﻿namespace Machine.Plugins.Plugins;
 
 public abstract record Plugin
 {

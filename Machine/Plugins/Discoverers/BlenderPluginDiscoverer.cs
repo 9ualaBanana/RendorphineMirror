@@ -1,8 +1,8 @@
-﻿using Node.Plugins.Plugins;
+﻿using Machine.Plugins.Plugins;
 
-namespace Node.Plugins.Discoverers;
+namespace Machine.Plugins.Discoverers;
 
-internal class BlenderPluginDiscoverer : PluginDiscoverer
+public class BlenderPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {

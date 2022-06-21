@@ -1,4 +1,5 @@
-﻿using Timer = System.Timers.Timer;
+﻿using System.Net.Http.Json;
+using Timer = System.Timers.Timer;
 
 namespace Node;
 
@@ -9,6 +10,7 @@ internal class ServerPinger : IDisposable
     readonly HttpClient _http;
     readonly int _failedPingAttemptsLogLimit;
     int _failedPingAttempts;
+    JsonContent _machineInfoJsonContent = null!;
 
     internal ServerPinger(string serverUri, TimeSpan timeSpan, HttpClient httpClient)
         : this(serverUri, timeSpan.TotalMilliseconds, httpClient)
@@ -32,6 +34,7 @@ internal class ServerPinger : IDisposable
 
     internal async Task StartAsync()
     {
+        _machineInfoJsonContent = await MachineInfo.AsJsonContentAsync();
         await PingServerAsync();
         _timer.Start();
         Log.Debug("{Service} is started.", nameof(ServerPinger));
@@ -41,7 +44,7 @@ internal class ServerPinger : IDisposable
     {
         try
         {
-            var response = await _http.GetAsync($"{_serverUri}?{(await MachineInfo.AsDTOAsync()).ToQueryString()}");
+            var response = await _http.PostAsync($"{_serverUri}", _machineInfoJsonContent);
             response.EnsureSuccessStatusCode();
             Log.Debug("{Service} successfuly sent ping to {Server}", nameof(ServerPinger), Settings.ServerUrl);
         }

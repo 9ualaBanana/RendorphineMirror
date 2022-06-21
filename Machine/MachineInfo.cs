@@ -1,7 +1,11 @@
 ﻿using Common;
 using Machine.MessageBuilders;
+using Machine.Plugins;
+using Machine.Plugins.Plugins;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 
 namespace Machine;
 
@@ -11,12 +15,16 @@ public record MachineInfo
     readonly public static string UserName = Environment.UserName;
     readonly public static string PCName = Environment.MachineName;
     readonly public static string Version = Init.Version;
+    static IPAddress? _publicIP;
     public static async Task<IPAddress> GetPublicIPAsync()
     {
-        try { return await PortForwarding.GetPublicIPAsync(); }
+        try { return _publicIP ??= await PortForwarding.GetPublicIPAsync(); }
         catch (Exception) { return IPAddress.None; }
     }
     readonly public static string Port = PortForwarding.Port.ToString();
+    static IEnumerable<Plugin>? _installedPlugins;
+    public static async Task<IEnumerable<Plugin>> DiscoverInstalledPluginsInBackground() =>
+        _installedPlugins ??= await PluginsManager.DiscoverInstalledPluginsInBackground();
     public static async Task<string> GetBriefInfoAsync() => $"{NodeName} {PCName} (v.{Version}) | {await GetPublicIPAsync()}:{Port}";
 
     public static async Task<string> ToTelegramMessageAsync(bool verbose = false)
@@ -27,61 +35,14 @@ public record MachineInfo
         throw new PlatformNotSupportedException();
     }
 
-    public static async Task<DTO> AsDTOAsync() => new(NodeName, PCName, UserName, Version, (await GetPublicIPAsync()).ToString(), Port);
-
-
-    public class DTO : IEquatable<DTO>
+    public static async Task<JsonContent> AsJsonContentAsync() => JsonContent.Create(new
     {
-        public string NodeName { get; set; }
-        public string PCName { get; set; }
-        public string UserName { get; set; }
-        public string Version { get; set; }
-        public string IP { get; set; }
-        public string Port { get; set; }
-
-        public DTO() : this(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty)
-        {
-        }
-
-        public DTO(string nodeName, string pcName, string userName, string version, string ip, string port)
-        {
-            NodeName = nodeName;
-            PCName = pcName;
-            UserName = userName;
-            Version = version;
-            IP = ip;
-            Port = port;
-        }
-
-        public string GetBriefInfoMDv2() => $"*{NodeName}* {PCName} (v.*{Version}*) | *{IP}:{Port}*";
-
-        public string ToQueryString()
-        {
-            var queryStringBuilder = new StringBuilder();
-            var properties = typeof(DTO).GetProperties();
-            foreach (var property in properties)
-            {
-                queryStringBuilder.Append($"{property.Name}={property.GetValue(this)}&");
-            }
-            queryStringBuilder.Length--;    // Removes dangling query parameter separator ('&').
-            return queryStringBuilder.ToString();
-        }
-
-        #region EqualityContract
-        public override bool Equals(object? obj)
-        {
-            return Equals(obj as DTO);
-        }
-
-        public bool Equals(DTO? other)
-        {
-            return NodeName.ToLower() == other?.NodeName.ToLower();
-        }
-
-        public override int GetHashCode()
-        {
-            return NodeName.ToLower().GetHashCode();
-        }
-        #endregion
-    }
+        NodeName,
+        PCName,
+        UserName,
+        Version,
+        IP = (await GetPublicIPAsync()).ToString(),
+        Port,
+        InstalledPlugins = await DiscoverInstalledPluginsInBackground(),
+    });
 }

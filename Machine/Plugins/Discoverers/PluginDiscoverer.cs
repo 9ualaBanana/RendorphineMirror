@@ -1,8 +1,8 @@
-﻿using Node.Plugins.Plugins;
+﻿using Machine.Plugins.Plugins;
 
-namespace Node.Plugins.Discoverers;
+namespace Machine.Plugins.Discoverers;
 
-internal abstract class PluginDiscoverer
+public abstract class PluginDiscoverer
 {
     protected IEnumerable<string> InstallationPaths => _installationPaths ??=
         DriveInfo.GetDrives()

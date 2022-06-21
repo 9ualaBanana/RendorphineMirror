@@ -1,4 +1,4 @@
-﻿using Machine;
+﻿using ReepoBot.Models;
 using ReepoBot.Services.Node;
 using System.Text;
 using Telegram.Bot.Types;
@@ -114,7 +114,7 @@ public class TelegramUpdateHandler
         messageBuilder.AppendLine(TelegramHelperExtensions.HorizontalDelimeter);
         foreach (var nodeInfo in _nodeSupervisor.AllNodes.OrderBy(node => node.NodeName))
         {
-            messageBuilder.Append(nodeInfo.GetBriefInfoMDv2());
+            messageBuilder.Append(nodeInfo.BriefInfoMDv2);
             if (_nodeSupervisor.NodesOffline.Contains(nodeInfo)) messageBuilder.AppendLine(" *--OFFLINE--*");
             else messageBuilder.AppendLine();
         }
@@ -127,7 +127,7 @@ public class TelegramUpdateHandler
     {
         _logger.LogDebug("Building the message with online nodes...");
 
-        IEnumerable<KeyValuePair<MachineInfo.DTO, TimerPlus>> nodesOnlineToList;
+        IEnumerable<KeyValuePair<MachineInfo, TimerPlus>> nodesOnlineToList;
         var splitCommand = update.Message!.Text!.Split();
 
         if (splitCommand.Length > 1)
@@ -157,7 +157,7 @@ public class TelegramUpdateHandler
             if (uptime is null) continue;
 
             var escapedUptime = $"{uptime:d\\.hh\\:mm}";
-            messageBuilder.AppendLine($"{nodeInfo.GetBriefInfoMDv2()} | {escapedUptime}");
+            messageBuilder.AppendLine($"{nodeInfo.BriefInfoMDv2} | {escapedUptime}");
         }
         var message = messageBuilder.ToString();
 
@@ -179,7 +179,7 @@ public class TelegramUpdateHandler
         messageBuilder.AppendLine(TelegramHelperExtensions.HorizontalDelimeter);
         foreach (var nodeInfo in _nodeSupervisor.NodesOffline.OrderBy(node => node.NodeName))
         {
-            messageBuilder.AppendLine(nodeInfo.GetBriefInfoMDv2());
+            messageBuilder.AppendLine(nodeInfo.BriefInfoMDv2);
         }
         var message = messageBuilder.ToString();
 

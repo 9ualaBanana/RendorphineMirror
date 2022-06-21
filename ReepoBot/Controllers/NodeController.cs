@@ -1,5 +1,4 @@
-﻿using Machine;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Node.Profiler;
 using ReepoBot.Models;
 using ReepoBot.Services.Node;
@@ -14,13 +13,13 @@ namespace ReepoBot.Controllers;
 [ApiController]
 public class NodeController : ControllerBase
 {
-    [HttpGet("ping")]
+    [HttpPost("ping")]
     public void UpdateNodeStatus(
-        [FromQuery] MachineInfo.DTO nodeInfo,
+        [FromBody] MachineInfo nodeInfo,
         [FromServices] NodeSupervisor nodeSupervisor,
         [FromServices] ILogger<NodeController> logger)
     {
-        logger.LogDebug("Received ping from {Node}", nodeInfo.GetBriefInfoMDv2());
+        logger.LogDebug("Received ping from {Node}", nodeInfo.BriefInfoMDv2);
 
         nodeSupervisor.UpdateNodeStatus(nodeInfo);
     }
@@ -67,30 +66,6 @@ public class NodeController : ControllerBase
                     messageBuilder.AppendLine($"Write Speed: {Information.FromBytes((double)drive.WriteSpeed).Gigabytes:.#}");
                 }
             }
-        }
-
-        bot.TryNotifySubscribers(messageBuilder.ToString(), logger);
-    }
-
-    [HttpPost("plugins")]
-    public void ForwardPluginsInstalledOnNodeToTelegram(
-        NodePlugins plugins,
-        [FromServices] TelegramBot bot,
-        [FromServices] ILogger<NodeController> logger)
-    {
-        var messageBuilder = new StringBuilder();
-        messageBuilder.AppendLine($"Plugins installed on {plugins.NodeInfo.GetBriefInfoMDv2()}");
-        messageBuilder.AppendLine(TelegramHelperExtensions.HorizontalDelimeter);
-        foreach (var groupedPlugins in plugins.Plugins.GroupBy(nodePlugin => nodePlugin.Type))
-        {
-            messageBuilder.AppendLine($"{Enum.GetName(groupedPlugins.Key)}");
-            foreach (var plugin in groupedPlugins)
-            {
-                messageBuilder
-                    .AppendLine($"\tVersion: {plugin.Version}")
-                    .AppendLine($"\tPath: {Directory.GetDirectoryRoot(plugin.Path).Replace(@"\", @"\\")}");
-            }
-            messageBuilder.AppendLine();
         }
 
         bot.TryNotifySubscribers(messageBuilder.ToString(), logger);

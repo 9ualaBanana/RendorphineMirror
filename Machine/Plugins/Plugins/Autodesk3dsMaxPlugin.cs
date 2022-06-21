@@ -1,4 +1,4 @@
-﻿namespace Node.Plugins.Plugins;
+﻿namespace Machine.Plugins.Plugins;
 
 internal record Autodesk3dsMaxPlugin : Plugin
 {

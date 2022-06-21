@@ -1,4 +1,4 @@
-﻿using Machine;
+﻿using ReepoBot.Models;
 using ReepoBot.Services.Telegram;
 using System.Collections.Concurrent;
 using System.Timers;
@@ -7,9 +7,9 @@ namespace ReepoBot.Services.Node;
 
 public class NodeSupervisor
 {
-    internal readonly HashSet<MachineInfo.DTO> AllNodes = new();
-    internal readonly ConcurrentDictionary<MachineInfo.DTO, TimerPlus> NodesOnline = new();
-    internal HashSet<MachineInfo.DTO> NodesOffline => AllNodes.ToHashSet().Except(NodesOnline.Keys).ToHashSet();
+    internal readonly HashSet<MachineInfo> AllNodes = new();
+    internal readonly ConcurrentDictionary<MachineInfo, TimerPlus> NodesOnline = new();
+    internal HashSet<MachineInfo> NodesOffline => AllNodes.ToHashSet().Except(NodesOnline.Keys).ToHashSet();
 
     readonly object _allNodesLock = new();
     readonly ILogger<NodeSupervisor> _logger;
@@ -51,7 +51,7 @@ public class NodeSupervisor
         _bot = bot;
     }
 
-    internal void UpdateNodeStatus(MachineInfo.DTO nodeInfo)
+    internal void UpdateNodeStatus(MachineInfo nodeInfo)
     {
         _logger.LogDebug("Updating node status...");
 
@@ -74,7 +74,7 @@ public class NodeSupervisor
         _logger.LogDebug("Node status is updated");
     }
 
-    MachineInfo.DTO? GetPreviousVersionIfOnline(MachineInfo.DTO nodeInfo)
+    MachineInfo? GetPreviousVersionIfOnline(MachineInfo nodeInfo)
     {
         try
         {
@@ -83,16 +83,16 @@ public class NodeSupervisor
         catch (Exception) { return null; }
     }
 
-    void AddNewNode(MachineInfo.DTO nodeInfo)
+    void AddNewNode(MachineInfo nodeInfo)
     {
         AllNodes.Add(nodeInfo);
         if (!NodesOnline.TryAdd(nodeInfo, Timer)) return;
 
-        _bot.TryNotifySubscribers($"{nodeInfo.GetBriefInfoMDv2()} is online", _logger);
-        _logger.LogDebug("New node is online: {Node}", nodeInfo.GetBriefInfoMDv2());
+        _bot.TryNotifySubscribers($"{nodeInfo.BriefInfoMDv2} is online\n{nodeInfo.InstalledPluginsAsText}", _logger);
+        _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
     }
 
-    void UpdateNodeVersion(MachineInfo.DTO nodeOnline, MachineInfo.DTO updatedNode)
+    void UpdateNodeVersion(MachineInfo nodeOnline, MachineInfo updatedNode)
     {
         if (!NodesOnline.TryRemove(nodeOnline, out var uptimeTimer)) return;
         NodesOnline.TryAdd(updatedNode, uptimeTimer);
@@ -104,7 +104,7 @@ public class NodeSupervisor
         AllNodes.Add(updatedNode);
 
         _bot.TryNotifySubscribers(
-            $"{updatedNode.GetBriefInfoMDv2()} was updated: v.*{nodeOnline.Version}* *=>* v.*{updatedNode.Version}*.",
+            $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{updatedNode.Version}*.",
             _logger);
     }
 
@@ -124,14 +124,14 @@ public class NodeSupervisor
         NodesOnline.TryRemove(offlineNodeInfo, out var _);
 
         _logger.LogError("{Node} went offline after {Time} ms since the last ping.",
-            offlineNodeInfo.GetBriefInfoMDv2(), IdleTimeBeforeNodeGoesOffline);
+            offlineNodeInfo.BriefInfoMDv2, IdleTimeBeforeNodeGoesOffline);
     }
 
     /// <returns>
     /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="nodeInfo" />;
     /// <c>null</c> if <paramref name="nodeInfo"/> is offline.
     /// </returns>
-    internal TimeSpan? GetUptimeFor(MachineInfo.DTO nodeInfo)
+    internal TimeSpan? GetUptimeFor(MachineInfo nodeInfo)
     {
         NodesOnline.TryGetValue(nodeInfo, out var uptime);
         return uptime?.ElapsedTime;
@@ -143,11 +143,7 @@ public class NodeSupervisor
         var nodesOffline = NodesOffline;
         lock (_allNodesLock)
         {
-            return AllNodes.RemoveWhere(
-                nodeInfo => namesToRemove.Any(
-                    nodeNameToRemove => nodeInfo.NodeName.ToLower().Contains(nodeNameToRemove)
-                    ) && nodesOffline.Contains(nodeInfo)
-                );
+            return AllNodes.RemoveWhere(node => node.NameContainsAny(namesToRemove) && nodesOffline.Contains(node));
         }
     }
 }

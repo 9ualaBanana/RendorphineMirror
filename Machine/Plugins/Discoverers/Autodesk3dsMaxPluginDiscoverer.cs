@@ -1,8 +1,8 @@
-﻿using Node.Plugins.Plugins;
+﻿using Machine.Plugins.Plugins;
 
-namespace Node.Plugins.Discoverers;
+namespace Machine.Plugins.Discoverers;
 
-internal class Autodesk3dsMaxPluginDiscoverer : PluginDiscoverer
+public class Autodesk3dsMaxPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {

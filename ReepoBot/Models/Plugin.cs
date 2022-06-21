@@ -1,4 +1,4 @@
-﻿using Node.Plugins;
+﻿using Machine.Plugins;
 
 namespace ReepoBot.Models;
 

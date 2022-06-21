@@ -3,8 +3,8 @@ global using Machine;
 global using Serilog;
 using System.Diagnostics;
 using Node;
-using Node.Plugins;
-using Node.Plugins.Discoverers;
+using Machine.Plugins;
+using Machine.Plugins.Discoverers;
 using Node.Profiler;
 
 var http = new HttpClient() { BaseAddress = new(Settings.ServerUrl) };
@@ -14,8 +14,8 @@ PluginsManager.RegisterPluginDiscoverers(
     new Autodesk3dsMaxPluginDiscoverer(),
     new TopazGigapixelAIPluginDiscoverer(),
     new DaVinciResolvePluginDiscoverer()
-    );
-var discoveringPlugins = PluginsManager.DiscoverInstalledPluginsInBackground();
+);
+var discoveringInstalledPlugins = MachineInfo.DiscoverInstalledPluginsInBackground();
 
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
@@ -40,6 +40,7 @@ if (!Init.IsDebug)
 {
     SystemService.Start();
 
+    await discoveringInstalledPlugins;
     _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
 
     var profiler = new NodeProfiler(http);
@@ -48,9 +49,6 @@ if (!Init.IsDebug)
     _ = profiler.SendNodeProfileAsync($"{Settings.ServerUrl}/node/profile", benchmarkResults);
     // Move domain to Settings.ServerUrl when the server on VPS will be integrated to this server.
     _ = profiler.SendNodeProfileAsync($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults);
-
-    var pluginsManager = new PluginsManager(await discoveringPlugins);
-    _ = pluginsManager.SendInstalledPluginsInfoAsync($"{Settings.ServerUrl}/node/plugins", http);
 }
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();

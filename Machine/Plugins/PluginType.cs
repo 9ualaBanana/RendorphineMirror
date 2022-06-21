@@ -1,4 +1,4 @@
-﻿namespace Node.Plugins;
+﻿namespace Machine.Plugins;
 
 public enum PluginType
 {
