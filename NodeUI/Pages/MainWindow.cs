@@ -177,7 +177,7 @@ namespace NodeUI.Pages
                     var nick = nicktb.Text.Trim();
                     if (Settings.NodeName == nick)
                     {
-                        Dispatcher.UIThread.Post(() => nicksbtn.Text = new($"cant change nick to the same nick nick name nick"));
+                        Dispatcher.UIThread.Post(() => nicksbtn.Text = new($"cant change nick to the same nick nick name nick nick name\nnick"));
                         return;
                     }
 
