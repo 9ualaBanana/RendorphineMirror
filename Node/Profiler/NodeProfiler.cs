@@ -1,4 +1,4 @@
-﻿using Benchmark;
+using Benchmark;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -28,7 +28,7 @@ internal class NodeProfiler
         {
             if (LastExecutedBenchmarkVersion is not null)
                 File.Delete(Path.Combine(_assetsPath, $"{LastExecutedBenchmarkVersion}.version"));
-            File.Create(Path.Combine(_assetsPath, $"{value}.version"));
+            File.Create(Path.Combine(_assetsPath, $"{value}.version")).Dispose();
         }
     }
 
