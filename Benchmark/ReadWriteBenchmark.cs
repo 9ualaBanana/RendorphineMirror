@@ -6,8 +6,8 @@ namespace Benchmark;
 
 public class ReadWriteBenchmark
 {
-    readonly byte[] _bytesToWrite;
-    readonly byte[] _readOutput;
+    byte[] _bytesToWrite;
+    byte[] _readOutput;
 
     public ReadWriteBenchmark(uint size)
     {

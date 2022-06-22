@@ -1,4 +1,4 @@
-﻿namespace Node.Profiler;
+﻿namespace ReepoBot.Models;
 
 public enum TaskType
 {

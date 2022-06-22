@@ -13,10 +13,6 @@ public class MachineInfo : IEquatable<MachineInfo>
     public string Port { get; init; } = null!;
     public HashSet<Plugin> InstalledPlugins { get; init; } = null!;
 
-    public MachineInfo()
-    {
-    }
-
     public string BriefInfoMDv2 => $"*{NodeName}* {PCName} (v.*{Version}*) | *{IP}:{Port}*";
 
     public string InstalledPluginsAsText
@@ -50,6 +46,16 @@ public class MachineInfo : IEquatable<MachineInfo>
     }
 
     #region EqualityContract
+    public static bool operator ==(MachineInfo this_, MachineInfo other)
+    {
+        return this_.Equals(other);
+    }
+
+    public static bool operator !=(MachineInfo this_, MachineInfo other)
+    {
+        return !this_.Equals(other);
+    }
+
     public override bool Equals(object? obj)
     {
         return Equals(obj as MachineInfo);

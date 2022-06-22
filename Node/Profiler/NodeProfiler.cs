@@ -37,9 +37,9 @@ internal class NodeProfiler
         _http = httpClient;
     }
 
-    internal static async Task<BenchmarkResults?> RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(uint testDataSize)
+    internal static async Task<object?> RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(uint testDataSize)
     {
-        BenchmarkResults? hardwarePayload = null;
+        object? hardwarePayload = null;
 
         var currentBenchmarkVersion = Assembly.GetAssembly(typeof(BenchmarkResult))!.GetName().Version;
         if (currentBenchmarkVersion != LastExecutedBenchmarkVersion)
@@ -50,30 +50,30 @@ internal class NodeProfiler
         return hardwarePayload;
     }
 
-    static async Task<BenchmarkResults> ComputeHardwarePayloadAsync(uint testDataSize)
+    static async Task<object> ComputeHardwarePayloadAsync(uint testDataSize)
     {
         var state= new BenchmarkNodeState();
         using var _ = GlobalState.SetState(state);
 
         var cpu = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize);
         state.Completed.Add("cpu");
-        var gpu = await ComputePayloadWithGPUBenchmarkResultsAsync(testDataSize);
+        var gpu = await ComputePayloadWithGPUBenchmarkResultsAsync();
         state.Completed.Add("gpu");
         var ram = GetRAMPayload();
         state.Completed.Add("ram");
         var disks = await ComputePayloadWithDrivesBenchmarkResultsAsync(testDataSize);
         state.Completed.Add("disks");
 
-        return new()
+        return new
         {
-            CPU = cpu,
-            GPU = gpu,
-            RAM = ram,
-            Disks = disks,
+            cpu,
+            gpu,
+            ram,
+            disks,
         };
     }
 
-    static async Task<CPUBenchmarkResults> ComputePayloadWithCPUBenchmarkResultsAsync(uint testDataSize)
+    static async Task<object> ComputePayloadWithCPUBenchmarkResultsAsync(uint testDataSize)
     {
         double ffmpegRating = default;
         try
@@ -81,15 +81,16 @@ internal class NodeProfiler
             ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnCpuAsync()).Rate;
         }
         catch (Exception) { }
-        return new()
+        using var zipBenchmark = new ZipBenchmark(testDataSize);
+        return new
         {
-            Rating = (await new ZipBenchmark(testDataSize).RunAsync()).Rate,
-            FFmpegRating = ffmpegRating,
-            Load = default,
+            rating = (await zipBenchmark.RunAsync()).Rate,
+            pratings = new { ffmpeg = ffmpegRating },
+            load = -1,
         };
     }
 
-    static async Task<GPUBenchmarkResults> ComputePayloadWithGPUBenchmarkResultsAsync(uint testDataSize)
+    static async Task<object> ComputePayloadWithGPUBenchmarkResultsAsync()
     {
         double ffmpegRating = default;
         try
@@ -97,42 +98,44 @@ internal class NodeProfiler
             ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnGpuAsync()).Rate;
         }
         catch (Exception) { }
-        return new()
+        return new
         {
-            Rating = default,
-            FFmpegRating = ffmpegRating,
-            Load = default,
+            rating = -1,
+            pratings = new { ffmpeg = ffmpegRating },
+            load = -1,
         };
     }
 
-    static async Task<DrivesBenchmarkResults[]> ComputePayloadWithDrivesBenchmarkResultsAsync(uint testDataSize)
+    static async Task<IEnumerable<object>> ComputePayloadWithDrivesBenchmarkResultsAsync(uint testDataSize)
     {
         var drivesBenchmarkResults = new List<(BenchmarkResult Read, BenchmarkResult Write)>();
-        foreach (var logicalDiskName in Drive.LogicalDisksNamesFromDistinctDrives)
+        var readWriteBenchmark = new ReadWriteBenchmark(testDataSize);
         {
-            drivesBenchmarkResults.Add(await new ReadWriteBenchmark(testDataSize).RunAsync(logicalDiskName));
+            foreach (var logicalDiskName in Drive.LogicalDisksNamesFromDistinctDrives)
+            {
+                drivesBenchmarkResults.Add(await readWriteBenchmark.RunAsync(logicalDiskName));
+            }
         }
 
         return Drive.Info.Zip(drivesBenchmarkResults)
-            .Select(zip => new DrivesBenchmarkResults()
+            .Select(zip => new
             {
-                FreeSpace = zip.First.FreeSpace,
-                WriteSpeed = zip.Second.Write.Rate
-            })
-            .ToArray();
+                freespace = zip.First.FreeSpace,
+                writespeed = zip.Second.Write.Rate
+            });
     }
 
-    static RAMBenchmarkResults GetRAMPayload()
+    static object GetRAMPayload()
     {
         var ramInfo = RAM.Info;
-        return new()
+        return new
         {
-            Total = ramInfo.Aggregate(0ul, (totalCapacity, ramUnit) => totalCapacity += ramUnit.Capacity),
-            Free = ramInfo.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory)
+            total = ramInfo.Aggregate(0ul, (totalCapacity, ramUnit) => totalCapacity += ramUnit.Capacity),
+            free = ramInfo.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory)
         };
     }
 
-    internal async Task SendNodeProfileAsync(string serverUri, BenchmarkResults? benchmarkResults)
+    internal async Task SendNodeProfileAsync(string serverUri, object? benchmarkResults)
     {
         var requestPayload = await BuildPayloadAsync(benchmarkResults);
 
@@ -144,7 +147,7 @@ internal class NodeProfiler
         catch (Exception) { }
     }
 
-    static async Task<FormUrlEncodedContent> BuildPayloadAsync(BenchmarkResults? benchmarkResults)
+    static async Task<FormUrlEncodedContent> BuildPayloadAsync(object? benchmarkResults)
     {
         var payloadContent = new Dictionary<string, string>()
         {
@@ -154,17 +157,41 @@ internal class NodeProfiler
         return new FormUrlEncodedContent(payloadContent);
     }
 
-    static async Task<string> SerializeNodeProfileAsync(BenchmarkResults? benchmarkResults)
+    static async Task<string> SerializeNodeProfileAsync(object? benchmarkResults)
     {
         return JsonSerializer.Serialize(new
         {
             ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
             port = int.Parse(MachineInfo.Port),
             nickname = Settings.NodeName,
+            version = MachineInfo.Version,
             allowedinputs = new { User = 1 },
             allowedoutputs = new { User = 1 },
             allowedtypes = new { },
+            pricing = new
+            {
+                minunitprice = new { ffmpeg = -1 },
+                minbwprice = -1,
+                minstorageprice = -1
+            },
             hardware = benchmarkResults,
+            software = await BuildSoftwarePayloadAsync()
         }, new JsonSerializerOptions() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
+    }
+
+    static async Task<Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>> BuildSoftwarePayloadAsync()
+    {
+        var result = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>();
+        foreach (var softwareGroup in (await MachineInfo.DiscoverInstalledPluginsInBackground()).GroupBy(software => software.Type))
+        {
+            var softwareName = Enum.GetName(softwareGroup.Key)!.ToLower();
+            result.Add( softwareName, new Dictionary<string, Dictionary<string, Dictionary<string, string>>>() );
+            foreach (var version in softwareGroup)
+            {
+                result[softwareName].Add(version.Version, new Dictionary<string, Dictionary<string, string>>());
+                result[softwareName][version.Version].Add("plugins", new Dictionary<string, string>());
+            }
+        }
+        return result;
     }
 }

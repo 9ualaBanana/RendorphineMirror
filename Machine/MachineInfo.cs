@@ -4,8 +4,6 @@ using Machine.Plugins;
 using Machine.Plugins.Plugins;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
 
 namespace Machine;
 
