@@ -13,7 +13,12 @@ namespace Common
 
         static Init()
         {
-            try { DebugFileExists = File.Exists(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Environment.ProcessPath!))!, "_debugupd")); }
+            try
+            {
+                DebugFileExists =
+                    File.Exists(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Environment.ProcessPath!))!, "_debugupd"))
+                    || File.Exists(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Environment.ProcessPath!))!, "../_debugupd"));
+            }
             catch { }
             IsDebug = Debugger.IsAttached || DebugFileExists;
 
@@ -30,6 +35,8 @@ namespace Common
                 .CreateLogger();
 
             Log.Information($"{Path.GetFileName(Environment.ProcessPath)} {Version} on {GetOSInfo()} w UTC+{TimeZoneInfo.Local.BaseUtcOffset}");
+            Log.Information($"Debug: {IsDebug}");
+            Log.Verbose($"-DEBUG VERSION-");
 
             try { Log.Debug($"Current process: {Environment.ProcessId} {Process.GetCurrentProcess().ProcessName}"); }
             catch { }
