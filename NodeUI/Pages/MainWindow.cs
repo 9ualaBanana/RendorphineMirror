@@ -154,34 +154,49 @@ namespace NodeUI.Pages
         {
             public SettingsTab()
             {
+                var nick = CreateNick();
+                nick.MaxWidth = 400;
+                nick.MaxHeight = 200;
+                Children.Add(nick);
+            }
+
+            Grid CreateNick()
+            {
                 var nicktb = new TextBox()
                 {
 
                 };
                 Settings.BNodeName.SubscribeChanged((oldv, newv) => Dispatcher.UIThread.Post(() => nicktb.Text = newv), true);
 
-                var nicksb = new MPButton()
+                var nicksbtn = new MPButton()
                 {
                     Text = new("set nick"),
                 };
-                nicksb.OnClick += async () =>
+                nicksbtn.OnClick += async () =>
                 {
-                    var set = await LocalApi.Send($"setnick?nick={HttpUtility.UrlEncode(nicktb.Text)}").ConfigureAwait(false);
+                    var nick = nicktb.Text.Trim();
+                    if (Settings.NodeName == nick)
+                    {
+                        Dispatcher.UIThread.Post(() => nicksbtn.Text = new($"cant change nick to the same nick nick name nick"));
+                        return;
+                    }
+
+                    var set = await LocalApi.Send($"setnick?nick={HttpUtility.UrlEncode(nick)}").ConfigureAwait(false);
                     Settings.Reload();
 
-                    if (!set) Dispatcher.UIThread.Post(() => nicksb.Text = new(set.AsString()));
+                    if (set) Dispatcher.UIThread.Post(() => nicksbtn.Text = new($"nick change good, new nick = {Settings.NodeName}"));
+                    else Dispatcher.UIThread.Post(() => nicksbtn.Text = new(set.AsString()));
                 };
 
-                var nickgrid = new Grid()
+                return new Grid()
                 {
                     RowDefinitions = RowDefinitions.Parse("* *"),
                     Children =
                     {
                         nicktb.WithRow(0),
-                        nicksb.WithRow(1),
+                        nicksbtn.WithRow(1),
                     }
                 };
-                Children.Add(nickgrid);
             }
         }
         class TorrentTab : Panel
