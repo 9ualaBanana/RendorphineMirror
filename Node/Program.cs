@@ -36,7 +36,7 @@ _ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
 if (autoauthenticated && !Debugger.IsAttached)
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 
-await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
+
 if (!Init.IsDebug)
 {
     SystemService.Start();
