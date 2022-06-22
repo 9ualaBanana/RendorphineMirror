@@ -1,6 +1,34 @@
 namespace NodeUI.Pages
 {
-    public class MessageBox<T> : Window
+    public class OkMessageBox : MessageBox<object?>
+    {
+        public OkMessageBox() : base(null)
+        {
+            var button = AddButton(Localized.General.Ok, null);
+            button.MaxWidth = 100;
+        }
+    }
+    public class YesNoMessageBox : MessageBox<bool>
+    {
+        public YesNoMessageBox(bool defaultresult) : base(defaultresult)
+        {
+            AddButton(Localized.General.Yes, true);
+            AddButton(Localized.General.No, false);
+        }
+    }
+
+    public interface IMessageBox
+    {
+        string Text { get; set; }
+
+        void Show();
+        void Close();
+    }
+    public class MessageBox : MessageBox<object?>
+    {
+        public MessageBox(LocalizedString buttontext) : base(null) => AddButton(buttontext, null);
+    }
+    public class MessageBox<T> : Window, IMessageBox
     {
         public string Text { get => TextBlock.Text; set => TextBlock.Text = value; }
 

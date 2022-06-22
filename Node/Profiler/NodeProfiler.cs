@@ -1,4 +1,4 @@
-using Benchmark;
+﻿using Benchmark;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -52,12 +52,24 @@ internal class NodeProfiler
 
     static async Task<BenchmarkResults> ComputeHardwarePayloadAsync(uint testDataSize)
     {
+        var state= new BenchmarkNodeState();
+        using var _ = GlobalState.SetState(state);
+
+        var cpu = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize);
+        state.Completed.Add("cpu");
+        var gpu = await ComputePayloadWithGPUBenchmarkResultsAsync(testDataSize);
+        state.Completed.Add("gpu");
+        var ram = GetRAMPayload();
+        state.Completed.Add("ram");
+        var disks = await ComputePayloadWithDrivesBenchmarkResultsAsync(testDataSize);
+        state.Completed.Add("disks");
+
         return new()
         {
-            CPU = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize),
-            GPU = await ComputePayloadWithGPUBenchmarkResultsAsync(testDataSize),
-            RAM = GetRAMPayload(),
-            Disks = await ComputePayloadWithDrivesBenchmarkResultsAsync(testDataSize)
+            CPU = cpu,
+            GPU = gpu,
+            RAM = ram,
+            Disks = disks,
         };
     }
 

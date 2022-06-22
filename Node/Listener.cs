@@ -11,6 +11,7 @@ namespace Node
     // TODO: maybe aspnet instead of this but idk
     public static class Listener
     {
+        static readonly JsonSerializer JsonSerializerWithTypes = new() { TypeNameHandling = TypeNameHandling.Auto, };
         static readonly HttpClient Client = new();
         static readonly SessionManager SessionManager = new();
 
@@ -159,6 +160,9 @@ namespace Node
                     }).ConfigureAwait(false);
                 }
                 if (subpath == "getcfg") return await writeConfig().ConfigureAwait(false);
+
+                if (subpath == "getstate")
+                    return await WriteJToken(response, JToken.FromObject(new { State = GlobalState.State }, JsonSerializerWithTypes)).ConfigureAwait(false);
 
                 return HttpStatusCode.NotFound;
 

@@ -5,6 +5,7 @@ namespace Common
 {
     public static class LocalApi
     {
+        static readonly JsonSerializer JsonSerializerWithType = new() { TypeNameHandling = TypeNameHandling.Auto, };
         static string LocalIP => $"127.0.0.1:{Settings.LocalListenPort}";
         static readonly HttpClient Client = new();
 
@@ -16,6 +17,7 @@ namespace Common
 
         public static ValueTask<OperationResult> Send(string path) => Send(LocalIP, path);
         public static ValueTask<OperationResult<T>> Send<T>(string path) => Send<T>(LocalIP, path);
+        public static ValueTask<OperationResult<T>> Send<T>(string path, T _) => Send<T>(LocalIP, path);
         public static ValueTask<OperationResult> Send(string url, string path) => _Send(url, path, () => Client.GetAsync($"{AddHttp(url)}/{path}"));
         public static ValueTask<OperationResult<T>> Send<T>(string url, string path) => _Send<T>(url, path, () => Client.GetAsync($"{AddHttp(url)}/{path}"));
 
@@ -41,7 +43,7 @@ namespace Common
                 var jv = check["value"]!;
 
                 if (jv is T t) return t.AsOpResult();
-                return jv.ToObject<T>()!.AsOpResult();
+                return jv.ToObject<T>(JsonSerializerWithType)!.AsOpResult();
             }));
         static OperationResult<JObject> CheckForErrors(HttpResponseMessage response)
         {

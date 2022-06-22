@@ -2,9 +2,9 @@
 global using Machine;
 global using Serilog;
 using System.Diagnostics;
-using Node;
 using Machine.Plugins;
 using Machine.Plugins.Discoverers;
+using Node;
 using Node.Profiler;
 
 var http = new HttpClient() { BaseAddress = new(Settings.ServerUrl) };
@@ -23,19 +23,20 @@ if (!Debugger.IsAttached)
 var sessionManager = new SessionManager(http);
 
 _ = Listener.StartLocalListenerAsync();
-if (!Init.IsDebug) await Authenticate().ConfigureAwait(false);
+var autoauthenticated = await Authenticate().ConfigureAwait(false);
+Log.Information($"{(autoauthenticated ? "Auto" : "Manual")} authentication completed");
 
 PortForwarding.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
 {
-    Console.WriteLine($"UPnP was {(PortForwarding.Initialized ? null : "not ")}initialized");
-    Console.WriteLine($"Public IP: {t.Result}:{PortForwarding.Port}");
+    Log.Information($"UPnP was {(PortForwarding.Initialized ? null : "not ")}initialized");
+    Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}");
 });
 
-
-if (!Debugger.IsAttached)
+if (autoauthenticated && !Debugger.IsAttached)
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 
+await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
 if (!Init.IsDebug)
 {
     SystemService.Start();
@@ -57,30 +58,15 @@ _ = Listener.StartPublicListenerAsync();
 Thread.Sleep(-1);
 
 
-async Task WaitForAuth(CancellationToken token)
-{
-    Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
-
-    Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate or create auth.txt file in {Path.GetFullPath(".")} with your login and password divided by space");
-    Console.WriteLine(@$"Example: ""makov@gmail.com password123""");
-
-    while (true)
-    {
-        await Task.Delay(1000).ConfigureAwait(false);
-
-        if (Settings.SessionId is null) continue;
-        if (Settings.NodeName is null) continue;
-
-        return;
-    }
-}
-async ValueTask Authenticate()
+// returns only when authenticated;
+// returns true if sessionid was already valid; false if wasnt 
+async ValueTask<bool> Authenticate()
 {
     var check = await sessionManager.CheckAsync().ConfigureAwait(false);
     check.LogIfError();
-    if (check) return;
+    if (check) return check;
 
-    await Auth().ConfigureAwait(false);
+    return await Auth().ConfigureAwait(false);
 }
 async ValueTask<OperationResult> Auth()
 {
@@ -98,6 +84,22 @@ async ValueTask<OperationResult> Auth()
         }
     }
 
-    await WaitForAuth(CancellationToken.None).ConfigureAwait(false);
-    return OperationResult.Err();
+    return await WaitForAuth(CancellationToken.None).ConfigureAwait(false);
+}
+async Task<bool> WaitForAuth(CancellationToken token)
+{
+    Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
+
+    Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate or create auth.txt file in {Path.GetFullPath(".")} with your login and password divided by space");
+    Console.WriteLine(@$"Example: ""makov@gmail.com password123""");
+
+    while (true)
+    {
+        await Task.Delay(1000).ConfigureAwait(false);
+
+        if (Settings.SessionId is null) continue;
+        if (Settings.NodeName is null) continue;
+
+        return false;
+    }
 }

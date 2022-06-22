@@ -1,5 +1,6 @@
 using System.Web;
 using MonoTorrent;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NodeUI.Pages
@@ -16,6 +17,8 @@ namespace NodeUI.Pages
             Icon = App.Icon;
 
             this.PreventClosing();
+            SubscribeToStateChanges();
+            _ = StartStateListener();
 
 
             var tabs = new TabbedControl();
@@ -26,6 +29,52 @@ namespace NodeUI.Pages
             tabs.Add(new("torrent test"), new TorrentTab());
 
             Content = tabs;
+        }
+
+        void SubscribeToStateChanges()
+        {
+            IMessageBox? benchmb = null;
+            GlobalState.SubscribeChanged<BenchmarkNodeState>(
+                (oldstate, newstate) => Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (newstate is BenchmarkNodeState bns)
+                    {
+                        if (benchmb is null)
+                        {
+                            benchmb = new MessageBox(new("Hide"));
+                            benchmb.Show();
+                        }
+
+                        benchmb.Text = new(@$"
+                            Benchmarking your system...
+                            {bns.Completed.Count} completed: {string.Join(", ", bns.Completed)}
+                        ".TrimLines());
+                    }
+                    else
+                    {
+                        benchmb?.Close();
+                        benchmb = null;
+                    }
+                })
+            );
+        }
+        async Task StartStateListener()
+        {
+            while (true)
+            {
+                await Task.Delay(2000).ConfigureAwait(false);
+
+                var stateres = await LocalApi.Send("getstate", new { State = (INodeState) null! }).ConfigureAwait(false);
+                stateres.LogIfError("Could not get node state: {0}");
+                if (!stateres) continue;
+
+                var oldstate = GlobalState.State.Value;
+                var newstate = stateres.Value.State ?? IdleNodeState.Instance;
+                if (newstate.GetType() != oldstate.GetType())
+                    Log.Information($"Changing state from {oldstate.GetName()} to {newstate.GetName()}");
+
+                GlobalState.State.Value = newstate;
+            }
         }
 
 
@@ -43,6 +92,7 @@ namespace NodeUI.Pages
                 Children.Add(infotb);
                 updatetext();
                 Settings.AnyChanged += updatetext;
+                GlobalState.State.Changed += (_, _) => updatetext();
 
                 var langbtn = new MPButton()
                 {
@@ -64,9 +114,12 @@ namespace NodeUI.Pages
 
                     Dispatcher.UIThread.Post(() => infotb.Text =
                         @$"
+                        Current node state: {GlobalState.State.Value.GetName()}
+                        State data: {JsonConvert.SerializeObject(GlobalState.State.Value, Formatting.None)}
+
                         Settings:
                         {string.Join("; ", values)}
-                        ui start time: {starttime}
+                        Ui start time: {starttime}
                         ".TrimLines()
                     );
                 }
