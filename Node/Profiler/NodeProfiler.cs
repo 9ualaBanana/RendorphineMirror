@@ -2,12 +2,14 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Timer = System.Timers.Timer;
 
 namespace Node.Profiler;
 
 internal class NodeProfiler
 {
     readonly HttpClient _http;
+    readonly Timer _intervalTimer;
 
     readonly static string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
     static string SampleVideoPath => Path.Combine(_assetsPath, "4k_sample.mp4");
@@ -35,6 +37,7 @@ internal class NodeProfiler
     internal NodeProfiler(HttpClient httpClient)
     {
         _http = httpClient;
+        _intervalTimer = new();
     }
 
     internal static async Task<object?> RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(uint testDataSize)
@@ -135,19 +138,31 @@ internal class NodeProfiler
         };
     }
 
-    internal async Task SendNodeProfileAsync(string serverUri, object? benchmarkResults)
+    internal async Task SendNodeProfileAsync(string serverUri, object? benchmarkResults, TimeSpan interval = default)
     {
         var requestPayload = await BuildPayloadAsync(benchmarkResults);
 
+        if (interval != default)
+        {
+            _intervalTimer.Interval = interval.TotalMilliseconds;
+            _intervalTimer.Elapsed += (_, _) => _ = MakePostRequest(serverUri, requestPayload);
+            _intervalTimer.AutoReset = true;
+        }
+        _ = MakePostRequest(serverUri, requestPayload);
+        _intervalTimer.Start();
+    }
+
+    async Task MakePostRequest(string serverUri, FormUrlEncodedContent payload)
+    {
         try
         {
-            var response = await _http.PostAsync(serverUri, requestPayload);
+            var response = await _http.PostAsync(serverUri, payload);
             response.EnsureSuccessStatusCode();
         }
         catch (Exception) { }
     }
 
-    static async Task<FormUrlEncodedContent> BuildPayloadAsync(object? benchmarkResults)
+    internal static async Task<FormUrlEncodedContent> BuildPayloadAsync(object? benchmarkResults)
     {
         var payloadContent = new Dictionary<string, string>()
         {

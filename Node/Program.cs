@@ -36,7 +36,6 @@ _ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
 if (autoauthenticated && !Debugger.IsAttached)
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 
-
 if (!Init.IsDebug)
 {
     SystemService.Start();
@@ -44,12 +43,12 @@ if (!Init.IsDebug)
     await discoveringInstalledPlugins;
     _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
 
-    var profiler = new NodeProfiler(http);
     var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
+    var benchmarkPayload = await NodeProfiler.BuildPayloadAsync(benchmarkResults);
 
-    _ = profiler.SendNodeProfileAsync($"{Settings.ServerUrl}/node/profile", benchmarkResults);
+    _ = new NodeProfiler(http).SendNodeProfileAsync($"{Settings.ServerUrl}/node/profile", benchmarkResults);
     // Move domain to Settings.ServerUrl when the server on VPS will be integrated to this server.
-    _ = profiler.SendNodeProfileAsync($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults);
+    _ = new NodeProfiler(http).SendNodeProfileAsync($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults, TimeSpan.FromMinutes(1));
 }
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
