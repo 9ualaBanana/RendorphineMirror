@@ -55,15 +55,12 @@ public class NodeSupervisor
     {
         _logger.LogDebug("Updating node status...");
 
-        if (!NodesOnline.ContainsKey(nodeInfo))
+        if (!NodesOnline.ContainsKey(nodeInfo)) AddNewNode(nodeInfo);
+        else
         {
-            var previousVersionOfNode = GetPreviousVersionIfOnline(nodeInfo);
-
-            if (previousVersionOfNode is null)
-                AddNewNode(nodeInfo);
-            else
-                UpdateNodeVersion(previousVersionOfNode, nodeInfo);
-        }
+            var thatNodeOnline = GetNodeAlreadyOnline(nodeInfo);
+            if (thatNodeOnline is not null && thatNodeOnline.Version != nodeInfo.Version) UpdateNodeVersion(thatNodeOnline, nodeInfo);
+        } 
 
         if (NodesOnline.TryGetValue(nodeInfo, out var nodeUptimeTimer))
         {
@@ -74,7 +71,7 @@ public class NodeSupervisor
         _logger.LogDebug("Node status is updated");
     }
 
-    MachineInfo? GetPreviousVersionIfOnline(MachineInfo nodeInfo)
+    MachineInfo? GetNodeAlreadyOnline(MachineInfo nodeInfo)
     {
         try
         {
