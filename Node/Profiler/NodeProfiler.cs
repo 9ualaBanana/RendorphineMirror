@@ -6,6 +6,9 @@ using Timer = System.Timers.Timer;
 
 namespace Node.Profiler;
 
+/// <remarks>
+/// Instances of the class are intended to be created once per use case.
+/// </remarks>
 internal class NodeProfiler
 {
     readonly HttpClient _http;
@@ -32,6 +35,14 @@ internal class NodeProfiler
                 File.Delete(Path.Combine(_assetsPath, $"{LastExecutedBenchmarkVersion}.version"));
             File.Create(Path.Combine(_assetsPath, $"{value}.version")).Dispose();
         }
+    }
+
+    static bool _nodeSettingsChanged;
+    static FormUrlEncodedContent? _payload;
+
+    static NodeProfiler()
+    {
+        Settings.AnyChanged += () => _nodeSettingsChanged = true;
     }
 
     internal NodeProfiler(HttpClient httpClient)
@@ -138,38 +149,38 @@ internal class NodeProfiler
         };
     }
 
-    internal async Task SendNodeProfileAsync(string serverUri, object? benchmarkResults, TimeSpan interval = default)
+    internal void SendNodeProfileAsync(string serverUri, object? benchmarkResults, TimeSpan interval = default)
     {
-        var requestPayload = await BuildPayloadAsync(benchmarkResults);
-
         if (interval != default)
         {
             _intervalTimer.Interval = interval.TotalMilliseconds;
-            _intervalTimer.Elapsed += (_, _) => _ = MakePostRequest(serverUri, requestPayload);
+            _intervalTimer.Elapsed += (_, _) => _ = MakePostRequest(serverUri, benchmarkResults);
             _intervalTimer.AutoReset = true;
         }
-        _ = MakePostRequest(serverUri, requestPayload);
+        _ = MakePostRequest(serverUri, benchmarkResults);
         _intervalTimer.Start();
     }
 
-    async Task MakePostRequest(string serverUri, FormUrlEncodedContent payload)
+    async Task MakePostRequest(string serverUri, object? benchmarkResults)
     {
         try
         {
-            var response = await _http.PostAsync(serverUri, payload);
+            var response = await _http.PostAsync(serverUri, await GetPayloadAsync(benchmarkResults));
             response.EnsureSuccessStatusCode();
         }
         catch (Exception) { }
     }
 
-    internal static async Task<FormUrlEncodedContent> BuildPayloadAsync(object? benchmarkResults)
+    internal static async Task<FormUrlEncodedContent> GetPayloadAsync(object? benchmarkResults)
     {
+        if (_payload is not null && !_nodeSettingsChanged) return _payload;
+
         var payloadContent = new Dictionary<string, string>()
         {
             ["sessionid"] = Settings.SessionId!,
             ["info"] = await SerializeNodeProfileAsync(benchmarkResults),
         };
-        return new FormUrlEncodedContent(payloadContent);
+        return _payload = new FormUrlEncodedContent(payloadContent);
     }
 
     static async Task<string> SerializeNodeProfileAsync(object? benchmarkResults)

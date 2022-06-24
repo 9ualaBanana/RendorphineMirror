@@ -41,8 +41,9 @@ if (!Init.IsDebug)
     await discoveringInstalledPlugins;
     _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
 
+    var nodeProfiler = new NodeProfiler(http);
     var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
-    var benchmarkPayload = await NodeProfiler.BuildPayloadAsync(benchmarkResults);
+    var benchmarkPayload = await nodeProfiler.GetPayloadAsync(benchmarkResults);
 
     _ = new NodeProfiler(http).SendNodeProfileAsync($"{Settings.ServerUrl}/node/profile", benchmarkResults);
     // Move domain to Settings.ServerUrl when the server on VPS will be integrated to this server.
