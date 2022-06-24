@@ -241,6 +241,9 @@ namespace NodeUI.Pages
                 };
                 nicksbtn.OnClick += async () =>
                 {
+                    using var _ = new FuncDispose(() => Dispatcher.UIThread.Post(() => nicksbtn.IsEnabled = true));
+                    nicksbtn.IsEnabled = false;
+
                     var nick = nicktb.Text.Trim();
                     if (Settings.NodeName == nick)
                     {
