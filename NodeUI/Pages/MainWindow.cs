@@ -130,13 +130,6 @@ namespace NodeUI.Pages
         {
             public PluginsTab()
             {
-                Children.Add(new TextBlock()
-                {
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Text = "im plugin tab hello",
-                });
-
                 Children.Add(new SoftwareStats());
             }
 
