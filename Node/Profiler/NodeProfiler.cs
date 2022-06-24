@@ -1,7 +1,7 @@
-﻿using Benchmark;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Benchmark;
 using Timer = System.Timers.Timer;
 
 namespace Node.Profiler;
@@ -11,6 +11,8 @@ namespace Node.Profiler;
 /// </remarks>
 internal class NodeProfiler
 {
+    public static object HeatbeatLock = new();
+
     readonly HttpClient _http;
     readonly Timer _intervalTimer;
 
@@ -66,7 +68,7 @@ internal class NodeProfiler
 
     static async Task<object> ComputeHardwarePayloadAsync(uint testDataSize)
     {
-        var state= new BenchmarkNodeState();
+        var state = new BenchmarkNodeState();
         using var _ = GlobalState.SetState(state);
 
         var cpu = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize);
@@ -154,7 +156,11 @@ internal class NodeProfiler
         if (interval != default)
         {
             _intervalTimer.Interval = interval.TotalMilliseconds;
-            _intervalTimer.Elapsed += (_, _) => _ = MakePostRequest(serverUri, benchmarkResults);
+            _intervalTimer.Elapsed += (_, _) =>
+            {
+                lock (HeatbeatLock)
+                    MakePostRequest(serverUri, benchmarkResults).ConfigureAwait(false).GetAwaiter().GetResult();
+            };
             _intervalTimer.AutoReset = true;
         }
         _ = MakePostRequest(serverUri, benchmarkResults);
@@ -211,7 +217,7 @@ internal class NodeProfiler
         foreach (var softwareGroup in (await MachineInfo.DiscoverInstalledPluginsInBackground()).GroupBy(software => software.Type))
         {
             var softwareName = Enum.GetName(softwareGroup.Key)!.ToLower();
-            result.Add( softwareName, new Dictionary<string, Dictionary<string, Dictionary<string, string>>>() );
+            result.Add(softwareName, new Dictionary<string, Dictionary<string, Dictionary<string, string>>>());
             foreach (var version in softwareGroup)
             {
                 result[softwareName].Add(version.Version, new Dictionary<string, Dictionary<string, string>>());
