@@ -140,7 +140,7 @@ namespace Node
                 {
                     return await Test(request, response, "nick", async nick =>
                     {
-                        var resp = await SessionManager.Execute(() => SessionManager.RenameServerAsync(nick)).ConfigureAwait(false);
+                        var resp = await SessionManager.RenameServerAsync(nick).ConfigureAwait(false);
                         if (resp) Settings.NodeName = nick;
 
                         return await WriteJson(response, resp).ConfigureAwait(false);

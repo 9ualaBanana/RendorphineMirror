@@ -1,4 +1,5 @@
 using System.Web;
+using Avalonia.Markup.Xaml.Templates;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -133,8 +134,44 @@ namespace NodeUI.Pages
                 {
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Text = "im plugin tab hello",
+                    Text = "im plugin tab hello; Loading stuff...",
                 });
+
+
+                new Thread(() =>
+                {
+                    while (true)
+                    {
+                        _ = LoadData();
+                        Thread.Sleep(60 * 60 * 1000);
+                    }
+                })
+                { IsBackground = true }.Start();
+            }
+
+            async Task LoadData()
+            {
+                var data = await Api.GetSoftwareStatsAsync().ConfigureAwait(false);
+                data.LogIfError();
+                if (!data) return;
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    Children.Clear();
+                    Children.Add(new TextBlock() { Text = string.Join(Environment.NewLine, data.Value.Select(froms)) });
+
+                    static string froms(KeyValuePair<string, Api.SoftwareStats> v) => @$"
+                        {v.Key}:
+                        Total: {v.Value.Total}
+                        Versions:
+                        {string.Join(Environment.NewLine, v.Value.ByVersion.Select(fromv))}
+                        ".TrimLines();
+
+                    static string fromv(KeyValuePair<string, Api.SoftwareStatsByVersion> v) => @$"
+                        {v.Key}:
+                        - Total: {v.Value.Total}
+                        ".TrimLines();
+                }).ConfigureAwait(false);
             }
         }
         class BenchmarkTab : Panel

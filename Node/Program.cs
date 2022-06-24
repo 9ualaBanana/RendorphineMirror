@@ -20,7 +20,7 @@ var discoveringInstalledPlugins = MachineInfo.DiscoverInstalledPluginsInBackgrou
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
 
-var sessionManager = new SessionManager(http);
+var sessionManager = new SessionManager();
 
 _ = Listener.StartLocalListenerAsync();
 var autoauthenticated = await Authenticate().ConfigureAwait(false);

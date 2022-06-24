@@ -87,6 +87,10 @@ namespace NodeUI.Pages
             try
             {
                 Dispatcher.UIThread.Post(() => Login.StartLoginAnimation(Localized.Login.AuthCheck));
+
+                if (Settings.SessionId is not null && Debugger.IsAttached)
+                    return await Api.ApiPost($"{Api.AccountsEndpoint}/checksession", ("sessionid", Settings.SessionId)).ConfigureAwait(false);
+
                 return await LocalApi.Send("checkauth").ConfigureAwait(false);
             }
             catch (Exception ex) { return OperationResult.Err(ex); }

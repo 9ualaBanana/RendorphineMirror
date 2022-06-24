@@ -1,136 +1,38 @@
-﻿using System.Net.Sockets;
-using System.Text.Json;
+﻿namespace Node;
 
-namespace Node;
-
-internal class SessionManager : IAsyncDisposable
+public class SessionManager
 {
-    readonly HttpClient _httpClient;
-    const string _serverUri = "https://tasks.microstock.plus";
-    string _AccountsEndpoint => $"{_serverUri}/rphaccounts";
-    string _TaskManagerEndpoint => $"{_serverUri}/rphtaskmgr";
-    string _sessionId { get => Settings.SessionId!; set => Settings.SessionId = value!; }
+    const string _AccountsEndpoint = Api.AccountsEndpoint;
+    const string _TaskManagerEndpoint = Api.TaskManagerEndpoint;
+    static string _sessionId { get => Settings.SessionId!; set => Settings.SessionId = value!; }
 
-    internal SessionManager(HttpClient? httpClient = null)
+    ValueTask<OperationResult<string>> LoginAsync(string email, string password) =>
+        Api.ApiPost<string>($"{_AccountsEndpoint}/login", "sessionid", ("email", email), ("password", password));
+    ValueTask<OperationResult> CheckSessionAsync()
     {
-        _httpClient = httpClient ?? new();
+        if (_sessionId is null) return OperationResult.Err().AsVTask();
+        return Api.ApiPost($"{_AccountsEndpoint}/checksession", ("sessionid", _sessionId));
     }
+    ValueTask<OperationResult<string>> RequestNicknameAsync() =>
+        Api.ApiPost<string>($"{_TaskManagerEndpoint}/generatenickname", "nickname", ("sessionid", _sessionId));
 
-    internal async Task<string> LoginAsync(string email, string password)
-    {
-        var credentials = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["email"] = email,
-                ["password"] = password,
-            });
-
-        JsonElement responseJson = GetJsonFromResponseIfSuccessful(
-            await _httpClient.PostAsync($"{_AccountsEndpoint}/login", credentials)
-            );
-
-        return _sessionId = responseJson.GetProperty("sessionid").GetString()!;
-    }
-
-    internal async Task CheckSessionAsync(string sid)
-    {
-        var credentials = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["sessionid"] = sid,
-            });
-
-        JsonElement responseJson = GetJsonFromResponseIfSuccessful(
-            await _httpClient.PostAsync($"{_AccountsEndpoint}/checksession", credentials)
-            );
-    }
-
-    internal async Task<string> RequestNicknameAsync()
-    {
-        var sessionId = new FormUrlEncodedContent(
-            new Dictionary<string, string>()
-            {
-                ["sessionid"] = _sessionId
-            });
-
-        JsonElement responseJson = GetJsonFromResponseIfSuccessful(
-            await _httpClient.PostAsync($"{_TaskManagerEndpoint}/generatenickname", sessionId)
-            );
-
-        return responseJson.GetProperty("nickname").GetString()!;
-    }
-    internal async Task RenameServerAsync(string name)
-    {
-        var data = new FormUrlEncodedContent(
-            new Dictionary<string, string>()
-            {
-                ["sessionid"] = _sessionId,
-                ["oldname"] = Settings.NodeName,
-                ["newname"] = name,
-            });
-
-        JsonElement responseJson = GetJsonFromResponseIfSuccessful(
-            await _httpClient.PostAsync($"{_TaskManagerEndpoint}/renameserver", data)
-            );
-    }
-
-    internal async Task Logout()
-    {
-        if (_sessionId is null) return;
-
-        var sessionId = new FormUrlEncodedContent(
-            new Dictionary<string, string>()
-            {
-                ["sessionid"] = _sessionId
-            });
-
-        GetJsonFromResponseIfSuccessful(
-            await _httpClient.PostAsync($"{_AccountsEndpoint}/logout", sessionId)
-            );
-    }
-
-    static JsonElement GetJsonFromResponseIfSuccessful(HttpResponseMessage response)
-    {
-        response.EnsureSuccessStatusCode();
-        var responseJson = JsonDocument.Parse(response.Content.ReadAsStream()).RootElement;
-        var responseStatusCode = responseJson.GetProperty("ok").GetInt32();
-        if (responseStatusCode != 1)
-        {
-            if (responseJson.TryGetProperty("errormessage", out var errmsgp) && errmsgp.GetString() is { } errmsg)
-                throw new HttpRequestException(errmsg);
-
-            if (responseJson.TryGetProperty("errorcode", out var errcodep) && errcodep.GetString() is { } errcode)
-                throw new HttpRequestException($"Couldn't login. Server responded with {errcode} error code");
-
-            throw new HttpRequestException($"Couldn't login. Server responded with {responseStatusCode} status code");
-        }
-
-        return responseJson;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await Logout();
-    }
+    public ValueTask<OperationResult> RenameServerAsync(string name) =>
+        Api.ApiPost($"{_TaskManagerEndpoint}/renameserver", ("sessionid", _sessionId), ("oldname", Settings.NodeName), ("newname", name));
+    public ValueTask<OperationResult> Logout() =>
+        Api.ApiPost($"{_AccountsEndpoint}/logout", ("sessionid", _sessionId));
 
 
-    internal async Task<OperationResult> AuthAsync(string email, string password)
-    {
-        var login = await Execute(() => LoginAsync(email, password)).ConfigureAwait(false);
-        if (!login) return login.GetResult();
-
-        return await CheckAsync().ConfigureAwait(false);
-    }
-    internal async ValueTask<OperationResult> CheckAsync()
+    public ValueTask<OperationResult> AuthAsync(string email, string password) => LoginAsync(email, password).Next(_ => CheckAsync());
+    public async ValueTask<OperationResult> CheckAsync()
     {
         if (_sessionId is null) return OperationResult.Err();
 
-        var check = await Execute(() => CheckSessionAsync(_sessionId)).ConfigureAwait(false);
+        var check = await CheckSessionAsync().ConfigureAwait(false);
         if (check)
         {
             if (Settings.NodeName is null)
             {
-                var nickr = await Execute(RequestNicknameAsync).ConfigureAwait(false);
+                var nickr = await RequestNicknameAsync().ConfigureAwait(false);
 
                 if (nickr) Settings.NodeName = nickr.Value;
                 else Settings.NodeName = Guid.NewGuid().ToString();
@@ -138,36 +40,5 @@ internal class SessionManager : IAsyncDisposable
         }
 
         return check;
-    }
-
-    internal async Task<OperationResult> Execute(Func<Task> func)
-    {
-        while (true)
-        {
-            try
-            {
-                await func().ConfigureAwait(false);
-                return true;
-            }
-            catch (SocketException)
-            {
-                await Task.Delay(1000).ConfigureAwait(false);
-                continue;
-            }
-            catch (Exception ex) { return OperationResult.Err(ex); }
-        }
-    }
-    internal async Task<OperationResult<T>> Execute<T>(Func<Task<T>> func)
-    {
-        while (true)
-        {
-            try { return await func().ConfigureAwait(false); }
-            catch (SocketException)
-            {
-                await Task.Delay(1000).ConfigureAwait(false);
-                continue;
-            }
-            catch (Exception ex) { return OperationResult.Err(ex); }
-        }
     }
 }
