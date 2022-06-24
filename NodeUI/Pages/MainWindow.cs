@@ -189,7 +189,7 @@ namespace NodeUI.Pages
                     {
                         ItemsPanel.Children.Add(new Expander()
                         {
-                            Header = $"{getName(statname)} ({stat.Total})",
+                            Header = $"{getName(statname)} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long) x.Value.Total)} total installed versions)",
                             Content = new ItemsControl()
                             {
                                 Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
