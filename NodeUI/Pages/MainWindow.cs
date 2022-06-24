@@ -185,20 +185,19 @@ namespace NodeUI.Pages
                 {
                     InfoTextBlock.Text = $"Last update: {DateTimeOffset.Now}";
 
-                    foreach (var (statname, stat) in sort(stats))
+                    foreach (var (statname, stat) in stats.OrderByDescending(x => x.Value.Total).ThenByDescending(x => x.Value.ByVersion.Count))
                     {
                         ItemsPanel.Children.Add(new Expander()
                         {
                             Header = $"{getName(statname)} ({stat.Total})",
                             Content = new ItemsControl()
                             {
-                                Items = sort(stat.ByVersion).Select(v => $"{v.Key} ({v.Value.Total})"),
+                                Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
                             },
                         });
                     }
 
 
-                    static IEnumerable<KeyValuePair<string, T>> sort<T>(ImmutableDictionary<string, T> values) where T : Api.IHasTotal => values.OrderByDescending(x => x.Value.Total);
                     static string getName(string shortname) => shortname switch
                     {
                         "blender" => "Blender",
