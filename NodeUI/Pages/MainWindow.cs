@@ -128,6 +128,8 @@ namespace NodeUI.Pages
         }
         class PluginsTab : Panel
         {
+            readonly Grid PluginsPanel;
+
             public PluginsTab()
             {
                 Children.Add(new TextBlock()
@@ -136,42 +138,62 @@ namespace NodeUI.Pages
                     VerticalAlignment = VerticalAlignment.Center,
                     Text = "im plugin tab hello; Loading stuff...",
                 });
+                Children.Add(PluginsPanel = new()
+                {
+                    RowDefinitions = RowDefinitions.Parse("Auto *"),
+                });
 
 
                 new Thread(() =>
                 {
                     while (true)
                     {
-                        _ = LoadData();
-                        Thread.Sleep(60 * 60 * 1000);
+                        _ = LoadStats();
+                        Thread.Sleep(/*60 * */60 * 1000);
                     }
                 })
                 { IsBackground = true }.Start();
             }
 
-            async Task LoadData()
+            async Task LoadStats()
             {
                 var data = await Api.GetSoftwareStatsAsync().ConfigureAwait(false);
                 data.LogIfError();
                 if (!data) return;
 
-                await Dispatcher.UIThread.InvokeAsync(() =>
+                await Dispatcher.UIThread.InvokeAsync(() => SetStats(data.Value)).ConfigureAwait(false);
+            }
+            void SetStats(ImmutableDictionary<string, Api.SoftwareStats> stats)
+            {
+                PluginsPanel.Children.Clear();
+                PluginsPanel.Children.Add(new TextBlock() { Text = $"Last update: {DateTimeOffset.Now}" }.WithRow(0));
+
+                var list = new StackPanel();
+                PluginsPanel.Children.Add(list.WithRow(1));
+
+                foreach (var (statname, stat) in sort(stats))
                 {
-                    Children.Clear();
-                    Children.Add(new TextBlock() { Text = string.Join(Environment.NewLine, data.Value.Select(froms)) });
+                    list.Children.Add(new Expander()
+                    {
+                        Header = $"{getName(statname)} ({stat.Total})",
+                        Content = new ItemsControl()
+                        {
+                            Items = sort(stat.ByVersion).Select(v => $"{v.Key} ({v.Value.Total})"),
+                        },
+                    });
+                }
 
-                    static string froms(KeyValuePair<string, Api.SoftwareStats> v) => @$"
-                        {v.Key}:
-                        Total: {v.Value.Total}
-                        Versions:
-                        {string.Join(Environment.NewLine, v.Value.ByVersion.Select(fromv))}
-                        ".TrimLines();
 
-                    static string fromv(KeyValuePair<string, Api.SoftwareStatsByVersion> v) => @$"
-                        {v.Key}:
-                        - Total: {v.Value.Total}
-                        ".TrimLines();
-                }).ConfigureAwait(false);
+                static IEnumerable<KeyValuePair<string, T>> sort<T>(ImmutableDictionary<string, T> values) where T : Api.IHasTotal => values.OrderByDescending(x => x.Value.Total);
+                static string getName(string shortname) => shortname switch
+                {
+                    "blender" => "Blender",
+                    "autodesk3dsmax" => "Autodesk 3ds Max",
+                    "topazgigapixelai" => "Topaz Gigapixel AI",
+                    "davinciresolve" => "Davinci Resolve",
+                    { } name when name.Length != 0 => char.ToUpper(name[0]) + name[1..],
+                    { } name => name,
+                };
             }
         }
         class BenchmarkTab : Panel

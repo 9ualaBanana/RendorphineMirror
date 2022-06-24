@@ -1,7 +1,8 @@
 using System.Collections.Immutable;
 using System.Net.Sockets;
-using System.Text.Json;
 using System.Web;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Common
 {
@@ -27,12 +28,12 @@ namespace Common
         static async ValueTask<T> Post<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values)
         {
             var responseJson = await Post(url, values).ConfigureAwait(false);
-            return responseJson.GetProperty(property).Deserialize<T>()!;
+            return responseJson[property]!.ToObject<T>()!;
         }
         static async ValueTask<T> Get<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values)
         {
             var responseJson = await Get(url, values).ConfigureAwait(false);
-            return responseJson.GetProperty(property).Deserialize<T>()!;
+            return responseJson[property]!.ToObject<T>()!;
         }
 
         public static ValueTask<OperationResult> ApiPost(string url, params (string, string)[] values) =>
@@ -44,19 +45,19 @@ namespace Common
         public static ValueTask<OperationResult> ApiGet(string url, IEnumerable<KeyValuePair<string, string>> values) =>
             Execute(() => Get(url, values)).Next(_ => true);
 
-        static async Task<JsonElement> Post(string url, IEnumerable<KeyValuePair<string, string>> values)
+        static async Task<JToken> Post(string url, IEnumerable<KeyValuePair<string, string>> values)
         {
             using var content = new FormUrlEncodedContent(values);
             var result = await Client.PostAsync(url, content).ConfigureAwait(false);
-            return GetJsonFromResponseIfSuccessful(result);
+            return await GetJsonFromResponseIfSuccessful(result).ConfigureAwait(false);
         }
-        static async Task<JsonElement> Get(string url, IEnumerable<KeyValuePair<string, string>> values)
+        static async Task<JToken> Get(string url, IEnumerable<KeyValuePair<string, string>> values)
         {
             var str = string.Join('&', values.Select(x => x.Key + "=" + HttpUtility.UrlEncode(x.Value)));
             if (str.Length != 0) str = "?" + str;
 
             var result = await Client.GetAsync(url + str).ConfigureAwait(false);
-            return GetJsonFromResponseIfSuccessful(result);
+            return await GetJsonFromResponseIfSuccessful(result).ConfigureAwait(false);
         }
 
 
@@ -74,17 +75,20 @@ namespace Common
                 catch (Exception ex) { return OperationResult.Err(ex); }
             }
         }
-        static JsonElement GetJsonFromResponseIfSuccessful(HttpResponseMessage response)
+        static async ValueTask<JToken> GetJsonFromResponseIfSuccessful(HttpResponseMessage response)
         {
             response.EnsureSuccessStatusCode();
-            var responseJson = JsonDocument.Parse(response.Content.ReadAsStream()).RootElement;
-            var responseStatusCode = responseJson.GetProperty("ok").GetInt32();
+
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            using var reader = new JsonTextReader(new StreamReader(stream));
+            var responseJson = JToken.Load(reader);
+            var responseStatusCode = responseJson["ok"]?.Value<int>();
             if (responseStatusCode != 1)
             {
-                if (responseJson.TryGetProperty("errormessage", out var errmsgp) && errmsgp.GetString() is { } errmsg)
+                if (responseJson["errormessage"]?.Value<string>() is { } errmsg)
                     throw new HttpRequestException(errmsg);
 
-                if (responseJson.TryGetProperty("errorcode", out var errcodep) && errcodep.GetString() is { } errcode)
+                if (responseJson["errorcode"]?.Value<string>() is { } errcode)
                     throw new HttpRequestException($"Couldn't login. Server responded with {errcode} error code");
 
                 throw new HttpRequestException($"Couldn't login. Server responded with {responseStatusCode} status code");
@@ -98,7 +102,8 @@ namespace Common
             ApiGet<ImmutableDictionary<string, SoftwareStats>>($"{TaskManagerEndpoint}/getsoftwarestats", "stats");
 
 
-        public record SoftwareStats(ulong Total, ImmutableDictionary<string, SoftwareStatsByVersion> ByVersion);
-        public record SoftwareStatsByVersion(ulong Total); // TODO: byplugin
+        public interface IHasTotal { ulong Total { get; } }
+        public record SoftwareStats(ulong Total, ImmutableDictionary<string, SoftwareStatsByVersion> ByVersion) : IHasTotal;
+        public record SoftwareStatsByVersion(ulong Total) : IHasTotal; // TODO: byplugin
     }
 }
