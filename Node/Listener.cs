@@ -13,7 +13,6 @@ namespace Node
     {
         static readonly JsonSerializer JsonSerializerWithTypes = new() { TypeNameHandling = TypeNameHandling.Auto, };
         static readonly HttpClient Client = new();
-        static readonly SessionManager SessionManager = new();
 
         static JObject JsonFromOpResult(in OperationResult result)
         {

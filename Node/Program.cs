@@ -20,8 +20,6 @@ var discoveringInstalledPlugins = MachineInfo.DiscoverInstalledPluginsInBackgrou
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
 
-var sessionManager = new SessionManager();
-
 _ = Listener.StartLocalListenerAsync();
 var autoauthenticated = await Authenticate().ConfigureAwait(false);
 Log.Information($"{(autoauthenticated ? "Auto" : "Manual")} authentication completed");
@@ -61,7 +59,7 @@ Thread.Sleep(-1);
 // returns true if sessionid was already valid; false if wasnt 
 async ValueTask<bool> Authenticate()
 {
-    var check = await sessionManager.CheckAsync().ConfigureAwait(false);
+    var check = await SessionManager.CheckAsync().ConfigureAwait(false);
     check.LogIfError();
     if (check) return check;
 
@@ -77,7 +75,7 @@ async ValueTask<OperationResult> Auth()
         if (data.Length < 2) Log.Error("Not enough arguments in auth.txt");
         else
         {
-            var auth = await sessionManager.AuthAsync(data[0], data[1]).ConfigureAwait(false);
+            var auth = await SessionManager.AuthAsync(data[0], data[1]).ConfigureAwait(false);
             auth.LogIfError();
             if (auth) return true;
         }
