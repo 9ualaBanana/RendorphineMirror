@@ -34,12 +34,15 @@ namespace NodeUI
 
                 MainTheme.Apply(Resources, Styles);
 
-                var window = new LoginWindow();
+                Window window =
+                    Settings.SessionId is null
+                    ? new LoginWindow()
+                    : new MainWindow();
+
                 desktop.MainWindow = window;
 
-                if (!Environment.GetCommandLineArgs().Contains("hidden"))
-                    window.Show();
-                else Dispatcher.UIThread.Post(window.Hide);
+                if (Environment.GetCommandLineArgs().Contains("hidden"))
+                    Dispatcher.UIThread.Post(window.Hide);
             }
         }
     }

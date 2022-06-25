@@ -21,8 +21,21 @@ if (!Debugger.IsAttached)
     FileList.KillNodeUI();
 
 _ = Listener.StartLocalListenerAsync();
-var autoauthenticated = await Authenticate().ConfigureAwait(false);
-Log.Information($"{(autoauthenticated ? "Auto" : "Manual")} authentication completed");
+
+// TODO: probably remove \/
+if (Settings.Email is null) Settings.SessionId = null;
+
+if (Settings.SessionId is  null)
+{
+    if (!Debugger.IsAttached)
+        Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
+    Log.Information($"Already authenticated. Email: {Settings.Email}");
+}
+else
+{
+    await AuthWithGui().ConfigureAwait(false);
+    Log.Information($"Authentication completed");
+}
 
 PortForwarding.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
@@ -30,9 +43,6 @@ _ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
     Log.Information($"UPnP was {(PortForwarding.Initialized ? null : "not ")}initialized");
     Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}");
 });
-
-if (autoauthenticated && !Debugger.IsAttached)
-    Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 
 if (!Init.IsDebug)
 {
@@ -56,40 +66,10 @@ _ = Listener.StartPublicListenerAsync();
 Thread.Sleep(-1);
 
 
-// returns only when authenticated;
-// returns true if sessionid was already valid; false if wasnt 
-async ValueTask<bool> Authenticate()
+async ValueTask AuthWithGui()
 {
-    var check = await SessionManager.CheckAsync().ConfigureAwait(false);
-    check.LogIfError();
-    if (check) return check;
-
-    return await Auth().ConfigureAwait(false);
-}
-async ValueTask<OperationResult> Auth()
-{
-    // or try to auth from auth.txt
-    string? file = null;
-    if (File.Exists(file = "auth.txt") || File.Exists(file = "../auth.txt"))
-    {
-        var data = File.ReadAllText(file).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (data.Length < 2) Log.Error("Not enough arguments in auth.txt");
-        else
-        {
-            var auth = await SessionManager.AuthAsync(data[0], data[1]).ConfigureAwait(false);
-            auth.LogIfError();
-            if (auth) return true;
-        }
-    }
-
-    return await WaitForAuth(CancellationToken.None).ConfigureAwait(false);
-}
-async Task<bool> WaitForAuth(CancellationToken token)
-{
+    Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate");
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
-
-    Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate or create auth.txt file in {Path.GetFullPath(".")} with your login and password divided by space");
-    Console.WriteLine(@$"Example: ""makov@gmail.com password123""");
 
     while (true)
     {
@@ -98,6 +78,6 @@ async Task<bool> WaitForAuth(CancellationToken token)
         if (Settings.SessionId is null) continue;
         if (Settings.NodeName is null) continue;
 
-        return false;
+        return;
     }
 }

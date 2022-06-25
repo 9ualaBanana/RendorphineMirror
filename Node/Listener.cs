@@ -122,11 +122,6 @@ namespace Node
                     }).ConfigureAwait(false);
                 }
 
-                if (subpath == "checkauth")
-                {
-                    var check = await SessionManager.CheckAsync().ConfigureAwait(false);
-                    return await WriteJson(response, check).ConfigureAwait(false);
-                }
                 if (subpath == "auth")
                 {
                     return await Test(request, response, "email", "password", async (email, password) =>
