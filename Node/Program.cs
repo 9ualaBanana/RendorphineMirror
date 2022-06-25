@@ -25,7 +25,7 @@ _ = Listener.StartLocalListenerAsync();
 // TODO: probably remove \/
 if (Settings.Email is null) Settings.SessionId = null;
 
-if (Settings.SessionId is  null)
+if (Settings.SessionId is not null)
 {
     if (!Debugger.IsAttached)
         Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
