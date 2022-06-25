@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 namespace Common
 {
     public delegate void ChangedDelegate<T>(T oldv, T newv);
@@ -14,7 +15,18 @@ namespace Common
         public event ChangedDelegate<T> Changed = delegate { };
 
         protected T _Value;
-        public virtual T Value { get => _Value; set => Changed(Value!, _Value = value); }
+        public virtual T Value
+        {
+            get => _Value;
+            set
+            {
+                var oldvalue = _Value;
+                _Value = value;
+
+                if (!EqualityComparer<T>.Default.Equals(value, oldvalue))
+                    Changed(oldvalue, value);
+            }
+        }
         public readonly T DefaultValue;
 
         public Bindable(T defaultValue = default!) => _Value = DefaultValue = defaultValue;
