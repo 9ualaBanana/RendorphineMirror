@@ -161,8 +161,4 @@ namespace Common
                 );
         }
     }
-    class SettingsInstance
-    {
-
-    }
 }
