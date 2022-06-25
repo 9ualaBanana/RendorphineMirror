@@ -37,12 +37,8 @@ else
     Log.Information($"Authentication completed");
 }
 
-PortForwarding.Initialize();
-_ = PortForwarding.GetPublicIPAsync().ContinueWith(t =>
-{
-    Log.Information($"UPnP was {(PortForwarding.Initialized ? null : "not ")}initialized");
-    Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}");
-});
+PortForwarder.Initialize();
+_ = PortForwarding.GetPublicIPAsync().ContinueWith(t => Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}"));
 
 if (!Init.IsDebug)
 {
