@@ -2,24 +2,24 @@
 
 public static class SessionManager
 {
-    const string _AccountsEndpoint = Api.AccountsEndpoint;
-    const string _TaskManagerEndpoint = Api.TaskManagerEndpoint;
-    static string _sessionId { get => Settings.SessionId!; set => Settings.SessionId = value!; }
+    const string AccountsEndpoint = Api.AccountsEndpoint;
+    const string TaskManagerEndpoint = Api.TaskManagerEndpoint;
+    static string SessionId { get => Settings.SessionId!; set => Settings.SessionId = value!; }
 
     static ValueTask<OperationResult<string>> LoginAsync(string email, string password) =>
-        Api.ApiPost<string>($"{_TaskManagerEndpoint}/login", "sessionid", ("email", email), ("password", password));
+        Api.ApiPost<string>($"{TaskManagerEndpoint}/login", "sessionid", ("email", email), ("password", password));
     static ValueTask<OperationResult<string>> RequestNicknameAsync() =>
-        Api.ApiPost<string>($"{_TaskManagerEndpoint}/generatenickname", "nickname", ("sessionid", _sessionId));
+        Api.ApiPost<string>($"{TaskManagerEndpoint}/generatenickname", "nickname", ("sessionid", SessionId));
 
     public static ValueTask<OperationResult> RenameServerAsync(string name) =>
-        Api.ApiPost($"{_TaskManagerEndpoint}/renameserver", ("sessionid", _sessionId), ("oldname", Settings.NodeName), ("newname", name));
+        Api.ApiPost($"{TaskManagerEndpoint}/renameserver", ("sessionid", SessionId), ("oldname", Settings.NodeName), ("newname", name));
 
 
     public static ValueTask<OperationResult> AuthAsync(string email, string password) =>
         LoginAsync(email, password)
         .Next(async sid =>
         {
-            _sessionId = sid;
+            SessionId = sid;
             Settings.Email = email;
 
             if (Settings.NodeName is null)
