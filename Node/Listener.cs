@@ -5,6 +5,7 @@ using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Node.Profiler;
 
 namespace Node
 {
@@ -121,11 +122,6 @@ namespace Node
                     }).ConfigureAwait(false);
                 }
 
-                if (subpath == "checkauth")
-                {
-                    var check = await SessionManager.CheckAsync().ConfigureAwait(false);
-                    return await WriteJson(response, check).ConfigureAwait(false);
-                }
                 if (subpath == "auth")
                 {
                     return await Test(request, response, "email", "password", async (email, password) =>
@@ -139,8 +135,12 @@ namespace Node
                 {
                     return await Test(request, response, "nick", async nick =>
                     {
-                        var resp = await SessionManager.RenameServerAsync(nick).ConfigureAwait(false);
-                        if (resp) Settings.NodeName = nick;
+                        OperationResult resp;
+                        lock (NodeProfiler.HeatbeatLock)
+                        {
+                            resp = SessionManager.RenameServerAsync(nick).ConfigureAwait(false).GetAwaiter().GetResult();
+                            if (resp) Settings.NodeName = nick;
+                        }
 
                         return await WriteJson(response, resp).ConfigureAwait(false);
                     }).ConfigureAwait(false);

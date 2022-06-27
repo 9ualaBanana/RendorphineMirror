@@ -34,13 +34,15 @@ namespace NodeUI
 
                 MainTheme.Apply(Resources, Styles);
 
-                var window = new LoginWindow();
-                desktop.MainWindow = window;
-
                 if (!Environment.GetCommandLineArgs().Contains("hidden"))
-                    window.Show();
-                else Dispatcher.UIThread.Post(window.Hide);
+                    SetMainWindow(desktop);
             }
         }
+
+        public static Window SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime) =>
+            lifetime.MainWindow =
+                Settings.SessionId is null
+                ? new LoginWindow()
+                : new MainWindow();
     }
 }

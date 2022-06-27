@@ -4,15 +4,12 @@ using System.Globalization;
 using Common;
 
 ConsoleHide.Hide();
-Process.Start(new ProcessStartInfo(FileList.GetUpdaterExe()) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden })!.WaitForExit();
 
 var nodeexe = GetPath(args, 0, "Node");
 var updaterexe = GetPath(args, 1, "Updater");
+Log(@$"Pinger v{Init.Version} started; Config directory: {Init.ConfigDirectory}; Node executable: {nodeexe}; Updater executable: {updaterexe}");
 
-Log(@$"Pinger v{Init.Version} started");
-Log(@$"Config directory: {Init.ConfigDirectory}");
-Log(@$"Node executable: {nodeexe}");
-Log(@$"Updater executable: {updaterexe}");
+Process.Start(new ProcessStartInfo(FileList.GetUpdaterExe()) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden })!.WaitForExit();
 
 await Ping(new HttpClient(), CancellationToken.None).ConfigureAwait(false);
 

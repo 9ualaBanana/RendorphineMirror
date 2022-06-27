@@ -1,4 +1,3 @@
-using System.Net.Sockets;
 using System.Web;
 using Avalonia.Controls.ApplicationLifetimes;
 
@@ -6,8 +5,8 @@ namespace NodeUI.Pages
 {
     public class LoginWindow : LoginWindowUI
     {
-        public LoginWindow(LocalizedString error) : this(false) => Login.ShowError(error);
-        public LoginWindow(bool tryAutoAuth = true)
+        public LoginWindow(LocalizedString error) : this() => Login.ShowError(error);
+        public LoginWindow()
         {
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
@@ -20,81 +19,22 @@ namespace NodeUI.Pages
             this.PreventClosing();
 
 
-            async Task authenticate(string login, string password)
+            async Task<OperationResult> authenticate(string login, string password)
             {
-                try
-                {
-                    Login.StartLoginAnimation(Localized.Login.Loading);
+                if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err(Localized.Login.EmptyLogin);
+                if (string.IsNullOrEmpty(password)) return OperationResult.Err(Localized.Login.EmptyPassword);
 
-                    while (true)
-                    {
-                        var auth = await OperationResult.WrapException(() => TryAuthenticate(login, password));
-                        if (!auth)
-                        {
-                            if (auth.Exception is SocketException)
-                            {
-                                Login.StartLoginAnimation(Localized.General.NoInternet);
-                                await Task.Delay(1000);
-                                continue;
-                            }
+                Login.StartLoginAnimation(Localized.Login.Loading);
+                using var _ = new FuncDispose(() => Dispatcher.UIThread.Post(Login.StopLoginAnimation));
 
-                            Login.ShowError(auth.AsString());
-                            return;
-                        }
+                var auth = await OperationResult.WrapException(() => LocalApi.Send($"auth?email={HttpUtility.UrlEncode(login)}&password={HttpUtility.UrlEncode(password)}")).ConfigureAwait(false);
+                if (!auth) Dispatcher.UIThread.Post(() => Login.ShowError(auth.AsString()));
+                else Dispatcher.UIThread.Post(ShowMainWindow);
 
-                        Dispatcher.UIThread.Post(() => Login.StartLoginAnimation(Localized.Login.Loading));
-                        ShowMainWindow();
-                        return;
-                    }
-
-
-                    async ValueTask<OperationResult> TryAuthenticate(string login, string password)
-                    {
-                        if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err(Localized.Login.EmptyLogin);
-                        if (string.IsNullOrEmpty(password)) return OperationResult.Err(Localized.Login.EmptyPassword);
-
-                        return await LocalApi.Send($"auth?email={HttpUtility.UrlEncode(login)}&password={HttpUtility.UrlEncode(password)}").ConfigureAwait(false);
-                    }
-                }
-                catch (Exception ex) { Login.ShowError(ex.Message); }
-                finally { Login.StopLoginAnimation(); }
+                return auth;
             }
             Login.OnPressLogin += (login, password) => _ = authenticate(login, password);
             Login.OnPressForgotPassword += () => Process.Start(new ProcessStartInfo("https://accounts.stocksubmitter.com/resetpasswordrequest") { UseShellExecute = true });
-
-            if (tryAutoAuth)
-                Task.Run(async () =>
-                {
-                    var result = await Dispatcher.UIThread.InvokeAsync(CheckAuth).ConfigureAwait(false);
-                    if (!result)
-                    {
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            Login.UnlockButtons();
-                            Login.ShowError(result.AsString());
-                        });
-
-                        return;
-                    }
-
-                    Dispatcher.UIThread.Post(ShowMainWindow);
-                });
-        }
-
-
-        async Task<OperationResult> CheckAuth()
-        {
-            try
-            {
-                Dispatcher.UIThread.Post(() => Login.StartLoginAnimation(Localized.Login.AuthCheck));
-
-                if (Settings.SessionId is not null && Debugger.IsAttached)
-                    return await Api.ApiPost($"{Api.AccountsEndpoint}/checksession", ("sessionid", Settings.SessionId)).ConfigureAwait(false);
-
-                return await LocalApi.Send("checkauth").ConfigureAwait(false);
-            }
-            catch (Exception ex) { return OperationResult.Err(ex); }
-            finally { Dispatcher.UIThread.Post(Login.StopLoginAnimation); }
         }
 
         void ShowMainWindow()

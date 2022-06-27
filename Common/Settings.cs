@@ -18,13 +18,14 @@ namespace Common
         public static ushort DhtPort { get => BDhtPort.Value; set => BDhtPort.Value = value; }
         public static ushort TorrentPort { get => BTorrentPort.Value; set => BTorrentPort.Value = value; }
         public static string? SessionId { get => BSessionId.Value; set => BSessionId.Value = value; }
+        public static string? Email { get => BEmail.Value; set => BEmail.Value = value; }
         public static string NodeName { get => BNodeName.Value!; set => BNodeName.Value = value!; }
         public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
         public static bool ShortcutsCreated { get => BShortcutsCreated.Value; set => BShortcutsCreated.Value = value; }
 
         public static readonly DatabaseBindable<string> BServerUrl;
         public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort, BDhtPort, BTorrentPort;
-        public static readonly DatabaseBindable<string?> BSessionId, BNodeName, BLanguage;
+        public static readonly DatabaseBindable<string?> BSessionId, BEmail, BNodeName, BLanguage;
         public static readonly DatabaseBindable<bool> BShortcutsCreated;
 
         static readonly SQLiteConnection Connection;
@@ -45,6 +46,7 @@ namespace Common
             BDhtPort = new(nameof(DhtPort), 6223);
             BTorrentPort = new(nameof(TorrentPort), 6224);
             BSessionId = new(nameof(SessionId), null) { Hidden = true };
+            BEmail = new(nameof(Email), null);
             BNodeName = new(nameof(NodeName), null);
             BLanguage = new(nameof(Language), null);
             BShortcutsCreated = new(nameof(ShortcutsCreated), false);
@@ -158,9 +160,5 @@ namespace Common
                     new SQLiteParameter("value", JsonConvert.SerializeObject(value))
                 );
         }
-    }
-    class SettingsInstance
-    {
-        
     }
 }

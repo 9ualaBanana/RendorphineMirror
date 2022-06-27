@@ -51,8 +51,9 @@ namespace NodeUI
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    var window = ((IClassicDesktopStyleApplicationLifetime) app.ApplicationLifetime!).MainWindow;
+                    var lifetime = (IClassicDesktopStyleApplicationLifetime) app.ApplicationLifetime!;
 
+                    var window = lifetime.MainWindow ?? App.SetMainWindow(lifetime);
                     if (window.IsVisible) window.Hide();
                     else window.Show();
                 });

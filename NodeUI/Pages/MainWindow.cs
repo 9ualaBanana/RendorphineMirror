@@ -1,5 +1,4 @@
 using System.Web;
-using Avalonia.Markup.Xaml.Templates;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -241,6 +240,9 @@ namespace NodeUI.Pages
                 };
                 nicksbtn.OnClick += async () =>
                 {
+                    using var _ = new FuncDispose(() => Dispatcher.UIThread.Post(() => nicksbtn.IsEnabled = true));
+                    nicksbtn.IsEnabled = false;
+
                     var nick = nicktb.Text.Trim();
                     if (Settings.NodeName == nick)
                     {

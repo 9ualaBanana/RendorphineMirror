@@ -7,14 +7,11 @@ namespace Common
     {
         public readonly bool Success;
         public readonly string? Message;
-        public readonly Exception? Exception;
 
-        public OperationResult(bool success, string? message) : this(success, message, null) { }
-        public OperationResult(bool success, string? message, Exception? exception)
+        public OperationResult(bool success, string? message)
         {
             Success = success;
-            Message = message ?? exception?.Message;
-            Exception = exception;
+            Message = message;
         }
 
         [MethodImpl(256)] public string AsString() => Message ?? string.Empty;
@@ -25,7 +22,7 @@ namespace Common
 
         public static OperationResult Err(string? msg = null) => new OperationResult(false, msg);
         public static OperationResult Err(LocalizedString str) => Err(str.ToString());
-        public static OperationResult Err(Exception ex) => new OperationResult(false, null, ex);
+        public static OperationResult Err(Exception ex) => new OperationResult(false, ex.Message);
         public static OperationResult<T> Err<T>(string? msg = null) => Err(msg);
         public static OperationResult<T> Succ<T>(T value) => new OperationResult<T>(value);
 
@@ -54,7 +51,7 @@ namespace Common
         static OperationResult MakeException(Exception ex, string? info)
         {
             if (info is null) return OperationResult.Err(ex);
-            return new OperationResult(false, @$"Got an {ex.GetType().Name} {info}: {ex.Message}", ex);
+            return new OperationResult(false, @$"Got an {ex.GetType().Name} {info}: {ex.Message}");
         }
 
         public static implicit operator bool(OperationResult es) => es.Success;
@@ -64,7 +61,6 @@ namespace Common
     {
         public bool Success => EString.Success;
         public string? Message => EString.Message;
-        public Exception? Exception => EString.Exception;
         public T Result => Value;
 
         public readonly OperationResult EString;
