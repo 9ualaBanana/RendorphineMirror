@@ -16,12 +16,12 @@ public class PluginsManager
     }
 
     #region Discovering
-    internal static async Task<IEnumerable<Plugin>> DiscoverInstalledPluginsInBackground() =>
+    internal static async Task<Plugin[]> DiscoverInstalledPluginsInBackground() =>
         await Task.Run(() => DiscoverInstalledPlugins());
 
-    internal static IEnumerable<Plugin> DiscoverInstalledPlugins()
+    internal static Plugin[] DiscoverInstalledPlugins()
     {
-        return _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover());
+        return _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover()).ToArray();
     }
 
     public static void RegisterPluginDiscoverers(params PluginDiscoverer[] pluginDiscoverers) => _pluginsDiscoverers.UnionWith(pluginDiscoverers);
