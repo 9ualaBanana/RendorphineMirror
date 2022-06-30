@@ -177,6 +177,7 @@ namespace NodeUI.Pages
                 {
                     InfoTextBlock.Text = $"Last update: {DateTimeOffset.Now}";
 
+                    ItemsPanel.Children.Clear();
                     foreach (var (statname, stat) in stats.OrderByDescending(x => x.Value.Total).ThenByDescending(x => x.Value.ByVersion.Count))
                     {
                         ItemsPanel.Children.Add(new Expander()
