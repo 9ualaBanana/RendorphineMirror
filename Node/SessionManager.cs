@@ -7,12 +7,12 @@ public static class SessionManager
     static string SessionId { get => Settings.SessionId!; set => Settings.SessionId = value!; }
 
     static ValueTask<OperationResult<string>> LoginAsync(string email, string password) =>
-        Api.ApiPost<string>($"{TaskManagerEndpoint}/login", "sessionid", ("email", email), ("password", password));
+        Api.ApiPost<string>($"{TaskManagerEndpoint}/login", "sessionid", "Couldn't login.", ("email", email), ("password", password));
     static ValueTask<OperationResult<string>> RequestNicknameAsync() =>
-        Api.ApiPost<string>($"{TaskManagerEndpoint}/generatenickname", "nickname", ("sessionid", SessionId));
+        Api.ApiPost<string>($"{TaskManagerEndpoint}/generatenickname", "nickname", "Couldn't generate nickname.", ("sessionid", SessionId));
 
     public static ValueTask<OperationResult> RenameServerAsync(string name) =>
-        Api.ApiPost($"{TaskManagerEndpoint}/renameserver", ("sessionid", SessionId), ("oldname", Settings.NodeName), ("newname", name));
+        Api.ApiPost($"{TaskManagerEndpoint}/renameserver", "Couldn't rename.", ("sessionid", SessionId), ("oldname", Settings.NodeName), ("newname", name));
 
 
     public static ValueTask<OperationResult> AuthAsync(string email, string password) =>
