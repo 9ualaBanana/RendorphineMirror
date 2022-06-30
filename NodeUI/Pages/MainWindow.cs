@@ -1,4 +1,5 @@
 using System.Web;
+using Common.Tasks;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -34,7 +35,7 @@ namespace NodeUI.Pages
         void SubscribeToStateChanges()
         {
             IMessageBox? benchmb = null;
-            GlobalState.SubscribeChanged<BenchmarkNodeState>(
+            GlobalState.SubscribeStateChanged<BenchmarkNodeState>(
                 (oldstate, newstate) => Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (newstate is BenchmarkNodeState bns)
@@ -71,7 +72,7 @@ namespace NodeUI.Pages
                 var oldstate = GlobalState.State.Value;
                 var newstate = stateres.Value.State ?? IdleNodeState.Instance;
                 if (newstate.GetType() != oldstate.GetType())
-                    Log.Information($"Changing state from {oldstate.GetName()} to {newstate.GetName()}");
+                    Log.Information($"Changing state from {oldstate.GetStateName()} to {newstate.GetStateName()}");
 
                 GlobalState.State.Value = newstate;
             }
@@ -105,6 +106,15 @@ namespace NodeUI.Pages
                 };
                 Children.Add(langbtn);
 
+                var taskbtn = new MPButton()
+                {
+                    Text = new("new task"),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    OnClick = () => new TaskCreationWindow().Show(),
+                };
+                Children.Add(taskbtn);
+
 
                 void updatetext()
                 {
@@ -114,7 +124,7 @@ namespace NodeUI.Pages
 
                     Dispatcher.UIThread.Post(() => infotb.Text =
                         @$"
-                        Current node state: {GlobalState.State.Value.GetName()}
+                        Current node state: {GlobalState.State.Value.GetStateName()}
                         State data: {JsonConvert.SerializeObject(GlobalState.State.Value, Formatting.None)}
 
                         Settings:
@@ -154,51 +164,24 @@ namespace NodeUI.Pages
                     });
 
 
-                    new Thread(() =>
+                    GlobalState.StartUpdatingStats();
+                    GlobalState.SoftwareStats.SubscribeChanged((_, stats) => Dispatcher.UIThread.Post(() =>
                     {
-                        while (true)
+                        if (stats is null) return;
+
+                        InfoTextBlock.Text = $"Last update: {DateTimeOffset.Now}";
+                        foreach (var (type, stat) in stats.OrderByDescending(x => x.Value.Total).ThenByDescending(x => x.Value.ByVersion.Count))
                         {
-                            _ = Load();
-                            Thread.Sleep(/*60 * */60 * 1000);
-                        }
-                    })
-                    { IsBackground = true }.Start();
-                }
-
-                async Task Load()
-                {
-                    var data = await Api.GetSoftwareStatsAsync().ConfigureAwait(false);
-                    data.LogIfError();
-                    if (!data) return;
-
-                    await Dispatcher.UIThread.InvokeAsync(() => Set(data.Value)).ConfigureAwait(false);
-                }
-                void Set(ImmutableDictionary<string, Api.SoftwareStats> stats)
-                {
-                    InfoTextBlock.Text = $"Last update: {DateTimeOffset.Now}";
-
-                    foreach (var (statname, stat) in stats.OrderByDescending(x => x.Value.Total).ThenByDescending(x => x.Value.ByVersion.Count))
-                    {
-                        ItemsPanel.Children.Add(new Expander()
-                        {
-                            Header = $"{getName(statname)} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long) x.Value.Total)} total installed versions)",
-                            Content = new ItemsControl()
+                            ItemsPanel.Children.Add(new Expander()
                             {
-                                Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
-                            },
-                        });
-                    }
-
-
-                    static string getName(string shortname) => shortname switch
-                    {
-                        "blender" => "Blender",
-                        "autodesk3dsmax" => "Autodesk 3ds Max",
-                        "topazgigapixelai" => "Topaz Gigapixel AI",
-                        "davinciresolve" => "Davinci Resolve",
-                        { } name when name.Length != 0 => char.ToUpper(name[0]) + name[1..],
-                        { } name => name,
-                    };
+                                Header = $"{type} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long) x.Value.Total)} total installed versions)",
+                                Content = new ItemsControl()
+                                {
+                                    Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
+                                },
+                            });
+                        }
+                    }), true);
                 }
 
             }

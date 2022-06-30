@@ -7,11 +7,11 @@ namespace NodeUI
             obj[property] = text.ToString();
             LocalizedString.ChangeLangWeakEvent.Subscribe(obj, () => Dispatcher.UIThread.Post(() => obj[property] = text.ToString()));
         }
-        public static T Binded<T>(this T obj, AvaloniaProperty property, LocalizedString text) where T : AvaloniaObject
+        public static T Bind<T>(this T obj, AvaloniaProperty property, LocalizedString text) where T : AvaloniaObject
         {
-            Bind(obj, property, text);
+            Bind((AvaloniaObject) obj, property, text);
             return obj;
         }
-        public static TextBlock Binded(this TextBlock obj, LocalizedString text) => Binded(obj, TextBlock.TextProperty, text);
+        public static TextBlock Bind(this TextBlock obj, LocalizedString text) => Bind(obj, TextBlock.TextProperty, text);
     }
 }

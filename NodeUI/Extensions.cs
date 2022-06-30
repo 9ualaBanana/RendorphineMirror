@@ -17,7 +17,11 @@ namespace NodeUI
 
         public static T WithRowColumn<T>(this T obj, int row, int column) where T : Control => obj.WithRow(row).WithColumn(column);
 
-        public static IfEmptyAddEnumerable<T> IfEmptyAdd<T>(this IEnumerable<T> enumerable, Func<T> item) => new IfEmptyAddEnumerable<T>(enumerable, item);
+        public static TObj Subscribe<TObj, TValue>(this TObj obj, AvaloniaProperty<TValue> property, Action<TValue> changed) where TObj : Control
+        {
+            obj.GetObservable<TValue>(property).Subscribe(changed);
+            return obj;
+        }
 
 
         public readonly struct IfEmptyAddEnumerable<T> : IEnumerable<T>

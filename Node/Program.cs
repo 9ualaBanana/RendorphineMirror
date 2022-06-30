@@ -6,6 +6,9 @@ using Machine.Plugins;
 using Machine.Plugins.Discoverers;
 using Node;
 using Node.Profiler;
+using Node.Tasks;
+
+Init.Initialize();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
@@ -15,7 +18,8 @@ PluginsManager.RegisterPluginDiscoverers(
     new BlenderPluginDiscoverer(),
     new Autodesk3dsMaxPluginDiscoverer(),
     new TopazGigapixelAIPluginDiscoverer(),
-    new DaVinciResolvePluginDiscoverer()
+    new DaVinciResolvePluginDiscoverer(),
+    new FFMpegPluginDiscoverer()
 );
 var discoveringInstalledPlugins = MachineInfo.DiscoverInstalledPluginsInBackground();
 
@@ -23,9 +27,6 @@ if (!Debugger.IsAttached)
     FileList.KillNodeUI();
 
 _ = Listener.StartLocalListenerAsync();
-
-// TODO: probably remove \/
-if (Settings.Email is null) Settings.SessionId = null;
 
 if (Settings.SessionId is not null)
 {
@@ -42,11 +43,11 @@ else
 PortForwarder.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t => Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}"));
 
+await discoveringInstalledPlugins;
 if (!Init.IsDebug)
 {
     SystemService.Start();
 
-    await discoveringInstalledPlugins;
     _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
 
     var nodeProfiler = new NodeProfiler(http);

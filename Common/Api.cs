@@ -98,8 +98,8 @@ namespace Common
         }
 
 
-        public static ValueTask<OperationResult<ImmutableDictionary<string, SoftwareStats>>> GetSoftwareStatsAsync() =>
-            ApiGet<ImmutableDictionary<string, SoftwareStats>>($"{TaskManagerEndpoint}/getsoftwarestats", "stats");
+        public static ValueTask<OperationResult<ImmutableDictionary<PluginType, SoftwareStats>>> GetSoftwareStatsAsync() =>
+            ApiGet<ImmutableDictionary<PluginType, SoftwareStats>>($"{TaskManagerEndpoint}/getsoftwarestats", "stats");
 
 
         public interface IHasTotal { ulong Total { get; } }

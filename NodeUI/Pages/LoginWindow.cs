@@ -425,7 +425,7 @@ namespace NodeUI.Pages
                         FontSize = 14,
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
-                    }.Binded(TextBlock.TextProperty, Localized.Login.ForgotPassword);
+                    }.Bind(TextBlock.TextProperty, Localized.Login.ForgotPassword);
 
                     Content = text;
 
