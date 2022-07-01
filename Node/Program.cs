@@ -40,12 +40,13 @@ else
 PortForwarder.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t => Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}"));
 
+await discoveringInstalledPlugins;
 if (!Init.IsDebug)
 {
     SystemService.Start();
 
-    await discoveringInstalledPlugins;
-    _ = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http).StartAsync();
+    var serverPinger = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http);
+    _ = serverPinger.StartAsync();
 
     var nodeProfiler = new NodeProfiler(http);
     var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
