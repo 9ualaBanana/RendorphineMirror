@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Machine.Plugins;
 using Machine.Plugins.Discoverers;
 using Node;
+using Node.P2P;
 using Node.Profiler;
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();

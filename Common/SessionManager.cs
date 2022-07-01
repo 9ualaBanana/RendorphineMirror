@@ -6,14 +6,14 @@ public static class SessionManager
     static string SessionId => Settings.SessionId!;
 
     static ValueTask<OperationResult<string>> LoginAsync(string email, string password, string guid) =>
-        Api.ApiPost<string>($"{Endpoint}/login", "sessionid", ("email", email), ("password", password), ("guid", guid));
+        Api.ApiPost<string>($"{Endpoint}/login", "sessionid", "Couldn't login.", ("email", email), ("password", password), ("guid", guid));
     static ValueTask<OperationResult<string>> AutoLoginAsync(string email, string guid) =>
-        Api.ApiPost<string>($"{Endpoint}/autologin", "sessionid", ("email", email), ("guid", guid));
+        Api.ApiPost<string>($"{Endpoint}/autologin", "sessionid", "Couldn't login.", ("email", email), ("guid", guid));
 
     static ValueTask<OperationResult<string>> RequestNicknameAsync() =>
-        Api.ApiPost<string>($"{Endpoint}/generatenickname", "nickname", ("sessionid", SessionId));
+        Api.ApiPost<string>($"{Endpoint}/generatenickname", "Couldn't generate nickname.", "nickname", ("sessionid", SessionId));
     public static ValueTask<OperationResult> RenameServerAsync(string name) =>
-        Api.ApiPost($"{Endpoint}/renameserver", ("sessionid", SessionId), ("oldname", Settings.NodeName), ("newname", name));
+        Api.ApiPost($"{Endpoint}/renameserver", "Couldn't rename.", ("sessionid", SessionId), ("oldname", Settings.NodeName), ("newname", name));
 
 
     public static ValueTask<OperationResult> AuthAsync(string email, string password) => AuthAsync(email, password, Guid.NewGuid().ToString());

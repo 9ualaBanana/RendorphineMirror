@@ -94,13 +94,13 @@ internal class NodeProfiler
         double ffmpegRating = default;
         try
         {
-            ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnCpuAsync()).Rate;
+            ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnCpuAsync()).Bps;
         }
         catch (Exception) { }
         using var zipBenchmark = new ZipBenchmark(testDataSize);
         return new
         {
-            rating = (await zipBenchmark.RunAsync()).Rate,
+            rating = (await zipBenchmark.RunAsync()).Bps,
             pratings = new { ffmpeg = ffmpegRating },
             load = -1,
         };
@@ -111,7 +111,7 @@ internal class NodeProfiler
         double ffmpegRating = default;
         try
         {
-            ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnGpuAsync()).Rate;
+            ffmpegRating = (await new FFmpegBenchmark(SampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnGpuAsync()).Bps;
         }
         catch (Exception) { }
         return new
@@ -137,7 +137,7 @@ internal class NodeProfiler
             .Select(zip => new
             {
                 freespace = zip.First.FreeSpace,
-                writespeed = zip.Second.Write.Rate
+                writespeed = zip.Second.Write.Bps
             });
     }
 
