@@ -3,7 +3,7 @@
 public static class SessionManager
 {
     const string Endpoint = Api.TaskManagerEndpoint;
-    static string SessionId { get => Settings.SessionId!; set => Settings.SessionId = value!; }
+    static string SessionId => Settings.SessionId!;
 
     static ValueTask<OperationResult<string>> LoginAsync(string email, string password, string guid) =>
         Api.ApiPost<string>($"{Endpoint}/login", "sessionid", ("email", email), ("password", password), ("guid", guid));
@@ -21,10 +21,7 @@ public static class SessionManager
         LoginAsync(email, password, guid)
         .Next(async sid =>
         {
-            SessionId = sid;
-            Settings.Guid = guid;
-            Settings.Email = email;
-
+            Settings.AuthInfo = new AuthInfo(sid, email, guid);
             if (Settings.NodeName is null)
             {
                 var nickr = await RequestNicknameAsync().ConfigureAwait(false);

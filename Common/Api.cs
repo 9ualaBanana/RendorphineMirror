@@ -13,7 +13,6 @@ namespace Common
         public const string TaskManagerEndpoint = $"{ServerUri}/rphtaskmgr";
 
         static readonly HttpClient Client = new();
-        static string SessionId { get => Settings.SessionId!; set => Settings.SessionId = value!; }
 
         public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string property, params (string, string)[] values) =>
             ApiPost<T>(url, property, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));

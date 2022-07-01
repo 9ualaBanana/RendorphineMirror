@@ -24,11 +24,8 @@ if (!Debugger.IsAttached)
 
 _ = Listener.StartLocalListenerAsync();
 
-if (Settings.Email is null) Settings.SessionId = null;
 if (Settings.SessionId is not null)
 {
-    Settings.Guid ??= Guid.NewGuid().ToString();
-
     if (!Debugger.IsAttached)
         Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
     Log.Information($"Already authenticated. Email: {Settings.Email}");
