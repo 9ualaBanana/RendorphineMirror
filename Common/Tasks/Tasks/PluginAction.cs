@@ -5,7 +5,7 @@ public interface IPluginAction
     PluginType Type { get; }
     string Name { get; }
 
-    IPluginActionData CreateData(string[] files);
+    ValueTask<IPluginActionData> CreateData(CreateTaskData data);
 }
 public class PluginAction<T> : IPluginAction where T : IPluginActionData<T>
 {
@@ -18,5 +18,5 @@ public class PluginAction<T> : IPluginAction where T : IPluginActionData<T>
         Name = name;
     }
 
-    public IPluginActionData CreateData(string[] files) => T.CreateDefault(files);
+    public async ValueTask<IPluginActionData> CreateData(CreateTaskData data) => await T.CreateDefault(data).ConfigureAwait(false);
 }

@@ -31,5 +31,11 @@ public record MediaEditInfo : IPluginActionData<MediaEditInfo>
         Ro = ro;
     }
 
-    public static MediaEditInfo CreateDefault(string[] files) => new(new Crop(1, 2, 5, 6), 1, 1, 1, 1, false, false, 0);
+    public static async ValueTask<MediaEditInfo> CreateDefault(CreateTaskData data)
+    {
+        await Task.Yield();
+        // TODO; get file info and then blalbalbalblabla
+
+        return new(new Crop(1, 2, 5, 6), 1, 1, 1, 1, false, false, 0);
+    }
 }

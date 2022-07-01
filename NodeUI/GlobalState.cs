@@ -18,7 +18,7 @@ namespace NodeUI
         }
 
 
-        public static readonly Bindable<ImmutableDictionary<PluginType, Api.SoftwareStats>?> SoftwareStats = new();
+        public static readonly Bindable<ImmutableDictionary<PluginType, Api.SoftwareStats>> SoftwareStats = new(ImmutableDictionary<PluginType, Api.SoftwareStats>.Empty);
         static Thread? StatsUpdatingThread;
         static Timer? StatsUpdatingTimer;
 
