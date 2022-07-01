@@ -122,14 +122,7 @@ namespace Node
                     }).ConfigureAwait(false);
                 }
 
-                if (subpath == "auth")
-                {
-                    return await Test(request, response, "email", "password", async (email, password) =>
-                    {
-                        var auth = await SessionManager.AuthAsync(email, password).ConfigureAwait(false);
-                        return await WriteJson(response, auth).ConfigureAwait(false);
-                    }).ConfigureAwait(false);
-                }
+                if (subpath == "reloadcfg") Settings.Reload();
 
                 if (subpath == "setnick")
                 {

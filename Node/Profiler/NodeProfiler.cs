@@ -196,6 +196,7 @@ internal class NodeProfiler
             ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
             port = int.Parse(MachineInfo.Port),
             nickname = Settings.NodeName,
+            guid = Settings.Guid,
             version = MachineInfo.Version,
             allowedinputs = new { User = 1 },
             allowedoutputs = new { User = 1 },

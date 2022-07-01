@@ -1,4 +1,3 @@
-using System.Web;
 using Avalonia.Controls.ApplicationLifetimes;
 
 namespace NodeUI.Pages
@@ -27,9 +26,14 @@ namespace NodeUI.Pages
                 Login.StartLoginAnimation(Localized.Login.Loading);
                 using var _ = new FuncDispose(() => Dispatcher.UIThread.Post(Login.StopLoginAnimation));
 
-                var auth = await OperationResult.WrapException(() => LocalApi.Send($"auth?email={HttpUtility.UrlEncode(login)}&password={HttpUtility.UrlEncode(password)}")).ConfigureAwait(false);
-                if (!auth) Dispatcher.UIThread.Post(() => Login.ShowError(auth.AsString()));
-                else Dispatcher.UIThread.Post(ShowMainWindow);
+                var auth = await SessionManager.AuthAsync(login, password).ConfigureAwait(false);
+                if (auth)
+                {
+                    try { await LocalApi.Send("reloadcfg").ConfigureAwait(false); }
+                    catch { }
+
+                    Dispatcher.UIThread.Post(ShowMainWindow);
+                }
 
                 return auth;
             }
