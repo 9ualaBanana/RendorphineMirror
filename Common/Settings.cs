@@ -7,25 +7,40 @@ using Newtonsoft.Json.Linq;
 
 namespace Common
 {
+    public readonly struct AuthInfo
+    {
+        public readonly string SessionId, Email, Guid;
+
+        public AuthInfo(string sessionId, string email, string guid)
+        {
+            SessionId = sessionId;
+            Email = email;
+            Guid = guid;
+        }
+    }
     public static class Settings
     {
         public static event Action? AnyChanged;
         public static readonly ImmutableArray<IDatabaseBindable> Bindables;
+
+        public static string? SessionId => AuthInfo?.SessionId;
+        public static string? Email => AuthInfo?.Email;
+        public static string? Guid => AuthInfo?.Guid;
+        public static AuthInfo? AuthInfo { get => BAuthInfo.Value; set => BAuthInfo.Value = value; }
 
         public static string ServerUrl { get => BServerUrl.Value; set => BServerUrl.Value = value; }
         public static ushort LocalListenPort { get => BLocalListenPort.Value; set => BLocalListenPort.Value = value; }
         public static ushort UPnpPort { get => BUPnpPort.Value; set => BUPnpPort.Value = value; }
         public static ushort DhtPort { get => BDhtPort.Value; set => BDhtPort.Value = value; }
         public static ushort TorrentPort { get => BTorrentPort.Value; set => BTorrentPort.Value = value; }
-        public static string? SessionId { get => BSessionId.Value; set => BSessionId.Value = value; }
-        public static string? Email { get => BEmail.Value; set => BEmail.Value = value; }
         public static string NodeName { get => BNodeName.Value!; set => BNodeName.Value = value!; }
         public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
         public static bool ShortcutsCreated { get => BShortcutsCreated.Value; set => BShortcutsCreated.Value = value; }
 
         public static readonly DatabaseBindable<string> BServerUrl;
         public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort, BDhtPort, BTorrentPort;
-        public static readonly DatabaseBindable<string?> BSessionId, BEmail, BNodeName, BLanguage;
+        public static readonly DatabaseBindable<string?> BNodeName, BLanguage;
+        public static readonly DatabaseBindable<AuthInfo?> BAuthInfo;
         public static readonly DatabaseBindable<bool> BShortcutsCreated;
 
         static readonly SQLiteConnection Connection;
@@ -45,11 +60,22 @@ namespace Common
             BUPnpPort = new(nameof(UPnpPort), 5124);
             BDhtPort = new(nameof(DhtPort), 6223);
             BTorrentPort = new(nameof(TorrentPort), 6224);
-            BSessionId = new(nameof(SessionId), null) { Hidden = true };
-            BEmail = new(nameof(Email), null);
+            BAuthInfo = new(nameof(AuthInfo), default) { Hidden = true };
             BNodeName = new(nameof(NodeName), null);
             BLanguage = new(nameof(Language), null);
             BShortcutsCreated = new(nameof(ShortcutsCreated), false);
+
+
+            // TODO: remove
+            {
+                var sid = new DatabaseBindable<string?>("SessionId", null) { Hidden = true };
+                var email = new DatabaseBindable<string?>("Email", null);
+                if (sid.Value is not null && email.Value is not null)
+                    AuthInfo = new AuthInfo(sid.Value, email.Value, System.Guid.NewGuid().ToString());
+
+                sid.Value = null;
+                email.Value = null;
+            }
 
 
             Bindables = typeof(Settings).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)

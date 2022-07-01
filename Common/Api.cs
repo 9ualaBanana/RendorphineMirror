@@ -13,51 +13,50 @@ namespace Common
         public const string TaskManagerEndpoint = $"{ServerUri}/rphtaskmgr";
 
         static readonly HttpClient Client = new();
-        static string SessionId { get => Settings.SessionId!; set => Settings.SessionId = value!; }
 
-        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string property, params (string, string)[] values) =>
-            ApiPost<T>(url, property, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
-        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values) =>
-            Execute(() => Post<T>(url, property, values));
+        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string property, string? errorDetails = null, params (string, string)[] values) =>
+            ApiPost<T>(url, property, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)), errorDetails);
+        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null) =>
+            Execute(() => Post<T>(url, property, values, errorDetails));
 
-        public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string property, params (string, string)[] values) =>
-            ApiGet<T>(url, property, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
-        public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values) =>
-            Execute(() => Get<T>(url, property, values));
+        public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string property, string? errorDetails = null, params (string, string)[] values) =>
+            ApiGet<T>(url, property, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)), errorDetails);
+        public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null) =>
+            Execute(() => Get<T>(url, property, values, errorDetails));
 
-        static async ValueTask<T> Post<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values)
+        static async ValueTask<T> Post<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
         {
-            var responseJson = await Post(url, values).ConfigureAwait(false);
+            var responseJson = await Post(url, values, errorDetails).ConfigureAwait(false);
             return responseJson[property]!.ToObject<T>()!;
         }
-        static async ValueTask<T> Get<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values)
+        static async ValueTask<T> Get<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
         {
-            var responseJson = await Get(url, values).ConfigureAwait(false);
+            var responseJson = await Get(url, values, errorDetails).ConfigureAwait(false);
             return responseJson[property]!.ToObject<T>()!;
         }
 
-        public static ValueTask<OperationResult> ApiPost(string url, params (string, string)[] values) =>
-            ApiPost(url, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
-        public static ValueTask<OperationResult> ApiPost(string url, IEnumerable<KeyValuePair<string, string>> values) =>
-            Execute(() => Post(url, values)).Next(_ => true);
-        public static ValueTask<OperationResult> ApiGet(string url, params (string, string)[] values) =>
-            ApiGet(url, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
-        public static ValueTask<OperationResult> ApiGet(string url, IEnumerable<KeyValuePair<string, string>> values) =>
-            Execute(() => Get(url, values)).Next(_ => true);
+        public static ValueTask<OperationResult> ApiPost(string url, string? errorDetails = null, params (string, string)[] values) =>
+            ApiPost(url, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)), errorDetails);
+        public static ValueTask<OperationResult> ApiPost(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null) =>
+            Execute(() => Post(url, values, errorDetails)).Next(_ => true);
+        public static ValueTask<OperationResult> ApiGet(string url, string? errorDetails = null, params (string, string)[] values) =>
+            ApiGet(url, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)), errorDetails);
+        public static ValueTask<OperationResult> ApiGet(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null) =>
+            Execute(() => Get(url, values, errorDetails)).Next(_ => true);
 
-        static async Task<JToken> Post(string url, IEnumerable<KeyValuePair<string, string>> values)
+        static async Task<JToken> Post(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
         {
             using var content = new FormUrlEncodedContent(values);
             var result = await Client.PostAsync(url, content).ConfigureAwait(false);
-            return await GetJsonFromResponseIfSuccessful(result).ConfigureAwait(false);
+            return await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
         }
-        static async Task<JToken> Get(string url, IEnumerable<KeyValuePair<string, string>> values)
+        static async Task<JToken> Get(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
         {
             var str = string.Join('&', values.Select(x => x.Key + "=" + HttpUtility.UrlEncode(x.Value)));
             if (str.Length != 0) str = "?" + str;
 
             var result = await Client.GetAsync(url + str).ConfigureAwait(false);
-            return await GetJsonFromResponseIfSuccessful(result).ConfigureAwait(false);
+            return await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
         }
 
 
@@ -75,7 +74,32 @@ namespace Common
                 catch (Exception ex) { return OperationResult.Err(ex); }
             }
         }
-        static async ValueTask<JToken> GetJsonFromResponseIfSuccessful(HttpResponseMessage response)
+
+        public static async Task<HttpResponseMessage> TrySendRequestAsync(
+            Func<Task<HttpResponseMessage>> requestCallback,
+            RequestOptions requestOptions)
+        {
+            var attempts = 0;
+            while (true)
+            {
+                try
+                {
+                    // Port to Newtonsoft.Json
+                    var response = await requestCallback();
+                    await GetJsonFromResponseIfSuccessful(response);
+                    return response;
+                }
+                catch (HttpRequestException ex)
+                {
+                    if (++attempts >= requestOptions.RetryAttempts)
+                        throw new HttpRequestException($"Request couldn't succeed after {attempts} attempts.", ex);
+
+                    await Task.Delay(requestOptions.RetryInterval, requestOptions.CancellationToken);
+                }
+            }
+        }
+
+        static async ValueTask<JToken> GetJsonFromResponseIfSuccessful(HttpResponseMessage response, string? errorDetails = null)
         {
             response.EnsureSuccessStatusCode();
 
@@ -89,9 +113,9 @@ namespace Common
                     throw new HttpRequestException(errmsg);
 
                 if (responseJson["errorcode"]?.Value<string>() is { } errcode)
-                    throw new HttpRequestException($"Couldn't login. Server responded with {errcode} error code");
+                    throw new HttpRequestException($"{errorDetails} Server responded with {errcode} error code");
 
-                throw new HttpRequestException($"Couldn't login. Server responded with {responseStatusCode} status code");
+                throw new HttpRequestException($"{errorDetails} Server responded with {responseStatusCode} status code");
             }
 
             return responseJson;

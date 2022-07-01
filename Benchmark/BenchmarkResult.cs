@@ -1,8 +1,18 @@
-﻿namespace Benchmark;
+﻿using UnitsNet;
 
-public readonly record struct BenchmarkResult(
-    long DataSize,
-    TimeSpan Time)
+namespace Benchmark;
+
+public record struct BenchmarkResult
 {
-    public double Rate => DataSize / Time.TotalSeconds;
+    public long DataSize { get; set; }
+    public TimeSpan Time { get; set; }
+
+    public BenchmarkResult(long dataSize, TimeSpan? time = null)
+    {
+        DataSize = dataSize;
+        Time = time ?? TimeSpan.Zero;
+    }
+
+    public double Bps => DataSize / Time.TotalSeconds;
+    public double MBps => Information.FromBytes(Bps).Megabytes;
 }

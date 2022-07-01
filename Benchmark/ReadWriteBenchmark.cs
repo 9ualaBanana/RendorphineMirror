@@ -4,10 +4,10 @@ using System.Runtime.Versioning;
 
 namespace Benchmark;
 
-public class ReadWriteBenchmark
+public class ReadWriteBenchmark : IDisposable
 {
-    byte[] _bytesToWrite;
-    byte[] _readOutput;
+    readonly byte[] _bytesToWrite;
+    readonly byte[] _readOutput;
 
     public ReadWriteBenchmark(uint size)
     {
@@ -58,5 +58,11 @@ public class ReadWriteBenchmark
         await Task.Run(() => FileHelper.ReadFile(safeFileHandle.DangerousGetHandle(), _readOutput));
         sw.Stop();
         return sw.Elapsed;
+    }
+
+    public void Dispose()
+    {
+        GC.Collect();
+        GC.SuppressFinalize(this);
     }
 }

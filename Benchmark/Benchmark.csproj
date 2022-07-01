@@ -8,4 +8,8 @@
     <AssemblyVersion>0.1.0</AssemblyVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="UnitsNet" Version="4.136.0" />
+  </ItemGroup>
+
 </Project>

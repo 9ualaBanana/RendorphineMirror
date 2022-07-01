@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Machine.Plugins;
 using Machine.Plugins.Discoverers;
 using Node;
+using Node.P2P;
 using Node.Profiler;
 using Node.Tasks;
 
@@ -75,6 +76,7 @@ async ValueTask AuthWithGui()
 
         if (Settings.SessionId is null) continue;
         if (Settings.NodeName is null) continue;
+        if (Settings.Guid is null) continue;
 
         return;
     }
