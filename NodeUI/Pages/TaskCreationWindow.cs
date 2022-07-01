@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Avalonia.Controls.Templates;
 using Common.Tasks;
 using Common.Tasks.Tasks;
+using Newtonsoft.Json;
 
 namespace NodeUI.Pages
 {
@@ -18,7 +19,7 @@ namespace NodeUI.Pages
             Title = App.AppName;
             Icon = App.Icon;
 
-            Content = new TaskPartV();
+            Content = new TaskPartContainer();
         }
 
         static Task Post(Action action) => Dispatcher.UIThread.InvokeAsync(action);
@@ -50,13 +51,13 @@ namespace NodeUI.Pages
             };
 
 
-        class TaskPartV : Grid
+        class TaskPartContainer : Grid
         {
             readonly TextBlock TitleTextBlock;
             readonly MPButton BackButton, NextButton;
             readonly Stack<TaskPart> Parts = new();
 
-            public TaskPartV()
+            public TaskPartContainer()
             {
                 RowDefinitions = RowDefinitions.Parse("Auto * Auto");
 
@@ -133,6 +134,7 @@ namespace NodeUI.Pages
             }
         }
 
+
         abstract class TaskPart : Panel
         {
             public abstract event Action<bool>? OnChoose;
@@ -145,7 +147,7 @@ namespace NodeUI.Pages
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Plugin");
-            public override TaskPart? Next => new ChooseActionPart((PluginType) PluginsList.SelectedItem!);
+            public override TaskPart? Next => new ChooseVersionPart((PluginType) PluginsList.SelectedItem!);
 
             readonly ListBox PluginsList;
 
@@ -171,16 +173,57 @@ namespace NodeUI.Pages
                     },
                 };
         }
+        class ChooseVersionPart : TaskPart
+        {
+            public override event Action<bool>? OnChoose;
+            public override LocalizedString Title => new($"Choose {Type.GetName()} Version");
+            public override TaskPart? Next => new ChooseActionPart(Type, (string) VersionsList.SelectedItem!);
+
+            readonly PluginType Type;
+            readonly ListBox VersionsList;
+
+            public ChooseVersionPart(PluginType type)
+            {
+                Type = type;
+
+                string[] versions;
+                if (GlobalState.SoftwareStats.Value.TryGetValue(type, out var stats))
+                    versions = stats.ByVersion.Keys.ToArray();
+                else versions = Array.Empty<string>();
+
+                VersionsList = CreateListBox(versions, VersionToControl);
+                VersionsList.SelectionChanged += (obj, e) =>
+                    OnChoose?.Invoke(VersionsList.SelectedItems.Count != 0);
+
+                Children.Add(VersionsList);
+            }
+
+            Control VersionToControl(string version) =>
+                new Grid()
+                {
+                    RowDefinitions = RowDefinitions.Parse("Auto"),
+                    Children =
+                    {
+                        new TextBlock()
+                        {
+                            Text = version,
+                        }.WithRow(0),
+                    },
+                };
+        }
         class ChooseActionPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Action");
-            public override TaskPart? Next => new ChooseFilesPart((IPluginAction) ActionsList.SelectedItem!);
+            public override TaskPart? Next => new ChooseFilesPart((IPluginAction) ActionsList.SelectedItem!, Version);
 
             readonly ListBox ActionsList;
+            readonly string Version;
 
-            public ChooseActionPart(PluginType type)
+            public ChooseActionPart(PluginType type, string version)
             {
+                Version = version;
+
                 ActionsList = CreateListBox(TaskList.Get(type).ToArray(), ActionToControl);
                 ActionsList.SelectionChanged += (obj, e) =>
                     OnChoose?.Invoke(ActionsList.SelectedItems.Count != 0);
@@ -205,14 +248,16 @@ namespace NodeUI.Pages
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Version");
-            public override TaskPart? Next => new ParametersPart(Action, Files);
+            public override TaskPart? Next => new ParametersPart(Action, Version, Files);
 
             readonly IPluginAction Action;
+            readonly string Version;
             string[] Files = null!;
 
-            public ChooseFilesPart(IPluginAction action)
+            public ChooseFilesPart(IPluginAction action, string version)
             {
                 Action = action;
+                Version = version;
 
                 var button = new MPButton()
                 {
@@ -236,28 +281,38 @@ namespace NodeUI.Pages
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Modify Parameters");
-            public override TaskPart? Next => new ChooseOutputDirPart(Action, Data, Files);
+            public override TaskPart? Next => new ChooseOutputDirPart(Action, Data, Version, Files);
 
             readonly IPluginAction Action;
-            readonly IPluginActionData Data;
+            IPluginActionData Data = null!;
+            readonly string Version;
             readonly string[] Files;
             readonly StackPanel List;
 
-            public ParametersPart(IPluginAction action, string[] files)
+            public ParametersPart(IPluginAction action, string version, string[] files)
             {
                 Action = action;
-                Data = action.CreateData(files);
+                Version = version;
                 Files = files;
 
                 List = new StackPanel()
                 {
                     Orientation = Orientation.Vertical,
                 };
-                foreach (var property in GetProperties(Data.GetType()))
-                    CreateConfigs(List, Data, property);
-
                 Children.Add(List);
-                Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
+
+                _ = initAsync();
+
+
+                async Task initAsync()
+                {
+                    Data = await action.CreateData(new CreateTaskData(version, files.ToImmutableArray())).ConfigureAwait(false);
+
+                    foreach (var property in GetProperties(Data.GetType()))
+                        CreateConfigs(List, Data, property);
+
+                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
+                }
             }
 
             public override void OnNext()
@@ -414,16 +469,20 @@ namespace NodeUI.Pages
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Output Directory");
-            public override TaskPart? Next => null;
+            public override TaskPart? Next => new WaitingPart(Action, Data, Files, OutputDir);
 
             readonly IPluginAction Action;
             readonly IPluginActionData Data;
-            string DirectoryPath = null!;
+            readonly string Version;
+            readonly string[] Files;
+            string OutputDir = null!;
 
-            public ChooseOutputDirPart(IPluginAction action, IPluginActionData data, string[] files)
+            public ChooseOutputDirPart(IPluginAction action, IPluginActionData data, string version, string[] files)
             {
                 Action = action;
                 Data = data;
+                Version = version;
+                Files = files;
 
                 var button = new MPButton()
                 {
@@ -432,12 +491,49 @@ namespace NodeUI.Pages
                     {
                         var dialog = new OpenFolderDialog();
 
-                        DirectoryPath = (await dialog.ShowAsync((Window) VisualRoot!).ConfigureAwait(false))!;
-                        await Dispatcher.UIThread.InvokeAsync(() => OnChoose?.Invoke(DirectoryPath is not null && Directory.Exists(DirectoryPath))).ConfigureAwait(false);
+                        OutputDir = (await dialog.ShowAsync((Window) VisualRoot!).ConfigureAwait(false))!;
+                        await Dispatcher.UIThread.InvokeAsync(() => OnChoose?.Invoke(OutputDir is not null && Directory.Exists(OutputDir))).ConfigureAwait(false);
                     },
                 };
 
                 Children.Add(button);
+            }
+        }
+        class WaitingPart : TaskPart
+        {
+            public override event Action<bool>? OnChoose;
+            public override LocalizedString Title => new("Choose Output Directory");
+            public override TaskPart? Next => null;
+
+            readonly IPluginAction Action;
+            readonly IPluginActionData Data;
+            readonly string[] Files;
+            readonly string OutputDir;
+
+            readonly TextBlock StatusTextBlock;
+
+            public WaitingPart(IPluginAction action, IPluginActionData data, string[] files, string outputdir)
+            {
+                Action = action;
+                Data = data;
+                Files = files;
+                OutputDir = outputdir;
+
+                Children.Add(StatusTextBlock = new TextBlock());
+                _ = StartTaskAsync();
+            }
+
+            string Status() => $"waiting {Action.Name} at {Action.Type} on {string.Join(", ", Files)} to {OutputDir} with {JsonConvert.SerializeObject(Data)}";
+            void Status(string? text) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = text + Status());
+
+            async ValueTask StartTaskAsync()
+            {
+                await Task.Yield(); // TODO: remove <
+
+                Status(null);
+
+                var taskid = ""; // TODO: api.registermytask
+                Status($"taskid: {taskid};");
             }
         }
     }
