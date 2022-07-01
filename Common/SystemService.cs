@@ -40,6 +40,8 @@ namespace Common
                 task.Settings.StopIfGoingOnBatteries = false;
                 task.Settings.Enabled = true;
                 task.Settings.WakeToRun = true;
+                task.Settings.AllowHardTerminate = true;
+                task.Settings.ExecutionTimeLimit = TimeSpan.FromHours(3);
 
                 // trigger immediately & then every minute forever
                 task.Triggers.Add(repeated(new RegistrationTrigger()));

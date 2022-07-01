@@ -24,9 +24,6 @@ if (!Debugger.IsAttached)
 
 _ = Listener.StartLocalListenerAsync();
 
-// TODO: probably remove \/
-if (Settings.Email is null) Settings.SessionId = null;
-
 if (Settings.SessionId is not null)
 {
     if (!Debugger.IsAttached)
@@ -74,6 +71,7 @@ async ValueTask AuthWithGui()
 
         if (Settings.SessionId is null) continue;
         if (Settings.NodeName is null) continue;
+        if (Settings.Guid is null) continue;
 
         return;
     }
