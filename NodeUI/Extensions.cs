@@ -1,5 +1,3 @@
-using System.Collections;
-
 namespace NodeUI
 {
     public static class Extensions
@@ -17,33 +15,10 @@ namespace NodeUI
 
         public static T WithRowColumn<T>(this T obj, int row, int column) where T : Control => obj.WithRow(row).WithColumn(column);
 
-        public static IfEmptyAddEnumerable<T> IfEmptyAdd<T>(this IEnumerable<T> enumerable, Func<T> item) => new IfEmptyAddEnumerable<T>(enumerable, item);
-
-
-        public readonly struct IfEmptyAddEnumerable<T> : IEnumerable<T>
+        public static TObj Subscribe<TObj, TValue>(this TObj obj, AvaloniaProperty<TValue> property, Action<TValue> changed) where TObj : Control
         {
-            readonly IEnumerable<T> Enumerable;
-            readonly Func<T> Item;
-
-            public IfEmptyAddEnumerable(IEnumerable<T> enumerable, Func<T> item)
-            {
-                Enumerable = enumerable;
-                Item = item;
-            }
-
-            public IEnumerator<T> GetEnumerator()
-            {
-                var exists = false;
-
-                foreach (var value in Enumerable)
-                {
-                    exists = true;
-                    yield return value;
-                }
-
-                if (!exists) yield return Item();
-            }
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+            obj.GetObservable<TValue>(property).Subscribe(changed);
+            return obj;
         }
     }
 }

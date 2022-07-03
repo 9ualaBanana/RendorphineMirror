@@ -18,15 +18,26 @@ namespace NodeUI.Pages
             this.PreventClosing();
 
 
-            async Task<OperationResult> authenticate(string login, string password)
+            async ValueTask<OperationResult> authenticate(string login, string password, bool slave)
+            {
+                var authres = await auth(login, password, slave);
+                if (!authres) Dispatcher.UIThread.Post(() => Login.ShowError(authres.AsString()));
+
+                return authres;
+            }
+            async ValueTask<OperationResult> auth(string login, string password, bool slave)
             {
                 if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err(Localized.Login.EmptyLogin);
-                if (string.IsNullOrEmpty(password)) return OperationResult.Err(Localized.Login.EmptyPassword);
+                if (!slave && string.IsNullOrEmpty(password)) return OperationResult.Err(Localized.Login.EmptyPassword);
 
                 Login.StartLoginAnimation(Localized.Login.Loading);
                 using var _ = new FuncDispose(() => Dispatcher.UIThread.Post(Login.StopLoginAnimation));
 
-                var auth = await SessionManager.AuthAsync(login, password).ConfigureAwait(false);
+                OperationResult auth;
+
+                if (slave) auth = await SessionManager.AutoAuthAsync(login).ConfigureAwait(false);
+                else auth = await SessionManager.AuthAsync(login, password).ConfigureAwait(false);
+
                 if (auth)
                 {
                     try { await LocalApi.Send("reloadcfg").ConfigureAwait(false); }
@@ -37,7 +48,7 @@ namespace NodeUI.Pages
 
                 return auth;
             }
-            Login.OnPressLogin += (login, password) => _ = authenticate(login, password);
+            Login.OnPressLogin += (login, password, slave) => _ = authenticate(login, password, slave);
             Login.OnPressForgotPassword += () => Process.Start(new ProcessStartInfo("https://accounts.stocksubmitter.com/resetpasswordrequest") { UseShellExecute = true });
         }
 
@@ -102,7 +113,7 @@ namespace NodeUI.Pages
         }
         protected class LoginControl : UserControl
         {
-            public event Action<string, string> OnPressLogin = delegate { };
+            public event Action<string, string, bool> OnPressLogin = delegate { };
             public event Action OnPressForgotPassword = delegate { };
 
             public TextBox LoginInput => LoginPasswordInput.LoginInput;
@@ -124,7 +135,27 @@ namespace NodeUI.Pages
                     FontSize = 14
                 };
 
-                var buttonsAndRemember = new Panel { Margin = new Thickness(30, 0) };
+                var slavecheckbox = new CheckBox()
+                {
+                    IsChecked = false,
+                };
+
+                var buttonsAndRemember = new StackPanel()
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 10,
+                    Margin = new Thickness(30, 0),
+                    Children =
+                    {
+                        new TextBlock()
+                        {
+                            VerticalAlignment = VerticalAlignment.Center,
+                            TextAlignment = TextAlignment.Center,
+                            Text = "slave????",
+                        },
+                        slavecheckbox,
+                    }
+                };
 
 
                 var grid = new Grid();
@@ -171,7 +202,13 @@ namespace NodeUI.Pages
                 LoginButton.Background = Colors.Accent;
                 LoginButton.HoverBackground = Colors.DarkDarkGray;
 
-                LoginButton.OnClick += () => OnPressLogin(LoginInput.Text, PasswordInput.Text);
+                {
+                    PasswordInput.Transitions ??= new();
+                    PasswordInput.Transitions.Add(new ThicknessTransition() { Property = Control.MarginProperty, Duration = TimeSpan.FromSeconds(1) });
+                    slavecheckbox.Subscribe(CheckBox.IsCheckedProperty, c => PasswordInput.Margin = c != true ? new Thickness(0, 0, 0, 0) : new Thickness(0, -100, 0, 0));
+                }
+
+                LoginButton.OnClick += () => OnPressLogin(LoginInput.Text, PasswordInput.Text, slavecheckbox.IsChecked == true);
                 forgotPasswordButton.OnClick += () => OnPressForgotPassword();
 
                 Content = grid;
@@ -181,7 +218,7 @@ namespace NodeUI.Pages
                     if (e.Key != Key.Enter) return;
                     if (!LoginInput.IsFocused && !PasswordInput.IsFocused) return;
 
-                    OnPressLogin(LoginInput.Text, PasswordInput.Text);
+                    OnPressLogin(LoginInput.Text, PasswordInput.Text, slavecheckbox.IsChecked == true);
                 };
             }
 
