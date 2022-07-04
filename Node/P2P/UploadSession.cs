@@ -110,24 +110,4 @@ internal record UploadSession(
             RequestOptions).ConfigureAwait(false);
         _finalized = true;
     }
-
-    //async Task<string> RegisterTaskAsync(FileInfo file)
-    //{
-    //    var httpContent = new MultipartFormDataContent()
-    //    {
-    //        { new StringContent(Guid.NewGuid().ToString()!), "sessionid" },
-    //        { JsonContent.Create(new { filename = file.Name, size = file.Length }) },
-    //        { JsonContent.Create(new { type = "MPlus", iid = Guid.NewGuid().ToString() }) },
-    //        { JsonContent.Create(new { type = "Mplus", name = file.Name, directory = file.Directory?.Name ?? "/" }) },
-    //        { JsonContent.Create(new { cTMTaskDataStub = "Stub", cTMTaskDataEditVideo = "EditVideo", cTMTaskDataEditRaster = "EditRaster" }) },
-    //        { new StringContent(string.Empty), "origin" }
-    //    };
-
-    //    var response = await TrySendRequestAsync(
-    //        () => _requestOptions.HttpClient.PostAsync("https://microstock.plus/rphtaskmgr/registermytask", httpContent)
-    //        );
-    //    var jsonResponse = await response.Content.ReadAsStringAsync(_requestOptions.CancellationToken);
-
-    //    return JsonDocument.Parse(jsonResponse).RootElement.GetProperty("taskid").GetString()!;
-    //}
 }
