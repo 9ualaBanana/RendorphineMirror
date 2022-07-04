@@ -6,7 +6,7 @@ public record NodeTask<T>(
     TaskData<T> Data,
     FileInfo File,
     TaskInfo Input,
-    TaskInfo Output) where T : IPluginActionData<T>
+    TaskInfo Output) where T : IPluginActionData
 {
     public NodeTask(
         TaskData<T> data,

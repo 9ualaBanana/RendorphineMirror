@@ -12,30 +12,41 @@ public class Crop
         H = h;
     }
 }
-public record MediaEditInfo : IPluginActionData<MediaEditInfo>
+public abstract class MediaEditInfo : IPluginActionData
 {
-    public Crop Crop;
-    public double Bri, Sat, Con, Gam;
-    public bool Hflip, Vflip;
-    public double Ro;
+    public Crop? Crop;
+    public double? Bri, Sat, Con, Gam;
+    public bool? Hflip, Vflip;
+    public double? Ro;
 
-    public MediaEditInfo(Crop crop, double bri, double sat, double con, double gam, bool hflip, bool vflip, double ro)
+
+    public virtual string ConstructFFMpegArguments()
     {
-        Crop = crop;
-        Bri = bri;
-        Sat = sat;
-        Con = con;
-        Gam = gam;
-        Hflip = hflip;
-        Vflip = vflip;
-        Ro = ro;
-    }
+        var filters = new List<string>();
 
-    public static async ValueTask<MediaEditInfo> CreateDefault(CreateTaskData data)
+        if (Crop is not null) filters.Add($"\"crop={Crop.W}:{Crop.H}:{Crop.X}:{Crop.Y}\"");
+
+        // TODO:
+
+        if (Hflip == true) filters.Add("hflip");
+        if (Vflip == true) filters.Add("vflip");
+
+        return string.Join(' ', filters.Select(x => "-vf " + x));
+    }
+}
+public class EditVideoInfo : MediaEditInfo
+{
+    public double? CutFrameAt;
+
+    public override string ConstructFFMpegArguments()
     {
-        await Task.Yield();
-        // TODO; get file info and then blalbalbalblabla
+        var args = base.ConstructFFMpegArguments();
 
-        return new(new Crop(1, 2, 5, 6), 1, 1, 1, 1, false, false, 0);
+        // TODO:
+
+        return args;
     }
+}
+public class EditRasterInfo : MediaEditInfo
+{
 }

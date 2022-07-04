@@ -2,6 +2,6 @@
 
 public record TaskData<T>(
     string Type,
-    IPluginActionData<T> MediaEditInfo) where T : IPluginActionData<T>
+    T MediaEditInfo) where T : IPluginActionData
 {
 }

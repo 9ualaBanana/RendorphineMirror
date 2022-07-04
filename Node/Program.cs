@@ -1,5 +1,6 @@
 ﻿global using Common;
 global using Machine;
+global using Node.Tasks;
 global using Serilog;
 using System.Collections.Immutable;
 using System.Diagnostics;
