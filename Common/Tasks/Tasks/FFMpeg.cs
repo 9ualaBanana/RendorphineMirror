@@ -3,14 +3,6 @@ namespace Common.Tasks.Tasks;
 public class Crop
 {
     public int X, Y, W, H;
-
-    public Crop(int x, int y, int w, int h)
-    {
-        X = x;
-        Y = y;
-        W = w;
-        H = h;
-    }
 }
 public abstract class MediaEditInfo : IPluginActionData
 {

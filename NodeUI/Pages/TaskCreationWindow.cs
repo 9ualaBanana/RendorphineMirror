@@ -1,9 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Net.Http.Json;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Avalonia.Controls.Templates;
 using Common.Tasks;
 using Common.Tasks.Tasks;
+using Common.Tasks.Tasks.DTO;
 using Newtonsoft.Json;
 
 namespace NodeUI.Pages
@@ -301,7 +304,7 @@ namespace NodeUI.Pages
                 };
                 Children.Add(List);
 
-                _ = initAsync();
+                initAsync().Consume();
 
 
                 async Task initAsync()
@@ -319,10 +322,8 @@ namespace NodeUI.Pages
             {
                 base.OnNext();
 
-                foreach (var setting in getChildren(List).OfType<Setting>())
+                foreach (var setting in List.Children.OfType<Setting>())
                     setting.UpdateValue();
-
-                static IEnumerable<IControl> getChildren(Panel panel) => panel.Children.Concat(panel.Children.OfType<Panel>().SelectMany(getChildren));
             }
 
 
@@ -332,36 +333,45 @@ namespace NodeUI.Pages
                 .Select(x => (PropertyInfo) x);
 
 
-            void CreateConfigs(Panel list, object data, PropertyInfo property)
+            static void CreateConfigs(Panel list, object data, PropertyInfo property)
             {
-                if (type<bool>()) list.Children.Add(new BoolSetting(data, property));
-                else if (type<string>()) list.Children.Add(new TextSetting(data, property));
-                else if (property.PropertyType.GetInterfaces().Any(x => x.Name.StartsWith("INumber", StringComparison.Ordinal)))
-                    list.Children.Add(new NumberSetting(data, property));
-                else if (property.PropertyType.IsClass)
-                {
-                    var panel = new StackPanel()
-                    {
-                        Background = new SolidColorBrush(new Color(20, 0, 0, 0)),
-                        Orientation = Orientation.Vertical,
-                        Margin = new Thickness(10, 0, 0, 0),
-                    };
-                    list.Children.Add(panel);
-                    panel.Children.Add(new TextBlock() { Text = property.PropertyType.Name, });
+                var setting = CreateSetting(property.PropertyType, data, property);
 
-                    foreach (var prop in GetProperties(property.PropertyType))
-                        CreateConfigs(panel, property.GetValue(data)!, prop);
-                }
+                if (setting is not null) list.Children.Add(setting);
                 else Log.Error("Could not find setting control for the type " + property.PropertyType.Name);
+            }
+            static Setting? CreateSetting(Type type, object data, PropertyInfo property)
+            {
+                if (property.IsNullable())
+                {
+                    var setting = CreateSettingNotNull(Nullable.GetUnderlyingType(type) ?? type, data, property);
+                    if (setting is null) return null;
+
+                    return new NullableSetting(setting, data, property);
+                }
+
+                return CreateSettingNotNull(type, data, property);
+            }
+            static Setting? CreateSettingNotNull(Type type, object data, PropertyInfo property)
+            {
+                if (istype<bool>()) return new BoolSetting(data, property);
+                else if (istype<string>()) return new TextSetting(data, property);
+                else if (type.GetInterfaces().Any(x => x.Name.StartsWith("INumber", StringComparison.Ordinal)))
+                    return new NumberSetting(data, property);
+                else if (property.PropertyType.IsClass) return new ObjectSetting(data, property);
+
+                return null;
 
 
-                bool type<T>() => property.PropertyType == typeof(T);
+                bool istype<T>() => type == typeof(T);
             }
 
 
             readonly struct PropertyInfo
             {
-                public Type PropertyType => Property?.PropertyType ?? Field?.FieldType!;
+                public Type PropertyType => Nullable.GetUnderlyingType(_PropertyType) ?? _PropertyType;
+                Type _PropertyType => Property?.PropertyType ?? Field?.FieldType!;
+
                 public string Name => Property?.Name ?? Field?.Name!;
 
                 readonly System.Reflection.PropertyInfo? Property;
@@ -378,12 +388,20 @@ namespace NodeUI.Pages
                     Field = null;
                 }
 
-                public void SetValue(object obj, object? value)
+                public void SetValue(object? obj, object? value)
                 {
+                    if (obj is null) return;
+
                     Property?.SetValue(obj, value);
                     Field?.SetValue(obj, value);
                 }
-                public object GetValue(object obj) => Property?.GetValue(obj) ?? Field?.GetValue(obj)!;
+                public object? GetValue(object? obj) => obj is null ? null : Property?.GetValue(obj) ?? Field?.GetValue(obj)!;
+
+                public T? GetAttribute<T>() where T : Attribute => Property?.GetCustomAttribute<T>() ?? Field?.GetCustomAttribute<T>();
+                public bool IsNullable() =>
+                    Property is not null ? new NullabilityInfoContext().Create(Property).WriteState is NullabilityState.Nullable
+                    : Field is not null ? new NullabilityInfoContext().Create(Field).WriteState is NullabilityState.Nullable
+                    : false;
 
                 public static implicit operator PropertyInfo(MemberInfo member) =>
                     member is System.Reflection.PropertyInfo p ? new(p)
@@ -407,8 +425,7 @@ namespace NodeUI.Pages
 
                 protected void Set<T>(T value) => Property.SetValue(Data, value);
                 protected void Set(object value) => Property.SetValue(Data, value);
-                protected T Get<T>() => (T) Get();
-                protected object Get() => Property.GetValue(Data)!;
+                protected object? Get() => Property.GetValue(Data);
 
                 public abstract void UpdateValue();
             }
@@ -420,7 +437,7 @@ namespace NodeUI.Pages
                 {
                     Checkbox = new CheckBox()
                     {
-                        IsCancel = Get<bool>(),
+                        IsCancel = Get() is bool b && b,
                     };
                     Children.Add(Checkbox);
                 }
@@ -435,7 +452,7 @@ namespace NodeUI.Pages
                 {
                     TextBox = new TextBox()
                     {
-                        Text = Get().ToString(),
+                        Text = Get()?.ToString() ?? string.Empty,
                     };
                     Children.Add(TextBox);
                 }
@@ -450,18 +467,98 @@ namespace NodeUI.Pages
                 {
                     TextBox = new TextBox()
                     {
-                        Text = Get().ToString(),
+                        Text = Get()?.ToString() ?? "0",
                     };
                     Children.Add(TextBox);
 
                     var isdouble = property.PropertyType.GetInterfaces().Any(x => x.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal));
-                    TextBox.Subscribe(TextBox.TextProperty, text => Regex.Replace(text, isdouble ? @"[^0-9\.,]*" : @"[^0-9]*", string.Empty));
+                    TextBox.Subscribe(TextBox.TextProperty, text =>
+                    {
+                        text = Regex.Replace(text, isdouble ? @"[^0-9\.,]*" : @"[^0-9]*", string.Empty);
+                        if (text.Length == 0) text = "0";
+                    });
                 }
 
                 public override void UpdateValue()
                 {
                     var parse = Property.PropertyType.GetMethod("Parse", BindingFlags.Public | BindingFlags.Static, new[] { typeof(string), typeof(IFormatProvider) })!;
                     Set(parse.Invoke(null, new object[] { TextBox.Text, CultureInfo.InvariantCulture })!);
+                }
+            }
+
+            class ObjectSetting : Setting
+            {
+                readonly StackPanel Settings;
+
+                public ObjectSetting(object data, PropertyInfo property) : base(data, property)
+                {
+                    Background = new SolidColorBrush(new Color(20, 0, 0, 0));
+                    Margin = new Thickness(10, 0, 0, 0);
+
+                    Settings = new StackPanel()
+                    {
+                        Orientation = Orientation.Vertical,
+                        Spacing = 10,
+                        Children =
+                        {
+                            new TextBlock() { Text = property.PropertyType.Name },
+                        },
+                    };
+                    Children.Add(Settings);
+
+                    var self = property.GetValue(data);
+                    if (self is null)
+                    {
+                        self = Activator.CreateInstance(property.PropertyType)!;
+                        property.SetValue(data, self);
+                    }
+
+                    foreach (var prop in GetProperties(property.PropertyType))
+                        CreateConfigs(Settings, self, prop);
+                }
+
+                public override void UpdateValue()
+                {
+                    foreach (var setting in Settings.Children.OfType<Setting>())
+                        setting.UpdateValue();
+                }
+            }
+            class NullableSetting : Setting
+            {
+                readonly Setting Setting;
+                readonly CheckBox EnabledCheckBox;
+
+                public NullableSetting(Setting setting, object data, PropertyInfo property) : base(data, property)
+                {
+                    Setting = setting;
+
+                    EnabledCheckBox = new CheckBox()
+                    {
+                        IsChecked = !property.IsNullable() && property.GetValue(data) is not null,
+                    };
+                    EnabledCheckBox.Subscribe(CheckBox.IsCheckedProperty, v =>
+                    {
+                        Setting.IsEnabled = v == true;
+                        Setting.Opacity = v == true ? 1 : .5f;
+                    });
+
+                    var panel = new StackPanel()
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Spacing = 10,
+                        Children =
+                        {
+                            EnabledCheckBox,
+                            Setting,
+                        },
+                    };
+                    Children.Add(panel);
+                }
+
+                public override void UpdateValue()
+                {
+                    if (EnabledCheckBox.IsChecked == true) Setting.UpdateValue();
+                    else Property.SetValue(Data, null);
                 }
             }
         }
@@ -502,7 +599,7 @@ namespace NodeUI.Pages
         class WaitingPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
-            public override LocalizedString Title => new("Choose Output Directory");
+            public override LocalizedString Title => new("Waiting");
             public override TaskPart? Next => null;
 
             readonly IPluginAction Action;
@@ -532,7 +629,9 @@ namespace NodeUI.Pages
 
                 Status(null);
 
-                var taskid = ""; // TODO: api.registermytask
+                var task = new NodeTask<IPluginActionData>(new TaskData<IPluginActionData>(Action.Name, Data), Files, new TaskInfo(TaskType.User), new TaskInfo(TaskType.User));
+                var taskid = await LocalApi.Post<string>("starttask", JsonContent.Create(task)).ConfigureAwait(false);
+
                 Status($"taskid: {taskid};");
             }
         }

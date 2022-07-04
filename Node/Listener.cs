@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
-using System.Text.Json;
+using Common.Tasks.Tasks;
+using Common.Tasks.Tasks.DTO;
 using MonoTorrent;
 using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
@@ -15,6 +16,7 @@ namespace Node
     {
         static readonly Newtonsoft.Json.JsonSerializer JsonSerializerWithTypes = new() { TypeNameHandling = TypeNameHandling.Auto, };
         static readonly HttpClient Client = new();
+        static readonly TaskManager TaskManager = new();
 
         static JObject JsonFromOpResult(in OperationResult result)
         {
@@ -182,6 +184,16 @@ namespace Node
             {
                 await Task.Yield(); // TODO: remove
                 var subpath = segments[0].ToLowerInvariant();
+
+                if (subpath == "starttask")
+                {
+                    var token = await JToken.LoadAsync(new JsonTextReader(new StreamReader(request.InputStream))).ConfigureAwait(false);
+                    var task = token.ToObject<NodeTask<IPluginActionData>>();
+                    if (task is null) return await WriteErr(response, "err").ConfigureAwait(false);
+
+                    var taskid = await TaskManager.RegisterTaskAsync(task).ConfigureAwait(false);
+                    return await WriteJson(response, taskid.AsOpResult()).ConfigureAwait(false);
+                }
 
                 return HttpStatusCode.NotFound;
             }
