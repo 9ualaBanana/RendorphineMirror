@@ -4,8 +4,6 @@ namespace Benchmark;
 
 internal static class FileHelper
 {
-    static NativeOverlapped _nativeOverlapped;
-
     internal static IntPtr CreateUnbufferedFile(string path)
     {
         return CreateFile(
@@ -18,27 +16,48 @@ internal static class FileHelper
             IntPtr.Zero);
     }
 
-    internal static bool WriteFile(IntPtr hFile, byte[] lpBuffer)
+    internal static bool WriteFile(IntPtr hFile, byte[] lpBuffer, out uint bytesWritten, long offset = 0)
     {
+        var bytes = ToHighLowOrderBytes(offset);
+        var overlapped = new NativeOverlapped() { OffsetLow = bytes.Low, OffsetHigh = bytes.High };
         return WriteFile(
             hFile,
             lpBuffer,
             (uint)lpBuffer.Length,
-            out var _,
-            ref _nativeOverlapped);
+            out bytesWritten,
+            ref overlapped);
     }
 
-    internal static bool ReadFile(IntPtr hFile, byte[] lpBuffer)
+    internal static bool ReadFile(IntPtr hFile, byte[] lpBuffer, out uint bytesRead, long offset = 0)
     {
+        var bytes = ToHighLowOrderBytes(offset);
+        var overlapped = new NativeOverlapped() { OffsetLow = bytes.Low, OffsetHigh = bytes.High };
         return ReadFile(
             hFile,
             lpBuffer,
             (uint)lpBuffer.Length,
-            out var _,
-            ref _nativeOverlapped);
+            out bytesRead,
+            ref overlapped);
     }
 
-    [DllImport("kernel32.dll")]
+    static (int High, int Low) ToHighLowOrderBytes(long value)
+    {
+        var bytes = BitConverter.GetBytes(value);
+        int highBytes, lowBytes;
+        if (BitConverter.IsLittleEndian)
+        {
+            lowBytes = BitConverter.ToInt32(bytes[..(bytes.Length / 2)]);
+            highBytes = BitConverter.ToInt32(bytes, bytes.Length / 2);
+        }
+        else
+        {
+            lowBytes = BitConverter.ToInt32(bytes, bytes.Length / 2);
+            highBytes = BitConverter.ToInt32(bytes[..(bytes.Length / 2)]);
+        }
+        return (highBytes, lowBytes);
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
     static extern IntPtr CreateFile(
      [MarshalAs(UnmanagedType.LPWStr)] string filename,
      [MarshalAs(UnmanagedType.U4)] FileAccess access,
