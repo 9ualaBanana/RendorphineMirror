@@ -1,3 +1,7 @@
+using System.Diagnostics;
+using Common.Tasks.Tasks.DTO;
+using Newtonsoft.Json;
+
 namespace Common.Tasks.Tasks;
 
 public class Crop
@@ -41,4 +45,91 @@ public class EditVideoInfo : MediaEditInfo
 }
 public class EditRasterInfo : MediaEditInfo
 {
+}
+
+public static class FFMpegTasks
+{
+    public static IEnumerable<IPluginAction> Create()
+    {
+        yield return new PluginAction<EditVideoInfo>(
+            PluginType.FFmpeg,
+            "EditVideo",
+            createmedia<EditVideoInfo>,
+            start
+        );
+        yield return new PluginAction<EditRasterInfo>(
+            PluginType.FFmpeg,
+            "EditRaster",
+            createmedia<EditRasterInfo>,
+            start
+        );
+
+
+        async ValueTask<T> createmedia<T>(CreateTaskData data) where T : MediaEditInfo, new()
+        {
+            var info = new T();
+
+            var ffinfo = await FFProbe(data).ConfigureAwait(false);
+            if (ffinfo is null) return info;
+
+            info.Crop = new Crop()
+            {
+                X = 0,
+                Y = 0,
+                H = ffinfo.Streams.FirstOrDefault()?.Height ?? 0,
+                W = ffinfo.Streams.FirstOrDefault()?.Width ?? 0,
+            };
+            return info;
+        }
+        async ValueTask start<T>(NodeTask<T> task) where T : MediaEditInfo
+        {
+            var data = task.Data.MediaEditInfo;
+            var tempfile = Path.GetTempFileName();
+
+            // force rewrite output file if exists
+            var args = "-y ";
+
+            // input file; TODO: download file before
+            args += "-i {pathabvobaobaodjfd!!!!} ";
+
+            args += data.ConstructFFMpegArguments() + " ";
+
+            // don't reencode audio
+            args += $"-c:a copy ";
+
+            // output format
+            args += $"-f {Path.GetExtension(tempfile)} ";
+
+            // output path
+            args += $" {tempfile} ";
+
+
+            // TODO: get path
+            var exepath = File.Exists("/bin/ffmpeg") ? "/bin/ffmpeg" : "assets/ffmpeg.exe";
+
+            var process = Process.Start(new ProcessStartInfo(exepath, args));
+            if (process is null) throw new InvalidOperationException("Could not start plugin process");
+
+            await process.WaitForExitAsync().ConfigureAwait(false);
+        }
+    }
+    static async ValueTask<FFProbeInfo?> FFProbe(CreateTaskData data)
+    {
+        var ffprobe =
+            File.Exists("/bin/ffprobe") ? "/bin/ffprobe"
+            : File.Exists("assets/ffprobe.exe") ? "assets/ffprobe.exe"
+            : null;
+
+        if (ffprobe is null) return null;
+
+        var proc = Process.Start(new ProcessStartInfo(ffprobe, $"-v quiet -print_format json -show_streams \"{data.Files[0]}\"") { RedirectStandardOutput = true });
+        if (proc is null) return null;
+
+        var str = await proc.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        return JsonConvert.DeserializeObject<FFProbeInfo>(str);
+    }
+
+
+    record FFProbeInfo(ImmutableArray<FFProbeStreamInfo> Streams);
+    record FFProbeStreamInfo(string CodecName, int Width, int Height);
 }
