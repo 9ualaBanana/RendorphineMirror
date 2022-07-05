@@ -52,9 +52,9 @@ if (!Init.IsDebug)
     var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
     var benchmarkPayload = await NodeProfiler.GetPayloadAsync(benchmarkResults);
 
-    new NodeProfiler(http).SendNodeProfile($"{Settings.ServerUrl}/node/profile", benchmarkResults);
+    await new NodeProfiler(http).SendNodeProfile($"{Settings.ServerUrl}/node/profile", benchmarkResults);
     // Move domain to Settings.ServerUrl when the server on VPS will be integrated to this server.
-    new NodeProfiler(http).SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults, TimeSpan.FromMinutes(1));
+    await new NodeProfiler(http).SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults, TimeSpan.FromMinutes(1));
 }
 
 _ = Listener.StartPublicListenerAsync();

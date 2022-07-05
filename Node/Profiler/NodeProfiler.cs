@@ -53,7 +53,7 @@ internal class NodeProfiler
         _intervalTimer = new();
     }
 
-    internal static async Task<object?> RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(uint testDataSize)
+    internal static async Task<object?> RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(int testDataSize)
     {
         object? hardwarePayload = null;
 
@@ -66,7 +66,7 @@ internal class NodeProfiler
         return hardwarePayload;
     }
 
-    static async Task<object> ComputeHardwarePayloadAsync(uint testDataSize)
+    static async Task<object> ComputeHardwarePayloadAsync(int testDataSize)
     {
         var state = new BenchmarkNodeState();
         using var _ = GlobalState.SetState(state);
@@ -89,7 +89,7 @@ internal class NodeProfiler
         };
     }
 
-    static async Task<object> ComputePayloadWithCPUBenchmarkResultsAsync(uint testDataSize)
+    static async Task<object> ComputePayloadWithCPUBenchmarkResultsAsync(int testDataSize)
     {
         double ffmpegRating = default;
         try
@@ -122,15 +122,13 @@ internal class NodeProfiler
         };
     }
 
-    static async Task<IEnumerable<object>> ComputePayloadWithDrivesBenchmarkResultsAsync(uint testDataSize)
+    static async Task<IEnumerable<object>> ComputePayloadWithDrivesBenchmarkResultsAsync(int testDataSize)
     {
         var drivesBenchmarkResults = new List<(BenchmarkResult Read, BenchmarkResult Write)>();
         var readWriteBenchmark = new ReadWriteBenchmark(testDataSize);
+        foreach (var logicalDiskName in Drive.LogicalDisksNamesFromDistinctDrives)
         {
-            foreach (var logicalDiskName in Drive.LogicalDisksNamesFromDistinctDrives)
-            {
-                drivesBenchmarkResults.Add(await readWriteBenchmark.RunAsync(logicalDiskName));
-            }
+            drivesBenchmarkResults.Add(await readWriteBenchmark.RunAsync(logicalDiskName));
         }
 
         return Drive.Info.Zip(drivesBenchmarkResults)
@@ -151,7 +149,7 @@ internal class NodeProfiler
         };
     }
 
-    internal void SendNodeProfile(string serverUri, object? benchmarkResults, TimeSpan interval = default)
+    internal async Task SendNodeProfile(string serverUri, object? benchmarkResults, TimeSpan interval = default)
     {
         if (interval != default)
         {
@@ -163,7 +161,7 @@ internal class NodeProfiler
             };
             _intervalTimer.AutoReset = true;
         }
-        _ = MakePostRequest(serverUri, benchmarkResults);
+        await MakePostRequest(serverUri, benchmarkResults);
         _intervalTimer.Start();
     }
 
@@ -198,9 +196,9 @@ internal class NodeProfiler
             nickname = Settings.NodeName,
             guid = Settings.Guid,
             version = MachineInfo.Version,
-            allowedinputs = new { User = 1 },
-            allowedoutputs = new { User = 1 },
-            allowedtypes = new { },
+            allowedinputs = new { User = 1, MPlus = 1 },
+            allowedoutputs = new { User = 1, MPlus = 1 },
+            allowedtypes = new { EditVideo = 1 },
             pricing = new
             {
                 minunitprice = new { ffmpeg = -1 },
