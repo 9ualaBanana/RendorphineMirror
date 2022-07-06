@@ -5,11 +5,11 @@ namespace Node.P2P;
 
 internal record UploadSession(
     FileInfo File,
+    string TaskId,
     string FileId,
-    string FileName,
+    string Host,
     long UploadedBytesCount,
     UploadedPacket[] UploadedPackets,
-    string Hostname,
     RequestOptions RequestOptions) : IAsyncDisposable
 {
     bool _finalized;
@@ -49,33 +49,28 @@ internal record UploadSession(
     }
 
     internal async Task<bool> EnsureAllBytesUploadedAsync()
-        => (await InitializeAsync(File, RequestOptions).ConfigureAwait(false)).UploadedBytesCount == File.Length;
+        => (await InitializeAsync(File, TaskId, RequestOptions).ConfigureAwait(false)).UploadedBytesCount == File.Length;
 
-    internal static async Task<UploadSession> InitializeAsync(string filePath, RequestOptions? requestOptions = null)
-        => await InitializeAsync(new FileInfo(filePath), requestOptions);
+    internal static async Task<UploadSession> InitializeAsync(string filePath, string taskId, RequestOptions? requestOptions = null)
+        => await InitializeAsync(new FileInfo(filePath), taskId, requestOptions);
 
-    internal static async Task<UploadSession> InitializeAsync(FileInfo file, RequestOptions? requestOptions = null)
+    internal static async Task<UploadSession> InitializeAsync(FileInfo file, string taskId, RequestOptions? requestOptions = null)
     {
         requestOptions ??= new();
 
-        var cWebUploadInfo = new
-        {
-            name = file.Name,
-            size = file.Length,
-            lastModified = file.LastWriteTimeUtc.ToBinary(),
-            type = "video/mp4",
-            uploadDirectory = file.Directory?.Name ?? "/"
-        };
-
         var urlEncodedContent = new FormUrlEncodedContent(new Dictionary<string, string>()
         {
-            ["sid"] = Settings.SessionId!,
-            ["fileinfo"] = JsonSerializer.Serialize(cWebUploadInfo)
+            ["sessionid"] = Settings.SessionId!,
+            ["taskid"] = taskId,
+            ["fsize"] = file.Length.ToString(),
+            ["mimetype"] = "video/mp4",
+            ["lastmodified"] = file.LastWriteTimeUtc.ToBinary().ToString(),
+            ["origin"] = string.Empty
         });
 
         var response = await Api.TrySendRequestAsync(
             async () => await requestOptions.HttpClient.PostAsync(
-                "https://microstock.plus/api/1.0/content/upload/init",
+                $"{Api.TaskManagerEndpoint}/initmptaskoutput",
                 urlEncodedContent,
                 requestOptions.CancellationToken).ConfigureAwait(false),
             requestOptions).ConfigureAwait(false);
@@ -83,12 +78,12 @@ internal record UploadSession(
         var jsonElementResponse = JsonDocument.Parse(rawJsonResponse).RootElement;
         return new(
             file,
-            jsonElementResponse.GetProperty("fileId").GetString()!,
-            jsonElementResponse.GetProperty("fileName").GetString()!,
+            taskId,
+            jsonElementResponse.GetProperty("fileid").GetString()!,
+            jsonElementResponse.GetProperty("host").GetString()!,
             jsonElementResponse.GetProperty("uploadedbytes").GetInt64(),
             jsonElementResponse.GetProperty("uploadedchunks")
                 .Deserialize<UploadedPacket[]>(new JsonSerializerOptions(JsonSerializerDefaults.Web))!,
-            jsonElementResponse.GetProperty("hostname").GetString()!,
             requestOptions);
     }
 
@@ -104,7 +99,7 @@ internal record UploadSession(
 
         await Api.TrySendRequestAsync(
             async () => await RequestOptions.HttpClient.PostAsync(
-                $"https://{Hostname}/content/vcupload/finish",
+                $"https://{Host}/content/vcupload/finish",
                 new FormUrlEncodedContent(new Dictionary<string, string>() { ["fileid"] = FileId }),
                 RequestOptions.CancellationToken).ConfigureAwait(false),
             RequestOptions).ConfigureAwait(false);

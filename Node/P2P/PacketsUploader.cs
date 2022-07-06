@@ -104,12 +104,12 @@ internal class PacketsUploader : IDisposable
         {
             { new StringContent(packet.FileId), "fileid" },
             { new StringContent(packet.Offset.ToString()), "offset" },
-            { new ByteArrayContent(packet.Content), "chunk", _session.FileName }
+            { new ByteArrayContent(packet.Content), "chunk", _session.File.Name }
         };
 
         var uploadingStatusResponse = await Api.TrySendRequestAsync(
             async () => await _requestOptions.HttpClient.PostAsync(
-                $"https://{_session.Hostname}/content/vcupload/chunk",
+                $"https://{_session.Host}/content/vcupload/chunk",
                 packetHttpContent,
                 _requestOptions.CancellationToken).ConfigureAwait(false),
             _session.RequestOptions).ConfigureAwait(false);

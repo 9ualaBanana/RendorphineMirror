@@ -1,5 +1,6 @@
 ﻿using System.Management;
 using System.Runtime.Versioning;
+using UnitsNet;
 
 namespace Machine;
 
@@ -40,7 +41,8 @@ internal static class WindowsRAM
             foreach (var operatingSystemMbo in operatingSystemMbos)
                 _ = ulong.TryParse(operatingSystemMbo["FreePhysicalMemory"].ToString(), out availableMemory);
 
-            return availableMemory;
+            // FreePhysicalMemory returns megabytes and we need bytes.
+            return availableMemory * 1024;
         }
     }
 }

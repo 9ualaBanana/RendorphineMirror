@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using MonoTorrent;
 using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
@@ -12,7 +13,7 @@ namespace Node
     // TODO: maybe aspnet instead of this but idk
     public static class Listener
     {
-        static readonly JsonSerializer JsonSerializerWithTypes = new() { TypeNameHandling = TypeNameHandling.Auto, };
+        static readonly Newtonsoft.Json.JsonSerializer JsonSerializerWithTypes = new() { TypeNameHandling = TypeNameHandling.Auto, };
         static readonly HttpClient Client = new();
 
         static JObject JsonFromOpResult(in OperationResult result)
@@ -69,8 +70,16 @@ namespace Node
         {
             var listener = new HttpListener();
             listener.Prefixes.Add(prefix);
-            listener.Start();
-            Log.Information(@$"HTTP listener started @ {string.Join(", ", listener.Prefixes)}");
+            try
+            { 
+                listener.Start();
+                Log.Information(@$"HTTP listener started @ {string.Join(", ", listener.Prefixes)}");
+            }
+            catch (Exception ex) 
+            { 
+                Log.Error(ex, "HTTP listener was unable to start with the following prefixes: {Prefixes}",
+                    string.Join(", ", listener.Prefixes));
+            }
 
             while (true)
             {
@@ -178,7 +187,7 @@ namespace Node
             }
         }
 
-        public static ValueTask StartPublicListenerAsync() => Start(@$"http://*:{PortForwarding.Port}/", PublicListener);
+        public static ValueTask StartPublicListenerAsync() => Start(@$"http://+:{PortForwarding.Port}/", PublicListener);
         static ValueTask PublicListener(HttpListenerContext context)
         {
             return Execute(context, get, post);
@@ -254,6 +263,15 @@ namespace Node
 
                         return await WriteSuccess(response).ConfigureAwait(false);
                     }).ConfigureAwait(false);
+                }
+
+                if (subpath == "rphtaskexec")
+                {
+                    var incomingTask = await System.Text.Json.JsonSerializer.DeserializeAsync<Tasks.Models.IncomingTask>(
+                        context.Request.InputStream,
+                        new JsonSerializerOptions(JsonSerializerDefaults.Web)
+                        ).ConfigureAwait(false);
+                    await new Tasks.TaskManager().AcceptTaskAsync(incomingTask!).ConfigureAwait(false);
                 }
 
                 return HttpStatusCode.NotFound;
