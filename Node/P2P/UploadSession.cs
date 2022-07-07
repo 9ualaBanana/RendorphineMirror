@@ -3,6 +3,7 @@ using System.Text.Json;
 
 namespace Node.P2P;
 
+//Currently supports files of maximum length no more than int.MaxValue.
 internal record UploadSession(
     FileInfo File,
     string FileId,
