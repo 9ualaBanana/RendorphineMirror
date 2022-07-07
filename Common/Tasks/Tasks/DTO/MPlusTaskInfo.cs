@@ -1,8 +1,6 @@
 ﻿namespace Common.Tasks.Tasks.DTO;
 
-public record MPlusTaskInfo : TaskInfo
+public abstract record MPlusTaskInfo : TaskInfo
 {
-    public MPlusTaskInfo() : base(TaskType.MPlus)
-    {
-    }
+    public override string Type => TaskType.MPlus.ToString();
 }

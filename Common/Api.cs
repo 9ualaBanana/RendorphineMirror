@@ -44,18 +44,26 @@ namespace Common
         public static ValueTask<OperationResult> ApiGet(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null) =>
             Execute(() => Get(url, values, errorDetails)).Next(_ => true);
 
-        static async Task<JToken> Post(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
+        public static async Task<HttpResponseMessage> JustPost(string url, IEnumerable<KeyValuePair<string, string>> values)
         {
             using var content = new FormUrlEncodedContent(values);
-            var result = await Client.PostAsync(url, content).ConfigureAwait(false);
-            return await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
+            return await Client.PostAsync(url, content).ConfigureAwait(false);
         }
-        static async Task<JToken> Get(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
+        public static Task<HttpResponseMessage> JustGet(string url, IEnumerable<KeyValuePair<string, string>> values)
         {
             var str = string.Join('&', values.Select(x => x.Key + "=" + HttpUtility.UrlEncode(x.Value)));
             if (str.Length != 0) str = "?" + str;
 
-            var result = await Client.GetAsync(url + str).ConfigureAwait(false);
+            return Client.GetAsync(url + str);
+        }
+        static async Task<JToken> Post(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
+        {
+            var result = await JustPost(url, values).ConfigureAwait(false);
+            return await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
+        }
+        static async Task<JToken> Get(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
+        {
+            var result = await JustGet(url, values).ConfigureAwait(false);
             return await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
         }
 

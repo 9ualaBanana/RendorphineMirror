@@ -1,36 +1,44 @@
 ﻿using System.IO.Compression;
+using Common.Tasks.Models;
 
 namespace Common.Tasks.Tasks.DTO;
 
-public record NodeTask<T>(
-    TaskData<T> Data,
-    FileInfo File,
-    TaskInfo Input,
-    TaskInfo Output) where T : IPluginActionData
+public static class NodeTask
 {
-    public NodeTask(
-        TaskData<T> data,
-        IEnumerable<string> files,
-        TaskInfo input,
-        TaskInfo output) : this(data, ZipFiles(files), input, output)
+    public static string ZipFiles(IEnumerable<string> files)
     {
-    }
+        var directoryName = Path.Combine(Path.GetTempPath(), "renderphine_temp");
+        Directory.CreateDirectory(directoryName);
+        var archiveName = Path.Combine(directoryName, Guid.NewGuid().ToString() + ".zip");
 
-    /// <exception cref="IOException"></exception>
-    static FileInfo ZipFiles(IEnumerable<string> files)
+
+        using var archivefile = File.OpenWrite(archiveName);
+        using var archive = new ZipArchive(archivefile, ZipArchiveMode.Create);
+
+        foreach (var file in files)
+            archive.CreateEntryFromFile(file, Path.GetFileName(file));
+
+        return archiveName;
+    }
+    public static IEnumerable<string> UnzipFiles(string zipfile)
     {
-        var directoryName = Guid.NewGuid().ToString();
-        var archiveName = Path.ChangeExtension(directoryName, ".zip");
-        try
+        var directoryName = Path.Combine(Path.GetTempPath(), "renderphine_temp", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(directoryName);
+
+        using var archivefile = File.OpenRead(zipfile);
+        using var archive = new ZipArchive(archivefile, ZipArchiveMode.Read);
+
+        foreach (var entry in archive.Entries)
         {
-            Directory.CreateDirectory(directoryName);
-            foreach (var fileName in files) System.IO.File.Move(fileName, Path.Combine(directoryName, fileName));
-            ZipFile.CreateFromDirectory(directoryName, archiveName);
-            return new(archiveName);
-        }
-        catch (Exception ex)
-        {
-            throw new IOException("Archive for task files couldn't be created.", ex);
+            var path = Path.Combine(directoryName, entry.FullName);
+            entry.ExtractToFile(path, true);
+
+            yield return path;
         }
     }
 }
+public record NodeTask<T>(
+    T Data,
+    TaskObject Object,
+    TaskInfo Input,
+    TaskInfo Output) where T : IPluginActionData;

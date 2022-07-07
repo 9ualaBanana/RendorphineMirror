@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Avalonia.Controls.Templates;
 using Common.Tasks;
@@ -93,7 +94,20 @@ namespace NodeUI.Pages
                 };
                 Children.Add(buttonsgrid.WithRow(2));
 
-                ShowPart(new ChoosePluginPart());
+                // ShowPart(new ChoosePluginPart());
+
+
+                bool set = false;
+                GlobalState.SoftwareStats.SubscribeChanged(z, true);
+
+                void z(ImmutableDictionary<PluginType, Api.SoftwareStats> oldv, ImmutableDictionary<PluginType, Api.SoftwareStats> newv)
+                {
+                    if (newv.IsEmpty) return;
+                    if (set) return;
+                    set = true;
+
+                    Dispatcher.UIThread.Post(() => ShowPart(new ParametersPart(TaskList.TryGet("EditRaster")!, newv[PluginType.FFmpeg].ByVersion.Keys.First(), new Uploadp("610a371c6e60182b1ea29c97", "3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 210210))));
+                }
             }
 
             void ShowPart(TaskPart part)
@@ -251,52 +265,55 @@ namespace NodeUI.Pages
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Version");
-            public override TaskPart? Next => new ParametersPart(Action, Version, Files);
+            public override TaskPart? Next => new ParametersPart(Action, Version, new Uploadp(IidInput.Text, NameInput.Text, long.Parse(SizeInput.Text)));
 
             readonly IPluginAction Action;
             readonly string Version;
-            string[] Files = null!;
+            readonly TextBox IidInput, NameInput, SizeInput;
 
             public ChooseFilesPart(IPluginAction action, string version)
             {
                 Action = action;
                 Version = version;
 
-                var button = new MPButton()
+                IidInput = new TextBox()
                 {
-                    Text = new("Choose Files"),
-                    OnClick = async () =>
-                    {
-                        var dialog = new OpenFileDialog()
-                        {
-                            AllowMultiple = true,
-                        };
-
-                        Files = (await dialog.ShowAsync((Window) VisualRoot!).ConfigureAwait(false))!;
-                        await Dispatcher.UIThread.InvokeAsync(() => OnChoose?.Invoke(Files is not null && Files.Length != 0)).ConfigureAwait(false);
-                    },
+                    Text = "fileiid",
+                };
+                NameInput = new TextBox()
+                {
+                    Text = "filename",
+                };
+                SizeInput = new TextBox()
+                {
+                    Text = "filesize",
                 };
 
-                Children.Add(button);
+                var panel = new StackPanel()
+                {
+                    Orientation = Orientation.Vertical,
+                    Children = { IidInput, NameInput, SizeInput },
+                };
+                Children.Add(panel);
             }
         }
         class ParametersPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Modify Parameters");
-            public override TaskPart? Next => new ChooseOutputDirPart(Action, Data, Version, Files);
+            public override TaskPart? Next => new ChooseOutputDirPart(Action, Data, Version, Upload);
 
             readonly IPluginAction Action;
             IPluginActionData Data = null!;
             readonly string Version;
-            readonly string[] Files;
+            readonly Uploadp Upload;
             readonly StackPanel List;
 
-            public ParametersPart(IPluginAction action, string version, string[] files)
+            public ParametersPart(IPluginAction action, string version, Uploadp upload)
             {
                 Action = action;
                 Version = version;
-                Files = files;
+                Upload = upload;
 
                 List = new StackPanel()
                 {
@@ -309,10 +326,10 @@ namespace NodeUI.Pages
 
                 async Task initAsync()
                 {
-                    Data = await action.CreateData(new CreateTaskData(version, files.ToImmutableArray())).ConfigureAwait(false);
+                    Data = await action.CreateData().ConfigureAwait(false);
 
                     foreach (var property in GetProperties(Data.GetType()))
-                        CreateConfigs(List, Data, property);
+                        await Dispatcher.UIThread.InvokeAsync(() => CreateConfigs(List, Data, property)).ConfigureAwait(false);
 
                     Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
                 }
@@ -566,34 +583,43 @@ namespace NodeUI.Pages
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Output Directory");
-            public override TaskPart? Next => new WaitingPart(Action, Data, Files, OutputDir);
+            public override TaskPart? Next => new WaitingPart(Action, Data, Upload, DirInput.Text, FilenameInput.Text);
 
             readonly IPluginAction Action;
             readonly IPluginActionData Data;
             readonly string Version;
-            readonly string[] Files;
-            string OutputDir = null!;
+            readonly Uploadp Upload;
 
-            public ChooseOutputDirPart(IPluginAction action, IPluginActionData data, string version, string[] files)
+            readonly TextBox DirInput, FilenameInput;
+
+            public ChooseOutputDirPart(IPluginAction action, IPluginActionData data, string version, Uploadp upload)
             {
                 Action = action;
                 Data = data;
                 Version = version;
-                Files = files;
+                Upload = upload;
 
-                var button = new MPButton()
+                DirInput = new TextBox()
                 {
-                    Text = new("Choose Directory"),
-                    OnClick = async () =>
-                    {
-                        var dialog = new OpenFolderDialog();
-
-                        OutputDir = (await dialog.ShowAsync((Window) VisualRoot!).ConfigureAwait(false))!;
-                        await Dispatcher.UIThread.InvokeAsync(() => OnChoose?.Invoke(OutputDir is not null && Directory.Exists(OutputDir))).ConfigureAwait(false);
-                    },
+                    Text = "output_dir",
+                };
+                FilenameInput = new TextBox()
+                {
+                    Text = "output_filename",
                 };
 
-                Children.Add(button);
+                var panel = new StackPanel()
+                {
+                    Orientation = Orientation.Vertical,
+                    Children =
+                    {
+                        DirInput,
+                        FilenameInput,
+                    }
+                };
+                Children.Add(panel);
+
+                Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
             }
         }
         class WaitingPart : TaskPart
@@ -604,36 +630,64 @@ namespace NodeUI.Pages
 
             readonly IPluginAction Action;
             readonly IPluginActionData Data;
-            readonly string[] Files;
-            readonly string OutputDir;
+            readonly Uploadp Upload;
+            readonly string OutputDir, OutputFilename;
 
             readonly TextBlock StatusTextBlock;
 
-            public WaitingPart(IPluginAction action, IPluginActionData data, string[] files, string outputdir)
+            public WaitingPart(IPluginAction action, IPluginActionData data, Uploadp upload, string outputdir, string outputFilename)
             {
                 Action = action;
                 Data = data;
-                Files = files;
+                Upload = upload;
                 OutputDir = outputdir;
+                OutputFilename = outputFilename;
 
                 Children.Add(StatusTextBlock = new TextBlock());
                 _ = StartTaskAsync();
             }
 
-            string Status() => $"waiting {Action.Name} at {Action.Type} on {string.Join(", ", Files)} to {OutputDir} with {JsonConvert.SerializeObject(Data)}";
-            void Status(string? text) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = text + Status());
+            string Status() => @$"
+                waiting {Action.Name}
+                with {Action.Type}
+                on {string.Join(", ", Upload)}
+                to {OutputDir}
+                and {JsonConvert.SerializeObject(Data)}
+                ".TrimLines();
+            void Status(string? text) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = text + Environment.NewLine + Status());
 
             async ValueTask StartTaskAsync()
             {
-                await Task.Yield(); // TODO: remove <
+                var jcontent = new StringContent(JsonConvert.SerializeObject(new
+                {
+                    upload = Upload,
+                    data = (object) Data,
+                    outputdir = OutputDir,
+                    outputfilename = OutputFilename,
+                }, new Newtonsoft.Json.JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Auto }));
 
-                Status(null);
+                var post = await LocalApi.JustPost(LocalApi.LocalIP, "starttask", jcontent).ConfigureAwait(false);
+                var jreader = new JsonTextReader(new StreamReader(await post.Content.ReadAsStreamAsync().ConfigureAwait(false))) { SupportMultipleContent = true };
+                var jserializer = new Newtonsoft.Json.JsonSerializer();
 
-                var task = new NodeTask<IPluginActionData>(new TaskData<IPluginActionData>(Action.Name, Data), Files, new TaskInfo(TaskType.User), new TaskInfo(TaskType.User));
-                var taskid = await LocalApi.Post<string>("starttask", JsonContent.Create(task)).ConfigureAwait(false);
+                var stat = "\n";
+                Status(stat + "zipping...");
+                await jreader.ReadAsync().ConfigureAwait(false);
+                var zip = jserializer.Deserialize<OperationResult<string>>(jreader).Value;
+                stat += $"zip: {zip}\n";
 
-                Status($"taskid: {taskid};");
+                Status(stat + "uploading...");
+                await jreader.ReadAsync().ConfigureAwait(false);
+                var upload = jserializer.Deserialize<OperationResult<Uploadp>>(jreader).Value;
+                stat += $"fileid: {upload.FileId}\n";
+
+                Status(stat + "creating task...");
+                await jreader.ReadAsync().ConfigureAwait(false);
+                var taskid = jserializer.Deserialize<OperationResult<string>>(jreader).Value;
+                stat += $"taskid: {taskid}\n";
             }
         }
+
+        record Uploadp(string FileId, string FileName, long UploadedBytesCount);
     }
 }

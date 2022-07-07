@@ -1,17 +1,16 @@
-﻿global using Common;
+﻿global using System.Collections.Immutable;
+global using Common;
 global using Machine;
 global using Node.Tasks;
 global using Serilog;
-using System.Collections.Immutable;
 using System.Diagnostics;
-using Common.Tasks.Tasks;
-using Common.Tasks.Tasks.DTO;
+using Benchmark;
 using Machine.Plugins;
 using Machine.Plugins.Discoverers;
 using Node;
 using Node.Profiler;
-using Node.Tasks;
 
+var halfrelease = args.Contains("release");
 Init.Initialize();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
@@ -47,19 +46,19 @@ else
 PortForwarder.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t => Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}"));
 
-await discoveringInstalledPlugins;
-if (!Init.IsDebug)
+var plugins = await discoveringInstalledPlugins;
+if (!Init.IsDebug || halfrelease)
 {
-    SystemService.Start();
+    if (!Init.IsDebug) SystemService.Start();
 
     var serverPinger = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http);
     _ = serverPinger.StartAsync();
 
     var nodeProfiler = new NodeProfiler(http);
     var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
-    var benchmarkPayload = await NodeProfiler.GetPayloadAsync(benchmarkResults);
 
-    await new NodeProfiler(http).SendNodeProfile($"{Settings.ServerUrl}/node/profile", benchmarkResults);
+    if (!Init.IsDebug)
+        await new NodeProfiler(http).SendNodeProfile($"{Settings.ServerUrl}/node/profile", benchmarkResults);
     // Move domain to Settings.ServerUrl when the server on VPS will be integrated to this server.
     await new NodeProfiler(http).SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults, TimeSpan.FromMinutes(1));
 }

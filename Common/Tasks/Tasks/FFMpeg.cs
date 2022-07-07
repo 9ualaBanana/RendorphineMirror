@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Common.Tasks.Tasks.DTO;
+using Common.Tasks.Models;
 using Newtonsoft.Json;
 
 namespace Common.Tasks.Tasks;
@@ -10,6 +10,8 @@ public class Crop
 }
 public abstract class MediaEditInfo : IPluginActionData
 {
+    public abstract string Type { get; }
+
     public Crop? Crop;
     public double? Bri, Sat, Con, Gam;
     public bool? Hflip, Vflip;
@@ -32,6 +34,7 @@ public abstract class MediaEditInfo : IPluginActionData
 }
 public class EditVideoInfo : MediaEditInfo
 {
+    public override string Type => "EditVideo";
     public double? CutFrameAt;
 
     public override string ConstructFFMpegArguments()
@@ -45,6 +48,7 @@ public class EditVideoInfo : MediaEditInfo
 }
 public class EditRasterInfo : MediaEditInfo
 {
+    public override string Type => "EditRaster";
 }
 
 public static class FFMpegTasks
@@ -65,25 +69,12 @@ public static class FFMpegTasks
         );
 
 
-        async ValueTask<T> createmedia<T>(CreateTaskData data) where T : MediaEditInfo, new()
-        {
-            var info = new T();
+        ValueTask<T> createmedia<T>() where T : MediaEditInfo, new() => new T().AsVTask();
+        async ValueTask<string[]> start<T>(string[] files, IncomingTask task, T data) where T : MediaEditInfo =>
+            await Task.WhenAll(files.Select(x => exec(x, data))).ConfigureAwait(false);
 
-            var ffinfo = await FFProbe(data).ConfigureAwait(false);
-            if (ffinfo is null) return info;
-
-            info.Crop = new Crop()
-            {
-                X = 0,
-                Y = 0,
-                H = ffinfo.Streams.FirstOrDefault()?.Height ?? 0,
-                W = ffinfo.Streams.FirstOrDefault()?.Width ?? 0,
-            };
-            return info;
-        }
-        async ValueTask start<T>(NodeTask<T> task) where T : MediaEditInfo
+        async Task<string> exec<T>(string file, T data) where T : MediaEditInfo
         {
-            var data = task.Data.MediaEditInfo;
             var tempfile = Path.GetTempFileName();
 
             // force rewrite output file if exists
@@ -111,9 +102,10 @@ public static class FFMpegTasks
             if (process is null) throw new InvalidOperationException("Could not start plugin process");
 
             await process.WaitForExitAsync().ConfigureAwait(false);
+            return tempfile;
         }
     }
-    static async ValueTask<FFProbeInfo?> FFProbe(CreateTaskData data)
+    static async ValueTask<FFProbeInfo?> FFProbe(string[] files)
     {
         var ffprobe =
             File.Exists("/bin/ffprobe") ? "/bin/ffprobe"
@@ -122,7 +114,7 @@ public static class FFMpegTasks
 
         if (ffprobe is null) return null;
 
-        var proc = Process.Start(new ProcessStartInfo(ffprobe, $"-v quiet -print_format json -show_streams \"{data.Files[0]}\"") { RedirectStandardOutput = true });
+        var proc = Process.Start(new ProcessStartInfo(ffprobe, $"-v quiet -print_format json -show_streams \"{files[0]}\"") { RedirectStandardOutput = true });
         if (proc is null) return null;
 
         var str = await proc.StandardOutput.ReadToEndAsync().ConfigureAwait(false);

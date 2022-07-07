@@ -1,5 +1,8 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
+using Common.Tasks;
+using Common.Tasks.Models;
 using Common.Tasks.Tasks;
 using Common.Tasks.Tasks.DTO;
 using MonoTorrent;
@@ -7,6 +10,7 @@ using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Node.P2P;
 using Node.Profiler;
 
 namespace Node
@@ -73,12 +77,12 @@ namespace Node
             var listener = new HttpListener();
             listener.Prefixes.Add(prefix);
             try
-            { 
+            {
                 listener.Start();
                 Log.Information(@$"HTTP listener started @ {string.Join(", ", listener.Prefixes)}");
             }
-            catch (Exception ex) 
-            { 
+            catch (Exception ex)
+            {
                 Log.Error(ex, "HTTP listener was unable to start with the following prefixes: {Prefixes}",
                     string.Join(", ", listener.Prefixes));
             }
@@ -188,16 +192,29 @@ namespace Node
                 if (subpath == "starttask")
                 {
                     var token = await JToken.LoadAsync(new JsonTextReader(new StreamReader(request.InputStream))).ConfigureAwait(false);
-                    var task = token.ToObject<NodeTask<IPluginActionData>>();
-                    if (task is null) return await WriteErr(response, "err").ConfigureAwait(false);
+                    // File.WriteAllText("/tmp/a", token.ToString());
 
+                    var upload = token["upload"]!.ToObject<Uploadp>()!;
+
+                    var data = token["data"]!.ToObject<IPluginActionData>(JsonSerializerWithTypes)!;
+                    var outputdir = token["outputdir"]!.ToObject<string>()!;
+                    var outputfilename = token["outputfilename"]!.ToObject<string>()!;
+
+                    var task = new NodeTask<IPluginActionData>(data, new TaskObject(upload.FileName, upload.UploadedBytesCount), new MPlusTaskInputInfo(upload.FileId), new MPlusTaskOutputInfo(outputfilename, outputdir));
                     var taskid = await TaskManager.RegisterTaskAsync(task).ConfigureAwait(false);
-                    return await WriteJson(response, taskid.AsOpResult()).ConfigureAwait(false);
+                    await WriteJson(response, taskid.AsOpResult()).ConfigureAwait(false);
+
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    var state = await Api.ApiGet($"{Api.TaskManagerEndpoint}/getmytaskstate", null, ("sessionid", Settings.SessionId!), ("taskid", taskid)).ConfigureAwait(false);
+
+                    return HttpStatusCode.OK;
                 }
 
                 return HttpStatusCode.NotFound;
             }
         }
+        record Uploadp(string FileId, string FileName, long UploadedBytesCount);
+
 
         public static ValueTask StartPublicListenerAsync() => Start(@$"http://+:{PortForwarding.Port}/", PublicListener);
         static ValueTask PublicListener(HttpListenerContext context)
@@ -279,11 +296,17 @@ namespace Node
 
                 if (subpath == "rphtaskexec")
                 {
-                    var incomingTask = await System.Text.Json.JsonSerializer.DeserializeAsync<Tasks.Models.IncomingTask>(
-                        context.Request.InputStream,
-                        new JsonSerializerOptions(JsonSerializerDefaults.Web)
-                        ).ConfigureAwait(false);
-                    await new Tasks.TaskManager().AcceptTaskAsync(incomingTask!).ConfigureAwait(false);
+                    if (segments.Length > 1 && segments[1] == "launchtask")
+                    {
+                        using (var f  = File.OpenWrite("/tmp/b"))
+                            context.Request.InputStream.CopyTo(f);
+                        
+                        var incomingTask = await System.Text.Json.JsonSerializer.DeserializeAsync<IncomingTask>(
+                            context.Request.InputStream,
+                            new JsonSerializerOptions(JsonSerializerDefaults.Web)
+                            ).ConfigureAwait(false);
+                        await TaskManager.AcceptTaskAsync(incomingTask!).ConfigureAwait(false);
+                    }
                 }
 
                 return HttpStatusCode.NotFound;

@@ -1,9 +1,10 @@
-using Common.Tasks.Tasks;
-using Common.Tasks.Tasks.DTO;
-using Node.Tasks.Models;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Common.Tasks.Models;
+using Common.Tasks.Tasks;
+using Common.Tasks.Tasks.DTO;
 
 namespace Node.Tasks;
 
@@ -49,16 +50,16 @@ public class TaskManager : IDisposable
         await taskHandler.HandleAsync();
     }
 
-    public async Task<string> RegisterTaskAsync<T>(NodeTask<T> task) where T : IPluginActionData<T>
+    public async Task<string> RegisterTaskAsync<T>(NodeTask<T> task) where T : IPluginActionData
     {
         var httpContent = new MultipartFormDataContent()
         {
             { new StringContent(Settings.SessionId!), "sessionid" },
-            { JsonContent.Create(new { filename = task.File.Name, size = task.File.Length }), "object" },
+            { JsonContent.Create(new { filename = task.Object.FileName, size = task.Object.Size }), "object" },
             // Cast to object is necessary to allow serialization of properties of derived classes.
             { JsonContent.Create((object)task.Input, options: new(JsonSerializerDefaults.Web)), "input" },
             { JsonContent.Create((object)task.Output, options: new(JsonSerializerDefaults.Web)), "output" },
-            { JsonContent.Create(task.Data, options: new(JsonSerializerDefaults.Web) { IncludeFields = true }), "data" },
+            { JsonContent.Create((object)task.Data, options: new(JsonSerializerDefaults.Web) { IncludeFields = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault, }), "data" },
             { new StringContent(string.Empty), "origin" }
         };
         var response = await Api.TrySendRequestAsync(

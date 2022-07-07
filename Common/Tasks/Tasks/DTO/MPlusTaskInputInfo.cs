@@ -1,10 +1,10 @@
 ﻿namespace Common.Tasks.Tasks.DTO;
 
-public record MPlusTaskInputInfo : TaskInfo
+public record MPlusTaskInputInfo : MPlusTaskInfo
 {
     public string Iid { get; }
 
-    public MPlusTaskInputInfo(string iid) : base(TaskType.MPlus)
+    public MPlusTaskInputInfo(string iid)
     {
         Iid = iid;
     }

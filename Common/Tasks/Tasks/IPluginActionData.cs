@@ -1,3 +1,6 @@
 namespace Common.Tasks.Tasks;
 
-public interface IPluginActionData { }
+public interface IPluginActionData
+{
+    string Type { get; }
+}

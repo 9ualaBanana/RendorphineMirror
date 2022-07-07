@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace Node.Tasks.Models;
+namespace Common.Tasks.Models;
 
 public record TaskInfo(
     string UserId,
@@ -8,6 +8,7 @@ public record TaskInfo(
     TaskObject Object,
     JsonElement Input,
     JsonElement Output,
+    JsonElement Data,
     JsonElement State,
     int Progress,
     string Origin,

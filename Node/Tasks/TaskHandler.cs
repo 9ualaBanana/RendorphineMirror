@@ -1,10 +1,10 @@
-﻿using Node.Tasks.Models;
+﻿using Common.Tasks.Models;
 
 namespace Node.Tasks;
 
 internal abstract class TaskHandler
 {
-    protected IncomingTask Task;
+    protected IncomingTask Task { get; }
     protected RequestOptions RequestOptions { get; set; }
 
     protected TaskHandler(IncomingTask task, RequestOptions requestOptions)
@@ -15,9 +15,9 @@ internal abstract class TaskHandler
 
     internal async Task HandleAsync()
     {
-        FileInfo input = await ReceiveInputAsync();
+        var input = await ReceiveInputAsync();
         await ChangeTaskState(TaskState.Active);
-        FileInfo output = await HandleAsyncCore(input);
+        var output = await HandleAsyncCore(input);
         await ChangeTaskState(TaskState.Output);
         await OutputResultAsync(output);
     }
@@ -37,7 +37,7 @@ internal abstract class TaskHandler
             RequestOptions);
     }
 
-    protected abstract Task<FileInfo> HandleAsyncCore(FileInfo input);
-    protected abstract Task<FileInfo> ReceiveInputAsync();
-    protected abstract Task OutputResultAsync(FileInfo output);
+    protected abstract Task<string> HandleAsyncCore(string input);
+    protected abstract Task<string> ReceiveInputAsync();
+    protected abstract Task OutputResultAsync(string output);
 }
