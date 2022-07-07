@@ -34,7 +34,6 @@ internal class PacketsUploader : IDisposable
         _session = session;
         _requestOptions = session.RequestOptions;
         _fileStream = session.File.OpenRead();
-        _Offset = session.NotUploadedByteRanges.First().Start.Value;
         _packetSize = initialPacketSize;
         _batchSize = initialBatchSize;
         _uploadAdjuster = new(batchSizeLimit);
