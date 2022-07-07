@@ -1,7 +1,12 @@
 ﻿namespace Node.Tasks;
 
-internal enum TaskState
+public enum TaskState
 {
+    Queued,
+    Input,
     Active,
     Output,
+    Finished,
+    Canceled,
+    Failed,
 }

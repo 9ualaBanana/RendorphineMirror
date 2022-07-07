@@ -216,7 +216,7 @@ namespace Node
         record Uploadp(string FileId, string FileName, long UploadedBytesCount);
 
 
-        public static ValueTask StartPublicListenerAsync() => Start(@$"http://+:{PortForwarding.Port}/", PublicListener);
+        public static ValueTask StartPublicListenerAsync() => Start(@$"http://*:{PortForwarding.Port}/", PublicListener);
         static ValueTask PublicListener(HttpListenerContext context)
         {
             return Execute(context, get, post);
@@ -292,21 +292,6 @@ namespace Node
 
                         return await WriteSuccess(response).ConfigureAwait(false);
                     }).ConfigureAwait(false);
-                }
-
-                if (subpath == "rphtaskexec")
-                {
-                    if (segments.Length > 1 && segments[1] == "launchtask")
-                    {
-                        using (var f  = File.OpenWrite("/tmp/b"))
-                            context.Request.InputStream.CopyTo(f);
-                        
-                        var incomingTask = await System.Text.Json.JsonSerializer.DeserializeAsync<IncomingTask>(
-                            context.Request.InputStream,
-                            new JsonSerializerOptions(JsonSerializerDefaults.Web)
-                            ).ConfigureAwait(false);
-                        await TaskManager.AcceptTaskAsync(incomingTask!).ConfigureAwait(false);
-                    }
                 }
 
                 return HttpStatusCode.NotFound;

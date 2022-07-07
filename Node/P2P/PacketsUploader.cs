@@ -34,7 +34,6 @@ internal class PacketsUploader : IDisposable
         _session = session;
         _requestOptions = session.RequestOptions;
         _fileStream = session.File.OpenRead();
-        _Offset = session.NotUploadedByteRanges.First().Start.Value;
         _packetSize = initialPacketSize;
         _batchSize = initialBatchSize;
         _uploadAdjuster = new(batchSizeLimit);
@@ -107,12 +106,10 @@ internal class PacketsUploader : IDisposable
             { new ByteArrayContent(packet.Content), "chunk", _session.File.Name }
         };
 
-        var uploadingStatusResponse = await Api.TrySendRequestAsync(
-            async () => await _requestOptions.HttpClient.PostAsync(
-                $"https://{_session.Host}/content/vcupload/chunk",
-                packetHttpContent,
-                _requestOptions.CancellationToken).ConfigureAwait(false),
-            _session.RequestOptions).ConfigureAwait(false);
+        var uploadingStatusResponse = await Api.TryPostAsync(
+            $"https://{_session.Host}/content/vcupload/chunk",
+            packetHttpContent,
+            _requestOptions).ConfigureAwait(false);
         return JsonDocument.Parse(await uploadingStatusResponse.Content.ReadAsStringAsync())
             .RootElement.GetProperty("fileinfo")
             .Deserialize<UploadingStatus>(new JsonSerializerOptions(JsonSerializerDefaults.Web))!;

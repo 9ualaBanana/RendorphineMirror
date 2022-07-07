@@ -46,6 +46,7 @@ else
 PortForwarder.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t => Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}"));
 
+// Precomputed for sending by NodeProfiler.
 var plugins = await discoveringInstalledPlugins;
 if (!Init.IsDebug || halfrelease)
 {

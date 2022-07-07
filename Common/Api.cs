@@ -83,7 +83,28 @@ namespace Common
             }
         }
 
-        public static async Task<HttpResponseMessage> TrySendRequestAsync(
+        public static async Task<HttpResponseMessage> TryGetAsync(
+            string requestUri,
+            RequestOptions requestOptions)
+        {
+            return await TrySendRequestAsync(
+                () => requestOptions.HttpClient.GetAsync(
+                    requestUri, requestOptions.CancellationToken),
+                requestOptions);
+        }
+
+        public static async Task<HttpResponseMessage> TryPostAsync(
+            string requestUri,
+            HttpContent? content,
+            RequestOptions requestOptions)
+        {
+            return await TrySendRequestAsync(
+                () => requestOptions.HttpClient.PostAsync(
+                    requestUri, content, requestOptions.CancellationToken),
+                requestOptions);
+        }
+
+        static async Task<HttpResponseMessage> TrySendRequestAsync(
             Func<Task<HttpResponseMessage>> requestCallback,
             RequestOptions requestOptions)
         {

@@ -85,7 +85,6 @@ public class NodeSupervisor
         AllNodes.Add(nodeInfo);
         if (!NodesOnline.TryAdd(nodeInfo, Timer)) return;
 
-        _bot.TryNotifySubscribers($"{nodeInfo.BriefInfoMDv2} is online\n{nodeInfo.InstalledPluginsAsText}", _logger);
         _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
     }
 

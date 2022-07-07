@@ -23,74 +23,74 @@ public class NodeController : ControllerBase
         nodeSupervisor.UpdateNodeStatus(nodeInfo);
     }
 
-    [HttpPost("profile")]
-    public void ForwardNodeProfileMessageToTelegram(
-        [FromForm] NodeProfile nodeProfile,
-        [FromServices] TelegramBot bot,
-        [FromServices] ILogger<NodeController> logger
-        )
-    {
-        logger.LogDebug("Hardware info message is received");
+    //[HttpPost("profile")]
+    //public void ForwardNodeProfileMessageToTelegram(
+    //    [FromForm] NodeProfile nodeProfile,
+    //    [FromServices] TelegramBot bot,
+    //    [FromServices] ILogger<NodeController> logger
+    //    )
+    //{
+    //    logger.LogDebug("Hardware info message is received");
 
-        if (string.IsNullOrWhiteSpace(nodeProfile.info)) return;
-        var info = JsonSerializer.Deserialize<Info>(nodeProfile.info);
-        if (info is null) return;
+    //    if (string.IsNullOrWhiteSpace(nodeProfile.info)) return;
+    //    var info = JsonSerializer.Deserialize<Info>(nodeProfile.info);
+    //    if (info is null) return;
 
-        var messageBuilder = new StringBuilder();
-        messageBuilder.AppendLine($"{info.nickname} Info:");
-        messageBuilder.AppendLine($"IP: {info.ip}:{info.port}");
+    //    var messageBuilder = new StringBuilder();
+    //    messageBuilder.AppendLine($"{info.nickname} Info:");
+    //    messageBuilder.AppendLine($"IP: {info.ip}:{info.port}");
 
-        if (info.hardware is not null)
-        {
-            var hardware = info.hardware;
-            if (hardware is not null)
-            {
-                messageBuilder.AppendLine()
-                    .AppendLine("CPU:")
-                    .AppendLine($"Rating: *{Information.FromBytes(hardware.cpu.rating).Megabytes:.#}* MB/s")
-                    .AppendLine($"FFmpeg Rating: *{Information.FromBytes(hardware.cpu.pratings["ffmpeg"]).Megabytes:.#}* MB/s")
-                    .AppendLine($"Load: *{hardware.cpu.load:.#}* %")
-                    .AppendLine()
-                    .AppendLine("GPU:")
-                    .AppendLine($"Rating: *{Information.FromBytes(hardware.gpu.rating).Megabytes:.#}* MB/s")
-                    .AppendLine($"FFmpeg Rating: *{Information.FromBytes(hardware.gpu.pratings["ffmpeg"]).Megabytes:.#}* MB/s")
-                    .AppendLine($"Load: *{hardware.gpu.load:.#}* %")
-                    .AppendLine()
-                    .AppendLine("RAM:")
-                    .AppendLine($"Capacity: *{Math.Floor(Information.FromBytes((double)hardware.ram.total).Gigabytes)}* GB")
-                    .AppendLine($"Free: *{Information.FromBytes((double)hardware.ram.free).Gigabytes:.#}* GB")
-                    .AppendLine()
-                    .AppendLine("Drives:");
+    //    if (info.hardware is not null)
+    //    {
+    //        var hardware = info.hardware;
+    //        if (hardware is not null)
+    //        {
+    //            messageBuilder.AppendLine()
+    //                .AppendLine("CPU:")
+    //                .AppendLine($"Rating: *{Information.FromBytes(hardware.cpu.rating).Megabytes:.#}* MB/s")
+    //                .AppendLine($"FFmpeg Rating: *{Information.FromBytes(hardware.cpu.pratings["ffmpeg"]).Megabytes:.#}* MB/s")
+    //                .AppendLine($"Load: *{hardware.cpu.load:.#}* %")
+    //                .AppendLine()
+    //                .AppendLine("GPU:")
+    //                .AppendLine($"Rating: *{Information.FromBytes(hardware.gpu.rating).Megabytes:.#}* MB/s")
+    //                .AppendLine($"FFmpeg Rating: *{Information.FromBytes(hardware.gpu.pratings["ffmpeg"]).Megabytes:.#}* MB/s")
+    //                .AppendLine($"Load: *{hardware.gpu.load:.#}* %")
+    //                .AppendLine()
+    //                .AppendLine("RAM:")
+    //                .AppendLine($"Capacity: *{Math.Floor(Information.FromBytes((double)hardware.ram.total).Gigabytes)}* GB")
+    //                .AppendLine($"Free: *{Information.FromBytes((double)hardware.ram.free).Gigabytes:.#}* GB")
+    //                .AppendLine()
+    //                .AppendLine("Drives:");
 
-                foreach (var drive in hardware.disks)
-                {
-                    messageBuilder.AppendLine($"Free Space: *{Information.FromBytes((double)drive.freespace).Gigabytes:.#}* GB");
-                    messageBuilder.AppendLine($"Write Speed: *{Information.FromBytes((double)drive.writespeed).Megabytes:.#}* MB/s");
-                }
-            }
-        }
+    //            foreach (var drive in hardware.disks)
+    //            {
+    //                messageBuilder.AppendLine($"Free Space: *{Information.FromBytes((double)drive.freespace).Gigabytes:.#}* GB");
+    //                messageBuilder.AppendLine($"Write Speed: *{Information.FromBytes((double)drive.writespeed).Megabytes:.#}* MB/s");
+    //            }
+    //        }
+    //    }
 
-        bot.TryNotifySubscribers(messageBuilder.ToString(), logger);
-    }
+    //    bot.TryNotifySubscribers(messageBuilder.ToString(), logger);
+    //}
 
-    [HttpGet("hardware_info/is_verbose")]
-    public bool IsVerbose(
-        [FromServices] IConfiguration configuration,
-        [FromServices] ILogger<NodeController> logger)
-    {
-        const string configKey = "IsVerbose";
-        try
-        {
-            return bool.Parse(configuration[configKey]);
-        }
-        catch (ArgumentNullException ex)
-        {
-            logger.LogError(ex, "\"{ConfigKey}\" config key is not defined", configKey);
-        }
-        catch (FormatException ex)
-        {
-            logger.LogError(ex, "Value of \"{ConfigKey}\" can't be parsed as bool", configKey);
-        }
-        return false;
-    }
+    //[HttpGet("hardware_info/is_verbose")]
+    //public bool IsVerbose(
+    //    [FromServices] IConfiguration configuration,
+    //    [FromServices] ILogger<NodeController> logger)
+    //{
+    //    const string configKey = "IsVerbose";
+    //    try
+    //    {
+    //        return bool.Parse(configuration[configKey]);
+    //    }
+    //    catch (ArgumentNullException ex)
+    //    {
+    //        logger.LogError(ex, "\"{ConfigKey}\" config key is not defined", configKey);
+    //    }
+    //    catch (FormatException ex)
+    //    {
+    //        logger.LogError(ex, "Value of \"{ConfigKey}\" can't be parsed as bool", configKey);
+    //    }
+    //    return false;
+    //}
 }

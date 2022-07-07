@@ -3,6 +3,7 @@ using System.Text.Json;
 
 namespace Node.P2P;
 
+//Currently supports files of maximum length no more than int.MaxValue.
 internal record UploadSession(
     FileInfo File,
     string TaskId,
@@ -68,11 +69,9 @@ internal record UploadSession(
             ["origin"] = string.Empty
         });
 
-        var response = await Api.TrySendRequestAsync(
-            async () => await requestOptions.HttpClient.PostAsync(
-                $"{Api.TaskManagerEndpoint}/initmptaskoutput",
-                urlEncodedContent,
-                requestOptions.CancellationToken).ConfigureAwait(false),
+        var response = await Api.TryPostAsync(
+            $"{Api.TaskManagerEndpoint}/initmptaskoutput",
+            urlEncodedContent,
             requestOptions).ConfigureAwait(false);
         var rawJsonResponse = await response.Content.ReadAsStringAsync(requestOptions.CancellationToken).ConfigureAwait(false);
         var jsonElementResponse = JsonDocument.Parse(rawJsonResponse).RootElement;
@@ -97,12 +96,11 @@ internal record UploadSession(
     {
         if (_finalized) return;
 
-        await Api.TrySendRequestAsync(
-            async () => await RequestOptions.HttpClient.PostAsync(
-                $"https://{Host}/content/vcupload/finish",
-                new FormUrlEncodedContent(new Dictionary<string, string>() { ["fileid"] = FileId }),
-                RequestOptions.CancellationToken).ConfigureAwait(false),
+        await Api.TryPostAsync(
+            $"https://{Host}/content/vcupload/finish",
+            new FormUrlEncodedContent(new Dictionary<string, string>() { ["fileid"] = FileId }),
             RequestOptions).ConfigureAwait(false);
+
         _finalized = true;
     }
 }
