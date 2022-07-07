@@ -1,15 +1,11 @@
 ﻿global using Common;
 global using Machine;
 global using Serilog;
-using System.Collections.Immutable;
 using System.Diagnostics;
-using Common.Tasks.Tasks;
-using Common.Tasks.Tasks.DTO;
 using Machine.Plugins;
 using Machine.Plugins.Discoverers;
 using Node;
 using Node.Profiler;
-using Node.Tasks;
 
 Init.Initialize();
 
@@ -46,6 +42,7 @@ else
 PortForwarder.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t => Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}"));
 
+// Precomputed for sending by NodeProfiler.
 await discoveringInstalledPlugins;
 if (!Init.IsDebug)
 {
@@ -56,7 +53,6 @@ if (!Init.IsDebug)
 
     var nodeProfiler = new NodeProfiler(http);
     var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
-    var benchmarkPayload = await NodeProfiler.GetPayloadAsync(benchmarkResults);
 
     // Move domain to Settings.ServerUrl when the server on VPS will be integrated to this server.
     await new NodeProfiler(http).SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults, TimeSpan.FromMinutes(1));

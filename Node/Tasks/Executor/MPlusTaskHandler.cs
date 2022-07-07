@@ -2,13 +2,13 @@
 using Node.Tasks.Models;
 using System.Text.Json;
 
-namespace Node.Tasks;
+namespace Node.Tasks.Executor;
 
 internal class MPlusTaskHandler : TaskHandler
 {
     readonly string _fileName = Guid.NewGuid().ToString();
 
-    internal MPlusTaskHandler(IncomingTask task, RequestOptions requestOptions)
+    internal MPlusTaskHandler(ReceivedTask task, RequestOptions requestOptions)
         : base(task, requestOptions)
     {
     }
@@ -27,24 +27,23 @@ internal class MPlusTaskHandler : TaskHandler
         var httpContent = new FormUrlEncodedContent(new Dictionary<string, string>()
         {
             ["sessionid"] = Settings.SessionId!,
-            ["taskid"] = Task.TaskId,
+            ["taskid"] = Task.Id,
             ["format"] = "mov",
             ["original"] = "true"
         });
-        var rawJsonResponse = await (await Api.TrySendRequestAsync(
-            async () => await RequestOptions.HttpClient.PostAsync(
-                $"{Api.TaskManagerEndpoint}/gettaskinputdownloadlink",
-                httpContent),
-        RequestOptions)).Content.ReadAsStringAsync(RequestOptions.CancellationToken);
+        var rawJsonResponse = await (await Api.TryPostAsync(
+            $"{Api.TaskManagerEndpoint}/gettaskinputdownloadlink",
+            httpContent,
+            RequestOptions)
+        ).Content.ReadAsStringAsync(RequestOptions.CancellationToken);
         return JsonDocument.Parse(rawJsonResponse).RootElement.GetProperty("link").GetString()!;
     }
 
     async Task<Stream> GetInputStream(string downloadLink)
     {
-        return await (await Api.TrySendRequestAsync(
-            async () => await RequestOptions.HttpClient.GetAsync(downloadLink, RequestOptions.CancellationToken),
-            RequestOptions)
-        ).Content.ReadAsStreamAsync(RequestOptions.CancellationToken);
+        return await
+            (await Api.TryGetAsync(downloadLink, RequestOptions))
+            .Content.ReadAsStreamAsync(RequestOptions.CancellationToken);
     }
 
     protected override Task<FileInfo> HandleAsyncCore(FileInfo input)
@@ -54,8 +53,7 @@ internal class MPlusTaskHandler : TaskHandler
 
     protected override async Task OutputResultAsync(FileInfo output)
     {
-        // Session initializer should take the endpoint to which it will upload the output.
         var packetsTransporter = new PacketsTransporter(RequestOptions);
-        await packetsTransporter.UploadAsync(output, Task.TaskId);
+        await packetsTransporter.UploadAsync(output, Task.Id);
     }
 }

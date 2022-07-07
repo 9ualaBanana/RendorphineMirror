@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using System.Text.Json;
 using MonoTorrent;
 using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
@@ -187,7 +186,7 @@ namespace Node
             }
         }
 
-        public static ValueTask StartPublicListenerAsync() => Start(@$"http://+:{PortForwarding.Port}/", PublicListener);
+        public static ValueTask StartPublicListenerAsync() => Start(@$"http://*:{PortForwarding.Port}/", PublicListener);
         static ValueTask PublicListener(HttpListenerContext context)
         {
             return Execute(context, get, post);
@@ -263,15 +262,6 @@ namespace Node
 
                         return await WriteSuccess(response).ConfigureAwait(false);
                     }).ConfigureAwait(false);
-                }
-
-                if (subpath == "rphtaskexec")
-                {
-                    var incomingTask = await System.Text.Json.JsonSerializer.DeserializeAsync<Tasks.Models.IncomingTask>(
-                        context.Request.InputStream,
-                        new JsonSerializerOptions(JsonSerializerDefaults.Web)
-                        ).ConfigureAwait(false);
-                    await new Tasks.TaskManager().AcceptTaskAsync(incomingTask!).ConfigureAwait(false);
                 }
 
                 return HttpStatusCode.NotFound;

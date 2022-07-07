@@ -210,6 +210,7 @@ internal class NodeProfiler
         }, new JsonSerializerOptions() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
     }
 
+    // Ridiculous.
     static async Task<Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>> BuildSoftwarePayloadAsync()
     {
         var result = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>();
