@@ -11,7 +11,7 @@ public static class SessionManager
         Api.ApiPost<string>($"{Endpoint}/autologin", "sessionid", "Couldn't login.", ("email", email), ("guid", guid));
 
     static ValueTask<OperationResult<string>> RequestNicknameAsync() =>
-        Api.ApiPost<string>($"{Endpoint}/generatenickname", "Couldn't generate nickname.", "nickname", ("sessionid", SessionId));
+        Api.ApiPost<string>($"{Endpoint}/generatenickname", "nickname", "Couldn't generate nickname.",  ("sessionid", SessionId));
     public static ValueTask<OperationResult> RenameServerAsync(string name) =>
         Api.ApiPost($"{Endpoint}/renameserver", "Couldn't rename.", ("sessionid", SessionId), ("oldname", Settings.NodeName), ("newname", name));
 
