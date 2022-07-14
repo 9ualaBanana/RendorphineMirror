@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Data.Common;
 using System.Data.SQLite;
 using System.Diagnostics.CodeAnalysis;
@@ -67,18 +67,6 @@ namespace Common
             BLanguage = new(nameof(Language), null);
             BShortcutsCreated = new(nameof(ShortcutsCreated), false);
             BActiveTasks = new(nameof(ActiveTasks));
-
-
-            // TODO: remove
-            {
-                var sid = new DatabaseBindable<string?>("SessionId", null) { Hidden = true };
-                var email = new DatabaseBindable<string?>("Email", null);
-                if (sid.Value is not null && email.Value is not null)
-                    AuthInfo = new AuthInfo(sid.Value, email.Value, System.Guid.NewGuid().ToString());
-
-                sid.Value = null;
-                email.Value = null;
-            }
 
 
             Bindables = typeof(Settings).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)
