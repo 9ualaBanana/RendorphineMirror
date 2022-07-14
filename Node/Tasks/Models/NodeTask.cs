@@ -1,7 +1,6 @@
 ﻿using System.IO.Compression;
-using Common.Tasks.Models;
 
-namespace Common.Tasks.Tasks.DTO;
+namespace Node.Tasks.Models;
 
 public static class NodeTask
 {
@@ -37,8 +36,3 @@ public static class NodeTask
         }
     }
 }
-public record NodeTask<T>(
-    T Data,
-    TaskObject Object,
-    TaskInfo Input,
-    TaskInfo Output) where T : IPluginActionData;

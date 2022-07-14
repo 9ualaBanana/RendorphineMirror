@@ -1,4 +1,4 @@
-﻿namespace Common.Tasks.Models;
+﻿namespace Node.Tasks.Models;
 
 public record ServerInfo(
     string Host,

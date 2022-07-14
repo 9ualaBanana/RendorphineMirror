@@ -1,6 +1,4 @@
 global using System.Collections.Immutable;
-global using Common.Tasks;
-global using Common.Tasks.Tasks;
 global using Serilog;
 using System.Diagnostics;
 using Serilog.Events;
@@ -12,6 +10,7 @@ namespace Common
         public static readonly bool IsDebug = false;
         static readonly bool DebugFileExists = false;
         public static readonly string ConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "renderphine");
+        public static readonly string TaskFilesDirectory = Path.Combine(ConfigDirectory, "tasks");
         public static readonly string Version = GetVersion();
 
         // empty method to trigger static ctor

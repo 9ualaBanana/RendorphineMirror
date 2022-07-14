@@ -1,16 +1,11 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Common.Tasks;
-using Common.Tasks.Models;
-using Common.Tasks.Tasks;
-using Common.Tasks.Tasks.DTO;
 using MonoTorrent;
 using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Node.P2P;
 using Node.Profiler;
 
 namespace Node
@@ -20,7 +15,6 @@ namespace Node
     {
         static readonly Newtonsoft.Json.JsonSerializer JsonSerializerWithTypes = new() { TypeNameHandling = TypeNameHandling.Auto, };
         static readonly HttpClient Client = new();
-        static readonly TaskManager TaskManager = new();
 
         static JObject JsonFromOpResult(in OperationResult result)
         {
@@ -171,6 +165,26 @@ namespace Node
                 if (subpath == "getstate")
                     return await WriteJToken(response, JToken.FromObject(new { State = GlobalState.State }, JsonSerializerWithTypes)).ConfigureAwait(false);
 
+                if (subpath == "getactions")
+                {
+                    var actions = TaskList.Actions.Select(serialize).ToImmutableArray();
+                    var inputs = new[]
+                    {
+                        serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.MPlus),
+                    }.ToImmutableArray();
+                    var outputs = new[]
+                    {
+                        serializeinout<MPlusTaskOutputInfo>(TaskInputOutputType.MPlus),
+                    }.ToImmutableArray();
+
+                    var output = new TasksFullDescriber(actions, inputs, outputs);
+                    return await WriteJToken(response, JToken.FromObject(output, JsonSerializerWithTypes)).ConfigureAwait(false);
+
+
+                    static TaskActionDescriber serialize(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
+                    static TaskInputOutputDescriber serializeinout<T>(TaskInputOutputType type) where T : ITaskInputOutputInfo => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
+                }
+
                 return HttpStatusCode.NotFound;
 
 
@@ -186,34 +200,19 @@ namespace Node
             }
             async ValueTask<HttpStatusCode> post(HttpListenerRequest request, string[] segments, HttpListenerResponse response)
             {
-                await Task.Yield(); // TODO: remove
                 var subpath = segments[0].ToLowerInvariant();
 
                 if (subpath == "starttask")
                 {
-                    var token = await JToken.LoadAsync(new JsonTextReader(new StreamReader(request.InputStream))).ConfigureAwait(false);
-                    // File.WriteAllText("/tmp/a", token.ToString());
+                    var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
+                    var taskid = await ClientTask.RegisterAsync(task.Data, new TaskObject("3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 12345678), task.Input, task.Output).ConfigureAwait(false);
 
-                    var upload = token["upload"]!.ToObject<Uploadp>()!;
-
-                    var data = token["data"]!.ToObject<IPluginActionData>(JsonSerializerWithTypes)!;
-                    var outputdir = token["outputdir"]!.ToObject<string>()!;
-                    var outputfilename = token["outputfilename"]!.ToObject<string>()!;
-
-                    var task = new NodeTask<IPluginActionData>(data, new TaskObject(upload.FileName, upload.UploadedBytesCount), new MPlusTaskInputInfo(upload.FileId), new MPlusTaskOutputInfo(outputfilename, outputdir));
-                    var taskid = await TaskManager.RegisterTaskAsync(task).ConfigureAwait(false);
-                    await WriteJson(response, taskid.AsOpResult()).ConfigureAwait(false);
-
-                    await Task.Delay(1000).ConfigureAwait(false);
-                    var state = await Api.ApiGet($"{Api.TaskManagerEndpoint}/getmytaskstate", null, ("sessionid", Settings.SessionId!), ("taskid", taskid)).ConfigureAwait(false);
-
-                    return HttpStatusCode.OK;
+                    return await WriteJson(response, taskid.Id.AsOpResult()).ConfigureAwait(false);
                 }
 
                 return HttpStatusCode.NotFound;
             }
         }
-        record Uploadp(string FileId, string FileName, long UploadedBytesCount);
 
 
         public static ValueTask StartPublicListenerAsync() => Start(@$"http://*:{PortForwarding.Port}/", PublicListener);

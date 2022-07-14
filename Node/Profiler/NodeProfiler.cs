@@ -87,8 +87,8 @@ internal class NodeProfiler
                     pratings = new { ffmpeg = 100 },
                     load = 0.0001,
                 },
-                ram = new { total = 326780000, free = 10000000, },
-                disks = new[] { new { freespace = 326780000, writespeed = 326770000 } },
+                ram = new { total = 32678000000, free = 16678000000, },
+                disks = new[] { new { freespace = 326780000000, writespeed = 32677000000 } },
             };
         }
 
@@ -220,8 +220,8 @@ internal class NodeProfiler
             nickname = Settings.NodeName,
             guid = Settings.Guid,
             version = MachineInfo.Version,
-            allowedinputs = new { User = 1, MPlus = 1 },
-            allowedoutputs = new { User = 1, MPlus = 1 },
+            allowedinputs = new { MPlus = 1 },
+            allowedoutputs = new { MPlus = 1 },
             allowedtypes = new { EditVideo = 1, EditRaster = 1 },
             pricing = new
             {

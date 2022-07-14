@@ -1,8 +1,7 @@
-﻿global using Common.Tasks;
-global using Plugin = Machine.Plugins.Plugins.Plugin;
+﻿global using Common;
+global using Machine.Plugins.Plugins;
 using System.Net;
 using System.Net.Http.Json;
-using Common;
 using Machine.MessageBuilders;
 using Machine.Plugins;
 

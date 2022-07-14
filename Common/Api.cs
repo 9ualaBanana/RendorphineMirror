@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Net.Sockets;
 using System.Web;
 using Newtonsoft.Json;
@@ -66,6 +65,8 @@ namespace Common
             var result = await JustGet(url, values).ConfigureAwait(false);
             return await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
         }
+
+        public static Task<Stream> Download(string url) => Client.GetStreamAsync(url);
 
 
         static ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<T>> func) => Execute(() => func().AsTask());

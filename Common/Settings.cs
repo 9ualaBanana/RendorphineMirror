@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections;
 using System.Data.Common;
 using System.Data.SQLite;
 using System.Diagnostics.CodeAnalysis;
@@ -36,12 +36,14 @@ namespace Common
         public static string NodeName { get => BNodeName.Value!; set => BNodeName.Value = value!; }
         public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
         public static bool ShortcutsCreated { get => BShortcutsCreated.Value; set => BShortcutsCreated.Value = value; }
+        public static DatabaseBindableList<JObject> ActiveTasks => BActiveTasks;
 
         public static readonly DatabaseBindable<string> BServerUrl;
         public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort, BDhtPort, BTorrentPort;
         public static readonly DatabaseBindable<string?> BNodeName, BLanguage;
         public static readonly DatabaseBindable<AuthInfo?> BAuthInfo;
         public static readonly DatabaseBindable<bool> BShortcutsCreated;
+        public static readonly DatabaseBindableList<JObject> BActiveTasks;
 
         static readonly SQLiteConnection Connection;
         const string ConfigTable = "config";
@@ -64,6 +66,7 @@ namespace Common
             BNodeName = new(nameof(NodeName), null);
             BLanguage = new(nameof(Language), null);
             BShortcutsCreated = new(nameof(ShortcutsCreated), false);
+            BActiveTasks = new(nameof(ActiveTasks));
 
 
             // TODO: remove
@@ -137,6 +140,22 @@ namespace Common
                 bindable.Reload();
         }
 
+        [return: NotNullIfNotNull("defaultValue")]
+        static T? Load<T>(string path, T? defaultValue)
+        {
+            using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
+            if (!query.Read()) return defaultValue;
+
+            var str = query.GetString(0);
+            return JsonConvert.DeserializeObject<T>(str);
+        }
+        static void Save<T>(string path, T value)
+        {
+            ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
+                new SQLiteParameter("key", path),
+                new SQLiteParameter("value", JsonConvert.SerializeObject(value))
+            );
+        }
 
         public interface IDatabaseBindable
         {
@@ -160,31 +179,41 @@ namespace Common
                 Reload();
                 Changed += (oldv, newv) =>
                 {
-                    Set(name, newv);
+                    Save(name, newv);
                     AnyChanged?.Invoke();
                 };
             }
 
-            public void Reload() => Value = Get(Name, _Value)!;
+            public void Reload() => Value = Load(Name, _Value)!;
 
             public JToken ToJson() => JToken.FromObject(Value!);
             public void SetFromJson(string json) => Value = JsonConvert.DeserializeObject<T>(json)!;
+        }
+        public class DatabaseBindableList<T> : BindableList<T>, IDatabaseBindable, IEnumerable<T>
+        {
+            public bool Hidden { get; init; }
+            public string Name { get; }
 
-
-            [return: NotNullIfNotNull("defaultValue")]
-            static T? Get(string path, T defaultValue)
+            public DatabaseBindableList(string name)
             {
-                using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
-                if (!query.Read()) return defaultValue;
+                Name = name;
 
-                var str = query.GetString(0);
-                return JsonConvert.DeserializeObject<T>(str);
+                Reload();
+                Changed += value =>
+                {
+                    Save(name, value);
+                    AnyChanged?.Invoke();
+                };
             }
-            static void Set(string path, T value) =>
-                ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
-                    new SQLiteParameter("key", path),
-                    new SQLiteParameter("value", JsonConvert.SerializeObject(value))
-                );
+
+            public void Reload() => SetRange(Load(Name, Array.Empty<T>()));
+
+            public JToken ToJson() => JToken.FromObject(Value);
+            public void SetFromJson(string json) => SetRange(JsonConvert.DeserializeObject<T[]>(json) ?? Array.Empty<T>());
+
+            List<T>.Enumerator GetEnumerator() => Values.GetEnumerator();
+            IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }

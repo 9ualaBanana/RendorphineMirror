@@ -1,4 +1,4 @@
-﻿namespace Node.Tasks;
+﻿namespace Node.Tasks.Models;
 
 public enum TaskState
 {

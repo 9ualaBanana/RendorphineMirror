@@ -23,6 +23,6 @@ namespace Common
                 Log.Error(t.Exception.Message);
                 throw t.Exception;
             }
-        });
+        }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
     }
 }

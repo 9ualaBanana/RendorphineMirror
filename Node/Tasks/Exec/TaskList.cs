@@ -1,4 +1,4 @@
-namespace Common.Tasks;
+namespace Node.Tasks.Exec;
 
 public static class TaskList
 {

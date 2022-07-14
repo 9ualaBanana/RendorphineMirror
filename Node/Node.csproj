@@ -17,6 +17,9 @@
     <ProjectReference Include="..\Benchmark\Benchmark.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\Machine\Machine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <ProjectReference Include="..\NodeUI\NodeUI.csproj" />
     <ProjectReference Include="..\Pinger\Pinger.csproj" />
   </ItemGroup>

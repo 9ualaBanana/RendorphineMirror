@@ -1,28 +1,53 @@
-﻿using Node.Tasks.Models;
+﻿using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Executor;
 
-internal abstract class TaskHandler
+public static class TaskHandler
 {
-    readonly protected ReceivedTask Task;
-    protected RequestOptions RequestOptions;
-
-    protected TaskHandler(ReceivedTask task, RequestOptions requestOptions)
+    public static async Task HandleAsync(ReceivedTask task)
     {
-        Task = task;
-        RequestOptions = requestOptions;
+        try
+        {
+            task.LogInfo($"Started");
+
+            var inputobj = task.Info.DeserializeInput();
+            var outputobj = task.Info.DeserializeOutput();
+            task.LogInfo($"Input: {task.Info.Input}");
+            task.LogInfo($"Input: {task.Info.Output}");
+
+            task.LogInfo($"Downloading file...");
+            var input = await inputobj.Download(task).ConfigureAwait(false);
+            task.LogInfo($"File downloaded to {input}");
+            await task.ChangeStateAsync(TaskState.Active);
+
+            var output = await HandleAsyncCore(input, task);
+            await task.ChangeStateAsync(TaskState.Output);
+
+            task.LogInfo($"Uploading output file {output} ...");
+            await outputobj.Upload(task, output).ConfigureAwait(false);
+            task.LogInfo($"File uploaded");
+            await task.ChangeStateAsync(TaskState.Finished);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+        {
+            task.LogErr(ex);
+            await task.ChangeStateAsync(TaskState.Canceled);
+        }
+        catch (Exception ex)
+        {
+            task.LogErr(ex);
+            await task.ChangeStateAsync(TaskState.Failed);
+        }
     }
 
-    internal async Task HandleAsync()
+    static async Task<string> HandleAsyncCore(string input, ReceivedTask task)
     {
-        FileInfo input = await ReceiveInputAsync();
-        await Task.ChangeStateAsync(TaskState.Active);
-        FileInfo output = await HandleAsyncCore(input);
-        await Task.ChangeStateAsync(TaskState.Output);
-        await OutputResultAsync(output);
-    }
+        var type = task.Info.Data["type"]!.Value<string>()!;
+        if (type is null) throw new InvalidOperationException("Task type is null");
 
-    protected abstract Task<FileInfo> ReceiveInputAsync();
-    protected abstract Task<FileInfo> HandleAsyncCore(FileInfo input);
-    protected abstract Task OutputResultAsync(FileInfo output);
+        var action = TaskList.TryGet(type);
+        if (action is null) throw new InvalidOperationException("Got unknown task type");
+
+        return await action.Execute(task, input).ConfigureAwait(false);
+    }
 }
