@@ -380,9 +380,6 @@ namespace NodeUI.Pages
                 };
                 var serialized = JsonConvert.SerializeObject(Builder, serializer);
 
-                try { File.WriteAllText("/tmp/a", serialized); }
-                catch { }
-
                 var post = await LocalApi.JustPost(LocalApi.LocalIP, "starttask", new StringContent(serialized)).ConfigureAwait(false);
                 var jreader = new JsonTextReader(new StreamReader(await post.Content.ReadAsStreamAsync().ConfigureAwait(false))) { SupportMultipleContent = true };
                 var jserializer = new Newtonsoft.Json.JsonSerializer();

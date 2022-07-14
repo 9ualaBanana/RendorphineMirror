@@ -23,8 +23,6 @@ public record ClientTask(string Id, RequestOptions RequestOptions)
             { new StringContent(string.Empty), "origin" }
         };
 
-        File.WriteAllText("/tmp/z", httpContent.ReadAsStringAsync().Result);
-
         var response = await Api.TryPostAsync(
             $"{Api.TaskManagerEndpoint}/registermytask", httpContent, requestOptions)
             .ConfigureAwait(false);
