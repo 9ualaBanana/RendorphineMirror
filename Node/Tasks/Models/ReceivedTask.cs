@@ -1,8 +1,10 @@
-﻿namespace Node.Tasks.Models;
+﻿using Newtonsoft.Json;
+
+namespace Node.Tasks.Models;
 
 public record ReceivedTask(string Id, TaskInfo Info)
 {
-    public RequestOptions RequestOptions { get; set; } = null!;
+    [JsonIgnore] public RequestOptions RequestOptions { get; set; } = null!;
 
     public async ValueTask<OperationResult> ChangeStateAsync(TaskState state)
     {

@@ -13,64 +13,51 @@ namespace Common
 
         static readonly HttpClient Client = new();
 
-        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string property, string? errorDetails = null, params (string, string)[] values) =>
-            ApiPost<T>(url, property, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)), errorDetails);
-        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null) =>
-            Execute(() => Post<T>(url, property, values, errorDetails));
 
         public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string property, string? errorDetails = null, params (string, string)[] values) =>
-            ApiGet<T>(url, property, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)), errorDetails);
-        public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null) =>
-            Execute(() => Get<T>(url, property, values, errorDetails));
+            Send<T>(JustGet, url, property, values, errorDetails);
+        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string property, string? errorDetails = null, params (string, string)[] values) =>
+            Send<T>(JustPost, url, property, values, errorDetails);
 
-        static async ValueTask<T> Post<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
-        {
-            var responseJson = await Post(url, values, errorDetails).ConfigureAwait(false);
-            return responseJson[property]!.ToObject<T>()!;
-        }
-        static async ValueTask<T> Get<T>(string url, string property, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
-        {
-            var responseJson = await Get(url, values, errorDetails).ConfigureAwait(false);
-            return responseJson[property]!.ToObject<T>()!;
-        }
-
-        public static ValueTask<OperationResult> ApiPost(string url, string? errorDetails = null, params (string, string)[] values) =>
-            ApiPost(url, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)), errorDetails);
-        public static ValueTask<OperationResult> ApiPost(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null) =>
-            Execute(() => Post(url, values, errorDetails)).Next(_ => true);
         public static ValueTask<OperationResult> ApiGet(string url, string? errorDetails = null, params (string, string)[] values) =>
-            ApiGet(url, values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)), errorDetails);
-        public static ValueTask<OperationResult> ApiGet(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null) =>
-            Execute(() => Get(url, values, errorDetails)).Next(_ => true);
+            Send(JustGet, url, values, errorDetails);
+        public static ValueTask<OperationResult> ApiPost(string url, string? errorDetails = null, params (string, string)[] values) =>
+            Send(JustPost, url, values, errorDetails);
 
-        public static async Task<HttpResponseMessage> JustPost(string url, IEnumerable<KeyValuePair<string, string>> values)
+        static ValueTask<OperationResult> Send(Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, (string, string)[] values, string? errorDetails) =>
+            Send<bool>(func, url, "ok", values, errorDetails).Next(v => new OperationResult(v, null));
+        static ValueTask<OperationResult<T>> Send<T>(Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, string property, (string, string)[] values, string? errorDetails)
         {
-            using var content = new FormUrlEncodedContent(values);
-            return await Client.PostAsync(url, content).ConfigureAwait(false);
+            return Execute(send);
+
+            async ValueTask<T> send()
+            {
+                var result = await func(url, values).ConfigureAwait(false);
+
+                var responseJson = await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
+                return responseJson[property]!.ToObject<T>()!;
+            }
         }
-        public static Task<HttpResponseMessage> JustGet(string url, IEnumerable<KeyValuePair<string, string>> values)
+
+        public static async Task<HttpResponseMessage> JustPost(string url, (string, string)[] values)
         {
-            var str = string.Join('&', values.Select(x => x.Key + "=" + HttpUtility.UrlEncode(x.Value)));
+            using var content = new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
+            return await JustPost(url, content).ConfigureAwait(false);
+        }
+        public static Task<HttpResponseMessage> JustGet(string url, (string, string)[] values)
+        {
+            var str = string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
             if (str.Length != 0) str = "?" + str;
 
-            return Client.GetAsync(url + str);
+            return JustGet(url + str);
         }
-        static async Task<JToken> Post(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
-        {
-            var result = await JustPost(url, values).ConfigureAwait(false);
-            return await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
-        }
-        static async Task<JToken> Get(string url, IEnumerable<KeyValuePair<string, string>> values, string? errorDetails = null)
-        {
-            var result = await JustGet(url, values).ConfigureAwait(false);
-            return await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
-        }
+        public static Task<HttpResponseMessage> JustPost(string url, HttpContent content) => Client.PostAsync(url, content);
+        public static Task<HttpResponseMessage> JustGet(string url) => Client.GetAsync(url);
 
         public static Task<Stream> Download(string url) => Client.GetStreamAsync(url);
 
 
-        static ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<T>> func) => Execute(() => func().AsTask());
-        static async ValueTask<OperationResult<T>> Execute<T>(Func<Task<T>> func)
+        static async ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<T>> func)
         {
             while (true)
             {
@@ -156,8 +143,7 @@ namespace Common
             ApiGet<ImmutableDictionary<PluginType, SoftwareStats>>($"{TaskManagerEndpoint}/getsoftwarestats", "stats");
 
 
-        public interface IHasTotal { ulong Total { get; } }
-        public record SoftwareStats(ulong Total, ImmutableDictionary<string, SoftwareStatsByVersion> ByVersion) : IHasTotal;
-        public record SoftwareStatsByVersion(ulong Total) : IHasTotal; // TODO: byplugin
+        public record SoftwareStats(ulong Total, ImmutableDictionary<string, SoftwareStatsByVersion> ByVersion);
+        public record SoftwareStatsByVersion(ulong Total); // TODO: byplugin
     }
 }

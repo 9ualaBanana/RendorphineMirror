@@ -43,7 +43,7 @@ public class TaskReceiver : IDisposable
 
                 try
                 {
-                    task!.RequestOptions = RequestOptions;
+                    task.RequestOptions = RequestOptions;
 
                     NodeSettings.ActiveTasks.Add(task);
                     await TaskHandler.HandleAsync(task).ConfigureAwait(false);
