@@ -380,25 +380,19 @@ namespace NodeUI.Pages
                 };
                 var serialized = JsonConvert.SerializeObject(Builder, serializer);
 
-                var post = await LocalApi.JustPost(LocalApi.LocalIP, "starttask", new StringContent(serialized)).ConfigureAwait(false);
-                var jreader = new JsonTextReader(new StreamReader(await post.Content.ReadAsStreamAsync().ConfigureAwait(false))) { SupportMultipleContent = true };
-                var jserializer = new Newtonsoft.Json.JsonSerializer();
+                var post = await LocalApi.Post<string>(LocalApi.LocalIP, "starttask", new StringContent(serialized)).ConfigureAwait(false);
+                if (!post)
+                {
+                    Status($"error {post}");
+                    return;
+                }
 
-                var stat = "\n";
-                Status(stat + "zipping...");
-                await jreader.ReadAsync().ConfigureAwait(false);
-                var zip = jserializer.Deserialize<OperationResult<string>>(jreader).Value;
-                stat += $"zip: {zip}\n";
-
-                Status(stat + "uploading...");
-                await jreader.ReadAsync().ConfigureAwait(false);
-                var upload = jserializer.Deserialize<OperationResult<string>>(jreader).Value;
-                stat += $"fileid: {upload/*.FileId*/}\n";
-
-                Status(stat + "creating task...");
-                await jreader.ReadAsync().ConfigureAwait(false);
-                var taskid = jserializer.Deserialize<OperationResult<string>>(jreader).Value;
-                stat += $"taskid: {taskid}\n";
+                Status($@"
+                    я поставил таску я крутой
+                    айди {post.Value}
+                    всё канец больше тут ничё нету закрывай окно иди спать
+                ".TrimLines());
+                await Task.Delay(0);
             }
         }
 
