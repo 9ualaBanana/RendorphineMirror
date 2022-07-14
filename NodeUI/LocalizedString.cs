@@ -1,8 +1,7 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 
-namespace Common
+namespace NodeUI
 {
     public readonly struct LocalizedString
     {
@@ -17,7 +16,7 @@ namespace Common
 
         static LocalizedString()
         {
-            Settings.BLanguage.SubscribeChanged((oldv, newv) => SetLocale(newv!));
+            UISettings.BLanguage.SubscribeChanged((oldv, newv) => SetLocale(newv!));
 
             Locale = CultureInfo.CurrentUICulture.Name;
             if (Locale.Length == 0) Locale = "en-US";
@@ -38,7 +37,7 @@ namespace Common
                 return;
             }
 
-            Settings.BLanguage.SetValue(culture);
+            UISettings.Language = culture;
             Locale = culture;
             ((WeakEventManager) ChangeLangWeakEvent).Invoke();
         }

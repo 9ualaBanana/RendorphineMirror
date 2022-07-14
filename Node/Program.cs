@@ -90,11 +90,11 @@ taskreceiver.StartAsync().Consume();
 _ = Listener.StartPublicListenerAsync();
 
 // .ToArray() to not cause exception while removing tasks
-foreach (var task in Settings.ActiveTasks.ToArray())
+foreach (var task in NodeSettings.ActiveTasks.ToArray())
 {
-    try { await TaskHandler.HandleAsync(task.ToObject<ReceivedTask>()!).ConfigureAwait(false); }
+    try { await TaskHandler.HandleAsync(task).ConfigureAwait(false); }
     catch (Exception ex) { Log.Error(ex.ToString()); }
-    finally { Settings.ActiveTasks.Remove(task); }
+    finally { NodeSettings.ActiveTasks.Remove(task); }
 }
 
 Thread.Sleep(-1);
