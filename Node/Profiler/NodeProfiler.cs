@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Benchmark;
 using Timer = System.Timers.Timer;
@@ -213,25 +214,43 @@ internal class NodeProfiler
 
     static async Task<string> SerializeNodeProfileAsync(object? benchmarkResults)
     {
-        return JsonSerializer.Serialize(new
+        var allowedtypes = new JsonObject();
+        foreach (var plugin in await MachineInfo.DiscoverInstalledPluginsInBackground().ConfigureAwait(false))
+            foreach (var action in TaskList.Get(plugin.Type))
+                allowedtypes[action.Name] = 1;
+
+        var obj = new JsonObject()
         {
-            ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
-            port = int.Parse(MachineInfo.Port),
-            nickname = Settings.NodeName,
-            guid = Settings.Guid,
-            version = MachineInfo.Version,
-            allowedinputs = new { MPlus = 1 },
-            allowedoutputs = new { MPlus = 1 },
-            allowedtypes = new { EditVideo = 1, EditRaster = 1 },
-            pricing = new
+            ["ip"] = (await MachineInfo.GetPublicIPAsync()).ToString(),
+            ["port"] = int.Parse(MachineInfo.Port),
+            ["nickname"] = Settings.NodeName,
+            ["guid"] = Settings.Guid,
+            ["version"] = MachineInfo.Version,
+            ["allowedinputs"] = new JsonObject()
             {
-                minunitprice = new { ffmpeg = -1 },
-                minbwprice = -1,
-                minstorageprice = -1
+                [TaskInputOutputType.MPlus.ToString()] = 1
             },
-            hardware = benchmarkResults,
-            software = await BuildSoftwarePayloadAsync()
-        }, new JsonSerializerOptions() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
+            ["allowedoutputs"] = new JsonObject()
+            {
+                [TaskInputOutputType.MPlus.ToString()] = 1
+            },
+            ["allowedtypes"] = allowedtypes,
+            ["pricing"] = new JsonObject()
+            {
+                ["minunitprice"] = new JsonObject()
+                {
+                    ["ffmpeg"] = -1,
+                },
+                ["minbwprice"] = -1,
+                ["minstorageprice"] = -1,
+            },
+            ["software"] = JsonSerializer.SerializeToNode(await BuildSoftwarePayloadAsync()),
+        };
+
+        if (benchmarkResults is not null)
+            obj["hardware"] = JsonSerializer.SerializeToNode(benchmarkResults);
+
+        return obj.ToJsonString(new JsonSerializerOptions() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
     }
 
     // Ridiculous.
