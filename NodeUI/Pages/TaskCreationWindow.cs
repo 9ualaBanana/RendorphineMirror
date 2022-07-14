@@ -94,26 +94,6 @@ namespace NodeUI.Pages
                 Children.Add(buttonsgrid.WithRow(2));
 
                 ShowPart(new ChoosePluginPart());
-
-
-                /*bool set = false;
-                GlobalState.SoftwareStats.SubscribeChanged(z, true);
-
-                void z(ImmutableDictionary<PluginType, Api.SoftwareStats> oldv, ImmutableDictionary<PluginType, Api.SoftwareStats> newv)
-                {
-                    if (newv.IsEmpty) return;
-                    if (set) return;
-                    set = true;
-
-                    var task = new TaskCreationInfo()
-                    {
-                        Action = GlobalState.GetTasksInfoAsync().GetAwaiter().GetResult().Actions.First(x => x.Name == "EditRaster"),
-                        Version = GlobalState.SoftwareStats.Value[PluginType.FFmpeg].ByVersion.Keys.First(),
-                        Input = new JObject() { }
-                    };
-
-                    Dispatcher.UIThread.Post(() => ShowPart(new ParametersPart(TaskList.TryGet("EditRaster")!, newv[PluginType.FFmpeg].ByVersion.Keys.First(), new Uploadp("610a371c6e60182b1ea29c97", "3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 210210))));
-                }*/
             }
 
             void ShowPart(TaskPart part)
