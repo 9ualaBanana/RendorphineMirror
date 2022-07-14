@@ -17,12 +17,12 @@ global using Avalonia.Styling;
 global using Avalonia.Threading;
 global using Avalonia.VisualTree;
 global using Common;
+global using Common.NodeToUI;
 global using NodeUI.Controls;
 global using NodeUI.Pages;
 global using Serilog;
 global using APath = Avalonia.Controls.Shapes.Path;
 global using Path = System.IO.Path;
-using System.Runtime.InteropServices;
 
 namespace NodeUI;
 

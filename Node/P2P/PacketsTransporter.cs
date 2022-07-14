@@ -11,15 +11,15 @@ internal class PacketsTransporter
         RequestOptions = requestOptions ?? new();
     }
 
-    internal async Task<BenchmarkResult> UploadAsync(string filePath)
-        => await UploadAsync(new FileInfo(filePath));
+    internal async Task<BenchmarkResult> UploadAsync(string filePath, string taskId)
+        => await UploadAsync(new FileInfo(filePath), taskId);
 
-    internal async Task<BenchmarkResult> UploadAsync(FileInfo file)
+    internal async Task<BenchmarkResult> UploadAsync(FileInfo file, string taskId)
     {
         var uploadResult = new BenchmarkResult(file.Length);
         while (true)
         {
-            var uploadSession = await UploadSession.InitializeAsync(file, RequestOptions).ConfigureAwait(false);
+            var uploadSession = await UploadSession.InitializeAsync(file, taskId, RequestOptions).ConfigureAwait(false);
             using var packetsUploader = new PacketsUploader(uploadSession);
             uploadResult.Time += (await packetsUploader.UploadAsync().ConfigureAwait(false)).Time;
             if (await uploadSession.EnsureAllBytesUploadedAsync().ConfigureAwait(false))

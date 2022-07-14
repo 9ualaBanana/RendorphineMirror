@@ -8,13 +8,13 @@ public class ZipBenchmark : IDisposable
     readonly Stream _stream;
     readonly Stream _zippedStream;
 
-    public ZipBenchmark(uint streamSize)
+    public ZipBenchmark(int streamSize)
     {
         _stream = GenerateTrashDataStream(streamSize);
-        _zippedStream = new MemoryStream((int)streamSize);
+        _zippedStream = new MemoryStream(streamSize);
     }
 
-    static Stream GenerateTrashDataStream(uint streamSize)
+    static Stream GenerateTrashDataStream(int streamSize)
     {
         var trashData = new byte[streamSize];
         new Random().NextBytes(trashData);

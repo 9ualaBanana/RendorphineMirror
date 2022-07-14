@@ -1,12 +1,22 @@
-﻿global using Common;
+﻿global using System.Collections.Immutable;
+global using Common;
+global using Common.NodeToUI;
+global using Common.Tasks.Tasks;
 global using Machine;
+global using Node.P2P;
+global using Node.Tasks.Client;
+global using Node.Tasks.Exec;
+global using Node.Tasks.Executor;
+global using Node.Tasks.Models;
 global using Serilog;
 using System.Diagnostics;
 using Machine.Plugins;
 using Machine.Plugins.Discoverers;
 using Node;
-using Node.P2P;
 using Node.Profiler;
+
+var halfrelease = args.Contains("release");
+Init.Initialize();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
@@ -16,7 +26,8 @@ PluginsManager.RegisterPluginDiscoverers(
     new BlenderPluginDiscoverer(),
     new Autodesk3dsMaxPluginDiscoverer(),
     new TopazGigapixelAIPluginDiscoverer(),
-    new DaVinciResolvePluginDiscoverer()
+    new DaVinciResolvePluginDiscoverer(),
+    new FFMpegPluginDiscoverer()
 );
 var discoveringInstalledPlugins = MachineInfo.DiscoverInstalledPluginsInBackground();
 
@@ -40,24 +51,51 @@ else
 PortForwarder.Initialize();
 _ = PortForwarding.GetPublicIPAsync().ContinueWith(t => Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}"));
 
-await discoveringInstalledPlugins;
-if (!Init.IsDebug)
-{
-    SystemService.Start();
+var captured = new List<object>();
 
-    var serverPinger = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http);
-    _ = serverPinger.StartAsync();
+// Precomputed for sending by NodeProfiler.
+var plugins = await discoveringInstalledPlugins;
+if (!Init.IsDebug || halfrelease)
+{
+    if (!Init.IsDebug)
+    {
+        SystemService.Start();
+
+        var serverPinger = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http);
+        _ = serverPinger.StartAsync();
+
+        captured.Add(serverPinger);
+    }
 
     var nodeProfiler = new NodeProfiler(http);
     var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
-    var benchmarkPayload = await NodeProfiler.GetPayloadAsync(benchmarkResults);
 
-    new NodeProfiler(http).SendNodeProfile($"{Settings.ServerUrl}/node/profile", benchmarkResults);
+    if (!Init.IsDebug)
+    {
+        var reepoProfiler = new NodeProfiler(http);
+        await reepoProfiler.SendNodeProfile($"{Settings.ServerUrl}/node/profile", benchmarkResults);
+
+        captured.Add(reepoProfiler);
+    }
+
     // Move domain to Settings.ServerUrl when the server on VPS will be integrated to this server.
-    new NodeProfiler(http).SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults, TimeSpan.FromMinutes(1));
+    var serverProfiler = new NodeProfiler(http);
+    await serverProfiler.SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults, TimeSpan.FromMinutes(1));
+    captured.Add(serverProfiler);
 }
 
+var taskreceiver = new TaskReceiver();
+taskreceiver.StartAsync().Consume();
+
 _ = Listener.StartPublicListenerAsync();
+
+// .ToArray() to not cause exception while removing tasks
+foreach (var task in Settings.ActiveTasks.ToArray())
+{
+    try { await TaskHandler.HandleAsync(task.ToObject<ReceivedTask>()!).ConfigureAwait(false); }
+    catch (Exception ex) { Log.Error(ex.ToString()); }
+    finally { Settings.ActiveTasks.Remove(task); }
+}
 
 Thread.Sleep(-1);
 

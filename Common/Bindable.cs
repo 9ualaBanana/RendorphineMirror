@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 namespace Common
 {
     public delegate void ChangedDelegate<T>(T oldv, T newv);
@@ -11,7 +10,6 @@ namespace Common
     }
     public class Bindable<T> : IReadOnlyBindable<T>
     {
-        // <old, new>
         public event ChangedDelegate<T> Changed = delegate { };
 
         protected T _Value;
@@ -72,6 +70,50 @@ namespace Common
                 if (Locked) return;
                 base.Value = value;
             }
+        }
+    }
+
+    public class BindableList<T>
+    {
+        public event Action<IReadOnlyList<T>> Changed = delegate { };
+
+        protected readonly List<T> Values = new();
+        public IReadOnlyList<T> Value => Values;
+
+        public void Add(T item)
+        {
+            Values.Add(item);
+            RaiseChangedEvent();
+        }
+        public void AddRange(IEnumerable<T> items)
+        {
+            Values.AddRange(items);
+            RaiseChangedEvent();
+        }
+        public void SetRange(IEnumerable<T> items)
+        {
+            Values.Clear();
+            Values.AddRange(items);
+            RaiseChangedEvent();
+        }
+        public bool Remove(T item)
+        {
+            var removed = Values.Remove(item);
+            RaiseChangedEvent();
+
+            return removed;
+        }
+        public void Clear()
+        {
+            Values.Clear();
+            RaiseChangedEvent();
+        }
+
+        public void RaiseChangedEvent() => Changed(Value);
+        public void SubscribeChanged(Action<IReadOnlyList<T>> action, bool invokeImmediately = false)
+        {
+            Changed += action;
+            if (invokeImmediately) action(Value);
         }
     }
 }

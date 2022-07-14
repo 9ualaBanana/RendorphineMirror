@@ -4,15 +4,14 @@ using System.Runtime.Versioning;
 
 namespace Benchmark;
 
-public class ReadWriteBenchmark : IDisposable
+public class ReadWriteBenchmark
 {
-    readonly byte[] _bytesToWrite;
-    readonly byte[] _readOutput;
+    readonly long _dataSize;
+    const int _chunkSize = 4 * 1024 * 1024;
 
-    public ReadWriteBenchmark(uint size)
+    public ReadWriteBenchmark(long size)
     {
-        _bytesToWrite = new byte[size];
-        _readOutput = new byte[size];
+        _dataSize = size;
     }
 
     /// <exception cref="IOException" />
@@ -22,7 +21,7 @@ public class ReadWriteBenchmark : IDisposable
     public async Task<(BenchmarkResult Read, BenchmarkResult Write)> RunAsync(string driveName)
     {
         var drive = new DriveInfo(driveName);
-        if (drive.AvailableFreeSpace < _bytesToWrite.Length)
+        if (drive.AvailableFreeSpace < _dataSize)
             throw new InsufficientMemoryException("Not enough available free space on the specified drive.");
 
         TimeSpan readTime, writeTime;
@@ -32,21 +31,37 @@ public class ReadWriteBenchmark : IDisposable
             );
         var fileHandle = FileHelper.CreateUnbufferedFile(tempDir.FullName);
 
-        using var safeFileHandle = new SafeFileHandle(fileHandle, true);
+        using (var safeFileHandle = new SafeFileHandle(fileHandle, true))
         {
             writeTime = await RunWriteBenchmarkAsync(safeFileHandle);
             readTime = await RunReadBenchmarkAsync(safeFileHandle);
         }
-        tempDir.Delete();
+        tempDir.Delete(true);
 
-        return (new(_bytesToWrite.Length, readTime), new(_readOutput.Length, writeTime));
+        return (new (_dataSize, readTime), new (_dataSize, writeTime));
     }
 
     [SupportedOSPlatform("windows")]
     async Task<TimeSpan> RunWriteBenchmarkAsync(SafeFileHandle safeFileHandle)
     {
         var sw = Stopwatch.StartNew();
-        await Task.Run(() => FileHelper.WriteFile(safeFileHandle.DangerousGetHandle(), _bytesToWrite));
+        await Task.Run(() =>
+        {
+            var dataChunk = new byte[_chunkSize];
+            long actualChunkSize = _chunkSize;
+            long totalBytesWritten = 0;
+            while (totalBytesWritten < _dataSize)
+            {
+                if (_dataSize - totalBytesWritten < _chunkSize) actualChunkSize = _dataSize - totalBytesWritten;
+                if (FileHelper.WriteFile(
+                    safeFileHandle.DangerousGetHandle(),
+                    dataChunk[..(Index)actualChunkSize],
+                    out var bytesWritten,
+                    totalBytesWritten)
+                )
+                { totalBytesWritten += bytesWritten; }
+            }
+        });
         sw.Stop();
         return sw.Elapsed;
     }
@@ -55,14 +70,22 @@ public class ReadWriteBenchmark : IDisposable
     async Task<TimeSpan> RunReadBenchmarkAsync(SafeFileHandle safeFileHandle)
     {
         var sw = Stopwatch.StartNew();
-        await Task.Run(() => FileHelper.ReadFile(safeFileHandle.DangerousGetHandle(), _readOutput));
+        await Task.Run(() =>
+        {
+            var outputBuffer = new byte[_chunkSize];
+            long totalBytesRead = 0;
+            while (totalBytesRead < _dataSize)
+            {
+                if (FileHelper.ReadFile(
+                    safeFileHandle.DangerousGetHandle(),
+                    outputBuffer,
+                    out var bytesRead,
+                    totalBytesRead)
+                ) 
+                { totalBytesRead += bytesRead; }
+            }
+        });
         sw.Stop();
         return sw.Elapsed;
-    }
-
-    public void Dispose()
-    {
-        GC.Collect();
-        GC.SuppressFinalize(this);
     }
 }

@@ -109,7 +109,22 @@ namespace Common
 
             return opr;
         }
+        public static OperationResult ThrowIfError(in this OperationResult opr, string? format = null)
+        {
+            if (!opr)
+            {
+                if (format is not null) throw new Exception(string.Format(format, opr.AsString()));
+                else throw new Exception(opr.AsString());
+            }
+
+            return opr;
+        }
         public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null) => opr.GetResult().LogIfError(format);
+        public static T ThrowIfError<T>(in this OperationResult<T> opr, string? format = null)
+        {
+            opr.GetResult().ThrowIfError(format);
+            return opr.Value;
+        }
 
 
         #region Next

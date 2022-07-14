@@ -1,9 +1,9 @@
-﻿using Common;
-using Machine.MessageBuilders;
-using Machine.Plugins;
-using Machine.Plugins.Plugins;
+﻿global using Common;
+global using Machine.Plugins.Plugins;
 using System.Net;
 using System.Net.Http.Json;
+using Machine.MessageBuilders;
+using Machine.Plugins;
 
 namespace Machine;
 
