@@ -1,5 +1,4 @@
 using System.Web;
-using Common.Tasks;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -20,6 +19,7 @@ namespace NodeUI.Pages
             this.PreventClosing();
             SubscribeToStateChanges();
             _ = StartStateListener();
+            _ = GlobalState.GetTasksInfoAsync();
 
 
             var tabs = new TabbedControl();

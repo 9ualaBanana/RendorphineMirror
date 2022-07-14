@@ -6,7 +6,7 @@ namespace Common
     public static class LocalApi
     {
         static readonly JsonSerializer JsonSerializerWithType = new() { TypeNameHandling = TypeNameHandling.Auto, };
-        static string LocalIP => $"127.0.0.1:{Settings.LocalListenPort}";
+        public static string LocalIP => $"127.0.0.1:{Settings.LocalListenPort}";
         static readonly HttpClient Client = new();
 
         static string AddHttp(string url)
@@ -18,13 +18,16 @@ namespace Common
         public static ValueTask<OperationResult> Send(string path) => Send(LocalIP, path);
         public static ValueTask<OperationResult<T>> Send<T>(string path) => Send<T>(LocalIP, path);
         public static ValueTask<OperationResult<T>> Send<T>(string path, T _) => Send<T>(LocalIP, path);
-        public static ValueTask<OperationResult> Send(string url, string path) => _Send(url, path, () => Client.GetAsync($"{AddHttp(url)}/{path}"));
-        public static ValueTask<OperationResult<T>> Send<T>(string url, string path) => _Send<T>(url, path, () => Client.GetAsync($"{AddHttp(url)}/{path}"));
+        public static ValueTask<OperationResult> Send(string url, string path) => _Send(url, path, () => JustGet(url, path));
+        public static ValueTask<OperationResult<T>> Send<T>(string url, string path) => _Send<T>(url, path, () => JustGet(url, path));
 
         public static ValueTask<OperationResult> Post(string path, HttpContent content) => Post(LocalIP, path, content);
         public static ValueTask<OperationResult<T>> Post<T>(string path, HttpContent content) => Post<T>(LocalIP, path, content);
-        public static ValueTask<OperationResult> Post(string url, string path, HttpContent content) => _Send(url, path, () => Client.PostAsync($"{AddHttp(url)}/{path}", content));
-        public static ValueTask<OperationResult<T>> Post<T>(string url, string path, HttpContent content) => _Send<T>(url, path, () => Client.PostAsync($"{AddHttp(url)}/{path}", content));
+        public static ValueTask<OperationResult> Post(string url, string path, HttpContent content) => _Send(url, path, () => JustPost(url, path, content));
+        public static ValueTask<OperationResult<T>> Post<T>(string url, string path, HttpContent content) => _Send<T>(url, path, () => JustPost(url, path, content));
+
+        public static Task<HttpResponseMessage> JustGet(string url, string path) => Client.GetAsync($"{AddHttp(url)}/{path}");
+        public static Task<HttpResponseMessage> JustPost(string url, string path, HttpContent content) => Client.PostAsync($"{AddHttp(url)}/{path}", content);
 
         static ValueTask<OperationResult> _Send(string url, string path, Func<Task<HttpResponseMessage>> func) =>
             OperationResult.WrapException(async () => (await func().ConfigureAwait(false)).AsOpResult())

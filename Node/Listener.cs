@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using MonoTorrent;
 using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
@@ -70,12 +71,12 @@ namespace Node
             var listener = new HttpListener();
             listener.Prefixes.Add(prefix);
             try
-            { 
+            {
                 listener.Start();
                 Log.Information(@$"HTTP listener started @ {string.Join(", ", listener.Prefixes)}");
             }
-            catch (Exception ex) 
-            { 
+            catch (Exception ex)
+            {
                 Log.Error(ex, "HTTP listener was unable to start with the following prefixes: {Prefixes}",
                     string.Join(", ", listener.Prefixes));
             }
@@ -164,6 +165,26 @@ namespace Node
                 if (subpath == "getstate")
                     return await WriteJToken(response, JToken.FromObject(new { State = GlobalState.State }, JsonSerializerWithTypes)).ConfigureAwait(false);
 
+                if (subpath == "getactions")
+                {
+                    var actions = TaskList.Actions.Select(serialize).ToImmutableArray();
+                    var inputs = new[]
+                    {
+                        serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.MPlus),
+                    }.ToImmutableArray();
+                    var outputs = new[]
+                    {
+                        serializeinout<MPlusTaskOutputInfo>(TaskInputOutputType.MPlus),
+                    }.ToImmutableArray();
+
+                    var output = new TasksFullDescriber(actions, inputs, outputs);
+                    return await WriteJToken(response, JToken.FromObject(output, JsonSerializerWithTypes)).ConfigureAwait(false);
+
+
+                    static TaskActionDescriber serialize(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
+                    static TaskInputOutputDescriber serializeinout<T>(TaskInputOutputType type) where T : ITaskInputOutputInfo => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
+                }
+
                 return HttpStatusCode.NotFound;
 
 
@@ -179,12 +200,20 @@ namespace Node
             }
             async ValueTask<HttpStatusCode> post(HttpListenerRequest request, string[] segments, HttpListenerResponse response)
             {
-                await Task.Yield(); // TODO: remove
                 var subpath = segments[0].ToLowerInvariant();
+
+                if (subpath == "starttask")
+                {
+                    var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
+                    var taskid = await ClientTask.RegisterAsync(task.Data, new TaskObject("3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 12345678), task.Input, task.Output).ConfigureAwait(false);
+
+                    return await WriteJson(response, taskid.Id.AsOpResult()).ConfigureAwait(false);
+                }
 
                 return HttpStatusCode.NotFound;
             }
         }
+
 
         public static ValueTask StartPublicListenerAsync() => Start(@$"http://*:{PortForwarding.Port}/", PublicListener);
         static ValueTask PublicListener(HttpListenerContext context)

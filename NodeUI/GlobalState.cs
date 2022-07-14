@@ -1,5 +1,3 @@
-using Common.Tasks;
-
 namespace NodeUI
 {
     public static class GlobalState
@@ -37,6 +35,17 @@ namespace NodeUI
             if (data) SoftwareStats.Value = data.Value;
 
             return data.GetResult();
+        }
+
+
+        static readonly Bindable<TasksFullDescriber?> TasksInfo = new();
+
+        public static async ValueTask<TasksFullDescriber> GetTasksInfoAsync()
+        {
+            if (TasksInfo.Value is not null) return TasksInfo.Value;
+
+            var data = await LocalApi.Send<TasksFullDescriber>("getactions").ConfigureAwait(false);
+            return TasksInfo.Value = data.ThrowIfError();
         }
     }
 }

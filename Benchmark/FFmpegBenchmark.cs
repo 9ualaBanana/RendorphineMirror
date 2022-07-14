@@ -15,6 +15,8 @@ public class FFmpegBenchmark
 
     static string GetPathToExecutable(string path)
     {
+        if (File.Exists("/bin/ffmpeg")) return "/bin/ffmpeg";
+
         if (!Directory.Exists(path)) return path;
 
         return Path.Combine(path, "ffmpeg");

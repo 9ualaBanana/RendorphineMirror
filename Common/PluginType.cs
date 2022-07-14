@@ -1,4 +1,4 @@
-﻿namespace Common.Tasks;
+﻿namespace Common;
 
 public enum PluginType
 {

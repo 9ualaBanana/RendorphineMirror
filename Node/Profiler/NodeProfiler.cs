@@ -25,14 +25,17 @@ internal class NodeProfiler
         {
             if (_lastExecutedBenchmarkVersion is not null) return _lastExecutedBenchmarkVersion;
 
-            var file = Directory.EnumerateFiles(_assetsPath)
-                .SingleOrDefault(file => Path.GetExtension(file) == ".version");
+            var file = Directory.Exists(_assetsPath)
+                ? Directory.EnumerateFiles(_assetsPath).SingleOrDefault(file => Path.GetExtension(file) == ".version")
+                : null;
 
             if (file is null) return null;
             return _lastExecutedBenchmarkVersion = Version.Parse(Path.GetFileNameWithoutExtension(file));
         }
         set
         {
+            Directory.CreateDirectory(_assetsPath);
+
             if (LastExecutedBenchmarkVersion is not null)
                 File.Delete(Path.Combine(_assetsPath, $"{LastExecutedBenchmarkVersion}.version"));
             File.Create(Path.Combine(_assetsPath, $"{value}.version")).Dispose();
@@ -68,6 +71,27 @@ internal class NodeProfiler
 
     static async Task<object> ComputeHardwarePayloadAsync(int testDataSize)
     {
+        if (Environment.GetCommandLineArgs().Contains("release"))
+        {
+            return new
+            {
+                cpu = new
+                {
+                    rating = 10000000,
+                    pratings = new { ffmpeg = 100 },
+                    load = 0.0001,
+                },
+                gpu = new
+                {
+                    rating = 10000000,
+                    pratings = new { ffmpeg = 100 },
+                    load = 0.0001,
+                },
+                ram = new { total = 32678000000, free = 16678000000, },
+                disks = new[] { new { freespace = 326780000000, writespeed = 32677000000 } },
+            };
+        }
+
         var state = new BenchmarkNodeState();
         using var _ = GlobalState.SetState(state);
 
@@ -196,9 +220,9 @@ internal class NodeProfiler
             nickname = Settings.NodeName,
             guid = Settings.Guid,
             version = MachineInfo.Version,
-            allowedinputs = new { User = 1, MPlus = 1 },
-            allowedoutputs = new { User = 1, MPlus = 1 },
-            allowedtypes = new { EditVideo = 1 },
+            allowedinputs = new { MPlus = 1 },
+            allowedoutputs = new { MPlus = 1 },
+            allowedtypes = new { EditVideo = 1, EditRaster = 1 },
             pricing = new
             {
                 minunitprice = new { ffmpeg = -1 },

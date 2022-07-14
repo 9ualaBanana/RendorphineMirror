@@ -14,6 +14,20 @@
             "stopAtEntry": false
         },
         {
+            "name": "Node-HalfRelease",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildnode",
+            "program": "${workspaceFolder}/Node/bin/Debug/net6.0/Node.dll",
+            "args": [
+                "release"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
             "name": "NodeUI",
             "type": "coreclr",
             "request": "launch",
