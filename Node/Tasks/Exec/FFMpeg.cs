@@ -18,17 +18,33 @@ public abstract class MediaEditInfo : IPluginActionData
     };
 
     public Crop? Crop;
-    [JsonProperty("bri")] public double? Brightness;
-    [JsonProperty("sat")] public double? Saturation;
-    [JsonProperty("con")] public double? Contrast;
-    [JsonProperty("gam")] public double? Gamma;
-    public bool? Hflip, Vflip;
-    [JsonProperty("ro")] public double? RotationRadians;
+    public bool? Hflip = false;
+    public bool? Vflip = false;
+
+    [JsonProperty("bri")]
+    [Ranged(-1, 1)]
+    public double? Brightness = 0;
+
+    [JsonProperty("sat")]
+    [Ranged(0, 3)]
+    public double? Saturation = 1;
+
+    [JsonProperty("con")]
+    [Ranged(-1000, 1000)]
+    public double? Contrast = 1;
+
+    [JsonProperty("gam")]
+    [Ranged(.1, 10)]
+    public double? Gamma = 1;
+
+    [JsonProperty("ro")]
+    [Ranged(-Math.PI * 2, Math.PI * 2)]
+    public double? RotationRadians = 0;
 
 
     public virtual IEnumerable<string> ConstructFFMpegArguments()
     {
-        if (Crop is not null) yield return $"\"crop={Crop.W.ToString(NumberFormat)}:{Crop.H.ToString(NumberFormat)}:{Crop.X.ToString(NumberFormat)}:{Crop.Y.ToString(NumberFormat)}\"";
+        if (Crop is not null) yield return $"crop={Crop.W.ToString(NumberFormat)}:{Crop.H.ToString(NumberFormat)}:{Crop.X.ToString(NumberFormat)}:{Crop.Y.ToString(NumberFormat)}";
 
         if (Hflip == true) yield return "hflip";
         if (Vflip == true) yield return "vflip";
@@ -52,7 +68,7 @@ public class EditVideoInfo : MediaEditInfo
         var args = base.ConstructFFMpegArguments();
         foreach (var arg in args)
             yield return arg;
-        
+
         if (CutFrameAt is not null) yield return $"trim=start_frame=0:end_frame={CutFrameAt.Value.ToString(NumberFormat)}";
     }
 }
