@@ -15,15 +15,41 @@ public class TelegramBot : TelegramBotClient
     {
     }
 
+    internal void TryNotifySubscribers(string video, string thumb, ILogger logger, IReplyMarkup? replyMarkup = null)
+    {
+        foreach (var subscriber in Subscriptions)
+        {
+            _ = TrySendVideoAsync(subscriber, video, thumb, logger, replyMarkup);
+        }
+    }
+
     internal void TryNotifySubscribers(string text, ILogger logger, IReplyMarkup? replyMarkup = null)
     {
         foreach (var subscriber in Subscriptions)
         {
-            _ = TrySendTextMessageAsync(subscriber, text, logger, replyMarkup);
+            _ = TrySendMessageAsync(subscriber, text, logger, replyMarkup);
         }
     }
 
-    internal async Task<bool> TrySendTextMessageAsync(ChatId chatId, string text, ILogger logger, IReplyMarkup? replyMarkup = null)
+    internal async Task<bool> TrySendVideoAsync(ChatId chatId, string video, string thumb, ILogger logger, IReplyMarkup? replyMarkup = null)
+    {
+        try
+        {
+            await this.SendVideoAsync(
+                chatId,
+                video,
+                thumb: thumb,
+                replyMarkup: replyMarkup);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Following video couldn't be sent to {Chat}:\n\n{Video}\n{Thumbnail}",
+                chatId, video, thumb);
+        }
+        return false;
+    }
+
+    internal async Task<bool> TrySendMessageAsync(ChatId chatId, string text, ILogger logger, IReplyMarkup? replyMarkup = null)
     {
         try
         {
@@ -54,6 +80,7 @@ public static class TelegramHelperExtensions
             .Replace("]", @"\]")
             .Replace(".", @"\.")
             .Replace("-", @"\-")
+            .Replace("*", @"\*")
             .Replace("_", @"\_")
             .Replace(">", @"\>")
             .Replace("(", @"\(")
