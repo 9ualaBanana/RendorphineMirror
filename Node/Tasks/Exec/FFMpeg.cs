@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using Newtonsoft.Json;
 
 namespace Node.Tasks.Exec;
@@ -9,37 +10,50 @@ public class Crop
 }
 public abstract class MediaEditInfo : IPluginActionData
 {
-    public Crop? Crop;
-    public double? Bri, Sat, Con, Gam;
-    public bool? Hflip, Vflip;
-    public double? Ro;
-
-
-    public virtual string ConstructFFMpegArguments()
+    protected static readonly NumberFormatInfo NumberFormat = new()
     {
-        var filters = new List<string>();
+        NumberDecimalDigits = 2,
+        NumberDecimalSeparator = ".",
+        NumberGroupSeparator = string.Empty,
+    };
 
-        if (Crop is not null) filters.Add($"\"crop={Crop.W}:{Crop.H}:{Crop.X}:{Crop.Y}\"");
+    public Crop? Crop;
+    [JsonProperty("bri")] public double? Brightness;
+    [JsonProperty("sat")] public double? Saturation;
+    [JsonProperty("con")] public double? Contrast;
+    [JsonProperty("gam")] public double? Gamma;
+    public bool? Hflip, Vflip;
+    [JsonProperty("ro")] public double? RotationRadians;
 
-        // TODO:
 
-        if (Hflip == true) filters.Add("hflip");
-        if (Vflip == true) filters.Add("vflip");
+    public virtual IEnumerable<string> ConstructFFMpegArguments()
+    {
+        if (Crop is not null) yield return $"\"crop={Crop.W.ToString(NumberFormat)}:{Crop.H.ToString(NumberFormat)}:{Crop.X.ToString(NumberFormat)}:{Crop.Y.ToString(NumberFormat)}\"";
 
-        return string.Join(' ', filters.Select(x => "-vf " + x));
+        if (Hflip == true) yield return "hflip";
+        if (Vflip == true) yield return "vflip";
+        if (RotationRadians is not null) yield return $"rotate={RotationRadians.Value.ToString(NumberFormat)}";
+
+        var eq = new List<string>();
+        if (Brightness is not null) eq.Add($"brightness={Brightness.Value.ToString(NumberFormat)}");
+        if (Saturation is not null) eq.Add($"saturation={Saturation.Value.ToString(NumberFormat)}");
+        if (Contrast is not null) eq.Add($"contrast={Contrast.Value.ToString(NumberFormat)}");
+        if (Gamma is not null) eq.Add($"gamma={Gamma.Value.ToString(NumberFormat)}");
+
+        if (eq.Count != 0) yield return $"eq={string.Join(':', eq)}";
     }
 }
 public class EditVideoInfo : MediaEditInfo
 {
     public double? CutFrameAt;
 
-    public override string ConstructFFMpegArguments()
+    public override IEnumerable<string> ConstructFFMpegArguments()
     {
         var args = base.ConstructFFMpegArguments();
-
-        // TODO:
-
-        return args;
+        foreach (var arg in args)
+            yield return arg;
+        
+        if (CutFrameAt is not null) yield return $"trim=start_frame=0:end_frame={CutFrameAt.Value.ToString(NumberFormat)}";
     }
 }
 public class EditRasterInfo : MediaEditInfo { }
@@ -59,13 +73,19 @@ public static class FFMpegTasks
         var output = Path.Combine(Init.TaskFilesDirectory, task.Id, Path.GetFileNameWithoutExtension(input) + "_out" + Path.GetExtension(input));
         Directory.CreateDirectory(Path.GetDirectoryName(output)!);
 
+        var args = "";
+
+        // dont output useless info
+        args += "-hide_banner ";
+
         // force rewrite output file if exists
-        var args = "-y ";
+        args += "-y ";
 
         // input file
-        args += $"-i {input} ";
+        args += $"-i '{input}' ";
 
-        args += data.ConstructFFMpegArguments() + " ";
+        // filters
+        args += $"-vf '{string.Join(',', data.ConstructFFMpegArguments())}' ";
 
         // don't reencode audio
         args += $"-c:a copy ";
@@ -74,7 +94,7 @@ public static class FFMpegTasks
         args += $"-f {Path.GetExtension(output).Replace(".", "")} ";
 
         // output path
-        args += $" {output} ";
+        args += $" '{output}' ";
 
 
         // TODO: fix getting path
@@ -101,7 +121,7 @@ public static class FFMpegTasks
 
         if (ffprobe is null) return null;
 
-        var proc = Process.Start(new ProcessStartInfo(ffprobe, $"-v quiet -print_format json -show_streams \"{files[0]}\"") { RedirectStandardOutput = true });
+        var proc = Process.Start(new ProcessStartInfo(ffprobe, $"-hide_banner -v quiet -print_format json -show_streams \"{files[0]}\"") { RedirectStandardOutput = true });
         if (proc is null) return null;
 
         var str = await proc.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
