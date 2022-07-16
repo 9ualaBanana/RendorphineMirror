@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Executor;
 
@@ -12,8 +13,7 @@ public static class TaskHandler
 
             var inputobj = task.Info.DeserializeInput();
             var outputobj = task.Info.DeserializeOutput();
-            task.LogInfo($"Input: {task.Info.Input}");
-            task.LogInfo($"Input: {task.Info.Output}");
+            task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
 
             task.LogInfo($"Downloading file...");
             var input = await inputobj.Download(task).ConfigureAwait(false);

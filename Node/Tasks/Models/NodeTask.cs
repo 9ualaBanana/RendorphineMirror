@@ -1,4 +1,4 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Newtonsoft.Json;
@@ -23,12 +23,16 @@ public static class NodeTask
             { new StringContent(string.Empty), "origin" }
         };
 
+        Log.Information($"Registering task: {JsonConvert.SerializeObject(info)}");
         var response = await Api.TryPostAsync(
             $"{Api.TaskManagerEndpoint}/registermytask", httpContent, requestOptions)
             .ConfigureAwait(false);
         var jsonResponse = await response.Content.ReadAsStringAsync(requestOptions.CancellationToken).ConfigureAwait(false);
 
-        return JsonDocument.Parse(jsonResponse).RootElement.GetProperty("taskid").GetString()!;
+        var id = JsonDocument.Parse(jsonResponse).RootElement.GetProperty("taskid").GetString()!;
+        Log.Information($"Task registered with ID {id}");
+
+        return id;
     }
 
     public static string ZipFiles(IEnumerable<string> files)
