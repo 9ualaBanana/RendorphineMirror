@@ -1,37 +1,39 @@
-using System.IO.Compression;
-using System.Net.Http.Json;
+﻿using System.IO.Compression;
 using System.Text.Json;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Models;
 
 public static class NodeTask
 {
-    public static async Task<string> RegisterAsync(JObject data, TaskObject taskobj, JObject input, JObject output, RequestOptions? requestOptions = null)
+    public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, RequestOptions? requestOptions = null)
     {
         requestOptions ??= new();
 
-        var httpContent = new MultipartFormDataContent()
+        var data = info.Data;
+        var taskobj = new TaskObject("3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 12345678);
+        var input = info.Input;
+        var output = info.Output;
+
+        var values = new List<(string, string)>()
         {
-            { new StringContent(Settings.SessionId!), "sessionid" },
-            { JsonContent.Create(taskobj, options: new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = LowercaseNamingPolicy.Instance }), "object" },
-            // Cast to object is necessary to allow serialization of properties of derived classes.
-            { new StringContent(input.ToString(Formatting.None)), "input" },
-            { new StringContent(output.ToString(Formatting.None)), "output" },
-            { new StringContent(data.ToString(Formatting.None)), "data" },
-            { new StringContent(string.Empty), "origin" }
+            ("sessionid", Settings.SessionId!),
+            ("object", JsonConvert.SerializeObject(taskobj, JsonSettings.LowercaseIgnoreNull)),
+            ("input", input.ToString(Formatting.None)),
+            ("output", output.ToString(Formatting.None)),
+            ("data", data.ToString(Formatting.None)),
+            ("origin", string.Empty),
         };
+        if (info.Version is not null)
+        {
+            var soft = new[] { new TaskSoftwareRequirement(info.Type.ToString(), ImmutableArray.Create(info.Version), null), };
+            values.Add(("software", JsonConvert.SerializeObject(soft, JsonSettings.LowercaseIgnoreNull)));
+        }
 
         Log.Information($"Registering task: {JsonConvert.SerializeObject(info)}");
-        var response = await Api.TryPostAsync(
-            $"{Api.TaskManagerEndpoint}/registermytask", httpContent, requestOptions)
-            .ConfigureAwait(false);
-        var jsonResponse = await response.Content.ReadAsStringAsync(requestOptions.CancellationToken).ConfigureAwait(false);
+        var id = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
 
-        var id = JsonDocument.Parse(jsonResponse).RootElement.GetProperty("taskid").GetString()!;
-        Log.Information($"Task registered with ID {id}");
-
+        Log.Information($"Task registered with ID {id.Value}");
         return id;
     }
 
@@ -65,15 +67,5 @@ public static class NodeTask
 
             yield return path;
         }
-    }
-
-
-    class LowercaseNamingPolicy : JsonNamingPolicy
-    {
-        public static LowercaseNamingPolicy Instance = new();
-
-        private LowercaseNamingPolicy() { }
-
-        public override string ConvertName(string name) => name.ToLowerInvariant();
     }
 }

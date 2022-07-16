@@ -168,9 +168,11 @@ namespace NodeUI.Pages
         }
         class ChooseVersionPart : TaskPart
         {
+            const string AnyVersion = "<any>";
+
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new($"Choose {Builder.Type.GetName()} Version");
-            public override TaskPart? Next => new ChooseActionPart(Builder.With(x => x.Version = VersionsList.SelectedItem));
+            public override TaskPart? Next => new ChooseActionPart(Builder.With(x => x.Version = (VersionsList.SelectedItem == AnyVersion ? null : VersionsList.SelectedItem)));
 
             readonly TypedListBox<string> VersionsList;
 
@@ -181,9 +183,9 @@ namespace NodeUI.Pages
                     versions = stats.ByVersion.Keys.ToArray();
                 else versions = Array.Empty<string>();
 
-                VersionsList = CreateListBox(versions, version => new TextBlock() { Text = version });
-                VersionsList.SelectionChanged += (obj, e) =>
-                    OnChoose?.Invoke(VersionsList.SelectedItems.Count != 0);
+                VersionsList = CreateListBox(versions.Prepend(AnyVersion).ToArray(), version => new TextBlock() { Text = version });
+                VersionsList.SelectionChanged += (obj, e) => OnChoose?.Invoke(VersionsList.SelectedItems.Count != 0);
+                VersionsList.SelectedIndex = 0;
 
                 Children.Add(VersionsList);
             }
@@ -317,6 +319,7 @@ namespace NodeUI.Pages
             string Status() => @$"
                 waiting {Builder.Action}
                 using {Builder.Type}
+                v {Builder.Version ?? "<any>"}
                 from {Builder.Input.ToString(Formatting.None)}
                 to {Builder.Output.ToString(Formatting.None)}
                 and {Builder.Data.ToString(Formatting.None)}
@@ -350,14 +353,7 @@ namespace NodeUI.Pages
                 ProcessObject(Builder.Input);
                 ProcessObject(Builder.Output);
 
-                var serializer = new Newtonsoft.Json.JsonSerializerSettings()
-                {
-                    DefaultValueHandling = DefaultValueHandling.Ignore,
-                    ContractResolver = LowercaseContract.Instance,
-                    Formatting = Formatting.None,
-                };
-                var serialized = JsonConvert.SerializeObject(Builder, serializer);
-
+                var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
                 var post = await LocalApi.Post<string>(LocalApi.LocalIP, "starttask", new StringContent(serialized)).ConfigureAwait(false);
                 if (!post)
                 {
@@ -616,19 +612,6 @@ namespace NodeUI.Pages
                     if (EnabledCheckBox.IsChecked == true) Setting.UpdateValue();
                     else Property.Value = JValue.CreateNull();
                 }
-            }
-        }
-
-        class LowercaseContract : DefaultContractResolver
-        {
-            public static readonly LowercaseContract Instance = new();
-
-            private LowercaseContract() => NamingStrategy = new LowercaseNamingStragedy();
-
-
-            class LowercaseNamingStragedy : NamingStrategy
-            {
-                protected override string ResolvePropertyName(string name) => name.ToLowerInvariant();
             }
         }
     }
