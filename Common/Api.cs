@@ -8,15 +8,14 @@ namespace Common
     public static class Api
     {
         public const string ServerUri = "https://tasks.microstock.plus";
-        public const string AccountsEndpoint = $"{ServerUri}/rphaccounts";
         public const string TaskManagerEndpoint = $"{ServerUri}/rphtaskmgr";
 
         static readonly HttpClient Client = new();
 
 
-        public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string property, string? errorDetails = null, params (string, string)[] values) =>
+        public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
             Send<T>(JustGet, url, property, values, errorDetails);
-        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string property, string? errorDetails = null, params (string, string)[] values) =>
+        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
             Send<T>(JustPost, url, property, values, errorDetails);
 
         public static ValueTask<OperationResult> ApiGet(string url, string? errorDetails = null, params (string, string)[] values) =>
@@ -26,7 +25,7 @@ namespace Common
 
         static ValueTask<OperationResult> Send(Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, (string, string)[] values, string? errorDetails) =>
             Send<bool>(func, url, "ok", values, errorDetails).Next(v => new OperationResult(v, null));
-        static ValueTask<OperationResult<T>> Send<T>(Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, string property, (string, string)[] values, string? errorDetails)
+        static ValueTask<OperationResult<T>> Send<T>(Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, string? property, (string, string)[] values, string? errorDetails)
         {
             return Execute(send);
 
@@ -35,7 +34,7 @@ namespace Common
                 var result = await func(url, values).ConfigureAwait(false);
 
                 var responseJson = await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
-                return responseJson[property]!.ToObject<T>()!;
+                return (property is null ? responseJson : responseJson[property])!.ToObject<T>()!;
             }
         }
 
@@ -137,13 +136,5 @@ namespace Common
 
             return responseJson;
         }
-
-
-        public static ValueTask<OperationResult<ImmutableDictionary<PluginType, SoftwareStats>>> GetSoftwareStatsAsync() =>
-            ApiGet<ImmutableDictionary<PluginType, SoftwareStats>>($"{TaskManagerEndpoint}/getsoftwarestats", "stats");
-
-
-        public record SoftwareStats(ulong Total, ImmutableDictionary<string, SoftwareStatsByVersion> ByVersion);
-        public record SoftwareStatsByVersion(ulong Total); // TODO: byplugin
     }
 }

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Avalonia.Controls.Templates;
+using Fizzler;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -338,7 +339,7 @@ namespace NodeUI.Pages
 
             string Status() => @$"
                 waiting {Builder.Action}
-                with {Builder.Type}
+                using {Builder.Type}
                 from {Builder.Input.ToString(Formatting.None)}
                 to {Builder.Output.ToString(Formatting.None)}
                 and {Builder.Data.ToString(Formatting.None)}
@@ -387,12 +388,32 @@ namespace NodeUI.Pages
                     return;
                 }
 
-                Status($@"
-                    я поставил таску я крутой
-                    айди {post.Value}
-                    всё канец больше тут ничё нету закрывай окно иди спать
-                ".TrimLines());
-                await Task.Delay(0);
+                var taskid = post.Value;
+
+                var stt = "";
+                Status(stt = $"taskid={taskid}\n{stt}");
+
+                var token = new CancellationTokenSource();
+                Dispatcher.UIThread.Post(() => ((Window) VisualRoot!).Closed += (_, _) => token.Cancel());
+
+                while (true)
+                {
+                    if (token.Token.IsCancellationRequested) return;
+
+                    var stater = await Apis.GetTaskStateAsync(taskid);
+                    if (!stater)
+                    {
+                        Status($"error getting task state {stater}\n{stt}");
+                        continue;
+                    }
+
+                    var state = stater.Value;
+                    Status(@$"
+                        task state: {state.State} {JsonConvert.SerializeObject(state)}\n{stt}
+                    ".TrimLines());
+
+                    await Task.Delay(1000);
+                }
             }
         }
 

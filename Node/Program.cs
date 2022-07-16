@@ -4,7 +4,6 @@ global using Common.NodeToUI;
 global using Common.Tasks.Tasks;
 global using Machine;
 global using Node.P2P;
-global using Node.Tasks.Client;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Executor;
 global using Node.Tasks.Models;

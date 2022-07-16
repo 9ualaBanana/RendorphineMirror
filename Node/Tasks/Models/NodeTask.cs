@@ -1,9 +1,36 @@
 ﻿using System.IO.Compression;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Models;
 
 public static class NodeTask
 {
+    public static async Task<string> RegisterAsync(JObject data, TaskObject taskobj, JObject input, JObject output, RequestOptions? requestOptions = null)
+    {
+        requestOptions ??= new();
+
+        var httpContent = new MultipartFormDataContent()
+        {
+            { new StringContent(Settings.SessionId!), "sessionid" },
+            { JsonContent.Create(taskobj, options: new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = LowercaseNamingPolicy.Instance }), "object" },
+            // Cast to object is necessary to allow serialization of properties of derived classes.
+            { new StringContent(input.ToString(Formatting.None)), "input" },
+            { new StringContent(output.ToString(Formatting.None)), "output" },
+            { new StringContent(data.ToString(Formatting.None)), "data" },
+            { new StringContent(string.Empty), "origin" }
+        };
+
+        var response = await Api.TryPostAsync(
+            $"{Api.TaskManagerEndpoint}/registermytask", httpContent, requestOptions)
+            .ConfigureAwait(false);
+        var jsonResponse = await response.Content.ReadAsStringAsync(requestOptions.CancellationToken).ConfigureAwait(false);
+
+        return JsonDocument.Parse(jsonResponse).RootElement.GetProperty("taskid").GetString()!;
+    }
+
     public static string ZipFiles(IEnumerable<string> files)
     {
         var directoryName = Path.Combine(Path.GetTempPath(), "renderphine_temp");
@@ -34,5 +61,15 @@ public static class NodeTask
 
             yield return path;
         }
+    }
+
+
+    class LowercaseNamingPolicy : JsonNamingPolicy
+    {
+        public static LowercaseNamingPolicy Instance = new();
+
+        private LowercaseNamingPolicy() { }
+
+        public override string ConvertName(string name) => name.ToLowerInvariant();
     }
 }

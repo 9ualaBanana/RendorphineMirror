@@ -16,7 +16,7 @@ namespace NodeUI
         }
 
 
-        public static readonly Bindable<ImmutableDictionary<PluginType, Api.SoftwareStats>> SoftwareStats = new(ImmutableDictionary<PluginType, Api.SoftwareStats>.Empty);
+        public static readonly Bindable<ImmutableDictionary<PluginType, SoftwareStats>> SoftwareStats = new(ImmutableDictionary<PluginType, SoftwareStats>.Empty);
         static Thread? StatsUpdatingThread;
         static Timer? StatsUpdatingTimer;
 
@@ -31,7 +31,7 @@ namespace NodeUI
         }
         static async Task<OperationResult> UpdateStatsAsync()
         {
-            var data = await Api.GetSoftwareStatsAsync().ConfigureAwait(false);
+            var data = await Apis.GetSoftwareStatsAsync().ConfigureAwait(false);
             if (data) SoftwareStats.Value = data.Value;
 
             return data.GetResult();
