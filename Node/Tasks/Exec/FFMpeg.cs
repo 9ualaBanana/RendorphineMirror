@@ -98,10 +98,10 @@ public static class FFMpegTasks
         args += "-y ";
 
         // input file
-        args += $"-i '{input}' ";
+        args += $"-i \"{input}\" ";
 
         // filters
-        args += $"-vf '{string.Join(',', data.ConstructFFMpegArguments())}' ";
+        args += $"-vf \"{string.Join(',', data.ConstructFFMpegArguments())}\" ";
 
         // don't reencode audio
         args += $"-c:a copy ";
@@ -110,7 +110,7 @@ public static class FFMpegTasks
         args += $"-f {Path.GetExtension(output).Replace(".", "")} ";
 
         // output path
-        args += $" '{output}' ";
+        args += $" \"{output}\" ";
 
 
         // TODO: fix getting path
