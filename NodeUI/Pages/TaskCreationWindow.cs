@@ -159,7 +159,7 @@ namespace NodeUI.Pages
 
             public ChoosePluginPart() : base(new())
             {
-                PluginsList = CreateListBox(Enum.GetValues<PluginType>(), type => new TextBlock() { Text = type.ToString() });
+                PluginsList = CreateListBox(Enum.GetValues<PluginType>(), type => new TextBlock() { Text = type.GetName() });
                 PluginsList.SelectionChanged += (obj, e) =>
                     OnChoose?.Invoke(PluginsList.SelectedItems.Count != 0);
 

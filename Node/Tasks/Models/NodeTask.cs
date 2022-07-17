@@ -26,7 +26,7 @@ public static class NodeTask
         };
         if (info.Version is not null)
         {
-            var soft = new[] { new TaskSoftwareRequirement(info.Type.ToString(), ImmutableArray.Create(info.Version), null), };
+            var soft = new[] { new TaskSoftwareRequirement(info.Type.ToString().ToLowerInvariant(), ImmutableArray.Create(info.Version), null), };
             values.Add(("software", JsonConvert.SerializeObject(soft, JsonSettings.LowercaseIgnoreNull)));
         }
 
