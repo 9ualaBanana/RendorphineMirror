@@ -30,7 +30,7 @@ public static class TaskHandler
 
             task.LogInfo($"Uploading result to the reepo ...");
             var queryString = $"sessionid={Settings.SessionId}&iid={inputobj.Iid}";
-            await Api.TryPostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, task.RequestOptions);
+            await Api.TryPostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, task.RequestOptions ?? new());
             task.LogInfo($"Result uploaded");
         }
         catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
