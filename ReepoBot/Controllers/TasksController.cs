@@ -9,7 +9,7 @@ namespace ReepoBot.Controllers;
 public class TasksController : ControllerBase
 {
     [HttpPost("result_preview")]
-    public async Task NotifySubscribersAboutResultPreview(
+    public async Task<JsonContent> NotifySubscribersAboutResultPreview(
     [FromQuery] string sessionId,
     [FromQuery] string iid,
     [FromServices] TelegramBot bot,
@@ -32,5 +32,7 @@ public class TasksController : ControllerBase
         }
         else
             logger.LogError("Unsupported type for task result preview: {Type}", mpItem.Type);
+
+        return JsonContent.Create(new { ok = 1 });
     }
 }
