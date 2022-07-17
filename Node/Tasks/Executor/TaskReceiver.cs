@@ -45,14 +45,14 @@ public class TaskReceiver : IDisposable
                 {
                     task.RequestOptions = RequestOptions;
 
-                    NodeSettings.ActiveTasks.Add(task);
+                    NodeSettings.ExecutingTasks.Add(task);
                     await TaskHandler.HandleAsync(task).ConfigureAwait(false);
                 }
                 catch (Exception ex) { Log.Error(ex.ToString()); }
                 finally
                 {
                     task.LogInfo($"Removing");
-                    NodeSettings.ActiveTasks.Remove(task);
+                    NodeSettings.ExecutingTasks.Remove(task);
                 }
             });
             thread.IsBackground = true;

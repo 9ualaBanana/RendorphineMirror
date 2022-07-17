@@ -34,6 +34,7 @@ public static class NodeTask
         var id = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
 
         Log.Information($"Task registered with ID {id.Value}");
+        NodeSettings.PlacedTasks.Add(info);
         return id;
     }
 

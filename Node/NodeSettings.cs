@@ -4,10 +4,12 @@ namespace Node;
 
 public static class NodeSettings
 {
-    public static readonly DatabaseBindableList<ReceivedTask> ActiveTasks;
+    public static readonly DatabaseBindableList<ReceivedTask> ExecutingTasks;
+    public static readonly DatabaseBindableList<TaskCreationInfo> PlacedTasks;
 
     static NodeSettings()
     {
-        ActiveTasks = new(nameof(ActiveTasks));
+        ExecutingTasks = new(nameof(ExecutingTasks));
+        PlacedTasks = new(nameof(PlacedTasks));
     }
 }

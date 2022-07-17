@@ -166,10 +166,8 @@ namespace Common
             public JToken ToJson() => JToken.FromObject(Value!);
             public void SetFromJson(string json) => Value = JsonConvert.DeserializeObject<T>(json)!;
         }
-        public class DatabaseBindableList<T> : BindableList<T>, IDatabaseBindable, IReadOnlyList<T>
+        public class DatabaseBindableList<T> : BindableList<T>, IDatabaseBindable
         {
-            public int Count => Value.Count;
-
             public bool Hidden { get; init; }
             public string Name { get; }
 
@@ -187,16 +185,10 @@ namespace Common
                 _Bindables.Add(this);
             }
 
-            public T this[int index] => Value[index];
-
             public void Reload() => SetRange(Load(Name, Array.Empty<T>()));
 
             public JToken ToJson() => JToken.FromObject(Value);
             public void SetFromJson(string json) => SetRange(JsonConvert.DeserializeObject<T[]>(json) ?? Array.Empty<T>());
-
-            List<T>.Enumerator GetEnumerator() => Values.GetEnumerator();
-            IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }
