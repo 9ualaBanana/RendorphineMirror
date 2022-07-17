@@ -15,11 +15,18 @@ public class TelegramBot : TelegramBotClient
     {
     }
 
-    internal void TryNotifySubscribers(string video, string thumb, ILogger logger, IReplyMarkup? replyMarkup = null)
+    internal void TryNotifySubscribers(
+        string video,
+        ILogger logger,
+        string? thumb = null,
+        string? caption = null,
+        int? width = null,
+        int? height = null,
+        IReplyMarkup? replyMarkup = null)
     {
         foreach (var subscriber in Subscriptions)
         {
-            _ = TrySendVideoAsync(subscriber, video, thumb, logger, replyMarkup);
+            _ = TrySendVideoAsync(subscriber, video, logger, thumb, caption, width, height, replyMarkup);
         }
     }
 
@@ -31,7 +38,14 @@ public class TelegramBot : TelegramBotClient
         }
     }
 
-    internal async Task<bool> TrySendVideoAsync(ChatId chatId, string video, string thumb, ILogger logger, IReplyMarkup? replyMarkup = null)
+    internal async Task<bool> TrySendVideoAsync(ChatId chatId,
+        string video,
+        ILogger logger,
+        string? thumb = null,
+        string? caption = null,
+        int? width = null,
+        int? height = null,
+        IReplyMarkup? replyMarkup = null)
     {
         try
         {
@@ -39,6 +53,10 @@ public class TelegramBot : TelegramBotClient
                 chatId,
                 video,
                 thumb: thumb,
+                caption: caption,
+                width: width,
+                height: height,
+                supportsStreaming: true,
                 replyMarkup: replyMarkup);
         }
         catch (Exception ex)

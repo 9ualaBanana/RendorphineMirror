@@ -19,9 +19,18 @@ public class TasksController : ControllerBase
         logger.LogDebug("Received task result preview");
 
         var mpItem = await taskResultsPreviewer.GetMyMPItemAsync(sessionId, iid);
-        var videoPreview = mpItem.GetProperty("videopreview").GetProperty("mp4.url").GetString()!;
-        var thumbnail = mpItem.GetProperty("previewurl").GetString()!;
-
-        bot.TryNotifySubscribers(videoPreview, thumbnail, logger);
+        if (mpItem.IsVideo)
+        {
+            var videoPreview = mpItem.AsVideoPreview;
+            bot.TryNotifySubscribers(
+                videoPreview.Mp4Url,
+                logger,
+                videoPreview.ThumbnailMediumUrl,
+                videoPreview.Title,
+                videoPreview.Width,
+                videoPreview.Height);
+        }
+        else
+            logger.LogError("Unsupported type for task result preview: {Type}", mpItem.Type);
     }
 }
