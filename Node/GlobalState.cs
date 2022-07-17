@@ -2,7 +2,8 @@ namespace Node
 {
     public static class GlobalState
     {
-        public static INodeState State { get; private set; } = IdleNodeState.Instance;
+        public static readonly Bindable<INodeState> BState = new(IdleNodeState.Instance);
+        public static INodeState State { get => BState.Value; set => BState.Value = value; }
 
         /// <summary> Sets <see cref="State"/> </summary>
         /// <returns> Object that will restore the previous state when disposed </returns>
