@@ -28,10 +28,28 @@ public static class TaskHandler
             task.LogInfo($"File uploaded");
             await task.ChangeStateAsync(TaskState.Finished);
 
-            task.LogInfo($"Uploading result to the reepo ...");
-            var queryString = $"sessionid={Settings.SessionId}&iid={inputobj.Iid}";
-            await Api.TryPostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, task.RequestOptions ?? new());
-            task.LogInfo($"Result uploaded");
+            if (outputobj is MPlusTaskOutputInfo mplusoutput)
+            {
+                try
+                {
+                    task.LogInfo($"Uploading result to the reepo...");
+
+                    task.LogInfo($"Getting output iid...");
+                    var outiidr = await Apis.GetTaskStateAsync(task.Id)
+                        .Next(taskinfo => taskinfo.Output["ingesterhost"]?.Value<string>().AsOpResult() ?? OperationResult.Err("Could not find ingester host"))
+                        .Next(ingester => Api.ApiGet<string>($"https://{ingester}/content/vcupload/getiid", "iid", "Getting output iid", ("extid", task.Id)))
+                        .ConfigureAwait(false);
+
+                    var outiid = outiidr.ThrowIfError();
+                    task.LogInfo($"Got output iid: {outiid}");
+
+                    task.LogInfo($"Uploading...");
+                    var queryString = $"sessionid={Settings.SessionId}&iid={outiid}";
+                    await Api.TryPostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, task.RequestOptions ?? new());
+                    task.LogInfo($"Result uploaded");
+                }
+                catch (Exception ex) { Log.Error("Error sending result to reepo: " + ex); }
+            }
         }
         catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
         {
