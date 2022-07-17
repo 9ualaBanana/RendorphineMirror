@@ -27,6 +27,9 @@ public static class TaskHandler
             await outputobj.Upload(task, output).ConfigureAwait(false);
             task.LogInfo($"File uploaded");
             await task.ChangeStateAsync(TaskState.Finished);
+
+            var queryString = $"sessionid={Settings.SessionId}&iid={inputobj.Iid}";
+            await Api.TryPostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, task.RequestOptions);
         }
         catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
         {

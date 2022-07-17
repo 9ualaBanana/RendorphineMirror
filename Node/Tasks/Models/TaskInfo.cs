@@ -14,7 +14,7 @@ public record TaskInfo(
     string Origin,
     ServerInfo? Server)
 {
-    public ITaskInputInfo DeserializeInput()
+    public MPlusTaskInputInfo DeserializeInput()
     {
         var type = Enum.Parse<TaskInputOutputType>(Input["type"]!.Value<string>()!);
 
