@@ -39,6 +39,8 @@ public class TaskReceiver : IDisposable
 
             var thread = new Thread(async () =>
             {
+                using var _ = GlobalState.TempSetState(new ExecutingTaskNodeState(taskinfo));
+
                 var task = new ReceivedTask(taskid, taskinfo);
 
                 try

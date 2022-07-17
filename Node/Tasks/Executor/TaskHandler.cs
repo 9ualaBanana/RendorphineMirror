@@ -5,14 +5,29 @@ namespace Node.Tasks.Executor;
 
 public static class TaskHandler
 {
+    static TaskInputOutputType GetInputOutputType(JObject json) => Enum.Parse<TaskInputOutputType>(json["type"]!.Value<string>()!);
+
+    static ITaskInputInfo DeserializeInput(TaskInfo info) =>
+        GetInputOutputType(info.Input) switch
+        {
+            TaskInputOutputType.MPlus => info.Input.ToObject<MPlusTaskInputInfo>()!,
+            { } type => throw new NotSupportedException($"Task input type {type} is not supported"),
+        };
+    static ITaskOutputInfo DeserializeOutput(TaskInfo info) =>
+        GetInputOutputType(info.Output) switch
+        {
+            TaskInputOutputType.MPlus => info.Output.ToObject<MPlusTaskOutputInfo>()!,
+            { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
+        };
+
     public static async Task HandleAsync(ReceivedTask task)
     {
         try
         {
             task.LogInfo($"Started");
 
-            var inputobj = task.Info.DeserializeInput();
-            var outputobj = task.Info.DeserializeOutput();
+            var inputobj = DeserializeInput(task.Info);
+            var outputobj = DeserializeOutput(task.Info);
             task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
 
             task.LogInfo($"Downloading file...");
@@ -62,10 +77,9 @@ public static class TaskHandler
             await task.ChangeStateAsync(TaskState.Failed);
         }
     }
-
     static async Task<string> HandleAsyncCore(string input, ReceivedTask task)
     {
-        var type = task.Info.Data["type"]!.Value<string>()!;
+        var type = task.Info.Data["type"]?.Value<string>();
         if (type is null) throw new InvalidOperationException("Task type is null");
 
         var action = TaskList.TryGet(type);
