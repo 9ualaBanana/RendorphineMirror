@@ -53,11 +53,12 @@ public class TelegramBot : TelegramBotClient
                 chatId,
                 video,
                 thumb: thumb,
-                caption: caption,
+                caption: caption?.Sanitize(),
                 width: width,
                 height: height,
                 supportsStreaming: true,
-                replyMarkup: replyMarkup);
+                replyMarkup: replyMarkup,
+                parseMode: ParseMode.MarkdownV2);
         }
         catch (Exception ex)
         {
