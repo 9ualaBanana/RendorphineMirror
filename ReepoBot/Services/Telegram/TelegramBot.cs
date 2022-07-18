@@ -2,6 +2,7 @@
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ReepoBot.Services.Telegram;
@@ -16,9 +17,9 @@ public class TelegramBot : TelegramBotClient
     }
 
     internal void TryNotifySubscribers(
-        string video,
+        InputOnlineFile video,
         ILogger logger,
-        string? thumb = null,
+        InputMedia? thumb = null,
         string? caption = null,
         int? width = null,
         int? height = null,
@@ -39,9 +40,9 @@ public class TelegramBot : TelegramBotClient
     }
 
     internal async Task<bool> TrySendVideoAsync(ChatId chatId,
-        string video,
+        InputOnlineFile video,
         ILogger logger,
-        string? thumb = null,
+        InputMedia? thumb = null,
         string? caption = null,
         int? width = null,
         int? height = null,
@@ -53,11 +54,12 @@ public class TelegramBot : TelegramBotClient
                 chatId,
                 video,
                 thumb: thumb,
-                caption: caption,
+                caption: caption?.Sanitize(),
                 width: width,
                 height: height,
                 supportsStreaming: true,
-                replyMarkup: replyMarkup);
+                replyMarkup: replyMarkup,
+                parseMode: ParseMode.MarkdownV2);
         }
         catch (Exception ex)
         {
