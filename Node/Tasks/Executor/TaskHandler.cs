@@ -28,7 +28,7 @@ public static class TaskHandler
             task.LogInfo($"File uploaded");
             await task.ChangeStateAsync(TaskState.Finished);
 
-            var queryString = $"sessionid={Settings.SessionId}&iid={inputobj.Iid}";
+            var queryString = $"sessionid={Settings.SessionId}&iid={inputobj.Iid}&nodename={Settings.NodeName}";
             await Api.TryPostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, task.RequestOptions);
         }
         catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)

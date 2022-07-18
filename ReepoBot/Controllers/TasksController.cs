@@ -12,6 +12,7 @@ public class TasksController : ControllerBase
     public async Task NotifySubscribersAboutResultPreview(
     [FromQuery] string sessionId,
     [FromQuery] string iid,
+    [FromQuery] string nodeName,
     [FromServices] TelegramBot bot,
     [FromServices] TaskResultsPreviewer taskResultsPreviewer,
     [FromServices] ILogger<TasksController> logger)
@@ -26,7 +27,7 @@ public class TasksController : ControllerBase
                 videoPreview.Mp4Url,
                 logger,
                 videoPreview.ThumbnailMediumUrl,
-                caption: $"{videoPreview.Title}\n\nTask ID: **{videoPreview.TaskId}**\nM+ IID: **{videoPreview.MpIid}**",
+                caption: $"{videoPreview.Title}\n\nNode: {nodeName}\nTask ID: **{videoPreview.TaskId}**\nM+ IID: **{videoPreview.MpIid}**",
                 videoPreview.Width,
                 videoPreview.Height);
         }
