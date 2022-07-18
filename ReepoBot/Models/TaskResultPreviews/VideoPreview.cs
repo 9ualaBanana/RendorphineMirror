@@ -6,6 +6,7 @@ public class VideoPreview
 {
     public string Title;
     public string Description;
+    public string TaskId;
     public string MpIid;
 
     public string ThumbnailSmallUrl;
@@ -26,6 +27,7 @@ public class VideoPreview
         var basicMetadata = mpItem.GetProperty("metadata").GetProperty("basic");
         Title = basicMetadata.GetProperty("title").GetString()!;
         Description = basicMetadata.GetProperty("description").GetString()!;
+        TaskId = mpItem.GetProperty("id").GetString()!;
         MpIid = mpItem.GetProperty("iid").GetString()!;
 
         ThumbnailSmallUrl = mpItem.GetProperty("thumbnailurl").GetString()!;
