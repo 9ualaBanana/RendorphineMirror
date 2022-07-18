@@ -73,12 +73,15 @@ namespace Common
         }
     }
 
-    public class BindableList<T>
+    public class BindableList<T> : IReadOnlyList<T>
     {
         public event Action<IReadOnlyList<T>> Changed = delegate { };
 
+        public int Count => Value.Count;
         protected readonly List<T> Values = new();
         public IReadOnlyList<T> Value => Values;
+
+        public T this[int index] => Value[index];
 
         public void Add(T item)
         {
@@ -115,5 +118,9 @@ namespace Common
             Changed += action;
             if (invokeImmediately) action(Value);
         }
+
+        List<T>.Enumerator GetEnumerator() => Values.GetEnumerator();
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

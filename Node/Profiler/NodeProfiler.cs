@@ -94,7 +94,7 @@ internal class NodeProfiler
         }
 
         var state = new BenchmarkNodeState();
-        using var _ = GlobalState.SetState(state);
+        using var _ = GlobalState.TempSetState(state);
 
         var cpu = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize);
         state.Completed.Add("cpu");

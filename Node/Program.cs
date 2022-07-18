@@ -88,12 +88,20 @@ taskreceiver.StartAsync().Consume();
 
 _ = Listener.StartPublicListenerAsync();
 
-// .ToArray() to not cause exception while removing tasks
-foreach (var task in NodeSettings.ActiveTasks.ToArray())
+if (NodeSettings.ExecutingTasks.Count != 0)
 {
-    try { await TaskHandler.HandleAsync(task).ConfigureAwait(false); }
-    catch (Exception ex) { Log.Error(ex.ToString()); }
-    finally { NodeSettings.ActiveTasks.Remove(task); }
+    Log.Information($"Found {NodeSettings.ExecutingTasks.Count} saved tasks, starting...");
+
+    // .ToArray() to not cause exception while removing tasks
+    foreach (var task in NodeSettings.ExecutingTasks.ToArray())
+    {
+        try { await TaskHandler.HandleAsync(task).ConfigureAwait(false); }
+        finally
+        {
+            task.LogInfo("Removing");
+            NodeSettings.ExecutingTasks.Remove(task);
+        }
+    }
 }
 
 Thread.Sleep(-1);

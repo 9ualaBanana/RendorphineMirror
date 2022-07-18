@@ -4,7 +4,7 @@ namespace Node.Tasks.Models;
 
 public record ReceivedTask(string Id, TaskInfo Info)
 {
-    [JsonIgnore] public RequestOptions RequestOptions { get; set; } = null!;
+    [JsonIgnore] public RequestOptions? RequestOptions;
 
     public async ValueTask<OperationResult> ChangeStateAsync(TaskState state)
     {
