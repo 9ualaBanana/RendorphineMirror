@@ -10,8 +10,8 @@ public class TelegramBot : TelegramBotClient
 {
     public Subscriptions Subscriptions = new("subscriptions.txt");
 
-    public TelegramBot(string token, HttpClient? httpClient = null, string? baseUrl = default)
-        : base(token, httpClient, baseUrl)
+    public TelegramBot(string token, HttpClient? httpClient = null)
+        : base(token, httpClient)
     {
     }
 
