@@ -5,6 +5,7 @@ public interface IPluginAction
     Type DataType { get; }
     PluginType Type { get; }
     string Name { get; }
+    FileFormat FileFormat { get; }
 
     IPluginActionData CreateData();
     ValueTask<string> Execute(ReceivedTask task, string input);
@@ -15,12 +16,15 @@ public class PluginAction<T> : IPluginAction where T : IPluginActionData, new()
 
     public string Name { get; }
     public PluginType Type { get; }
+    public FileFormat FileFormat { get; }
+
     public readonly Func<string[], ReceivedTask, T, ValueTask<string[]>> ExecuteFunc;
 
-    public PluginAction(PluginType type, string name, Func<string[], ReceivedTask, T, ValueTask<string[]>> func)
+    public PluginAction(PluginType type, string name, FileFormat fileformat, Func<string[], ReceivedTask, T, ValueTask<string[]>> func)
     {
         Type = type;
         Name = name;
+        FileFormat = fileformat;
         ExecuteFunc = func;
     }
 

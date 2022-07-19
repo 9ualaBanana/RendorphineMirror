@@ -78,8 +78,8 @@ public static class FFMpegTasks
 {
     public static IEnumerable<IPluginAction> Create()
     {
-        yield return new PluginAction<EditVideoInfo>(PluginType.FFmpeg, "EditVideo", Start);
-        yield return new PluginAction<EditRasterInfo>(PluginType.FFmpeg, "EditRaster", Start);
+        yield return new PluginAction<EditVideoInfo>(PluginType.FFmpeg, "EditVideo", FileFormat.Mov, Start);
+        yield return new PluginAction<EditRasterInfo>(PluginType.FFmpeg, "EditRaster", FileFormat.Jpeg, Start);
     }
     static async ValueTask<string[]> Start<T>(string[] files, ReceivedTask task, T data) where T : MediaEditInfo =>
         await Task.WhenAll(files.Select(x => Execute(x, task, data))).ConfigureAwait(false);
@@ -105,9 +105,6 @@ public static class FFMpegTasks
 
         // don't reencode audio
         args += $"-c:a copy ";
-
-        // output format
-        args += $"-f {Path.GetExtension(output).Replace(".", "")} ";
 
         // output path
         args += $" \"{output}\" ";

@@ -35,7 +35,7 @@ public static class TaskHandler
             task.LogInfo($"File downloaded to {input}");
             await task.ChangeStateAsync(TaskState.Active);
 
-            var output = await HandleAsyncCore(input, task);
+            var output = await TaskList.Get(task.Info).Execute(task, input).ConfigureAwait(false);
             await task.ChangeStateAsync(TaskState.Output);
 
             task.LogInfo($"Uploading output file {output} ...");
@@ -76,15 +76,5 @@ public static class TaskHandler
             task.LogErr(ex);
             await task.ChangeStateAsync(TaskState.Failed);
         }
-    }
-    static async Task<string> HandleAsyncCore(string input, ReceivedTask task)
-    {
-        var type = task.Info.Data["type"]?.Value<string>();
-        if (type is null) throw new InvalidOperationException("Task type is null");
-
-        var action = TaskList.TryGet(type);
-        if (action is null) throw new InvalidOperationException("Got unknown task type");
-
-        return await action.Execute(task, input).ConfigureAwait(false);
     }
 }
