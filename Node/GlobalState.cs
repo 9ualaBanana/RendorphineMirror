@@ -6,7 +6,7 @@ namespace Node
 
         /// <summary> Sets <see cref="State"/> </summary>
         /// <returns> Object that will restore the previous state when disposed </returns>
-        public static TemporaryState SetState(INodeState state)
+        public static TemporaryState TempSetState(INodeState state)
         {
             var prevstate = State;
             State = state;

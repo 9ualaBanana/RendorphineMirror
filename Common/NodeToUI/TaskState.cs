@@ -1,4 +1,4 @@
-﻿namespace Node.Tasks.Models;
+﻿namespace Common.NodeToUI;
 
 public enum TaskState
 {

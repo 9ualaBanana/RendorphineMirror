@@ -6,27 +6,31 @@ public abstract class FieldDescriber
 {
     public readonly string Name;
     public readonly bool Nullable;
+    public object? DefaultValue { get; init; }
+    public ImmutableArray<Attribute> Attributes { get; init; }
 
-    public FieldDescriber(string name, bool nullable)
+    public FieldDescriber(string name, bool nullable, ImmutableArray<Attribute> attributes)
     {
         Name = name.ToLowerInvariant();
         Nullable = nullable;
+        Attributes = attributes;
     }
 
 
-    public static FieldDescriber Create(Type type) => Create(type, type.Name, false);
-    public static FieldDescriber Create(PropInfo field) => Create(field.FieldType, field.Name, field.IsNullable());
+    public static FieldDescriber Create(Type type) => Create(type, type.Name, false, null, ImmutableArray<Attribute>.Empty);
+    public static FieldDescriber Create(PropInfo field, Type parent) => Create(field.FieldType, field.Name, field.IsNullable(), field.GetValue(Activator.CreateInstance(parent)),
+        field.GetAttributes<Attribute>().Where(x => x.GetType().Namespace?.StartsWith("System.") != true).ToImmutableArray());
 
-    static FieldDescriber Create(Type type, string name, bool nullable)
+    static FieldDescriber Create(Type type, string name, bool nullable, object? defaultValue, ImmutableArray<Attribute> attributes)
     {
-        if (istype<bool>()) return new BooleanDescriber(name, nullable);
-        if (istype<string>()) return new StringDescriber(name, nullable);
+        if (istype<bool>()) return new BooleanDescriber(name, nullable, attributes) { DefaultValue = defaultValue };
+        if (istype<string>()) return new StringDescriber(name, nullable, attributes) { DefaultValue = defaultValue };
 
         if (type.GetInterfaces().Any(x => x.Name.StartsWith("INumber", StringComparison.Ordinal)))
-            return new NumberDescriber(name, nullable) { IsInteger = !type.GetInterfaces().Any(x => x.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal)) };
+            return new NumberDescriber(name, nullable, attributes) { DefaultValue = defaultValue, IsInteger = !type.GetInterfaces().Any(x => x.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal)) };
 
         if (type.IsClass)
-            return new ObjectDescriber(name, nullable, PropInfo.CreateFromChildren(type).Select(Create).ToImmutableArray());
+            return new ObjectDescriber(name, nullable, PropInfo.CreateFromChildren(type).Select(x => Create(x, type)).ToImmutableArray(), attributes) { DefaultValue = defaultValue };
 
         throw new InvalidOperationException($"Could not find Describer for type {type}");
 
@@ -37,6 +41,9 @@ public abstract class FieldDescriber
 
     public readonly struct PropInfo
     {
+        public Type DeclaringType => System.Nullable.GetUnderlyingType(_DeclaringType) ?? _DeclaringType;
+        Type _DeclaringType => Property?.DeclaringType ?? Field?.DeclaringType!;
+
         public Type FieldType => System.Nullable.GetUnderlyingType(_FieldType) ?? _FieldType;
         Type _FieldType => Property?.PropertyType ?? Field?.FieldType!;
 
@@ -66,6 +73,7 @@ public abstract class FieldDescriber
         public object? GetValue(object? obj) => obj is null ? null : Property?.GetValue(obj) ?? Field?.GetValue(obj)!;
 
         public T? GetAttribute<T>() where T : Attribute => Property?.GetCustomAttribute<T>() ?? Field?.GetCustomAttribute<T>();
+        public IEnumerable<T> GetAttributes<T>() where T : Attribute => Property?.GetCustomAttributes<T>() ?? Field?.GetCustomAttributes<T>() ?? Enumerable.Empty<T>();
         public bool IsNullable() =>
             Property is not null ? new NullabilityInfoContext().Create(Property).WriteState is NullabilityState.Nullable
             : Field is not null ? new NullabilityInfoContext().Create(Field).WriteState is NullabilityState.Nullable
@@ -85,22 +93,22 @@ public abstract class FieldDescriber
 
 public class BooleanDescriber : FieldDescriber
 {
-    public BooleanDescriber(string name, bool nullable) : base(name, nullable) { }
+    public BooleanDescriber(string name, bool nullable, ImmutableArray<Attribute> attributes) : base(name, nullable, attributes) { }
 }
 public class StringDescriber : FieldDescriber
 {
-    public StringDescriber(string name, bool nullable) : base(name, nullable) { }
+    public StringDescriber(string name, bool nullable, ImmutableArray<Attribute> attributes) : base(name, nullable, attributes) { }
 }
 public class NumberDescriber : FieldDescriber
 {
     public bool IsInteger { get; init; }
 
-    public NumberDescriber(string name, bool nullable) : base(name, nullable) { }
+    public NumberDescriber(string name, bool nullable, ImmutableArray<Attribute> attributes) : base(name, nullable, attributes) { }
 }
 public class ObjectDescriber : FieldDescriber
 {
     public readonly ImmutableArray<FieldDescriber> Fields;
 
-    public ObjectDescriber(string name, bool nullable, ImmutableArray<FieldDescriber> fields) : base(name, nullable) =>
+    public ObjectDescriber(string name, bool nullable, ImmutableArray<FieldDescriber> fields, ImmutableArray<Attribute> attributes) : base(name, nullable, attributes) =>
         Fields = fields;
 }

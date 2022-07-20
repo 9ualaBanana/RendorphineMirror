@@ -21,7 +21,7 @@ namespace Common
 
 
         public static OperationResult Err(string? msg = null) => new OperationResult(false, msg);
-        public static OperationResult Err(LocalizedString str) => Err(str.ToString());
+        public static OperationResult Err<T>(T obj) where T : notnull => Err(obj.ToString());
         public static OperationResult Err(Exception ex) => new OperationResult(false, ex.Message);
         public static OperationResult<T> Err<T>(string? msg = null) => Err(msg);
         public static OperationResult<T> Succ<T>(T value) => new OperationResult<T>(value);

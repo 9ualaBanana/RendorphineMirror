@@ -29,8 +29,8 @@ namespace NodeUI
                 Name = AppName;
                 this.InitializeTrayIndicator();
 
-                if (Settings.Language is { } lang) LocalizedString.SetLocale(lang);
-                else Settings.Language = LocalizedString.Locale;
+                if (UISettings.Language is { } lang) LocalizedString.SetLocale(lang);
+                else UISettings.Language = LocalizedString.Locale;
 
                 MainTheme.Apply(Resources, Styles);
 

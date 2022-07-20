@@ -1,9 +1,43 @@
 ﻿using System.IO.Compression;
+using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace Node.Tasks.Models;
 
 public static class NodeTask
 {
+    public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, RequestOptions? requestOptions = null)
+    {
+        requestOptions ??= new();
+
+        var data = info.Data;
+        var taskobj = new TaskObject("3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 12345678);
+        var input = info.Input;
+        var output = info.Output;
+
+        var values = new List<(string, string)>()
+        {
+            ("sessionid", Settings.SessionId!),
+            ("object", JsonConvert.SerializeObject(taskobj, JsonSettings.LowercaseIgnoreNull)),
+            ("input", input.ToString(Formatting.None)),
+            ("output", output.ToString(Formatting.None)),
+            ("data", data.ToString(Formatting.None)),
+            ("origin", string.Empty),
+        };
+        if (info.Version is not null)
+        {
+            var soft = new[] { new TaskSoftwareRequirement(info.Type.ToString().ToLowerInvariant(), ImmutableArray.Create(info.Version), null), };
+            values.Add(("software", JsonConvert.SerializeObject(soft, JsonSettings.LowercaseIgnoreNull)));
+        }
+
+        Log.Information($"Registering task: {JsonConvert.SerializeObject(info)}");
+        var id = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
+
+        Log.Information($"Task registered with ID {id.Value}");
+        NodeSettings.PlacedTasks.Add(info);
+        return id;
+    }
+
     public static string ZipFiles(IEnumerable<string> files)
     {
         var directoryName = Path.Combine(Path.GetTempPath(), "renderphine_temp");

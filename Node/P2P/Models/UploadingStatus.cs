@@ -1,4 +1,4 @@
-﻿namespace Node.P2P.ResponseModels;
+﻿namespace Node.P2P.Models;
 
 internal record UploadingStatus(
     string Name,

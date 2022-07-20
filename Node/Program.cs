@@ -4,7 +4,6 @@ global using Common.NodeToUI;
 global using Common.Tasks.Tasks;
 global using Machine;
 global using Node.P2P;
-global using Node.Tasks.Client;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Executor;
 global using Node.Tasks.Models;
@@ -89,12 +88,20 @@ taskreceiver.StartAsync().Consume();
 
 _ = Listener.StartPublicListenerAsync();
 
-// .ToArray() to not cause exception while removing tasks
-foreach (var task in Settings.ActiveTasks.ToArray())
+if (NodeSettings.ExecutingTasks.Count != 0)
 {
-    try { await TaskHandler.HandleAsync(task.ToObject<ReceivedTask>()!).ConfigureAwait(false); }
-    catch (Exception ex) { Log.Error(ex.ToString()); }
-    finally { Settings.ActiveTasks.Remove(task); }
+    Log.Information($"Found {NodeSettings.ExecutingTasks.Count} saved tasks, starting...");
+
+    // .ToArray() to not cause exception while removing tasks
+    foreach (var task in NodeSettings.ExecutingTasks.ToArray())
+    {
+        try { await TaskHandler.HandleAsync(task).ConfigureAwait(false); }
+        finally
+        {
+            task.LogInfo("Removing");
+            NodeSettings.ExecutingTasks.Remove(task);
+        }
+    }
 }
 
 Thread.Sleep(-1);
