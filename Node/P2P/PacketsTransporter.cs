@@ -2,22 +2,21 @@
 
 namespace Node.P2P;
 
-internal class PacketsTransporter
+internal static class PacketsTransporter
 {
-    internal RequestOptions RequestOptions { get; set; }
-
-    internal PacketsTransporter(RequestOptions? requestOptions = null)
+    internal static async Task<BenchmarkResult> UploadAsync(
+        UploadSessionData sessionData,
+        HttpClient? httpClient = null,
+        CancellationToken cancellationToken = default)
     {
-        RequestOptions = requestOptions ?? new();
-    }
+        httpClient ??= new();
 
-    internal async Task<BenchmarkResult> UploadAsync(UploadSessionData sessionData)
-    {
         var uploadResult = new BenchmarkResult(sessionData.File.Length);
         while (true)
         {
-            var uploadSession = await UploadSession.InitializeAsync(sessionData, RequestOptions).ConfigureAwait(false);
-            using var packetsUploader = new PacketsUploader(uploadSession);
+            var uploadSession = await UploadSession.InitializeAsync(
+                sessionData, httpClient, cancellationToken).ConfigureAwait(false);
+            using var packetsUploader = new PacketsUploader(uploadSession, httpClient, cancellationToken);
             uploadResult.Time += (await packetsUploader.UploadAsync().ConfigureAwait(false)).Time;
             if (await uploadSession.EnsureAllBytesUploadedAsync().ConfigureAwait(false))
             {

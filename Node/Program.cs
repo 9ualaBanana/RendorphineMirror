@@ -19,8 +19,6 @@ Init.Initialize();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
-var http = new HttpClient() { BaseAddress = new(Settings.ServerUrl) };
-
 PluginsManager.RegisterPluginDiscoverers(
     new BlenderPluginDiscoverer(),
     new Autodesk3dsMaxPluginDiscoverer(),
@@ -52,38 +50,36 @@ _ = PortForwarding.GetPublicIPAsync().ContinueWith(t => Log.Information($"Public
 
 var captured = new List<object>();
 
-// Precomputed for sending by NodeProfiler.
-var plugins = await discoveringInstalledPlugins;
 if (!Init.IsDebug || halfrelease)
 {
     if (!Init.IsDebug)
     {
         SystemService.Start();
 
-        var serverPinger = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), http);
+        var serverPinger = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), Api.Client);
         _ = serverPinger.StartAsync();
 
         captured.Add(serverPinger);
     }
 
-    var nodeProfiler = new NodeProfiler(http);
     var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
+    // Precomputed for sending by NodeProfiler.
+    var plugins = await discoveringInstalledPlugins;
 
     if (!Init.IsDebug)
     {
-        var reepoProfiler = new NodeProfiler(http);
+        var reepoProfiler = new NodeProfiler(Api.Client);
         await reepoProfiler.SendNodeProfile($"{Settings.ServerUrl}/node/profile", benchmarkResults);
 
         captured.Add(reepoProfiler);
     }
 
-    // Move domain to Settings.ServerUrl when the server on VPS will be integrated to this server.
-    var serverProfiler = new NodeProfiler(http);
+    var serverProfiler = new NodeProfiler(Api.Client);
     await serverProfiler.SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults, TimeSpan.FromMinutes(1));
     captured.Add(serverProfiler);
 }
 
-var taskreceiver = new TaskReceiver();
+var taskreceiver = new TaskReceiver(Api.Client);
 taskreceiver.StartAsync().Consume();
 
 _ = Listener.StartPublicListenerAsync();
@@ -95,7 +91,7 @@ if (NodeSettings.ExecutingTasks.Count != 0)
     // .ToArray() to not cause exception while removing tasks
     foreach (var task in NodeSettings.ExecutingTasks.ToArray())
     {
-        try { await TaskHandler.HandleAsync(task).ConfigureAwait(false); }
+        try { await TaskHandler.HandleAsync(task, Api.Client).ConfigureAwait(false); }
         finally
         {
             task.LogInfo("Removing");

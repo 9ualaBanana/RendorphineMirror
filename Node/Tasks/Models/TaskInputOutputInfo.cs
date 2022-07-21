@@ -12,7 +12,7 @@ public interface ITaskInputOutputInfo
 public interface ITaskInputInfo : ITaskInputOutputInfo
 {
     ValueTask Upload();
-    ValueTask<string> Download(ReceivedTask task);
+    ValueTask<string> Download(ReceivedTask task, HttpClient httpClient, CancellationToken cancellationToken);
 }
 public interface ITaskOutputInfo : ITaskInputOutputInfo
 {

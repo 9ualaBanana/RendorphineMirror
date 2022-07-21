@@ -6,7 +6,6 @@ namespace Node.P2P;
 internal class PacketsUploader : IDisposable
 {
     readonly UploadSession _session;
-    readonly RequestOptions _requestOptions;
     readonly UploadAdjuster _uploadAdjuster;
     int _offset;
     int _Offset
@@ -23,22 +22,28 @@ internal class PacketsUploader : IDisposable
     int _packetSize;
     int _batchSize;
 
+    readonly HttpClient _httpClient;
+    readonly CancellationToken _cancellationToken;
+
     internal PacketsUploader(
         UploadSession session,
+        HttpClient httpClient,
+        CancellationToken cancellationToken,
         int initialPacketSize = 1024 * 128,
         int initialBatchSize = 1,
         int batchSizeLimit = 32)
     {
         _session = session;
-        _requestOptions = session.RequestOptions;
         _fileStream = session.Data.File.OpenRead();
         _packetSize = initialPacketSize;
         _batchSize = initialBatchSize;
         _uploadAdjuster = new(batchSizeLimit);
+        _httpClient = httpClient;
+        _cancellationToken = cancellationToken;
     }
 
     /// <remarks>
-    /// Upload success should be checked with corresponding <see cref="UploadSession.EnsureAllBytesUploadedAsync"/>
+    /// Upload success status should be checked with corresponding <see cref="UploadSession.EnsureAllBytesUploadedAsync"/>
     /// </remarks>
     internal async Task<BenchmarkResult> UploadAsync()
     {
@@ -87,8 +92,8 @@ internal class PacketsUploader : IDisposable
         var packet = new Packet(_session.Data.File.Name, _session.FileId, _Offset, new MemoryStream(size));
 
         var contentBuffer = new Memory<byte>(new byte[size]);
-        _Offset += await _fileStream.ReadAsync(contentBuffer).ConfigureAwait(false);
-        await packet.Content.WriteAsync(contentBuffer);
+        _Offset += await _fileStream.ReadAsync(contentBuffer, _cancellationToken).ConfigureAwait(false);
+        await packet.Content.WriteAsync(contentBuffer, _cancellationToken);
         packet.Content.Position = 0;
 
         return packet;
@@ -106,10 +111,9 @@ internal class PacketsUploader : IDisposable
 
     async Task UploadPacketAsync(Packet packet)
     {
-        await Api.TryPostAsync(
+        await _httpClient.PostAsync(
             $"https://{_session.Host}/content/vcupload/chunk",
-            await packet.ToHttpContentAsync(),
-            _requestOptions).ConfigureAwait(false);
+            await packet.ToHttpContentAsync()).ConfigureAwait(false);
         await packet.Content.DisposeAsync();
     }
 

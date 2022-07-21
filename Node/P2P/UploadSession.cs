@@ -10,7 +10,8 @@ internal record UploadSession(
     string Host,
     long UploadedBytesCount,
     UploadedPacket[] UploadedPackets,
-    RequestOptions RequestOptions) : IAsyncDisposable
+    HttpClient HttpClient,
+    CancellationToken CancellationToken) : IAsyncDisposable
 {
     bool _finalized;
     IEnumerable<Range>? _notUploadedByteRanges;
@@ -49,29 +50,23 @@ internal record UploadSession(
     }
 
     internal async Task<bool> EnsureAllBytesUploadedAsync() =>
-        (await InitializeAsync(Data, RequestOptions).ConfigureAwait(false))
+        (await InitializeAsync(Data, HttpClient, CancellationToken).ConfigureAwait(false))
         .UploadedBytesCount == Data.File.Length;
 
     internal static async Task<UploadSession> InitializeAsync(
-        UploadSessionData sessionData,
-        RequestOptions? requestOptions = null)
+        UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken)
     {
-        requestOptions ??= new();
-
-        var httpResponse = await Api.TryPostAsync(
-            sessionData.Endpoint,
-            sessionData.HttpContent,
-            requestOptions).ConfigureAwait(false);
-        var rawJsonResponse = await httpResponse.Content.ReadAsStringAsync(requestOptions.CancellationToken).ConfigureAwait(false);
+        var httpResponse = await httpClient.PostAsync(sessionData.Endpoint, sessionData.HttpContent, cancellationToken).ConfigureAwait(false);
+        var rawJsonResponse = await httpResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         var response = JsonDocument.Parse(rawJsonResponse).RootElement;
         return new(
             sessionData,
             response.GetProperty("fileid").GetString()!,
             response.GetProperty("host").GetString()!,
             response.GetProperty("uploadedbytes").GetInt64(),
-            response.GetProperty("uploadedchunks")
-                .Deserialize<UploadedPacket[]>(new JsonSerializerOptions(JsonSerializerDefaults.Web))!,
-            requestOptions);
+            response.GetProperty("uploadedchunks").Deserialize<UploadedPacket[]>(new JsonSerializerOptions(JsonSerializerDefaults.Web))!,
+            httpClient,
+            cancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -84,10 +79,10 @@ internal record UploadSession(
     {
         if (_finalized) return;
 
-        await Api.TryPostAsync(
+        await HttpClient.PostAsync(
             $"https://{Host}/content/vcupload/finish",
-            new FormUrlEncodedContent(new Dictionary<string, string>() { ["fileid"] = FileId }),
-            RequestOptions).ConfigureAwait(false);
+            new FormUrlEncodedContent(new Dictionary<string, string>() { ["fileid"] = FileId })
+            ).ConfigureAwait(false);
 
         _finalized = true;
     }
