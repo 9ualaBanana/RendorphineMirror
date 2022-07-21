@@ -7,7 +7,7 @@ public static class TaskHandler
 {
     static TaskInputOutputType GetInputOutputType(JObject json) => Enum.Parse<TaskInputOutputType>(json["type"]!.Value<string>()!);
 
-    static ITaskInputInfo DeserializeInput(TaskInfo info) =>
+    static MPlusTaskInputInfo DeserializeInput(TaskInfo info) =>
         GetInputOutputType(info.Input) switch
         {
             TaskInputOutputType.MPlus => info.Input.ToObject<MPlusTaskInputInfo>()!,
@@ -20,7 +20,7 @@ public static class TaskHandler
             { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
         };
 
-    public static async Task HandleAsync(ReceivedTask task)
+    public static async Task HandleAsync(ReceivedTask task, HttpClient httpClient, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -31,7 +31,7 @@ public static class TaskHandler
             task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
 
             task.LogInfo($"Downloading file...");
-            var input = await inputobj.Download(task).ConfigureAwait(false);
+            var input = await inputobj.Download(task, httpClient, cancellationToken).ConfigureAwait(false);
             task.LogInfo($"File downloaded to {input}");
             await task.ChangeStateAsync(TaskState.Active);
 
@@ -60,7 +60,7 @@ public static class TaskHandler
 
                     task.LogInfo($"Uploading...");
                     var queryString = $"sessionid={Settings.SessionId}&iid={inputobj.Iid}&nodename={Settings.NodeName}";
-                    await Api.TryPostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, task.RequestOptions ?? new());
+                    await httpClient.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken);
                     task.LogInfo($"Result uploaded");
                 }
                 catch (Exception ex) { Log.Error("Error sending result to reepo: " + ex); }

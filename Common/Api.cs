@@ -10,7 +10,7 @@ namespace Common
         public const string ServerUri = "https://tasks.microstock.plus";
         public const string TaskManagerEndpoint = $"{ServerUri}/rphtaskmgr";
 
-        static readonly HttpClient Client = new();
+        public static readonly HttpClient Client = new();
 
 
         public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
@@ -70,50 +70,28 @@ namespace Common
             }
         }
 
-        public static async Task<HttpResponseMessage> TryGetAsync(
-            string requestUri,
-            RequestOptions requestOptions)
-        {
-            return await TrySendRequestAsync(
-                () => requestOptions.HttpClient.GetAsync(
-                    requestUri, requestOptions.CancellationToken),
-                requestOptions);
-        }
+        // Create a wrapper out of it instead.
+        //static async Task<HttpResponseMessage> TrySendRequestAsync(
+        //    Func<Task<HttpResponseMessage>> requestCallback)
+        //{
+        //    var attempts = 0;
+        //    while (true)
+        //    {
+        //        try
+        //        {
+        //            var response = await requestCallback();
+        //            await GetJsonFromResponseIfSuccessful(response);
+        //            return response;
+        //        }
+        //        catch (HttpRequestException ex)
+        //        {
+        //            if (++attempts >= requestOptions.RetryAttempts)
+        //                throw new HttpRequestException($"Request couldn't succeed after {attempts} attempts.", ex);
 
-        public static async Task<HttpResponseMessage> TryPostAsync(
-            string requestUri,
-            HttpContent? content,
-            RequestOptions requestOptions)
-        {
-            return await TrySendRequestAsync(
-                () => requestOptions.HttpClient.PostAsync(
-                    requestUri, content, requestOptions.CancellationToken),
-                requestOptions);
-        }
-
-        static async Task<HttpResponseMessage> TrySendRequestAsync(
-            Func<Task<HttpResponseMessage>> requestCallback,
-            RequestOptions requestOptions)
-        {
-            var attempts = 0;
-            while (true)
-            {
-                try
-                {
-                    // Port to Newtonsoft.Json
-                    var response = await requestCallback();
-                    await GetJsonFromResponseIfSuccessful(response);
-                    return response;
-                }
-                catch (HttpRequestException ex)
-                {
-                    if (++attempts >= requestOptions.RetryAttempts)
-                        throw new HttpRequestException($"Request couldn't succeed after {attempts} attempts.", ex);
-
-                    await Task.Delay(requestOptions.RetryInterval, requestOptions.CancellationToken);
-                }
-            }
-        }
+        //            await Task.Delay(requestOptions.RetryInterval, requestOptions.CancellationToken);
+        //        }
+        //    }
+        //}
 
         static async ValueTask<JToken> GetJsonFromResponseIfSuccessful(HttpResponseMessage response, string? errorDetails = null)
         {

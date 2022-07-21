@@ -9,12 +9,14 @@ namespace Node.Tasks.Executor;
 public class TaskReceiver : IDisposable
 {
     readonly HttpListener _httpListener = new();
-    public RequestOptions RequestOptions { get; set; }
+    readonly HttpClient _httpClient;
+    readonly CancellationToken _cancellationToken;
 
-    public TaskReceiver(RequestOptions? requestOptions = null)
+    public TaskReceiver(HttpClient httpClient, CancellationToken cancellationToken = default)
     {
         _httpListener.Prefixes.Add($"http://*:{PortForwarding.Port}/rphtaskexec/launchtask/");
-        RequestOptions = requestOptions ?? new();
+        _httpClient = httpClient;
+        _cancellationToken = cancellationToken;
     }
 
     public async Task StartAsync()
@@ -45,10 +47,8 @@ public class TaskReceiver : IDisposable
 
                 try
                 {
-                    task.RequestOptions = RequestOptions;
-
                     NodeSettings.ExecutingTasks.Add(task);
-                    await TaskHandler.HandleAsync(task).ConfigureAwait(false);
+                    await TaskHandler.HandleAsync(task, _httpClient, _cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) { Log.Error(ex.ToString()); }
                 finally

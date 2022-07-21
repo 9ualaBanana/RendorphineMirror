@@ -1,14 +1,14 @@
-﻿namespace Node.Tasks.Models;
+﻿using Node.P2P.Upload;
+
+namespace Node.Tasks.Models;
 
 public class MPlusTaskInputInfo : ITaskInputInfo
 {
     public TaskInputOutputType Type => TaskInputOutputType.MPlus;
     public string Iid = "";
 
-    public async ValueTask<string> Download(ReceivedTask task)
+    public async ValueTask<string> Download(ReceivedTask task, HttpClient httpClient, CancellationToken cancellationToken)
     {
-        var RequestOptions = new RequestOptions();
-
         var format = "mov";
         var downloadLink = await Api.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskinputdownloadlink", "link", "get download link",
             ("sessionid", Settings.SessionId!), ("taskid", task.Id), ("format", format), ("original", format == "jpg" ? "1" : "0")).ConfigureAwait(false);
@@ -19,7 +19,7 @@ public class MPlusTaskInputInfo : ITaskInputInfo
         var fileName = Path.Combine(dir, $"input.{format}");
         using (var inputStream = await Api.Download(downloadLink.ThrowIfError()))
         using (var file = File.Open(fileName, FileMode.Create, FileAccess.Write))
-            await inputStream.CopyToAsync(file, RequestOptions.CancellationToken);
+            await inputStream.CopyToAsync(file, cancellationToken);
 
         return fileName;
     }
@@ -34,7 +34,6 @@ public class MPlusTaskOutputInfo : ITaskOutputInfo
 
     public async ValueTask Upload(ReceivedTask task, string file)
     {
-        var packetsTransporter = new PacketsTransporter(task.RequestOptions);
-        await packetsTransporter.UploadAsync(file, task.Id);
+        await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(file, task.Id));
     }
 }

@@ -1,15 +1,12 @@
 ﻿using System.IO.Compression;
-using System.Text.Json;
 using Newtonsoft.Json;
 
 namespace Node.Tasks.Models;
 
 public static class NodeTask
 {
-    public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, RequestOptions? requestOptions = null)
+    public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info)
     {
-        requestOptions ??= new();
-
         var data = info.Data;
         var taskobj = new TaskObject("3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 12345678);
         var input = info.Input;

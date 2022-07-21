@@ -12,6 +12,9 @@
     <SelfContained>true</SelfContained>
     <!--<PublishReadyToRun>true</PublishReadyToRun>-->
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Benchmark\Benchmark.csproj" />
