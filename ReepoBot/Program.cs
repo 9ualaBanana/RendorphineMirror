@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Host.UseNLog();
 
+// Telegram.Bot works only with Newtonsoft.
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpClient();
@@ -37,7 +38,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run(builder.Configuration["Host"]);
+app.Run(builder.Configuration["HostListener"]);
 
 async Task<TelegramBot> InitializeBot()
 {

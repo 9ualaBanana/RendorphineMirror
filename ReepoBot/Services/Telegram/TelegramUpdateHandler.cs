@@ -8,25 +8,24 @@ namespace ReepoBot.Services.Telegram;
 
 public class TelegramUpdateHandler
 {
-    readonly ILoggerFactory _loggerFactory;
     readonly ILogger _logger;
     readonly TelegramBot _bot;
     readonly NodeSupervisor _nodeSupervisor;
 
     public TelegramUpdateHandler(
-        ILoggerFactory loggerFactory,
         TelegramBot bot,
-        NodeSupervisor nodeSupervisor)
+        NodeSupervisor nodeSupervisor,
+        ILogger<TelegramUpdateHandler> logger)
     {
-        _loggerFactory = loggerFactory;
-        _logger = loggerFactory.CreateLogger<TelegramUpdateHandler>();
+        _logger = logger;
         _nodeSupervisor = nodeSupervisor;
         _bot = bot;
     }
 
     internal void Handle(Update update)
     {
-        _logger.LogDebug("Dispatching update type...");
+        _logger.LogDebug("Dispatching {Update}...", nameof(Update));
+
         switch (update.Type)
         {
             case UpdateType.Message:
@@ -36,7 +35,7 @@ public class TelegramUpdateHandler
                 HandleChatMember(update.MyChatMember!);
                 break;
             default:
-                _logger.LogWarning("Update with {Type} type couldn't be handled", update.Type);
+                _logger.LogWarning("Unsupported update type: {Type}", update.Type);
                 break;
         }
     }
@@ -44,17 +43,18 @@ public class TelegramUpdateHandler
     void HandleMessageUpdate(Update update)
     {
         var message = update.Message!;
-        _logger.LogDebug("Dispatching text message...");
+        _logger.LogDebug("Dispatching {Message}...", nameof(Message));
         if (IsCommand(message))
         {
             HandleCommandUpdate(update);
             return;
         }
-        if (IsSystem(message))
+        else if (IsSystemMessage(message))
         {
             _logger.LogDebug("System messages are handled by {Handler}", nameof(HandleChatMember));
             return;    // Bot adding and removal are handled via `UpdateType.MyChatMember` updates.
         }
+
         _logger.LogWarning("The following message couldn't be handled:\n{Message}", message.Text);
     }
 
@@ -64,7 +64,7 @@ public class TelegramUpdateHandler
         return messageText is not null && messageText.StartsWith('/') && messageText.Length > 1;
     }
 
-    bool IsSystem(Message message)
+    bool IsSystemMessage(Message message)
     {
         return message.LeftChatMember?.Id == _bot.BotId || message.NewChatMembers?.First().Id == _bot.BotId;
     }
@@ -73,35 +73,36 @@ public class TelegramUpdateHandler
 
     void HandleCommandUpdate(Update update)
     {
-        var command = update.Message!.Text![1..];
-        _logger.LogDebug("Dispatching {Command} bot command...", command);
+        var command = update.Message!.Text!;
+        _logger.LogDebug("Dispatching {Command} command...", command);
+        var unprefixedCommand = command[1..];
 
-        if (command.StartsWith("pinglist"))
+        if (unprefixedCommand.StartsWith("pinglist"))
         {
             HandlePingList(update);
             return;
         }
-        if (command.StartsWith("ping"))
+        else if (unprefixedCommand.StartsWith("ping"))
         {
             HandlePing(update);
             return;
         }
-        if (command.StartsWith("plugins"))
+        else if (unprefixedCommand.StartsWith("plugins"))
         {
             HandlePlugins(update);
             return;
         }
-        if (command.StartsWith("online"))
+        else if (unprefixedCommand.StartsWith("online"))
         {
             HandleOnline(update);
             return;
         }
-        if (command.StartsWith("offline"))
+        else if (unprefixedCommand.StartsWith("offline"))
         {
             HandleOffline(update);
             return;
         }
-        if (command.StartsWith("remove"))
+        else if (unprefixedCommand.StartsWith("remove"))
         {
             HandleRemove(update);
             return;
@@ -130,7 +131,7 @@ public class TelegramUpdateHandler
 
     void HandlePing(Update update)
     {
-        _logger.LogDebug("Building the message with online nodes...");
+        _logger.LogDebug("Listing online nodes...");
 
         IEnumerable<KeyValuePair<MachineInfo, TimerPlus>> nodesOnlineToList;
         var splitCommand = update.Message!.Text!.Split();
@@ -221,26 +222,25 @@ public class TelegramUpdateHandler
 
     void HandleChatMember(ChatMemberUpdated chatMemberUpdate)
     {
-        _logger.LogDebug("Dispatching MyChatMember update...");
+        _logger.LogDebug("Dispatching {ChatMemberUpdated}...", nameof(ChatMemberUpdated));
 
         if (BotIsAddedToChat(chatMemberUpdate))
         {
             HandleBotIsAddedToChatAsync(chatMemberUpdate);
             return;
         }
-        if (BotIsRemovedFromChat(chatMemberUpdate))
+        else if (BotIsRemovedFromChat(chatMemberUpdate))
         {
             HandleBotIsRemovedFromChatAsync(chatMemberUpdate);
             return;
         }
-
-        _logger.LogDebug("No handler for {Update} is found", chatMemberUpdate);
     }
 
     void HandleBotIsAddedToChatAsync(ChatMemberUpdated chatMemberUpdate)
     {
         var subscriber = chatMemberUpdate.Chat.Id;
         _logger.LogDebug("Adding new subscriber: {Subscriber}", subscriber);
+
         var subscribersCount = _bot.Subscriptions.Count;
         _bot.Subscriptions.Add(subscriber);
 

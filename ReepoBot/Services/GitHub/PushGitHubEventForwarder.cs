@@ -41,7 +41,7 @@ public class PushGitHubEventForwarder
         textBuilder.AppendLine($"*{sender["login"]}* made *{commitMessages.Count()}* new push(es) to *{repo["name"]}*:");
         foreach (var commitMessage in commitMessages)
         {
-            textBuilder.AppendLine($"   {randomMarker()} {commitMessage}");
+            textBuilder.AppendLine($"   {randomMarker()} {commitMessage.Replace("*", @"\*")}");
         }
         var text = textBuilder.ToString();
 

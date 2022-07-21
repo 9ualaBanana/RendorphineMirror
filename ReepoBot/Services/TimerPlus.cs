@@ -4,11 +4,10 @@ namespace ReepoBot.Services;
 
 public class TimerPlus : Timer
 {
-    readonly DateTime _creationTime;
     public TimeSpan ElapsedTime => DateTime.Now - _creationTime;
+    readonly DateTime _creationTime = DateTime.Now;
 
     public TimerPlus(double interval) : base(interval)
     {
-        _creationTime = DateTime.Now;
     }
 }

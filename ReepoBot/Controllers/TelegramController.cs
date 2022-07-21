@@ -8,22 +8,22 @@ namespace ReepoBot.Controllers;
 [ApiController]
 public class TelegramController : ControllerBase
 {
-    // Telegram.Bot works only with Newtonsoft.
     [HttpPost]
     public void ReceiveUpdate(
         [FromBody] Update update,
         [FromServices] TelegramUpdateHandler telegramUpdateHandler,
         [FromServices] ILogger<TelegramController> logger)
     {
-        logger.LogDebug("Update with {Type} is received", update.Type);
-        try
-        {
-            telegramUpdateHandler.Handle(update);
-        }
+        logger.LogDebug("Update of type {Type} is received", update.Type);
+        bool isHandled = true;
+
+        try { telegramUpdateHandler.Handle(update); }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{updateType} couldn't be handled", update.Type);
+            isHandled = false;
+            logger.LogError(ex, "Update couldn't be handled");
         }
-        logger.LogDebug("Update is successfully handled");
+
+        if (isHandled) logger.LogDebug("Update was successfully handled");
     }
 }

@@ -27,7 +27,7 @@ public class TasksController : ControllerBase
                 videoPreview.Mp4Url,
                 logger,
                 videoPreview.ThumbnailMediumUrl,
-                caption: $"{videoPreview.Title}\n\nNode: {nodeName}\nTask ID: **{videoPreview.TaskId}**\nM+ IID: **{videoPreview.MpIid}**",
+                caption: $"{videoPreview.Title}\n\nNode: {nodeName}\nTask ID: *{videoPreview.TaskId}*\nM+ IID: *{videoPreview.MpIid}*",
                 videoPreview.Width,
                 videoPreview.Height);
         }
