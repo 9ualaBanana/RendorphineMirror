@@ -5,7 +5,9 @@ namespace Common
 {
     public static class LocalApi
     {
-        static readonly JsonSerializer JsonSerializerWithType = new() { TypeNameHandling = TypeNameHandling.Auto, };
+        public static readonly JsonSerializerSettings JsonSettingsWithType = new() { TypeNameHandling = TypeNameHandling.Auto, };
+        public static readonly JsonSerializer JsonSerializerWithType = JsonSerializer.Create(JsonSettingsWithType);
+
         public static string LocalIP => $"127.0.0.1:{Settings.LocalListenPort}";
         static readonly HttpClient Client = new();
 

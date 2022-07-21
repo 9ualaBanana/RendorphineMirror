@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Common.Tasks.Tasks;
 
 public interface IPluginAction
@@ -36,6 +34,7 @@ public class PluginAction<T> : IPluginAction where T : IPluginActionData, new()
         // var files = NodeTask.UnzipFiles(input).ToArray();
 
         var output = await ExecuteFunc(new[] { input }, task, data).ConfigureAwait(false);
-        return NodeTask.ZipFiles(output);
+        return output[0]; // TODO: ?????
+        // return NodeTask.ZipFiles(output);
     }
 }

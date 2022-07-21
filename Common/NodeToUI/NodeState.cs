@@ -12,9 +12,13 @@ namespace Common.NodeToUI
         public readonly List<string> Completed = new();
     }
 
-    // TODO:
     public class ExecutingTaskNodeState : INodeState
     {
-        public ExecutingTaskNodeState() { }
+        public readonly TaskInfo TaskInfo;
+
+        public ExecutingTaskNodeState(TaskInfo taskInfo)
+        {
+            TaskInfo = taskInfo;
+        }
     }
 }

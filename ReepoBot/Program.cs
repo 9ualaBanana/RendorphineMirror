@@ -1,6 +1,7 @@
 using NLog.Web;
 using ReepoBot.Services.GitHub;
 using ReepoBot.Services.Node;
+using ReepoBot.Services.Tasks;
 using ReepoBot.Services.Telegram;
 using Telegram.Bot;
 
@@ -11,10 +12,12 @@ builder.Host.UseNLog();
 
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpClient();
 builder.Services.AddSwaggerGen();
 
 Task<TelegramBot> botInitialization = InitializeBot();
 
+builder.Services.AddScoped<TaskResultsPreviewer>();
 builder.Services.AddScoped<TelegramUpdateHandler>();
 builder.Services.AddScoped<GitHubEventForwarder>();
 builder.Services.AddSingleton<NodeSupervisor>();

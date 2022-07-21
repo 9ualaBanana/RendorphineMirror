@@ -56,7 +56,7 @@ static class Program
 
     static void CreateShortcuts()
     {
-        if (Settings.ShortcutsCreated) return;
+        if (UISettings.ShortcutsCreated) return;
 
         try
         {
@@ -77,7 +77,7 @@ static class Program
             write(Path.Combine(startmenu, "Renderphine.url"), data);
         }
         catch { }
-        finally { Settings.ShortcutsCreated = true; }
+        finally { UISettings.ShortcutsCreated = true; }
 
 
         static void write(string linkpath, string data)

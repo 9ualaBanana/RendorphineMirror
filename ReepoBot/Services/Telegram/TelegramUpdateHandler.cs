@@ -125,7 +125,7 @@ public class TelegramUpdateHandler
         }
         var message = messageBuilder.ToString();
 
-        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
+        _ = _bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
     void HandlePing(Update update)
@@ -166,7 +166,7 @@ public class TelegramUpdateHandler
         }
         var message = messageBuilder.ToString();
 
-        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
+        _ = _bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
     void HandlePlugins(Update update)
@@ -181,13 +181,13 @@ public class TelegramUpdateHandler
             messageBuilder.AppendLine();
         }
 
-        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, messageBuilder.ToString(), _logger);
+        _ = _bot.TrySendMessageAsync(update.Message!.Chat.Id, messageBuilder.ToString(), _logger);
     }
 
     void HandleOnline(Update update)
     {
         var message = $"Online: *{_nodeSupervisor.NodesOnline.Count}*\nOffline: {_nodeSupervisor.NodesOffline.Count}";
-        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
+        _ = _bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
     void HandleOffline(Update update)
@@ -203,7 +203,7 @@ public class TelegramUpdateHandler
         }
         var message = messageBuilder.ToString();
 
-        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
+        _ = _bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
     void HandleRemove(Update update)
@@ -216,7 +216,7 @@ public class TelegramUpdateHandler
             $"Nodes with specified names are either online or not found." :
             $"{nodesRemoved} were removed.";
 
-        _ = _bot.TrySendTextMessageAsync(update.Message!.Chat.Id, message, _logger);
+        _ = _bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
     void HandleChatMember(ChatMemberUpdated chatMemberUpdate)
@@ -251,7 +251,7 @@ public class TelegramUpdateHandler
         }
 
         var message = $"You are subscribed to events now. Remove me from the chat to unsubscribe.";
-        _ = _bot.TrySendTextMessageAsync(subscriber, message, _logger);
+        _ = _bot.TrySendMessageAsync(subscriber, message, _logger);
     }
 
     void HandleBotIsRemovedFromChatAsync(ChatMemberUpdated chatMemberUpdate)

@@ -1,5 +1,5 @@
 ﻿using Benchmark;
-using Node.P2P.ResponseModels;
+using Node.P2P.Models;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -80,7 +80,7 @@ internal class PacketsUploader : IDisposable
             int bytesLeft = notUploadedBytesRange.End.Value - _Offset;
             if (bytesLeft < packetSize) packetSize = bytesLeft;
 
-            var packet = new Packet(_session.FileId, _Offset, new byte[packetSize]);
+            var packet = new Packet(_session.File.Name, _session.FileId, _Offset, new byte[packetSize]);
             _Offset += await _fileStream.ReadAsync(
                 packet.Content.AsMemory(0, packetSize)).ConfigureAwait(false);
             yield return packet;
@@ -99,16 +99,9 @@ internal class PacketsUploader : IDisposable
 
     async Task<UploadingStatus> UploadPacketAsync(Packet packet)
     {
-        var packetHttpContent = new MultipartFormDataContent()
-        {
-            { new StringContent(packet.FileId), "fileid" },
-            { new StringContent(packet.Offset.ToString()), "offset" },
-            { new ByteArrayContent(packet.Content), "chunk", _session.File.Name }
-        };
-
         var uploadingStatusResponse = await Api.TryPostAsync(
             $"https://{_session.Host}/content/vcupload/chunk",
-            packetHttpContent,
+            packet.AsHttpContent,
             _requestOptions).ConfigureAwait(false);
         return JsonDocument.Parse(await uploadingStatusResponse.Content.ReadAsStringAsync())
             .RootElement.GetProperty("fileinfo")

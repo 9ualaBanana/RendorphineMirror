@@ -21,7 +21,8 @@ namespace Common
     public static class Settings
     {
         public static event Action? AnyChanged;
-        public static readonly ImmutableArray<IDatabaseBindable> Bindables;
+        public static IReadOnlyList<IDatabaseBindable> Bindables => _Bindables;
+        static readonly List<IDatabaseBindable> _Bindables = new();
 
         public static string? SessionId => AuthInfo?.SessionId;
         public static string? Email => AuthInfo?.Email;
@@ -34,16 +35,11 @@ namespace Common
         public static ushort DhtPort { get => BDhtPort.Value; set => BDhtPort.Value = value; }
         public static ushort TorrentPort { get => BTorrentPort.Value; set => BTorrentPort.Value = value; }
         public static string NodeName { get => BNodeName.Value!; set => BNodeName.Value = value!; }
-        public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
-        public static bool ShortcutsCreated { get => BShortcutsCreated.Value; set => BShortcutsCreated.Value = value; }
-        public static DatabaseBindableList<JObject> ActiveTasks => BActiveTasks;
 
         public static readonly DatabaseBindable<string> BServerUrl;
         public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort, BDhtPort, BTorrentPort;
-        public static readonly DatabaseBindable<string?> BNodeName, BLanguage;
+        public static readonly DatabaseBindable<string?> BNodeName;
         public static readonly DatabaseBindable<AuthInfo?> BAuthInfo;
-        public static readonly DatabaseBindable<bool> BShortcutsCreated;
-        public static readonly DatabaseBindableList<JObject> BActiveTasks;
 
         static readonly SQLiteConnection Connection;
         const string ConfigTable = "config";
@@ -64,27 +60,6 @@ namespace Common
             BTorrentPort = new(nameof(TorrentPort), 6224);
             BAuthInfo = new(nameof(AuthInfo), default) { Hidden = true };
             BNodeName = new(nameof(NodeName), null);
-            BLanguage = new(nameof(Language), null);
-            BShortcutsCreated = new(nameof(ShortcutsCreated), false);
-            BActiveTasks = new(nameof(ActiveTasks));
-
-
-            // TODO: remove
-            {
-                var sid = new DatabaseBindable<string?>("SessionId", null) { Hidden = true };
-                var email = new DatabaseBindable<string?>("Email", null);
-                if (sid.Value is not null && email.Value is not null)
-                    AuthInfo = new AuthInfo(sid.Value, email.Value, System.Guid.NewGuid().ToString());
-
-                sid.Value = null;
-                email.Value = null;
-            }
-
-
-            Bindables = typeof(Settings).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)
-                .Where(x => x.FieldType.IsAssignableTo(typeof(IDatabaseBindable)))
-                .Select(x => (IDatabaseBindable) x.GetValue(null)!)
-                .ToImmutableArray();
         }
 
 
@@ -182,6 +157,8 @@ namespace Common
                     Save(name, newv);
                     AnyChanged?.Invoke();
                 };
+
+                _Bindables.Add(this);
             }
 
             public void Reload() => Value = Load(Name, _Value)!;
@@ -189,7 +166,7 @@ namespace Common
             public JToken ToJson() => JToken.FromObject(Value!);
             public void SetFromJson(string json) => Value = JsonConvert.DeserializeObject<T>(json)!;
         }
-        public class DatabaseBindableList<T> : BindableList<T>, IDatabaseBindable, IEnumerable<T>
+        public class DatabaseBindableList<T> : BindableList<T>, IDatabaseBindable
         {
             public bool Hidden { get; init; }
             public string Name { get; }
@@ -204,16 +181,14 @@ namespace Common
                     Save(name, value);
                     AnyChanged?.Invoke();
                 };
+
+                _Bindables.Add(this);
             }
 
             public void Reload() => SetRange(Load(Name, Array.Empty<T>()));
 
             public JToken ToJson() => JToken.FromObject(Value);
             public void SetFromJson(string json) => SetRange(JsonConvert.DeserializeObject<T[]>(json) ?? Array.Empty<T>());
-
-            List<T>.Enumerator GetEnumerator() => Values.GetEnumerator();
-            IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }

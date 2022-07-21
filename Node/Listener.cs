@@ -205,9 +205,9 @@ namespace Node
                 if (subpath == "starttask")
                 {
                     var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-                    var taskid = await ClientTask.RegisterAsync(task.Data, new TaskObject("3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 12345678), task.Input, task.Output).ConfigureAwait(false);
+                    var taskid = await NodeTask.RegisterAsync(task).ConfigureAwait(false);
 
-                    return await WriteJson(response, taskid.Id.AsOpResult()).ConfigureAwait(false);
+                    return await WriteJson(response, taskid).ConfigureAwait(false);
                 }
 
                 return HttpStatusCode.NotFound;

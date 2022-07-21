@@ -100,7 +100,7 @@ public class NodeSupervisor
         AllNodes.Add(updatedNode);
 
         _bot.TryNotifySubscribers(
-            $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{updatedNode.Version}*.",
+            text: $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{updatedNode.Version}*.",
             _logger);
     }
 

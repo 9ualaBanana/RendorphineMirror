@@ -1,10 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ReepoBot.Models;
 using ReepoBot.Services.Node;
-using ReepoBot.Services.Telegram;
-using System.Text;
-using System.Text.Json;
-using UnitsNet;
 
 namespace ReepoBot.Controllers;
 

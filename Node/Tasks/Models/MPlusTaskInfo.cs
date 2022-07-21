@@ -1,8 +1,9 @@
 ﻿namespace Node.Tasks.Models;
 
-public record MPlusTaskInputInfo(string Iid) : ITaskInputInfo
+public class MPlusTaskInputInfo : ITaskInputInfo
 {
     public TaskInputOutputType Type => TaskInputOutputType.MPlus;
+    public string Iid = "";
 
     public async ValueTask<string> Download(ReceivedTask task)
     {
@@ -25,9 +26,11 @@ public record MPlusTaskInputInfo(string Iid) : ITaskInputInfo
 
     public ValueTask Upload() => ValueTask.CompletedTask;
 }
-public record MPlusTaskOutputInfo(string Name, string Directory) : ITaskOutputInfo
+public class MPlusTaskOutputInfo : ITaskOutputInfo
 {
     public TaskInputOutputType Type => TaskInputOutputType.MPlus;
+    public string Name = "output_file.mov";
+    public string Directory = "output_dir";
 
     public async ValueTask Upload(ReceivedTask task, string file)
     {

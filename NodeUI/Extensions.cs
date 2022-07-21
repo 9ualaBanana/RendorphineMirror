@@ -1,5 +1,3 @@
-using System.Collections;
-
 namespace NodeUI
 {
     public static class Extensions
@@ -21,33 +19,6 @@ namespace NodeUI
         {
             obj.GetObservable<TValue>(property).Subscribe(changed);
             return obj;
-        }
-
-
-        public readonly struct IfEmptyAddEnumerable<T> : IEnumerable<T>
-        {
-            readonly IEnumerable<T> Enumerable;
-            readonly Func<T> Item;
-
-            public IfEmptyAddEnumerable(IEnumerable<T> enumerable, Func<T> item)
-            {
-                Enumerable = enumerable;
-                Item = item;
-            }
-
-            public IEnumerator<T> GetEnumerator()
-            {
-                var exists = false;
-
-                foreach (var value in Enumerable)
-                {
-                    exists = true;
-                    yield return value;
-                }
-
-                if (!exists) yield return Item();
-            }
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }
