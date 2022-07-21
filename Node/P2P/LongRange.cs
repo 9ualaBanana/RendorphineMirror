@@ -1,4 +1,4 @@
-﻿namespace Node.P2P.Models;
+﻿namespace Node.P2P;
 
 internal record LongRange(long Start, long End)
 {

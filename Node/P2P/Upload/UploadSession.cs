@@ -1,7 +1,7 @@
 ﻿using Node.P2P.Models;
 using System.Text.Json;
 
-namespace Node.P2P;
+namespace Node.P2P.Upload;
 
 internal record UploadSession(
     UploadSessionData Data,

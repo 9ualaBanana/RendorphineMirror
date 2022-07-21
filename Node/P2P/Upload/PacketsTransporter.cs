@@ -1,6 +1,6 @@
 ﻿using Benchmark;
 
-namespace Node.P2P;
+namespace Node.P2P.Upload;
 
 internal static class PacketsTransporter
 {

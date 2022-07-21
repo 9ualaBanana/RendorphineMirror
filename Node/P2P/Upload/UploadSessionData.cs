@@ -1,4 +1,4 @@
-﻿namespace Node.P2P;
+﻿namespace Node.P2P.Upload;
 
 public abstract class UploadSessionData
 {
@@ -39,7 +39,7 @@ public class UserUploadSessionData : UploadSessionData
             ["size"] = File.Length.ToString(),
             ["extension"] = File.Extension
         });
-    public override string Endpoint => $"placeholder/initupload";
+    public override string Endpoint => $"https://d7e4-213-87-159-225.eu.ngrok.io/initupload";
 }
 
 public class MPlusUploadSessionData : UploadSessionData
@@ -53,7 +53,7 @@ public class MPlusUploadSessionData : UploadSessionData
     {
     }
 
-    public override FormUrlEncodedContent HttpContent => new (
+    public override FormUrlEncodedContent HttpContent => new(
         new Dictionary<string, string>()
         {
             ["sessionid"] = Settings.SessionId!,

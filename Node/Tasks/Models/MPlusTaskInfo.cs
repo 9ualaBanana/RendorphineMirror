@@ -1,4 +1,6 @@
-﻿namespace Node.Tasks.Models;
+﻿using Node.P2P.Upload;
+
+namespace Node.Tasks.Models;
 
 public class MPlusTaskInputInfo : ITaskInputInfo
 {

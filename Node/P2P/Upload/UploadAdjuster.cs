@@ -1,4 +1,4 @@
-﻿namespace Node.P2P;
+﻿namespace Node.P2P.Upload;
 
 internal class UploadAdjuster
 {
