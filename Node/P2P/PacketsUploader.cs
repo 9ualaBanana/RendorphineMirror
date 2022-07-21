@@ -1,7 +1,5 @@
 ﻿using Benchmark;
-using Node.P2P.Models;
 using System.Diagnostics;
-using System.Text.Json;
 
 namespace Node.P2P;
 
@@ -33,7 +31,7 @@ internal class PacketsUploader : IDisposable
     {
         _session = session;
         _requestOptions = session.RequestOptions;
-        _fileStream = session.File.OpenRead();
+        _fileStream = session.Data.File.OpenRead();
         _packetSize = initialPacketSize;
         _batchSize = initialBatchSize;
         _uploadAdjuster = new(batchSizeLimit);
@@ -80,16 +78,25 @@ internal class PacketsUploader : IDisposable
             int bytesLeft = notUploadedBytesRange.End.Value - _Offset;
             if (bytesLeft < packetSize) packetSize = bytesLeft;
 
-            var packet = new Packet(_session.File.Name, _session.FileId, _Offset, new byte[packetSize]);
-            _Offset += await _fileStream.ReadAsync(
-                packet.Content.AsMemory(0, packetSize)).ConfigureAwait(false);
-            yield return packet;
+            yield return await CreatePacketAsync(packetSize);
         }
+    }
+
+    async Task<Packet> CreatePacketAsync(int size)
+    {
+        var packet = new Packet(_session.Data.File.Name, _session.FileId, _Offset, new MemoryStream(size));
+
+        var contentBuffer = new Memory<byte>(new byte[size]);
+        _Offset += await _fileStream.ReadAsync(contentBuffer).ConfigureAwait(false);
+        await packet.Content.WriteAsync(contentBuffer);
+        packet.Content.Position = 0;
+
+        return packet;
     }
 
     async Task UploadBatchAsync(IAsyncEnumerable<Packet> batch)
     {
-        var uploaders = new List<Task<UploadingStatus>>();
+        var uploaders = new List<Task>();
         await foreach (var packet in batch)
         {
             uploaders.Add(UploadPacketAsync(packet));
@@ -97,15 +104,13 @@ internal class PacketsUploader : IDisposable
         await Task.WhenAll(uploaders);
     }
 
-    async Task<UploadingStatus> UploadPacketAsync(Packet packet)
+    async Task UploadPacketAsync(Packet packet)
     {
-        var uploadingStatusResponse = await Api.TryPostAsync(
+        await Api.TryPostAsync(
             $"https://{_session.Host}/content/vcupload/chunk",
-            packet.AsHttpContent,
+            await packet.ToHttpContentAsync(),
             _requestOptions).ConfigureAwait(false);
-        return JsonDocument.Parse(await uploadingStatusResponse.Content.ReadAsStringAsync())
-            .RootElement.GetProperty("fileinfo")
-            .Deserialize<UploadingStatus>(new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+        await packet.Content.DisposeAsync();
     }
 
     public void Dispose()

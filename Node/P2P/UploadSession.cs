@@ -5,8 +5,7 @@ namespace Node.P2P;
 
 //Currently supports files of maximum length no more than int.MaxValue.
 internal record UploadSession(
-    FileInfo File,
-    string TaskId,
+    UploadSessionData Data,
     string FileId,
     string Host,
     long UploadedBytesCount,
@@ -20,7 +19,7 @@ internal record UploadSession(
         get
         {
             if (_notUploadedByteRanges is not null) return _notUploadedByteRanges;
-            if (!UploadedPackets.Any()) return _notUploadedByteRanges = new Range[] { new(0, (Index)File.Length) };
+            if (!UploadedPackets.Any()) return _notUploadedByteRanges = new Range[] { new(0, (Index)Data.File.Length) };
 
             var notUploadedByteRanges = new List<Range>();
             var controlOffset = 0;
@@ -30,58 +29,47 @@ internal record UploadSession(
                 notUploadedByteRanges.Add(new(controlOffset, (Index)UploadedPackets.First().Offset));
                 controlOffset = (int)UploadedPackets.First().Offset;
             }
-            for (var gb = 0; gb < UploadedPackets.Length - 1; gb++)
+            for (var g = 0; g < UploadedPackets.Length - 1; g++)
             {
-                if (UploadedPackets[gb + 1].Offset == (controlOffset += UploadedPackets[gb].Length)) continue;
+                if (UploadedPackets[g + 1].Offset == (controlOffset += UploadedPackets[g].Length)) continue;
 
                 notUploadedByteRanges.Add(new(
                     controlOffset,
-                    controlOffset += (int)UploadedPackets[gb + 1].Offset - controlOffset
+                    controlOffset += (int)UploadedPackets[g + 1].Offset - controlOffset
                     )
                 );
             }
-            if (File.Length != (controlOffset += UploadedPackets.Last().Length))
+            if (Data.File.Length != (controlOffset += UploadedPackets.Last().Length))
             {
-                notUploadedByteRanges.Add(new(controlOffset, (Index)File.Length));
+                notUploadedByteRanges.Add(new(controlOffset, (Index)Data.File.Length));
             }
 
             return notUploadedByteRanges;
         }
     }
 
-    internal async Task<bool> EnsureAllBytesUploadedAsync()
-        => (await InitializeAsync(File, TaskId, RequestOptions).ConfigureAwait(false)).UploadedBytesCount == File.Length;
+    internal async Task<bool> EnsureAllBytesUploadedAsync() =>
+        (await InitializeAsync(Data, RequestOptions).ConfigureAwait(false))
+        .UploadedBytesCount == Data.File.Length;
 
-    internal static async Task<UploadSession> InitializeAsync(string filePath, string taskId, RequestOptions? requestOptions = null)
-        => await InitializeAsync(new FileInfo(filePath), taskId, requestOptions);
-
-    internal static async Task<UploadSession> InitializeAsync(FileInfo file, string taskId, RequestOptions? requestOptions = null)
+    internal static async Task<UploadSession> InitializeAsync(
+        UploadSessionData sessionData,
+        RequestOptions? requestOptions = null)
     {
         requestOptions ??= new();
 
-        var urlEncodedContent = new FormUrlEncodedContent(new Dictionary<string, string>()
-        {
-            ["sessionid"] = Settings.SessionId!,
-            ["taskid"] = taskId,
-            ["fsize"] = file.Length.ToString(),
-            ["mimetype"] = "video/mp4",
-            ["lastmodified"] = file.LastWriteTimeUtc.ToBinary().ToString(),
-            ["origin"] = string.Empty
-        });
-
-        var response = await Api.TryPostAsync(
-            $"{Api.TaskManagerEndpoint}/initmptaskoutput",
-            urlEncodedContent,
+        var httpResponse = await Api.TryPostAsync(
+            sessionData.Endpoint,
+            sessionData.HttpContent,
             requestOptions).ConfigureAwait(false);
-        var rawJsonResponse = await response.Content.ReadAsStringAsync(requestOptions.CancellationToken).ConfigureAwait(false);
-        var jsonElementResponse = JsonDocument.Parse(rawJsonResponse).RootElement;
+        var rawJsonResponse = await httpResponse.Content.ReadAsStringAsync(requestOptions.CancellationToken).ConfigureAwait(false);
+        var response = JsonDocument.Parse(rawJsonResponse).RootElement;
         return new(
-            file,
-            taskId,
-            jsonElementResponse.GetProperty("fileid").GetString()!,
-            jsonElementResponse.GetProperty("host").GetString()!,
-            jsonElementResponse.GetProperty("uploadedbytes").GetInt64(),
-            jsonElementResponse.GetProperty("uploadedchunks")
+            sessionData,
+            response.GetProperty("fileid").GetString()!,
+            response.GetProperty("host").GetString()!,
+            response.GetProperty("uploadedbytes").GetInt64(),
+            response.GetProperty("uploadedchunks")
                 .Deserialize<UploadedPacket[]>(new JsonSerializerOptions(JsonSerializerDefaults.Web))!,
             requestOptions);
     }

@@ -100,7 +100,6 @@ namespace Common
             {
                 try
                 {
-                    // Port to Newtonsoft.Json
                     var response = await requestCallback();
                     await GetJsonFromResponseIfSuccessful(response);
                     return response;

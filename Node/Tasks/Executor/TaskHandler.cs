@@ -7,7 +7,7 @@ public static class TaskHandler
 {
     static TaskInputOutputType GetInputOutputType(JObject json) => Enum.Parse<TaskInputOutputType>(json["type"]!.Value<string>()!);
 
-    static ITaskInputInfo DeserializeInput(TaskInfo info) =>
+    static MPlusTaskInputInfo DeserializeInput(TaskInfo info) =>
         GetInputOutputType(info.Input) switch
         {
             TaskInputOutputType.MPlus => info.Input.ToObject<MPlusTaskInputInfo>()!,

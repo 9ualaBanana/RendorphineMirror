@@ -35,6 +35,6 @@ public class MPlusTaskOutputInfo : ITaskOutputInfo
     public async ValueTask Upload(ReceivedTask task, string file)
     {
         var packetsTransporter = new PacketsTransporter(task.RequestOptions);
-        await packetsTransporter.UploadAsync(file, task.Id);
+        await packetsTransporter.UploadAsync(new MPlusUploadSessionData(file, task.Id));
     }
 }
