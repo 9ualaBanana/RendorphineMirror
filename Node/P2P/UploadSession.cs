@@ -3,7 +3,6 @@ using System.Text.Json;
 
 namespace Node.P2P;
 
-//Currently supports files of maximum length no more than int.MaxValue.
 internal record UploadSession(
     UploadSessionData Data,
     string FileId,
@@ -14,38 +13,37 @@ internal record UploadSession(
     CancellationToken CancellationToken) : IAsyncDisposable
 {
     bool _finalized;
-    IEnumerable<Range>? _notUploadedByteRanges;
-    internal IEnumerable<Range> NotUploadedByteRanges
+    IEnumerable<LongRange>? _notUploadedBytes;
+    internal IEnumerable<LongRange> NotUploadedBytes
     {
         get
         {
-            if (_notUploadedByteRanges is not null) return _notUploadedByteRanges;
-            if (!UploadedPackets.Any()) return _notUploadedByteRanges = new Range[] { new(0, (Index)Data.File.Length) };
+            if (_notUploadedBytes is not null) return _notUploadedBytes;
 
-            var notUploadedByteRanges = new List<Range>();
-            var controlOffset = 0;
+            if (!UploadedPackets.Any()) return _notUploadedBytes = new LongRange[] { new(0, Data.File.Length) };
+
+            var notUploadedBytes = new List<LongRange>();
+            long controlOffset = 0L;
 
             if (UploadedPackets.First().Offset != controlOffset)
             {
-                notUploadedByteRanges.Add(new(controlOffset, (Index)UploadedPackets.First().Offset));
-                controlOffset = (int)UploadedPackets.First().Offset;
+                notUploadedBytes.Add(new(controlOffset, UploadedPackets.First().Offset));
+                controlOffset = UploadedPackets.First().Offset;
             }
             for (var g = 0; g < UploadedPackets.Length - 1; g++)
             {
                 if (UploadedPackets[g + 1].Offset == (controlOffset += UploadedPackets[g].Length)) continue;
 
-                notUploadedByteRanges.Add(new(
-                    controlOffset,
-                    controlOffset += (int)UploadedPackets[g + 1].Offset - controlOffset
-                    )
-                );
+                notUploadedBytes.Add(
+                    new(controlOffset, controlOffset += UploadedPackets[g + 1].Offset - controlOffset)
+                    );
             }
             if (Data.File.Length != (controlOffset += UploadedPackets.Last().Length))
             {
-                notUploadedByteRanges.Add(new(controlOffset, (Index)Data.File.Length));
+                notUploadedBytes.Add(new(controlOffset, Data.File.Length));
             }
 
-            return notUploadedByteRanges;
+            return notUploadedBytes;
         }
     }
 

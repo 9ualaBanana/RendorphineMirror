@@ -1,4 +1,5 @@
 ﻿using Benchmark;
+using Node.P2P.Models;
 using System.Diagnostics;
 
 namespace Node.P2P;
@@ -7,8 +8,8 @@ internal class PacketsUploader : IDisposable
 {
     readonly UploadSession _session;
     readonly UploadAdjuster _uploadAdjuster;
-    int _offset;
-    int _Offset
+    long _offset;
+    long _Offset
     {
         get => _offset;
         set
@@ -50,10 +51,10 @@ internal class PacketsUploader : IDisposable
         TimeSpan lastUploadTime;
         var uploadResult = new BenchmarkResult(_fileStream.Length);
 
-        foreach (var range in _session.NotUploadedByteRanges)
+        foreach (var range in _session.NotUploadedBytes)
         {
-            _Offset = range.Start.Value;
-            while (_Offset < range.End.Value)
+            _Offset = range.Start;
+            while (_Offset < range.End)
             {
                 var batch = CreateBatchAsync(range, _batchSize, _packetSize);
 
@@ -76,12 +77,12 @@ internal class PacketsUploader : IDisposable
         return uploadResult;
     }
 
-    async IAsyncEnumerable<Packet> CreateBatchAsync(Range notUploadedBytesRange, int batchSize, int packetSize)
+    async IAsyncEnumerable<Packet> CreateBatchAsync(LongRange notUploadedBytesRange, int batchSize, int packetSize)
     {
-        for (int packetsCount = 0; packetsCount < batchSize && _Offset < notUploadedBytesRange.End.Value; packetsCount++)
+        for (int packetsCount = 0; packetsCount < batchSize && _Offset < notUploadedBytesRange.End; packetsCount++)
         {
-            int bytesLeft = notUploadedBytesRange.End.Value - _Offset;
-            if (bytesLeft < packetSize) packetSize = bytesLeft;
+            long bytesLeft = notUploadedBytesRange.End - _Offset;
+            if (bytesLeft < packetSize) packetSize = (int)bytesLeft;
 
             yield return await CreatePacketAsync(packetSize);
         }
