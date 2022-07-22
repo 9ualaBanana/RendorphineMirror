@@ -61,21 +61,16 @@ namespace NodeUI.Pages
         }
         async Task StartStateListener()
         {
-            while (true)
+            var stream = await LocalPipe.SendLocalAsync("getstate").ConfigureAwait(false);
+            await LocalPipe.StartReadingAsync<INodeState>(stream, state =>
             {
-                await Task.Delay(2000).ConfigureAwait(false);
-
-                var stateres = await LocalApi.Send("getstate", new { State = (INodeState) null! }).ConfigureAwait(false);
-                stateres.LogIfError("Could not get node state: {0}");
-                if (!stateres) continue;
-
                 var oldstate = GlobalState.State.Value;
-                var newstate = stateres.Value.State ?? IdleNodeState.Instance;
+                var newstate = state ?? IdleNodeState.Instance;
                 if (newstate.GetType() != oldstate.GetType())
                     Log.Information($"Changing state from {oldstate.GetStateName()} to {newstate.GetStateName()}");
 
                 GlobalState.State.Value = newstate;
-            }
+            }, CancellationToken.None);
         }
 
 

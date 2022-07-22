@@ -26,9 +26,9 @@ internal static class PacketsTransporter
                 await uploadSession.FinalizeAsync().ConfigureAwait(false);
                 break;
             }
-            _logger.Log(LogLevel.Debug, "Reinitializing upload session");
+            _logger.Debug("Restarting upload");
         }
-        _logger.Log(LogLevel.Info, "Upload is complete");
+        _logger.Info("Upload is complete");
         return uploadResult;
     }
 }

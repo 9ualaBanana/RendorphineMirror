@@ -11,6 +11,7 @@ namespace Common
     public class Bindable<T> : IReadOnlyBindable<T>
     {
         public event ChangedDelegate<T> Changed = delegate { };
+        List<WeakReference<Bindable<T>>>? Bounds;
 
         protected T _Value;
         public virtual T Value
@@ -27,7 +28,30 @@ namespace Common
         }
         public readonly T DefaultValue;
 
-        public Bindable(T defaultValue = default!) => _Value = DefaultValue = defaultValue;
+        public Bindable(T defaultValue = default!)
+        {
+            _Value = DefaultValue = defaultValue;
+            Changed += updateBound;
+
+
+            void updateBound(T _, T __)
+            {
+                if (Bounds is null) return;
+
+                for (int i = 0; i < Bounds.Count; i++)
+                {
+                    var weakr = Bounds[i];
+                    if (!weakr.TryGetTarget(out var b))
+                    {
+                        i--;
+                        Bounds.Remove(weakr);
+                        continue;
+                    }
+
+                    b.Value = Value;
+                }
+            }
+        }
 
         public void RaiseChangedEvent() => Changed(Value!, Value!);
         public void SubscribeChanged(ChangedDelegate<T> action, bool invokeImmediately = false)
@@ -41,6 +65,19 @@ namespace Common
         {
             if (!EqualityComparer<T>.Default.Equals(Value, value))
                 Value = value;
+        }
+
+        public void Bound(Bindable<T> bindable)
+        {
+            (Bounds ??= new()).Add(new(bindable));
+            (bindable.Bounds ??= new()).Add(new(this));
+        }
+        public Bindable<T> GetBoundCopy()
+        {
+            var b = new Bindable<T>(Value);
+            b.Bound(this);
+
+            return b;
         }
     }
     public class IntBindable : Bindable<int>

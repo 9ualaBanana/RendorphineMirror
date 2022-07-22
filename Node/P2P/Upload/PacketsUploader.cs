@@ -51,7 +51,7 @@ internal class PacketsUploader : IDisposable
     /// </remarks>
     internal async Task<BenchmarkResult> UploadAsync()
     {
-        _logger.Log(LogLevel.Debug, "Start uploading packets...");
+        _logger.Debug("Start uploading packets...");
 
         var uploadResult = new BenchmarkResult(_fileStream.Length);
         TimeSpan lastUploadTime;
@@ -65,6 +65,8 @@ internal class PacketsUploader : IDisposable
                 _uploadAdjuster.Adjust(ref _packetSize, ref _batchSize, lastUploadTime);
             }
         }
+
+        _logger.Debug("All packets were uploaded");
         return uploadResult;
     }
 
@@ -96,7 +98,7 @@ internal class PacketsUploader : IDisposable
         var sw = Stopwatch.StartNew();
 
         try { await UploadBatchAsync(batch).ConfigureAwait(false); }
-        catch (HttpRequestException ex) { _logger.Log(LogLevel.Warn, ex, "Exception occured when uploading a batch"); }
+        catch (HttpRequestException ex) { _logger.Warn(ex, "Exception occured when uploading a batch"); }
 
         sw.Stop();
         return sw.Elapsed;

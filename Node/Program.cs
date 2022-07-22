@@ -11,6 +11,7 @@ using System.Diagnostics;
 using Machine.Plugins;
 using Machine.Plugins.Discoverers;
 using Node;
+using Node.Listeners;
 using Node.Profiler;
 
 var halfrelease = args.Contains("release");
@@ -31,7 +32,7 @@ var discoveringInstalledPlugins = MachineInfo.DiscoverInstalledPluginsInBackgrou
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
 
-_ = Listener.StartLocalListenerAsync();
+new LocalListener().Start();
 
 if (Settings.SessionId is not null)
 {
@@ -82,7 +83,10 @@ if (!Init.IsDebug || halfrelease)
 var taskreceiver = new TaskReceiver(Api.Client);
 taskreceiver.StartAsync().Consume();
 
-_ = Listener.StartPublicListenerAsync();
+new PublicListener().Start();
+new NodeStateListener().Start();
+if (Init.IsDebug) new DebugListener().Start();
+
 
 if (NodeSettings.ExecutingTasks.Count != 0)
 {

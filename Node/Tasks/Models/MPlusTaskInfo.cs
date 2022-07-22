@@ -9,9 +9,10 @@ public class MPlusTaskInputInfo : ITaskInputInfo
 
     public async ValueTask<string> Download(ReceivedTask task, HttpClient httpClient, CancellationToken cancellationToken)
     {
-        var format = "mov";
+        var fformat = TaskList.Get(task.Info).FileFormat;
+        var format = fformat.ToString().ToLowerInvariant();
         var downloadLink = await Api.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskinputdownloadlink", "link", "get download link",
-            ("sessionid", Settings.SessionId!), ("taskid", task.Id), ("format", format), ("original", format == "jpg" ? "1" : "0")).ConfigureAwait(false);
+            ("sessionid", Settings.SessionId!), ("taskid", task.Id), ("format", format), ("original", fformat == FileFormat.Jpeg ? "1" : "0")).ConfigureAwait(false);
 
         var dir = Path.Combine(Init.TaskFilesDirectory, task.Id);
         Directory.CreateDirectory(dir);

@@ -35,7 +35,7 @@ public static class TaskHandler
             task.LogInfo($"File downloaded to {input}");
             await task.ChangeStateAsync(TaskState.Active);
 
-            var output = await HandleAsyncCore(input, task);
+            var output = await TaskList.Get(task.Info).Execute(task, input).ConfigureAwait(false);
             await task.ChangeStateAsync(TaskState.Output);
 
             task.LogInfo($"Uploading output file {output} ...");
@@ -59,7 +59,7 @@ public static class TaskHandler
                     task.LogInfo($"Got output iid: {outiid}");
 
                     task.LogInfo($"Uploading...");
-                    var queryString = $"sessionid={Settings.SessionId}&iid={inputobj.Iid}&nodename={Settings.NodeName}";
+                    var queryString = $"sessionid={Settings.SessionId}&iid={outiid}&nodename={Settings.NodeName}";
                     await httpClient.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken);
                     task.LogInfo($"Result uploaded");
                 }
@@ -76,15 +76,5 @@ public static class TaskHandler
             task.LogErr(ex);
             await task.ChangeStateAsync(TaskState.Failed);
         }
-    }
-    static async Task<string> HandleAsyncCore(string input, ReceivedTask task)
-    {
-        var type = task.Info.Data["type"]?.Value<string>();
-        if (type is null) throw new InvalidOperationException("Task type is null");
-
-        var action = TaskList.TryGet(type);
-        if (action is null) throw new InvalidOperationException("Got unknown task type");
-
-        return await action.Execute(task, input).ConfigureAwait(false);
     }
 }
