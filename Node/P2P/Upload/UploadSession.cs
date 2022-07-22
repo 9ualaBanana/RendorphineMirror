@@ -12,6 +12,8 @@ internal record UploadSession(
     HttpClient HttpClient,
     CancellationToken CancellationToken) : IAsyncDisposable
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     bool _finalized;
     IEnumerable<LongRange>? _notUploadedBytes;
     internal IEnumerable<LongRange> NotUploadedBytes
@@ -47,11 +49,34 @@ internal record UploadSession(
         }
     }
 
-    internal async Task<bool> EnsureAllBytesUploadedAsync() =>
-        (await InitializeAsync(Data, HttpClient, CancellationToken).ConfigureAwait(false))
-        .UploadedBytesCount == Data.File.Length;
+    internal async Task<bool> EnsureAllBytesUploadedAsync()
+    {
+        bool allAreUploaded = (await InitializeAsync(Data, HttpClient, CancellationToken).ConfigureAwait(false))
+            .UploadedBytesCount == Data.File.Length;
+
+        if (allAreUploaded) _logger.Debug("All bytes were successfully uploaded");
+        else _logger.Warn("Not all bytes were successfully uploaded");
+
+        return allAreUploaded;
+    }
 
     internal static async Task<UploadSession> InitializeAsync(
+        UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken)
+    {
+        _logger.Debug("Initializing upload session...");
+        var uploadSession = await InitializeOrThrowAsync(sessionData, httpClient, cancellationToken).ConfigureAwait(false);
+        _logger.Debug("Upload session is initialized");
+        return uploadSession;
+    }
+
+    static async Task<UploadSession> InitializeOrThrowAsync(
+        UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken)
+    {
+        try { return await InitializeAsyncCore(sessionData, httpClient, cancellationToken).ConfigureAwait(false); }
+        catch (Exception ex) { _logger.Error(ex, "Upload session couldn't be initialized"); throw; }
+    }
+
+    internal static async Task<UploadSession> InitializeAsyncCore(
         UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken)
     {
         var httpResponse = await httpClient.PostAsync(sessionData.Endpoint, sessionData.HttpContent, cancellationToken).ConfigureAwait(false);
@@ -75,13 +100,14 @@ internal record UploadSession(
 
     internal async ValueTask FinalizeAsync()
     {
-        if (_finalized) return;
+        if (_finalized) { _logger.Warn("Upload session is already finalized"); return; }
 
         await HttpClient.PostAsync(
             $"https://{Host}/content/vcupload/finish",
             new FormUrlEncodedContent(new Dictionary<string, string>() { ["fileid"] = FileId })
             ).ConfigureAwait(false);
 
+        _logger.Debug("Upload session is successfully finalized");
         _finalized = true;
     }
 }

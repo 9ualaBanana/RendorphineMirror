@@ -5,6 +5,8 @@ namespace Node.P2P.Upload;
 
 internal class PacketsUploader : IDisposable
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     readonly UploadSession _session;
     readonly UploadAdjuster _uploadAdjuster;
     long _offset;
@@ -40,6 +42,8 @@ internal class PacketsUploader : IDisposable
         _uploadAdjuster = new(batchSizeLimit);
         _httpClient = httpClient;
         _cancellationToken = cancellationToken;
+
+        _logger.Debug("Uploader is initialized");
     }
 
     /// <remarks>
@@ -47,29 +51,17 @@ internal class PacketsUploader : IDisposable
     /// </remarks>
     internal async Task<BenchmarkResult> UploadAsync()
     {
-        TimeSpan lastUploadTime;
-        var uploadResult = new BenchmarkResult(_fileStream.Length);
+        _logger.Log(LogLevel.Debug, "Start uploading packets...");
 
+        var uploadResult = new BenchmarkResult(_fileStream.Length);
+        TimeSpan lastUploadTime;
         foreach (var range in _session.NotUploadedBytes)
         {
             _Offset = range.Start;
             while (_Offset < range.End)
             {
                 var batch = CreateBatchAsync(range, _batchSize, _packetSize);
-
-                var sw = Stopwatch.StartNew();
-
-                try { await UploadBatchAsync(batch).ConfigureAwait(false); }
-                catch (HttpRequestException)
-                {
-                    sw.Stop();
-                    uploadResult.Time += sw.Elapsed;
-                    return uploadResult;
-                }
-
-                sw.Stop();
-                uploadResult.Time += lastUploadTime = sw.Elapsed;
-
+                uploadResult.Time += lastUploadTime = await TryUploadBatchAsync(batch);
                 _uploadAdjuster.Adjust(ref _packetSize, ref _batchSize, lastUploadTime);
             }
         }
@@ -97,6 +89,17 @@ internal class PacketsUploader : IDisposable
         packet.Content.Position = 0;
 
         return packet;
+    }
+
+    async Task<TimeSpan> TryUploadBatchAsync(IAsyncEnumerable<Packet> batch)
+    {
+        var sw = Stopwatch.StartNew();
+
+        try { await UploadBatchAsync(batch).ConfigureAwait(false); }
+        catch (HttpRequestException ex) { _logger.Log(LogLevel.Warn, ex, "Exception occured when uploading a batch"); }
+
+        sw.Stop();
+        return sw.Elapsed;
     }
 
     async Task UploadBatchAsync(IAsyncEnumerable<Packet> batch)
