@@ -29,7 +29,9 @@ namespace Common
             {
                 try
                 {
-                    CachedPublicIp = IPAddress.Parse(await client.GetStringAsync(service).ConfigureAwait(false));
+                    var ip = await client.GetStringAsync(service).ConfigureAwait(false);
+
+                    CachedPublicIp = IPAddress.Parse(ip.Trim());
                     IpCacheTime = DateTime.Now.AddHours(1);
 
                     return CachedPublicIp;
