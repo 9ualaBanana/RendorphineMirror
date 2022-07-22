@@ -101,14 +101,17 @@ namespace NodeUI.Pages
                 };
                 Children.Add(langbtn);
 
-                var taskbtn = new MPButton()
+                if (Settings.IsSlave == false)
                 {
-                    Text = new("new task"),
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    OnClick = () => new TaskCreationWindow().Show(),
-                };
-                Children.Add(taskbtn);
+                    var taskbtn = new MPButton()
+                    {
+                        Text = new("new task"),
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        OnClick = () => new TaskCreationWindow().Show(),
+                    };
+                    Children.Add(taskbtn);
+                }
 
 
                 void updatetext()

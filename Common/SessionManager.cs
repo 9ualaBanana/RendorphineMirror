@@ -19,16 +19,16 @@ public static class SessionManager
     public static ValueTask<OperationResult> AutoAuthAsync(string email) => AutoAuthAsync(email, Guid.NewGuid().ToString());
     public static ValueTask<OperationResult> AutoAuthAsync(string email, string guid) =>
         AutoLoginAsync(email, guid)
-        .Next(sid => LoginSuccess(sid, email, guid));
+        .Next(sid => LoginSuccess(sid, email, guid, true));
 
     public static ValueTask<OperationResult> AuthAsync(string email, string password) => AuthAsync(email, password, Guid.NewGuid().ToString());
     public static ValueTask<OperationResult> AuthAsync(string email, string password, string guid) =>
         LoginAsync(email, password, guid)
-        .Next(sid => LoginSuccess(sid, email, guid));
+        .Next(sid => LoginSuccess(sid, email, guid, false));
 
-    static async ValueTask<OperationResult> LoginSuccess(string sid, string email, string guid)
+    static async ValueTask<OperationResult> LoginSuccess(string sid, string email, string guid, bool slave)
     {
-        Settings.AuthInfo = new AuthInfo(sid, email, guid);
+        Settings.AuthInfo = new AuthInfo(sid, email, guid, slave);
         if (Settings.NodeName is null)
         {
             var nickr = await RequestNicknameAsync().ConfigureAwait(false);
