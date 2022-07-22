@@ -59,7 +59,7 @@ public static class TaskHandler
                     task.LogInfo($"Got output iid: {outiid}");
 
                     task.LogInfo($"Uploading...");
-                    var queryString = $"sessionid={Settings.SessionId}&iid={inputobj.Iid}&nodename={Settings.NodeName}";
+                    var queryString = $"sessionid={Settings.SessionId}&iid={outiid}&nodename={Settings.NodeName}";
                     await httpClient.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken);
                     task.LogInfo($"Result uploaded");
                 }
