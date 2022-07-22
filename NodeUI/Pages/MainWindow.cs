@@ -101,6 +101,24 @@ namespace NodeUI.Pages
                 };
                 Children.Add(langbtn);
 
+                var unloginbtn = new MPButton()
+                {
+                    MaxWidth = 100,
+                    MaxHeight = 30,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    Margin = new Thickness(200, 0, 0, 0),
+                    Text = new("unlogin"),
+                    OnClick = () =>
+                    {
+                        Settings.AuthInfo = null;
+                        LocalApi.Send("reloadcfg").AsTask().Consume();
+                        new LoginWindow().Show();
+                        ((Window) VisualRoot!).Close();
+                    },
+                };
+                Children.Add(unloginbtn);
+
                 if (Settings.IsSlave == false)
                 {
                     var taskbtn = new MPButton()
