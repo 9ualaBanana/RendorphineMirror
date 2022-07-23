@@ -101,14 +101,35 @@ namespace NodeUI.Pages
                 };
                 Children.Add(langbtn);
 
-                var taskbtn = new MPButton()
+                var unloginbtn = new MPButton()
                 {
-                    Text = new("new task"),
+                    MaxWidth = 100,
+                    MaxHeight = 30,
+                    HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Bottom,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    OnClick = () => new TaskCreationWindow().Show(),
+                    Margin = new Thickness(200, 0, 0, 0),
+                    Text = new("unlogin"),
+                    OnClick = () =>
+                    {
+                        Settings.AuthInfo = null;
+                        LocalApi.Send("reloadcfg").AsTask().Consume();
+                        new LoginWindow().Show();
+                        ((Window) VisualRoot!).Close();
+                    },
                 };
-                Children.Add(taskbtn);
+                Children.Add(unloginbtn);
+
+                if (Settings.IsSlave == false)
+                {
+                    var taskbtn = new MPButton()
+                    {
+                        Text = new("new task"),
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        OnClick = () => new TaskCreationWindow().Show(),
+                    };
+                    Children.Add(taskbtn);
+                }
 
 
                 void updatetext()

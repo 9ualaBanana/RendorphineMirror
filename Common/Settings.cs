@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Data.Common;
+﻿using System.Data.Common;
 using System.Data.SQLite;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
@@ -10,12 +9,14 @@ namespace Common
     public readonly struct AuthInfo
     {
         public readonly string SessionId, Email, Guid;
+        public readonly bool Slave;
 
-        public AuthInfo(string sessionId, string email, string guid)
+        public AuthInfo(string sessionId, string email, string guid, bool slave = false)
         {
             SessionId = sessionId;
             Email = email;
             Guid = guid;
+            Slave = slave;
         }
     }
     public static class Settings
@@ -27,6 +28,7 @@ namespace Common
         public static string? SessionId => AuthInfo?.SessionId;
         public static string? Email => AuthInfo?.Email;
         public static string? Guid => AuthInfo?.Guid;
+        public static bool? IsSlave => AuthInfo?.Slave;
         public static AuthInfo? AuthInfo { get => BAuthInfo.Value; set => BAuthInfo.Value = value; }
 
         public static string ServerUrl { get => BServerUrl.Value; set => BServerUrl.Value = value; }
