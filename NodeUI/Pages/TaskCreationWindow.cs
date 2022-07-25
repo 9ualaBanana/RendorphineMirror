@@ -179,7 +179,7 @@ namespace NodeUI.Pages
             public ChooseVersionPart(TaskCreationInfo builder) : base(builder)
             {
                 string[] versions;
-                if (GlobalState.SoftwareStats.Value.TryGetValue(builder.Type, out var stats))
+                if (UICache.SoftwareStats.Value.TryGetValue(builder.Type, out var stats))
                     versions = stats.ByVersion.Keys.ToArray();
                 else versions = Array.Empty<string>();
 
@@ -200,7 +200,7 @@ namespace NodeUI.Pages
 
             public ChooseActionPart(TaskCreationInfo builder) : base(builder)
             {
-                ActionsList = CreateListBox(GlobalState.GetTasksInfoAsync().GetAwaiter().GetResult().Actions, action => new TextBlock() { Text = action.Name });
+                ActionsList = CreateListBox(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Actions, action => new TextBlock() { Text = action.Name });
                 ActionsList.SelectionChanged += (obj, e) =>
                     OnChoose?.Invoke(ActionsList.SelectedItems.Count != 0);
 
@@ -262,7 +262,7 @@ namespace NodeUI.Pages
             public override LocalizedString Title => new("Choose Input");
             public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
 
-            public ChooseInputPart(TaskCreationInfo builder) : base(GlobalState.GetTasksInfoAsync().GetAwaiter().GetResult().Inputs, builder) =>
+            public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Inputs, builder) =>
                 Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
         }
         class ChooseOutputPart : ChooseInputOutputPart
@@ -271,7 +271,7 @@ namespace NodeUI.Pages
             public override LocalizedString Title => new("Choose Output");
             public override TaskPart? Next => new ParametersPart(Builder.With(x => x.Output = InputOutputJson));
 
-            public ChooseOutputPart(TaskCreationInfo builder) : base(GlobalState.GetTasksInfoAsync().GetAwaiter().GetResult().Outputs, builder) =>
+            public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Outputs, builder) =>
                 Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
         }
         class ParametersPart : TaskPart
@@ -285,7 +285,7 @@ namespace NodeUI.Pages
 
             public ParametersPart(TaskCreationInfo builder) : base(builder)
             {
-                var describer = GlobalState.GetTasksInfoAsync().GetAwaiter().GetResult().Actions.First(x => x.Name == builder.Action).DataDescriber;
+                var describer = UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Actions.First(x => x.Name == builder.Action).DataDescriber;
                 Data.RemoveAll();
                 Data["type"] = builder.Action;
 

@@ -18,8 +18,8 @@ namespace NodeUI.Pages
 
             this.PreventClosing();
             SubscribeToStateChanges();
-            _ = StartStateListener();
-            _ = GlobalState.GetTasksInfoAsync();
+            _ = StartStateListener(CancellationToken.None);
+            _ = UICache.GetTasksInfoAsync();
 
 
             var tabs = new TabbedControl();
@@ -35,42 +35,62 @@ namespace NodeUI.Pages
         void SubscribeToStateChanges()
         {
             IMessageBox? benchmb = null;
-            GlobalState.SubscribeStateChanged<BenchmarkNodeState>(
-                (oldstate, newstate) => Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    if (newstate is BenchmarkNodeState bns)
-                    {
-                        if (benchmb is null)
-                        {
-                            benchmb = new MessageBox(new("Hide"));
-                            benchmb.Show();
-                        }
-
-                        benchmb.Text = new(@$"
-                            Benchmarking your system...
-                            {bns.Completed.Count} completed: {string.Join(", ", bns.Completed)}
-                        ".TrimLines());
-                    }
-                    else
-                    {
-                        benchmb?.Close();
-                        benchmb = null;
-                    }
-                })
-            );
-        }
-        async Task StartStateListener()
-        {
-            var stream = await LocalPipe.SendLocalAsync("getstate").ConfigureAwait(false);
-            await LocalPipe.StartReadingAsync<INodeState>(stream, state =>
+            NodeGlobalState.Instance.ExecutingBenchmarks.Changed += benchs => Dispatcher.UIThread.Post(() =>
             {
-                var oldstate = GlobalState.State.Value;
-                var newstate = state ?? IdleNodeState.Instance;
-                if (newstate.GetType() != oldstate.GetType())
-                    Log.Information($"Changing state from {oldstate.GetStateName()} to {newstate.GetStateName()}");
+                if (benchs.Count != 0)
+                {
+                    if (benchmb is null)
+                    {
+                        benchmb = new MessageBox(new("Hide"));
+                        benchmb.Show();
+                    }
 
-                GlobalState.State.Value = newstate;
-            }, CancellationToken.None);
+                    benchmb.Text = new(@$"
+                        Benchmarking your system...
+                        {benchs.Count} completed: {JsonConvert.SerializeObject(benchs)}
+                    ".TrimLines());
+                }
+                else
+                {
+                    benchmb?.Close();
+                    benchmb = null;
+                }
+            });
+        }
+        async Task StartStateListener(CancellationToken token)
+        {
+            var consecutive = 0;
+            while (true)
+            {
+                try
+                {
+                    var stream = await LocalPipe.SendLocalAsync("getstate").ConfigureAwait(false);
+                    var reader = LocalPipe.CreateReader(stream);
+                    consecutive = 0;
+
+                    while (true)
+                    {
+                        var read = reader.Read();
+                        if (!read) break;
+                        if (token.IsCancellationRequested) return;
+
+                        var jtoken = JToken.Load(reader);
+                        Log.Debug($"Node state updated: {jtoken.ToString(Formatting.None)}");
+
+                        using var tokenreader = jtoken.CreateReader();
+                        LocalApi.JsonSerializerWithType.Populate(tokenreader, NodeGlobalState.Instance);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (consecutive < 3) Log.Error($"Could not read node state: {ex.Message}, reconnecting...");
+                    else if (consecutive == 3) Log.Error($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
+
+                    consecutive++;
+                }
+
+                await Task.Delay(1_000).ConfigureAwait(false);
+            }
         }
 
 
@@ -88,7 +108,7 @@ namespace NodeUI.Pages
                 Children.Add(infotb);
                 updatetext();
                 Settings.AnyChanged += updatetext;
-                GlobalState.State.Changed += (_, _) => updatetext();
+                NodeGlobalState.Instance.AnyChanged.Subscribe(this, updatetext);
 
                 var langbtn = new MPButton()
                 {
@@ -119,8 +139,7 @@ namespace NodeUI.Pages
 
                     Dispatcher.UIThread.Post(() => infotb.Text =
                         @$"
-                        Current node state: {GlobalState.State.Value.GetStateName()}
-                        State data: {JsonConvert.SerializeObject(GlobalState.State.Value, Formatting.None)}
+                        Current node state: {JsonConvert.SerializeObject(NodeGlobalState.Instance, Formatting.Indented)}
 
                         Settings:
                         {string.Join("; ", values)}
@@ -159,8 +178,8 @@ namespace NodeUI.Pages
                     });
 
 
-                    GlobalState.StartUpdatingStats();
-                    GlobalState.SoftwareStats.SubscribeChanged((_, stats) => Dispatcher.UIThread.Post(() =>
+                    UICache.StartUpdatingStats();
+                    UICache.SoftwareStats.SubscribeChanged((_, stats) => Dispatcher.UIThread.Post(() =>
                     {
                         InfoTextBlock.Text = $"Last update: {DateTimeOffset.Now}";
                         ItemsPanel.Children.Clear();
