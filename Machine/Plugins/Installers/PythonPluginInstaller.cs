@@ -11,11 +11,20 @@ public class PythonPluginInstaller : PluginInstaller
     {
     }
 
-    protected override ProcessStartInfo GetInstallationInfo(string installerPath) => new()
+    protected override ProcessStartInfo GetInstallationInfo(
+        string installerPath, string? installationPath = default)
     {
-        FileName = installerPath,
-        Arguments = "/quiet PrependPath=1",
-        CreateNoWindow = true,
-        ErrorDialog = false,
-    };
+        var installationInfo = new ProcessStartInfo
+        {
+            FileName = installerPath,
+            CreateNoWindow = true,
+            ErrorDialog = false,
+        };
+        installationInfo.ArgumentList.Add("/quiet");
+        installationInfo.ArgumentList.Add("PrependPath=1");
+        if (installationPath is not null)
+            installationInfo.ArgumentList.Add($"TargetDir={installationPath}");
+
+        return installationInfo;
+    }
 }
