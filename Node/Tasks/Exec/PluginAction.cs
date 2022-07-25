@@ -7,10 +7,10 @@ public interface IPluginAction
     string Name { get; }
     FileFormat FileFormat { get; }
 
-    IPluginActionData CreateData();
+    object CreateData();
     ValueTask<string> Execute(ReceivedTask task, string input);
 }
-public class PluginAction<T> : IPluginAction where T : IPluginActionData, new()
+public class PluginAction<T> : IPluginAction where T : new()
 {
     Type IPluginAction.DataType => typeof(T);
 
@@ -28,7 +28,7 @@ public class PluginAction<T> : IPluginAction where T : IPluginActionData, new()
         ExecuteFunc = func;
     }
 
-    public IPluginActionData CreateData() => new T();
+    public object CreateData() => new T();
 
     public async ValueTask<string> Execute(ReceivedTask task, string input)
     {

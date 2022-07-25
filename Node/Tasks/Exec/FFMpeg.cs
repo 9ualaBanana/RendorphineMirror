@@ -8,7 +8,7 @@ public class Crop
 {
     public int X, Y, W, H;
 }
-public abstract class MediaEditInfo : IPluginActionData
+public abstract class MediaEditInfo
 {
     protected static readonly NumberFormatInfo NumberFormat = new()
     {
