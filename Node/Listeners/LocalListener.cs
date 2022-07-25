@@ -30,7 +30,11 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
-        if (path == "reloadcfg") Settings.Reload();
+        if (path == "reloadcfg")
+        {
+            Settings.Reload();
+            return await WriteSuccess(response).ConfigureAwait(false);
+        }
 
         if (path == "setnick")
         {
