@@ -22,7 +22,7 @@ public abstract class PluginInstaller
 
         if (!File.Exists(installerFilePath))
             await DownloadToAsync(installerFilePath);
-        await InstallAsyncCore(installerFilePath);
+        await InstallAsync(installerFilePath);
 
         if (deleteInstaller) File.Delete(installerFilePath);
     }
@@ -34,7 +34,7 @@ public abstract class PluginInstaller
         await pluginInstaller.CopyToAsync(fs);
     }
 
-    async Task InstallAsyncCore(string installerPath)
+    async Task InstallAsync(string installerPath)
     {
         using var installation = Process.Start(GetInstallationInfo(installerPath))!;
         await installation.WaitForExitAsync(CancellationToken);
