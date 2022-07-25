@@ -24,6 +24,10 @@ public static class TaskHandler
     {
         try
         {
+            NodeGlobalState.Instance.ExecutingTasks.Add(task);
+            using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
+
+
             task.LogInfo($"Started");
 
             var inputobj = DeserializeInput(task.Info);

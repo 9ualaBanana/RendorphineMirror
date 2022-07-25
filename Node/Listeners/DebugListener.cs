@@ -10,15 +10,21 @@ public class DebugListener : ExecutableListenerBase
     {
         var response = context.Response;
 
-        if (path == "setstate")
+        if (path == "addbench")
         {
             var query = context.Request.QueryString;
-            var state = query["state"];
 
-            if (state == "idle") GlobalState.State = IdleNodeState.Instance;
-            else if (state == "benchmark") GlobalState.State = new BenchmarkNodeState() { Completed = { "sex" } };
-            else if (state == "task") GlobalState.State = new ExecutingTaskNodeState(new TaskInfo("userid", 012, new TaskObject("FN.exe", 123), new(), new(), new() { ["bri"] = 9998 }));
-            else return await WriteJson(response, OperationResult.Err("unknown state"));
+            NodeGlobalState.Instance.ExecutingBenchmarks.Add("cpucpu", new() { ["rating"] = 123465789 });
+            _ = Task.Delay(5000).ContinueWith(_ => NodeGlobalState.Instance.ExecutingBenchmarks.Remove("cpucpu"));
+
+            return await WriteSuccess(response);
+        }
+        if (path == "addtask")
+        {
+            var task = new ReceivedTask("verylongtaskid", new TaskInfo("userid", 12456, new TaskObject("filename", 798798), new() { ["type"] = "MPlus" }, new() { ["type"] = "MPlusoutput" }, new() { ["type"] = "hflip" }));
+            NodeGlobalState.Instance.ExecutingTasks.Add(task);
+
+            _ = Task.Delay(5000).ContinueWith(_ => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
 
             return await WriteSuccess(response);
         }

@@ -1,11 +1,11 @@
-namespace Common
+namespace Common;
+
+/// <summary> A struct that invokes a function when disposed </summary>
+public readonly struct FuncDispose : IDisposable
 {
-    public readonly struct FuncDispose : IDisposable
-    {
-        readonly Action OnDispose;
+    readonly Action OnDispose;
 
-        public FuncDispose(Action onDispose) => OnDispose = onDispose;
+    public FuncDispose(Action onDispose) => OnDispose = onDispose;
 
-        public void Dispose() => OnDispose();
-    }
+    public void Dispose() => OnDispose();
 }
