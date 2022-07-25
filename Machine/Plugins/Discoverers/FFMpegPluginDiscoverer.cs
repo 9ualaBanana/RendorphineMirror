@@ -1,8 +1,6 @@
-﻿using Machine.Plugins.Plugins;
+﻿namespace Machine.Plugins.Discoverers;
 
-namespace Machine.Plugins.Discoverers;
-
-public class FFMpegPluginDiscoverer : IPluginDiscoverer
+public class FFmpegPluginDiscoverer : IPluginDiscoverer
 {
     IEnumerable<string> InstallationPathsImpl => new string[]
     {
@@ -14,5 +12,5 @@ public class FFMpegPluginDiscoverer : IPluginDiscoverer
         InstallationPathsImpl
         .Where(Directory.Exists)
         .SelectMany(x => Directory.GetFiles(x, "ffmpeg*", SearchOption.TopDirectoryOnly))
-        .Select(x => new FFMpegPlugin(x));
+        .Select(x => new FFmpegPlugin(x));
 }

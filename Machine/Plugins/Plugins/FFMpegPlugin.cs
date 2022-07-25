@@ -2,9 +2,9 @@ using System.Diagnostics;
 
 namespace Machine.Plugins.Plugins;
 
-internal record FFMpegPlugin : Plugin
+internal record FFmpegPlugin : Plugin
 {
-    public FFMpegPlugin(string path) : base(path) { }
+    public FFmpegPlugin(string path) : base(path) { }
 
     public override PluginType Type => PluginType.FFmpeg;
 

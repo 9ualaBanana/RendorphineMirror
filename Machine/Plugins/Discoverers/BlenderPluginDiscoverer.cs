@@ -1,15 +1,15 @@
-﻿using Machine.Plugins.Plugins;
-
-namespace Machine.Plugins.Discoverers;
+﻿namespace Machine.Plugins.Discoverers;
 
 public class BlenderPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {
-        @"Program Files\Blender Foundation",
+        $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)}\Blender Foundation",
+        $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\Blender Foundation",
+        $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\Blender Foundation",
     };
     protected override string ParentDirectoryPattern => "Blender ?.?";
     protected override string ExecutableName => "blender.exe";
 
-    protected override Plugin DiscoveredPluginAt(string pluginExecutablePath) => new BlenderPlugin(pluginExecutablePath);
+    protected override Plugin GetDiscoveredPlugin(string executablePath) => new BlenderPlugin(executablePath);
 }

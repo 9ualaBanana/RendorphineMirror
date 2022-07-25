@@ -25,7 +25,8 @@ PluginsManager.RegisterPluginDiscoverers(
     new Autodesk3dsMaxPluginDiscoverer(),
     new TopazGigapixelAIPluginDiscoverer(),
     new DaVinciResolvePluginDiscoverer(),
-    new FFMpegPluginDiscoverer()
+    new FFmpegPluginDiscoverer(),
+    new PythonPluginDiscoverer()
 );
 var discoveringInstalledPlugins = MachineInfo.DiscoverInstalledPluginsInBackground();
 

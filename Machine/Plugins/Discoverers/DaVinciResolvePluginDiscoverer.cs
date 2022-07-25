@@ -1,15 +1,15 @@
-﻿using Machine.Plugins.Plugins;
-
-namespace Machine.Plugins.Discoverers;
+﻿namespace Machine.Plugins.Discoverers;
 
 public class DaVinciResolvePluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {
-        @"Program Files\Blackmagic Design",
+        $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)}\Blackmagic Design",
+        $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\Blackmagic Design",
+        $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\Blackmagic Design",
     };
     protected override string ParentDirectoryPattern => "DaVinci Resolve";
     protected override string ExecutableName => "Resolve.exe";
 
-    protected override Plugin DiscoveredPluginAt(string pluginExecutablePath) => new DaVinciResolvePlugin(pluginExecutablePath);
+    protected override Plugin GetDiscoveredPlugin(string executablePath) => new DaVinciResolvePlugin(executablePath);
 }
