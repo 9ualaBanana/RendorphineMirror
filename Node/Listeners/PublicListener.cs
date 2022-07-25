@@ -84,6 +84,5 @@ public class PublicListener : ExecutableListenerBase
         }
 
         return HttpStatusCode.NotFound;
-
     }
 }

@@ -70,12 +70,12 @@ public class LocalListener : ExecutableListenerBase
             var actions = TaskList.Actions.Select(serialize).ToImmutableArray();
             var inputs = new[]
             {
-                        serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.MPlus),
-                    }.ToImmutableArray();
+                serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.MPlus),
+            }.ToImmutableArray();
             var outputs = new[]
             {
-                        serializeinout<MPlusTaskOutputInfo>(TaskInputOutputType.MPlus),
-                    }.ToImmutableArray();
+                serializeinout<MPlusTaskOutputInfo>(TaskInputOutputType.MPlus),
+            }.ToImmutableArray();
 
             var output = new TasksFullDescriber(actions, inputs, outputs);
             return await WriteJToken(response, JToken.FromObject(output, JsonSerializerWithTypes)).ConfigureAwait(false);
@@ -113,6 +113,5 @@ public class LocalListener : ExecutableListenerBase
         }
 
         return HttpStatusCode.NotFound;
-
     }
 }
