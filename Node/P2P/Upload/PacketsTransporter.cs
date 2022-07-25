@@ -4,6 +4,8 @@ namespace Node.P2P.Upload;
 
 internal static class PacketsTransporter
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     internal static async Task<BenchmarkResult> UploadAsync(
         UploadSessionData sessionData,
         HttpClient? httpClient = null,
@@ -12,6 +14,7 @@ internal static class PacketsTransporter
         httpClient ??= new();
 
         var uploadResult = new BenchmarkResult(sessionData.File.Length);
+        _logger.Info("Starting upload...");
         while (true)
         {
             var uploadSession = await UploadSession.InitializeAsync(
@@ -23,7 +26,9 @@ internal static class PacketsTransporter
                 await uploadSession.FinalizeAsync().ConfigureAwait(false);
                 break;
             }
+            _logger.Debug("Restarting upload");
         }
+        _logger.Info("Upload is complete");
         return uploadResult;
     }
 }

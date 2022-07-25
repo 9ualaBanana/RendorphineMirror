@@ -3,7 +3,6 @@ global using Common;
 global using Common.NodeToUI;
 global using Common.Tasks.Tasks;
 global using Machine;
-global using Node.P2P;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Executor;
 global using Node.Tasks.Models;
@@ -16,6 +15,7 @@ using Node.Listeners;
 using Node.Profiler;
 
 var halfrelease = args.Contains("release");
+Logging.Configure();
 Init.Initialize();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
