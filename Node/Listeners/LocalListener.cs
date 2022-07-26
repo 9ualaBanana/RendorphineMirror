@@ -37,7 +37,7 @@ public class LocalListener : ExecutableListenerBase
             return await Test(request, response, "nick", async nick =>
             {
                 OperationResult resp;
-                lock (NodeProfiler.HeatbeatLock)
+                lock (NodeProfiler.HeartbeatLock)
                 {
                     resp = SessionManager.RenameServerAsync(nick).ConfigureAwait(false).GetAwaiter().GetResult();
                     if (resp) Settings.NodeName = nick;

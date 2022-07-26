@@ -1,5 +1,5 @@
-﻿using System.Diagnostics;
-using Microsoft.Win32.SafeHandles;
+﻿using Microsoft.Win32.SafeHandles;
+using System.Diagnostics;
 using System.Runtime.Versioning;
 
 namespace Benchmark;

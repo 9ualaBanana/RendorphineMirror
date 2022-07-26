@@ -12,36 +12,14 @@ namespace Node.Profiler;
 /// </remarks>
 internal class NodeProfiler
 {
-    public static object HeatbeatLock = new();
+    public static object HeartbeatLock = new();
 
     readonly HttpClient _http;
     readonly Timer _intervalTimer;
 
     readonly static string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
+    readonly static FileBackedVersion LatestExecutedBenchmarkVersion = new(_assetsPath);
     static string SampleVideoPath => Path.Combine(_assetsPath, "4k_sample.mp4");
-    static Version? _lastExecutedBenchmarkVersion;
-    static Version? LastExecutedBenchmarkVersion
-    {
-        get
-        {
-            if (_lastExecutedBenchmarkVersion is not null) return _lastExecutedBenchmarkVersion;
-
-            var file = Directory.Exists(_assetsPath)
-                ? Directory.EnumerateFiles(_assetsPath).SingleOrDefault(file => Path.GetExtension(file) == ".version")
-                : null;
-
-            if (file is null) return null;
-            return _lastExecutedBenchmarkVersion = Version.Parse(Path.GetFileNameWithoutExtension(file));
-        }
-        set
-        {
-            Directory.CreateDirectory(_assetsPath);
-
-            if (LastExecutedBenchmarkVersion is not null)
-                File.Delete(Path.Combine(_assetsPath, $"{LastExecutedBenchmarkVersion}.version"));
-            File.Create(Path.Combine(_assetsPath, $"{value}.version")).Dispose();
-        }
-    }
 
     static bool _nodeSettingsChanged;
     static FormUrlEncodedContent? _payload;
@@ -61,11 +39,11 @@ internal class NodeProfiler
     {
         object? hardwarePayload = null;
 
-        var currentBenchmarkVersion = Assembly.GetAssembly(typeof(BenchmarkResult))!.GetName().Version;
-        if (currentBenchmarkVersion != LastExecutedBenchmarkVersion)
+        var currentBenchmarkVersion = Assembly.GetAssembly(typeof(BenchmarkResult))!.GetName().Version!;
+        if (LatestExecutedBenchmarkVersion != currentBenchmarkVersion)
         {
             hardwarePayload = await ComputeHardwarePayloadAsync(testDataSize);
-            LastExecutedBenchmarkVersion = currentBenchmarkVersion;
+            LatestExecutedBenchmarkVersion.Update(currentBenchmarkVersion);
         }
         return hardwarePayload;
     }
@@ -181,7 +159,7 @@ internal class NodeProfiler
             _intervalTimer.Interval = interval.TotalMilliseconds;
             _intervalTimer.Elapsed += (_, _) =>
             {
-                lock (HeatbeatLock)
+                lock (HeartbeatLock)
                     MakePostRequest(serverUri, benchmarkResults).ConfigureAwait(false).GetAwaiter().GetResult();
             };
             _intervalTimer.AutoReset = true;
