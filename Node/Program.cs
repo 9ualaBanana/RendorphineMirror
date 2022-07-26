@@ -54,6 +54,9 @@ var captured = new List<object>();
 
 if (!Init.IsDebug || halfrelease)
 {
+    // Precomputed for sending by NodeProfiler.
+    var plugins = await discoveringInstalledPlugins;
+
     if (!Init.IsDebug)
     {
         SystemService.Start();
@@ -62,23 +65,13 @@ if (!Init.IsDebug || halfrelease)
         _ = serverPinger.StartAsync();
 
         captured.Add(serverPinger);
+
+        //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
     }
 
-    var profile = Profiler.BenchmarkVersionIsUpdated ? Profiler.RunAsync(1073741824/*1GB*/) : null;
-    // Precomputed for sending by NodeProfiler.
-    var plugins = await discoveringInstalledPlugins;
-
-    if (!Init.IsDebug)
-    {
-        var reepoProfiler = new NodeProfiler(Api.Client);
-        await reepoProfiler.SendNodeProfile($"{Settings.ServerUrl}/node/profile", profile);
-
-        captured.Add(reepoProfiler);
-    }
-
-    var serverProfiler = new NodeProfiler(Api.Client);
-    await serverProfiler.SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", profile, TimeSpan.FromMinutes(1));
-    captured.Add(serverProfiler);
+    //var serverProfiler = new NodeProfiler(Api.Client);
+    //await serverProfiler.SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", Profiler.RunAsync(), TimeSpan.FromMinutes(1));
+    //captured.Add(serverProfiler);
 }
 
 var taskreceiver = new TaskReceiver(Api.Client);

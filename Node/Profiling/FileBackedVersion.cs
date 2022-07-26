@@ -35,6 +35,9 @@ internal class FileBackedVersion
     internal FileBackedVersion(string? parentDirectoryPath = default)
     {
         ParentDirectoryPath = parentDirectoryPath ?? Directory.GetCurrentDirectory();
+        var currentVersionFilePath = CurrentVersionFilePath;
+        if (currentVersionFilePath is not null)
+            Value = Version.Parse(Path.GetFileNameWithoutExtension(currentVersionFilePath));
     }
 
 
@@ -44,7 +47,7 @@ internal class FileBackedVersion
         var newVersionFilePath = AsVersionFilePath(version);
 
         if (currentVersionFilePath is null)
-        { using var _ = File.Create(newVersionFilePath); }
+            { using var _ = File.Create(newVersionFilePath); }
         else
             File.Move(currentVersionFilePath, newVersionFilePath);
         Value = version;

@@ -1,125 +1,99 @@
-﻿using Benchmark;
+﻿using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace Node.Profiling;
 
 internal static class Profiler
 {
-    readonly static string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
-    readonly static string _sampleVideoPath = Path.Combine(_assetsPath, "4k_sample.mp4");
-    readonly static FileBackedVersion LatestExecutedBenchmarkVersion = new(_assetsPath);
+    public static object HeartbeatLock = new();
 
-    internal static bool BenchmarkVersionIsUpdated =>
-        !LatestExecutedBenchmarkVersion.Exists || LatestExecutedBenchmarkVersion > BenchmarkMetadata.Version;
+    static FormUrlEncodedContent _cachedProfile = null!;
+    static object? _benchmarkResults;
+    static bool _settingsChanged = true;
 
-    internal static async Task<object> RunAsync(int testDataSize)
+
+    static Profiler()
     {
-        object hardwarePayload = await ComputeHardwarePayloadAsync(testDataSize);
-        LatestExecutedBenchmarkVersion.Update(BenchmarkMetadata.Version);
-        return hardwarePayload;
+        Settings.AnyChanged += () => _settingsChanged = true;
     }
 
-    static async Task<object> ComputeHardwarePayloadAsync(int testDataSize)
+    internal static async Task<HttpContent> RunAsync()
     {
-        if (Environment.GetCommandLineArgs().Contains("release"))
+        if (Benchmark.ShouldBeRun)
+            _benchmarkResults = await Benchmark.RunAsync(1073741824/*1GB*/).ConfigureAwait(false);
+
+        if (!_settingsChanged) return _cachedProfile;
+
+        lock (HeartbeatLock)
+            return BuildProfileAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+    }
+
+    static async Task<FormUrlEncodedContent> BuildProfileAsync()
+    {
+        var payloadContent = new Dictionary<string, string>()
         {
-            return new
+            ["sessionid"] = Settings.SessionId!,
+            ["info"] = await SerializeNodeProfileAsync().ConfigureAwait(false),
+        };
+        return _cachedProfile = new FormUrlEncodedContent(payloadContent);
+    }
+
+    static async Task<string> SerializeNodeProfileAsync()   
+    {
+        var allowedtypes = new JsonObject();
+        foreach (var plugin in await MachineInfo.DiscoverInstalledPluginsInBackground().ConfigureAwait(false))
+            foreach (var action in TaskList.Get(plugin.Type))
+                allowedtypes[action.Name] = 1;
+
+        var obj = new JsonObject()
+        {
+            ["ip"] = (await MachineInfo.GetPublicIPAsync()).ToString(),
+            ["port"] = int.Parse(MachineInfo.Port),
+            ["nickname"] = Settings.NodeName,
+            ["guid"] = Settings.Guid,
+            ["version"] = MachineInfo.Version,
+            ["allowedinputs"] = new JsonObject()
             {
-                cpu = new
-                {
-                    rating = 10000000,
-                    pratings = new { ffmpeg = 100 },
-                    load = 0.0001,
-                },
-                gpu = new
-                {
-                    rating = 10000000,
-                    pratings = new { ffmpeg = 100 },
-                    load = 0.0001,
-                },
-                ram = new { total = 32678000000, free = 16678000000, },
-                disks = new[] { new { freespace = 326780000000, writespeed = 32677000000 } },
-            };
-        }
-
-        var state = new BenchmarkNodeState();
-        using var _ = GlobalState.TempSetState(state);
-
-        var cpu = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize);
-        state.Completed.Add("cpu");
-        var gpu = await ComputePayloadWithGPUBenchmarkResultsAsync();
-        state.Completed.Add("gpu");
-        var ram = GetRAMPayload();
-        state.Completed.Add("ram");
-        var disks = await ComputePayloadWithDrivesBenchmarkResultsAsync(testDataSize);
-        state.Completed.Add("disks");
-
-        return new
-        {
-            cpu,
-            gpu,
-            ram,
-            disks,
-        };
-    }
-
-    static async Task<object> ComputePayloadWithCPUBenchmarkResultsAsync(int testDataSize)
-    {
-        double ffmpegRating = default;
-        try
-        {
-            ffmpegRating = (await new FFmpegBenchmark(_sampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnCpuAsync()).Bps;
-        }
-        catch (Exception) { }
-        using var zipBenchmark = new ZipBenchmark(testDataSize);
-        return new
-        {
-            rating = (await zipBenchmark.RunAsync()).Bps,
-            pratings = new { ffmpeg = ffmpegRating },
-            load = -1,
-        };
-    }
-
-    static async Task<object> ComputePayloadWithGPUBenchmarkResultsAsync()
-
-    {
-        double ffmpegRating = default;
-        try
-        {
-            ffmpegRating = (await new FFmpegBenchmark(_sampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnGpuAsync()).Bps;
-        }
-        catch (Exception) { }
-        return new
-        {
-            rating = -1,
-            pratings = new { ffmpeg = ffmpegRating },
-            load = -1,
-        };
-    }
-
-    static async Task<IEnumerable<object>> ComputePayloadWithDrivesBenchmarkResultsAsync(int testDataSize)
-    {
-        var drivesBenchmarkResults = new List<(BenchmarkResult Read, BenchmarkResult Write)>();
-        var readWriteBenchmark = new ReadWriteBenchmark(testDataSize);
-        foreach (var logicalDiskName in Drive.LogicalDisksNamesFromDistinctDrives)
-        {
-            drivesBenchmarkResults.Add(await readWriteBenchmark.RunAsync(logicalDiskName));
-        }
-
-        return Drive.Info.Zip(drivesBenchmarkResults)
-            .Select(zip => new
+                [TaskInputOutputType.MPlus.ToString()] = 1
+            },
+            ["allowedoutputs"] = new JsonObject()
             {
-                freespace = zip.First.FreeSpace,
-                writespeed = zip.Second.Write.Bps
-            });
+                [TaskInputOutputType.MPlus.ToString()] = 1
+            },
+            ["allowedtypes"] = allowedtypes,
+            ["pricing"] = new JsonObject()
+            {
+                ["minunitprice"] = new JsonObject()
+                {
+                    ["ffmpeg"] = -1,
+                },
+                ["minbwprice"] = -1,
+                ["minstorageprice"] = -1,
+            },
+            ["software"] = JsonSerializer.SerializeToNode(await BuildSoftwarePayloadAsync()),
+        };
+
+        if (_benchmarkResults is not null)
+            obj["hardware"] = JsonSerializer.SerializeToNode(_benchmarkResults);
+
+        return obj.ToJsonString(new JsonSerializerOptions() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault });
     }
 
-    static object GetRAMPayload()
+    // Ridiculous.
+    static async Task<Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>> BuildSoftwarePayloadAsync()
     {
-        var ramInfo = RAM.Info;
-        return new
+        var result = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>();
+        foreach (var softwareGroup in (await MachineInfo.DiscoverInstalledPluginsInBackground()).GroupBy(software => software.Type))
         {
-            total = ramInfo.Aggregate(0ul, (totalCapacity, ramUnit) => totalCapacity += ramUnit.Capacity),
-            free = ramInfo.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory)
-        };
+            var softwareName = Enum.GetName(softwareGroup.Key)!.ToLower();
+            result.Add(softwareName, new Dictionary<string, Dictionary<string, Dictionary<string, string>>>());
+            foreach (var version in softwareGroup)
+            {
+                result[softwareName].Add(version.Version, new Dictionary<string, Dictionary<string, string>>());
+                result[softwareName][version.Version].Add("plugins", new Dictionary<string, string>());
+            }
+        }
+        return result;
     }
 }
