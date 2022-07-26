@@ -1,4 +1,4 @@
-﻿namespace Node.Profiler;
+﻿namespace Node.Profiling;
 
 internal class FileBackedVersion
     : IEquatable<FileBackedVersion>, IEquatable<Version>, IComparable, IComparable<FileBackedVersion>, IComparable<Version>
@@ -44,7 +44,7 @@ internal class FileBackedVersion
         var newVersionFilePath = AsVersionFilePath(version);
 
         if (currentVersionFilePath is null)
-            { using var _ = File.Create(newVersionFilePath); }
+        { using var _ = File.Create(newVersionFilePath); }
         else
             File.Move(currentVersionFilePath, newVersionFilePath);
         Value = version;

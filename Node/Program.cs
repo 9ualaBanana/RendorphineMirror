@@ -12,7 +12,7 @@ using Machine.Plugins;
 using Machine.Plugins.Discoverers;
 using Node;
 using Node.Listeners;
-using Node.Profiler;
+using Node.Profiling;
 
 var halfrelease = args.Contains("release");
 Logging.Configure();
@@ -64,20 +64,20 @@ if (!Init.IsDebug || halfrelease)
         captured.Add(serverPinger);
     }
 
-    var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
+    var profile = Profiler.BenchmarkVersionIsUpdated ? Profiler.RunAsync(1073741824/*1GB*/) : null;
     // Precomputed for sending by NodeProfiler.
     var plugins = await discoveringInstalledPlugins;
 
     if (!Init.IsDebug)
     {
         var reepoProfiler = new NodeProfiler(Api.Client);
-        await reepoProfiler.SendNodeProfile($"{Settings.ServerUrl}/node/profile", benchmarkResults);
+        await reepoProfiler.SendNodeProfile($"{Settings.ServerUrl}/node/profile", profile);
 
         captured.Add(reepoProfiler);
     }
 
     var serverProfiler = new NodeProfiler(Api.Client);
-    await serverProfiler.SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults, TimeSpan.FromMinutes(1));
+    await serverProfiler.SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", profile, TimeSpan.FromMinutes(1));
     captured.Add(serverProfiler);
 }
 

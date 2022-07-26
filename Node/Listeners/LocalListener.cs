@@ -1,7 +1,7 @@
 using System.Net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Node.Profiler;
+using Node.Profiling;
 
 namespace Node.Listeners;
 
