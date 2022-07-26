@@ -61,17 +61,20 @@ if (!Init.IsDebug || halfrelease)
     {
         SystemService.Start();
 
-        var serverPinger = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), Api.Client);
-        _ = serverPinger.StartAsync();
+        var reepoHeartbeat = new Heartbeat($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5),
+            Api.Client, await MachineInfo.AsJsonContentAsync());
+        _ = reepoHeartbeat.StartAsync();
 
-        captured.Add(serverPinger);
+        captured.Add(reepoHeartbeat);
 
         //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
     }
 
-    //var serverProfiler = new NodeProfiler(Api.Client);
-    //await serverProfiler.SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", Profiler.RunAsync(), TimeSpan.FromMinutes(1));
-    //captured.Add(serverProfiler);
+    var mPlusTaskManagerHeartbeat = new Heartbeat($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", TimeSpan.FromMinutes(1),
+        Api.Client, await Profiler.RunAsync());
+    _ = mPlusTaskManagerHeartbeat.StartAsync();
+
+    captured.Add(mPlusTaskManagerHeartbeat);
 }
 
 var taskreceiver = new TaskReceiver(Api.Client);
