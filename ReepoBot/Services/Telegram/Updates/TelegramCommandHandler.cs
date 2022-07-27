@@ -2,111 +2,44 @@
 using ReepoBot.Services.Node;
 using System.Text;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 
-namespace ReepoBot.Services.Telegram;
+namespace ReepoBot.Services.Telegram.Updates;
 
-public class TelegramUpdateHandler
+public class TelegramCommandHandler
 {
     readonly ILogger _logger;
+
     readonly TelegramBot _bot;
     readonly NodeSupervisor _nodeSupervisor;
 
-    public TelegramUpdateHandler(
+    public TelegramCommandHandler(
+        ILogger<TelegramMessageHandler> logger,
         TelegramBot bot,
-        NodeSupervisor nodeSupervisor,
-        ILogger<TelegramUpdateHandler> logger)
+        NodeSupervisor nodeSupervisor)
     {
         _logger = logger;
-        _nodeSupervisor = nodeSupervisor;
         _bot = bot;
+        _nodeSupervisor = nodeSupervisor;
     }
 
-    internal void Handle(Update update)
-    {
-        _logger.LogDebug("Dispatching {Update}...", nameof(Update));
-
-        switch (update.Type)
-        {
-            case UpdateType.Message:
-                HandleMessageUpdate(update);
-                break;
-            case UpdateType.MyChatMember:
-                HandleChatMember(update.MyChatMember!);
-                break;
-            default:
-                _logger.LogWarning("Unsupported update type: {Type}", update.Type);
-                break;
-        }
-    }
-
-    void HandleMessageUpdate(Update update)
-    {
-        var message = update.Message!;
-        _logger.LogDebug("Dispatching {Message}...", nameof(Message));
-        if (IsCommand(message))
-        {
-            HandleCommandUpdate(update);
-            return;
-        }
-        else if (IsSystemMessage(message))
-        {
-            _logger.LogDebug("System messages are handled by {Handler}", nameof(HandleChatMember));
-            return;    // Bot adding and removal are handled via `UpdateType.MyChatMember` updates.
-        }
-
-        _logger.LogWarning("The following message couldn't be handled:\n{Message}", message.Text);
-    }
-
-    static bool IsCommand(Message message)
-    {
-        var messageText = message.Text;
-        return messageText is not null && messageText.StartsWith('/') && messageText.Length > 1;
-    }
-
-    bool IsSystemMessage(Message message)
-    {
-        return message.LeftChatMember?.Id == _bot.BotId || message.NewChatMembers?.First().Id == _bot.BotId;
-    }
-
-
-
-    void HandleCommandUpdate(Update update)
+    public void Handle(Update update)
     {
         var command = update.Message!.Text!;
         _logger.LogDebug("Dispatching {Command} command...", command);
-        var unprefixedCommand = command[1..];
 
+        var unprefixedCommand = command[1..];
         if (unprefixedCommand.StartsWith("pinglist"))
-        {
-            HandlePingList(update);
-            return;
-        }
+            { HandlePingList(update); return; }
         else if (unprefixedCommand.StartsWith("ping"))
-        {
-            HandlePing(update);
-            return;
-        }
+            { HandlePing(update); return; }
         else if (unprefixedCommand.StartsWith("plugins"))
-        {
-            HandlePlugins(update);
-            return;
-        }
+            { HandlePlugins(update); return; }
         else if (unprefixedCommand.StartsWith("online"))
-        {
-            HandleOnline(update);
-            return;
-        }
+            { HandleOnline(update); return; }
         else if (unprefixedCommand.StartsWith("offline"))
-        {
-            HandleOffline(update);
-            return;
-        }
+            { HandleOffline(update); return; }
         else if (unprefixedCommand.StartsWith("remove"))
-        {
-            HandleRemove(update);
-            return;
-        }
+            { HandleRemove(update); return; }
 
         _logger.LogWarning("No handler for {Command} command is found", command);
     }
@@ -218,71 +151,5 @@ public class TelegramUpdateHandler
             $"{nodesRemoved} were removed.";
 
         _ = _bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
-    }
-
-    void HandleChatMember(ChatMemberUpdated chatMemberUpdate)
-    {
-        _logger.LogDebug("Dispatching {ChatMemberUpdated}...", nameof(ChatMemberUpdated));
-
-        if (BotIsAddedToChat(chatMemberUpdate))
-        {
-            HandleBotIsAddedToChatAsync(chatMemberUpdate);
-            return;
-        }
-        else if (BotIsRemovedFromChat(chatMemberUpdate))
-        {
-            HandleBotIsRemovedFromChatAsync(chatMemberUpdate);
-            return;
-        }
-    }
-
-    void HandleBotIsAddedToChatAsync(ChatMemberUpdated chatMemberUpdate)
-    {
-        var subscriber = chatMemberUpdate.Chat.Id;
-        _logger.LogDebug("Adding new subscriber: {Subscriber}", subscriber);
-
-        var subscribersCount = _bot.Subscriptions.Count;
-        _bot.Subscriptions.Add(subscriber);
-
-        if (_bot.Subscriptions.Count == subscribersCount)
-        {
-            _logger.LogError("New subscriber wasn't added");
-            return;
-        }
-
-        var message = $"You are subscribed to events now. Remove me from the chat to unsubscribe.";
-        _ = _bot.TrySendMessageAsync(subscriber, message, _logger);
-    }
-
-    void HandleBotIsRemovedFromChatAsync(ChatMemberUpdated chatMemberUpdate)
-    {
-        var subscriber = chatMemberUpdate.Chat.Id;
-        _logger.LogDebug("Removing subscriber: {Subscriber}", subscriber);
-        var subscribersCount = _bot.Subscriptions.Count;
-        _bot.Subscriptions.Remove(subscriber);
-
-        if (_bot.Subscriptions.Count == subscribersCount)
-        {
-            _logger.LogError("Subscriber wasn't removed");
-        }
-    }
-
-    bool BotIsAddedToChat(ChatMemberUpdated chatMemberUpdate)
-    {
-        var newChatMember = chatMemberUpdate.NewChatMember;
-        var oldChatMember = chatMemberUpdate.OldChatMember;
-        // Doesn't match when the bot is being promoted.
-        return newChatMember.User.Id == _bot.BotId && IsAddedToChat(newChatMember) && !IsAddedToChat(oldChatMember);
-    }
-
-    bool BotIsRemovedFromChat(ChatMemberUpdated chatMemberUpdate)
-    {
-        var newChatMember = chatMemberUpdate.NewChatMember;
-        return newChatMember.User.Id == _bot.BotId && !IsAddedToChat(newChatMember);
-    }
-
-    static bool IsAddedToChat(ChatMember chatMember)
-    {
-        return chatMember.Status is not ChatMemberStatus.Left && chatMember.Status is not ChatMemberStatus.Kicked;
     }
 }

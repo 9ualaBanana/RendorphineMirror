@@ -16,6 +16,13 @@ public class TelegramBot : TelegramBotClient
     {
     }
 
+    internal static async Task<TelegramBot> Initialize(string token, string webhookHost)
+    {
+        var bot = new TelegramBot(token);
+        await bot.SetWebhookAsync($"{webhookHost}/telegram");
+        return bot;
+    }
+
     internal void TryNotifySubscribers(
         InputOnlineFile video,
         ILogger logger,
