@@ -443,6 +443,22 @@ namespace NodeUI.Pages
 
                 public Setting(T describer, JProperty property) : base(property) => Describer = describer;
             }
+
+            abstract class SettingContainer<T> : Setting<T> where T : FieldDescriber
+            {
+                public new T Describer => base.Describer;
+                readonly Setting<T> Setting;
+
+                protected SettingContainer(T describer, JProperty property) : base(describer, property) => Children.Add(Setting = CreateSetting());
+
+                protected abstract Setting<T> CreateSetting();
+                public sealed override void UpdateValue() => Setting.UpdateValue();
+            }
+            abstract class SettingChild<T> : Setting<T> where T : FieldDescriber
+            {
+                protected SettingChild(SettingContainer<T> parent) : base(parent.Describer, parent.Property) { }
+            }
+
             class BoolSetting : Setting<BooleanDescriber>
             {
                 readonly CheckBox Checkbox;
@@ -455,41 +471,80 @@ namespace NodeUI.Pages
 
                 public override void UpdateValue() => Set(Checkbox.IsChecked == true);
             }
-            class TextSetting : Setting<StringDescriber>
+            class TextSetting : SettingContainer<StringDescriber>
             {
-                readonly TextBox TextBox;
+                public TextSetting(StringDescriber describer, JProperty property) : base(describer, property) { }
 
-                public TextSetting(StringDescriber describer, JProperty property) : base(describer, property)
+                protected override Setting<StringDescriber> CreateSetting()
                 {
-                    TextBox = new TextBox() { Text = Get().Value<string?>() ?? string.Empty };
-                    Children.Add(TextBox);
+                    if (Describer.Attributes.OfType<LocalFileAttribute>().Any())
+                        return new LocalFileSetting(this);
+                    if (Describer.Attributes.OfType<LocalDirectoryAttribute>().Any())
+                        return new LocalDirSetting(this);
+
+                    return new TextBoxSetting(this);
                 }
 
-                public override void UpdateValue() => Set(TextBox.Text);
-            }
-            class NumberSetting : Setting<NumberDescriber>
-            {
-                readonly Setting Setting;
 
-                public NumberSetting(NumberDescriber describer, JProperty property) : base(describer, property)
+                class TextBoxSetting : SettingChild<StringDescriber>
+                {
+                    readonly TextBox TextBox;
+
+                    public TextBoxSetting(TextSetting setting) : base(setting)
+                    {
+                        TextBox = new TextBox() { Text = Get().Value<string?>() ?? string.Empty };
+                        Children.Add(TextBox);
+                    }
+
+                    public override void UpdateValue() => Set(TextBox.Text);
+                }
+                class LocalFileSetting : SettingChild<StringDescriber>
+                {
+                    string File = null!;
+
+                    public LocalFileSetting(TextSetting setting) : base(setting)
+                    {
+                        var btn = new MPButton() { Text = new("Pick a file") };
+                        btn.OnClick += () => new OpenFileDialog() { AllowMultiple = false }.ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => btn.Text = new(File = t.Result!.First())));
+                        Children.Add(btn);
+                    }
+
+                    public override void UpdateValue() => Set(File);
+                }
+                class LocalDirSetting : SettingChild<StringDescriber>
+                {
+                    string Dir = null!;
+
+                    public LocalDirSetting(TextSetting setting) : base(setting)
+                    {
+                        var btn = new MPButton() { Text = new("Pick a directory") };
+                        btn.OnClick += () => new OpenFolderDialog().ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => btn.Text = new(Dir = t.Result!)));
+                        Children.Add(btn);
+                    }
+
+                    public override void UpdateValue() => Set(Dir);
+                }
+            }
+            class NumberSetting : SettingContainer<NumberDescriber>
+            {
+                public NumberSetting(NumberDescriber describer, JProperty property) : base(describer, property) { }
+
+                protected override Setting<NumberDescriber> CreateSetting()
                 {
                     var value = Get().Value<double?>() ?? 0;
 
-                    var range = describer.Attributes.OfType<RangedAttribute>().FirstOrDefault();
-                    if (range is not null) Setting = new SliderNumberSetting(this, range);
-                    else Setting = new TextNumberSetting(this);
+                    var range = Describer.Attributes.OfType<RangedAttribute>().FirstOrDefault();
+                    if (range is not null) return new SliderNumberSetting(this, range);
 
-                    Children.Add(Setting);
+                    return new TextNumberSetting(this);
                 }
 
-                public override void UpdateValue() => Setting.UpdateValue();
 
-
-                class SliderNumberSetting : Setting<NumberDescriber>
+                class SliderNumberSetting : SettingChild<NumberDescriber>
                 {
                     readonly Slider Slider;
 
-                    public SliderNumberSetting(NumberSetting setting, RangedAttribute range) : base(setting.Describer, setting.Property)
+                    public SliderNumberSetting(NumberSetting setting, RangedAttribute range) : base(setting)
                     {
                         Slider = new Slider()
                         {
@@ -520,11 +575,11 @@ namespace NodeUI.Pages
                         else Set(Slider.Value);
                     }
                 }
-                class TextNumberSetting : Setting<NumberDescriber>
+                class TextNumberSetting : SettingChild<NumberDescriber>
                 {
                     readonly TextBox TextBox;
 
-                    public TextNumberSetting(NumberSetting setting) : base(setting.Describer, setting.Property)
+                    public TextNumberSetting(NumberSetting setting) : base(setting)
                     {
                         TextBox = new TextBox() { Text = setting.Get().Value<double?>()?.ToString() ?? "0" };
                         Children.Add(TextBox);

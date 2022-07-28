@@ -7,7 +7,6 @@ public class MPlusTaskInputInfo : ITaskInputInfo
     public TaskInputOutputType Type => TaskInputOutputType.MPlus;
     public readonly string Iid;
 
-    private MPlusTaskInputInfo() => Iid = "";
     public MPlusTaskInputInfo(string iid) => Iid = iid;
 
     public async ValueTask<string> Download(ReceivedTask task, HttpClient httpClient, CancellationToken cancellationToken)
@@ -33,14 +32,13 @@ public class MPlusTaskInputInfo : ITaskInputInfo
 public class MPlusTaskOutputInfo : ITaskOutputInfo
 {
     public TaskInputOutputType Type => TaskInputOutputType.MPlus;
+
+    [Default("output_file.mov")]
     public readonly string Name;
+
+    [Default("output_dir")]
     public readonly string Directory;
 
-    private MPlusTaskOutputInfo()
-    {
-        Name = "output_file.mov";
-        Directory = "output_dir";
-    }
     public MPlusTaskOutputInfo(string name, string directory)
     {
         Name = name;

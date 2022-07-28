@@ -71,7 +71,7 @@ public class LocalListener : ExecutableListenerBase
             var inputs = new[]
             {
                 serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.MPlus),
-                serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.User),
+                serializeinout<UserTaskInputInfo>(TaskInputOutputType.User),
             }.ToImmutableArray();
             var outputs = new[]
             {

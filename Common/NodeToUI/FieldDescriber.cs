@@ -18,7 +18,7 @@ public abstract class FieldDescriber
 
 
     public static FieldDescriber Create(Type type) => Create(type, type.Name, false, null, ImmutableArray<Attribute>.Empty);
-    public static FieldDescriber Create(PropInfo field, Type parent) => Create(field.FieldType, field.Name, field.IsNullable(), field.GetValue(Activator.CreateInstance(parent, true)),
+    public static FieldDescriber Create(PropInfo field, Type parent) => Create(field.FieldType, field.Name, field.IsNullable(), field.GetAttribute<DefaultAttribute>()?.Value,
         field.GetAttributes<Attribute>().Where(x => x.GetType().Namespace?.StartsWith("System.") != true).ToImmutableArray());
 
     static FieldDescriber Create(Type type, string name, bool nullable, object? defaultValue, ImmutableArray<Attribute> attributes)

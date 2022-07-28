@@ -25,6 +25,15 @@ public class UserTaskOutputInfo : ITaskOutputInfo
 {
     public TaskInputOutputType Type => TaskInputOutputType.User;
 
+    [LocalDirectory] public readonly string Directory;
+    public readonly string FileName;
+
+    public UserTaskOutputInfo(string directory, string fileName)
+    {
+        Directory = directory;
+        FileName = fileName;
+    }
+
     public ValueTask Upload(ReceivedTask task, string file)
     {
         throw new NotImplementedException();

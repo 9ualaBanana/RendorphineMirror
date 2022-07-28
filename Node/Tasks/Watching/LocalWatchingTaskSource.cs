@@ -6,7 +6,7 @@ public class LocalWatchingTaskSource : IWatchingTaskSource
 {
     public event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
 
-    [LocalFile] public readonly string Directory;
+    [LocalDirectory] public readonly string Directory;
     [JsonIgnore] FileSystemWatcher? Watcher;
 
     readonly List<string> SavedFiles = new();
