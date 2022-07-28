@@ -1,7 +1,7 @@
 using System.Net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Node.Profiler;
+using Node.Profiling;
 
 namespace Node.Listeners;
 
@@ -41,7 +41,7 @@ public class LocalListener : ExecutableListenerBase
             return await Test(request, response, "nick", async nick =>
             {
                 OperationResult resp;
-                lock (NodeProfiler.HeatbeatLock)
+                lock (Profiler.HeartbeatLock)
                 {
                     resp = SessionManager.RenameServerAsync(nick).ConfigureAwait(false).GetAwaiter().GetResult();
                     if (resp) Settings.NodeName = nick;

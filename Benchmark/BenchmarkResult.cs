@@ -7,10 +7,10 @@ public record struct BenchmarkResult
     public long DataSize { get; set; }
     public TimeSpan Time { get; set; }
 
-    public BenchmarkResult(long dataSize, TimeSpan? time = null)
+    public BenchmarkResult(long dataSize, TimeSpan time = default)
     {
         DataSize = dataSize;
-        Time = time ?? TimeSpan.Zero;
+        Time = time;
     }
 
     public double Bps => DataSize / Time.TotalSeconds;

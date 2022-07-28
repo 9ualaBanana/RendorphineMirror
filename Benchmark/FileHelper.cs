@@ -4,6 +4,12 @@ namespace Benchmark;
 
 internal static class FileHelper
 {
+    /// <summary>
+    /// *WARNING* Certain requirements regarding file sizes and <paramref name="offset"/>s must be met when working with unbuffered files.
+    /// </summary>
+    /// <remarks>
+    /// <seealso href="https://docs.microsoft.com/en-us/windows/win32/fileio/file-buffering#alignment-and-file-access-requirements"/>
+    /// </remarks>
     internal static IntPtr CreateUnbufferedFile(string path)
     {
         return CreateFile(
@@ -16,6 +22,7 @@ internal static class FileHelper
             IntPtr.Zero);
     }
 
+    /// <inheritdoc cref="CreateUnbufferedFile(string)"/>
     internal static bool WriteFile(IntPtr hFile, byte[] lpBuffer, out uint bytesWritten, long offset = 0)
     {
         var bytes = ToHighLowOrderBytes(offset);
@@ -28,6 +35,7 @@ internal static class FileHelper
             ref overlapped);
     }
 
+    /// <inheritdoc cref="CreateUnbufferedFile(string)"/>
     internal static bool ReadFile(IntPtr hFile, byte[] lpBuffer, out uint bytesRead, long offset = 0)
     {
         var bytes = ToHighLowOrderBytes(offset);

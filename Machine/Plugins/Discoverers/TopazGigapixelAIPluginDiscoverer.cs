@@ -1,15 +1,15 @@
-﻿using Machine.Plugins.Plugins;
-
-namespace Machine.Plugins.Discoverers;
+﻿namespace Machine.Plugins.Discoverers;
 
 public class TopazGigapixelAIPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {
-        @"Program Files\Topaz Labs LLC",
+        $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)}\Topaz Labs LLC",
+        $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\Topaz Labs LLC",
+        $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\Topaz Labs LLC",
     };
     protected override string ParentDirectoryPattern => "Topaz Video Enhance AI";
     protected override string ExecutableName => "Topaz Video Enhance AI.exe";
 
-    protected override Plugin DiscoveredPluginAt(string pluginExecutablePath) => new TopazGigapixelAIPlugin(pluginExecutablePath);
+    protected override Plugin GetDiscoveredPlugin(string executablePath) => new TopazGigapixelAIPlugin(executablePath);
 }

@@ -13,7 +13,7 @@ using Machine.Plugins;
 using Machine.Plugins.Discoverers;
 using Node;
 using Node.Listeners;
-using Node.Profiler;
+using Node.Profiling;
 
 var halfrelease = args.Contains("release");
 Logging.Configure();
@@ -26,7 +26,8 @@ PluginsManager.RegisterPluginDiscoverers(
     new Autodesk3dsMaxPluginDiscoverer(),
     new TopazGigapixelAIPluginDiscoverer(),
     new DaVinciResolvePluginDiscoverer(),
-    new FFMpegPluginDiscoverer()
+    new FFmpegPluginDiscoverer(),
+    new PythonPluginDiscoverer()
 );
 var discoveringInstalledPlugins = MachineInfo.DiscoverInstalledPluginsInBackground();
 
@@ -54,31 +55,27 @@ var captured = new List<object>();
 
 if (!Init.IsDebug || halfrelease)
 {
-    if (!Init.IsDebug)
-    {
-        SystemService.Start();
-
-        var serverPinger = new ServerPinger($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5), Api.Client);
-        _ = serverPinger.StartAsync();
-
-        captured.Add(serverPinger);
-    }
-
-    var benchmarkResults = await NodeProfiler.RunBenchmarksAsyncIfBenchmarkVersionWasUpdated(1073741824/*1GB*/);
     // Precomputed for sending by NodeProfiler.
     var plugins = await discoveringInstalledPlugins;
 
     if (!Init.IsDebug)
     {
-        var reepoProfiler = new NodeProfiler(Api.Client);
-        await reepoProfiler.SendNodeProfile($"{Settings.ServerUrl}/node/profile", benchmarkResults);
+        SystemService.Start();
 
-        captured.Add(reepoProfiler);
+        var reepoHeartbeat = new Heartbeat($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5),
+            Api.Client, await MachineInfo.AsJsonContentAsync());
+        _ = reepoHeartbeat.StartAsync();
+
+        captured.Add(reepoHeartbeat);
+
+        //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
     }
 
-    var serverProfiler = new NodeProfiler(Api.Client);
-    await serverProfiler.SendNodeProfile($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", benchmarkResults, TimeSpan.FromMinutes(1));
-    captured.Add(serverProfiler);
+    var mPlusTaskManagerHeartbeat = new Heartbeat($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", TimeSpan.FromMinutes(1),
+        Api.Client, await Profiler.RunAsync());
+    _ = mPlusTaskManagerHeartbeat.StartAsync();
+
+    captured.Add(mPlusTaskManagerHeartbeat);
 }
 
 var taskreceiver = new TaskReceiver(Api.Client);
