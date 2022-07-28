@@ -16,7 +16,7 @@ namespace NodeUI.Pages
             Title = App.AppName;
             Icon = App.Icon;
 
-            Content = new TaskPartContainer();
+            Content = new NormalTaskCreationPanel();
         }
 
         static Task Post(Action action) => Dispatcher.UIThread.InvokeAsync(action);
@@ -59,7 +59,7 @@ namespace NodeUI.Pages
             readonly MPButton BackButton, NextButton;
             readonly Stack<TaskPart> Parts = new();
 
-            public TaskPartContainer()
+            public TaskPartContainer(TaskPart firstPart)
             {
                 RowDefinitions = RowDefinitions.Parse("Auto * Auto");
 
@@ -92,7 +92,7 @@ namespace NodeUI.Pages
                 };
                 Children.Add(buttonsgrid.WithRow(2));
 
-                ShowPart(new ChoosePluginPart());
+                ShowPart(firstPart);
             }
 
             void ShowPart(TaskPart part)
@@ -148,13 +148,12 @@ namespace NodeUI.Pages
 
             public virtual void OnNext() { }
         }
-        class ChoosePluginPart : TaskPart
+        abstract class ChoosePluginPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Plugin");
-            public override TaskPart? Next => new ChooseVersionPart(Builder.With(x => x.Type = PluginsList.SelectedItem));
 
-            readonly TypedListBox<PluginType> PluginsList;
+            protected readonly TypedListBox<PluginType> PluginsList;
 
             public ChoosePluginPart() : base(new())
             {
@@ -165,15 +164,14 @@ namespace NodeUI.Pages
                 Children.Add(PluginsList);
             }
         }
-        class ChooseVersionPart : TaskPart
+        abstract class ChooseVersionPart : TaskPart
         {
-            const string AnyVersion = "<any>";
+            protected const string AnyVersion = "<any>";
 
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new($"Choose {Builder.Type.GetName()} Version");
-            public override TaskPart? Next => new ChooseActionPart(Builder.With(x => x.Version = (VersionsList.SelectedItem == AnyVersion ? null : VersionsList.SelectedItem)));
 
-            readonly TypedListBox<string> VersionsList;
+            protected readonly TypedListBox<string> VersionsList;
 
             public ChooseVersionPart(TaskCreationInfo builder) : base(builder)
             {
@@ -184,21 +182,21 @@ namespace NodeUI.Pages
 
                 VersionsList = CreateListBox(versions.Prepend(AnyVersion).ToArray(), version => new TextBlock() { Text = version });
                 VersionsList.SelectionChanged += (obj, e) => OnChoose?.Invoke(VersionsList.SelectedItems.Count != 0);
-                VersionsList.SelectedIndex = 0;
+                Dispatcher.UIThread.Post(() => VersionsList.SelectedIndex = 0);
 
                 Children.Add(VersionsList);
             }
         }
-        class ChooseActionPart : TaskPart
+        abstract class ChooseActionPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Action");
-            public override TaskPart? Next => new ChooseInputPart(Builder.With(x => x.Action = ActionsList.SelectedItem.Name));
 
-            readonly TypedListBox<TaskActionDescriber> ActionsList;
+            protected readonly TypedListBox<TaskActionDescriber> ActionsList;
 
             public ChooseActionPart(TaskCreationInfo builder) : base(builder)
             {
+                var ac = UICache.GetTasksInfoAsync().GetAwaiter().GetResult();
                 ActionsList = CreateListBox(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Actions, action => new TextBlock() { Text = action.Name });
                 ActionsList.SelectionChanged += (obj, e) =>
                     OnChoose?.Invoke(ActionsList.SelectedItems.Count != 0);
@@ -250,6 +248,7 @@ namespace NodeUI.Pages
                 if (describer is null) return;
 
                 InputOutputJson.RemoveAll();
+                InputOutputJson["$type"] = describer.Object.JsonTypeName;
                 InputOutputJson["type"] = describer.Type;
                 var parent = new JObject() { [describer.Type] = InputOutputJson, };
 
@@ -262,31 +261,21 @@ namespace NodeUI.Pages
                 Setting?.UpdateValue();
             }
         }
-        class ChooseInputPart : ChooseInputOutputPart
-        {
-            public override event Action<bool>? OnChoose;
-            public override LocalizedString Title => new("Choose Input");
-            public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
-
-            public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Inputs, builder) =>
-                Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
-        }
-        class ChooseOutputPart : ChooseInputOutputPart
+        abstract class ChooseOutputPart : ChooseInputOutputPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Output");
-            public override TaskPart? Next => new ParametersPart(Builder.With(x => x.Output = InputOutputJson));
 
             public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Outputs, builder) =>
                 Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
         }
-        class ParametersPart : TaskPart
+
+        abstract class ParametersPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Modify Parameters");
-            public override TaskPart? Next => new WaitingPart(Builder.With(x => x.Data = Data));
 
-            readonly JObject Data = new();
+            protected readonly JObject Data = new();
             readonly Settings.ISetting Setting;
 
             public ParametersPart(TaskCreationInfo builder) : base(builder)
@@ -308,88 +297,219 @@ namespace NodeUI.Pages
                 Setting.UpdateValue();
             }
         }
-        class WaitingPart : TaskPart
+
+
+
+        class NormalTaskCreationPanel : Panel
         {
-            public override event Action<bool>? OnChoose;
-            public override LocalizedString Title => new("Waiting");
-            public override TaskPart? Next => null;
+            public NormalTaskCreationPanel() => Children.Add(new TaskPartContainer(new ChoosePluginPart()));
 
-            readonly TextBlock StatusTextBlock;
 
-            public WaitingPart(TaskCreationInfo builder) : base(builder)
+            class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
             {
-                Children.Add(StatusTextBlock = new TextBlock());
-                _ = StartTaskAsync();
+                public override TaskPart? Next => new ChooseVersionPart(Builder.With(x => x.Type = PluginsList.SelectedItem));
             }
-
-            string Status() => @$"
-                waiting {Builder.Action}
-                using {Builder.Type}
-                v {Builder.Version ?? "<any>"}
-                from {Builder.Input.ToString(Formatting.None)}
-                to {Builder.Output.ToString(Formatting.None)}
-                and {Builder.Data.ToString(Formatting.None)}
-                ".TrimLines();
-            void Status(string? text) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = text + Environment.NewLine + Status());
-
-            static void ForEachProperty(JToken jobj, Action<JObject, JProperty> func)
+            class ChooseVersionPart : TaskCreationWindow.ChooseVersionPart
             {
-                foreach (var (parent, property) in getProperties(jobj).ToArray())
-                    func(parent, property);
-
-                IEnumerable<(JObject parent, JProperty property)> getProperties(JToken token) =>
-                    token is not JObject obj
-                        ? Enumerable.Empty<(JObject, JProperty)>()
-                        : obj.Properties().Select(p => (obj, p))
-                            .Concat(obj.Values().SelectMany(getProperties));
+                public override TaskPart? Next => new ChooseActionPart(Builder.With(x => x.Version = (VersionsList.SelectedItem == AnyVersion ? null : VersionsList.SelectedItem)));
+                public ChooseVersionPart(TaskCreationInfo builder) : base(builder) { }
             }
-            static void ProcessObject(JToken jobj)
+            class ChooseActionPart : TaskCreationWindow.ChooseActionPart
             {
-                ForEachProperty(jobj, (parent, property) =>
+                public override TaskPart? Next => new ChooseInputPart(Builder.With(x => x.Action = ActionsList.SelectedItem.Name));
+                public ChooseActionPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChooseInputPart : ChooseInputOutputPart
+            {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("Choose Input");
+                public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
+
+                public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Inputs, builder) =>
+                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
+            }
+            class ChooseOutputPart : TaskCreationWindow.ChooseOutputPart
+            {
+                public override TaskPart? Next => new ChooseParametersPart(Builder.With(x => x.Output = InputOutputJson));
+                public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChooseParametersPart : TaskCreationWindow.ParametersPart
+            {
+                public override TaskPart? Next => new WaitingPart(Builder.With(x => x.Data = Data));
+                public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class WaitingPart : TaskPart
+            {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("Waiting");
+                public override TaskPart? Next => null;
+
+                readonly TextBlock StatusTextBlock;
+
+                public WaitingPart(TaskCreationInfo builder) : base(builder)
                 {
-                    // remove null
-                    if (property.Value is null || property.Value?.Type == JTokenType.Null)
-                        parent.Remove(property.Name);
-                });
-            }
-
-            async ValueTask StartTaskAsync()
-            {
-                ProcessObject(Builder.Data);
-                ProcessObject(Builder.Input);
-                ProcessObject(Builder.Output);
-
-                var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
-                var post = await LocalApi.Post<string>(LocalApi.LocalIP, "starttask", new StringContent(serialized)).ConfigureAwait(false);
-                if (!post)
-                {
-                    Status($"error {post}");
-                    return;
+                    Children.Add(StatusTextBlock = new TextBlock());
+                    StartTaskAsync().Consume();
                 }
 
-                var taskid = post.Value;
+                string Status() => @$"
+                    waiting {Builder.Action}
+                    using {Builder.Type}
+                    v {Builder.Version ?? "<any>"}
+                    from {Builder.Input.ToString(Formatting.None)}
+                    to {Builder.Output.ToString(Formatting.None)}
+                    and {Builder.Data.ToString(Formatting.None)}
+                    ".TrimLines();
+                void Status(string? text) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = text + Environment.NewLine + Status());
 
-                var stt = "";
-                Status(stt = $"taskid={taskid}\n{stt}");
-
-                var token = new CancellationTokenSource();
-                Dispatcher.UIThread.Post(() => ((Window) VisualRoot!).Closed += (_, _) => token.Cancel());
-
-                while (true)
+                static void ForEachProperty(JToken jobj, Action<JObject, JProperty> func)
                 {
-                    if (token.Token.IsCancellationRequested) return;
+                    foreach (var (parent, property) in getProperties(jobj).ToArray())
+                        func(parent, property);
 
-                    var stater = await Apis.GetTaskStateAsync(taskid);
-                    if (!stater)
+                    IEnumerable<(JObject parent, JProperty property)> getProperties(JToken token) =>
+                        token is not JObject obj
+                            ? Enumerable.Empty<(JObject, JProperty)>()
+                            : obj.Properties().Select(p => (obj, p))
+                                .Concat(obj.Values().SelectMany(getProperties));
+                }
+                static void ProcessObject(JToken jobj)
+                {
+                    ForEachProperty(jobj, (parent, property) =>
                     {
-                        Status($"error getting task state {stater}\n{stt}");
-                        continue;
+                        // remove null
+                        if (property.Value is null || property.Value?.Type == JTokenType.Null)
+                            parent.Remove(property.Name);
+                    });
+                }
+
+                async Task StartTaskAsync()
+                {
+                    ProcessObject(Builder.Data);
+                    ProcessObject(Builder.Input);
+                    ProcessObject(Builder.Output);
+
+                    var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
+                    var post = await LocalApi.Post<string>(LocalApi.LocalIP, "starttask", new StringContent(serialized)).ConfigureAwait(false);
+                    if (!post)
+                    {
+                        Status($"error {post}");
+                        return;
                     }
 
-                    var state = stater.Value;
-                    Status($"task state: {state.State} {JsonConvert.SerializeObject(state)}\n{stt}".TrimLines());
+                    var taskid = post.Value;
 
-                    await Task.Delay(1000);
+                    var stt = "";
+                    Status(stt = $"taskid={taskid}\n{stt}");
+
+                    var token = new CancellationTokenSource();
+                    Dispatcher.UIThread.Post(() => ((Window) VisualRoot!).Closed += (_, _) => token.Cancel());
+
+                    while (true)
+                    {
+                        if (token.Token.IsCancellationRequested) return;
+
+                        var stater = await Apis.GetTaskStateAsync(taskid);
+                        if (!stater)
+                        {
+                            Status($"error getting task state {stater}\n{stt}");
+                            continue;
+                        }
+
+                        var state = stater.Value;
+                        Status($"task state: {state.State} {JsonConvert.SerializeObject(state)}\n{stt}".TrimLines());
+
+                        await Task.Delay(1000);
+                    }
+                }
+            }
+        }
+        class WatchingTaskCreationPanel : Panel
+        {
+            public WatchingTaskCreationPanel() => Children.Add(new TaskPartContainer(new ChoosePluginPart()));
+
+
+            class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
+            {
+                public override TaskPart? Next => new ChooseVersionPart(Builder.With(x => x.Type = PluginsList.SelectedItem));
+            }
+            class ChooseVersionPart : TaskCreationWindow.ChooseVersionPart
+            {
+                public override TaskPart? Next => new ChooseActionPart(Builder.With(x => x.Version = (VersionsList.SelectedItem == AnyVersion ? null : VersionsList.SelectedItem)));
+                public ChooseVersionPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChooseActionPart : TaskCreationWindow.ChooseActionPart
+            {
+                public override TaskPart? Next => new ChooseInputPart(Builder.With(x => x.Action = ActionsList.SelectedItem.Name));
+                public ChooseActionPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChooseInputPart : ChooseInputOutputPart
+            {
+                public override LocalizedString Title => new("Choose Input");
+                public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
+
+                public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().WatchingInputs, builder) =>
+                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
+
+                public override event Action<bool>? OnChoose;
+            }
+            class ChooseOutputPart : TaskCreationWindow.ChooseOutputPart
+            {
+                public override TaskPart? Next => new ChooseParametersPart(Builder.With(x => x.Output = InputOutputJson));
+                public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChooseParametersPart : TaskCreationWindow.ParametersPart
+            {
+                public override TaskPart? Next => new EndPart(Builder.With(x => x.Data = Data));
+                public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class EndPart : TaskPart
+            {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("End");
+                public override TaskPart? Next => null;
+
+                public EndPart(TaskCreationInfo builder) : base(builder)
+                {
+                    StartTaskAsync().Consume();
+                    // TODO: start task
+                    Children.Add(new TextBlock() { Text = "done thx" });
+                }
+
+                static void ForEachProperty(JToken jobj, Action<JObject, JProperty> func)
+                {
+                    foreach (var (parent, property) in getProperties(jobj).ToArray())
+                        func(parent, property);
+
+                    IEnumerable<(JObject parent, JProperty property)> getProperties(JToken token) =>
+                        token is not JObject obj
+                            ? Enumerable.Empty<(JObject, JProperty)>()
+                            : obj.Properties().Select(p => (obj, p))
+                                .Concat(obj.Values().SelectMany(getProperties));
+                }
+                static void ProcessObject(JToken jobj)
+                {
+                    ForEachProperty(jobj, (parent, property) =>
+                    {
+                        // remove null
+                        if (property.Value is null || property.Value?.Type == JTokenType.Null)
+                            parent.Remove(property.Name);
+                    });
+                }
+
+                async Task StartTaskAsync()
+                {
+                    ProcessObject(Builder.Data);
+                    ProcessObject(Builder.Input);
+                    ProcessObject(Builder.Output);
+
+                    var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
+                    var post = await LocalApi.Post<string>(LocalApi.LocalIP, "startwatchingtask", new StringContent(serialized)).ConfigureAwait(false);
+                    if (!post)
+                    {
+                        // Status($"error {post}");
+                        return;
+                    }
                 }
             }
         }

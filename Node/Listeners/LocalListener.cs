@@ -120,6 +120,16 @@ public class LocalListener : ExecutableListenerBase
             return await WriteJson(response, taskid).ConfigureAwait(false);
         }
 
+        if (path == "startwatchingtask")
+        {
+            var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
+
+            var wt = new WatchingTask(task.Input.ToObject<IWatchingTaskSource>(LocalApi.JsonSerializerWithType)!, task.Action, task.Data, task.Output.ToObject<IWatchingTaskOutputInfo>(LocalApi.JsonSerializerWithType)!);
+            NodeSettings.WatchingTasks.Add(wt);
+
+            return await WriteSuccess(response).ConfigureAwait(false);
+        }
+
         return HttpStatusCode.NotFound;
     }
 }

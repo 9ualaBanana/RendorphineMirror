@@ -1,17 +1,20 @@
 using System.Reflection;
+using Newtonsoft.Json;
 
 namespace Common.NodeToUI;
 
 public abstract class FieldDescriber
 {
     public readonly string Name;
+    public readonly string JsonTypeName;
     public readonly bool Nullable;
     public object? DefaultValue { get; init; }
     public ImmutableArray<Attribute> Attributes { get; init; }
 
-    public FieldDescriber(string name, bool nullable, ImmutableArray<Attribute> attributes)
+    public FieldDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes)
     {
         Name = name.ToLowerInvariant();
+        JsonTypeName = jsonTypeName;
         Nullable = nullable;
         Attributes = attributes;
     }
@@ -23,14 +26,19 @@ public abstract class FieldDescriber
 
     static FieldDescriber Create(Type type, string name, bool nullable, object? defaultValue, ImmutableArray<Attribute> attributes)
     {
-        if (istype<bool>()) return new BooleanDescriber(name, nullable, attributes) { DefaultValue = defaultValue };
-        if (istype<string>()) return new StringDescriber(name, nullable, attributes) { DefaultValue = defaultValue };
+        var jsonTypeName = (string)
+            typeof(Newtonsoft.Json.Formatting).Assembly.GetType("Newtonsoft.Json.Utilities.ReflectionUtils", true)!
+            .GetMethod("GetTypeName")!
+            .Invoke(null, new object?[] { type, TypeNameAssemblyFormatHandling.Simple, null })!;
+
+        if (istype<bool>()) return new BooleanDescriber(name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue };
+        if (istype<string>()) return new StringDescriber(name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue };
 
         if (type.GetInterfaces().Any(x => x.Name.StartsWith("INumber", StringComparison.Ordinal)))
-            return new NumberDescriber(name, nullable, attributes) { DefaultValue = defaultValue, IsInteger = !type.GetInterfaces().Any(x => x.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal)) };
+            return new NumberDescriber(name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue, IsInteger = !type.GetInterfaces().Any(x => x.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal)) };
 
         if (type.IsClass)
-            return new ObjectDescriber(name, nullable, PropInfo.CreateFromChildren(type).Select(x => Create(x, type)).ToImmutableArray(), attributes) { DefaultValue = defaultValue };
+            return new ObjectDescriber(name, jsonTypeName, nullable, PropInfo.CreateFromChildren(type).Select(x => Create(x, type)).ToImmutableArray(), attributes) { DefaultValue = defaultValue };
 
         throw new InvalidOperationException($"Could not find Describer for type {type}");
 
@@ -93,22 +101,22 @@ public abstract class FieldDescriber
 
 public class BooleanDescriber : FieldDescriber
 {
-    public BooleanDescriber(string name, bool nullable, ImmutableArray<Attribute> attributes) : base(name, nullable, attributes) { }
+    public BooleanDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) { }
 }
 public class StringDescriber : FieldDescriber
 {
-    public StringDescriber(string name, bool nullable, ImmutableArray<Attribute> attributes) : base(name, nullable, attributes) { }
+    public StringDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) { }
 }
 public class NumberDescriber : FieldDescriber
 {
     public bool IsInteger { get; init; }
 
-    public NumberDescriber(string name, bool nullable, ImmutableArray<Attribute> attributes) : base(name, nullable, attributes) { }
+    public NumberDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) { }
 }
 public class ObjectDescriber : FieldDescriber
 {
     public readonly ImmutableArray<FieldDescriber> Fields;
 
-    public ObjectDescriber(string name, bool nullable, ImmutableArray<FieldDescriber> fields, ImmutableArray<Attribute> attributes) : base(name, nullable, attributes) =>
+    public ObjectDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<FieldDescriber> fields, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) =>
         Fields = fields;
 }

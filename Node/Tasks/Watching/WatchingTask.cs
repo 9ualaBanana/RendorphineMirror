@@ -9,12 +9,10 @@ public class WatchingTask
 
     public readonly IWatchingTaskSource Source;
     public readonly string TaskAction;
-    public readonly object TaskData;
+    public readonly JObject TaskData;
     public readonly IWatchingTaskOutputInfo Output;
 
-    public WatchingTask(IWatchingTaskSource source, IPluginAction taskaction, object taskData, IWatchingTaskOutputInfo output) : this(source, taskaction.Name, taskData, output) { }
-    [JsonConstructor]
-    private WatchingTask(IWatchingTaskSource source, string taskaction, object taskData, IWatchingTaskOutputInfo output)
+    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output)
     {
         Source = source;
         TaskAction = taskaction;
@@ -51,8 +49,4 @@ public class WatchingTask
     }
 
     static string Serialize<T>(T obj) => obj?.GetType().Name + " " + JsonConvert.SerializeObject(obj, ConsoleJsonSerializer);
-
-
-    public static WatchingTask Create<T>(IWatchingTaskSource source, PluginAction<T> taskaction, T taskData, IWatchingTaskOutputInfo output) where T : notnull, new() =>
-        new(source, taskaction, taskData, output);
 }
