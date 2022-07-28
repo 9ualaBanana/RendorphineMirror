@@ -1,17 +1,17 @@
 using Newtonsoft.Json;
 
-namespace Node.Tasks.Repeating;
+namespace Node.Tasks.Watching;
 
-public class LocalRepeatingTaskSource : IRepeatingTaskSource
+public class LocalWatchingTaskSource : IWatchingTaskSource
 {
-    public event Action<RepeatingTaskFileAddedEventArgs>? FileAdded;
+    public event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
 
     [LocalFile] public readonly string Directory;
     [JsonIgnore] FileSystemWatcher? Watcher;
 
     readonly List<string> SavedFiles = new();
 
-    public LocalRepeatingTaskSource(string directory) => Directory = directory;
+    public LocalWatchingTaskSource(string directory) => Directory = directory;
 
     public void StartListening()
     {

@@ -1,11 +1,11 @@
-namespace Node.Tasks.Repeating;
+namespace Node.Tasks.Watching;
 
-public readonly struct RepeatingTaskFileAddedEventArgs
+public readonly struct WatchingTaskFileAddedEventArgs
 {
     public readonly string FileName;
     public readonly ITaskInputInfo InputData;
 
-    public RepeatingTaskFileAddedEventArgs(string fileName, ITaskInputInfo inputData)
+    public WatchingTaskFileAddedEventArgs(string fileName, ITaskInputInfo inputData)
     {
         FileName = Path.GetFileName(fileName);
         InputData = inputData;

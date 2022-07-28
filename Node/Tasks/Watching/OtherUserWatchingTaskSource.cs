@@ -3,15 +3,15 @@ using Newtonsoft.Json.Linq;
 using Node.Listeners;
 using Node.P2P.Download;
 
-namespace Node.Tasks.Repeating;
+namespace Node.Tasks.Watching;
 
-public class OtherUserRepeatingTaskSource : IRepeatingTaskSource
+public class OtherUserWatchingTaskSource : IWatchingTaskSource
 {
-    public event Action<RepeatingTaskFileAddedEventArgs>? FileAdded;
+    public event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
 
     public readonly string NodeId, Directory;
 
-    public OtherUserRepeatingTaskSource(string nodeid, string directory)
+    public OtherUserWatchingTaskSource(string nodeid, string directory)
     {
         NodeId = nodeid;
         Directory = directory;
@@ -25,7 +25,7 @@ public class OtherUserRepeatingTaskSource : IRepeatingTaskSource
         var node = nodes.FirstOrDefault(x => x.Id == NodeId);
         if (node is null) throw new Exception($"Could not find local node with ID {NodeId}");
 
-        var pipe = await LocalPipe.SendAsync($"http://{node.Info.Ip}:{node.Info.Port}/repeating/listen?dir={HttpUtility.UrlEncode(Directory)}&sessionid={Settings.SessionId}").ConfigureAwait(false);
+        var pipe = await LocalPipe.SendAsync($"http://{node.Info.Ip}:{node.Info.Port}/watcher/listen?dir={HttpUtility.UrlEncode(Directory)}&sessionid={Settings.SessionId}").ConfigureAwait(false);
         var reader = LocalPipe.CreateReader(pipe);
 
         while (true)

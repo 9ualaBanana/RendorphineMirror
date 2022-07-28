@@ -80,8 +80,8 @@ public class LocalListener : ExecutableListenerBase
             }.ToImmutableArray();
             var repeats = new[]
             {
-                serializerep<MPlusRepeatingTaskSource>(TaskInputOutputType.MPlus),
-                serializerep<LocalRepeatingTaskSource>(TaskInputOutputType.User),
+                serializerep<MPlusWatchingTaskSource>(TaskInputOutputType.MPlus),
+                serializerep<LocalWatchingTaskSource>(TaskInputOutputType.User),
             }.ToImmutableArray();
 
             var output = new TasksFullDescriber(actions, inputs, outputs, repeats);
@@ -90,7 +90,7 @@ public class LocalListener : ExecutableListenerBase
 
             static TaskActionDescriber serialize(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
             static TaskInputOutputDescriber serializeinout<T>(TaskInputOutputType type) where T : ITaskInputOutputInfo => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
-            static TaskInputOutputDescriber serializerep<T>(TaskInputOutputType type) where T : IRepeatingTaskSource => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
+            static TaskInputOutputDescriber serializerep<T>(TaskInputOutputType type) where T : IWatchingTaskSource => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
         }
 
         return HttpStatusCode.NotFound;

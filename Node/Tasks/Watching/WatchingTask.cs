@@ -1,20 +1,20 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Node.Tasks.Repeating;
+namespace Node.Tasks.Watching;
 
-public class RepeatingTask
+public class WatchingTask
 {
     static readonly JsonSerializerSettings ConsoleJsonSerializer = new() { DefaultValueHandling = DefaultValueHandling.Ignore, Formatting = Formatting.None };
 
-    public readonly IRepeatingTaskSource Source;
+    public readonly IWatchingTaskSource Source;
     public readonly string TaskAction;
     public readonly object TaskData;
-    public readonly IRepeatingTaskOutputInfo Output;
+    public readonly IWatchingTaskOutputInfo Output;
 
-    public RepeatingTask(IRepeatingTaskSource source, IPluginAction taskaction, object taskData, IRepeatingTaskOutputInfo output) : this(source, taskaction.Name, taskData, output) { }
+    public WatchingTask(IWatchingTaskSource source, IPluginAction taskaction, object taskData, IWatchingTaskOutputInfo output) : this(source, taskaction.Name, taskData, output) { }
     [JsonConstructor]
-    private RepeatingTask(IRepeatingTaskSource source, string taskaction, object taskData, IRepeatingTaskOutputInfo output)
+    private WatchingTask(IWatchingTaskSource source, string taskaction, object taskData, IWatchingTaskOutputInfo output)
     {
         Source = source;
         TaskAction = taskaction;
@@ -29,7 +29,7 @@ public class RepeatingTask
 
         Source.FileAdded += async input =>
         {
-            Log.Information($"A repeating task found a new file: {Serialize(input.InputData)}");
+            Log.Information($"A watching task found a new file: {Serialize(input.InputData)}");
 
             var output = Output.CreateOutput(input.FileName);
 
@@ -46,13 +46,13 @@ public class RepeatingTask
             var taskid = register.ThrowIfError();
         };
 
-        Log.Information($"Repeating task watcher was started; listening at {Serialize(Source)} for an action {TaskAction} with data {Serialize(TaskData)} and output to {Serialize(Output)}");
+        Log.Information($"Watching task watcher was started; listening at {Serialize(Source)} for an action {TaskAction} with data {Serialize(TaskData)} and output to {Serialize(Output)}");
         Source.StartListening();
     }
 
     static string Serialize<T>(T obj) => obj?.GetType().Name + " " + JsonConvert.SerializeObject(obj, ConsoleJsonSerializer);
 
 
-    public static RepeatingTask Create<T>(IRepeatingTaskSource source, PluginAction<T> taskaction, T taskData, IRepeatingTaskOutputInfo output) where T : notnull, new() =>
+    public static WatchingTask Create<T>(IWatchingTaskSource source, PluginAction<T> taskaction, T taskData, IWatchingTaskOutputInfo output) where T : notnull, new() =>
         new(source, taskaction, taskData, output);
 }

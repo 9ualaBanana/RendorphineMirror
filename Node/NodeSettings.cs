@@ -1,4 +1,4 @@
-using Node.Tasks.Repeating;
+using Node.Tasks.Watching;
 using static Common.Settings;
 
 namespace Node;
@@ -6,13 +6,13 @@ namespace Node;
 public static class NodeSettings
 {
     public static readonly DatabaseBindableList<ReceivedTask> SavedTasks;
-    public static readonly DatabaseBindableList<RepeatingTask> RepeatingTasks;
+    public static readonly DatabaseBindableList<WatchingTask> WatchingTasks;
     public static readonly DatabaseBindableList<TaskCreationInfo> PlacedTasks;
 
     static NodeSettings()
     {
         SavedTasks = new(nameof(SavedTasks));
-        RepeatingTasks = new(nameof(RepeatingTasks));
+        WatchingTasks = new(nameof(WatchingTasks));
         PlacedTasks = new(nameof(PlacedTasks));
     }
 }

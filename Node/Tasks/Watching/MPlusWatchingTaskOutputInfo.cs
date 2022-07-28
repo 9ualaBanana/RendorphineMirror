@@ -1,11 +1,11 @@
-namespace Node.Tasks.Repeating;
+namespace Node.Tasks.Watching;
 
-public class MPlusRepeatingTaskOutputInfo : IRepeatingTaskOutputInfo
+public class MPlusWatchingTaskOutputInfo : IWatchingTaskOutputInfo
 {
     public TaskInputOutputType Type => TaskInputOutputType.MPlus;
     public readonly string Directory;
 
-    public MPlusRepeatingTaskOutputInfo(string directory) => Directory = directory;
+    public MPlusWatchingTaskOutputInfo(string directory) => Directory = directory;
 
     public ITaskOutputInfo CreateOutput(string file) => new MPlusTaskOutputInfo(file, Directory);
 }

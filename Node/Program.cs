@@ -6,7 +6,7 @@ global using Machine;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Executor;
 global using Node.Tasks.Models;
-global using Node.Tasks.Repeating;
+global using Node.Tasks.Watching;
 global using Serilog;
 using System.Diagnostics;
 using Machine.Plugins;
@@ -86,19 +86,19 @@ new NodeStateListener().Start();
 if (Init.IsDebug) new DebugListener().Start();
 
 
-/*NodeSettings.RepeatingTasks.Add(RepeatingTask.Create(
-    new LocalRepeatingTaskSource("/tmp/ae"),
+/*NodeSettings.WatchingTasks.Add(WatchingTask.Create(
+    new LocalWatchingTaskSource("/tmp/ae"),
     FFMpegTasks.EditVideo,
     new() { Hflip = true, },
-    new MPlusRepeatingTaskOutputInfo("rep_outputdir")
+    new MPlusWatchingTaskOutputInfo("rep_outputdir")
 ));*/
 
 
-if (NodeSettings.RepeatingTasks.Count != 0)
+if (NodeSettings.WatchingTasks.Count != 0)
 {
-    Log.Information($"Found {NodeSettings.RepeatingTasks.Count} repeating tasks, starting...");
+    Log.Information($"Found {NodeSettings.WatchingTasks.Count} watching tasks, starting...");
 
-    foreach (var task in NodeSettings.RepeatingTasks)
+    foreach (var task in NodeSettings.WatchingTasks)
         task.StartWatcher();
 }
 

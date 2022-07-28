@@ -1,9 +1,9 @@
-namespace Node.Tasks.Repeating;
+namespace Node.Tasks.Watching;
 
 // TODO:
-public class MPlusRepeatingTaskSource : IRepeatingTaskSource
+public class MPlusWatchingTaskSource : IWatchingTaskSource
 {
-    public event Action<RepeatingTaskFileAddedEventArgs>? FileAdded;
+    public event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
 
     public void StartListening()
     {
