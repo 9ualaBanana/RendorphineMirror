@@ -47,8 +47,8 @@ internal static class DownloadsManager
         return new Dictionary<string, object?>
         {
             ["fileid"] = downloader.Id,
-            ["host"] = $"d7e4-213-87-159-225.eu.ngrok.io/{downloader.Id}",
-            //["host"] = $"{await MachineInfo.GetPublicIPAsync()}:{PortForwarding.Port}/{downloader.Id}",
+            //["host"] = $"d7e4-213-87-159-225.eu.ngrok.io/{downloader.Id}",
+            ["host"] = $"{await MachineInfo.GetPublicIPAsync()}:{PortForwarding.Port}/{downloader.Id}",
             ["uploadedbytes"] = downloader.DownloadedBytesCount,
             ["uploadedchunks"] = downloader.DownloadedPackets.OrderBy(packet => packet.Offset)
         };

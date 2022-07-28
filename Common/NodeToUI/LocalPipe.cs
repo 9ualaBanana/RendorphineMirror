@@ -5,8 +5,8 @@ namespace Common.NodeToUI;
 
 public static class LocalPipe
 {
-    public static Task<Stream> SendLocalAsync(string prefix) =>
-        SendAsync(new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{Settings.LocalListenPort}/{prefix}"));
+    public static Task<Stream> SendLocalAsync(string prefix) => SendAsync(new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{Settings.LocalListenPort}/{prefix}"));
+    public static Task<Stream> SendAsync(string uri) => SendAsync(new HttpRequestMessage(HttpMethod.Get, uri));
     public static async Task<Stream> SendAsync(HttpRequestMessage msg)
     {
         var data = await new HttpClient().SendAsync(msg, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);

@@ -9,7 +9,10 @@ public abstract class ListenerBase
 {
     protected virtual string? Prefix => null;
     protected virtual bool IsLocal => true;
-    protected virtual int Port => Settings.LocalListenPort;
+    protected virtual bool NeedsAuthentication => false;
+    protected int Port => IsLocal ? Settings.LocalListenPort : PortForwarding.Port;
+
+    readonly List<string> CachedAuthentications = new();
 
     protected readonly HttpListener Listener = new();
 
@@ -30,7 +33,34 @@ public abstract class ListenerBase
                 {
                     var context = Listener.GetContext();
                     LogRequest(context.Request);
-                    await Execute(context);
+
+                    try
+                    {
+
+                        if (!NeedsAuthentication) await Execute(context);
+                        else
+                        {
+                            Task.Run(async () =>
+                            {
+                                var check = await CheckAuthentication(context).ConfigureAwait(false);
+                                if (!check)
+                                {
+                                    context.Response.StatusCode = (int) HttpStatusCode.BadRequest;
+                                    context.Response.Close();
+                                    return;
+                                }
+
+                                await Execute(context);
+                            }).Consume();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex.ToString());
+
+                        context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
+                        context.Response.Close();
+                    }
                 }
                 catch (Exception ex) { Log.Error(ex.ToString()); }
             }
@@ -40,6 +70,44 @@ public abstract class ListenerBase
 
     protected abstract ValueTask Execute(HttpListenerContext context);
 
+    protected async Task<bool> CheckAuthentication(HttpListenerContext context)
+    {
+        var query = context.Request.QueryString;
+        var sid = query["sessionid"];
+        if (sid is null) return false;
+
+        if (sid == Settings.SessionId || CachedAuthentications.Contains(sid)) return true;
+
+        var mynodes = await Apis.GetMyNodesAsync(sid).ConfigureAwait(false);
+        if (!mynodes) return false;
+
+        var myuserid = mynodes.Result.Select(x => x.UserId).FirstOrDefault();
+        if (myuserid is null) return false;
+
+
+        var nodes = await Apis.GetMyNodesAsync(sid).ConfigureAwait(false);
+        if (!nodes) return false;
+
+        var theiruserid = nodes.Result.Select(x => x.UserId).FirstOrDefault();
+        if (theiruserid is null) return false;
+
+        if (myuserid != theiruserid) return false;
+
+        CachedAuthentications.Add(sid);
+        return true;
+    }
+    protected string GetPath(HttpListenerContext context)
+    {
+        if (context.Request.Url is null) throw new InvalidOperationException();
+
+        var response = context.Response;
+
+        var path = context.Request.Url.LocalPath.Substring((Prefix?.Length ?? 0) + 1);
+        if (path[0] == '/') path = path[1..];
+        if (path[^1] == '/') path = path[..^1];
+
+        return path;
+    }
 
 
     protected static JsonSerializerSettings JsonSettingsWithTypes => LocalApi.JsonSettingsWithType;
