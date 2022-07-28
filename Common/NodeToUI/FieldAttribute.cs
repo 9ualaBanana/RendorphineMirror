@@ -11,3 +11,13 @@ public class RangedAttribute : Attribute
         Max = max;
     }
 }
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class DefaultAttribute : Attribute
+{
+    public readonly object Value;
+
+    public DefaultAttribute(object value) => Value = value;
+}
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class LocalFileAttribute : Attribute { }

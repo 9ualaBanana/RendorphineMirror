@@ -9,7 +9,7 @@ public static class TaskList
     {
         Actions = new[]
         {
-            FFMpegTasks.Create(),
+            FFMpegTasks.GetTasks(),
         }.SelectMany(x => x).ToImmutableArray();
     }
 

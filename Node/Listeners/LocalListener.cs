@@ -71,18 +71,26 @@ public class LocalListener : ExecutableListenerBase
             var inputs = new[]
             {
                 serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.MPlus),
+                serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.User),
             }.ToImmutableArray();
             var outputs = new[]
             {
                 serializeinout<MPlusTaskOutputInfo>(TaskInputOutputType.MPlus),
+                serializeinout<UserTaskOutputInfo>(TaskInputOutputType.User),
+            }.ToImmutableArray();
+            var repeats = new[]
+            {
+                serializerep<MPlusRepeatingTaskSource>(TaskInputOutputType.MPlus),
+                serializerep<LocalRepeatingTaskSource>(TaskInputOutputType.User),
             }.ToImmutableArray();
 
-            var output = new TasksFullDescriber(actions, inputs, outputs);
+            var output = new TasksFullDescriber(actions, inputs, outputs, repeats);
             return await WriteJToken(response, JToken.FromObject(output, JsonSerializerWithTypes)).ConfigureAwait(false);
 
 
             static TaskActionDescriber serialize(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
             static TaskInputOutputDescriber serializeinout<T>(TaskInputOutputType type) where T : ITaskInputOutputInfo => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
+            static TaskInputOutputDescriber serializerep<T>(TaskInputOutputType type) where T : IRepeatingTaskSource => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
         }
 
         return HttpStatusCode.NotFound;

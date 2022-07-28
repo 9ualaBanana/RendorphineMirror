@@ -2,7 +2,6 @@ using System.Text.RegularExpressions;
 using Avalonia.Controls.Templates;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 
 namespace NodeUI.Pages
 {
@@ -208,48 +207,55 @@ namespace NodeUI.Pages
             }
         }
 
-        abstract class ChooseInputOutputPart : TaskPart
+        abstract class ChooseInputOutputPartBase<T> : TaskPart
         {
-            protected readonly JObject InputOutputJson = new();
-            Settings.ISetting? Setting;
+            protected readonly Panel SettingPanel;
 
-            public ChooseInputOutputPart(ImmutableArray<TaskInputOutputDescriber> describers, TaskCreationInfo builder) : base(builder)
+            public ChooseInputOutputPartBase(IReadOnlyList<T> describers, Func<T, IControl> templateFunc, TaskCreationInfo builder) : base(builder)
             {
                 var types = new ComboBox()
                 {
                     Items = describers,
-                    ItemTemplate = new FuncDataTemplate<TaskInputOutputDescriber>((t, _) => t is null ? null : new TextBlock() { Text = t.Type }),
+                    ItemTemplate = new FuncDataTemplate<T>((t, _) => t is null ? null : templateFunc(t)),
                     SelectedIndex = 0,
                 };
 
-                var panel = new Panel();
+                SettingPanel = new Panel();
                 var grid = new Grid()
                 {
                     RowDefinitions = RowDefinitions.Parse("Auto *"),
                     Children =
                     {
                         types.WithRow(0),
-                        panel.WithRow(1),
+                        SettingPanel.WithRow(1),
                     },
                 };
                 Children.Add(grid);
 
-                types.Subscribe(ComboBox.SelectedItemProperty, item =>
-                {
-                    panel.Children.Clear();
-                    if (item is null) return;
-
-                    var describer = (TaskInputOutputDescriber) item;
-
-                    InputOutputJson.RemoveAll();
-                    InputOutputJson["type"] = describer.Type;
-                    var parent = new JObject() { [describer.Type] = InputOutputJson, };
-
-                    Setting = Settings.Create(parent.Property(describer.Type)!, describer.Object);
-                    panel.Children.Add(Setting);
-                });
+                types.Subscribe(ComboBox.SelectedItemProperty, item => OnSetItem((T) item!));
             }
 
+            protected abstract void OnSetItem(T item);
+        }
+        abstract class ChooseInputOutputPart : ChooseInputOutputPartBase<TaskInputOutputDescriber>
+        {
+            protected readonly JObject InputOutputJson = new();
+            Settings.ISetting? Setting;
+
+            public ChooseInputOutputPart(ImmutableArray<TaskInputOutputDescriber> describers, TaskCreationInfo builder) : base(describers, t => new TextBlock() { Text = t.Type }, builder) { }
+
+            protected override void OnSetItem(TaskInputOutputDescriber? describer)
+            {
+                SettingPanel.Children.Clear();
+                if (describer is null) return;
+
+                InputOutputJson.RemoveAll();
+                InputOutputJson["type"] = describer.Type;
+                var parent = new JObject() { [describer.Type] = InputOutputJson, };
+
+                Setting = Settings.Create(parent.Property(describer.Type)!, describer.Object);
+                SettingPanel.Children.Add(Setting);
+            }
             public override void OnNext()
             {
                 base.OnNext();

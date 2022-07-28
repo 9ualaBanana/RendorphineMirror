@@ -124,13 +124,13 @@ namespace Common
             if (!query.Read()) return defaultValue;
 
             var str = query.GetString(0);
-            return JsonConvert.DeserializeObject<T>(str);
+            return JsonConvert.DeserializeObject<T>(str, LocalApi.JsonSettingsWithType);
         }
         static void Save<T>(string path, T value)
         {
             ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
                 new SQLiteParameter("key", path),
-                new SQLiteParameter("value", JsonConvert.SerializeObject(value))
+                new SQLiteParameter("value", JsonConvert.SerializeObject(value, LocalApi.JsonSettingsWithType))
             );
         }
 
@@ -165,8 +165,8 @@ namespace Common
 
             public void Reload() => Value = Load(Name, _Value)!;
 
-            public JToken ToJson() => JToken.FromObject(Value!);
-            public void SetFromJson(string json) => Value = JsonConvert.DeserializeObject<T>(json)!;
+            public JToken ToJson() => JToken.FromObject(Value!, LocalApi.JsonSerializerWithType);
+            public void SetFromJson(string json) => Value = JsonConvert.DeserializeObject<T>(json, LocalApi.JsonSettingsWithType)!;
         }
         public class DatabaseBindableList<T> : BindableList<T>, IDatabaseBindable
         {
@@ -189,8 +189,8 @@ namespace Common
 
             public void Reload() => SetRange(Load(Name, Array.Empty<T>()));
 
-            public JToken ToJson() => JToken.FromObject(Value);
-            public void SetFromJson(string json) => SetRange(JsonConvert.DeserializeObject<T[]>(json) ?? Array.Empty<T>());
+            public JToken ToJson() => JToken.FromObject(Value, LocalApi.JsonSerializerWithType);
+            public void SetFromJson(string json) => SetRange(JsonConvert.DeserializeObject<T[]>(json, LocalApi.JsonSettingsWithType) ?? Array.Empty<T>());
         }
     }
 }

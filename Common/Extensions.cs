@@ -1,3 +1,5 @@
+using Newtonsoft.Json.Linq;
+
 namespace Common
 {
     public static class Extensions
@@ -24,5 +26,19 @@ namespace Common
                 throw t.Exception;
             }
         }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+
+        public static T ThrowIfNull<T>(this T? value, string? message = null)
+        {
+            if (value is null)
+                throw new NullReferenceException(message ?? "Value is null");
+
+            return value;
+        }
+
+        public static T WithProperty<T>(this T jobj, string key, JToken value) where T : JToken
+        {
+            jobj[key] = value;
+            return jobj;
+        }
     }
 }

@@ -6,6 +6,7 @@ global using Machine;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Executor;
 global using Node.Tasks.Models;
+global using Node.Tasks.Repeating;
 global using Serilog;
 using System.Diagnostics;
 using Machine.Plugins;
@@ -87,6 +88,22 @@ new PublicListener().Start();
 new NodeStateListener().Start();
 if (Init.IsDebug) new DebugListener().Start();
 
+
+/*NodeSettings.RepeatingTasks.Add(RepeatingTask.Create(
+    new LocalRepeatingTaskSource("/tmp/ae"),
+    FFMpegTasks.EditVideo,
+    new() { Hflip = true, },
+    new MPlusRepeatingTaskOutputInfo("rep_outputdir")
+));*/
+
+
+if (NodeSettings.RepeatingTasks.Count != 0)
+{
+    Log.Information($"Found {NodeSettings.RepeatingTasks.Count} repeating tasks, starting...");
+
+    foreach (var task in NodeSettings.RepeatingTasks)
+        task.StartWatcher();
+}
 
 if (NodeSettings.SavedTasks.Count != 0)
 {
