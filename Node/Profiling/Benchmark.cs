@@ -47,13 +47,13 @@ internal static class Benchmark
         benchs.Execute(() => benchs["cpu"] = benchs["gpu"] = benchs["ram"] = benchs["disks"] = null);
 
         var cpu = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize);
-        benchs["cpu"] = Newtonsoft.Json.Linq.JObject.FromObject(cpu);
+        benchs["cpu"] = Newtonsoft.Json.Linq.JToken.FromObject(cpu);
         var gpu = await ComputePayloadWithGPUBenchmarkResultsAsync();
-        benchs["gpu"] = Newtonsoft.Json.Linq.JObject.FromObject(gpu);
+        benchs["gpu"] = Newtonsoft.Json.Linq.JToken.FromObject(gpu);
         var ram = GetRAMPayload();
-        benchs["ram"] = Newtonsoft.Json.Linq.JObject.FromObject(ram);
+        benchs["ram"] = Newtonsoft.Json.Linq.JToken.FromObject(ram);
         var disks = await ComputePayloadWithDrivesBenchmarkResultsAsync(testDataSize);
-        benchs["disks"] = Newtonsoft.Json.Linq.JObject.FromObject(disks);
+        benchs["disks"] = Newtonsoft.Json.Linq.JToken.FromObject(disks);
 
         isRun = true;
         LatestExecutedVersion.Update(BenchmarkMetadata.Version);

@@ -1,4 +1,5 @@
 using System.Net;
+using Newtonsoft.Json.Linq;
 
 namespace Node.Listeners;
 
@@ -14,7 +15,7 @@ public class DebugListener : ExecutableListenerBase
         {
             var query = context.Request.QueryString;
 
-            NodeGlobalState.Instance.ExecutingBenchmarks.Add("cpucpu", new() { ["rating"] = 123465789 });
+            NodeGlobalState.Instance.ExecutingBenchmarks.Add("cpucpu", new JObject() { ["rating"] = 123465789 });
             _ = Task.Delay(5000).ContinueWith(_ => NodeGlobalState.Instance.ExecutingBenchmarks.Remove("cpucpu"));
 
             return await WriteSuccess(response);

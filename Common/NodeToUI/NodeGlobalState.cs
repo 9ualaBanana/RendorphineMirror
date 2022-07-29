@@ -10,7 +10,7 @@ public class NodeGlobalState
     [JsonIgnore]
     public readonly WeakEventManager AnyChanged = new();
 
-    public readonly BindableDictionary<string, JObject?> ExecutingBenchmarks = new();
+    public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
     public readonly BindableList<ReceivedTask> ExecutingTasks = new();
 
 
