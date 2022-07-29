@@ -58,13 +58,16 @@ internal static class Benchmark
         isRun = true;
         LatestExecutedVersion.Update(BenchmarkMetadata.Version);
 
-        return new
+        var output = new
         {
             cpu,
             gpu,
             ram,
             disks,
         };
+        Log.Information("Benchmark completed: " + Newtonsoft.Json.JsonConvert.SerializeObject(output, Newtonsoft.Json.Formatting.None));
+
+        return output;
     }
 
     static async Task<object> ComputePayloadWithCPUBenchmarkResultsAsync(int testDataSize)
