@@ -2,6 +2,7 @@ using NLog.Web;
 using ReepoBot.Services.GitHub;
 using ReepoBot.Services.Tasks;
 using ReepoBot.Services.Telegram;
+using ReepoBot.Services.Telegram.Authentication;
 using ReepoBot.Services.Telegram.Updates;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,7 @@ builder.Services.AddTelegramUpdateHandlers();
 Task<TelegramBot> botInitialization = TelegramBot.Initialize(
     builder.Configuration["BotToken"], builder.Configuration["Host"]);
 
+builder.Services.AddSingleton<TelegramChatIdAuthentication>();
 builder.Services.AddScoped<TaskResultsPreviewer>();
 builder.Services.AddScoped<GitHubEventForwarder>();
 builder.Services.AddSingleton(await botInitialization);
@@ -32,7 +34,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthorization();
 app.MapControllers();
 
 app.Run(builder.Configuration["HostListener"]);

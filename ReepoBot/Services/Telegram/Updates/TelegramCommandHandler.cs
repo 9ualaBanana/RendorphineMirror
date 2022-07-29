@@ -1,5 +1,6 @@
 ﻿using ReepoBot.Models;
 using ReepoBot.Services.Node;
+using ReepoBot.Services.Telegram.Authentication;
 using System.Text;
 using Telegram.Bot.Types;
 
@@ -10,15 +11,18 @@ public class TelegramCommandHandler
     readonly ILogger _logger;
 
     readonly TelegramBot _bot;
+    readonly TelegramChatIdAuthentication _authentication;
     readonly NodeSupervisor _nodeSupervisor;
 
     public TelegramCommandHandler(
         ILogger<TelegramMessageHandler> logger,
         TelegramBot bot,
+        TelegramChatIdAuthentication authentication,
         NodeSupervisor nodeSupervisor)
     {
         _logger = logger;
         _bot = bot;
+        _authentication = authentication;
         _nodeSupervisor = nodeSupervisor;
     }
 
@@ -27,19 +31,25 @@ public class TelegramCommandHandler
         var command = update.Message!.Text!;
         _logger.LogDebug("Dispatching {Command} command...", command);
 
+        ChatId id = update.Message.Chat.Id;
         var unprefixedCommand = command[1..];
+
         if (unprefixedCommand.StartsWith("pinglist"))
-            { HandlePingList(update); return; }
+        { _authentication.Required(() => HandlePingList(update), id); return; }
         else if (unprefixedCommand.StartsWith("ping"))
-            { HandlePing(update); return; }
+        { _authentication.Required(() => HandlePing(update), id); return; }
         else if (unprefixedCommand.StartsWith("plugins"))
-            { HandlePlugins(update); return; }
+        { _authentication.Required(() => HandlePlugins(update), id); return; }
         else if (unprefixedCommand.StartsWith("online"))
-            { HandleOnline(update); return; }
+        { _authentication.Required(() => HandleOnline(update), id); return; }
         else if (unprefixedCommand.StartsWith("offline"))
-            { HandleOffline(update); return; }
+        { _authentication.Required(() => HandleOffline(update), id); return; }
         else if (unprefixedCommand.StartsWith("remove"))
-            { HandleRemove(update); return; }
+        { _authentication.Required(() => HandleRemove(update), id); return; }
+        else if (unprefixedCommand.StartsWith("login"))
+        { HandleLogin(update); return; }
+        else if (unprefixedCommand.StartsWith("logout"))
+        { _authentication.Required(() => HandleLogout(update), id); return; }
 
         _logger.LogWarning("No handler for {Command} command is found", command);
     }
@@ -151,5 +161,15 @@ public class TelegramCommandHandler
             $"{nodesRemoved} were removed.";
 
         _ = _bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
+    }
+
+    void HandleLogin(Update update)
+    {
+        _authentication.Authenticate(update.Message!);
+    }
+
+    void HandleLogout(Update update)
+    {
+        _authentication.LogOut(update.Message!.Chat.Id);
     }
 }
