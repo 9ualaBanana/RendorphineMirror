@@ -214,7 +214,11 @@ namespace Common
         public TValue this[TKey key]
         {
             get => Value[key];
-            set => Add(key, value);
+            set
+            {
+                Dictionary[key] = value;
+                RaiseChangedEvent();
+            }
         }
 
         public void Add(TKey key, TValue value)
