@@ -28,10 +28,11 @@ public static class NodeTask
         }
 
         Log.Information($"Registering task: {JsonConvert.SerializeObject(info)}");
-        var id = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
+        var idr = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
+        var id = idr.ThrowIfError();
 
-        Log.Information($"Task registered with ID {id.Value}");
-        NodeSettings.PlacedTasks.Add(info);
+        Log.Information($"Task registered with ID {id}");
+        NodeSettings.PlacedTasks.Add(new(id, info));
         return id;
     }
 
