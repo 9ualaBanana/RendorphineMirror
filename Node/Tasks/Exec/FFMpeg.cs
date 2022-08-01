@@ -41,6 +41,13 @@ public abstract class MediaEditInfo
     [Default(1), Ranged(.1, 10)]
     public double? Gamma;
 
+    [JsonProperty("ss")]
+    [Default("00:00:00.000")]
+    public string? StartTime;
+
+    [JsonProperty("to")]
+    public string? EndTime;
+
     [JsonProperty("ro")]
     [Default(0), Ranged(-Math.PI * 2, Math.PI * 2)]
     public double? RotationRadians;
@@ -53,8 +60,9 @@ public abstract class MediaEditInfo
         if (Hflip == true) yield return "hflip";
         if (Vflip == true) yield return "vflip";
         if (RotationRadians is not null) yield return $"rotate={RotationRadians.Value.ToString(NumberFormat)}";
+        if (StartTime is not null && EndTime is not null) yield return $"ss={StartTime}:to={EndTime}";
 
-        var eq = new List<string>();
+            var eq = new List<string>();
         if (Brightness is not null) eq.Add($"brightness={Brightness.Value.ToString(NumberFormat)}");
         if (Saturation is not null) eq.Add($"saturation={Saturation.Value.ToString(NumberFormat)}");
         if (Contrast is not null) eq.Add($"contrast={Contrast.Value.ToString(NumberFormat)}");
