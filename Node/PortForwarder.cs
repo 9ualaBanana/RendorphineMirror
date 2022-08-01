@@ -4,8 +4,6 @@ namespace Node
 {
     public static class PortForwarder
     {
-        public static bool Forwarded { get; private set; }
-
         // empty method to trigger static ctor
         public static void Initialize() { }
         static PortForwarder()
@@ -37,7 +35,6 @@ namespace Node
                     {
                         Log.Information($"[UPnP] Found already existing mapping: {mapping}");
                         portb.Value = (ushort) mapping.PublicPort;
-                        Forwarded = true;
                     }
                     else
                     {
@@ -52,7 +49,6 @@ namespace Node
                                 Log.Information($"[UPnP] Creating mapping {name} on port {port}");
                                 portb.Value = port;
                                 device.CreatePortMap(new Mapping(Protocol.Tcp, port, port, 0, name));
-                                Forwarded = true;
 
                                 break;
                             }
