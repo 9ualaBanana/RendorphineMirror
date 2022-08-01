@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Net;
 
 namespace Common
@@ -6,6 +5,7 @@ namespace Common
     public static class PortForwarding
     {
         public static int Port => Settings.UPnpPort;
+        public static int ServerPort => Settings.UPnpServerPort;
 
         static IPAddress? CachedPublicIp;
         static DateTime IpCacheTime = DateTime.MinValue;

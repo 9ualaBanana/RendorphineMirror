@@ -22,6 +22,7 @@ namespace Node
                 {
                     var mappings = device.GetAllMappings();
                     map(mappings, "renderphine", Settings.BUPnpPort);
+                    map(mappings, "renderphine-srv", Settings.BUPnpServerPort);
                     map(mappings, "renderphine-dht", Settings.BDhtPort);
                     map(mappings, "renderphine-trt", Settings.BTorrentPort);
                 }
@@ -48,7 +49,7 @@ namespace Node
                             {
                                 if (mappings.Any(x => x.PublicPort == port)) continue;
 
-                                Log.Information($"[UPnP] Creating mapping on port {port} with name {name}");
+                                Log.Information($"[UPnP] Creating mapping {name} on port {port}");
                                 portb.Value = port;
                                 device.CreatePortMap(new Mapping(Protocol.Tcp, port, port, 0, name));
                                 Forwarded = true;
