@@ -48,8 +48,8 @@ else
     Log.Information($"Authentication completed");
 }
 
-PortForwarder.Initialize();
-_ = PortForwarding.GetPublicIPAsync().ContinueWith(t => Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}"));
+if (!Init.IsDebug || halfrelease)
+    PortForwarder.Initialize();
 
 var captured = new List<object>();
 
@@ -84,6 +84,21 @@ taskreceiver.StartAsync().Consume();
 new PublicListener().Start();
 new NodeStateListener().Start();
 if (Init.IsDebug) new DebugListener().Start();
+
+PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
+{
+    var ip = t.Result.ToString();
+    Log.Information($"Public IP: {ip}; Public port: {PortForwarding.Port}; Web server port: {PortForwarding.ServerPort}");
+
+    var ports = new[] { PortForwarding.Port, PortForwarding.ServerPort };
+    foreach (var port in ports)
+    {
+        var open = await PortForwarding.IsPortOpenAndListening(ip, port).ConfigureAwait(false);
+
+        if (open) Log.Information($"Port {port} is open and listening");
+        else Log.Error($"Port {port} is either not open or not listening");
+    }
+}).Consume();
 
 
 /*NodeSettings.WatchingTasks.Add(WatchingTask.Create(
