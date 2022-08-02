@@ -4,7 +4,7 @@ namespace NodeUI.Pages
     {
         public OkMessageBox() : base(null)
         {
-            var button = AddButton(Localized.General.Ok, null);
+            var button = AddButton("general.ok", null);
             button.MaxWidth = 100;
         }
     }
@@ -12,8 +12,8 @@ namespace NodeUI.Pages
     {
         public YesNoMessageBox(bool defaultresult) : base(defaultresult)
         {
-            AddButton(Localized.General.Yes, true);
-            AddButton(Localized.General.No, false);
+            AddButton("general.yes", true);
+            AddButton("general.no", false);
         }
     }
 

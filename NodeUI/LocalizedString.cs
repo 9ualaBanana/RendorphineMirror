@@ -5,7 +5,6 @@ namespace NodeUI
 {
     public readonly struct LocalizedString
     {
-        public static readonly LocalizedString Empty = new LocalizedString("empty");
         public static readonly IReadOnlyWeakEventManager ChangeLangWeakEvent = new WeakEventManager();
 
         static ImmutableDictionary<string, ImmutableDictionary<string, string>> Translations = null!;
@@ -23,7 +22,15 @@ namespace NodeUI
 
             Reload();
         }
-        public LocalizedString(string key) => Key = key;
+        public LocalizedString(string key)
+        {
+            Key = key;
+
+            if (Debugger.IsAttached && key.Contains('.', StringComparison.Ordinal) && ToString() == key)
+                Log.Error($"Translation '{key}' does not exists in {Locale}");
+        }
+
+        public static implicit operator LocalizedString(string value) => new(value);
 
 
         public static string[] GetLoadedLocales() => Translations.Keys.ToArray();
@@ -42,7 +49,6 @@ namespace NodeUI
             ((WeakEventManager) ChangeLangWeakEvent).Invoke();
         }
 
-        public static bool KeyExists(string key) => Translations.ContainsKey(key);
         public static void Reload()
         {
             static string? getLocaleName(string res)

@@ -27,10 +27,10 @@ namespace NodeUI.Pages
             }
             async ValueTask<OperationResult> auth(string login, string password, bool slave)
             {
-                if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err(Localized.Login.EmptyLogin);
-                if (!slave && string.IsNullOrEmpty(password)) return OperationResult.Err(Localized.Login.EmptyPassword);
+                if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err("login.empty_login");
+                if (!slave && string.IsNullOrEmpty(password)) return OperationResult.Err("login.empty_password");
 
-                Login.StartLoginAnimation(Localized.Login.Loading);
+                Login.StartLoginAnimation("login.loading");
                 using var _ = new FuncDispose(() => Dispatcher.UIThread.Post(Login.StopLoginAnimation));
 
                 OperationResult auth;
@@ -101,7 +101,7 @@ namespace NodeUI.Pages
                     MaxWidth = 200,
                     Margin = new Thickness(111, 111, 0, 206)
                 };
-                text.Bind(TextBlock.TextProperty, Localized.Login.Welcome);
+                text.Bind(TextBlock.TextProperty, "login.welcome");
 
 
                 var grid = new Panel();
@@ -196,7 +196,7 @@ namespace NodeUI.Pages
 
                 LoginButton.Width = 157;
                 LoginButton.Height = 38;
-                LoginButton.Text = Localized.Login.Button;
+                LoginButton.Text = "login.button";
                 LoginButton.FontWeight = (FontWeight) 700;
                 LoginButton.MaxWidth = forgotPasswordButton.MaxWidth = 157;
                 LoginButton.Background = Colors.Accent;
@@ -264,7 +264,7 @@ namespace NodeUI.Pages
                         FontWeight = (FontWeight) 600
                     };
 
-                    text.Bind(TextBlock.TextProperty, Localized.Login.Title);
+                    text.Bind(TextBlock.TextProperty, "login.title");
                     Background = Colors.DarkGray;
                     Content = text;
                 }
@@ -288,7 +288,7 @@ namespace NodeUI.Pages
 
                     Content = grid;
 
-                    TextBlock.Bind(TextBlock.TextProperty, Localized.Login.Loading);
+                    TextBlock.Bind(TextBlock.TextProperty, "login.loading");
                     TextBlock.VerticalAlignment = VerticalAlignment.Center;
                     TextBlock.Margin = new Thickness(10, 0);
                     TextBlock.FontSize = 16;
@@ -317,7 +317,7 @@ namespace NodeUI.Pages
                     LoginInput.Padding = PasswordInput.Padding = new Thickness(20, 0, 0, 0);
                     LoginInput.Cursor = PasswordInput.Cursor = new Cursor(StandardCursorType.Ibeam);
 
-                    LoginInput.Bind(TextBox.WatermarkProperty, Localized.Login.Email);
+                    LoginInput.Bind(TextBox.WatermarkProperty, "login.email");
 
                     var line = new Panel { Background = Colors.BorderColor };
 
@@ -352,7 +352,7 @@ namespace NodeUI.Pages
                     public EyeTextBoxUI()
                     {
                         TextBox = new TextBox() { PasswordChar = '*' };
-                        TextBox.Bind(TextBox.WatermarkProperty, Localized.Login.Password);
+                        TextBox.Bind(TextBox.WatermarkProperty, "login.password");
 
                         var eye = new EyeUI();
                         eye.OnToggle += t => TextBox.PasswordChar = t ? default : '*';
@@ -411,7 +411,7 @@ namespace NodeUI.Pages
                     CheckBox.VerticalAlignment = VerticalAlignment.Center;
 
                     var text = new TextBlock() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0), };
-                    text.Bind(TextBlock.TextProperty, Localized.Login.RememberMe);
+                    text.Bind(TextBlock.TextProperty, "login.remember_me");
 
                     var grid = new Grid();
                     grid.ColumnDefinitions.Add(new ColumnDefinition());
@@ -466,7 +466,7 @@ namespace NodeUI.Pages
                         FontSize = 14,
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
-                    }.Bind(TextBlock.TextProperty, Localized.Login.ForgotPassword);
+                    }.Bind(TextBlock.TextProperty, "login.forgot_password");
 
                     Content = text;
 
