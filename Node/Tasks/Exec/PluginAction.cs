@@ -1,4 +1,4 @@
-namespace Common.Tasks.Tasks;
+namespace Node.Tasks.Exec;
 
 public interface IPluginAction
 {

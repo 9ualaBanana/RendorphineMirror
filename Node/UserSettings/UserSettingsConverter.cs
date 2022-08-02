@@ -7,7 +7,7 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
 {
     public override UserSettings? ReadJson(JsonReader reader, Type objectType, UserSettings? existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
-        var jObject = (JObject)JObject.Load(reader).Property("settings")!.Value;
+        var jObject = JObject.Load(reader);
         var userSettings = new UserSettings();
 
         var installSoftware = (JObject?)jObject.Property("installsoftware")?.Value;
@@ -52,7 +52,10 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
         {
             writer.WritePropertyName("nodeinstallsoftware");
             writer.WriteStartObject();
+            writer.WritePropertyName(Settings.Guid!);
+            writer.WriteStartObject();
             WritePlugins(writer, value.NodeInstallSoftware);
+            writer.WriteEndObject();
             writer.WriteEndObject();
         }
     }

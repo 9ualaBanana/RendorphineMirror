@@ -71,7 +71,7 @@ public class PluginToInstallConverter : JsonConverter<PluginToInstall>
         foreach (var subPlugin in subPlugins)
             WriteSubplugin(writer, subPlugin);
     }
-    
+
     static void WriteSubplugin(JsonWriter writer, PluginToInstall subPlugin)
     {
         writer.WritePropertyName(subPlugin.Type);

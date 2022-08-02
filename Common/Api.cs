@@ -33,7 +33,7 @@ namespace Common
             {
                 var result = await func(url, values).ConfigureAwait(false);
 
-                var responseJson = await GetJsonFromResponseIfSuccessful(result, errorDetails).ConfigureAwait(false);
+                var responseJson = await GetJsonFromResponseIfSuccessfulAsync(result, errorDetails).ConfigureAwait(false);
                 return (property is null ? responseJson : responseJson[property])!.ToObject<T>()!;
             }
         }
@@ -93,7 +93,7 @@ namespace Common
         //    }
         //}
 
-        static async ValueTask<JToken> GetJsonFromResponseIfSuccessful(HttpResponseMessage response, string? errorDetails = null)
+        public static async ValueTask<JToken> GetJsonFromResponseIfSuccessfulAsync(HttpResponseMessage response, string? errorDetails = null)
         {
             response.EnsureSuccessStatusCode();
 
