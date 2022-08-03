@@ -7,6 +7,4 @@ internal record TopazGigapixelAIPlugin : Plugin
     }
 
     public override PluginType Type => PluginType.TopazGigapixelAI;
-
-    protected override string DetermineVersion() => "Unknown";
 }
