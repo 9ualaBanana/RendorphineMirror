@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Machine.Plugins.Deployment;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Node.UserSettings;
@@ -22,12 +23,12 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
         return userSettings;
     }
 
-    static void ReadAll(JObject pluginsJObject, IList<PluginToInstall> deserializedPlugins)
+    static void ReadAll(JObject pluginsJObject, IList<PluginToDeploy> deserializedPlugins)
     {
         var plugins = pluginsJObject.Properties();
         while (pluginsJObject.HasValues)
         {
-            deserializedPlugins.Add(plugins.First().ToObject<PluginToInstall>()!);
+            deserializedPlugins.Add(plugins.First().ToObject<PluginToDeploy>()!);
             pluginsJObject.Properties().First().Remove();
         }
     }
@@ -60,11 +61,11 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
         }
     }
 
-    static void WritePlugins(JsonWriter writer, IEnumerable<PluginToInstall> plugins)
+    static void WritePlugins(JsonWriter writer, IEnumerable<PluginToDeploy> plugins)
     {
         foreach (var plugin in plugins.GroupBy(plugin => plugin.Type))
         {
-            writer.WritePropertyName(plugin.Key);
+            writer.WritePropertyName(plugin.Key.ToString());
             writer.WriteStartObject();
             foreach (var pluginVersion in plugin)
                 WritePlugin(writer, pluginVersion);
@@ -72,7 +73,7 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
         }
     }
 
-    static void WritePlugin(JsonWriter writer, PluginToInstall plugin)
+    static void WritePlugin(JsonWriter writer, PluginToDeploy plugin)
     {
         writer.WritePropertyName(plugin.Version);
         writer.WriteStartObject();
@@ -84,15 +85,15 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
         writer.WriteEndObject();
     }
 
-    static void WriteSubPlugins(JsonWriter writer, IEnumerable<PluginToInstall> subPlugins)
+    static void WriteSubPlugins(JsonWriter writer, IEnumerable<PluginToDeploy> subPlugins)
     {
         foreach (var subPlugin in subPlugins)
             WriteSubPlugin(writer, subPlugin);
     }
 
-    static void WriteSubPlugin(JsonWriter writer, PluginToInstall subPlugin)
+    static void WriteSubPlugin(JsonWriter writer, PluginToDeploy subPlugin)
     {
-        writer.WritePropertyName(subPlugin.Type);
+        writer.WritePropertyName(subPlugin.Type.ToString());
         writer.WriteStartObject();
         writer.WritePropertyName("version");
         writer.WriteValue(subPlugin.Version);
@@ -104,11 +105,11 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
         writer.WriteEndObject();
     }
 
-    static void WriteSubSubPlugins(JsonWriter writer, IEnumerable<PluginToInstall> subSubPlugins)
+    static void WriteSubSubPlugins(JsonWriter writer, IEnumerable<PluginToDeploy> subSubPlugins)
     {
         foreach (var subSubPlugin in subSubPlugins)
         {
-            writer.WritePropertyName(subSubPlugin.Type);
+            writer.WritePropertyName(subSubPlugin.Type.ToString());
             writer.WriteValue(subSubPlugin.Version);
         }
     }

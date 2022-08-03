@@ -13,6 +13,7 @@ using Machine.Plugins.Discoverers;
 using Node;
 using Node.Listeners;
 using Node.Profiling;
+using Node.UserSettings;
 
 var halfrelease = args.Contains("release");
 Logging.Configure();
@@ -26,9 +27,10 @@ PluginsManager.RegisterPluginDiscoverers(
     new TopazGigapixelAIPluginDiscoverer(),
     new DaVinciResolvePluginDiscoverer(),
     new FFmpegPluginDiscoverer(),
-    new PythonPluginDiscoverer()
+    new PythonPluginDiscoverer(),
+    new PythonEsrganPluginDiscoverer()
 );
-var discoveringInstalledPlugins = MachineInfo.DiscoverInstalledPluginsInBackground();
+await MachineInfo.DiscoverInstalledPluginsInBackground();
 
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
@@ -54,9 +56,6 @@ var captured = new List<object>();
 
 if (!Init.IsDebug || halfrelease)
 {
-    // Precomputed for sending by NodeProfiler.
-    var plugins = await discoveringInstalledPlugins;
-
     if (!Init.IsDebug)
     {
         SystemService.Start();
@@ -70,6 +69,11 @@ if (!Init.IsDebug || halfrelease)
 
         //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
     }
+
+    var userSettingsHeartbeat = new Heartbeat(new UserSettingsManager(Api.Client), TimeSpan.FromMinutes(5), Api.Client);
+    _ = userSettingsHeartbeat.StartAsync();
+
+    captured.Add(userSettingsHeartbeat);
 
     var mPlusTaskManagerHeartbeat = new Heartbeat(
         new HttpRequestMessage(HttpMethod.Post, $"https://tasks.microstock.plus/rphtaskmgr/pheartbeat") { Content = await Profiler.RunAsync() },
