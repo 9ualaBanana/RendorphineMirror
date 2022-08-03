@@ -1,13 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Machine.Plugins.Installers;
+namespace Machine.Plugins.Deployment;
 
-internal abstract record PluginDeploymentInfo(string? InstallationPath = default)
+public abstract record PluginDeploymentInfo(string? InstallationPath = default)
 {
-    internal string InstallerPath => Path.Combine(DownloadsDirectoryPath, Path.GetFileName(DownloadUrl));
-    internal abstract string DownloadUrl { get; }
-    internal abstract ProcessStartInfo InstallationStartInfo { get; }
+    public string InstallerPath => Path.Combine(DownloadsDirectoryPath, Path.GetFileName(DownloadUrl));
+    public abstract string DownloadUrl { get; }
+    public bool RequiresInstallation => Installation is not null;
+    public virtual Func<CancellationToken, Task>? Installation { get; }
 
 
     readonly static string DownloadsDirectoryPath = 
