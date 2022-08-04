@@ -93,11 +93,20 @@ namespace Common
         }
         static string GetVersion()
         {
-            DateTime? time = null;
-            try { time = Directory.GetFiles(Path.GetDirectoryName(typeof(Init).Assembly.Location ?? Environment.ProcessPath!)!, "*", SearchOption.AllDirectories).Select(File.GetLastWriteTimeUtc).Max(); }
-            catch (Exception ex) { Console.WriteLine("err getting version " + ex.Message); }
+            try
+            {
+                var assembly = typeof(Init).Assembly.Location ?? Environment.ProcessPath!;
+                if (FileVersionInfo.GetVersionInfo(assembly).ProductVersion is { } ver && ver != "1.0.0")
+                    return ver;
 
-            return time?.ToString("ddMMyy_HHmm") ?? "UNKNOWNVERSION";
+                var time = Directory.GetFiles(Path.GetDirectoryName(assembly)!, "*", SearchOption.AllDirectories).Select(File.GetLastWriteTimeUtc).Max();
+                return time.ToString(@"y\.M\.d\-\Uhhmm");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Error getting version: {ex}");
+                return "UNKNOWN";
+            }
         }
     }
 }

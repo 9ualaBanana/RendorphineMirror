@@ -1,11 +1,12 @@
-using System.Collections.Immutable;
 using System.Net;
+using System.Net.Sockets;
 
 namespace Common
 {
     public static class PortForwarding
     {
         public static int Port => Settings.UPnpPort;
+        public static int ServerPort => Settings.UPnpServerPort;
 
         static IPAddress? CachedPublicIp;
         static DateTime IpCacheTime = DateTime.MinValue;
@@ -19,7 +20,7 @@ namespace Common
             "https://wtfismyip.com/text",
             "http://icanhazip.com",
         }.ToImmutableArray();
-        public static async Task<IPAddress> GetPublicIPAsync()
+        public static async Task<IPAddress> GetPublicIPAsync(CancellationToken token = default)
         {
             if (CachedPublicIp is not null && IpCacheTime > DateTime.Now)
                 return CachedPublicIp;
@@ -40,6 +41,20 @@ namespace Common
             }
 
             throw new Exception("Could not fetch extenal IP");
+        }
+
+        public static async Task<bool> IsPortOpenAndListening(int port, CancellationToken token = default) =>
+            await IsPortOpenAndListening((await GetPublicIPAsync(token)).ToString(), port, token);
+        public static async Task<bool> IsPortOpenAndListening(string host, int port, CancellationToken token = default)
+        {
+            try
+            {
+                using var client = new TcpClient();
+                await client.ConnectAsync(host, port, token);
+
+                return true;
+            }
+            catch { return false; }
         }
     }
 }

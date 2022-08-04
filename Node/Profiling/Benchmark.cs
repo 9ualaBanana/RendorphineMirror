@@ -42,28 +42,32 @@ internal static class Benchmark
             };
         }
 
-        var state = new BenchmarkNodeState();
-        using var _ = GlobalState.TempSetState(state);
+        using var _ = new FuncDispose(NodeGlobalState.Instance.ExecutingBenchmarks.Clear);
+        var benchs = NodeGlobalState.Instance.ExecutingBenchmarks;
+        benchs.Execute(() => benchs["cpu"] = benchs["gpu"] = benchs["ram"] = benchs["disks"] = null);
 
         var cpu = await ComputePayloadWithCPUBenchmarkResultsAsync(testDataSize);
-        state.Completed.Add("cpu");
+        benchs["cpu"] = Newtonsoft.Json.Linq.JToken.FromObject(cpu);
         var gpu = await ComputePayloadWithGPUBenchmarkResultsAsync();
-        state.Completed.Add("gpu");
+        benchs["gpu"] = Newtonsoft.Json.Linq.JToken.FromObject(gpu);
         var ram = GetRAMPayload();
-        state.Completed.Add("ram");
+        benchs["ram"] = Newtonsoft.Json.Linq.JToken.FromObject(ram);
         var disks = await ComputePayloadWithDrivesBenchmarkResultsAsync(testDataSize);
-        state.Completed.Add("disks");
+        benchs["disks"] = Newtonsoft.Json.Linq.JToken.FromObject(disks);
 
         isRun = true;
         LatestExecutedVersion.Update(BenchmarkMetadata.Version);
 
-        return new
+        var output = new
         {
             cpu,
             gpu,
             ram,
             disks,
         };
+        Log.Information("Benchmark completed: " + Newtonsoft.Json.JsonConvert.SerializeObject(output, Newtonsoft.Json.Formatting.None));
+
+        return output;
     }
 
     static async Task<object> ComputePayloadWithCPUBenchmarkResultsAsync(int testDataSize)

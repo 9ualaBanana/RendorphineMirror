@@ -2,7 +2,6 @@ using System.Text.RegularExpressions;
 using Avalonia.Controls.Templates;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 
 namespace NodeUI.Pages
 {
@@ -17,7 +16,7 @@ namespace NodeUI.Pages
             Title = App.AppName;
             Icon = App.Icon;
 
-            Content = new TaskPartContainer();
+            Content = new NormalTaskCreationPanel();
         }
 
         static Task Post(Action action) => Dispatcher.UIThread.InvokeAsync(action);
@@ -60,7 +59,7 @@ namespace NodeUI.Pages
             readonly MPButton BackButton, NextButton;
             readonly Stack<TaskPart> Parts = new();
 
-            public TaskPartContainer()
+            public TaskPartContainer(TaskPart firstPart)
             {
                 RowDefinitions = RowDefinitions.Parse("Auto * Auto");
 
@@ -93,7 +92,7 @@ namespace NodeUI.Pages
                 };
                 Children.Add(buttonsgrid.WithRow(2));
 
-                ShowPart(new ChoosePluginPart());
+                ShowPart(firstPart);
             }
 
             void ShowPart(TaskPart part)
@@ -149,13 +148,12 @@ namespace NodeUI.Pages
 
             public virtual void OnNext() { }
         }
-        class ChoosePluginPart : TaskPart
+        abstract class ChoosePluginPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Plugin");
-            public override TaskPart? Next => new ChooseVersionPart(Builder.With(x => x.Type = PluginsList.SelectedItem));
 
-            readonly TypedListBox<PluginType> PluginsList;
+            protected readonly TypedListBox<PluginType> PluginsList;
 
             public ChoosePluginPart() : base(new())
             {
@@ -166,41 +164,40 @@ namespace NodeUI.Pages
                 Children.Add(PluginsList);
             }
         }
-        class ChooseVersionPart : TaskPart
+        abstract class ChooseVersionPart : TaskPart
         {
-            const string AnyVersion = "<any>";
+            protected const string AnyVersion = "<any>";
 
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new($"Choose {Builder.Type.GetName()} Version");
-            public override TaskPart? Next => new ChooseActionPart(Builder.With(x => x.Version = (VersionsList.SelectedItem == AnyVersion ? null : VersionsList.SelectedItem)));
 
-            readonly TypedListBox<string> VersionsList;
+            protected readonly TypedListBox<string> VersionsList;
 
             public ChooseVersionPart(TaskCreationInfo builder) : base(builder)
             {
                 string[] versions;
-                if (GlobalState.SoftwareStats.Value.TryGetValue(builder.Type, out var stats))
+                if (UICache.SoftwareStats.Value.TryGetValue(builder.Type, out var stats))
                     versions = stats.ByVersion.Keys.ToArray();
                 else versions = Array.Empty<string>();
 
                 VersionsList = CreateListBox(versions.Prepend(AnyVersion).ToArray(), version => new TextBlock() { Text = version });
                 VersionsList.SelectionChanged += (obj, e) => OnChoose?.Invoke(VersionsList.SelectedItems.Count != 0);
-                VersionsList.SelectedIndex = 0;
+                Dispatcher.UIThread.Post(() => VersionsList.SelectedIndex = 0);
 
                 Children.Add(VersionsList);
             }
         }
-        class ChooseActionPart : TaskPart
+        abstract class ChooseActionPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Action");
-            public override TaskPart? Next => new ChooseInputPart(Builder.With(x => x.Action = ActionsList.SelectedItem.Name));
 
-            readonly TypedListBox<TaskActionDescriber> ActionsList;
+            protected readonly TypedListBox<TaskActionDescriber> ActionsList;
 
             public ChooseActionPart(TaskCreationInfo builder) : base(builder)
             {
-                ActionsList = CreateListBox(GlobalState.GetTasksInfoAsync().GetAwaiter().GetResult().Actions, action => new TextBlock() { Text = action.Name });
+                var ac = UICache.GetTasksInfoAsync().GetAwaiter().GetResult();
+                ActionsList = CreateListBox(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Actions, action => new TextBlock() { Text = action.Name });
                 ActionsList.SelectionChanged += (obj, e) =>
                     OnChoose?.Invoke(ActionsList.SelectedItems.Count != 0);
 
@@ -208,84 +205,82 @@ namespace NodeUI.Pages
             }
         }
 
-        abstract class ChooseInputOutputPart : TaskPart
+        abstract class ChooseInputOutputPartBase<T> : TaskPart
         {
-            protected readonly JObject InputOutputJson = new();
-            Settings.ISetting? Setting;
+            protected readonly Panel SettingPanel;
 
-            public ChooseInputOutputPart(ImmutableArray<TaskInputOutputDescriber> describers, TaskCreationInfo builder) : base(builder)
+            public ChooseInputOutputPartBase(IReadOnlyList<T> describers, Func<T, IControl> templateFunc, TaskCreationInfo builder) : base(builder)
             {
                 var types = new ComboBox()
                 {
                     Items = describers,
-                    ItemTemplate = new FuncDataTemplate<TaskInputOutputDescriber>((t, _) => t is null ? null : new TextBlock() { Text = t.Type }),
+                    ItemTemplate = new FuncDataTemplate<T>((t, _) => t is null ? null : templateFunc(t)),
                     SelectedIndex = 0,
                 };
 
-                var panel = new Panel();
+                SettingPanel = new Panel();
                 var grid = new Grid()
                 {
                     RowDefinitions = RowDefinitions.Parse("Auto *"),
                     Children =
                     {
                         types.WithRow(0),
-                        panel.WithRow(1),
+                        SettingPanel.WithRow(1),
                     },
                 };
                 Children.Add(grid);
 
-                types.Subscribe(ComboBox.SelectedItemProperty, item =>
-                {
-                    panel.Children.Clear();
-                    if (item is null) return;
-
-                    var describer = (TaskInputOutputDescriber) item;
-
-                    InputOutputJson.RemoveAll();
-                    InputOutputJson["type"] = describer.Type;
-                    var parent = new JObject() { [describer.Type] = InputOutputJson, };
-
-                    Setting = Settings.Create(parent.Property(describer.Type)!, describer.Object);
-                    panel.Children.Add(Setting);
-                });
+                types.Subscribe(ComboBox.SelectedItemProperty, item => OnSetItem((T) item!));
             }
 
+            protected abstract void OnSetItem(T item);
+        }
+        abstract class ChooseInputOutputPart : ChooseInputOutputPartBase<TaskInputOutputDescriber>
+        {
+            protected readonly JObject InputOutputJson = new();
+            Settings.ISetting? Setting;
+
+            public ChooseInputOutputPart(ImmutableArray<TaskInputOutputDescriber> describers, TaskCreationInfo builder) : base(describers, t => new TextBlock() { Text = t.Type }, builder) { }
+
+            protected override void OnSetItem(TaskInputOutputDescriber? describer)
+            {
+                SettingPanel.Children.Clear();
+                if (describer is null) return;
+
+                InputOutputJson.RemoveAll();
+                InputOutputJson["$type"] = describer.Object.JsonTypeName;
+                InputOutputJson["type"] = describer.Type;
+                var parent = new JObject() { [describer.Type] = InputOutputJson, };
+
+                Setting = Settings.Create(parent.Property(describer.Type)!, describer.Object);
+                SettingPanel.Children.Add(Setting);
+            }
             public override void OnNext()
             {
                 base.OnNext();
                 Setting?.UpdateValue();
             }
         }
-        class ChooseInputPart : ChooseInputOutputPart
-        {
-            public override event Action<bool>? OnChoose;
-            public override LocalizedString Title => new("Choose Input");
-            public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
-
-            public ChooseInputPart(TaskCreationInfo builder) : base(GlobalState.GetTasksInfoAsync().GetAwaiter().GetResult().Inputs, builder) =>
-                Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
-        }
-        class ChooseOutputPart : ChooseInputOutputPart
+        abstract class ChooseOutputPart : ChooseInputOutputPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Output");
-            public override TaskPart? Next => new ParametersPart(Builder.With(x => x.Output = InputOutputJson));
 
-            public ChooseOutputPart(TaskCreationInfo builder) : base(GlobalState.GetTasksInfoAsync().GetAwaiter().GetResult().Outputs, builder) =>
+            public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Outputs, builder) =>
                 Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
         }
-        class ParametersPart : TaskPart
+
+        abstract class ParametersPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Modify Parameters");
-            public override TaskPart? Next => new WaitingPart(Builder.With(x => x.Data = Data));
 
-            readonly JObject Data = new();
+            protected readonly JObject Data = new();
             readonly Settings.ISetting Setting;
 
             public ParametersPart(TaskCreationInfo builder) : base(builder)
             {
-                var describer = GlobalState.GetTasksInfoAsync().GetAwaiter().GetResult().Actions.First(x => x.Name == builder.Action).DataDescriber;
+                var describer = UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Actions.First(x => x.Name == builder.Action).DataDescriber;
                 Data.RemoveAll();
                 Data["type"] = builder.Action;
 
@@ -302,88 +297,219 @@ namespace NodeUI.Pages
                 Setting.UpdateValue();
             }
         }
-        class WaitingPart : TaskPart
+
+
+
+        class NormalTaskCreationPanel : Panel
         {
-            public override event Action<bool>? OnChoose;
-            public override LocalizedString Title => new("Waiting");
-            public override TaskPart? Next => null;
+            public NormalTaskCreationPanel() => Children.Add(new TaskPartContainer(new ChoosePluginPart()));
 
-            readonly TextBlock StatusTextBlock;
 
-            public WaitingPart(TaskCreationInfo builder) : base(builder)
+            class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
             {
-                Children.Add(StatusTextBlock = new TextBlock());
-                _ = StartTaskAsync();
+                public override TaskPart? Next => new ChooseVersionPart(Builder.With(x => x.Type = PluginsList.SelectedItem));
             }
-
-            string Status() => @$"
-                waiting {Builder.Action}
-                using {Builder.Type}
-                v {Builder.Version ?? "<any>"}
-                from {Builder.Input.ToString(Formatting.None)}
-                to {Builder.Output.ToString(Formatting.None)}
-                and {Builder.Data.ToString(Formatting.None)}
-                ".TrimLines();
-            void Status(string? text) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = text + Environment.NewLine + Status());
-
-            static void ForEachProperty(JToken jobj, Action<JObject, JProperty> func)
+            class ChooseVersionPart : TaskCreationWindow.ChooseVersionPart
             {
-                foreach (var (parent, property) in getProperties(jobj).ToArray())
-                    func(parent, property);
-
-                IEnumerable<(JObject parent, JProperty property)> getProperties(JToken token) =>
-                    token is not JObject obj
-                        ? Enumerable.Empty<(JObject, JProperty)>()
-                        : obj.Properties().Select(p => (obj, p))
-                            .Concat(obj.Values().SelectMany(getProperties));
+                public override TaskPart? Next => new ChooseActionPart(Builder.With(x => x.Version = (VersionsList.SelectedItem == AnyVersion ? null : VersionsList.SelectedItem)));
+                public ChooseVersionPart(TaskCreationInfo builder) : base(builder) { }
             }
-            static void ProcessObject(JToken jobj)
+            class ChooseActionPart : TaskCreationWindow.ChooseActionPart
             {
-                ForEachProperty(jobj, (parent, property) =>
+                public override TaskPart? Next => new ChooseInputPart(Builder.With(x => x.Action = ActionsList.SelectedItem.Name));
+                public ChooseActionPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChooseInputPart : ChooseInputOutputPart
+            {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("Choose Input");
+                public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
+
+                public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Inputs, builder) =>
+                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
+            }
+            class ChooseOutputPart : TaskCreationWindow.ChooseOutputPart
+            {
+                public override TaskPart? Next => new ChooseParametersPart(Builder.With(x => x.Output = InputOutputJson));
+                public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChooseParametersPart : TaskCreationWindow.ParametersPart
+            {
+                public override TaskPart? Next => new WaitingPart(Builder.With(x => x.Data = Data));
+                public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class WaitingPart : TaskPart
+            {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("Waiting");
+                public override TaskPart? Next => null;
+
+                readonly TextBlock StatusTextBlock;
+
+                public WaitingPart(TaskCreationInfo builder) : base(builder)
                 {
-                    // remove null
-                    if (property.Value is null || property.Value?.Type == JTokenType.Null)
-                        parent.Remove(property.Name);
-                });
-            }
-
-            async ValueTask StartTaskAsync()
-            {
-                ProcessObject(Builder.Data);
-                ProcessObject(Builder.Input);
-                ProcessObject(Builder.Output);
-
-                var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
-                var post = await LocalApi.Post<string>(LocalApi.LocalIP, "starttask", new StringContent(serialized)).ConfigureAwait(false);
-                if (!post)
-                {
-                    Status($"error {post}");
-                    return;
+                    Children.Add(StatusTextBlock = new TextBlock());
+                    StartTaskAsync().Consume();
                 }
 
-                var taskid = post.Value;
+                string Status() => @$"
+                    waiting {Builder.Action}
+                    using {Builder.Type}
+                    v {Builder.Version ?? "<any>"}
+                    from {Builder.Input.ToString(Formatting.None)}
+                    to {Builder.Output.ToString(Formatting.None)}
+                    and {Builder.Data.ToString(Formatting.None)}
+                    ".TrimLines();
+                void Status(string? text) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = text + Environment.NewLine + Status());
 
-                var stt = "";
-                Status(stt = $"taskid={taskid}\n{stt}");
-
-                var token = new CancellationTokenSource();
-                Dispatcher.UIThread.Post(() => ((Window) VisualRoot!).Closed += (_, _) => token.Cancel());
-
-                while (true)
+                static void ForEachProperty(JToken jobj, Action<JObject, JProperty> func)
                 {
-                    if (token.Token.IsCancellationRequested) return;
+                    foreach (var (parent, property) in getProperties(jobj).ToArray())
+                        func(parent, property);
 
-                    var stater = await Apis.GetTaskStateAsync(taskid);
-                    if (!stater)
+                    IEnumerable<(JObject parent, JProperty property)> getProperties(JToken token) =>
+                        token is not JObject obj
+                            ? Enumerable.Empty<(JObject, JProperty)>()
+                            : obj.Properties().Select(p => (obj, p))
+                                .Concat(obj.Values().SelectMany(getProperties));
+                }
+                static void ProcessObject(JToken jobj)
+                {
+                    ForEachProperty(jobj, (parent, property) =>
                     {
-                        Status($"error getting task state {stater}\n{stt}");
-                        continue;
+                        // remove null
+                        if (property.Value is null || property.Value?.Type == JTokenType.Null)
+                            parent.Remove(property.Name);
+                    });
+                }
+
+                async Task StartTaskAsync()
+                {
+                    ProcessObject(Builder.Data);
+                    ProcessObject(Builder.Input);
+                    ProcessObject(Builder.Output);
+
+                    var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
+                    var post = await LocalApi.Post<string>(LocalApi.LocalIP, "starttask", new StringContent(serialized)).ConfigureAwait(false);
+                    if (!post)
+                    {
+                        Status($"error {post}");
+                        return;
                     }
 
-                    var state = stater.Value;
-                    Status($"task state: {state.State} {JsonConvert.SerializeObject(state)}\n{stt}".TrimLines());
+                    var taskid = post.Value;
 
-                    await Task.Delay(1000);
+                    var stt = "";
+                    Status(stt = $"taskid={taskid}\n{stt}");
+
+                    var token = new CancellationTokenSource();
+                    Dispatcher.UIThread.Post(() => ((Window) VisualRoot!).Closed += (_, _) => token.Cancel());
+
+                    while (true)
+                    {
+                        if (token.Token.IsCancellationRequested) return;
+
+                        var stater = await Apis.GetTaskStateAsync(taskid);
+                        if (!stater)
+                        {
+                            Status($"error getting task state {stater}\n{stt}");
+                            continue;
+                        }
+
+                        var state = stater.Value;
+                        Status($"task state: {state.State} {JsonConvert.SerializeObject(state)}\n{stt}".TrimLines());
+
+                        await Task.Delay(1000);
+                    }
+                }
+            }
+        }
+        class WatchingTaskCreationPanel : Panel
+        {
+            public WatchingTaskCreationPanel() => Children.Add(new TaskPartContainer(new ChoosePluginPart()));
+
+
+            class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
+            {
+                public override TaskPart? Next => new ChooseVersionPart(Builder.With(x => x.Type = PluginsList.SelectedItem));
+            }
+            class ChooseVersionPart : TaskCreationWindow.ChooseVersionPart
+            {
+                public override TaskPart? Next => new ChooseActionPart(Builder.With(x => x.Version = (VersionsList.SelectedItem == AnyVersion ? null : VersionsList.SelectedItem)));
+                public ChooseVersionPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChooseActionPart : TaskCreationWindow.ChooseActionPart
+            {
+                public override TaskPart? Next => new ChooseInputPart(Builder.With(x => x.Action = ActionsList.SelectedItem.Name));
+                public ChooseActionPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChooseInputPart : ChooseInputOutputPart
+            {
+                public override LocalizedString Title => new("Choose Input");
+                public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
+
+                public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().WatchingInputs, builder) =>
+                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
+
+                public override event Action<bool>? OnChoose;
+            }
+            class ChooseOutputPart : TaskCreationWindow.ChooseOutputPart
+            {
+                public override TaskPart? Next => new ChooseParametersPart(Builder.With(x => x.Output = InputOutputJson));
+                public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChooseParametersPart : TaskCreationWindow.ParametersPart
+            {
+                public override TaskPart? Next => new EndPart(Builder.With(x => x.Data = Data));
+                public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class EndPart : TaskPart
+            {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("End");
+                public override TaskPart? Next => null;
+
+                public EndPart(TaskCreationInfo builder) : base(builder)
+                {
+                    StartTaskAsync().Consume();
+                    // TODO: start task
+                    Children.Add(new TextBlock() { Text = "done thx" });
+                }
+
+                static void ForEachProperty(JToken jobj, Action<JObject, JProperty> func)
+                {
+                    foreach (var (parent, property) in getProperties(jobj).ToArray())
+                        func(parent, property);
+
+                    IEnumerable<(JObject parent, JProperty property)> getProperties(JToken token) =>
+                        token is not JObject obj
+                            ? Enumerable.Empty<(JObject, JProperty)>()
+                            : obj.Properties().Select(p => (obj, p))
+                                .Concat(obj.Values().SelectMany(getProperties));
+                }
+                static void ProcessObject(JToken jobj)
+                {
+                    ForEachProperty(jobj, (parent, property) =>
+                    {
+                        // remove null
+                        if (property.Value is null || property.Value?.Type == JTokenType.Null)
+                            parent.Remove(property.Name);
+                    });
+                }
+
+                async Task StartTaskAsync()
+                {
+                    ProcessObject(Builder.Data);
+                    ProcessObject(Builder.Input);
+                    ProcessObject(Builder.Output);
+
+                    var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
+                    var post = await LocalApi.Post<string>(LocalApi.LocalIP, "startwatchingtask", new StringContent(serialized)).ConfigureAwait(false);
+                    if (!post)
+                    {
+                        // Status($"error {post}");
+                        return;
+                    }
                 }
             }
         }
@@ -437,6 +563,22 @@ namespace NodeUI.Pages
 
                 public Setting(T describer, JProperty property) : base(property) => Describer = describer;
             }
+
+            abstract class SettingContainer<T> : Setting<T> where T : FieldDescriber
+            {
+                public new T Describer => base.Describer;
+                readonly Setting<T> Setting;
+
+                protected SettingContainer(T describer, JProperty property) : base(describer, property) => Children.Add(Setting = CreateSetting());
+
+                protected abstract Setting<T> CreateSetting();
+                public sealed override void UpdateValue() => Setting.UpdateValue();
+            }
+            abstract class SettingChild<T> : Setting<T> where T : FieldDescriber
+            {
+                protected SettingChild(SettingContainer<T> parent) : base(parent.Describer, parent.Property) { }
+            }
+
             class BoolSetting : Setting<BooleanDescriber>
             {
                 readonly CheckBox Checkbox;
@@ -449,41 +591,80 @@ namespace NodeUI.Pages
 
                 public override void UpdateValue() => Set(Checkbox.IsChecked == true);
             }
-            class TextSetting : Setting<StringDescriber>
+            class TextSetting : SettingContainer<StringDescriber>
             {
-                readonly TextBox TextBox;
+                public TextSetting(StringDescriber describer, JProperty property) : base(describer, property) { }
 
-                public TextSetting(StringDescriber describer, JProperty property) : base(describer, property)
+                protected override Setting<StringDescriber> CreateSetting()
                 {
-                    TextBox = new TextBox() { Text = Get().Value<string?>() ?? string.Empty };
-                    Children.Add(TextBox);
+                    if (Describer.Attributes.OfType<LocalFileAttribute>().Any())
+                        return new LocalFileSetting(this);
+                    if (Describer.Attributes.OfType<LocalDirectoryAttribute>().Any())
+                        return new LocalDirSetting(this);
+
+                    return new TextBoxSetting(this);
                 }
 
-                public override void UpdateValue() => Set(TextBox.Text);
-            }
-            class NumberSetting : Setting<NumberDescriber>
-            {
-                readonly Setting Setting;
 
-                public NumberSetting(NumberDescriber describer, JProperty property) : base(describer, property)
+                class TextBoxSetting : SettingChild<StringDescriber>
+                {
+                    readonly TextBox TextBox;
+
+                    public TextBoxSetting(TextSetting setting) : base(setting)
+                    {
+                        TextBox = new TextBox() { Text = Get().Value<string?>() ?? string.Empty };
+                        Children.Add(TextBox);
+                    }
+
+                    public override void UpdateValue() => Set(TextBox.Text);
+                }
+                class LocalFileSetting : SettingChild<StringDescriber>
+                {
+                    string File = null!;
+
+                    public LocalFileSetting(TextSetting setting) : base(setting)
+                    {
+                        var btn = new MPButton() { Text = new("Pick a file") };
+                        btn.OnClick += () => new OpenFileDialog() { AllowMultiple = false }.ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => btn.Text = new(File = t.Result!.First())));
+                        Children.Add(btn);
+                    }
+
+                    public override void UpdateValue() => Set(File);
+                }
+                class LocalDirSetting : SettingChild<StringDescriber>
+                {
+                    string Dir = null!;
+
+                    public LocalDirSetting(TextSetting setting) : base(setting)
+                    {
+                        var btn = new MPButton() { Text = new("Pick a directory") };
+                        btn.OnClick += () => new OpenFolderDialog().ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => btn.Text = new(Dir = t.Result!)));
+                        Children.Add(btn);
+                    }
+
+                    public override void UpdateValue() => Set(Dir);
+                }
+            }
+            class NumberSetting : SettingContainer<NumberDescriber>
+            {
+                public NumberSetting(NumberDescriber describer, JProperty property) : base(describer, property) { }
+
+                protected override Setting<NumberDescriber> CreateSetting()
                 {
                     var value = Get().Value<double?>() ?? 0;
 
-                    var range = describer.Attributes.OfType<RangedAttribute>().FirstOrDefault();
-                    if (range is not null) Setting = new SliderNumberSetting(this, range);
-                    else Setting = new TextNumberSetting(this);
+                    var range = Describer.Attributes.OfType<RangedAttribute>().FirstOrDefault();
+                    if (range is not null) return new SliderNumberSetting(this, range);
 
-                    Children.Add(Setting);
+                    return new TextNumberSetting(this);
                 }
 
-                public override void UpdateValue() => Setting.UpdateValue();
 
-
-                class SliderNumberSetting : Setting<NumberDescriber>
+                class SliderNumberSetting : SettingChild<NumberDescriber>
                 {
                     readonly Slider Slider;
 
-                    public SliderNumberSetting(NumberSetting setting, RangedAttribute range) : base(setting.Describer, setting.Property)
+                    public SliderNumberSetting(NumberSetting setting, RangedAttribute range) : base(setting)
                     {
                         Slider = new Slider()
                         {
@@ -514,11 +695,11 @@ namespace NodeUI.Pages
                         else Set(Slider.Value);
                     }
                 }
-                class TextNumberSetting : Setting<NumberDescriber>
+                class TextNumberSetting : SettingChild<NumberDescriber>
                 {
                     readonly TextBox TextBox;
 
-                    public TextNumberSetting(NumberSetting setting) : base(setting.Describer, setting.Property)
+                    public TextNumberSetting(NumberSetting setting) : base(setting)
                     {
                         TextBox = new TextBox() { Text = setting.Get().Value<double?>()?.ToString() ?? "0" };
                         Children.Add(TextBox);

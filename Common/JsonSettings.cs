@@ -11,6 +11,7 @@ public class JsonSettings
         ContractResolver = LowercaseContract.Instance,
         Formatting = Formatting.None,
     };
+    public static JsonSerializer LowercaseIgnoreNullS = JsonSerializer.Create(LowercaseIgnoreNull);
 
 
     class LowercaseContract : DefaultContractResolver

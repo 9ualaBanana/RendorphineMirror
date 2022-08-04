@@ -30,7 +30,11 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
-        if (path == "reloadcfg") Settings.Reload();
+        if (path == "reloadcfg")
+        {
+            Settings.Reload();
+            return await WriteSuccess(response).ConfigureAwait(false);
+        }
 
         if (path == "setnick")
         {
@@ -66,19 +70,27 @@ public class LocalListener : ExecutableListenerBase
             var actions = TaskList.Actions.Select(serialize).ToImmutableArray();
             var inputs = new[]
             {
-                        serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.MPlus),
-                    }.ToImmutableArray();
+                serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.MPlus),
+                serializeinout<UserTaskInputInfo>(TaskInputOutputType.User),
+            }.ToImmutableArray();
             var outputs = new[]
             {
-                        serializeinout<MPlusTaskOutputInfo>(TaskInputOutputType.MPlus),
-                    }.ToImmutableArray();
+                serializeinout<MPlusTaskOutputInfo>(TaskInputOutputType.MPlus),
+                serializeinout<UserTaskOutputInfo>(TaskInputOutputType.User),
+            }.ToImmutableArray();
+            var repeats = new[]
+            {
+                serializerep<MPlusWatchingTaskSource>(TaskInputOutputType.MPlus),
+                serializerep<LocalWatchingTaskSource>(TaskInputOutputType.User),
+            }.ToImmutableArray();
 
-            var output = new TasksFullDescriber(actions, inputs, outputs);
+            var output = new TasksFullDescriber(actions, inputs, outputs, repeats);
             return await WriteJToken(response, JToken.FromObject(output, JsonSerializerWithTypes)).ConfigureAwait(false);
 
 
             static TaskActionDescriber serialize(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
             static TaskInputOutputDescriber serializeinout<T>(TaskInputOutputType type) where T : ITaskInputOutputInfo => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
+            static TaskInputOutputDescriber serializerep<T>(TaskInputOutputType type) where T : IWatchingTaskSource => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
         }
 
         return HttpStatusCode.NotFound;
@@ -108,7 +120,16 @@ public class LocalListener : ExecutableListenerBase
             return await WriteJson(response, taskid).ConfigureAwait(false);
         }
 
-        return HttpStatusCode.NotFound;
+        if (path == "startwatchingtask")
+        {
+            var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
 
+            var wt = new WatchingTask(task.Input.ToObject<IWatchingTaskSource>(LocalApi.JsonSerializerWithType)!, task.Action, task.Data, task.Output.ToObject<IWatchingTaskOutputInfo>(LocalApi.JsonSerializerWithType)!);
+            NodeSettings.WatchingTasks.Add(wt);
+
+            return await WriteSuccess(response).ConfigureAwait(false);
+        }
+
+        return HttpStatusCode.NotFound;
     }
 }

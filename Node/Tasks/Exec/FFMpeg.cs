@@ -8,7 +8,7 @@ public class Crop
 {
     public int X, Y, W, H;
 }
-public abstract class MediaEditInfo : IPluginActionData
+public abstract class MediaEditInfo
 {
     protected static readonly NumberFormatInfo NumberFormat = new()
     {
@@ -18,28 +18,39 @@ public abstract class MediaEditInfo : IPluginActionData
     };
 
     public Crop? Crop;
-    public bool? Hflip = false;
-    public bool? Vflip = false;
+
+    [Default(false)]
+    public bool? Hflip;
+
+    [Default(false)]
+    public bool? Vflip;
 
     [JsonProperty("bri")]
-    [Ranged(-1, 1)]
-    public double? Brightness = 0;
+    [Default(0), Ranged(-1, 1)]
+    public double? Brightness;
 
     [JsonProperty("sat")]
-    [Ranged(0, 3)]
-    public double? Saturation = 1;
+    [Default(1), Ranged(0, 3)]
+    public double? Saturation;
 
     [JsonProperty("con")]
-    [Ranged(-1000, 1000)]
-    public double? Contrast = 1;
+    [Default(1), Ranged(-1000, 1000)]
+    public double? Contrast;
 
     [JsonProperty("gam")]
-    [Ranged(.1, 10)]
-    public double? Gamma = 1;
+    [Default(1), Ranged(.1, 10)]
+    public double? Gamma;
+
+    [JsonProperty("ss")]
+    [Default("00:00:00.000")]
+    public string? StartTime;
+
+    [JsonProperty("to")]
+    public string? EndTime;
 
     [JsonProperty("ro")]
-    [Ranged(-Math.PI * 2, Math.PI * 2)]
-    public double? RotationRadians = 0;
+    [Default(0), Ranged(-Math.PI * 2, Math.PI * 2)]
+    public double? RotationRadians;
 
 
     public virtual IEnumerable<string> ConstructFFMpegArguments()
@@ -49,8 +60,9 @@ public abstract class MediaEditInfo : IPluginActionData
         if (Hflip == true) yield return "hflip";
         if (Vflip == true) yield return "vflip";
         if (RotationRadians is not null) yield return $"rotate={RotationRadians.Value.ToString(NumberFormat)}";
+        if (StartTime is not null && EndTime is not null) yield return $"ss={StartTime}:to={EndTime}";
 
-        var eq = new List<string>();
+            var eq = new List<string>();
         if (Brightness is not null) eq.Add($"brightness={Brightness.Value.ToString(NumberFormat)}");
         if (Saturation is not null) eq.Add($"saturation={Saturation.Value.ToString(NumberFormat)}");
         if (Contrast is not null) eq.Add($"contrast={Contrast.Value.ToString(NumberFormat)}");
@@ -76,11 +88,17 @@ public class EditRasterInfo : MediaEditInfo { }
 
 public static class FFMpegTasks
 {
-    public static IEnumerable<IPluginAction> Create()
+    public static readonly PluginAction<EditVideoInfo> EditVideo;
+    public static readonly PluginAction<EditRasterInfo> EditRaster;
+
+    static FFMpegTasks()
     {
-        yield return new PluginAction<EditVideoInfo>(PluginType.FFmpeg, "EditVideo", FileFormat.Mov, Start);
-        yield return new PluginAction<EditRasterInfo>(PluginType.FFmpeg, "EditRaster", FileFormat.Jpeg, Start);
+        EditVideo = new(PluginType.FFmpeg, "EditVideo", FileFormat.Mov, Start);
+        EditRaster = new(PluginType.FFmpeg, "EditRaster", FileFormat.Jpeg, Start);
     }
+
+    public static IEnumerable<IPluginAction> GetTasks() => new IPluginAction[] { EditVideo, EditRaster };
+
     static async ValueTask<string[]> Start<T>(string[] files, ReceivedTask task, T data) where T : MediaEditInfo =>
         await Task.WhenAll(files.Select(x => Execute(x, task, data))).ConfigureAwait(false);
 

@@ -6,7 +6,7 @@ namespace NodeUI
     public class App : Application
     {
         public static readonly string AppName, Version;
-        public static readonly WindowIcon Icon = new WindowIcon(Resource.LoadStream(typeof(App).Assembly, "img.icon.ico"));
+        public static readonly WindowIcon Icon = new WindowIcon(Resource.LoadStream(typeof(App).Assembly, Environment.OSVersion.Platform == PlatformID.Win32NT ? "img.icon.ico" : "img.tray_icon.png"));
 
         static App()
         {

@@ -9,7 +9,6 @@ namespace Node.Listeners;
 public class PublicListener : ExecutableListenerBase
 {
     protected override bool IsLocal => false;
-    protected override int Port => PortForwarding.Port;
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
@@ -53,6 +52,32 @@ public class PublicListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
+        if (path == "getcontents")
+        {
+            var authcheck = await CheckAuthentication(context).ConfigureAwait(false);
+            if (!authcheck) return await WriteErr(response, "F");
+
+            DirectoryContents contents;
+
+            var dirpath = context.Request.QueryString["path"];
+            if (dirpath is null || dirpath == string.Empty)
+            {
+                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                    contents = new DirectoryContents("", DriveInfo.GetDrives().Select(x => x.RootDirectory.FullName).ToImmutableArray());
+                else contents = new DirectoryContents("/", Directory.GetDirectories("/").Select(x => Path.GetRelativePath("/", x)).ToImmutableArray());
+            }
+            else
+            {
+                if (!Directory.Exists(dirpath))
+                    return await WriteErr(response, "Directory does not exists");
+
+                contents = new DirectoryContents(dirpath, Directory.GetDirectories(dirpath).Select(x => Path.GetRelativePath(dirpath, x)).ToImmutableArray());
+            }
+
+            return await WriteJson(response, contents.AsOpResult());
+        }
+
+
         return HttpStatusCode.NotFound;
     }
     protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
@@ -84,6 +109,5 @@ public class PublicListener : ExecutableListenerBase
         }
 
         return HttpStatusCode.NotFound;
-
     }
 }

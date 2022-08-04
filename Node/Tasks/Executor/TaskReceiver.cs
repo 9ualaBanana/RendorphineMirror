@@ -41,20 +41,18 @@ public class TaskReceiver : IDisposable
 
             var thread = new Thread(async () =>
             {
-                using var _ = GlobalState.TempSetState(new ExecutingTaskNodeState(taskinfo));
-
                 var task = new ReceivedTask(taskid, taskinfo);
 
                 try
                 {
-                    NodeSettings.ExecutingTasks.Add(task);
+                    NodeSettings.SavedTasks.Add(task);
                     await TaskHandler.HandleAsync(task, _httpClient, _cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) { Log.Error(ex.ToString()); }
                 finally
                 {
                     task.LogInfo($"Removing");
-                    NodeSettings.ExecutingTasks.Remove(task);
+                    NodeSettings.SavedTasks.Remove(task);
                 }
             });
             thread.IsBackground = true;

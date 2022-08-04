@@ -12,5 +12,5 @@ public abstract record Plugin
         Path = path;
     }
 
-    protected abstract string DetermineVersion();
+    protected virtual string DetermineVersion() => "Unknown";
 }

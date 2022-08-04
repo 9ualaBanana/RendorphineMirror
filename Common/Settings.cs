@@ -34,12 +34,13 @@ namespace Common
         public static string ServerUrl { get => BServerUrl.Value; set => BServerUrl.Value = value; }
         public static ushort LocalListenPort { get => BLocalListenPort.Value; set => BLocalListenPort.Value = value; }
         public static ushort UPnpPort { get => BUPnpPort.Value; set => BUPnpPort.Value = value; }
+        public static ushort UPnpServerPort { get => BUPnpServerPort.Value; set => BUPnpServerPort.Value = value; }
         public static ushort DhtPort { get => BDhtPort.Value; set => BDhtPort.Value = value; }
         public static ushort TorrentPort { get => BTorrentPort.Value; set => BTorrentPort.Value = value; }
         public static string NodeName { get => BNodeName.Value!; set => BNodeName.Value = value!; }
 
         public static readonly DatabaseBindable<string> BServerUrl;
-        public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort, BDhtPort, BTorrentPort;
+        public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort;
         public static readonly DatabaseBindable<string?> BNodeName;
         public static readonly DatabaseBindable<AuthInfo?> BAuthInfo;
 
@@ -58,6 +59,7 @@ namespace Common
             BServerUrl = new(nameof(ServerUrl), "https://t.microstock.plus:8443");
             BLocalListenPort = new(nameof(LocalListenPort), 5123);
             BUPnpPort = new(nameof(UPnpPort), 5124);
+            BUPnpServerPort = new(nameof(UPnpServerPort), 5125);
             BDhtPort = new(nameof(DhtPort), 6223);
             BTorrentPort = new(nameof(TorrentPort), 6224);
             BAuthInfo = new(nameof(AuthInfo), default) { Hidden = true };
@@ -124,13 +126,13 @@ namespace Common
             if (!query.Read()) return defaultValue;
 
             var str = query.GetString(0);
-            return JsonConvert.DeserializeObject<T>(str);
+            return JsonConvert.DeserializeObject<T>(str, LocalApi.JsonSettingsWithType);
         }
         static void Save<T>(string path, T value)
         {
             ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
                 new SQLiteParameter("key", path),
-                new SQLiteParameter("value", JsonConvert.SerializeObject(value))
+                new SQLiteParameter("value", JsonConvert.SerializeObject(value, LocalApi.JsonSettingsWithType))
             );
         }
 
@@ -165,8 +167,8 @@ namespace Common
 
             public void Reload() => Value = Load(Name, _Value)!;
 
-            public JToken ToJson() => JToken.FromObject(Value!);
-            public void SetFromJson(string json) => Value = JsonConvert.DeserializeObject<T>(json)!;
+            public JToken ToJson() => JToken.FromObject(Value!, LocalApi.JsonSerializerWithType);
+            public void SetFromJson(string json) => Value = JsonConvert.DeserializeObject<T>(json, LocalApi.JsonSettingsWithType)!;
         }
         public class DatabaseBindableList<T> : BindableList<T>, IDatabaseBindable
         {
@@ -189,8 +191,8 @@ namespace Common
 
             public void Reload() => SetRange(Load(Name, Array.Empty<T>()));
 
-            public JToken ToJson() => JToken.FromObject(Value);
-            public void SetFromJson(string json) => SetRange(JsonConvert.DeserializeObject<T[]>(json) ?? Array.Empty<T>());
+            public JToken ToJson() => JToken.FromObject(Value, LocalApi.JsonSerializerWithType);
+            public void SetFromJson(string json) => SetRange(JsonConvert.DeserializeObject<T[]>(json, LocalApi.JsonSettingsWithType) ?? Array.Empty<T>());
         }
     }
 }

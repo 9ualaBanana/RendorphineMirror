@@ -7,16 +7,18 @@ public static class TaskHandler
 {
     static TaskInputOutputType GetInputOutputType(JObject json) => Enum.Parse<TaskInputOutputType>(json["type"]!.Value<string>()!);
 
-    static MPlusTaskInputInfo DeserializeInput(TaskInfo info) =>
+    static ITaskInputInfo DeserializeInput(TaskInfo info) =>
         GetInputOutputType(info.Input) switch
         {
             TaskInputOutputType.MPlus => info.Input.ToObject<MPlusTaskInputInfo>()!,
+            TaskInputOutputType.User => info.Input.ToObject<UserTaskInputInfo>()!,
             { } type => throw new NotSupportedException($"Task input type {type} is not supported"),
         };
     static ITaskOutputInfo DeserializeOutput(TaskInfo info) =>
         GetInputOutputType(info.Output) switch
         {
             TaskInputOutputType.MPlus => info.Output.ToObject<MPlusTaskOutputInfo>()!,
+            TaskInputOutputType.User => info.Input.ToObject<UserTaskOutputInfo>()!,
             { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
         };
 
@@ -24,6 +26,10 @@ public static class TaskHandler
     {
         try
         {
+            NodeGlobalState.Instance.ExecutingTasks.Add(task);
+            using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
+
+
             task.LogInfo($"Started");
 
             var inputobj = DeserializeInput(task.Info);

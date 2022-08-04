@@ -7,7 +7,7 @@ r=$4
 
 PIP=debian@t.microstock.plus
 
-dotnet publish -c $c $proj -r $4
+dotnet publish -c $c $proj -r $4 /p:Version="$(date -u +'%-y.%-m.%-d-U%H%M')"
 
 if [[ "$5" == "1" ]]; then
     wine editbin/editbin.exe /subsystem:windows $(find Node/bin/Release/net6.0/win7-x64/publish -name '*.exe')
