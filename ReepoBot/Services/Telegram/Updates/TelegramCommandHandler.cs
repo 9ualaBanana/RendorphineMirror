@@ -15,17 +15,20 @@ public class TelegramCommandHandler
     readonly ILogger _logger;
 
     readonly TelegramBot _bot;
+    readonly HttpClient _httpClient;
     readonly TelegramChatIdAuthentication _authentication;
     readonly NodeSupervisor _nodeSupervisor;
 
     public TelegramCommandHandler(
         ILogger<TelegramMessageHandler> logger,
         TelegramBot bot,
+        IHttpClientFactory httpClientFactory,
         TelegramChatIdAuthentication authentication,
         NodeSupervisor nodeSupervisor)
     {
         _logger = logger;
         _bot = bot;
+        _httpClient = httpClientFactory.CreateClient();
         _authentication = authentication;
         _nodeSupervisor = nodeSupervisor;
     }
@@ -172,7 +175,7 @@ public class TelegramCommandHandler
     void HandleDeploy(Update update, string sessionId)
     {
         var pluginsTypes = update.Message!.Text!.UnquotedArguments().OrderBy(type => type);
-        var nodes = update.Message.Text!.QuotedArguments();
+        var nodeNames = update.Message.Text!.QuotedArguments();
 
         List<PluginToDeploy> pluginsToDeploy = new();
         foreach (var pluginType in pluginsTypes.Where(type => !type.Contains('_')))
@@ -191,7 +194,17 @@ public class TelegramCommandHandler
                 plugin.SubPlugins = subPlugins;
         }
 
-        _ = new UserSettingsManager(new()).TrySetAsync(new() { InstallSoftware = pluginsToDeploy }, sessionId);
+        var userSettingsManager = new UserSettingsManager(_httpClient);
+        if (nodeNames.Any())
+        {
+            foreach (var nodeName in nodeNames)
+            {
+                foreach (var node in _nodeSupervisor.GetNodesByName(nodeName))
+                    _ = userSettingsManager.TrySetAsync(new(node.Guid) { NodeInstallSoftware = pluginsToDeploy }, sessionId);
+            }
+        }
+        else
+            _ = userSettingsManager.TrySetAsync(new() { InstallSoftware = pluginsToDeploy }, sessionId);
     }
 
     async Task HandleLoginAsync(Update update)

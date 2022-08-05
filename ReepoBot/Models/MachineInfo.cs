@@ -8,6 +8,7 @@ public class MachineInfo : IEquatable<MachineInfo>
     public string NodeName { get; set; } = null!;
     public string PCName { get; set; } = null!;
     public string UserName { get; set; } = null!;
+    public string Guid { get; set; } = null!;
     public string Version { get; set; } = null!;
     public string IP { get; init; } = null!;
     public string Port { get; init; } = null!;

@@ -53,7 +53,7 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
         {
             writer.WritePropertyName("nodeinstallsoftware");
             writer.WriteStartObject();
-            writer.WritePropertyName(Settings.Guid!);
+            writer.WritePropertyName(value.Guid);
             writer.WriteStartObject();
             WritePlugins(writer, value.NodeInstallSoftware);
             writer.WriteEndObject();
