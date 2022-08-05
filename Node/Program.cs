@@ -76,7 +76,7 @@ if (!Init.IsDebug || halfrelease)
     captured.Add(userSettingsHeartbeat);
 
     var mPlusTaskManagerHeartbeat = new Heartbeat(
-        new HttpRequestMessage(HttpMethod.Post, $"https://tasks.microstock.plus/rphtaskmgr/pheartbeat") { Content = await Profiler.RunAsync() },
+        new HttpRequestMessage(HttpMethod.Post, $"{Api.TaskManagerEndpoint}/pheartbeat") { Content = await Profiler.RunAsync() },
         TimeSpan.FromMinutes(1), Api.Client);
     _ = mPlusTaskManagerHeartbeat.StartAsync();
 
