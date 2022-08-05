@@ -19,13 +19,13 @@ public class TelegramMessageHandler
         _commandHandler = commandHandler;
     }
 
-    public void Handle(Update update)
+    public async Task HandleAsync(Update update)
     {
         var message = update.Message!;
         _logger.LogDebug("Dispatching {Message}...", nameof(Message));
         if (IsCommand(message))
         {
-            _commandHandler.Handle(update);
+            await _commandHandler.HandleAsync(update);
             return;
         }
         else if (IsSystemMessage(message))

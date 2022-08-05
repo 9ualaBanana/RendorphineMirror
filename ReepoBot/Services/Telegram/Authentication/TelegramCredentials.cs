@@ -1,8 +1,9 @@
-﻿using Telegram.Bot.Types;
+﻿using ReepoBot.Services.Telegram.Helpers;
+using Telegram.Bot.Types;
 
 namespace ReepoBot.Services.Telegram.Authentication;
 
-internal record TelegramCredentials(ChatId Id, string Login, string Password)
+internal record TelegramCredentials(string Login, string Password, ChatId Id)
 {
     internal static bool TryParse(Message message, out TelegramCredentials? credentials)
     {
@@ -12,7 +13,7 @@ internal record TelegramCredentials(ChatId Id, string Login, string Password)
     internal static TelegramCredentials Parse(Message message)
     {
         ChatId id = message.Chat.Id;
-        var messageParts = message.Text!.Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        return new(id, messageParts[1], messageParts[2]);
+        var messageParts = message.Text!.Arguments().ToArray();
+        return new(messageParts[0], messageParts[1], id);
     }
 }

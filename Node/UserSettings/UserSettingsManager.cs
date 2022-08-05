@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Node.UserSettings;
 
-internal class UserSettingsManager : IHeartbeatGenerator
+public class UserSettingsManager : IHeartbeatGenerator
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -30,14 +30,14 @@ internal class UserSettingsManager : IHeartbeatGenerator
     #endregion
 
 
-    internal UserSettingsManager(HttpClient httpClient, CancellationToken cancellationToken = default)
+    public UserSettingsManager(HttpClient httpClient, CancellationToken cancellationToken = default)
     {
         _httpClient = httpClient;
         _cancellationToken = cancellationToken;
     }
 
 
-    internal async Task<UserSettings?> TryFetchAsync()
+    public async Task<UserSettings?> TryFetchAsync()
     {
         try
         {
@@ -47,24 +47,24 @@ internal class UserSettingsManager : IHeartbeatGenerator
         catch (Exception ex) { _logger.Error(ex, "Couldn't fetch user settings"); return null; }
     }
 
-    internal async Task<UserSettings> FetchAsync(CancellationToken cancellationToken = default)
+    public async Task<UserSettings> FetchAsync(CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.GetAsync(Request.RequestUri, cancellationToken);
         var jToken = await Api.GetJsonFromResponseIfSuccessfulAsync(response);
         return _deserializeUserSettings(jToken);
     }
 
-    internal async Task TrySetAsync(UserSettings userSettings, CancellationToken cancellationToken = default)
+    public async Task TrySetAsync(UserSettings userSettings, string? sessionId = null, CancellationToken cancellationToken = default)
     {
-        try { await SetAsync(userSettings, cancellationToken); _logger.Debug("User settings were successfully set"); }
+        try { await SetAsync(userSettings, sessionId, cancellationToken); _logger.Debug("User settings were successfully set"); }
         catch (Exception ex) { _logger.Error(ex, "Couldn't set user settings"); }
     }
 
-    internal async Task SetAsync(UserSettings userSettings, CancellationToken cancellationToken = default)
+    public async Task SetAsync(UserSettings userSettings, string? sessionId = null, CancellationToken cancellationToken = default)
     {
         var httpContent = new MultipartFormDataContent()
         {
-            { new StringContent(Settings.SessionId!), "sessionid" },
+            { new StringContent(sessionId ?? Settings.SessionId!), "sessionid" },
             { new StringContent(JsonConvert.SerializeObject(userSettings)), "settings" }
         };
         (await _httpClient.PostAsync(

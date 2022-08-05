@@ -1,6 +1,10 @@
-﻿using ReepoBot.Models;
+﻿using Common;
+using Machine.Plugins.Deployment;
+using Node.UserSettings;
+using ReepoBot.Models;
 using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram.Authentication;
+using ReepoBot.Services.Telegram.Helpers;
 using System.Text;
 using Telegram.Bot.Types;
 
@@ -26,7 +30,7 @@ public class TelegramCommandHandler
         _nodeSupervisor = nodeSupervisor;
     }
 
-    public void Handle(Update update)
+    public async Task HandleAsync(Update update)
     {
         var command = update.Message!.Text!;
         _logger.LogDebug("Dispatching {Command} command...", command);
@@ -35,21 +39,23 @@ public class TelegramCommandHandler
         var unprefixedCommand = command[1..];
 
         if (unprefixedCommand.StartsWith("pinglist"))
-        { _authentication.Required(() => HandlePingList(update), id); return; }
+        { _authentication.Required(_ => HandlePingList(update), id); return; }
         else if (unprefixedCommand.StartsWith("ping"))
-        { _authentication.Required(() => HandlePing(update), id); return; }
+        { _authentication.Required(_ => HandlePing(update), id); return; }
         else if (unprefixedCommand.StartsWith("plugins"))
-        { _authentication.Required(() => HandlePlugins(update), id); return; }
+        { _authentication.Required(_ => HandlePlugins(update), id); return; }
         else if (unprefixedCommand.StartsWith("online"))
-        { _authentication.Required(() => HandleOnline(update), id); return; }
+        { _authentication.Required(_ => HandleOnline(update), id); return; }
         else if (unprefixedCommand.StartsWith("offline"))
-        { _authentication.Required(() => HandleOffline(update), id); return; }
+        { _authentication.Required(_ => HandleOffline(update), id); return; }
         else if (unprefixedCommand.StartsWith("remove"))
-        { _authentication.Required(() => HandleRemove(update), id); return; }
+        { _authentication.Required(_ => HandleRemove(update), id); return; }
+        else if (unprefixedCommand.StartsWith("deploy"))
+        { _authentication.Required(sessionId => HandleDeploy(update, sessionId), id); return; }
         else if (unprefixedCommand.StartsWith("login"))
-        { HandleLogin(update); return; }
+        { await HandleLoginAsync(update); return; }
         else if (unprefixedCommand.StartsWith("logout"))
-        { _authentication.Required(() => HandleLogout(update), id); return; }
+        { _authentication.Required(_ => HandleLogout(update), id); return; }
 
         _logger.LogWarning("No handler for {Command} command is found", command);
     }
@@ -115,7 +121,7 @@ public class TelegramCommandHandler
 
     void HandlePlugins(Update update)
     {
-        var nodesNamesWhosePluginsToShow = update.Message!.Text!.Split('"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[1..];
+        var nodesNamesWhosePluginsToShow = update.Message!.Text!.QuotedArguments();
         var nodesWhosePluginsToShow = _nodeSupervisor.AllNodes.Where(node => node.NameContainsAny(nodesNamesWhosePluginsToShow));
 
         var messageBuilder = new StringBuilder();
@@ -152,7 +158,7 @@ public class TelegramCommandHandler
 
     void HandleRemove(Update update)
     {
-        var nodeNames = update.Message!.Text!.Split('"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[1..];
+        var nodeNames = update.Message!.Text!.QuotedArguments().ToArray();
 
         int nodesRemoved = _nodeSupervisor.TryRemoveNodesWithNames(nodeNames);
 
@@ -163,9 +169,34 @@ public class TelegramCommandHandler
         _ = _bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
-    void HandleLogin(Update update)
+    void HandleDeploy(Update update, string sessionId)
     {
-        _authentication.Authenticate(update.Message!);
+        var pluginsTypes = update.Message!.Text!.UnquotedArguments().OrderBy(type => type);
+        var nodes = update.Message.Text!.QuotedArguments();
+
+        List<PluginToDeploy> pluginsToDeploy = new();
+        foreach (var pluginType in pluginsTypes.Where(type => !type.Contains('_')))
+        {
+            pluginsToDeploy.Add(new() { Type = Enum.Parse<PluginType>(pluginType, true) });
+            _logger.LogDebug("{Plugin} plugin is added", pluginType);
+        }
+
+
+        foreach (var plugin in pluginsToDeploy)
+        {
+            var subPlugins = pluginsTypes
+                .Where(type => type.StartsWith($"{plugin.Type.ToString().ToLowerInvariant()}_"))
+                .Select(type => new PluginToDeploy() { Type = Enum.Parse<PluginType>(type, true) });
+            if (subPlugins.Any())
+                plugin.SubPlugins = subPlugins;
+        }
+
+        _ = new UserSettingsManager(new()).TrySetAsync(new() { InstallSoftware = pluginsToDeploy }, sessionId);
+    }
+
+    async Task HandleLoginAsync(Update update)
+    {
+        await _authentication.AuthenticateAsync(update.Message!);
     }
 
     void HandleLogout(Update update)

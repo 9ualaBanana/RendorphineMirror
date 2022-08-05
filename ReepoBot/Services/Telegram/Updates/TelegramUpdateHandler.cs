@@ -20,13 +20,13 @@ public class TelegramUpdateHandler
         _myChatMemberHandler = myChatMemberHandler;
     }
 
-    public void Handle(Update update)
+    public async Task HandleAsync(Update update)
     {
         _logger.LogDebug("Update of {UpdateType} type is received", update.Type);
         switch (update.Type)
         {
             case UpdateType.Message:
-                _messageHandler.Handle(update);
+                await _messageHandler.HandleAsync(update);
                 break;
             case UpdateType.MyChatMember:
                 _myChatMemberHandler.Handle(update);

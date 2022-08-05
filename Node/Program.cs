@@ -70,7 +70,7 @@ if (!Init.IsDebug || halfrelease)
         //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
     }
 
-    var userSettingsHeartbeat = new Heartbeat(new UserSettingsManager(Api.Client), TimeSpan.FromMinutes(5), Api.Client);
+    var userSettingsHeartbeat = new Heartbeat(new UserSettingsManager(Api.Client), TimeSpan.FromMinutes(1), Api.Client);
     _ = userSettingsHeartbeat.StartAsync();
 
     captured.Add(userSettingsHeartbeat);

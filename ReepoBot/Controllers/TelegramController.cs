@@ -9,12 +9,12 @@ namespace ReepoBot.Controllers;
 public class TelegramController : ControllerBase
 {
     [HttpPost]
-    public void ReceiveUpdate(
+    public async Task ReceiveUpdate(
         [FromBody] Update update,
         [FromServices] TelegramUpdateHandler telegramUpdateHandler,
         [FromServices] ILogger<TelegramController> logger)
     {
-        try { telegramUpdateHandler.Handle(update); }
+        try { await telegramUpdateHandler.HandleAsync(update); }
         catch (Exception ex) { logger.LogError(ex, "Update couldn't be handled"); return; }
     }
 }
