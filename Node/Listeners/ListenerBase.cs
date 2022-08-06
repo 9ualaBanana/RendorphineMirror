@@ -57,6 +57,7 @@ public abstract class ListenerBase
                     catch (Exception ex)
                     {
                         Log.Error(ex.ToString());
+                        await WriteErr(context.Response, ex.Message).ConfigureAwait(false);
 
                         context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                         context.Response.Close();
