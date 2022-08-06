@@ -23,7 +23,7 @@ internal static class Profiler
         if (Benchmark.ShouldBeRun)
             _benchmarkResults = await Benchmark.RunAsync(1073741824/*1GB*/).ConfigureAwait(false);
 
-        if (!_settingsChanged) return _cachedProfile;
+        //if (!_settingsChanged) return _cachedProfile;
 
         lock (HeartbeatLock)
             return BuildProfileAsync().ConfigureAwait(false).GetAwaiter().GetResult();
