@@ -78,7 +78,7 @@ public class EditVideoInfo : MediaEditInfo
         foreach (var arg in args)
             yield return arg;
 
-        if (EndFrame is not null) yield return $"trim=start_frame={StartFrame.Value.ToString(NumberFormat)}:end_frame={EndFrame.Value.ToString(NumberFormat)}";
+        if (EndFrame is not null && StartFrame is not null) yield return $"trim=start_frame={StartFrame.Value.ToString(NumberFormat)}:end_frame={EndFrame.Value.ToString(NumberFormat)}";
     }
 }
 public class EditRasterInfo : MediaEditInfo { }
