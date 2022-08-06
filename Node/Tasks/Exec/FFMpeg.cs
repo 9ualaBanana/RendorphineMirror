@@ -41,13 +41,6 @@ public abstract class MediaEditInfo
     [Default(1), Ranged(.1, 10)]
     public double? Gamma;
 
-    [JsonProperty("ss")]
-    [Default("00:00:00.000")]
-    public string? StartTime;
-
-    [JsonProperty("to")]
-    public string? EndTime;
-
     [JsonProperty("ro")]
     [Default(0), Ranged(-Math.PI * 2, Math.PI * 2)]
     public double? RotationRadians;
@@ -60,7 +53,6 @@ public abstract class MediaEditInfo
         if (Hflip == true) yield return "hflip";
         if (Vflip == true) yield return "vflip";
         if (RotationRadians is not null) yield return $"rotate={RotationRadians.Value.ToString(NumberFormat)}";
-        if (StartTime is not null && EndTime is not null) yield return $"ss={StartTime}:to={EndTime}";
 
             var eq = new List<string>();
         if (Brightness is not null) eq.Add($"brightness={Brightness.Value.ToString(NumberFormat)}");
@@ -73,7 +65,12 @@ public abstract class MediaEditInfo
 }
 public class EditVideoInfo : MediaEditInfo
 {
-    public double? CutFrameAt;
+    [JsonProperty("startFrame")]
+    [Default(0d)]
+    public double? StartFrame;
+
+    [JsonProperty("endFrame")]
+    public double? EndFrame;
 
     public override IEnumerable<string> ConstructFFMpegArguments()
     {
@@ -81,7 +78,7 @@ public class EditVideoInfo : MediaEditInfo
         foreach (var arg in args)
             yield return arg;
 
-        if (CutFrameAt is not null) yield return $"trim=start_frame=0:end_frame={CutFrameAt.Value.ToString(NumberFormat)}";
+        if (EndFrame is not null) yield return $"trim=start_frame={StartFrame.Value.ToString(NumberFormat)}:end_frame={EndFrame.Value.ToString(NumberFormat)}";
     }
 }
 public class EditRasterInfo : MediaEditInfo { }
