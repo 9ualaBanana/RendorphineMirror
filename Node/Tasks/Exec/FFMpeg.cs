@@ -83,27 +83,23 @@ public class EditVideoInfo : MediaEditInfo
 }
 public class EditRasterInfo : MediaEditInfo { }
 
-public static class FFMpegTasks
+public class FFMpegTasks : ProcessTaskExecutor<MediaEditInfo>
 {
-    public static readonly PluginAction<EditVideoInfo> EditVideo;
-    public static readonly PluginAction<EditRasterInfo> EditRaster;
+    public static readonly FFMpegTasks Instance = new();
 
-    static FFMpegTasks()
+    public readonly PluginAction<EditVideoInfo> EditVideo;
+    public readonly PluginAction<EditRasterInfo> EditRaster;
+
+    private FFMpegTasks()
     {
-        EditVideo = new(PluginType.FFmpeg, "EditVideo", FileFormat.Mov, Start);
-        EditRaster = new(PluginType.FFmpeg, "EditRaster", FileFormat.Jpeg, Start);
+        EditVideo = new(PluginType.FFmpeg, nameof(EditVideo), FileFormat.Mov, Start);
+        EditRaster = new(PluginType.FFmpeg, nameof(EditRaster), FileFormat.Jpeg, Start);
     }
 
-    public static IEnumerable<IPluginAction> GetTasks() => new IPluginAction[] { EditVideo, EditRaster };
+    public override IEnumerable<IPluginAction> GetTasks() => new IPluginAction[] { EditVideo, EditRaster };
 
-    static async ValueTask<string[]> Start<T>(string[] files, ReceivedTask task, T data) where T : MediaEditInfo =>
-        await Task.WhenAll(files.Select(x => Execute(x, task, data))).ConfigureAwait(false);
-
-    static async Task<string> Execute<T>(string input, ReceivedTask task, T data) where T : MediaEditInfo
+    protected override string GetArguments(string input, string output, ReceivedTask task, MediaEditInfo data)
     {
-        var output = Path.Combine(Init.TaskFilesDirectory, task.Id, Path.GetFileNameWithoutExtension(input) + "_out" + Path.GetExtension(input));
-        Directory.CreateDirectory(Path.GetDirectoryName(output)!);
-
         var args = "";
 
         // dont output useless info
@@ -124,21 +120,7 @@ public static class FFMpegTasks
         // output path
         args += $" \"{output}\" ";
 
-
-        // TODO: fix getting path
-        var exepath = File.Exists("/bin/ffmpeg") ? "/bin/ffmpeg" : "assets/ffmpeg.exe";
-
-        task.LogInfo($"Starting {exepath} {args}");
-
-        var process = Process.Start(new ProcessStartInfo(exepath, args));
-        if (process is null) throw new InvalidOperationException("Could not start plugin process");
-
-        await process.WaitForExitAsync().ConfigureAwait(false);
-        var ret = process.ExitCode;
-        if (ret != 0) throw new Exception("Could not complete task fo some reason");
-
-        task.LogInfo($"Completed ffmpeg execution");
-        return output;
+        return args;
     }
     static async ValueTask<FFProbeInfo?> FFProbe(string[] files)
     {

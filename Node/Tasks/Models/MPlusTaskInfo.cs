@@ -11,7 +11,7 @@ public class MPlusTaskInputInfo : ITaskInputInfo
 
     public async ValueTask<string> Download(ReceivedTask task, HttpClient httpClient, CancellationToken cancellationToken)
     {
-        var fformat = TaskList.Get(task.Info).FileFormat;
+        var fformat = TaskList.GetAction(task.Info).FileFormat;
         var format = fformat.ToString().ToLowerInvariant();
         var downloadLink = await Api.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskinputdownloadlink", "link", "get download link",
             ("sessionid", Settings.SessionId!), ("taskid", task.Id), ("format", format), ("original", fformat == FileFormat.Jpeg ? "1" : "0")).ConfigureAwait(false);

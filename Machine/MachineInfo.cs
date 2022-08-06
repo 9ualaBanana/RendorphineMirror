@@ -24,6 +24,8 @@ public record MachineInfo
     static IEnumerable<Plugin>? _installedPlugins;
     public static async Task<IEnumerable<Plugin>> DiscoverInstalledPluginsInBackground() =>
         _installedPlugins ??= await PluginsManager.DiscoverInstalledPluginsInBackground();
+    public static IEnumerable<Plugin> DiscoverInstalledPlugins() =>
+        _installedPlugins ??= PluginsManager.DiscoverInstalledPlugins();
     public static async Task<string> GetBriefInfoAsync() => $"{NodeName} {PCName} (v.{Version}) | {await GetPublicIPAsync()}:{Port}";
 
     public static async Task<string> ToTelegramMessageAsync(bool verbose = false)
