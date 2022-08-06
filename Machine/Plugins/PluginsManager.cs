@@ -17,7 +17,10 @@ public static class PluginsManager
     public static async Task DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, PluginsDeployer deployer)
     {
         foreach (var plugin in LeaveOnlyUninstalled(plugins))
+        {
             await deployer.DeployAsync(plugin.GetDeploymentInfo());
+            await DiscoverInstalledPluginsInBackground();
+        }
     }
 
     static IEnumerable<PluginToDeploy> LeaveOnlyUninstalled(IEnumerable<PluginToDeploy> plugins) =>

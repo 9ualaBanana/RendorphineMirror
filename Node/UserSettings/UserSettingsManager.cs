@@ -18,14 +18,19 @@ public class UserSettingsManager : IHeartbeatGenerator
 
     #region IHeartbeatProducer
     public HttpRequestMessage Request => new(HttpMethod.Get, $"{Api.TaskManagerEndpoint}/getmysettings?sessionid={Settings.SessionId}");
+    bool _deploymentInProcess = false;
     public EventHandler<HttpResponseMessage> ResponseHandler => async (_, response) =>
     {
+        if (_deploymentInProcess) return;
+
+        _deploymentInProcess = true;
         var jToken = await Api.GetJsonFromResponseIfSuccessfulAsync(response);
         var userSettings = _deserializeUserSettings(jToken);
 
         var pluginsDeployer = new PluginsDeployer(_httpClient, _cancellationToken);
         await PluginsManager.DeployUninstalledPluginsAsync(userSettings.NodeInstallSoftware, pluginsDeployer);
         await PluginsManager.DeployUninstalledPluginsAsync(userSettings.InstallSoftware, pluginsDeployer);
+        _deploymentInProcess = false;
     };
     #endregion
 
