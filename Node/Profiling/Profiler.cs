@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using Machine.Plugins;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
@@ -84,7 +85,7 @@ internal static class Profiler
     static async Task<Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>> BuildSoftwarePayloadAsync()
     {
         var result = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>();
-        foreach (var softwareGroup in (await MachineInfo.DiscoverInstalledPluginsInBackground()).GroupBy(software => software.Type))
+        foreach (var softwareGroup in (await PluginsManager.DiscoverInstalledPluginsInBackground()).GroupBy(software => software.Type))
         {
             var softwareName = Enum.GetName(softwareGroup.Key)!.ToLower();
             result.Add(softwareName, new Dictionary<string, Dictionary<string, Dictionary<string, string>>>());
