@@ -4,8 +4,6 @@ namespace Node
 {
     public static class PortForwarder
     {
-        public static bool Forwarded { get; private set; }
-
         // empty method to trigger static ctor
         public static void Initialize() { }
         static PortForwarder()
@@ -22,6 +20,7 @@ namespace Node
                 {
                     var mappings = device.GetAllMappings();
                     map(mappings, "renderphine", Settings.BUPnpPort);
+                    map(mappings, "renderphine-srv", Settings.BUPnpServerPort);
                     map(mappings, "renderphine-dht", Settings.BDhtPort);
                     map(mappings, "renderphine-trt", Settings.BTorrentPort);
                 }
@@ -36,7 +35,6 @@ namespace Node
                     {
                         Log.Information($"[UPnP] Found already existing mapping: {mapping}");
                         portb.Value = (ushort) mapping.PublicPort;
-                        Forwarded = true;
                     }
                     else
                     {
@@ -48,10 +46,9 @@ namespace Node
                             {
                                 if (mappings.Any(x => x.PublicPort == port)) continue;
 
-                                Log.Information($"[UPnP] Creating mapping on port {port} with name {name}");
+                                Log.Information($"[UPnP] Creating mapping {name} on port {port}");
                                 portb.Value = port;
                                 device.CreatePortMap(new Mapping(Protocol.Tcp, port, port, 0, name));
-                                Forwarded = true;
 
                                 break;
                             }

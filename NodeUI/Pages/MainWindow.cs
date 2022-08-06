@@ -23,11 +23,11 @@ namespace NodeUI.Pages
 
 
             var tabs = new TabbedControl();
-            tabs.Add(Localized.Tab.Dashboard, new DashboardTab());
-            tabs.Add(Localized.Tab.Plugins, new PluginsTab());
-            tabs.Add(Localized.Tab.Benchmark, new BenchmarkTab());
-            tabs.Add(Localized.Menu.Settings, new SettingsTab());
-            tabs.Add(new("torrent test"), new TorrentTab());
+            tabs.Add("tab.dashboard", new DashboardTab());
+            tabs.Add("tab.plugins", new PluginsTab());
+            tabs.Add("tab.benchmark", new BenchmarkTab());
+            tabs.Add("menu.settings", new SettingsTab());
+            tabs.Add("torrent test", new TorrentTab());
 
             Content = tabs;
         }
@@ -116,7 +116,7 @@ namespace NodeUI.Pages
                     MaxHeight = 30,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Bottom,
-                    Text = Localized.Lang.Current,
+                    Text = "lang.current",
                     OnClick = () => UISettings.Language = UISettings.Language == "ru-RU" ? "en-US" : "ru-RU",
                 };
                 Children.Add(langbtn);

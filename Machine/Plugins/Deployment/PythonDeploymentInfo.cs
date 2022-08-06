@@ -1,16 +1,25 @@
 ﻿using System.Diagnostics;
 
-namespace Machine.Plugins.Installers;
+namespace Machine.Plugins.Deployment;
 
-internal record PythonDeploymentInfo : PluginDeploymentInfo
+public record PythonDeploymentInfo : PluginDeploymentInfo
 {
-    internal PythonDeploymentInfo(string? installationPath = default) : base(installationPath)
+    public PythonDeploymentInfo(string? installationPath = default) : base(installationPath)
     {
     }
 
-    internal override string DownloadUrl => "https://www.python.org/ftp/python/3.10.5/python-3.10.5-amd64.exe";
+    public override string DownloadUrl => "https://www.python.org/ftp/python/3.10.5/python-3.10.5-amd64.exe";
 
-    internal override ProcessStartInfo InstallationStartInfo
+    public override Func<CancellationToken, Task>? Installation
+    {
+        get => async (cancellationToken) =>
+        {
+            using var installation = Process.Start(_InstallationStartInfo)!;
+            await installation.WaitForExitAsync(cancellationToken);
+        };
+    }
+
+    ProcessStartInfo _InstallationStartInfo
     {
         get
         {

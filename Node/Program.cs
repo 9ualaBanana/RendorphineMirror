@@ -1,7 +1,6 @@
 ﻿global using System.Collections.Immutable;
 global using Common;
 global using Common.NodeToUI;
-global using Common.Tasks.Tasks;
 global using Machine;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Executor;
@@ -14,6 +13,7 @@ using Machine.Plugins.Discoverers;
 using Node;
 using Node.Listeners;
 using Node.Profiling;
+using Node.UserSettings;
 
 var halfrelease = args.Contains("release");
 Logging.Configure();
@@ -27,9 +27,10 @@ PluginsManager.RegisterPluginDiscoverers(
     new TopazGigapixelAIPluginDiscoverer(),
     new DaVinciResolvePluginDiscoverer(),
     new FFmpegPluginDiscoverer(),
-    new PythonPluginDiscoverer()
+    new PythonPluginDiscoverer(),
+    new PythonEsrganPluginDiscoverer()
 );
-var discoveringInstalledPlugins = MachineInfo.DiscoverInstalledPluginsInBackground();
+await MachineInfo.DiscoverInstalledPluginsInBackground();
 
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
@@ -48,22 +49,20 @@ else
     Log.Information($"Authentication completed");
 }
 
-PortForwarder.Initialize();
-_ = PortForwarding.GetPublicIPAsync().ContinueWith(t => Log.Information($"Public IP: {t.Result}:{PortForwarding.Port}"));
+if (!Init.IsDebug || halfrelease)
+    PortForwarder.Initialize();
 
 var captured = new List<object>();
 
 if (!Init.IsDebug || halfrelease)
 {
-    // Precomputed for sending by NodeProfiler.
-    var plugins = await discoveringInstalledPlugins;
-
     if (!Init.IsDebug)
     {
         SystemService.Start();
 
-        var reepoHeartbeat = new Heartbeat($"{Settings.ServerUrl}/node/ping", TimeSpan.FromMinutes(5),
-            Api.Client, await MachineInfo.AsJsonContentAsync());
+        var reepoHeartbeat = new Heartbeat(
+            new HttpRequestMessage(HttpMethod.Post, $"{Settings.ServerUrl}/node/ping") { Content = await MachineInfo.AsJsonContentAsync() },
+            TimeSpan.FromMinutes(5), Api.Client);
         _ = reepoHeartbeat.StartAsync();
 
         captured.Add(reepoHeartbeat);
@@ -71,8 +70,14 @@ if (!Init.IsDebug || halfrelease)
         //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
     }
 
-    var mPlusTaskManagerHeartbeat = new Heartbeat($"https://tasks.microstock.plus/rphtaskmgr/pheartbeat", TimeSpan.FromMinutes(1),
-        Api.Client, await Profiler.RunAsync());
+    var userSettingsHeartbeat = new Heartbeat(new UserSettingsManager(Api.Client), TimeSpan.FromMinutes(1), Api.Client);
+    _ = userSettingsHeartbeat.StartAsync();
+
+    captured.Add(userSettingsHeartbeat);
+
+    var mPlusTaskManagerHeartbeat = new Heartbeat(
+        new HttpRequestMessage(HttpMethod.Post, $"https://tasks.microstock.plus/rphtaskmgr/pheartbeat") { Content = await Profiler.RunAsync() },
+        TimeSpan.FromMinutes(1), Api.Client);
     _ = mPlusTaskManagerHeartbeat.StartAsync();
 
     captured.Add(mPlusTaskManagerHeartbeat);
@@ -84,6 +89,21 @@ taskreceiver.StartAsync().Consume();
 new PublicListener().Start();
 new NodeStateListener().Start();
 if (Init.IsDebug) new DebugListener().Start();
+
+PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
+{
+    var ip = t.Result.ToString();
+    Log.Information($"Public IP: {ip}; Public port: {PortForwarding.Port}; Web server port: {PortForwarding.ServerPort}");
+
+    var ports = new[] { PortForwarding.Port, PortForwarding.ServerPort };
+    foreach (var port in ports)
+    {
+        var open = await PortForwarding.IsPortOpenAndListening(ip, port).ConfigureAwait(false);
+
+        if (open) Log.Information($"Port {port} is open and listening");
+        else Log.Error($"Port {port} is either not open or not listening");
+    }
+}).Consume();
 
 
 /*NodeSettings.WatchingTasks.Add(WatchingTask.Create(

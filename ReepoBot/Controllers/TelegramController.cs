@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ReepoBot.Services.Telegram;
+using ReepoBot.Services.Telegram.Updates;
 using Telegram.Bot.Types;
 
 namespace ReepoBot.Controllers;
@@ -9,21 +9,12 @@ namespace ReepoBot.Controllers;
 public class TelegramController : ControllerBase
 {
     [HttpPost]
-    public void ReceiveUpdate(
+    public async Task ReceiveUpdate(
         [FromBody] Update update,
         [FromServices] TelegramUpdateHandler telegramUpdateHandler,
         [FromServices] ILogger<TelegramController> logger)
     {
-        logger.LogDebug("Update of type {Type} is received", update.Type);
-        bool isHandled = true;
-
-        try { telegramUpdateHandler.Handle(update); }
-        catch (Exception ex)
-        {
-            isHandled = false;
-            logger.LogError(ex, "Update couldn't be handled");
-        }
-
-        if (isHandled) logger.LogDebug("Update was successfully handled");
+        try { await telegramUpdateHandler.HandleAsync(update); }
+        catch (Exception ex) { logger.LogError(ex, "Update couldn't be handled"); return; }
     }
 }

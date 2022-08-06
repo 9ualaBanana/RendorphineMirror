@@ -1,26 +1,36 @@
-﻿using Machine.Plugins.Discoverers;
+﻿using Machine.Plugins.Deployment;
+using Machine.Plugins.Discoverers;
 
 namespace Machine.Plugins;
 
-public class PluginsManager
+public static class PluginsManager
 {
-    // Delegates tasks to them and manages their properties.
-    readonly IEnumerable<Plugin> _plugins = new HashSet<Plugin>(_pluginsTypesCount);
+    public static HashSet<Plugin> InstalledPlugins
+    {
+        get => _installedPlugins ??= DiscoverInstalledPlugins();
+        private set => _installedPlugins = value;
+    }
+    static HashSet<Plugin>? _installedPlugins;
     readonly static HashSet<IPluginDiscoverer> _pluginsDiscoverers = new(_pluginsTypesCount);
     readonly static int _pluginsTypesCount = typeof(PluginType).GetFields().Length - 1;
 
-    public PluginsManager(IEnumerable<Plugin> plugins)
+    public static async Task DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, PluginsDeployer deployer)
     {
-        _plugins = plugins;
+        foreach (var plugin in LeaveOnlyUninstalled(plugins))
+            await deployer.DeployAsync(plugin.GetDeploymentInfo());
     }
 
-    #region Discovering
-    internal static async Task<Plugin[]> DiscoverInstalledPluginsInBackground() =>
-        await Task.Run(() => DiscoverInstalledPlugins());
+    static IEnumerable<PluginToDeploy> LeaveOnlyUninstalled(IEnumerable<PluginToDeploy> plugins) =>
+        plugins.SelectMany(plugin => plugin.SelfAndSubPlugins)
+            .Where(plugin => !InstalledPlugins.Any(installedPlugin => plugin == installedPlugin));
 
-    internal static Plugin[] DiscoverInstalledPlugins()
+    #region Discovering
+    public static async Task<HashSet<Plugin>> DiscoverInstalledPluginsInBackground() =>
+        await Task.Run(DiscoverInstalledPlugins);
+
+    public static HashSet<Plugin> DiscoverInstalledPlugins()
     {
-        return _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover()).ToArray();
+        return InstalledPlugins = _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover()).ToHashSet();
     }
 
     public static void RegisterPluginDiscoverers(params IPluginDiscoverer[] pluginDiscoverers) => _pluginsDiscoverers.UnionWith(pluginDiscoverers);

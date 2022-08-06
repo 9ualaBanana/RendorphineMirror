@@ -16,9 +16,9 @@ namespace NodeUI
         {
             var items = new (LocalizedString, Action)?[]
             {
-                (Localized.Menu.Open, open),
+                ("menu.open", open),
                 null,
-                (Localized.Menu.Close, exit),
+                ("menu.close", exit),
             }.ToImmutableArray();
 
             // TODO: remove four transparent pixels after fix

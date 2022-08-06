@@ -1,112 +1,64 @@
-﻿using ReepoBot.Models;
+﻿using Common;
+using Machine.Plugins.Deployment;
+using Node.UserSettings;
+using ReepoBot.Models;
 using ReepoBot.Services.Node;
+using ReepoBot.Services.Telegram.Authentication;
+using ReepoBot.Services.Telegram.Helpers;
 using System.Text;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 
-namespace ReepoBot.Services.Telegram;
+namespace ReepoBot.Services.Telegram.Updates;
 
-public class TelegramUpdateHandler
+public class TelegramCommandHandler
 {
     readonly ILogger _logger;
+
     readonly TelegramBot _bot;
+    readonly HttpClient _httpClient;
+    readonly TelegramChatIdAuthentication _authentication;
     readonly NodeSupervisor _nodeSupervisor;
 
-    public TelegramUpdateHandler(
+    public TelegramCommandHandler(
+        ILogger<TelegramMessageHandler> logger,
         TelegramBot bot,
-        NodeSupervisor nodeSupervisor,
-        ILogger<TelegramUpdateHandler> logger)
+        IHttpClientFactory httpClientFactory,
+        TelegramChatIdAuthentication authentication,
+        NodeSupervisor nodeSupervisor)
     {
         _logger = logger;
-        _nodeSupervisor = nodeSupervisor;
         _bot = bot;
+        _httpClient = httpClientFactory.CreateClient();
+        _authentication = authentication;
+        _nodeSupervisor = nodeSupervisor;
     }
 
-    internal void Handle(Update update)
-    {
-        _logger.LogDebug("Dispatching {Update}...", nameof(Update));
-
-        switch (update.Type)
-        {
-            case UpdateType.Message:
-                HandleMessageUpdate(update);
-                break;
-            case UpdateType.MyChatMember:
-                HandleChatMember(update.MyChatMember!);
-                break;
-            default:
-                _logger.LogWarning("Unsupported update type: {Type}", update.Type);
-                break;
-        }
-    }
-
-    void HandleMessageUpdate(Update update)
-    {
-        var message = update.Message!;
-        _logger.LogDebug("Dispatching {Message}...", nameof(Message));
-        if (IsCommand(message))
-        {
-            HandleCommandUpdate(update);
-            return;
-        }
-        else if (IsSystemMessage(message))
-        {
-            _logger.LogDebug("System messages are handled by {Handler}", nameof(HandleChatMember));
-            return;    // Bot adding and removal are handled via `UpdateType.MyChatMember` updates.
-        }
-
-        _logger.LogWarning("The following message couldn't be handled:\n{Message}", message.Text);
-    }
-
-    static bool IsCommand(Message message)
-    {
-        var messageText = message.Text;
-        return messageText is not null && messageText.StartsWith('/') && messageText.Length > 1;
-    }
-
-    bool IsSystemMessage(Message message)
-    {
-        return message.LeftChatMember?.Id == _bot.BotId || message.NewChatMembers?.First().Id == _bot.BotId;
-    }
-
-
-
-    void HandleCommandUpdate(Update update)
+    public async Task HandleAsync(Update update)
     {
         var command = update.Message!.Text!;
         _logger.LogDebug("Dispatching {Command} command...", command);
+
+        ChatId id = update.Message.Chat.Id;
         var unprefixedCommand = command[1..];
 
         if (unprefixedCommand.StartsWith("pinglist"))
-        {
-            HandlePingList(update);
-            return;
-        }
+        { _authentication.Required(_ => HandlePingList(update), id); return; }
         else if (unprefixedCommand.StartsWith("ping"))
-        {
-            HandlePing(update);
-            return;
-        }
+        { _authentication.Required(_ => HandlePing(update), id); return; }
         else if (unprefixedCommand.StartsWith("plugins"))
-        {
-            HandlePlugins(update);
-            return;
-        }
+        { _authentication.Required(_ => HandlePlugins(update), id); return; }
         else if (unprefixedCommand.StartsWith("online"))
-        {
-            HandleOnline(update);
-            return;
-        }
+        { _authentication.Required(_ => HandleOnline(update), id); return; }
         else if (unprefixedCommand.StartsWith("offline"))
-        {
-            HandleOffline(update);
-            return;
-        }
+        { _authentication.Required(_ => HandleOffline(update), id); return; }
         else if (unprefixedCommand.StartsWith("remove"))
-        {
-            HandleRemove(update);
-            return;
-        }
+        { _authentication.Required(_ => HandleRemove(update), id); return; }
+        else if (unprefixedCommand.StartsWith("deploy"))
+        { _authentication.Required(sessionId => HandleDeploy(update, sessionId), id); return; }
+        else if (unprefixedCommand.StartsWith("login"))
+        { await HandleLoginAsync(update); return; }
+        else if (unprefixedCommand.StartsWith("logout"))
+        { _authentication.Required(_ => HandleLogout(update), id); return; }
 
         _logger.LogWarning("No handler for {Command} command is found", command);
     }
@@ -172,7 +124,7 @@ public class TelegramUpdateHandler
 
     void HandlePlugins(Update update)
     {
-        var nodesNamesWhosePluginsToShow = update.Message!.Text!.Split('"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[1..];
+        var nodesNamesWhosePluginsToShow = update.Message!.Text!.QuotedArguments();
         var nodesWhosePluginsToShow = _nodeSupervisor.AllNodes.Where(node => node.NameContainsAny(nodesNamesWhosePluginsToShow));
 
         var messageBuilder = new StringBuilder();
@@ -209,7 +161,7 @@ public class TelegramUpdateHandler
 
     void HandleRemove(Update update)
     {
-        var nodeNames = update.Message!.Text!.Split('"', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[1..];
+        var nodeNames = update.Message!.Text!.QuotedArguments().ToArray();
 
         int nodesRemoved = _nodeSupervisor.TryRemoveNodesWithNames(nodeNames);
 
@@ -220,69 +172,48 @@ public class TelegramUpdateHandler
         _ = _bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
-    void HandleChatMember(ChatMemberUpdated chatMemberUpdate)
+    void HandleDeploy(Update update, string sessionId)
     {
-        _logger.LogDebug("Dispatching {ChatMemberUpdated}...", nameof(ChatMemberUpdated));
+        var pluginsTypes = update.Message!.Text!.UnquotedArguments().OrderBy(type => type);
+        var nodeNames = update.Message.Text!.QuotedArguments();
 
-        if (BotIsAddedToChat(chatMemberUpdate))
+        List<PluginToDeploy> pluginsToDeploy = new();
+        foreach (var pluginType in pluginsTypes.Where(type => !type.Contains('_')))
         {
-            HandleBotIsAddedToChatAsync(chatMemberUpdate);
-            return;
-        }
-        else if (BotIsRemovedFromChat(chatMemberUpdate))
-        {
-            HandleBotIsRemovedFromChatAsync(chatMemberUpdate);
-            return;
-        }
-    }
-
-    void HandleBotIsAddedToChatAsync(ChatMemberUpdated chatMemberUpdate)
-    {
-        var subscriber = chatMemberUpdate.Chat.Id;
-        _logger.LogDebug("Adding new subscriber: {Subscriber}", subscriber);
-
-        var subscribersCount = _bot.Subscriptions.Count;
-        _bot.Subscriptions.Add(subscriber);
-
-        if (_bot.Subscriptions.Count == subscribersCount)
-        {
-            _logger.LogError("New subscriber wasn't added");
-            return;
+            pluginsToDeploy.Add(new() { Type = Enum.Parse<PluginType>(pluginType, true) });
+            _logger.LogDebug("{Plugin} plugin is added", pluginType);
         }
 
-        var message = $"You are subscribed to events now. Remove me from the chat to unsubscribe.";
-        _ = _bot.TrySendMessageAsync(subscriber, message, _logger);
-    }
 
-    void HandleBotIsRemovedFromChatAsync(ChatMemberUpdated chatMemberUpdate)
-    {
-        var subscriber = chatMemberUpdate.Chat.Id;
-        _logger.LogDebug("Removing subscriber: {Subscriber}", subscriber);
-        var subscribersCount = _bot.Subscriptions.Count;
-        _bot.Subscriptions.Remove(subscriber);
-
-        if (_bot.Subscriptions.Count == subscribersCount)
+        foreach (var plugin in pluginsToDeploy)
         {
-            _logger.LogError("Subscriber wasn't removed");
+            var subPlugins = pluginsTypes
+                .Where(type => type.StartsWith($"{plugin.Type.ToString().ToLowerInvariant()}_"))
+                .Select(type => new PluginToDeploy() { Type = Enum.Parse<PluginType>(type, true) });
+            if (subPlugins.Any())
+                plugin.SubPlugins = subPlugins;
         }
+
+        var userSettingsManager = new UserSettingsManager(_httpClient);
+        if (nodeNames.Any())
+        {
+            foreach (var nodeName in nodeNames)
+            {
+                foreach (var node in _nodeSupervisor.GetNodesByName(nodeName))
+                    _ = userSettingsManager.TrySetAsync(new(node.Guid) { NodeInstallSoftware = pluginsToDeploy }, sessionId);
+            }
+        }
+        else
+            _ = userSettingsManager.TrySetAsync(new() { InstallSoftware = pluginsToDeploy }, sessionId);
     }
 
-    bool BotIsAddedToChat(ChatMemberUpdated chatMemberUpdate)
+    async Task HandleLoginAsync(Update update)
     {
-        var newChatMember = chatMemberUpdate.NewChatMember;
-        var oldChatMember = chatMemberUpdate.OldChatMember;
-        // Doesn't match when the bot is being promoted.
-        return newChatMember.User.Id == _bot.BotId && IsAddedToChat(newChatMember) && !IsAddedToChat(oldChatMember);
+        await _authentication.AuthenticateAsync(update.Message!);
     }
 
-    bool BotIsRemovedFromChat(ChatMemberUpdated chatMemberUpdate)
+    void HandleLogout(Update update)
     {
-        var newChatMember = chatMemberUpdate.NewChatMember;
-        return newChatMember.User.Id == _bot.BotId && !IsAddedToChat(newChatMember);
-    }
-
-    static bool IsAddedToChat(ChatMember chatMember)
-    {
-        return chatMember.Status is not ChatMemberStatus.Left && chatMember.Status is not ChatMemberStatus.Kicked;
+        _authentication.LogOut(update.Message!.Chat.Id);
     }
 }

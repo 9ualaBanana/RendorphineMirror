@@ -142,4 +142,7 @@ public class NodeSupervisor
             return AllNodes.RemoveWhere(node => node.NameContainsAny(namesToRemove) && nodesOffline.Contains(node));
         }
     }
+
+    internal IEnumerable<MachineInfo> GetNodesByName(string nodeNameStart) =>
+        AllNodes.Where(node => node.NodeName.StartsWith(nodeNameStart));
 }

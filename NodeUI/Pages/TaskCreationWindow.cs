@@ -16,7 +16,7 @@ namespace NodeUI.Pages
             Title = App.AppName;
             Icon = App.Icon;
 
-            Content = new NormalTaskCreationPanel();
+            Content = new TaskCreationPanel();
         }
 
         static Task Post(Action action) => Dispatcher.UIThread.InvokeAsync(action);
@@ -300,12 +300,42 @@ namespace NodeUI.Pages
 
 
 
-        class NormalTaskCreationPanel : Panel
+        class TaskCreationPanel : Panel
         {
-            public NormalTaskCreationPanel() => Children.Add(new TaskPartContainer(new ChoosePluginPart()));
+            public TaskCreationPanel() => Children.Add(new TaskPartContainer(new ChooseTypePart()));
 
 
-            class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
+            class ChooseTypePart : TaskCreationWindow.TaskPart
+            {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("Choose Type");
+
+                public override TaskPart? Next => TypesList.SelectedItem switch
+                {
+                    TaskCreationType.Normal => new NormalTaskCreationPanel.ChoosePluginPart(),
+                    TaskCreationType.WatchingRepeating => new WatchingTaskCreationPanel.ChoosePluginPart(),
+                    _ => throw new InvalidOperationException(),
+                };
+
+                readonly TypedListBox<TaskCreationType> TypesList;
+
+                public ChooseTypePart() : base(new())
+                {
+                    TypesList = new TypedListBox<TaskCreationType>(Enum.GetValues<TaskCreationType>(), t => new TextBlock() { Text = t.ToString() });
+                    TypesList.SelectionChanged += (obj, e) => OnChoose?.Invoke(TypesList.SelectedItems.Count != 0);
+                    Children.Add(TypesList);
+
+                    Dispatcher.UIThread.Post(() => TypesList.SelectedIndex = 0);
+                }
+
+
+                enum TaskCreationType { Normal, WatchingRepeating, }
+            }
+        }
+
+        static class NormalTaskCreationPanel
+        {
+            public class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
             {
                 public override TaskPart? Next => new ChooseVersionPart(Builder.With(x => x.Type = PluginsList.SelectedItem));
             }
@@ -424,12 +454,9 @@ namespace NodeUI.Pages
                 }
             }
         }
-        class WatchingTaskCreationPanel : Panel
+        static class WatchingTaskCreationPanel
         {
-            public WatchingTaskCreationPanel() => Children.Add(new TaskPartContainer(new ChoosePluginPart()));
-
-
-            class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
+            public class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
             {
                 public override TaskPart? Next => new ChooseVersionPart(Builder.With(x => x.Type = PluginsList.SelectedItem));
             }

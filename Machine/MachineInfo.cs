@@ -12,6 +12,7 @@ public record MachineInfo
     public static string NodeName => Settings.NodeName!;
     readonly public static string UserName = Environment.UserName;
     readonly public static string PCName = Environment.MachineName;
+    readonly public static string Guid = Settings.Guid!;
     readonly public static string Version = Init.Version;
     static IPAddress? _publicIP;
     public static async Task<IPAddress> GetPublicIPAsync()
@@ -38,6 +39,7 @@ public record MachineInfo
         NodeName,
         PCName,
         UserName,
+        Guid,
         Version,
         IP = (await GetPublicIPAsync()).ToString(),
         Port,
