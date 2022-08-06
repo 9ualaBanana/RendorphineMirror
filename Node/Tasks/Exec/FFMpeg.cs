@@ -100,6 +100,10 @@ public class FFMpegTasks : ProcessTaskExecutor<MediaEditInfo>
 
     protected override string GetArguments(TaskExecuteData task, MediaEditInfo data)
     {
+        var vfilters = string.Join(',', data.ConstructFFMpegArguments());
+        if (vfilters.Length == 0) throw new Exception("No vfilters specified in task");
+
+
         var args = "";
 
         // dont output useless info
@@ -111,8 +115,8 @@ public class FFMpegTasks : ProcessTaskExecutor<MediaEditInfo>
         // input file
         args += $"-i \"{task.Input}\" ";
 
-        // filters
-        args += $"-vf \"{string.Join(',', data.ConstructFFMpegArguments())}\" ";
+        // video filters
+        args += $"-vf \"{vfilters}\" ";
 
         // don't reencode audio
         args += $"-c:a copy ";
