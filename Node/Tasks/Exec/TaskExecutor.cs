@@ -1,17 +1,28 @@
 using System.Diagnostics;
+using Machine.Plugins.Plugins;
 
 namespace Node.Tasks.Exec;
+
+public record TaskExecuteData(string Input, string Output, string Id, IPluginAction Action, Plugin Plugin)
+{
+    public void LogInfo(string text) => Log.Information($"[Task {Id}] {text}");
+    public void LogErr(string text) => Log.Error($"[Task {Id}] {text}");
+    public void LogErr(Exception ex) => LogErr(ex.ToString());
+
+    public void LogExecInfo(string text) => Log.Information($"[TaskExec {Id}] {text}");
+    public void LogExecErr(string text) => Log.Error($"[TaskExec {Id}] {text}");
+}
 
 public abstract class TaskExecutor<TBase> : ITaskExecutor
 {
     public abstract IEnumerable<IPluginAction> GetTasks();
 
-    protected async ValueTask<string[]> Start<T>(string[] files, ReceivedTask task, T data) where T : TBase =>
-        await Task.WhenAll(files.Select(x => Execute(x, task, data))).ConfigureAwait(false);
+    protected async ValueTask<string> Start<T>(TaskExecuteData task, T data) where T : TBase =>
+        await Execute(task, data).ConfigureAwait(false);
 
-    protected abstract Task<string> Execute(string input, ReceivedTask task, TBase data);
+    protected abstract Task<string> Execute(TaskExecuteData task, TBase data);
 
-    protected void StartReadingProcessOutput(ReceivedTask task, Process process)
+    protected void StartReadingProcessOutput(TaskExecuteData task, Process process)
     {
         startReading(process.StandardOutput, false).Consume();
         startReading(process.StandardError, true).Consume();
@@ -32,12 +43,9 @@ public abstract class TaskExecutor<TBase> : ITaskExecutor
 }
 public abstract class ProcessTaskExecutor<TBase> : TaskExecutor<TBase>
 {
-    protected sealed override async Task<string> Execute(string input, ReceivedTask task, TBase data)
+    protected sealed override async Task<string> Execute(TaskExecuteData task, TBase data)
     {
-        var output = Path.Combine(Init.TaskFilesDirectory, task.Id, Path.GetFileNameWithoutExtension(input) + "_out" + Path.GetExtension(input));
-        Directory.CreateDirectory(Path.GetDirectoryName(output)!);
-
-        var args = GetArguments(input, output, task, data);
+        var args = GetArguments(task, data);
 
         var exepath = GetExecutable(task);
         task.LogInfo($"Starting {exepath} {args}");
@@ -58,12 +66,12 @@ public abstract class ProcessTaskExecutor<TBase> : TaskExecutor<TBase>
             throw new Exception($"Could not complete task: {err} (exit code {ret})");
         }
 
-        task.LogInfo($"Completed {task.GetAction().Type} {task.Info.TaskType} execution");
-        return output;
+        task.LogInfo($"Completed {task.Plugin.Type} {task.Action.Type} execution");
+        return task.Output;
     }
 
-    protected virtual string GetExecutable(ReceivedTask task) => task.GetPlugin().Path;
+    protected virtual string GetExecutable(TaskExecuteData task) => task.Plugin.Path;
     protected virtual void AfterExecution(Exception? exception) { }
 
-    protected abstract string GetArguments(string input, string output, ReceivedTask task, TBase data);
+    protected abstract string GetArguments(TaskExecuteData task, TBase data);
 }

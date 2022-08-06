@@ -54,7 +54,7 @@ public abstract class MediaEditInfo
         if (Vflip == true) yield return "vflip";
         if (RotationRadians is not null) yield return $"rotate={RotationRadians.Value.ToString(NumberFormat)}";
 
-            var eq = new List<string>();
+        var eq = new List<string>();
         if (Brightness is not null) eq.Add($"brightness={Brightness.Value.ToString(NumberFormat)}");
         if (Saturation is not null) eq.Add($"saturation={Saturation.Value.ToString(NumberFormat)}");
         if (Contrast is not null) eq.Add($"contrast={Contrast.Value.ToString(NumberFormat)}");
@@ -98,7 +98,7 @@ public class FFMpegTasks : ProcessTaskExecutor<MediaEditInfo>
 
     public override IEnumerable<IPluginAction> GetTasks() => new IPluginAction[] { EditVideo, EditRaster };
 
-    protected override string GetArguments(string input, string output, ReceivedTask task, MediaEditInfo data)
+    protected override string GetArguments(TaskExecuteData task, MediaEditInfo data)
     {
         var args = "";
 
@@ -109,7 +109,7 @@ public class FFMpegTasks : ProcessTaskExecutor<MediaEditInfo>
         args += "-y ";
 
         // input file
-        args += $"-i \"{input}\" ";
+        args += $"-i \"{task.Input}\" ";
 
         // filters
         args += $"-vf \"{string.Join(',', data.ConstructFFMpegArguments())}\" ";
@@ -118,7 +118,7 @@ public class FFMpegTasks : ProcessTaskExecutor<MediaEditInfo>
         args += $"-c:a copy ";
 
         // output path
-        args += $" \"{output}\" ";
+        args += $" \"{task.Output}\" ";
 
         return args;
     }

@@ -17,9 +17,9 @@ public class EsrganTasks : ProcessTaskExecutor<UpscaleEsrganInfo>
 
     public override IEnumerable<IPluginAction> GetTasks() => new IPluginAction[] { UpscaleEsrgan };
 
-    protected override string GetArguments(string input, string output, ReceivedTask task, UpscaleEsrganInfo data)
+    protected override string GetArguments(TaskExecuteData task, UpscaleEsrganInfo data)
     {
-        var plugindir = Path.GetDirectoryName(task.GetPlugin().Path);
+        var plugindir = Path.GetDirectoryName(task.Plugin.Path);
 
         var installfile = Path.GetTempFileName();
 
@@ -34,7 +34,7 @@ public class EsrganTasks : ProcessTaskExecutor<UpscaleEsrganInfo>
                     Invoke-Expression $line
                 }}
 
-                python test.py ""{input}"" ""{output}""
+                python test.py ""{task.Input}"" ""{task.Output}""
             ";
             File.WriteAllText(installfile, script);
         }
@@ -49,7 +49,7 @@ public class EsrganTasks : ProcessTaskExecutor<UpscaleEsrganInfo>
                 pip3 install -r ./installation/requirements.txt
                 sh ./installation/precommands.txt
 
-                python test.py ""{input}"" ""{output}""
+                python test.py ""{task.Input}"" ""{task.Output}""
             ";
             File.WriteAllText(installfile, script);
         }
@@ -57,5 +57,5 @@ public class EsrganTasks : ProcessTaskExecutor<UpscaleEsrganInfo>
         return installfile;
     }
 
-    protected override string GetExecutable(ReceivedTask task) => Environment.OSVersion.Platform == PlatformID.Win32NT ? "powershell.exe" : "/bin/sh";
+    protected override string GetExecutable(TaskExecuteData task) => Environment.OSVersion.Platform == PlatformID.Win32NT ? "powershell.exe" : "/bin/sh";
 }
