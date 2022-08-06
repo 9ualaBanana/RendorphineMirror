@@ -41,7 +41,7 @@ public static class TaskHandler
             task.LogInfo($"File downloaded to {input}");
             await task.ChangeStateAsync(TaskState.Active);
 
-            var output = await TaskList.Get(task.Info).Execute(task, input).ConfigureAwait(false);
+            var output = await TaskList.GetAction(task.Info).Execute(task, input).ConfigureAwait(false);
             await task.ChangeStateAsync(TaskState.Output);
 
             task.LogInfo($"Uploading output file {output} ...");

@@ -1,3 +1,5 @@
+using Newtonsoft.Json.Linq;
+
 namespace Node.Tasks.Exec;
 
 public interface IPluginAction
@@ -7,8 +9,8 @@ public interface IPluginAction
     string Name { get; }
     FileFormat FileFormat { get; }
 
-    object CreateData();
     ValueTask<string> Execute(ReceivedTask task, string input);
+    ValueTask<string> Execute(string taskid, IPluginAction action, string input, string output, JObject datajson);
 }
 public class PluginAction<T> : IPluginAction where T : new()
 {
@@ -18,9 +20,9 @@ public class PluginAction<T> : IPluginAction where T : new()
     public PluginType Type { get; }
     public FileFormat FileFormat { get; }
 
-    public readonly Func<string[], ReceivedTask, T, ValueTask<string[]>> ExecuteFunc;
+    public readonly Func<TaskExecuteData, T, ValueTask<string>> ExecuteFunc;
 
-    public PluginAction(PluginType type, string name, FileFormat fileformat, Func<string[], ReceivedTask, T, ValueTask<string[]>> func)
+    public PluginAction(PluginType type, string name, FileFormat fileformat, Func<TaskExecuteData, T, ValueTask<string>> func)
     {
         Type = type;
         Name = name;
@@ -28,17 +30,19 @@ public class PluginAction<T> : IPluginAction where T : new()
         ExecuteFunc = func;
     }
 
-    public object CreateData() => new T();
-
-    public async ValueTask<string> Execute(ReceivedTask task, string input)
+    public ValueTask<string> Execute(ReceivedTask task, string input)
     {
-        var data = task.Info.Data.ToObject<T>();
-        if (data is null) throw new InvalidOperationException("Could not deserialize input data: " + task.Info.Data);
+        var output = Path.Combine(Init.TaskFilesDirectory, task.Id, Path.GetFileNameWithoutExtension(input) + "_out" + Path.GetExtension(input));
+        return Execute(task.Id, task.GetAction(), input, output, task.Info.Data);
+    }
+    public async ValueTask<string> Execute(string taskid, IPluginAction action, string input, string output, JObject datajson)
+    {
+        var data = datajson.ToObject<T>();
+        if (data is null) throw new InvalidOperationException("Could not deserialize input data: " + datajson);
 
-        // var files = NodeTask.UnzipFiles(input).ToArray();
+        Directory.CreateDirectory(Path.GetDirectoryName(output)!);
 
-        var output = await ExecuteFunc(new[] { input }, task, data).ConfigureAwait(false);
-        return output[0]; // TODO: ?????
-        // return NodeTask.ZipFiles(output);
+        var tk = new TaskExecuteData(input, output, taskid, action, action.Type.GetInstance());
+        return await ExecuteFunc(tk, data).ConfigureAwait(false);
     }
 }

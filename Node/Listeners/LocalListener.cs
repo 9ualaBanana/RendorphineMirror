@@ -30,6 +30,18 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
+        if (path == "execlocaltasksync")
+        {
+            return await Test(request, response, "type", "data", "input", "output", async (type, data, input, output) =>
+            {
+                var action = TaskList.TryGet(type);
+                if (action is null) return await WriteErr(response, "No such type exists");
+
+                var result = await action.Execute("local_taskid", action, input, output, JObject.Parse(data)).ConfigureAwait(false);
+                return await WriteJToken(response, result).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
         if (path == "reloadcfg")
         {
             Settings.Reload();
