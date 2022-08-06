@@ -86,6 +86,7 @@ public class EditRasterInfo : MediaEditInfo { }
 public class FFMpegTasks : ProcessTaskExecutor<MediaEditInfo>
 {
     public static readonly FFMpegTasks Instance = new();
+    protected override bool SendStderrToStdout => true;
 
     public readonly PluginAction<EditVideoInfo> EditVideo;
     public readonly PluginAction<EditRasterInfo> EditRaster;
