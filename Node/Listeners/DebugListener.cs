@@ -22,7 +22,7 @@ public class DebugListener : ExecutableListenerBase
         }
         if (path == "addtask")
         {
-            var task = new ReceivedTask("verylongtaskid", new TaskInfo("userid", 12456, new TaskObject("filename", 798798), new() { ["type"] = "MPlus" }, new() { ["type"] = "MPlusoutput" }, new() { ["type"] = "hflip" }));
+            var task = new ReceivedTask("verylongtaskid", new TaskInfo(new TaskObject("filename", 798798), new() { ["type"] = "MPlus" }, new() { ["type"] = "MPlusoutput" }, new() { ["type"] = "hflip" }), true);
             NodeGlobalState.Instance.ExecutingTasks.Add(task);
 
             _ = Task.Delay(5000).ContinueWith(_ => NodeGlobalState.Instance.ExecutingTasks.Remove(task));

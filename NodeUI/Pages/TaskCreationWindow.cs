@@ -237,7 +237,7 @@ namespace NodeUI.Pages
         }
         abstract class ChooseInputOutputPart : ChooseInputOutputPartBase<TaskInputOutputDescriber>
         {
-            protected readonly JObject InputOutputJson = new();
+            protected JObject InputOutputJson => (JObject) Setting!.Property.Value;
             Settings.ISetting? Setting;
 
             public ChooseInputOutputPart(ImmutableArray<TaskInputOutputDescriber> describers, TaskCreationInfo builder) : base(describers, t => new TextBlock() { Text = t.Type }, builder) { }
@@ -247,10 +247,12 @@ namespace NodeUI.Pages
                 SettingPanel.Children.Clear();
                 if (describer is null) return;
 
-                InputOutputJson.RemoveAll();
-                InputOutputJson["$type"] = describer.Object.JsonTypeName;
-                InputOutputJson["type"] = describer.Type;
-                var parent = new JObject() { [describer.Type] = InputOutputJson, };
+                var obj = new JObject()
+                {
+                    ["$type"] = describer.Object.JsonTypeName,
+                    ["type"] = describer.Type,
+                };
+                var parent = new JObject() { [describer.Type] = obj, };
 
                 Setting = Settings.Create(parent.Property(describer.Type)!, describer.Object);
                 SettingPanel.Children.Add(Setting);
@@ -261,15 +263,6 @@ namespace NodeUI.Pages
                 Setting?.UpdateValue();
             }
         }
-        abstract class ChooseOutputPart : ChooseInputOutputPart
-        {
-            public override event Action<bool>? OnChoose;
-            public override LocalizedString Title => new("Choose Output");
-
-            public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Outputs, builder) =>
-                Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
-        }
-
         abstract class ParametersPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
@@ -297,7 +290,25 @@ namespace NodeUI.Pages
                 Setting.UpdateValue();
             }
         }
+        abstract class LocalRemoteTaskPart : TaskPart
+        {
+            public override event Action<bool>? OnChoose;
+            public override LocalizedString Title => new("Choose Type (execute locally or send to another node)");
 
+            protected readonly TypedListBox<TType> Types;
+
+            protected LocalRemoteTaskPart(TaskCreationInfo builder) : base(builder)
+            {
+                Types = new(Enum.GetValues<TType>(), t => new TextBlock() { Text = t.ToString() });
+                Types.SelectionChanged += (obj, e) => OnChoose?.Invoke(Types.SelectedItems.Count != 0);
+                Children.Add(Types);
+
+                Dispatcher.UIThread.Post(() => Types.SelectedIndex = 0);
+            }
+
+
+            public enum TType { Remote, Local }
+        }
 
 
         class TaskCreationPanel : Panel
@@ -358,15 +369,24 @@ namespace NodeUI.Pages
                 public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Inputs, builder) =>
                     Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
             }
-            class ChooseOutputPart : TaskCreationWindow.ChooseOutputPart
+            class ChooseOutputPart : TaskCreationWindow.ChooseInputOutputPart
             {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("Choose Output");
                 public override TaskPart? Next => new ChooseParametersPart(Builder.With(x => x.Output = InputOutputJson));
-                public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
+
+                public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Outputs, builder) =>
+                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
             }
             class ChooseParametersPart : TaskCreationWindow.ParametersPart
             {
-                public override TaskPart? Next => new WaitingPart(Builder.With(x => x.Data = Data));
+                public override TaskPart? Next => new LocalRemotePart(Builder.With(x => x.Data = Data));
                 public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class LocalRemotePart : TaskCreationWindow.LocalRemoteTaskPart
+            {
+                public override TaskPart? Next => new WaitingPart(Builder.With(x => x.ExecuteLocally = Types.SelectedItem == TType.Local));
+                public LocalRemotePart(TaskCreationInfo builder) : base(builder) { }
             }
             class WaitingPart : TaskPart
             {
@@ -472,23 +492,31 @@ namespace NodeUI.Pages
             }
             class ChooseInputPart : ChooseInputOutputPart
             {
+                public override event Action<bool>? OnChoose;
                 public override LocalizedString Title => new("Choose Input");
                 public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
 
                 public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().WatchingInputs, builder) =>
                     Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
-
-                public override event Action<bool>? OnChoose;
             }
-            class ChooseOutputPart : TaskCreationWindow.ChooseOutputPart
+            class ChooseOutputPart : TaskCreationWindow.ChooseInputOutputPart
             {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("Choose Output");
                 public override TaskPart? Next => new ChooseParametersPart(Builder.With(x => x.Output = InputOutputJson));
-                public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
+
+                public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().WatchingOutputs, builder) =>
+                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
             }
             class ChooseParametersPart : TaskCreationWindow.ParametersPart
             {
-                public override TaskPart? Next => new EndPart(Builder.With(x => x.Data = Data));
+                public override TaskPart? Next => new LocalRemotePart(Builder.With(x => x.Data = Data));
                 public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class LocalRemotePart : TaskCreationWindow.LocalRemoteTaskPart
+            {
+                public override TaskPart? Next => new EndPart(Builder.With(x => x.ExecuteLocally = Types.SelectedItem == TType.Local));
+                public LocalRemotePart(TaskCreationInfo builder) : base(builder) { }
             }
             class EndPart : TaskPart
             {
@@ -569,13 +597,14 @@ namespace NodeUI.Pages
 
             public interface ISetting : IControl
             {
+                JProperty Property { get; }
                 new bool IsEnabled { get; set; }
 
                 void UpdateValue();
             }
             public abstract class Setting : Panel, ISetting
             {
-                public readonly JProperty Property;
+                public JProperty Property { get; }
 
                 public Setting(JProperty property) => Property = property;
 

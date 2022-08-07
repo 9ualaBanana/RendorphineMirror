@@ -30,15 +30,22 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
-        if (path == "execlocaltasksync")
+        if (path == "startlocaltask")
         {
             return await Test(request, response, "type", "data", "input", "output", async (type, data, input, output) =>
             {
-                var action = TaskList.TryGet(type);
-                if (action is null) return await WriteErr(response, "No such type exists");
+                // TODO: fill in TaskObject
+                var task = new ReceivedTask(
+                    ReceivedTask.GenerateLocal(),
+                    new TaskInfo(new("file.mov", 123),
+                    JObject.FromObject(new UserTaskInputInfo(input)),
+                    JObject.FromObject(new UserTaskOutputInfo(Path.GetDirectoryName(output)!, Path.GetFileName(output))),
+                    JObject.Parse(data)
+                ), true);
 
-                var result = await action.Execute("local_taskid", action, input, output, JObject.Parse(data)).ConfigureAwait(false);
-                return await WriteJToken(response, result).ConfigureAwait(false);
+                TaskHandler.HandleReceivedTask(task).Consume();
+
+                return await WriteJToken(response, task.Id).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
 
@@ -90,19 +97,23 @@ public class LocalListener : ExecutableListenerBase
                 serializeinout<MPlusTaskOutputInfo>(TaskInputOutputType.MPlus),
                 serializeinout<UserTaskOutputInfo>(TaskInputOutputType.User),
             }.ToImmutableArray();
-            var repeats = new[]
+            var watchinginputs = new[]
             {
-                serializerep<MPlusWatchingTaskSource>(TaskInputOutputType.MPlus),
-                serializerep<LocalWatchingTaskSource>(TaskInputOutputType.User),
+                serializeinout<MPlusWatchingTaskSource>(TaskInputOutputType.MPlus),
+                serializeinout<LocalWatchingTaskSource>(TaskInputOutputType.User),
+            }.ToImmutableArray();
+            var watchingoutputs = new[]
+            {
+                serializeinout<MPlusWatchingTaskOutputInfo>(TaskInputOutputType.MPlus),
+                serializeinout<LocalWatchingTaskOutputInfo>(TaskInputOutputType.User),
             }.ToImmutableArray();
 
-            var output = new TasksFullDescriber(actions, inputs, outputs, repeats);
+            var output = new TasksFullDescriber(actions, inputs, outputs, watchinginputs, watchingoutputs);
             return await WriteJToken(response, JToken.FromObject(output, JsonSerializerWithTypes)).ConfigureAwait(false);
 
 
             static TaskActionDescriber serialize(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
-            static TaskInputOutputDescriber serializeinout<T>(TaskInputOutputType type) where T : ITaskInputOutputInfo => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
-            static TaskInputOutputDescriber serializerep<T>(TaskInputOutputType type) where T : IWatchingTaskSource => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
+            static TaskInputOutputDescriber serializeinout<T>(TaskInputOutputType type) => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
         }
 
         return HttpStatusCode.NotFound;
@@ -127,7 +138,7 @@ public class LocalListener : ExecutableListenerBase
         if (path == "starttask")
         {
             var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-            var taskid = await NodeTask.RegisterAsync(task).ConfigureAwait(false);
+            var taskid = await NodeTask.RegisterOrExecute(task);
 
             return await WriteJson(response, taskid).ConfigureAwait(false);
         }
@@ -136,7 +147,8 @@ public class LocalListener : ExecutableListenerBase
         {
             var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
 
-            var wt = new WatchingTask(task.Input.ToObject<IWatchingTaskSource>(LocalApi.JsonSerializerWithType)!, task.Action, task.Data, task.Output.ToObject<IWatchingTaskOutputInfo>(LocalApi.JsonSerializerWithType)!);
+            var wt = new WatchingTask(task.Input.ToObject<IWatchingTaskSource>(LocalApi.JsonSerializerWithType)!, task.Action, task.Data, task.Output.ToObject<IWatchingTaskOutputInfo>(LocalApi.JsonSerializerWithType)!, IsLocal);
+            wt.StartWatcher();
             NodeSettings.WatchingTasks.Add(wt);
 
             return await WriteSuccess(response).ConfigureAwait(false);

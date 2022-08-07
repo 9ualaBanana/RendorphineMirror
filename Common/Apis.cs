@@ -17,11 +17,13 @@ public static class Apis
 
     public static async ValueTask<OperationResult> ChangeStateAsync(this ReceivedTask task, TaskState state)
     {
+        Log.Information($"Changing task {task.Id} status to {state}");
+        if (task.ExecuteLocally) return true;
+
         var result = await Api.ApiGet($"{Api.TaskManagerEndpoint}/mytaskstatechanged", "changing state",
             ("sessionid", Settings.SessionId!), ("taskid", task.Id), ("newstate", state.ToString().ToLowerInvariant())).ConfigureAwait(false);
 
         result.LogIfError();
-        if (result) Log.Information($"Changing task {task.Id} status to {state}");
         return result;
     }
 }

@@ -5,6 +5,22 @@ namespace Node.Tasks.Models;
 
 public static class NodeTask
 {
+    public static async ValueTask<OperationResult<string>> RegisterOrExecute(TaskCreationInfo info)
+    {
+        OperationResult<string> taskid;
+        if (info.ExecuteLocally)
+        {
+            taskid = ReceivedTask.GenerateLocal();
+
+            // TODO: fill in TaskObject
+            var tk = new ReceivedTask(taskid.Value, new TaskInfo(new("file.mov", 123), info.Input, info.Output, info.Data), true);
+            TaskHandler.HandleAsync(tk, new(), default).Consume();
+        }
+        else taskid = await RegisterAsync(info).ConfigureAwait(false);
+
+        return taskid;
+    }
+
     public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info)
     {
         var data = info.Data;

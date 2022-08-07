@@ -21,28 +21,11 @@ public abstract class TaskExecutor<TBase> : ITaskExecutor
         await Execute(task, data).ConfigureAwait(false);
 
     protected abstract Task<string> Execute(TaskExecuteData task, TBase data);
-
-    protected void StartReadingProcessOutput(TaskExecuteData task, Process process)
-    {
-        startReading(process.StandardOutput, false).Consume();
-        startReading(process.StandardError, true).Consume();
-
-
-        async Task startReading(StreamReader input, bool err)
-        {
-            while (true)
-            {
-                var str = await input.ReadLineAsync().ConfigureAwait(false);
-                if (str is null) return;
-
-                if (err) task.LogExecErr(str);
-                else task.LogExecInfo(str);
-            }
-        }
-    }
 }
 public abstract class ProcessTaskExecutor<TBase> : TaskExecutor<TBase>
 {
+    protected virtual bool SendStderrToStdout => false;
+
     protected sealed override async Task<string> Execute(TaskExecuteData task, TBase data)
     {
         var args = GetArguments(task, data);
@@ -68,6 +51,24 @@ public abstract class ProcessTaskExecutor<TBase> : TaskExecutor<TBase>
 
         task.LogInfo($"Completed {task.Plugin.Type} {task.Action.Type} execution");
         return task.Output;
+    }
+    void StartReadingProcessOutput(TaskExecuteData task, Process process)
+    {
+        startReading(process.StandardOutput, false).Consume();
+        startReading(process.StandardError, !SendStderrToStdout).Consume();
+
+
+        async Task startReading(StreamReader input, bool err)
+        {
+            while (true)
+            {
+                var str = await input.ReadLineAsync().ConfigureAwait(false);
+                if (str is null) return;
+
+                if (err) task.LogExecErr(str);
+                else task.LogExecInfo(str);
+            }
+        }
     }
 
     protected virtual string GetExecutable(TaskExecuteData task) => task.Plugin.Path;

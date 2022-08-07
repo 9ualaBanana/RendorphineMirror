@@ -39,24 +39,7 @@ public class TaskReceiver : IDisposable
             context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("{\"ok\":1}"));
             context.Response.Close();
 
-            var thread = new Thread(async () =>
-            {
-                var task = new ReceivedTask(taskid, taskinfo);
-
-                try
-                {
-                    NodeSettings.SavedTasks.Add(task);
-                    await TaskHandler.HandleAsync(task, _httpClient, _cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex) { Log.Error(ex.ToString()); }
-                finally
-                {
-                    task.LogInfo($"Removing");
-                    NodeSettings.SavedTasks.Remove(task);
-                }
-            });
-            thread.IsBackground = true;
-            thread.Start();
+            TaskHandler.HandleReceivedTask(new ReceivedTask(taskid, taskinfo, false), _httpClient, _cancellationToken).Consume();
         }
     }
 

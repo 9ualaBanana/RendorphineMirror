@@ -10,7 +10,7 @@ public interface IPluginAction
     FileFormat FileFormat { get; }
 
     ValueTask<string> Execute(ReceivedTask task, string input);
-    ValueTask<string> Execute(string taskid, IPluginAction action, string input, string output, JObject datajson);
+    ValueTask<string> Execute(string taskid, string input, string output, JObject datajson);
 }
 public class PluginAction<T> : IPluginAction where T : new()
 {
@@ -33,16 +33,16 @@ public class PluginAction<T> : IPluginAction where T : new()
     public ValueTask<string> Execute(ReceivedTask task, string input)
     {
         var output = Path.Combine(Init.TaskFilesDirectory, task.Id, Path.GetFileNameWithoutExtension(input) + "_out" + Path.GetExtension(input));
-        return Execute(task.Id, task.GetAction(), input, output, task.Info.Data);
+        return Execute(task.Id, input, output, task.Info.Data);
     }
-    public async ValueTask<string> Execute(string taskid, IPluginAction action, string input, string output, JObject datajson)
+    public async ValueTask<string> Execute(string taskid, string input, string output, JObject datajson)
     {
         var data = datajson.ToObject<T>();
         if (data is null) throw new InvalidOperationException("Could not deserialize input data: " + datajson);
 
         Directory.CreateDirectory(Path.GetDirectoryName(output)!);
 
-        var tk = new TaskExecuteData(input, output, taskid, action, action.Type.GetInstance());
+        var tk = new TaskExecuteData(input, output, taskid, this, Type.GetInstance());
         return await ExecuteFunc(tk, data).ConfigureAwait(false);
     }
 }

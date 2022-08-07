@@ -9,7 +9,7 @@ public class MPlusTaskInputInfo : ITaskInputInfo
 
     public MPlusTaskInputInfo(string iid) => Iid = iid;
 
-    public async ValueTask<string> Download(ReceivedTask task, HttpClient httpClient, CancellationToken cancellationToken)
+    public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var fformat = TaskList.GetAction(task.Info).FileFormat;
         var format = fformat.ToString().ToLowerInvariant();

@@ -5,39 +5,62 @@ namespace Node.Tasks.Executor;
 
 public static class TaskHandler
 {
-    static TaskInputOutputType GetInputOutputType(JObject json) => Enum.Parse<TaskInputOutputType>(json["type"]!.Value<string>()!);
+    static TaskInputOutputType GetInputOutputType(JObject json)
+    {
+        var token = json.Property("type", StringComparison.OrdinalIgnoreCase)?.Value!;
 
-    static ITaskInputInfo DeserializeInput(TaskInfo info) =>
-        GetInputOutputType(info.Input) switch
+        if (token.Type == JTokenType.Integer)
+            return Enum.GetValues<TaskInputOutputType>()[token.Value<int>()];
+        return Enum.Parse<TaskInputOutputType>(token.Value<string>()!);
+    }
+
+    public static ITaskInputInfo DeserializeInput(JObject input) =>
+        GetInputOutputType(input) switch
         {
-            TaskInputOutputType.MPlus => info.Input.ToObject<MPlusTaskInputInfo>()!,
-            TaskInputOutputType.User => info.Input.ToObject<UserTaskInputInfo>()!,
+            TaskInputOutputType.MPlus => input.ToObject<MPlusTaskInputInfo>()!,
+            TaskInputOutputType.User => input.ToObject<UserTaskInputInfo>()!,
             { } type => throw new NotSupportedException($"Task input type {type} is not supported"),
         };
-    static ITaskOutputInfo DeserializeOutput(TaskInfo info) =>
-        GetInputOutputType(info.Output) switch
+    public static ITaskOutputInfo DeserializeOutput(JObject output) =>
+        GetInputOutputType(output) switch
         {
-            TaskInputOutputType.MPlus => info.Output.ToObject<MPlusTaskOutputInfo>()!,
-            TaskInputOutputType.User => info.Input.ToObject<UserTaskOutputInfo>()!,
+            TaskInputOutputType.MPlus => output.ToObject<MPlusTaskOutputInfo>()!,
+            TaskInputOutputType.User => output.ToObject<UserTaskOutputInfo>()!,
             { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
         };
 
-    public static async Task HandleAsync(ReceivedTask task, HttpClient httpClient, CancellationToken cancellationToken = default)
+    public static async Task HandleReceivedTask(ReceivedTask task, HttpClient? httpClient = null, CancellationToken token = default)
     {
         try
         {
+            NodeSettings.SavedTasks.Add(task);
+            await HandleAsync(task, httpClient, token).ConfigureAwait(false);
+        }
+        catch (Exception ex) { Log.Error(ex.ToString()); }
+        finally
+        {
+            task.LogInfo($"Removing");
+            NodeSettings.SavedTasks.Remove(task);
+        }
+    }
+    public static async Task HandleAsync(ReceivedTask task, HttpClient? httpClient = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            httpClient ??= new();
+
             NodeGlobalState.Instance.ExecutingTasks.Add(task);
             using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
 
 
             task.LogInfo($"Started");
 
-            var inputobj = DeserializeInput(task.Info);
-            var outputobj = DeserializeOutput(task.Info);
+            var inputobj = DeserializeInput(task.Info.Input);
+            var outputobj = DeserializeOutput(task.Info.Output);
             task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
 
             task.LogInfo($"Downloading file...");
-            var input = await inputobj.Download(task, httpClient, cancellationToken).ConfigureAwait(false);
+            var input = await inputobj.Download(task, cancellationToken).ConfigureAwait(false);
             task.LogInfo($"File downloaded to {input}");
             await task.ChangeStateAsync(TaskState.Active);
 
