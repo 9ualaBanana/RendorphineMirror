@@ -24,6 +24,7 @@ namespace Common
         public static event Action? AnyChanged;
         public static IReadOnlyList<IDatabaseBindable> Bindables => _Bindables;
         static readonly List<IDatabaseBindable> _Bindables = new();
+        public static readonly string DbPath;
 
         public static string? SessionId => AuthInfo?.SessionId;
         public static string? Email => AuthInfo?.Email;
@@ -49,9 +50,9 @@ namespace Common
 
         static Settings()
         {
-            var dbfile = Path.Combine(Init.ConfigDirectory, "config.db");
-            Connection = new SQLiteConnection("Data Source=" + dbfile + ";Version=3;cache=shared");
-            if (!File.Exists(dbfile)) SQLiteConnection.CreateFile(dbfile);
+            DbPath = Path.Combine(Init.ConfigDirectory, "config.db");
+            Connection = new SQLiteConnection("Data Source=" + DbPath + ";Version=3;cache=shared");
+            if (!File.Exists(DbPath)) SQLiteConnection.CreateFile(DbPath);
             Connection.Open();
             CreateDBTable();
 

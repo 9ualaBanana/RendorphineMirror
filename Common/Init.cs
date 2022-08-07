@@ -10,6 +10,7 @@ namespace Common
         public static readonly bool IsDebug = false;
         static readonly bool DebugFileExists = false;
         public static readonly string ConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "renderphine");
+        public static readonly string LogDirectory = Path.Combine(ConfigDirectory, "logs");
         public static readonly string TaskFilesDirectory = Path.Combine(ConfigDirectory, "tasks");
         public static readonly string Version = GetVersion();
 
@@ -31,9 +32,10 @@ namespace Common
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.Console(restrictedToMinimumLevel: IsDebug ? LogEventLevel.Verbose : LogEventLevel.Information)
                 .WriteTo.File(
-                    Path.Combine(ConfigDirectory, "logs", "log" + Path.GetFileNameWithoutExtension(Environment.ProcessPath!)) + ".log",
+                    Path.Combine(LogDirectory, "log" + Path.GetFileNameWithoutExtension(Environment.ProcessPath!)) + ".log",
                     restrictedToMinimumLevel: IsDebug ? LogEventLevel.Verbose : LogEventLevel.Information,
-                    retainedFileTimeLimit: TimeSpan.FromDays(7)
+                    retainedFileTimeLimit: TimeSpan.FromDays(7),
+                    shared: true
                 )
                 .MinimumLevel.Is(IsDebug ? LogEventLevel.Verbose : LogEventLevel.Debug)
                 .CreateLogger();
