@@ -43,8 +43,10 @@ public class WatchingTask
                 ExecuteLocally
             );
 
-            var register = await NodeTask.RegisterAsync(taskinfo).ConfigureAwait(false);
+            var register = await NodeTask.RegisterOrExecute(taskinfo).ConfigureAwait(false);
             var taskid = register.ThrowIfError();
+
+            Log.Information($"Task ID: {taskid}");
         };
 
         Log.Information($"Watching task watcher was started; listening at {Serialize(Source)} for an action {TaskAction} with data {Serialize(TaskData)} and output to {Serialize(Output)}");

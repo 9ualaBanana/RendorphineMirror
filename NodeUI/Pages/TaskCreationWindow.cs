@@ -263,14 +263,6 @@ namespace NodeUI.Pages
                 Setting?.UpdateValue();
             }
         }
-        abstract class ChooseOutputPart : ChooseInputOutputPart
-        {
-            public override event Action<bool>? OnChoose;
-            public override LocalizedString Title => new("Choose Output");
-
-            public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Outputs, builder) =>
-                Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
-        }
         abstract class ParametersPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
@@ -377,10 +369,14 @@ namespace NodeUI.Pages
                 public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Inputs, builder) =>
                     Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
             }
-            class ChooseOutputPart : TaskCreationWindow.ChooseOutputPart
+            class ChooseOutputPart : TaskCreationWindow.ChooseInputOutputPart
             {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("Choose Output");
                 public override TaskPart? Next => new ChooseParametersPart(Builder.With(x => x.Output = InputOutputJson));
-                public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
+
+                public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Outputs, builder) =>
+                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
             }
             class ChooseParametersPart : TaskCreationWindow.ParametersPart
             {
@@ -496,18 +492,21 @@ namespace NodeUI.Pages
             }
             class ChooseInputPart : ChooseInputOutputPart
             {
+                public override event Action<bool>? OnChoose;
                 public override LocalizedString Title => new("Choose Input");
                 public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
 
                 public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().WatchingInputs, builder) =>
                     Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
-
-                public override event Action<bool>? OnChoose;
             }
-            class ChooseOutputPart : TaskCreationWindow.ChooseOutputPart
+            class ChooseOutputPart : TaskCreationWindow.ChooseInputOutputPart
             {
+                public override event Action<bool>? OnChoose;
+                public override LocalizedString Title => new("Choose Output");
                 public override TaskPart? Next => new ChooseParametersPart(Builder.With(x => x.Output = InputOutputJson));
-                public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
+
+                public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().WatchingOutputs, builder) =>
+                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
             }
             class ChooseParametersPart : TaskCreationWindow.ParametersPart
             {
