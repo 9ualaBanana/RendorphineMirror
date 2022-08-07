@@ -98,7 +98,7 @@ internal class Heartbeat : IDisposable
     async Task<HttpResponseMessage> SendHeartbeatAsync()
     {
         var response = await _httpClient.SendAsync(new(_request.Method, _request.RequestUri) { Content = _request.Content }, _cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await Api.GetJsonFromResponseIfSuccessfulAsync(response);
         return response;
     }
 
