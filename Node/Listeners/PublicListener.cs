@@ -77,6 +77,14 @@ public class PublicListener : ExecutableListenerBase
             return await WriteJson(response, contents.AsOpResult());
         }
 
+        if (path == "helloworld")
+        {
+            using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+            writer.Write("Hello world, epta");
+
+            return HttpStatusCode.OK;
+        }
+
 
         return HttpStatusCode.NotFound;
     }
