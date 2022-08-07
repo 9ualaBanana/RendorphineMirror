@@ -11,8 +11,10 @@ public class UserTaskInputInfo : ITaskInputInfo
         Path = path;
     }
 
-    public ValueTask<string> Download(ReceivedTask task, HttpClient httpClient, CancellationToken cancellationToken)
+    public ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
+        if (task.ExecuteLocally) return Path.AsVTask();
+
         throw new NotImplementedException();
     }
 
@@ -36,6 +38,12 @@ public class UserTaskOutputInfo : ITaskOutputInfo
 
     public ValueTask Upload(ReceivedTask task, string file)
     {
+        if (task.ExecuteLocally)
+        {
+            File.Move(file, Path.Combine(Directory, FileName), true);
+            return ValueTask.CompletedTask;
+        }
+
         throw new NotImplementedException();
     }
 }

@@ -10,9 +10,10 @@ public class TaskCreationInfo
     public JObject Input = default!;
     public JObject Output = default!;
     public JObject Data = default!;
+    public bool ExecuteLocally = false;
 
     public TaskCreationInfo() { }
-    public TaskCreationInfo(PluginType type, string? version, string action, JObject input, JObject output, JObject data)
+    public TaskCreationInfo(PluginType type, string? version, string action, JObject input, JObject output, JObject data, bool executeLocally)
     {
         Type = type;
         Version = version;
@@ -20,5 +21,6 @@ public class TaskCreationInfo
         Input = input;
         Output = output;
         Data = data;
+        ExecuteLocally = executeLocally;
     }
 }

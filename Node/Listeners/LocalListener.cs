@@ -30,15 +30,22 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
-        if (path == "execlocaltasksync")
+        if (path == "startlocaltask")
         {
             return await Test(request, response, "type", "data", "input", "output", async (type, data, input, output) =>
             {
-                var action = TaskList.TryGet(type);
-                if (action is null) return await WriteErr(response, "No such type exists");
+                // TODO: fill in TaskObject
+                var task = new ReceivedTask(
+                    ReceivedTask.GenerateLocal(),
+                    new TaskInfo(new("file.mov", 123),
+                    JObject.FromObject(new UserTaskInputInfo(input)),
+                    JObject.FromObject(new UserTaskOutputInfo(Path.GetDirectoryName(output)!, Path.GetFileName(output))),
+                    JObject.Parse(data)
+                ), true);
 
-                var result = await action.Execute("local_taskid", action, input, output, JObject.Parse(data)).ConfigureAwait(false);
-                return await WriteJToken(response, result).ConfigureAwait(false);
+                TaskHandler.HandleReceivedTask(task).Consume();
+
+                return await WriteJToken(response, task.Id).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
 
@@ -127,7 +134,17 @@ public class LocalListener : ExecutableListenerBase
         if (path == "starttask")
         {
             var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-            var taskid = await NodeTask.RegisterAsync(task).ConfigureAwait(false);
+
+            OperationResult<string> taskid;
+            if (task.ExecuteLocally)
+            {
+                taskid = ReceivedTask.GenerateLocal();
+
+                // TODO: fill in TaskObject
+                var tk = new ReceivedTask(taskid.Value, new TaskInfo(new("file.mov", 123), task.Input, task.Output, task.Data), true);
+                TaskHandler.HandleAsync(tk, new(), default).Consume();
+            }
+            else taskid = await NodeTask.RegisterAsync(task).ConfigureAwait(false);
 
             return await WriteJson(response, taskid).ConfigureAwait(false);
         }
@@ -136,7 +153,7 @@ public class LocalListener : ExecutableListenerBase
         {
             var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
 
-            var wt = new WatchingTask(task.Input.ToObject<IWatchingTaskSource>(LocalApi.JsonSerializerWithType)!, task.Action, task.Data, task.Output.ToObject<IWatchingTaskOutputInfo>(LocalApi.JsonSerializerWithType)!);
+            var wt = new WatchingTask(task.Input.ToObject<IWatchingTaskSource>(LocalApi.JsonSerializerWithType)!, task.Action, task.Data, task.Output.ToObject<IWatchingTaskOutputInfo>(LocalApi.JsonSerializerWithType)!, IsLocal);
             NodeSettings.WatchingTasks.Add(wt);
 
             return await WriteSuccess(response).ConfigureAwait(false);

@@ -11,13 +11,15 @@ public class WatchingTask
     public readonly string TaskAction;
     public readonly JObject TaskData;
     public readonly IWatchingTaskOutputInfo Output;
+    public readonly bool ExecuteLocally;
 
-    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output)
+    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output, bool executeLocally)
     {
         Source = source;
         TaskAction = taskaction;
         TaskData = taskData;
         Output = output;
+        ExecuteLocally = executeLocally;
     }
 
 
@@ -37,7 +39,8 @@ public class WatchingTask
                 action.Name,
                 JObject.FromObject(input.InputData, JsonSettings.LowercaseIgnoreNullS).WithProperty("type", input.InputData.Type.ToString()),
                 JObject.FromObject(output, JsonSettings.LowercaseIgnoreNullS).WithProperty("type", output.Type.ToString()),
-                JObject.FromObject(TaskData, JsonSettings.LowercaseIgnoreNullS)
+                JObject.FromObject(TaskData, JsonSettings.LowercaseIgnoreNullS),
+                ExecuteLocally
             );
 
             var register = await NodeTask.RegisterAsync(taskinfo).ConfigureAwait(false);
