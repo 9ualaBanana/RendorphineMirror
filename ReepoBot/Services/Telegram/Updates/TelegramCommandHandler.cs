@@ -189,7 +189,7 @@ public class TelegramCommandHandler
         {
             var subPlugins = pluginsTypes
                 .Where(type => type.StartsWith($"{plugin.Type.ToString().ToLowerInvariant()}_"))
-                .Select(type => new PluginToDeploy() { Type = Enum.Parse<PluginType>(type, true) });
+                .Select(type => new PluginToDeploy() { Type = Enum.Parse<PluginType>(type, true), Version = "placeholder" });
             if (subPlugins.Any())
                 plugin.SubPlugins = subPlugins;
         }

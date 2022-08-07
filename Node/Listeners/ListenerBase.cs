@@ -180,4 +180,20 @@ public abstract class ListenerBase
 
             return func(c1v, c2v);
         });
+    protected static Task<HttpStatusCode> Test(HttpListenerRequest request, HttpListenerResponse response, string c1, string c2, string c3, Func<string, string, string, Task<HttpStatusCode>> func) =>
+        Test(request, response, c1, c2, (c1v, c2v) =>
+        {
+            var c3v = request.QueryString[c3];
+            if (c3v is null) return WriteNoArgument(response, c3);
+
+            return func(c1v, c2v, c3v);
+        });
+    protected static Task<HttpStatusCode> Test(HttpListenerRequest request, HttpListenerResponse response, string c1, string c2, string c3, string c4, Func<string, string, string, string, Task<HttpStatusCode>> func) =>
+        Test(request, response, c1, c2, c3, (c1v, c2v, c3v) =>
+        {
+            var c4v = request.QueryString[c4];
+            if (c4v is null) return WriteNoArgument(response, c4);
+
+            return func(c1v, c2v, c3v, c4v);
+        });
 }
