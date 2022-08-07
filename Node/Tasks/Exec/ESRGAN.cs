@@ -12,7 +12,7 @@ public class EsrganTasks : ProcessTaskExecutor<UpscaleEsrganInfo>
 
     private EsrganTasks()
     {
-        UpscaleEsrgan = new(PluginType.FFmpeg, nameof(UpscaleEsrgan), FileFormat.Jpeg, Start);
+        UpscaleEsrgan = new(PluginType.Python_Esrgan, nameof(UpscaleEsrgan), FileFormat.Jpeg, Start);
     }
 
     public override IEnumerable<IPluginAction> GetTasks() => new IPluginAction[] { UpscaleEsrgan };
