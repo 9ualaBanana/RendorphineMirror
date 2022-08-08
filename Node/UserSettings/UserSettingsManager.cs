@@ -65,13 +65,17 @@ public class UserSettingsManager : IHeartbeatGenerator
         return _deserializeUserSettings(jToken);
     }
 
-    public async Task TrySetAsync(UserSettings userSettings, string? sessionId = null, CancellationToken cancellationToken = default)
+    /// <inheritdoc cref="SetAsync(UserSettings, string?, CancellationToken)"/>
+    public async Task TrySetAsync(UserSettings userSettings, string? sessionId = default, CancellationToken cancellationToken = default)
     {
         try { await SetAsync(userSettings, sessionId, cancellationToken); _logger.Debug("User settings were successfully set"); }
         catch (Exception ex) { _logger.Error(ex, "Couldn't set user settings"); }
     }
 
-    public async Task SetAsync(UserSettings userSettings, string? sessionId = null, CancellationToken cancellationToken = default)
+    /// <remarks>
+    /// When <paramref name="sessionId"/> is not specified, <see cref="Settings.SessionId"/> is used. 
+    /// </remarks>
+    public async Task SetAsync(UserSettings userSettings, string? sessionId = default, CancellationToken cancellationToken = default)
     {
         var httpContent = new MultipartFormDataContent()
         {

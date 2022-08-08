@@ -12,19 +12,19 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
         var userSettings = new UserSettings();
 
         var installSoftware = (JObject?)jObject.Property("installsoftware")?.Value;
-        if (installSoftware is not null)
-            ReadAll(installSoftware, userSettings.InstallSoftware);
+        ReadAll(installSoftware, userSettings.InstallSoftware);
 
-        var allNodeInstallSoftware = (JObject?)jObject.Property("nodeinstallsoftware")?.Value;
-        var nodeInstallSoftware = (JObject?)allNodeInstallSoftware?.Property(Settings.Guid!)?.Value;
-        if (nodeInstallSoftware is not null)
-            ReadAll(nodeInstallSoftware, userSettings.NodeInstallSoftware);
+        var nodeInstallSoftwareForAllNodes= (JObject?)jObject.Property("nodeinstallsoftware")?.Value;
+        var nodeInstallSoftware = (JObject?)nodeInstallSoftwareForAllNodes?.Property(Settings.Guid!)?.Value;
+        ReadAll(nodeInstallSoftware, userSettings.NodeInstallSoftware);
 
         return userSettings;
     }
 
-    static void ReadAll(JObject pluginsJObject, IList<PluginToDeploy> deserializedPlugins)
+    static void ReadAll(JObject? pluginsJObject, IList<PluginToDeploy> deserializedPlugins)
     {
+        if (pluginsJObject is null) return;
+
         var plugins = pluginsJObject.Properties();
         while (pluginsJObject.HasValues)
         {
@@ -36,81 +36,46 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
     public override void WriteJson(JsonWriter writer, UserSettings? value, JsonSerializer serializer)
     {
         writer.WriteStartObject();
-        if (value is not null) WriteValue(writer, value);
+
+            if (value is not null) WriteValue(writer, value, serializer);
+
         writer.WriteEndObject();
     }
 
-    static void WriteValue(JsonWriter writer, UserSettings value)
+    static void WriteValue(JsonWriter writer, UserSettings value, JsonSerializer serializer)
     {
         if (value.InstallSoftware.Any())
         {
-            writer.WritePropertyName("installsoftware");
-            writer.WriteStartObject();
-            WritePlugins(writer, value.InstallSoftware);
+            writer.WritePropertyName("installsoftware"); writer.WriteStartObject();
+
+                WritePlugins(writer, value.InstallSoftware, serializer);
+
             writer.WriteEndObject();
         }
+
         if (value.NodeInstallSoftware.Any())
         {
-            writer.WritePropertyName("nodeinstallsoftware");
-            writer.WriteStartObject();
-            writer.WritePropertyName(value.Guid);
-            writer.WriteStartObject();
-            WritePlugins(writer, value.NodeInstallSoftware);
-            writer.WriteEndObject();
+            writer.WritePropertyName("nodeinstallsoftware"); writer.WriteStartObject();
+
+                writer.WritePropertyName(value.Guid); writer.WriteStartObject();
+
+                    WritePlugins(writer, value.NodeInstallSoftware, serializer);
+
+                writer.WriteEndObject();
+
             writer.WriteEndObject();
         }
     }
 
-    static void WritePlugins(JsonWriter writer, IEnumerable<PluginToDeploy> plugins)
+    static void WritePlugins(JsonWriter writer, IEnumerable<PluginToDeploy> plugins, JsonSerializer serializer)
     {
         foreach (var plugin in plugins.GroupBy(plugin => plugin.Type))
         {
-            writer.WritePropertyName(plugin.Key.ToString());
-            writer.WriteStartObject();
-            foreach (var pluginVersion in plugin)
-                WritePlugin(writer, pluginVersion);
+            writer.WritePropertyName(plugin.Key.ToString()); writer.WriteStartObject();
+
+               foreach (var pluginVersion in plugin) serializer.Serialize(writer, pluginVersion);
+
             writer.WriteEndObject();
-        }
-    }
-
-    static void WritePlugin(JsonWriter writer, PluginToDeploy plugin)
-    {
-        writer.WritePropertyName(plugin.Version);
-        writer.WriteStartObject();
-        writer.WritePropertyName("plugins");
-        writer.WriteStartObject();
-        if (plugin.SubPlugins is not null)
-            WriteSubPlugins(writer, plugin.SubPlugins);
-        writer.WriteEndObject();
-        writer.WriteEndObject();
-    }
-
-    static void WriteSubPlugins(JsonWriter writer, IEnumerable<PluginToDeploy> subPlugins)
-    {
-        foreach (var subPlugin in subPlugins)
-            WriteSubPlugin(writer, subPlugin);
-    }
-
-    static void WriteSubPlugin(JsonWriter writer, PluginToDeploy subPlugin)
-    {
-        writer.WritePropertyName(subPlugin.Type.ToString());
-        writer.WriteStartObject();
-        writer.WritePropertyName("version");
-        writer.WriteValue(subPlugin.Version);
-        writer.WritePropertyName("subplugins");
-        writer.WriteStartObject();
-        if (subPlugin.SubPlugins is not null)
-            WriteSubSubPlugins(writer, subPlugin.SubPlugins);
-        writer.WriteEndObject();
-        writer.WriteEndObject();
-    }
-
-    static void WriteSubSubPlugins(JsonWriter writer, IEnumerable<PluginToDeploy> subSubPlugins)
-    {
-        foreach (var subSubPlugin in subSubPlugins)
-        {
-            writer.WritePropertyName(subSubPlugin.Type.ToString());
-            writer.WriteValue(subSubPlugin.Version);
         }
     }
 }
