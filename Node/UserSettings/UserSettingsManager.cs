@@ -25,16 +25,17 @@ public class UserSettingsManager : IHeartbeatGenerator
 
         _deploymentInProcess = true;
 
+        JToken? jToken = null;
         try
         {
-            var jToken = await Api.GetJsonFromResponseIfSuccessfulAsync(response);
+            jToken = await Api.GetJsonFromResponseIfSuccessfulAsync(response);
             var userSettings = _deserializeUserSettings(jToken);
 
             var pluginsDeployer = new PluginsDeployer(_httpClient, _cancellationToken);
             await PluginsManager.DeployUninstalledPluginsAsync(userSettings.NodeInstallSoftware, pluginsDeployer);
             await PluginsManager.DeployUninstalledPluginsAsync(userSettings.InstallSoftware, pluginsDeployer);
         }
-        catch (Exception ex) { _logger.Error(ex, "Error occured when trying to handle heartbeat response"); }
+        catch (Exception ex) { _logger.Error(ex, "Error occured when trying to handle heartbeat response:\n\nRequest:\n{Request}\nResponse:\n{Response}", response.RequestMessage, jToken); }
         _deploymentInProcess = false;
     };
     #endregion
