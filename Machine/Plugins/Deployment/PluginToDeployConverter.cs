@@ -5,9 +5,18 @@ namespace Machine.Plugins.Deployment;
 
 public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
 {
+    /// <remarks>
+    /// "[plugin_name]": { <br/>
+    ///     "[plugin_version]: { <br/>
+    ///         "plugins": {[optional_subplugins]} <br/>
+    ///     } <br/>
+    /// }
+    /// </remarks>
     public override PluginToDeploy? ReadJson(JsonReader reader, Type objectType, PluginToDeploy? existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
         var pluginProperty = JProperty.Load(reader);
+        // Always takes and deserializes first property (specific plugin version) while they are still left,
+        // because the property with that plugin version is removed by higher level deserializer after it's deserialized.
         var pluginVersionProperty = ((JObject)pluginProperty.Value).Properties().FirstOrDefault();
         if (pluginVersionProperty is null) return null;
 
@@ -15,54 +24,60 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
         {
             Type = Enum.Parse<PluginType>(pluginProperty.Name, true),
             Version = pluginVersionProperty.Name,
-            SubPlugins = ReadSubpluginsFrom(pluginVersionProperty)
+            SubPlugins = ReadSubpluginsFrom(((JObject)pluginVersionProperty.Value).Property("plugins")!.Value)
         };
     }
 
-    public static IEnumerable<PluginToDeploy>? ReadSubpluginsFrom(JProperty pluginVersion)
+    /// <remarks>
+    /// "plugins": { <br/>
+    ///     "[subplugin_name]": { <br/>
+    ///         "version": "[subplugin_version]", <br/>
+    ///         "subplugins": {[optional_subsubplugins]} <br/>
+    ///     } <br/>
+    /// }
+    /// </remarks>
+    public static IEnumerable<PluginToDeploy>? ReadSubpluginsFrom(JToken pluginVersion)
     {
-        var subPluginsInfo = new List<PluginToDeploy>();
-
-        var subPlugins = ((JObject)pluginVersion.Value).Property("plugins")!.Value;
-        foreach (var subPluginInfoProperty in ((JObject)subPlugins).Properties())
-        {
-            var subPluginInfoObject = (JObject)subPluginInfoProperty.Value;
-            var subPluginInfo = new PluginToDeploy()
+        return ((JObject)pluginVersion).Properties()
+            .Select(subPluginProperty => new PluginToDeploy()
             {
-                Type = Enum.Parse<PluginType>(subPluginInfoProperty.Name, true),
-                Version = (string)subPluginInfoObject.Property("version")!,
-                SubPlugins = ReadSubSubPluginsFrom(subPluginInfoObject.Property("subplugins")!)
-            };
-            subPluginsInfo.Add(subPluginInfo);
-        }
-
-        return subPluginsInfo;
+                Type = Enum.Parse<PluginType>(subPluginProperty.Name, true),
+                Version = (string) ((JObject)subPluginProperty.Value).Property("version")!,
+                SubPlugins = ReadSubSubPluginsFrom(((JObject)subPluginProperty.Value).Property("subplugins")!)
+            });
     }
 
-    static IEnumerable<PluginToDeploy>? ReadSubSubPluginsFrom(JProperty subSubPlugins)
+    /// <remarks>
+    /// "subplugins": { <br/>
+    ///     "[susubplugin_name]": "[subsubplugin_version]", <br/>
+    /// }
+    /// </remarks>
+    static IEnumerable<PluginToDeploy>? ReadSubSubPluginsFrom(JProperty subSubPluginsProperty)
     {
-        return ((JObject)subSubPlugins.Value).Properties().Select(ssp => new PluginToDeploy()
-        {
-            Type = Enum.Parse<PluginType>(ssp.Name, true),
-            Version = (string)ssp.Value!
-        });
+        return ((JObject)subSubPluginsProperty.Value).Properties()
+            .Select(subSubPlugin => new PluginToDeploy()
+            {
+                Type = Enum.Parse<PluginType>(subSubPlugin.Name, true),
+                Version = (string)subSubPlugin.Value!
+            });
     }
 
-    public override void WriteJson(JsonWriter writer, PluginToDeploy? value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, PluginToDeploy? plugin, JsonSerializer serializer)
     {
-        writer.WriteStartObject();
-        if (value is not null) WriteValue(writer, value);
-        writer.WriteEndObject();
+        if (plugin is not null) 
+            WriteValue(writer, plugin);
     }
 
-    static void WriteValue(JsonWriter writer, PluginToDeploy value)
+    static void WriteValue(JsonWriter writer, PluginToDeploy plugin)
     {
-        writer.WritePropertyName(value.Version);
-        writer.WriteStartObject();
-        writer.WritePropertyName("plugins");
-        writer.WriteStartObject();
-        if (value.SubPlugins is not null)
-            WriteSubplugins(writer, value.SubPlugins);
+        writer.WritePropertyName(plugin.Version); writer.WriteStartObject();
+
+            writer.WritePropertyName("plugins"); writer.WriteStartObject();
+
+                if (plugin.SubPlugins is not null) WriteSubplugins(writer, plugin.SubPlugins);
+
+            writer.WriteEndObject();
+
         writer.WriteEndObject();
     }
 
@@ -74,23 +89,27 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
 
     static void WriteSubplugin(JsonWriter writer, PluginToDeploy subPlugin)
     {
-        writer.WritePropertyName(subPlugin.Type.ToString());
-        writer.WriteStartObject();
-        writer.WritePropertyName("version");
-        writer.WriteValue(subPlugin.Version);
-        writer.WritePropertyName("subplugins");
-        writer.WriteStartObject();
-        if (subPlugin.SubPlugins is not null)
-            WriteSubSubPlugins(writer, subPlugin.SubPlugins);
+        writer.WritePropertyName(subPlugin.Type.ToString()); writer.WriteStartObject();
+
+            writer.WritePropertyName("version"); writer.WriteValue(subPlugin.Version);
+            writer.WritePropertyName("subplugins"); writer.WriteStartObject();
+
+                if (subPlugin.SubPlugins is not null) WriteSubSubPlugins(writer, subPlugin.SubPlugins);
+
+            writer.WriteEndObject();
+
         writer.WriteEndObject();
     }
 
     static void WriteSubSubPlugins(JsonWriter writer, IEnumerable<PluginToDeploy> subSubPlugins)
     {
         foreach (var subSubPlugin in subSubPlugins)
-        {
-            writer.WritePropertyName(subSubPlugin.Type.ToString());
-            writer.WriteValue(subSubPlugin.Version);
-        }
+            WriteSubSubPlugin(writer, subSubPlugin);
+    }
+
+    static void WriteSubSubPlugin(JsonWriter writer, PluginToDeploy subSubPlugin)
+    {
+        writer.WritePropertyName(subSubPlugin.Type.ToString());
+        writer.WriteValue(subSubPlugin.Version);
     }
 }
