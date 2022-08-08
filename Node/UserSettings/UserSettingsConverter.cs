@@ -71,7 +71,7 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
     {
         foreach (var plugin in plugins.GroupBy(plugin => plugin.Type))
         {
-            writer.WritePropertyName(plugin.Key.ToString()); writer.WriteStartObject();
+            writer.WritePropertyName(plugin.Key.ToString().ToLowerInvariant()); writer.WriteStartObject();
 
                foreach (var pluginVersion in plugin) serializer.Serialize(writer, pluginVersion);
 

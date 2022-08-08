@@ -174,37 +174,39 @@ public class TelegramCommandHandler
 
     void HandleDeploy(Update update, string sessionId)
     {
-        var pluginsTypes = update.Message!.Text!.UnquotedArguments().OrderBy(type => type);
+        var stringPluginTypes = update.Message!.Text!.UnquotedArguments().OrderBy(type => type);
         var nodeNames = update.Message.Text!.QuotedArguments();
 
-        List<PluginToDeploy> pluginsToDeploy = new();
-        foreach (var pluginType in pluginsTypes.Where(type => !type.Contains('_')))
-        {
-            pluginsToDeploy.Add(new() { Type = Enum.Parse<PluginType>(pluginType, true) });
-            _logger.LogDebug("{Plugin} plugin is added", pluginType);
-        }
+        var pluginTypes = stringPluginTypes
+            .Select(type => Enum.Parse<PluginType>(type, true));
 
+        var plugins = pluginTypes
+            .Where(type => type.IsPlugin())
+            .Select(type => new PluginToDeploy() { Type = type, Version = string.Empty })
+            .ToList();
 
-        foreach (var plugin in pluginsToDeploy)
+        foreach (var plugin in plugins)
         {
-            var subPlugins = pluginsTypes
-                .Where(type => type.StartsWith($"{plugin.Type.ToString().ToLowerInvariant()}_"))
-                .Select(type => new PluginToDeploy() { Type = Enum.Parse<PluginType>(type, true), Version = "placeholder" });
-            if (subPlugins.Any())
-                plugin.SubPlugins = subPlugins;
+            plugin.SubPlugins = pluginTypes
+                .Where(type => type.IsChildOf(plugin.Type))
+                .Select(type => new PluginToDeploy() { Type = type, Version = string.Empty });
+            foreach (var subPlugin in plugin.SubPlugins)
+            {
+                subPlugin.SubPlugins = pluginTypes
+                    .Where(type => type.IsChildOf(plugin.Type))
+                    .Select(type => new PluginToDeploy() { Type = type, Version = string.Empty });
+            }
         }
 
         var userSettingsManager = new UserSettingsManager(_httpClient);
         if (nodeNames.Any())
         {
-            foreach (var nodeName in nodeNames)
-            {
-                foreach (var node in _nodeSupervisor.GetNodesByName(nodeName))
-                    _ = userSettingsManager.TrySetAsync(new(node.Guid) { NodeInstallSoftware = pluginsToDeploy }, sessionId);
-            }
+            nodeNames
+                .SelectMany(_nodeSupervisor.GetNodesByName).ToList()
+                .ForEach(node => _ = userSettingsManager.TrySetAsync(new(node.Guid) { NodeInstallSoftware = plugins }, sessionId));
         }
         else
-            _ = userSettingsManager.TrySetAsync(new() { InstallSoftware = pluginsToDeploy }, sessionId);
+            _ = userSettingsManager.TrySetAsync(new() { InstallSoftware = plugins }, sessionId);
     }
 
     async Task HandleLoginAsync(Update update)

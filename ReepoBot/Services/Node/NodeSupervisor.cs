@@ -135,7 +135,7 @@ public class NodeSupervisor
 
     internal int TryRemoveNodesWithNames(params string[] nodeNames)
     {
-        var namesToRemove = nodeNames.Select(nodeName => nodeName.ToLower());
+        var namesToRemove = nodeNames.Select(nodeName => nodeName.ToLowerInvariant());
         var nodesOffline = NodesOffline;
         lock (_allNodesLock)
         {
@@ -144,5 +144,5 @@ public class NodeSupervisor
     }
 
     internal IEnumerable<MachineInfo> GetNodesByName(string nodeNameStart) =>
-        AllNodes.Where(node => node.NodeName.StartsWith(nodeNameStart));
+        AllNodes.Where(node => node.NodeName.ToLowerInvariant().StartsWith(nodeNameStart.ToLowerInvariant()));
 }

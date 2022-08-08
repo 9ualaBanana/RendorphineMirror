@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Machine.Plugins.Deployment;
 
@@ -74,7 +75,8 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
 
             writer.WritePropertyName("plugins"); writer.WriteStartObject();
 
-                if (plugin.SubPlugins is not null) WriteSubplugins(writer, plugin.SubPlugins);
+                if (ShouldBeWritten(plugin.SubPlugins))
+                    WriteSubplugins(writer, plugin.SubPlugins);
 
             writer.WriteEndObject();
 
@@ -94,7 +96,8 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
             writer.WritePropertyName("version"); writer.WriteValue(subPlugin.Version);
             writer.WritePropertyName("subplugins"); writer.WriteStartObject();
 
-                if (subPlugin.SubPlugins is not null) WriteSubSubPlugins(writer, subPlugin.SubPlugins);
+                if (ShouldBeWritten(subPlugin.SubPlugins))
+                    WriteSubSubPlugins(writer, subPlugin.SubPlugins);
 
             writer.WriteEndObject();
 
@@ -109,7 +112,10 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
 
     static void WriteSubSubPlugin(JsonWriter writer, PluginToDeploy subSubPlugin)
     {
-        writer.WritePropertyName(subSubPlugin.Type.ToString());
+        writer.WritePropertyName(subSubPlugin.Type.ToString().ToLowerInvariant());
         writer.WriteValue(subSubPlugin.Version);
     }
+
+    static bool ShouldBeWritten([NotNullWhen(true)] IEnumerable<PluginToDeploy>? childrenPlugins) =>
+        childrenPlugins is not null && childrenPlugins.Any();
 }
