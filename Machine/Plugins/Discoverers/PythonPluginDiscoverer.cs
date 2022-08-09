@@ -1,6 +1,6 @@
 ﻿namespace Machine.Plugins.Discoverers;
 
-public class PythonPluginDiscoverer : PluginDiscoverer
+public class PythonPluginDiscoverer : RegexPluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new List<string>
     {
@@ -9,9 +9,9 @@ public class PythonPluginDiscoverer : PluginDiscoverer
         $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\Programs\Python",
     };
 
-    protected override string ParentDirectoryPattern => "Python*";
+    protected override string ParentDirectoryRegex => @"Python\d*";
 
-    protected override string ExecutableName => "python.exe";
+    protected override string ExecutableRegex => @"^python(\.exe|[\d.]*)$";
 
     protected override Plugin GetDiscoveredPlugin(string executablePath) => new PythonPlugin(executablePath);
 }

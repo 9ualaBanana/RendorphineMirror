@@ -9,6 +9,7 @@ nupkg/
 .directory
 cache/
 assets/
+/plugins/
 
 # Rider
 .idea

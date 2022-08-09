@@ -1,4 +1,6 @@
-﻿namespace Machine.Plugins.Plugins;
+﻿using System.Diagnostics;
+
+namespace Machine.Plugins.Plugins;
 
 public abstract record Plugin
 {
@@ -13,4 +15,14 @@ public abstract record Plugin
     }
 
     protected virtual string DetermineVersion() => "Unknown";
+
+
+    protected string StartProcess(string args)
+    {
+        var proc = Process.Start(new ProcessStartInfo(Path, args) { RedirectStandardOutput = true })!;
+        proc.WaitForExit();
+
+        using var reader = proc.StandardOutput;
+        return reader.ReadToEnd();
+    }
 }

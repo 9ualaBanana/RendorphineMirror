@@ -21,10 +21,10 @@ public record MachineInfo
         catch (Exception) { return IPAddress.None; }
     }
     readonly public static string Port = PortForwarding.Port.ToString();
-    static IEnumerable<Plugin>? _installedPlugins;
-    public static async Task<IEnumerable<Plugin>> DiscoverInstalledPluginsInBackground() =>
+    static IReadOnlyCollection<Plugin>? _installedPlugins;
+    public static async Task<IReadOnlyCollection<Plugin>> DiscoverInstalledPluginsInBackground() =>
         _installedPlugins ??= await PluginsManager.DiscoverInstalledPluginsInBackground();
-    public static IEnumerable<Plugin> DiscoverInstalledPlugins() =>
+    public static IReadOnlyCollection<Plugin> DiscoverInstalledPlugins() =>
         _installedPlugins ??= PluginsManager.DiscoverInstalledPlugins();
     public static async Task<string> GetBriefInfoAsync() => $"{NodeName} {PCName} (v.{Version}) | {await GetPublicIPAsync()}:{Port}";
 

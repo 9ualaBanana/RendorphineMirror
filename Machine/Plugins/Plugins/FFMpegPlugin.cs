@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace Machine.Plugins.Plugins;
 
 internal record FFmpegPlugin : Plugin
@@ -10,16 +8,12 @@ internal record FFmpegPlugin : Plugin
 
     protected override string DetermineVersion()
     {
-        var proc = Process.Start(new ProcessStartInfo(Path, "-version") { RedirectStandardOutput = true })!;
-        proc.WaitForExit();
-
-        using var reader = proc.StandardOutput;
+        var data = StartProcess("-version").AsSpan();
 
         // ffmpeg version n5.0.1 Copyright (c) 2000-2022 the FFmpeg developers
-        var data = reader.ReadToEnd().AsSpan();
         data = data.Slice("ffmpeg version ".Length);
         data = data.Slice(0, data.IndexOf(' '));
 
-        return new string(data);
+        return new string(data.Trim());
     }
 }

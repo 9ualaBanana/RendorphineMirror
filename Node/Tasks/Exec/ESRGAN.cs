@@ -23,6 +23,8 @@ public class EsrganTasks : ProcessTaskExecutor<UpscaleEsrganInfo>
 
         var installfile = Path.GetTempFileName();
 
+        var pythonstart = @$"python test.py ""{task.Input}"" ""{task.Output}"" --tile_size 384";
+
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
         {
             var script = $@"
@@ -34,7 +36,7 @@ public class EsrganTasks : ProcessTaskExecutor<UpscaleEsrganInfo>
                     Invoke-Expression $line
                 }}
 
-                python test.py ""{task.Input}"" ""{task.Output}""
+                {pythonstart}
             ";
             File.WriteAllText(installfile, script);
         }
@@ -49,7 +51,7 @@ public class EsrganTasks : ProcessTaskExecutor<UpscaleEsrganInfo>
                 pip3 install -r ./installation/requirements.txt
                 sh ./installation/precommands.txt
 
-                python test.py ""{task.Input}"" ""{task.Output}""
+                {pythonstart}
             ";
             File.WriteAllText(installfile, script);
         }

@@ -10,10 +10,12 @@ internal record PythonPlugin : Plugin
 
     protected override string DetermineVersion()
     {
-        string version = string.Join(
-            null, Directory.GetParent(Path)!.Name.SkipWhile(c => !char.IsDigit(c))
-            );
-        return version.Contains('.') ? version : Format(version);
+        var data = StartProcess("--version").AsSpan();
+
+        // Python 3.10.6
+        data = data.Slice("Python ".Length);
+
+        return new string(data.Trim());
     }
 
     static string Format(string version) =>
