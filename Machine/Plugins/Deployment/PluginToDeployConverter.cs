@@ -91,7 +91,7 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
 
     static void WriteSubplugin(JsonWriter writer, PluginToDeploy subPlugin)
     {
-        writer.WritePropertyName(subPlugin.Type.ToString()); writer.WriteStartObject();
+        writer.WritePropertyName(subPlugin.Type.ToString().ToLowerInvariant()); writer.WriteStartObject();
 
             writer.WritePropertyName("version"); writer.WriteValue(subPlugin.Version);
             writer.WritePropertyName("subplugins"); writer.WriteStartObject();

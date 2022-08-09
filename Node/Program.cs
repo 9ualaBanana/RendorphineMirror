@@ -32,6 +32,16 @@ PluginsManager.RegisterPluginDiscoverers(
 );
 await MachineInfo.DiscoverInstalledPluginsInBackground();
 
+
+//var subplugin = new Machine.Plugins.Deployment.PluginToDeploy() { Type = PluginType.Python_Esrgan, Version = "version" };
+//var plugin = new Machine.Plugins.Deployment.PluginToDeploy() { Type = PluginType.Python, Version = "version", SubPlugins = new List<Machine.Plugins.Deployment.PluginToDeploy>() { subplugin } };
+//var userSettings = new UserSettings() { NodeInstallSoftware = new List<Machine.Plugins.Deployment.PluginToDeploy>() { plugin } };
+//await new UserSettingsManager(Api.Client).SetAsync(await new UserSettingsManager(Api.Client).FetchAsync());
+//await new UserSettingsManager(Api.Client).SetAsync(userSettings);
+//var response = await new UserSettingsManager(Api.Client).FetchAsync();
+//var userSettingsHeartbeat = new Heartbeat(new UserSettingsManager(Api.Client), TimeSpan.FromMinutes(20), Api.Client);
+//await userSettingsHeartbeat.StartAsync();
+
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
 
@@ -70,17 +80,17 @@ if (!Init.IsDebug || halfrelease)
         //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
     }
 
-    var userSettingsHeartbeat = new Heartbeat(new UserSettingsManager(Api.Client), TimeSpan.FromMinutes(1), Api.Client);
-    _ = userSettingsHeartbeat.StartAsync();
-
-    captured.Add(userSettingsHeartbeat);
-
     var mPlusTaskManagerHeartbeat = new Heartbeat(
         new HttpRequestMessage(HttpMethod.Post, $"{Api.TaskManagerEndpoint}/pheartbeat") { Content = await Profiler.RunAsync() },
         TimeSpan.FromMinutes(1), Api.Client);
     _ = mPlusTaskManagerHeartbeat.StartAsync();
 
     captured.Add(mPlusTaskManagerHeartbeat);
+
+    var userSettingsHeartbeat = new Heartbeat(new UserSettingsManager(Api.Client), TimeSpan.FromMinutes(1), Api.Client);
+    _ = userSettingsHeartbeat.StartAsync();
+
+    captured.Add(userSettingsHeartbeat);
 }
 
 var taskreceiver = new TaskReceiver(Api.Client);
