@@ -132,6 +132,8 @@ namespace NodeUI.Pages
                     OnClick = () =>
                     {
                         Settings.AuthInfo = null;
+                        Settings.NodeName = null!;
+
                         LocalApi.Send("reloadcfg").AsTask().Consume();
                         new LoginWindow().Show();
                         ((Window) VisualRoot!).Close();
