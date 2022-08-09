@@ -104,6 +104,7 @@ public abstract class ListenerBase
         var response = context.Response;
 
         var path = context.Request.Url.LocalPath.Substring((Prefix?.Length ?? 0) + 1);
+        if (path == "") return path;
         if (path[0] == '/') path = path[1..];
         if (path[^1] == '/') path = path[..^1];
 
