@@ -5,6 +5,8 @@ namespace Node.Tasks.Watching;
 
 public class WatchingTask
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     static readonly JsonSerializerSettings ConsoleJsonSerializer = new() { DefaultValueHandling = DefaultValueHandling.Ignore, Formatting = Formatting.None };
 
     public readonly IWatchingTaskSource Source;
@@ -29,7 +31,7 @@ public class WatchingTask
 
         Source.FileAdded += async input =>
         {
-            Log.Information($"A watching task found a new file: {Serialize(input.InputData)}");
+            _logger.Info("A watching task found a new file: {File}", Serialize(input.InputData));
 
             var output = Output.CreateOutput(input.FileName);
 
@@ -46,10 +48,11 @@ public class WatchingTask
             var register = await NodeTask.RegisterOrExecute(taskinfo).ConfigureAwait(false);
             var taskid = register.ThrowIfError();
 
-            Log.Information($"Task ID: {taskid}");
+            _logger.Info("Task ID: {Id}", taskid);
         };
 
-        Log.Information($"Watching task watcher was started; listening at {Serialize(Source)} for an action {TaskAction} with data {Serialize(TaskData)} and output to {Serialize(Output)}");
+        _logger.Info("Watching task watcher was started; listening at {Source} for an action {Action} with data {Data} and output to {Output}",
+            Serialize(Source), TaskAction, Serialize(TaskData), Serialize(Output));
         Source.StartListening();
     }
 

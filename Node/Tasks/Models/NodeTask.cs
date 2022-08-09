@@ -5,6 +5,8 @@ namespace Node.Tasks.Models;
 
 public static class NodeTask
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     public static async ValueTask<OperationResult<string>> RegisterOrExecute(TaskCreationInfo info)
     {
         OperationResult<string> taskid;
@@ -43,11 +45,11 @@ public static class NodeTask
             values.Add(("software", JsonConvert.SerializeObject(soft, JsonSettings.LowercaseIgnoreNull)));
         }
 
-        Log.Information($"Registering task: {JsonConvert.SerializeObject(info)}");
+        _logger.Info("Registering task: {Task}", JsonConvert.SerializeObject(info));
         var idr = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
         var id = idr.ThrowIfError();
 
-        Log.Information($"Task registered with ID {id}");
+        _logger.Info("Task registered with ID {Id}", id);
         NodeSettings.PlacedTasks.Add(new(id, info));
         return id;
     }

@@ -4,6 +4,8 @@ namespace Common;
 
 public static class Apis
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     const string TaskManagerEndpoint = Api.TaskManagerEndpoint;
 
     public static ValueTask<OperationResult<ImmutableDictionary<PluginType, SoftwareStats>>> GetSoftwareStatsAsync() =>
@@ -17,7 +19,7 @@ public static class Apis
 
     public static async ValueTask<OperationResult> ChangeStateAsync(this ReceivedTask task, TaskState state)
     {
-        Log.Information($"Changing task {task.Id} status to {state}");
+        _logger.Info("Changing task {TaskId} status to {TaskState}", task.Id, state);
         if (task.ExecuteLocally) return true;
 
         var result = await Api.ApiGet($"{Api.TaskManagerEndpoint}/mytaskstatechanged", "changing state",

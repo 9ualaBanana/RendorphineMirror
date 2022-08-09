@@ -4,6 +4,8 @@ namespace Common
 {
     public static class Extensions
     {
+        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
         public static string TrimLines(this string str) => string.Join(Environment.NewLine, str.Split('\n', StringSplitOptions.TrimEntries)).Trim();
         public static string TrimVerbatim(this string str)
         {
@@ -22,7 +24,7 @@ namespace Common
         {
             if (t.Exception is not null)
             {
-                Log.Error(t.Exception.Message);
+                _logger.Error(t.Exception.Message);
                 throw t.Exception;
             }
         }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);

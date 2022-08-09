@@ -5,12 +5,14 @@ namespace Node.Tasks.Exec;
 
 public record TaskExecuteData(string Input, string Output, string Id, IPluginAction Action, Plugin Plugin)
 {
-    public void LogInfo(string text) => Log.Information($"[Task {Id}] {text}");
-    public void LogErr(string text) => Log.Error($"[Task {Id}] {text}");
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
+    public void LogInfo(string text) => _logger.Info("[Task {Id}] {Text}", Id, text);
+    public void LogErr(string text) => _logger.Error("[Task {Id}] {Text}", Id, text);
     public void LogErr(Exception ex) => LogErr(ex.ToString());
 
-    public void LogExecInfo(string text) => Log.Information($"[TaskExec {Id}] {text}");
-    public void LogExecErr(string text) => Log.Error($"[TaskExec {Id}] {text}");
+    public void LogExecInfo(string text) => _logger.Info("[TaskExec {Id}] {Text}", Id, text);
+    public void LogExecErr(string text) => _logger.Error("[TaskExec {Id}] {Text}", Id, text);
 }
 
 public abstract class TaskExecutor<TBase> : ITaskExecutor

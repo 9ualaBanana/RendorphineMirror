@@ -8,6 +8,8 @@ namespace Node.Tasks.Executor;
 
 public class TaskReceiver : IDisposable
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     readonly HttpListener _httpListener = new();
     readonly HttpClient _httpClient;
     readonly CancellationToken _cancellationToken;
@@ -34,7 +36,7 @@ public class TaskReceiver : IDisposable
             var json = JObject.Parse(query["task"]!)!;
 
             var taskinfo = JsonConvert.DeserializeObject<TaskInfo>(query["task"]!)!;
-            Log.Information($"Received a new task: id: {taskid}; sign: {sign}; data {query["task"]}");
+            _logger.Info($"Received a new task: id: {{Id}}; sign: {{Sign}}; data {query["task"]}", taskid, sign);
 
             context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("{\"ok\":1}"));
             context.Response.Close();

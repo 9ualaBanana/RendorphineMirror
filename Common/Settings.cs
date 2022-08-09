@@ -21,6 +21,8 @@ namespace Common
     }
     public static class Settings
     {
+        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
         public static event Action? AnyChanged;
         public static IReadOnlyList<IDatabaseBindable> Bindables => _Bindables;
         static readonly List<IDatabaseBindable> _Bindables = new();
@@ -77,7 +79,7 @@ namespace Common
             }
             catch (SQLiteException ex)
             {
-                Log.Fatal(ex.ToString());
+                _logger.Fatal(ex.ToString());
                 throw;
             }
         }

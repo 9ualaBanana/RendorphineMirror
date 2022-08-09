@@ -5,27 +5,47 @@ namespace Machine.Plugins;
 
 public static class PluginsManager
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
+    readonly static HashSet<IPluginDiscoverer> _pluginsDiscoverers = new(_pluginsTypesCount);
+    readonly static int _pluginsTypesCount = typeof(PluginType).GetFields().Length - 1;
+
+    /// <remarks>
+    /// Lazily evaluated. Might contain outdated info.
+    /// Call <see cref="DiscoverInstalledPlugins"/> or <see cref="DiscoverInstalledPluginsInBackground"/> to update.
+    /// </remarks>
     public static HashSet<Plugin> InstalledPlugins
     {
         get => _installedPlugins ??= DiscoverInstalledPlugins();
         private set => _installedPlugins = value;
     }
     static HashSet<Plugin>? _installedPlugins;
-    readonly static HashSet<IPluginDiscoverer> _pluginsDiscoverers = new(_pluginsTypesCount);
-    readonly static int _pluginsTypesCount = typeof(PluginType).GetFields().Length - 1;
 
-    public static async Task DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, PluginsDeployer deployer)
+
+    #region Deployment
+    public static async Task TryDeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, PluginsDeployer deployer)
     {
         foreach (var plugin in LeaveOnlyUninstalled(plugins))
-        {
-            await deployer.DeployAsync(plugin.GetDeploymentInfo());
-            await DiscoverInstalledPluginsInBackground();
-        }
+            await TryDeployUninstalledPluginAsync(plugin, deployer);
     }
 
-    static IEnumerable<PluginToDeploy> LeaveOnlyUninstalled(IEnumerable<PluginToDeploy> plugins) =>
-        plugins.SelectMany(plugin => plugin.SelfAndSubPlugins)
-            .Where(plugin => !InstalledPlugins.Any(installedPlugin => plugin == installedPlugin));
+    public static async Task TryDeployUninstalledPluginAsync(PluginToDeploy plugin, PluginsDeployer deployer)
+    {
+        _logger.Info("Deploying new plugin: {PluginType}", plugin.Type);
+
+        try { await DeployUninstalledPluginAsync(plugin, deployer); }
+        catch (Exception ex) { _logger.Error(ex, "New plugin couldn't be deployed"); }
+    }
+
+    public static async Task DeployUninstalledPluginAsync(PluginToDeploy plugin, PluginsDeployer deployer)
+    {
+        await deployer.DeployAsync(plugin.GetDeploymentInfo());
+        _logger.Info("New plugin is deployed");
+        await DiscoverInstalledPluginsInBackground();
+        _logger.Info("List of installed plugins is updated");
+    }
+    #endregion
+
 
     #region Discovering
     public static async Task<HashSet<Plugin>> DiscoverInstalledPluginsInBackground() =>
@@ -39,4 +59,9 @@ public static class PluginsManager
     public static void RegisterPluginDiscoverers(params IPluginDiscoverer[] pluginDiscoverers) => _pluginsDiscoverers.UnionWith(pluginDiscoverers);
     public static void RegisterPluginDiscoverer(IPluginDiscoverer pluginDiscoverer) => _pluginsDiscoverers.Add(pluginDiscoverer);
     #endregion
+
+
+    static IEnumerable<PluginToDeploy> LeaveOnlyUninstalled(IEnumerable<PluginToDeploy> plugins) =>
+    plugins.SelectMany(plugin => plugin.SelfAndSubPlugins)
+        .Where(plugin => !InstalledPlugins.Any(installedPlugin => plugin == installedPlugin));
 }

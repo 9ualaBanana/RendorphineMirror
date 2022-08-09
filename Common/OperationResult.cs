@@ -94,6 +94,8 @@ namespace Common
 
     public static class OperationResultExtensions
     {
+        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
         public static OperationResult<T> AsOpResult<T>(this T value) => OperationResult.Succ(value);
         public static ref readonly OperationResult GetResult<T>(in this OperationResult<T> estring) => ref estring.EString;
         public static ValueTask<T> AsVTask<T>(this T value) => ValueTask.FromResult(value);
@@ -103,8 +105,8 @@ namespace Common
         {
             if (!opr)
             {
-                if (format is not null) Log.Error(string.Format(format, opr.AsString()));
-                else Log.Error(opr.AsString());
+                if (format is not null) _logger.Error(string.Format(format, opr.AsString()));
+                else _logger.Error(opr.AsString());
             }
 
             return opr;
