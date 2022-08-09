@@ -30,8 +30,8 @@ public class UserSettingsManager : IHeartbeatGenerator
             var userSettings = _deserializeUserSettings(jToken);
 
             var pluginsDeployer = new PluginsDeployer(_httpClient, _cancellationToken);
-            await PluginsManager.DeployUninstalledPluginsAsync(userSettings.NodeInstallSoftware, pluginsDeployer);
-            await PluginsManager.DeployUninstalledPluginsAsync(userSettings.InstallSoftware, pluginsDeployer);
+            await PluginsManager.TryDeployUninstalledPluginsAsync(userSettings.NodeInstallSoftware, pluginsDeployer);
+            await PluginsManager.TryDeployUninstalledPluginsAsync(userSettings.InstallSoftware, pluginsDeployer);
         }
         catch (Exception ex)
         {
