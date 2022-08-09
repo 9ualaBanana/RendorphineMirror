@@ -145,7 +145,7 @@ async Task InitializePlugins()
     );
 
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
-    Task.Run(() => Log.Information($"Found {plugins.Count} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {x.Path}"))}")).Consume();
+    Task.Run(() => Log.Information($"Found {plugins.Count} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {Path.GetFullPath(x.Path)}"))}")).Consume();
 }
 async ValueTask AuthWithGui()
 {
