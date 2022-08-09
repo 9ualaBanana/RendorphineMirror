@@ -1,6 +1,6 @@
 ﻿namespace Machine.Plugins.Discoverers;
 
-public class PythonPluginDiscoverer : RegexPluginDiscoverer
+public class PythonPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new List<string>
     {
