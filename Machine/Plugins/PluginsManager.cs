@@ -7,7 +7,7 @@ public static class PluginsManager
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-    readonly static HashSet<IPluginDiscoverer> _pluginsDiscoverers = new(_pluginsTypesCount);
+    readonly static HashSet<PluginDiscoverer> _pluginsDiscoverers = new(_pluginsTypesCount);
     readonly static int _pluginsTypesCount = typeof(PluginType).GetFields().Length - 1;
 
     /// <remarks>
@@ -56,8 +56,8 @@ public static class PluginsManager
         return InstalledPlugins = _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover()).ToHashSet();
     }
 
-    public static void RegisterPluginDiscoverers(params IPluginDiscoverer[] pluginDiscoverers) => _pluginsDiscoverers.UnionWith(pluginDiscoverers);
-    public static void RegisterPluginDiscoverer(IPluginDiscoverer pluginDiscoverer) => _pluginsDiscoverers.Add(pluginDiscoverer);
+    public static void RegisterPluginDiscoverers(params PluginDiscoverer[] pluginDiscoverers) => _pluginsDiscoverers.UnionWith(pluginDiscoverers);
+    public static void RegisterPluginDiscoverer(PluginDiscoverer pluginDiscoverer) => _pluginsDiscoverers.Add(pluginDiscoverer);
     #endregion
 
 

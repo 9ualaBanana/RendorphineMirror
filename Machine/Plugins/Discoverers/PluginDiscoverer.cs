@@ -2,7 +2,7 @@
 
 namespace Machine.Plugins.Discoverers;
 
-public abstract class PluginDiscoverer : IPluginDiscoverer
+public abstract class PluginDiscoverer
 {
     protected IEnumerable<string> InstallationPaths => _installationPaths ??=
         InstallationPathsImpl.Select(Path.TrimEndingDirectorySeparator);
