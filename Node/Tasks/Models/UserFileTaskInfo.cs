@@ -40,6 +40,7 @@ public class UserTaskOutputInfo : ITaskOutputInfo
     {
         if (task.ExecuteLocally)
         {
+            System.IO.Directory.CreateDirectory(Directory);
             File.Move(file, Path.Combine(Directory, FileName), true);
             return ValueTask.CompletedTask;
         }
