@@ -51,6 +51,7 @@ public class ProcessesingModeSwitch
         {
             var existingMinerProcesses = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(minerExecutable));
             if (existingMinerProcesses.Any()) continue;
+            if (!File.Exists(minerExecutable)) continue;
 
             using var process = new Process()
             {
