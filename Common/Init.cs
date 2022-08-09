@@ -48,30 +48,34 @@ namespace Common
             catch { }
 
 
-            AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
+            var fce = false;
+            AppDomain.CurrentDomain.FirstChanceException += (obj, e) =>
             {
-                try { Log.Error(ex.ExceptionObject?.ToString() ?? "null unhandled exception"); }
+                try
+                {
+                    if (fce) return;
+
+                    fce = true;
+                    LogException(e.Exception, "FirstChanceException", "fcexp");
+                }
+                finally { fce = false; }
+            };
+            AppDomain.CurrentDomain.UnhandledException += (_, e) => LogException(e.ExceptionObject as Exception, "UnhandledException", "unhexp");
+            TaskScheduler.UnobservedTaskException += (obj, e) => LogException(e.Exception, "UnobservedTaskException", "untexp");
+
+
+            static void LogException(Exception? ex, string type, string filename)
+            {
+                try { Log.Error($"[{type}]: {ex?.ToString() ?? "null unhandled exception"}"); }
                 catch { }
 
-                try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexp"), ex.ExceptionObject?.ToString()); }
+                try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexp"), ex?.ToString()); }
                 catch
                 {
-                    try { File.WriteAllText(Path.GetTempPath(), ex.ExceptionObject?.ToString()); }
+                    try { File.WriteAllText(Path.GetTempPath(), ex?.ToString()); }
                     catch { }
                 }
-            };
-            TaskScheduler.UnobservedTaskException += (obj, ex) =>
-            {
-                try { Log.Error(ex.Exception.ToString()); }
-                catch { }
-
-                try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexpt"), ex.Exception.ToString()); }
-                catch
-                {
-                    try { File.WriteAllText(Path.GetTempPath(), ex.Exception.ToString()); }
-                    catch { }
-                }
-            };
+            }
         }
 
         static string GetOSInfo()
