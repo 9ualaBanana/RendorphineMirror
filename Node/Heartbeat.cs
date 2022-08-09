@@ -71,7 +71,7 @@ internal class Heartbeat : IDisposable
     Timer ConfigureTimer(double interval)
     {
         var timer = new Timer(interval);
-        timer.Elapsed += (_, _) => _ = TrySendHeartbeatAsync();
+        timer.Elapsed += async (_, _) => await TrySendHeartbeatAsync();
         timer.AutoReset = true;
         return timer;
     }
