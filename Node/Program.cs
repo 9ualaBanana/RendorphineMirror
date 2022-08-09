@@ -10,6 +10,7 @@ global using Serilog;
 using System.Diagnostics;
 using Machine.Plugins;
 using Machine.Plugins.Discoverers;
+using Machine.Plugins.Plugins;
 using Node;
 using Node.Listeners;
 using Node.Profiling;
@@ -19,21 +20,11 @@ var halfrelease = args.Contains("release");
 Logging.Configure();
 Init.Initialize();
 
-_ = new ProcessesingModeSwitch().StartMonitoringAsync();
-
-PluginsManager.RegisterPluginDiscoverers(
-    new BlenderPluginDiscoverer(),
-    new Autodesk3dsMaxPluginDiscoverer(),
-    new TopazGigapixelAIPluginDiscoverer(),
-    new DaVinciResolvePluginDiscoverer(),
-    new FFmpegPluginDiscoverer(),
-    new PythonPluginDiscoverer(),
-    new PythonEsrganPluginDiscoverer()
-);
-await MachineInfo.DiscoverInstalledPluginsInBackground();
-
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
+
+_ = new ProcessesingModeSwitch().StartMonitoringAsync();
+await InitializePlugins();
 
 new LocalListener().Start();
 
@@ -141,6 +132,21 @@ if (NodeSettings.SavedTasks.Count != 0)
 Thread.Sleep(-1);
 
 
+async Task InitializePlugins()
+{
+    PluginsManager.RegisterPluginDiscoverers(
+        new BlenderPluginDiscoverer(),
+        new Autodesk3dsMaxPluginDiscoverer(),
+        new TopazGigapixelAIPluginDiscoverer(),
+        new DaVinciResolvePluginDiscoverer(),
+        new FFmpegPluginDiscoverer(),
+        new PythonPluginDiscoverer(),
+        new PythonEsrganPluginDiscoverer()
+    );
+
+    var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
+    Task.Run(() => Log.Information($"Found {plugins.Count} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {x.Path}"))}")).Consume();
+}
 async ValueTask AuthWithGui()
 {
     Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate");
