@@ -21,13 +21,17 @@ public abstract class RegexPluginDiscoverer : IPluginDiscoverer
 
     public IEnumerable<Plugin> Discover()
     {
-        return InstallationPaths
+        var directories = InstallationPaths
             .Where(Directory.Exists)
             .SelectMany(installationPath =>
                 Directory.EnumerateDirectories(installationPath)
                     .Where(dir => RegexParentDirectory.IsMatch(Path.GetDirectoryName(dir)!))
-            )
-            .Append("/bin")
+            );
+
+        if (Environment.OSVersion.Platform == PlatformID.Unix)
+            directories = directories.Append("/bin");
+
+        return directories
             .SelectMany(pluginDirectory =>
                 Directory.EnumerateFiles(pluginDirectory)
                     .Where(file => RegexExecutable.IsMatch(Path.GetFileName(file)))
