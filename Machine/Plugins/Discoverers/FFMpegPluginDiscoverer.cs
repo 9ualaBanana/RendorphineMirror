@@ -1,16 +1,12 @@
 ﻿namespace Machine.Plugins.Discoverers;
 
-public class FFmpegPluginDiscoverer : IPluginDiscoverer
+public class FFmpegPluginDiscoverer : PluginDiscoverer
 {
-    IEnumerable<string> InstallationPathsImpl => new string[]
+    protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {
         @"assets/",
-        @"/bin/",
     };
+    protected override string ExecutableName => "ffmpeg*";
 
-    public IEnumerable<Plugin> Discover() =>
-        InstallationPathsImpl
-        .Where(Directory.Exists)
-        .SelectMany(x => Directory.GetFiles(x, "ffmpeg*", SearchOption.TopDirectoryOnly))
-        .Select(x => new FFmpegPlugin(x));
+    protected override Plugin GetDiscoveredPlugin(string executablePath) => new FFmpegPlugin(executablePath);
 }
