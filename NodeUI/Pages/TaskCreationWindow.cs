@@ -197,7 +197,7 @@ namespace NodeUI.Pages
             public ChooseActionPart(TaskCreationInfo builder) : base(builder)
             {
                 var ac = UICache.GetTasksInfoAsync().GetAwaiter().GetResult();
-                ActionsList = CreateListBox(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Actions, action => new TextBlock() { Text = action.Name });
+                ActionsList = CreateListBox(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Actions.Where(x => x.Type == builder.Type).ToArray(), action => new TextBlock() { Text = action.Name });
                 ActionsList.SelectionChanged += (obj, e) =>
                     OnChoose?.Invoke(ActionsList.SelectedItems.Count != 0);
 
