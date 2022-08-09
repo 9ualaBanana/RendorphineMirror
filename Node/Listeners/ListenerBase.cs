@@ -7,6 +7,8 @@ namespace Node.Listeners;
 
 public abstract class ListenerBase
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     protected virtual string? Prefix => null;
     protected virtual bool IsLocal => true;
     protected virtual bool NeedsAuthentication => false;
@@ -21,7 +23,7 @@ public abstract class ListenerBase
         var prefix = $"http://{(IsLocal ? "127.0.0.1" : "+")}:{Port}/{Prefix}";
         if (!prefix.EndsWith("/")) prefix += "/";
 
-        Log.Information($"Starting HTTP listener on {prefix}");
+        _logger.Info("Starting HTTP listener on {Prefix}", prefix);
         Listener.Prefixes.Add(prefix);
         Listener.Start();
 
@@ -56,14 +58,14 @@ public abstract class ListenerBase
                     }
                     catch (Exception ex)
                     {
-                        Log.Error(ex.ToString());
+                        _logger.Error(ex.ToString());
                         await WriteErr(context.Response, ex.Message).ConfigureAwait(false);
 
                         context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                         context.Response.Close();
                     }
                 }
-                catch (Exception ex) { Log.Error(ex.ToString()); }
+                catch (Exception ex) { _logger.Error(ex.ToString()); }
             }
         })
         { IsBackground = true }.Start();
@@ -114,7 +116,7 @@ public abstract class ListenerBase
     protected static JsonSerializerSettings JsonSettingsWithTypes => LocalApi.JsonSettingsWithType;
     protected static JsonSerializer JsonSerializerWithTypes => LocalApi.JsonSerializerWithType;
 
-    protected static void LogRequest(HttpListenerRequest request) => Log.Verbose(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
+    protected static void LogRequest(HttpListenerRequest request) => _logger.Trace(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
     protected static JObject JsonFromOpResult(in OperationResult result)
     {
         var json = new JObject() { ["ok"] = new JValue(result.Success), };

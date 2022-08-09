@@ -1,5 +1,6 @@
 ﻿global using Common;
 global using Machine.Plugins.Plugins;
+global using NLog;
 using System.Net;
 using System.Net.Http.Json;
 using Machine.MessageBuilders;

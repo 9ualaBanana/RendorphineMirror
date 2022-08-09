@@ -5,6 +5,8 @@ namespace Common.NodeToUI;
 
 public static class LocalPipe
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     public static Task<Stream> SendLocalAsync(string prefix) => SendAsync(new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{Settings.LocalListenPort}/{prefix}"));
     public static Task<Stream> SendAsync(string uri) => SendAsync(new HttpRequestMessage(HttpMethod.Get, uri));
     public static async Task<Stream> SendAsync(HttpRequestMessage msg)
@@ -31,7 +33,7 @@ public static class LocalPipe
                 onReceive(tk);
             }
         }
-        catch (Exception ex) { Log.Error($"LocalPipe read stream died: {ex.Message}"); }
+        catch (Exception ex) { _logger.Error(ex, "LocalPipe read stream died"); }
     }
     public static JsonTextReader CreateReader(Stream stream) => new JsonTextReader(new StreamReader(stream)) { SupportMultipleContent = true };
 
@@ -59,7 +61,7 @@ public static class LocalPipe
             }
             catch (Exception ex)
             {
-                Log.Error($"LocalPipe write stream died: {ex.Message}");
+                _logger.Error(ex, "LocalPipe write stream died");
                 return false;
             }
         }

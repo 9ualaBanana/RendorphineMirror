@@ -2,32 +2,22 @@
 global using Common;
 global using Common.NodeToUI;
 global using Machine;
+global using NLog;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Executor;
 global using Node.Tasks.Models;
 global using Node.Tasks.Watching;
-global using Serilog;
 using System.Diagnostics;
 using Machine.Plugins;
 using Machine.Plugins.Discoverers;
-using Machine.Plugins.Plugins;
 using Node;
 using Node.Listeners;
 using Node.Profiling;
 using Node.UserSettings;
 
 var halfrelease = args.Contains("release");
-Logging.Configure();
 Init.Initialize();
-
-//var subplugin = new Machine.Plugins.Deployment.PluginToDeploy() { Type = PluginType.Python_Esrgan, Version = "version" };
-//var plugin = new Machine.Plugins.Deployment.PluginToDeploy() { Type = PluginType.Python, Version = "version", SubPlugins = new List<Machine.Plugins.Deployment.PluginToDeploy>() { subplugin } };
-//var userSettings = new UserSettings() { NodeInstallSoftware = new List<Machine.Plugins.Deployment.PluginToDeploy>() { plugin } };
-//await new UserSettingsManager(Api.Client).SetAsync(await new UserSettingsManager(Api.Client).FetchAsync());
-//await new UserSettingsManager(Api.Client).SetAsync(userSettings);
-//var response = await new UserSettingsManager(Api.Client).FetchAsync();
-//var userSettingsHeartbeat = new Heartbeat(new UserSettingsManager(Api.Client), TimeSpan.FromMinutes(20), Api.Client);
-//await userSettingsHeartbeat.StartAsync();
+var logger = LogManager.GetCurrentClassLogger();
 
 if (!Debugger.IsAttached)
     FileList.KillNodeUI();
@@ -41,12 +31,12 @@ if (Settings.SessionId is not null)
 {
     if (!Debugger.IsAttached)
         Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
-    Log.Information($"Already authenticated. Email: {Settings.Email}");
+    logger.Info("Already authenticated. Email: {Email}", Settings.Email);
 }
 else
 {
     await AuthWithGui().ConfigureAwait(false);
-    Log.Information($"Authentication completed");
+    logger.Info("Authentication completed");
 }
 
 if (!Init.IsDebug || halfrelease)
@@ -93,15 +83,15 @@ if (Init.IsDebug) new DebugListener().Start();
 PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
 {
     var ip = t.Result.ToString();
-    Log.Information($"Public IP: {ip}; Public port: {PortForwarding.Port}; Web server port: {PortForwarding.ServerPort}");
+    logger.Info("Public IP: {Ip}; Public port: {PublicPort}; Web server port: {ServerPort}", ip, PortForwarding.Port, PortForwarding.ServerPort);
 
     var ports = new[] { PortForwarding.Port, PortForwarding.ServerPort };
     foreach (var port in ports)
     {
         var open = await PortForwarding.IsPortOpenAndListening(ip, port).ConfigureAwait(false);
 
-        if (open) Log.Information($"Port {port} is open and listening");
-        else Log.Error($"Port {port} is either not open or not listening");
+        if (open) logger.Info("Port {Port} is open and listening", port);
+        else logger.Error("Port {Port} is either not open or not listening", port);
     }
 }).Consume();
 
@@ -116,7 +106,7 @@ PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
 
 if (NodeSettings.WatchingTasks.Count != 0)
 {
-    Log.Information($"Found {NodeSettings.WatchingTasks.Count} watching tasks, starting...");
+    logger.Info("Found {WatchingTasksCount} watching tasks, starting...", NodeSettings.WatchingTasks.Count);
 
     foreach (var task in NodeSettings.WatchingTasks)
         task.StartWatcher();
@@ -124,7 +114,7 @@ if (NodeSettings.WatchingTasks.Count != 0)
 
 if (NodeSettings.SavedTasks.Count != 0)
 {
-    Log.Information($"Found {NodeSettings.SavedTasks.Count} saved tasks, starting...");
+    logger.Info("Found {SavedTasksCount} saved tasks, starting...", NodeSettings.SavedTasks.Count);
 
     // .ToArray() to not cause exception while removing tasks
     foreach (var task in NodeSettings.SavedTasks.ToArray())
@@ -154,7 +144,7 @@ async Task InitializePlugins()
     );
 
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
-    Task.Run(() => Log.Information($"Found {plugins.Count} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {Path.GetFullPath(x.Path)}"))}")).Consume();
+    Task.Run(() => logger.Info($"Found {{Plugins}} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {Path.GetFullPath(x.Path)}"))}", plugins.Count)).Consume();
 }
 async ValueTask AuthWithGui()
 {

@@ -9,6 +9,8 @@ namespace Node.Listeners;
 
 public class PublicListener : ExecutableListenerBase
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     protected override bool IsLocal => false;
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
@@ -45,7 +47,7 @@ public class PublicListener : ExecutableListenerBase
                 var manager = TorrentClient.TryGet(ihash);
                 if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
 
-                Log.Information($"Stopping torrent {hash}");
+                _logger.Info("Stopping torrent {Hash}", hash);
                 await manager.StopAsync().ConfigureAwait(false);
                 await TorrentClient.Client.RemoveAsync(manager).ConfigureAwait(false);
 
@@ -125,7 +127,7 @@ public class PublicListener : ExecutableListenerBase
                 var torrent = await Torrent.LoadAsync(stream).ConfigureAwait(false);
                 var manager = await TorrentClient.AddOrGetTorrent(torrent, "torrenttest_" + torrent.InfoHash.ToHex()).ConfigureAwait(false);
 
-                Log.Debug(@$"Downloading torrent {torrent.InfoHash.ToHex()} from peer {peerurl}");
+                _logger.Debug(@$"Downloading torrent {torrent.InfoHash.ToHex()} from peer {peerurl}");
 
                 var peer = new Peer(BEncodedString.FromUrlEncodedString(peerid), new Uri("ipv4://" + peerurl));
                 await manager.AddPeerAsync(peer).ConfigureAwait(false);

@@ -4,7 +4,8 @@ namespace Node
 {
     public static class PortForwarder
     {
-        // empty method to trigger static ctor
+        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
         public static void Initialize() { }
         static PortForwarder()
         {
@@ -24,7 +25,7 @@ namespace Node
                     map(mappings, "renderphine-dht", Settings.BDhtPort);
                     map(mappings, "renderphine-trt", Settings.BTorrentPort);
                 }
-                catch (Exception ex) { Log.Error("[UPnP] Could not create mapping: " + ex.Message); }
+                catch (Exception ex) { _logger.Error(ex, "[UPnP] Could not create mapping: "); }
 
 
                 void map(Mapping[] mappings, string name, Bindable<ushort> portb)
@@ -33,12 +34,12 @@ namespace Node
                     var mapping = mappings.FirstOrDefault(x => x.Description == name);
                     if (mapping is not null)
                     {
-                        Log.Information($"[UPnP] Found already existing mapping: {mapping}");
+                        _logger.Info("[UPnP] Found already existing mapping: {Mapping}", mapping);
                         portb.Value = (ushort) mapping.PublicPort;
                     }
                     else
                     {
-                        Log.Information($"[UPnP] Could not find valid existing mapping");
+                        _logger.Info("[UPnP] Could not find valid existing mapping");
 
                         try
                         {
@@ -46,14 +47,14 @@ namespace Node
                             {
                                 if (mappings.Any(x => x.PublicPort == port)) continue;
 
-                                Log.Information($"[UPnP] Creating mapping {name} on port {port}");
+                                _logger.Info("[UPnP] Creating mapping {Name} on port {Port}", name, port);
                                 portb.Value = port;
                                 device.CreatePortMap(new Mapping(Protocol.Tcp, port, port, 0, name));
 
                                 break;
                             }
                         }
-                        catch (MappingException ex) { Log.Error(ex.Message); }
+                        catch (MappingException ex) { _logger.Error(ex.Message); }
                     }
                 }
             }

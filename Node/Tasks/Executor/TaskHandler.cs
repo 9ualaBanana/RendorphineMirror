@@ -5,6 +5,8 @@ namespace Node.Tasks.Executor;
 
 public static class TaskHandler
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     static TaskInputOutputType GetInputOutputType(JObject json)
     {
         var token = json.Property("type", StringComparison.OrdinalIgnoreCase)?.Value!;
@@ -36,7 +38,7 @@ public static class TaskHandler
             NodeSettings.SavedTasks.Add(task);
             await HandleAsync(task, httpClient, token).ConfigureAwait(false);
         }
-        catch (Exception ex) { Log.Error(ex.ToString()); }
+        catch (Exception ex) { _logger.Error(ex.ToString()); }
         finally
         {
             task.LogInfo($"Removing");
@@ -92,7 +94,7 @@ public static class TaskHandler
                     await httpClient.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken);
                     task.LogInfo($"Result uploaded");
                 }
-                catch (Exception ex) { Log.Error("Error sending result to reepo: " + ex); }
+                catch (Exception ex) { _logger.Error("Error sending result to reepo: " + ex); }
             }
         }
         catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)

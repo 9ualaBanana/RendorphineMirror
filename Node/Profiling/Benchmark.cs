@@ -4,6 +4,8 @@ namespace Node.Profiling;
 
 internal static class Benchmark
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     readonly static string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
     readonly static string _sampleVideoPath = Path.Combine(_assetsPath, "4k_sample.mp4");
     readonly static FileBackedVersion LatestExecutedVersion = new(_assetsPath);
@@ -65,7 +67,7 @@ internal static class Benchmark
             ram,
             disks,
         };
-        Log.Information("Benchmark completed: " + Newtonsoft.Json.JsonConvert.SerializeObject(output, Newtonsoft.Json.Formatting.None));
+        _logger.Info("Benchmark completed: {BenchmarkResults}", Newtonsoft.Json.JsonConvert.SerializeObject(output, Newtonsoft.Json.Formatting.None));
 
         return output;
     }

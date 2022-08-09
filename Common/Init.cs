@@ -1,12 +1,13 @@
 global using System.Collections.Immutable;
-global using Serilog;
+global using NLog;
 using System.Diagnostics;
-using Serilog.Events;
 
 namespace Common
 {
     public static class Init
     {
+        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
         public static readonly bool IsDebug = false;
         static readonly bool DebugFileExists = false;
         public static readonly string ConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "renderphine");
@@ -14,7 +15,6 @@ namespace Common
         public static readonly string TaskFilesDirectory = Path.Combine(ConfigDirectory, "tasks");
         public static readonly string Version = GetVersion();
 
-        // empty method to trigger static ctor
         public static void Initialize() { }
         static Init()
         {
@@ -29,22 +29,16 @@ namespace Common
 
             Directory.CreateDirectory(ConfigDirectory);
 
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console(restrictedToMinimumLevel: IsDebug ? LogEventLevel.Verbose : LogEventLevel.Information)
-                .WriteTo.File(
-                    Path.Combine(LogDirectory, "log" + Path.GetFileNameWithoutExtension(Environment.ProcessPath!)) + ".log",
-                    restrictedToMinimumLevel: IsDebug ? LogEventLevel.Verbose : LogEventLevel.Information,
-                    retainedFileTimeLimit: TimeSpan.FromDays(7),
-                    shared: true
-                )
-                .MinimumLevel.Is(IsDebug ? LogEventLevel.Verbose : LogEventLevel.Debug)
-                .CreateLogger();
+            Logging.Configure(IsDebug);
 
-            Log.Information($"{Path.GetFileName(Environment.ProcessPath)} {Version} on {GetOSInfo()} w UTC+{TimeZoneInfo.Local.BaseUtcOffset}");
-            Log.Information($"Debug: {IsDebug}");
-            Log.Verbose($"-DEBUG VERSION-");
+            _logger.Info("{ProcessPath} {Version} on {Os} with UTC+{UtcOffset}",
+                Path.GetFileName(Environment.ProcessPath), Version, GetOSInfo(), TimeZoneInfo.Local.BaseUtcOffset);
+            _logger.Info("Debug: {IsDebug}", IsDebug);
+            _logger.Trace($"-DEBUG VERSION-");
 
-            try { Log.Debug($"Current process: {Environment.ProcessId} {Process.GetCurrentProcess().ProcessName}"); }
+
+
+            try { _logger.Debug("Current process: {ProcessId} {ProcessName}", Environment.ProcessId, Process.GetCurrentProcess().ProcessName); }
             catch { }
 
             if (!IsDebug)
@@ -69,10 +63,10 @@ namespace Common
 
             static void LogException(Exception? ex, string type, string filename)
             {
-                try { Log.Error($"[{type}]: {ex?.ToString() ?? "null unhandled exception"}"); }
+                try { _logger.Error("[{Type}]: {Exception}", type, ex?.ToString() ?? "null unhandled exception"); }
                 catch { }
 
-                try { File.WriteAllText(Path.Combine(Init.ConfigDirectory, "unhexp"), ex?.ToString()); }
+                try { File.WriteAllText(Path.Combine(ConfigDirectory, "unhexp"), ex?.ToString()); }
                 catch
                 {
                     try { File.WriteAllText(Path.GetTempPath(), ex?.ToString()); }
@@ -113,7 +107,7 @@ namespace Common
             }
             catch (Exception ex)
             {
-                Log.Error($"Error getting version: {ex}");
+                _logger.Error("Error getting version: {Exception}", ex);
                 return "UNKNOWN";
             }
         }
