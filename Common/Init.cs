@@ -41,22 +41,6 @@ namespace Common
             try { _logger.Debug("Current process: {ProcessId} {ProcessName}", Environment.ProcessId, Process.GetCurrentProcess().ProcessName); }
             catch { }
 
-            if (!IsDebug)
-            {
-                var fce = false;
-                AppDomain.CurrentDomain.FirstChanceException += (obj, e) =>
-                {
-                    try
-                    {
-                        if (fce) return;
-
-                        fce = true;
-                        LogException(e.Exception, "FirstChanceException", "fcexp");
-                    }
-                    finally { fce = false; }
-                };
-            }
-
             AppDomain.CurrentDomain.UnhandledException += (_, e) => LogException(e.ExceptionObject as Exception, "UnhandledException", "unhexp");
             TaskScheduler.UnobservedTaskException += (obj, e) => LogException(e.Exception, "UnobservedTaskException", "untexp");
 

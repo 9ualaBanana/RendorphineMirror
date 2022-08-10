@@ -7,6 +7,8 @@ namespace NodeUI.Pages
 {
     public class MainWindow : Window
     {
+        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
         public MainWindow()
         {
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -75,7 +77,7 @@ namespace NodeUI.Pages
                         if (token.IsCancellationRequested) return;
 
                         var jtoken = JToken.Load(reader);
-                        Log.Debug($"Node state updated: {jtoken.ToString(Formatting.None)}");
+                        _logger.Debug($"Node state updated: {jtoken.ToString(Formatting.None)}");
 
                         using var tokenreader = jtoken.CreateReader();
                         LocalApi.JsonSerializerWithType.Populate(tokenreader, NodeGlobalState.Instance);
@@ -83,8 +85,8 @@ namespace NodeUI.Pages
                 }
                 catch (Exception ex)
                 {
-                    if (consecutive < 3) Log.Error($"Could not read node state: {ex.Message}, reconnecting...");
-                    else if (consecutive == 3) Log.Error($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
+                    if (consecutive < 3) _logger.Error($"Could not read node state: {ex.Message}, reconnecting...");
+                    else if (consecutive == 3) _logger.Error($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
 
                     consecutive++;
                 }

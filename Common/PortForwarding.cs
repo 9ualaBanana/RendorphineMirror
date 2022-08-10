@@ -43,18 +43,19 @@ namespace Common
             throw new Exception("Could not fetch extenal IP");
         }
 
-        public static async Task<bool> IsPortOpenAndListening(int port, CancellationToken token = default) =>
-            await IsPortOpenAndListening((await GetPublicIPAsync(token)).ToString(), port, token);
         public static async Task<bool> IsPortOpenAndListening(string host, int port, CancellationToken token = default)
         {
-            try
-            {
-                using var client = new TcpClient();
-                await client.ConnectAsync(host, port, token);
+            var task = new TaskCompletionSource<bool>(true);
 
-                return true;
-            }
-            catch { return false; }
+            var ar = new SocketAsyncEventArgs() { RemoteEndPoint = new IPEndPoint(IPAddress.Loopback, port) };
+            ar.Completed += (obj, e) =>
+            {
+                task.SetResult(e.SocketError == SocketError.Success);
+                ar.Dispose();
+            };
+            Socket.ConnectAsync(SocketType.Stream, ProtocolType.Tcp, ar);
+
+            return await task.Task;
         }
     }
 }

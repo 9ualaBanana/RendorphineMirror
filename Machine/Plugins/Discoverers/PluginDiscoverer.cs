@@ -9,16 +9,16 @@ public abstract class PluginDiscoverer
     IEnumerable<string>? _installationPaths;
     protected abstract IEnumerable<string> InstallationPathsImpl { get; }
 
-    protected virtual string ParentDirectoryPattern => "*";
+    protected virtual string? ParentDirectoryPattern => null;
     protected virtual string ExecutableName => "*";
-    protected virtual string ParentDirectoryRegex => ".*";
-    protected virtual string ExecutableRegex => ".*";
-    readonly Regex RegexParentDirectory, RegexExecutable;
+    protected virtual string? ParentDirectoryRegex => null;
+    protected virtual string? ExecutableRegex => null;
+    readonly Regex? RegexParentDirectory, RegexExecutable;
 
     public PluginDiscoverer()
     {
-        RegexParentDirectory = new Regex(ParentDirectoryRegex, RegexOptions.Compiled);
-        RegexExecutable = new Regex(ExecutableRegex, RegexOptions.Compiled);
+        RegexParentDirectory = ParentDirectoryRegex is null ? null : new Regex(ParentDirectoryRegex, RegexOptions.Compiled);
+        RegexExecutable = ExecutableRegex is null ? null : new Regex(ExecutableRegex, RegexOptions.Compiled);
     }
 
     public IEnumerable<Plugin> Discover()
@@ -26,12 +26,14 @@ public abstract class PluginDiscoverer
         var directories = InstallationPaths
             .Where(Directory.Exists)
             .SelectMany(installationPath =>
-                Directory.EnumerateDirectories(
+                ParentDirectoryPattern is null
+                ? new[] { installationPath }
+                : Directory.EnumerateDirectories(
                     installationPath,
                     ParentDirectoryPattern,
                     SearchOption.TopDirectoryOnly
                 )
-                .Where(dir => RegexParentDirectory.IsMatch(Path.GetFileName(dir)!))
+                .Where(dir => RegexParentDirectory?.IsMatch(Path.GetFileName(dir)!) ?? true)
             );
 
         if (Environment.OSVersion.Platform == PlatformID.Unix)
@@ -44,7 +46,7 @@ public abstract class PluginDiscoverer
                     ExecutableName,
                     SearchOption.TopDirectoryOnly
                 )
-                .Where(file => RegexExecutable.IsMatch(Path.GetFileName(file)))
+                .Where(file => RegexExecutable?.IsMatch(Path.GetFileName(file)) ?? true)
             )
             .Select(GetDiscoveredPlugin)
             // skip same versions unless it's unknown
