@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.Net;
 using System.Text;
 using Newtonsoft.Json;
@@ -7,11 +8,11 @@ namespace Node.Listeners;
 
 public abstract class ListenerBase
 {
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+    protected readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     protected virtual string? Prefix => null;
     protected virtual bool IsLocal => true;
-    protected virtual bool NeedsAuthentication => false;
+    protected virtual bool RequiresAuthentication => false;
     protected int Port => IsLocal ? Settings.LocalListenPort : PortForwarding.Port;
 
     readonly List<string> CachedAuthentications = new();
@@ -27,7 +28,7 @@ public abstract class ListenerBase
         Listener.Prefixes.Add(prefix);
         Listener.Start();
 
-        new Thread(async () =>
+        new Thread(() =>
         {
             while (true)
             {
@@ -36,13 +37,11 @@ public abstract class ListenerBase
                     var context = Listener.GetContext();
                     LogRequest(context.Request);
 
-                    try
+                    _ = Task.Run(async () =>
                     {
-
-                        if (!NeedsAuthentication) await Execute(context);
-                        else
+                        try
                         {
-                            Task.Run(async () =>
+                            if (RequiresAuthentication)
                             {
                                 var check = await CheckAuthentication(context).ConfigureAwait(false);
                                 if (!check)
@@ -51,19 +50,19 @@ public abstract class ListenerBase
                                     context.Response.Close();
                                     return;
                                 }
+                            }
 
-                                await Execute(context);
-                            }).Consume();
+                            await Execute(context);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error(ex.ToString());
-                        await WriteErr(context.Response, ex.Message).ConfigureAwait(false);
+                        catch (Exception ex)
+                        {
+                            _logger.Error(ex.ToString());
+                            await WriteErr(context.Response, ex.Message).ConfigureAwait(false);
 
-                        context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
-                        context.Response.Close();
-                    }
+                            context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
+                            context.Response.Close();
+                        }
+                    });
                 }
                 catch (Exception ex) { _logger.Error(ex.ToString()); }
             }
@@ -117,7 +116,7 @@ public abstract class ListenerBase
     protected static JsonSerializerSettings JsonSettingsWithTypes => LocalApi.JsonSettingsWithType;
     protected static JsonSerializer JsonSerializerWithTypes => LocalApi.JsonSerializerWithType;
 
-    protected static void LogRequest(HttpListenerRequest request) => _logger.Trace(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
+    protected void LogRequest(HttpListenerRequest request) => _logger.Trace(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
     protected static JObject JsonFromOpResult(in OperationResult result)
     {
         var json = new JObject() { ["ok"] = new JValue(result.Success), };
@@ -200,4 +199,24 @@ public abstract class ListenerBase
 
             return func(c1v, c2v, c3v, c4v);
         });
+
+
+    protected static OperationResult<string> ReadQueryValue(HttpListenerContext context, string key) => ReadQueryString(context.Request.QueryString, key);
+    protected static OperationResult<string> ReadQueryString(NameValueCollection query, string key)
+    {
+        var val = query[key];
+        if (val is null) return OperationResult.Err($"{key} was not provided");
+
+        return val;
+    }
+
+    protected static OperationResult<long> ReadQueryLong(NameValueCollection query, string key, long? def = null) =>
+        ReadQueryString(query, key)
+            .Next(str =>
+            {
+                if (!long.TryParse(str, out var value))
+                    return def?.AsOpResult() ?? OperationResult.Err($"{str} is not a valid long value");
+
+                return value.AsOpResult();
+            });
 }

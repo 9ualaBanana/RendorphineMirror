@@ -30,6 +30,25 @@ public class DebugListener : ExecutableListenerBase
             return await WriteSuccess(response);
         }
 
+        if (path == "getcfg")
+        {
+            var cfg = new JObject();
+            foreach (var setting in Settings.Bindables)
+                cfg[setting.Name] = setting.ToJson();
+
+            return await WriteJToken(response, cfg).ConfigureAwait(false);
+        }
+        if (path == "login")
+        {
+            return await Test(context.Request, response, "login", "password", async (login, password) =>
+            {
+                var auth = await SessionManager.AuthAsync(login, password);
+                if (!auth) return await WriteJson(response, auth);
+
+                return await WriteJson(response, Settings.SessionId!.AsOpResult());
+            });
+        }
+
         return await base.ExecuteGet(path, context);
     }
 }

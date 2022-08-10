@@ -9,8 +9,6 @@ namespace Node.Listeners;
 
 public class PublicListener : ExecutableListenerBase
 {
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
     protected override bool IsLocal => false;
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
@@ -19,7 +17,7 @@ public class PublicListener : ExecutableListenerBase
         var response = context.Response;
 
         if (path == "ping")
-            return await WriteText(response, $"ok from {MachineInfo.PCName} {MachineInfo.UserName} v{MachineInfo.Version}", HttpStatusCode.OK).ConfigureAwait(false);
+            return await WriteJToken(response, $"ok from {MachineInfo.PCName} {MachineInfo.UserName} v{MachineInfo.Version}").ConfigureAwait(false);
 
         if (path == "torrentinfo")
         {

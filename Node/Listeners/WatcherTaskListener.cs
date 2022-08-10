@@ -6,7 +6,7 @@ public record NodeFileInfo(string FileName, long Size);
 public class WatcherTaskListener : ListenerBase
 {
     protected override bool IsLocal => false;
-    protected override bool NeedsAuthentication => true;
+    protected override bool RequiresAuthentication => true;
     protected override string? Prefix => "watcher";
 
     protected override ValueTask Execute(HttpListenerContext context)

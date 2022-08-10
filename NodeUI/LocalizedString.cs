@@ -5,6 +5,7 @@ namespace NodeUI
 {
     public readonly struct LocalizedString
     {
+        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
         public static readonly IReadOnlyWeakEventManager ChangeLangWeakEvent = new WeakEventManager();
 
         static ImmutableDictionary<string, ImmutableDictionary<string, string>> Translations = null!;
@@ -27,7 +28,7 @@ namespace NodeUI
             Key = key;
 
             if (Debugger.IsAttached && key.Contains('.', StringComparison.Ordinal) && ToString() == key)
-                Log.Error($"Translation '{key}' does not exists in {Locale}");
+                _logger.Error($"Translation '{key}' does not exists in {Locale}");
         }
 
         public static implicit operator LocalizedString(string value) => new(value);
@@ -40,7 +41,7 @@ namespace NodeUI
         {
             if (!Translations.ContainsKey(culture))
             {
-                Log.Error("Tried to set non-existing translation " + culture);
+                _logger.Error("Tried to set non-existing translation " + culture);
                 return;
             }
 
@@ -96,7 +97,7 @@ namespace NodeUI
                 if (values.Count == maxcount) continue;
 
                 var nonExisting = keys.Except(values.Select(x => x.Key));
-                Log.Error("Translations not found: " + key + " " + string.Join(", ", nonExisting));
+                _logger.Error("Translations not found: " + key + " " + string.Join(", ", nonExisting));
             }
         }
 
@@ -109,7 +110,7 @@ namespace NodeUI
             }
             catch (CultureNotFoundException ex)
             {
-                Log.Error(ex.ToString());
+                _logger.Error(ex.ToString());
                 return null;
             }
 
