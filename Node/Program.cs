@@ -78,6 +78,7 @@ taskreceiver.StartAsync().Consume();
 
 new PublicListener().Start();
 new NodeStateListener().Start();
+new DirectoryDiffListener().Start();
 if (Init.IsDebug) new DebugListener().Start();
 
 PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
