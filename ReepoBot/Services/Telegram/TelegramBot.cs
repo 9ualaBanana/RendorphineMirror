@@ -1,4 +1,5 @@
 ﻿using ReepoBot.Models;
+using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -114,4 +115,8 @@ public static class TelegramHelperExtensions
             .Replace(")", @"\)")
             .Replace("=", @"\=");
     }
+
+    public static StringBuilder AppendHeader(this StringBuilder builder, string header) =>
+        builder.AppendLine(header)
+               .AppendLine(HorizontalDelimeter);
 }
