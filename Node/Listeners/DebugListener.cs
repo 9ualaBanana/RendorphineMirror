@@ -40,13 +40,20 @@ public class DebugListener : ExecutableListenerBase
         }
         if (path == "login")
         {
-            return await Test(context.Request, response, "login", "password", async (login, password) =>
-            {
-                var auth = await SessionManager.AuthAsync(login, password);
-                if (!auth) return await WriteJson(response, auth);
+            var loginr = ReadQueryString(context.Request.QueryString, "login");
+            if (!loginr) return await WriteJson(response, loginr);
+            var login = loginr.Value;
 
-                return await WriteJson(response, Settings.SessionId!.AsOpResult());
-            });
+            var passwordr = ReadQueryString(context.Request.QueryString, "password");
+            var password = null as string;
+            if (passwordr) password = passwordr.Value;
+
+            var auth = password is null
+                ? await SessionManager.AutoAuthAsync(login)
+                : await SessionManager.AuthAsync(login, password);
+            if (!auth) return await WriteJson(response, auth);
+
+            return await WriteJson(response, Settings.SessionId!.AsOpResult());
         }
 
         return await base.ExecuteGet(path, context);
