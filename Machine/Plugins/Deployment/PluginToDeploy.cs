@@ -27,13 +27,12 @@ public class PluginToDeploy : IEquatable<PluginToDeploy>, IEquatable<Plugin>
 
 
     #region EqualityContract
+    public static bool operator !=(PluginToDeploy this_, Plugin? other) => !this_.Equals(other);
+    public static bool operator ==(PluginToDeploy this_, Plugin? other) => this_.Equals(other);
+
     public override bool Equals(object? obj) => Equals(obj as PluginToDeploy);
     public bool Equals(PluginToDeploy? other) => Type == other?.Type/* && Version == other?.Version*/;
     public bool Equals(Plugin? other) => Type == other?.Type/* && Version == other?.Version*/;
-    public override int GetHashCode() => Type.GetHashCode() ^ Version.GetHashCode();
-
-
-    public static bool operator !=(PluginToDeploy this_, Plugin? other) => !this_.Equals(other);
-    public static bool operator ==(PluginToDeploy this_, Plugin? other) => this_.Equals(other);
+    public override int GetHashCode() => Type.GetHashCode()/* ^ Version.GetHashCode()*/;
     #endregion
 }
