@@ -13,7 +13,7 @@ public class LocalWatchingTaskSource : IWatchingTaskSource
 
     public LocalWatchingTaskSource(string directory) => Directory = directory;
 
-    public void StartListening()
+    public void StartListening(WatchingTask task)
     {
         Watcher?.Dispose();
 

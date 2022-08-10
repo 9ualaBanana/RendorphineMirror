@@ -3,17 +3,7 @@ using Machine.Plugins.Plugins;
 
 namespace Node.Tasks.Exec;
 
-public record TaskExecuteData(string Input, string Output, string Id, IPluginAction Action, Plugin Plugin)
-{
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
-    public void LogInfo(string text) => _logger.Info("[Task {Id}] {Text}", Id, text);
-    public void LogErr(string text) => _logger.Error("[Task {Id}] {Text}", Id, text);
-    public void LogErr(Exception ex) => LogErr(ex.ToString());
-
-    public void LogExecInfo(string text) => _logger.Info("[TaskExec {Id}] {Text}", Id, text);
-    public void LogExecErr(string text) => _logger.Error("[TaskExec {Id}] {Text}", Id, text);
-}
+public record TaskExecuteData(string Input, string Output, string Id, IPluginAction Action, Plugin Plugin) : IHasTaskId;
 
 public abstract class TaskExecutor<TBase> : ITaskExecutor
 {

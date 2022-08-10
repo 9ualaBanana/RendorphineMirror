@@ -21,10 +21,10 @@ public class DirectoryDiffListener : ExecutableListenerBase
         if (!values) return await WriteJson(response, values);
 
         var (dir, lastcheck) = values.Value;
-        if (!Directory.Exists(dir)) return await WriteErr(response, "Directory does not exists  ");
+        if (!Directory.Exists(dir)) return await WriteErr(response, "Directory does not exists");
 
         var files = Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories)
-            .Select(file => (new DateTimeOffset(File.GetCreationTimeUtc(file)).ToUnixTimeMilliseconds(), Path.GetRelativePath(dir, file)))
+            .Select(file => (new DateTimeOffset(File.GetCreationTimeUtc(file)).ToUnixTimeMilliseconds(), file))
             .Where(v => v.Item1 > lastcheck)
             .ToArray();
 
@@ -32,5 +32,5 @@ public class DirectoryDiffListener : ExecutableListenerBase
         return await WriteJson(response, new DiffOutput(maxtime, files.Select(x => x.Item2).ToImmutableArray()).AsOpResult());
     }
 
-    readonly record struct DiffOutput(long ModifTime, ImmutableArray<string> Files);
+    public readonly record struct DiffOutput(long ModifTime, ImmutableArray<string> Files);
 }

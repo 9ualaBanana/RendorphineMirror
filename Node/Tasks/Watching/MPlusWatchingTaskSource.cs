@@ -5,7 +5,7 @@ public class MPlusWatchingTaskSource : IWatchingTaskSource
 {
     public event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
 
-    public void StartListening()
+    public void StartListening(WatchingTask task)
     {
         throw new NotImplementedException();
     }
