@@ -21,9 +21,11 @@ public class UserSettingsManager : IHeartbeatGenerator
     bool _deploymentInProcess = false;
     public EventHandler<HttpResponseMessage> ResponseHandler => async (_, response) =>
     {
+        _logger.Debug("Plugins deployment callback is called");
         if (_deploymentInProcess) return;
 
         _deploymentInProcess = true;
+        _logger.Debug("Deployment is now in process");
         try
         {
             var jToken = await Api.GetJsonFromResponseIfSuccessfulAsync(response);

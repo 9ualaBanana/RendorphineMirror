@@ -25,6 +25,8 @@ public static class PluginsManager
     #region Deployment
     public static async Task TryDeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, PluginsDeployer deployer)
     {
+        _logger.Debug("Trying to deploy new plugins");
+
         foreach (var plugin in LeaveOnlyUninstalled(plugins))
             await TryDeployUninstalledPluginAsync(plugin, deployer);
     }
