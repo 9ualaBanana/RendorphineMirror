@@ -25,26 +25,22 @@ public static class PluginsManager
     #region Deployment
     public static async Task TryDeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, PluginsDeployer deployer)
     {
-        _logger.Debug("Trying to deploy new plugins");
-
         foreach (var plugin in LeaveOnlyUninstalled(plugins))
             await TryDeployUninstalledPluginAsync(plugin, deployer);
     }
 
     public static async Task TryDeployUninstalledPluginAsync(PluginToDeploy plugin, PluginsDeployer deployer)
     {
-        _logger.Info("Deploying new plugin: {PluginType}", plugin.Type);
+        _logger.Info("Deploying {PluginType} plugin", plugin.Type);
 
-        try { await DeployUninstalledPluginAsync(plugin, deployer); }
-        catch (Exception ex) { _logger.Error(ex, "New plugin couldn't be deployed"); }
+        try { await DeployUninstalledPluginAsync(plugin, deployer); _logger.Info("{PluginType} plugin is deployed", plugin.Type); }
+        catch (Exception ex) { _logger.Error(ex, "{PluginType} plugin couldn't be deployed", plugin.Type); }
     }
 
     public static async Task DeployUninstalledPluginAsync(PluginToDeploy plugin, PluginsDeployer deployer)
     {
         await deployer.DeployAsync(plugin.GetDeploymentInfo());
-        _logger.Info("New plugin is deployed");
         await DiscoverInstalledPluginsInBackground();
-        _logger.Info("List of installed plugins is updated");
     }
     #endregion
 
@@ -55,7 +51,9 @@ public static class PluginsManager
 
     public static HashSet<Plugin> DiscoverInstalledPlugins()
     {
-        return InstalledPlugins = _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover()).ToHashSet();
+        InstalledPlugins = _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover()).ToHashSet();
+        _logger.Info("List of installed plugins is updated");
+        return InstalledPlugins;
     }
 
     public static void RegisterPluginDiscoverers(params PluginDiscoverer[] pluginDiscoverers) => _pluginsDiscoverers.UnionWith(pluginDiscoverers);

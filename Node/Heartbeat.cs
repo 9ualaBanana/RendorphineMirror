@@ -17,12 +17,12 @@ internal class Heartbeat : IDisposable
         add
         {
             _responseReceived += value;
-            _logger.Debug("Response handler is attached to {Service} for {Url}", nameof(Heartbeat), _request.RequestUri);
+            _logger.Trace("Response handler is attached to {Service} for {Url}", nameof(Heartbeat), _request.RequestUri);
         }
         remove
         {
             _responseReceived -= value;
-            _logger.Debug("Response handler is detached from {Service} for {Url}", nameof(Heartbeat), _request.RequestUri);
+            _logger.Trace("Response handler is detached from {Service} for {Url}", nameof(Heartbeat), _request.RequestUri);
         }
     }
 

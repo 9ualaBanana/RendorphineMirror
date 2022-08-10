@@ -1,16 +1,11 @@
-﻿using Machine.Plugins;
-using Machine.Plugins.Deployment;
+﻿using Machine.Plugins.Deployment;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Node.UserSettings;
 
 public class UserSettingsManager : IHeartbeatGenerator
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
-    readonly static Func<JToken, UserSettings> _deserializeUserSettings = jToken =>
-        ((JObject)jToken).Property("settings")!.Value.ToObject<UserSettings>()!;
 
     readonly HttpClient _httpClient;
     readonly CancellationToken _cancellationToken;
@@ -21,26 +16,26 @@ public class UserSettingsManager : IHeartbeatGenerator
     bool _deploymentInProcess = false;
     public EventHandler<HttpResponseMessage> ResponseHandler => async (_, response) =>
     {
-        _logger.Debug("Plugins deployment callback is called");
+        _logger.Trace("{Service}'s plugins deployment callback is called", nameof(UserSettingsManager));
+
         if (_deploymentInProcess) return;
 
         _deploymentInProcess = true;
-        _logger.Debug("Deployment is now in process");
-        try
-        {
-            var jToken = await Api.GetJsonFromResponseIfSuccessfulAsync(response);
-            var userSettings = _deserializeUserSettings(jToken);
-
-            var pluginsDeployer = new PluginsDeployer(_httpClient, _cancellationToken);
-            await PluginsManager.TryDeployUninstalledPluginsAsync(userSettings.NodeInstallSoftware, pluginsDeployer);
-            await PluginsManager.TryDeployUninstalledPluginsAsync(userSettings.InstallSoftware, pluginsDeployer);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error occured when trying to handle heartbeat response caused by the following request:\n\n{Request}", response.RequestMessage);
-        }
+        await TryDeployUninstalledPluginsAsync(response);
         _deploymentInProcess = false;
     };
+
+    async Task TryDeployUninstalledPluginsAsync(HttpResponseMessage response)
+    {
+        try { await DeployUninstalledPluginsAsync(response); }
+        catch (Exception ex) { _logger.Error(ex, "{Service} was unable to deploy uninstalled plugins", nameof(UserSettingsManager)); }
+    }
+
+    async Task DeployUninstalledPluginsAsync(HttpResponseMessage response)
+    {
+        var userSettings = await UserSettings.ReadOrThrowAsync(response);
+        await userSettings.TryDeployUninstalledPluginsAsync(new PluginsDeployer(_httpClient, _cancellationToken));
+    }
     #endregion
 
 
@@ -64,8 +59,7 @@ public class UserSettingsManager : IHeartbeatGenerator
     public async Task<UserSettings> FetchAsync(CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.GetAsync(Request.RequestUri, cancellationToken);
-        var jToken = await Api.GetJsonFromResponseIfSuccessfulAsync(response);
-        return _deserializeUserSettings(jToken);
+        return await UserSettings.ReadOrThrowAsync(response);
     }
 
     /// <inheritdoc cref="SetAsync(UserSettings, string?, CancellationToken)"/>
