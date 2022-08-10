@@ -4,6 +4,7 @@ using ReepoBot.Services.Tasks;
 using ReepoBot.Services.Telegram;
 using ReepoBot.Services.Telegram.Authentication;
 using ReepoBot.Services.Telegram.Updates;
+using ReepoBot.Services.Telegram.Updates.Commands;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,7 @@ builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpClient();
 builder.Services.AddSwaggerGen();
-builder.Services.AddTelegramUpdateHandlers();
+builder.Services.AddTelegramUpdateHandlers().AddTelegramBotCommands();
 
 Task<TelegramBot> botInitialization = TelegramBot.Initialize(
     builder.Configuration["BotToken"], builder.Configuration["Host"]);

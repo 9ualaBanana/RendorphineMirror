@@ -6,7 +6,7 @@ using Telegram.Bot.Types;
 
 namespace ReepoBot.Services.Telegram.Updates.Commands;
 
-public class PingListCommand : Command
+public class PingListCommand : AuthenticatedCommand
 {
     readonly ILogger _logger;
     readonly NodeSupervisor _nodeSupervisor;
@@ -20,13 +20,11 @@ public class PingListCommand : Command
 
     public override string Value => "pinglist";
 
-    public override bool RequiresAuthentication => true;
-
-    protected override async Task HandleAsyncCore(Update update)
+    protected override async Task HandleAsync(Update update, TelegramAuthenticationToken _)
     {
         _logger.LogDebug("Listing all nodes...");
         var message = ListNodesOrderedByName();
-        _ = Bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
+        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
     }
 
     string ListNodesOrderedByName()
