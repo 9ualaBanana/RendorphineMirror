@@ -11,7 +11,7 @@ public class TelegramChatIdAuthentication
     readonly TelegramBot _bot;
     readonly HttpClient _httpClient;
 
-    readonly Dictionary<ChatId, string> _authenticatedUsers = new();
+    readonly Dictionary<ChatId, TelegramAuthenticationToken> _authenticatedUsers = new();
 
     public TelegramChatIdAuthentication(ILogger<TelegramChatIdAuthentication> logger, TelegramBot bot, IHttpClientFactory httpClientFactory)
     {
@@ -20,16 +20,12 @@ public class TelegramChatIdAuthentication
         _httpClient = httpClientFactory.CreateClient();
     }
 
-    internal void Required(Action<string> action, ChatId id)
-    {
-        if (IsAuthenticated(id)) action(_authenticatedUsers[id]);
-        else { _ = _bot.TrySendMessageAsync(id, "Authentication required.", _logger); }
-    }
+    internal TelegramAuthenticationToken? GetTokenFor(ChatId id) => IsAuthenticated(id) ? _authenticatedUsers[id] : null;
 
     internal async Task AuthenticateAsync(Message message)
     {
         if (IsAuthenticated(message.Chat.Id))
-        { _ = _bot.TrySendMessageAsync(message.Chat.Id, "You are already authenticated.", _logger); return; }
+        { await _bot.TrySendMessageAsync(message.Chat.Id, "You are already authenticated.", _logger); return; }
 
         await TryAuthenticateAsyncFrom(message);
     }
@@ -51,7 +47,7 @@ public class TelegramChatIdAuthentication
     {
         try
         {
-            var sessionId = await AuthenticateAsync(credentials); _authenticatedUsers.Add(credentials.Id, sessionId);
+            var sessionId = await AuthenticateAsync(credentials); _authenticatedUsers.Add(credentials.Id, new(sessionId));
             _logger.LogDebug("User is authenticated:\nLogin: {Login}\nPassword: {Password}", credentials.Login, credentials.Password);
             return true;
         }
