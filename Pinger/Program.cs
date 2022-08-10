@@ -2,8 +2,11 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Common;
+using NLog;
 
 ConsoleHide.Hide();
+Init.Initialize();
+var _logger = LogManager.GetCurrentClassLogger();
 
 var nodeexe = GetPath(args, 0, "Node");
 var updaterexe = GetPath(args, 1, "Updater");
@@ -25,7 +28,7 @@ static string GetPath(string[] args, int index, string info)
     return Path.GetFullPath(path);
 }
 
-static void Log(string text) => Serilog.Log.Information(text);
+void Log(string text) => _logger.Info(text);
 
 static string GetCurrentTimeStr() => DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
 void AppendStartSession() => AppendSession("+" + GetCurrentTimeStr());
