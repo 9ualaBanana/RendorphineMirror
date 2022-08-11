@@ -47,7 +47,7 @@ public class UserSettings
 
     void LogPlugins()
     {
-        _logger.Trace($"{nameof(InstallSoftware)}: {string.Join(", ", InstallSoftware)}");
-        _logger.Trace($"{nameof(NodeInstallSoftware)}: {string.Join(", ", NodeInstallSoftware)}");
+        _logger.Trace("{PluginsList}: {Plugins}", nameof(NodeInstallSoftware), string.Join(", ", NodeInstallSoftware.SelectMany(plugin => plugin.SelfAndSubPlugins).Select(plugin => plugin.Type)));
+        _logger.Trace("{PluginsList}: {Plugins}", nameof(InstallSoftware), string.Join(", ", InstallSoftware.SelectMany(plugin => plugin.SelfAndSubPlugins).Select(plugin => plugin.Type)));
     }
 }
