@@ -33,7 +33,7 @@ public class UserSettings
         try
         {
             var userSettings = await ReadOrThrowAsyncCore(response);
-            _logger.Trace("User settings are successfully read from {Response}", nameof(HttpResponseMessage));
+            _logger.Trace("User settings are successfully read from {Response}", nameof(HttpResponseMessage)); userSettings.LogPlugins();
             return userSettings;
         }
         catch (Exception ex) { _logger.Error(ex, "User settings couldn't be read from {Response}", nameof(HttpResponseMessage)); throw; }
@@ -43,5 +43,11 @@ public class UserSettings
     {
         var jToken = await Api.GetJsonFromResponseIfSuccessfulAsync(response);
         return ((JObject)jToken).Property("settings")!.Value.ToObject<UserSettings>()!;
+    }
+
+    void LogPlugins()
+    {
+        _logger.Trace($"{nameof(InstallSoftware)}: {string.Join(", ", InstallSoftware)}");
+        _logger.Trace($"{nameof(NodeInstallSoftware)}: {string.Join(", ", NodeInstallSoftware)}");
     }
 }
