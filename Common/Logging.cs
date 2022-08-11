@@ -33,7 +33,7 @@ internal static class Logging
         LogManager.GlobalThreshold = isDebug ? LogLevel.Trace : LogLevel.Debug;
         LogManager.Setup().SetupLogFactory(config => config.SetTimeSourcAccurateUtc());
         LogManager.Setup().LoadConfiguration(rule => rule.ForLogger()
-                .FilterMinLevel(isDebug ? LogLevel.Trace : LogLevel.Debug)
+                .FilterMinLevel(LogLevel.Trace)
                 .WriteTo(_file));
         LogManager.Setup().LoadConfiguration(rule => rule.ForLogger()
                 .FilterMinLevel(isDebug ? LogLevel.Trace : LogLevel.Info)
