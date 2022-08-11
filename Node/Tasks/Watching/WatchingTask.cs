@@ -3,25 +3,25 @@ using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Watching;
 
-public class WatchingTask
+public class WatchingTask : IHasTaskId
 {
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
     static readonly JsonSerializerSettings ConsoleJsonSerializer = new() { DefaultValueHandling = DefaultValueHandling.Ignore, Formatting = Formatting.None };
 
+    public string Id { get; }
     public readonly IWatchingTaskSource Source;
     public readonly string TaskAction;
     public readonly JObject TaskData;
     public readonly IWatchingTaskOutputInfo Output;
     public readonly bool ExecuteLocally;
 
-    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output, bool executeLocally)
+    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output, bool executeLocally, string? id = null)
     {
         Source = source;
         TaskAction = taskaction;
         TaskData = taskData;
         Output = output;
         ExecuteLocally = executeLocally;
+        Id = id ?? Guid.NewGuid().ToString();
     }
 
 
@@ -31,7 +31,7 @@ public class WatchingTask
 
         Source.FileAdded += async input =>
         {
-            _logger.Info("A watching task found a new file: {File}", Serialize(input.InputData));
+            this.LogInfo($"New file found: {Serialize(input.InputData)}");
 
             var output = Output.CreateOutput(input.FileName);
 
@@ -48,12 +48,11 @@ public class WatchingTask
             var register = await NodeTask.RegisterOrExecute(taskinfo).ConfigureAwait(false);
             var taskid = register.ThrowIfError();
 
-            _logger.Info("Task ID: {Id}", taskid);
+            this.LogInfo($"Created task ID: {taskid}");
         };
 
-        _logger.Info("Watching task watcher was started; listening at {Source} for an action {Action} with data {Data} and output to {Output}",
-            Serialize(Source), TaskAction, Serialize(TaskData), Serialize(Output));
-        Source.StartListening();
+        this.LogInfo($"Watcher started; Listening at {Serialize(Source)} for an action {TaskAction} with data {Serialize(TaskData)} and output to {Serialize(Output)}");
+        Source.StartListening(this);
     }
 
     static string Serialize<T>(T obj) => obj?.GetType().Name + " " + JsonConvert.SerializeObject(obj, ConsoleJsonSerializer);

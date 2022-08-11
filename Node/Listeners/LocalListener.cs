@@ -99,13 +99,14 @@ public class LocalListener : ExecutableListenerBase
             }.ToImmutableArray();
             var watchinginputs = new[]
             {
-                serializeinout<MPlusWatchingTaskSource>(TaskInputOutputType.MPlus),
-                serializeinout<LocalWatchingTaskSource>(TaskInputOutputType.User),
+                serializeval<MPlusWatchingTaskSource>("MPlus"),
+                serializeval<LocalWatchingTaskSource>("User"),
+                serializeval<OtherUserWatchingTaskSource>("Other Node"),
             }.ToImmutableArray();
             var watchingoutputs = new[]
             {
-                serializeinout<MPlusWatchingTaskOutputInfo>(TaskInputOutputType.MPlus),
-                serializeinout<LocalWatchingTaskOutputInfo>(TaskInputOutputType.User),
+                serializeval<MPlusWatchingTaskOutputInfo>("MPlus"),
+                serializeval<LocalWatchingTaskOutputInfo>("User"),
             }.ToImmutableArray();
 
             var output = new TasksFullDescriber(actions, inputs, outputs, watchinginputs, watchingoutputs);
@@ -113,7 +114,8 @@ public class LocalListener : ExecutableListenerBase
 
 
             static TaskActionDescriber serialize(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
-            static TaskInputOutputDescriber serializeinout<T>(TaskInputOutputType type) => new TaskInputOutputDescriber(type.ToString(), (ObjectDescriber) FieldDescriber.Create(typeof(T)));
+            static TaskInputOutputDescriber serializeinout<T>(TaskInputOutputType type) => serializeval<T>(type.ToString());
+            static TaskInputOutputDescriber serializeval<T>(string name) => new TaskInputOutputDescriber(name, (ObjectDescriber) FieldDescriber.Create(typeof(T)));
         }
 
         return HttpStatusCode.NotFound;

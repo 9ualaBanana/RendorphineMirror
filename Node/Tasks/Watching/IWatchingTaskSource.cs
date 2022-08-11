@@ -4,5 +4,5 @@ public interface IWatchingTaskSource : IDisposable
 {
     event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
 
-    void StartListening();
+    void StartListening(WatchingTask task);
 }

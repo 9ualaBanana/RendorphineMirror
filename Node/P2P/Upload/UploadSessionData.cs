@@ -2,32 +2,33 @@
 
 public abstract class UploadSessionData
 {
-    public FileInfo File;
-    public string TaskId;
+    public readonly string Endpoint;
+    public readonly FileInfo File;
 
-    protected UploadSessionData(string filePath, string taskId)
-        : this(new FileInfo(filePath), taskId)
+    protected UploadSessionData(string url, string filePath)
+        : this(url, new FileInfo(filePath))
     {
     }
 
-    protected UploadSessionData(FileInfo file, string taskId)
+    protected UploadSessionData(string url, FileInfo file)
     {
+        if (url.EndsWith('/')) url = url[..^1];
+
+        Endpoint = url + "/initupload";
         File = file;
-        TaskId = taskId;
     }
 
     public abstract HttpContent HttpContent { get; }
-    public abstract string Endpoint { get; }
 }
 
 public class UserUploadSessionData : UploadSessionData
 {
-    internal UserUploadSessionData(string filePath, string taskId)
-    : this(new FileInfo(filePath), taskId)
+    internal UserUploadSessionData(string url, string filePath)
+    : this(url, new FileInfo(filePath))
     {
     }
 
-    public UserUploadSessionData(FileInfo file, string taskId) : base(file, taskId)
+    public UserUploadSessionData(string url, FileInfo file) : base(url, file)
     {
     }
 
@@ -39,18 +40,20 @@ public class UserUploadSessionData : UploadSessionData
             ["size"] = File.Length.ToString(),
             ["extension"] = File.Extension
         });
-    public override string Endpoint => $"https://d7e4-213-87-159-225.eu.ngrok.io/initupload";
 }
 
 public class MPlusUploadSessionData : UploadSessionData
 {
+    public readonly string TaskId;
+
     internal MPlusUploadSessionData(string filePath, string taskId)
         : this(new FileInfo(filePath), taskId)
     {
     }
 
-    public MPlusUploadSessionData(FileInfo file, string taskId) : base(file, taskId)
+    public MPlusUploadSessionData(FileInfo file, string taskId) : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
     {
+        TaskId = taskId;
     }
 
     public override FormUrlEncodedContent HttpContent => new(
@@ -63,5 +66,4 @@ public class MPlusUploadSessionData : UploadSessionData
             ["lastmodified"] = File.LastWriteTimeUtc.ToBinary().ToString(),
             ["origin"] = string.Empty
         });
-    public override string Endpoint => $"{Api.TaskManagerEndpoint}/initmptaskoutput";
 }

@@ -185,7 +185,7 @@ namespace Common
                 Reload();
                 Changed += value =>
                 {
-                    Save(name, value);
+                    Settings.Save(name, value);
                     AnyChanged?.Invoke();
                 };
 
@@ -193,6 +193,7 @@ namespace Common
             }
 
             public void Reload() => SetRange(Load(Name, Array.Empty<T>()));
+            public void Save() => Settings.Save(Name, base.Value);
 
             public JToken ToJson() => JToken.FromObject(Value, LocalApi.JsonSerializerWithType);
             public void SetFromJson(string json) => SetRange(JsonConvert.DeserializeObject<T[]>(json, LocalApi.JsonSettingsWithType) ?? Array.Empty<T>());
