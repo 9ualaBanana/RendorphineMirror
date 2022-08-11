@@ -9,7 +9,7 @@ public abstract class PluginDiscoverer
     IEnumerable<string>? _installationPaths;
     protected abstract IEnumerable<string> InstallationPathsImpl { get; }
 
-    protected virtual string? ParentDirectoryPattern => null;
+    protected virtual string ParentDirectoryPattern => "*";
     protected virtual string ExecutableName => "*";
     protected virtual string? ParentDirectoryRegex => null;
     protected virtual string? ExecutableRegex => null;
@@ -26,13 +26,12 @@ public abstract class PluginDiscoverer
         var directories = InstallationPaths
             .Where(Directory.Exists)
             .SelectMany(installationPath =>
-                ParentDirectoryPattern is null
-                ? new[] { installationPath }
-                : Directory.EnumerateDirectories(
+                Directory.EnumerateDirectories(
                     installationPath,
                     ParentDirectoryPattern,
                     SearchOption.TopDirectoryOnly
                 )
+                .Append(installationPath)
                 .Where(dir => RegexParentDirectory?.IsMatch(Path.GetFileName(dir)!) ?? true)
             );
 
