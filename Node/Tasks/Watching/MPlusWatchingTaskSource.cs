@@ -43,6 +43,7 @@ public class MPlusWatchingTaskSource : IWatchingTaskSource
                     foreach (var item in items)
                     {
                         var input = new MPlusTaskInputInfo(item.Iid);
+                        task.LogInfo($"New file found: {item.Iid} {Path.ChangeExtension(item.Files.Jpeg.FileName, null)}");
                         FileAdded?.Invoke(new(item.Files.Jpeg.FileName, input));
 
                         // placed here so if any of the items cause an exception, it would retry from the failed file
