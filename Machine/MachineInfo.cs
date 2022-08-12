@@ -1,5 +1,4 @@
 ﻿global using Common;
-global using Machine.Plugins.Plugins;
 global using NLog;
 using System.Net;
 using System.Net.Http.Json;
@@ -25,8 +24,6 @@ public record MachineInfo
     static IReadOnlyCollection<Plugin>? _installedPlugins;
     public static async Task<IReadOnlyCollection<Plugin>> DiscoverInstalledPluginsInBackground() =>
         _installedPlugins ??= await PluginsManager.DiscoverInstalledPluginsInBackground();
-    public static IReadOnlyCollection<Plugin> DiscoverInstalledPlugins() =>
-        _installedPlugins ??= PluginsManager.DiscoverInstalledPlugins();
     public static async Task<string> GetBriefInfoAsync() => $"{NodeName} {PCName} (v.{Version}) | {await GetPublicIPAsync()}:{Port}";
 
     public static async Task<string> ToTelegramMessageAsync(bool verbose = false)

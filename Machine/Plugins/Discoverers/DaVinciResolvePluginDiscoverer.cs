@@ -10,6 +10,5 @@ public class DaVinciResolvePluginDiscoverer : PluginDiscoverer
     };
     protected override string ParentDirectoryPattern => "DaVinci Resolve";
     protected override string ExecutableName => "Resolve.exe";
-
-    protected override Plugin GetDiscoveredPlugin(string executablePath) => new DaVinciResolvePlugin(executablePath);
+    protected override PluginType PluginType => PluginType.DaVinciResolve;
 }

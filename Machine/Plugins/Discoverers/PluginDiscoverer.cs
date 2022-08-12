@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Machine.Plugins.Discoverers;
 
@@ -8,6 +9,7 @@ public abstract class PluginDiscoverer
         InstallationPathsImpl.Select(Path.TrimEndingDirectorySeparator);
     IEnumerable<string>? _installationPaths;
     protected abstract IEnumerable<string> InstallationPathsImpl { get; }
+    protected abstract PluginType PluginType { get; }
 
     protected virtual string ParentDirectoryPattern => "*";
     protected virtual string ExecutableName => "*";
@@ -52,5 +54,16 @@ public abstract class PluginDiscoverer
             .DistinctBy(plugin => plugin.Version == "Unknown" ? Guid.NewGuid().ToString() : plugin.Version);
     }
 
-    protected abstract Plugin GetDiscoveredPlugin(string executablePath);
+    Plugin GetDiscoveredPlugin(string executablePath) => new Plugin(PluginType, DetermineVersion(executablePath), executablePath);
+    protected virtual string DetermineVersion(string exepath) => "Unknown";
+
+
+    protected static string StartProcess(string path, string args)
+    {
+        var proc = Process.Start(new ProcessStartInfo(path, args) { RedirectStandardOutput = true })!;
+        proc.WaitForExit();
+
+        using var reader = proc.StandardOutput;
+        return reader.ReadToEnd();
+    }
 }
