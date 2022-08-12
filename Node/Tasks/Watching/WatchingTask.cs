@@ -51,7 +51,7 @@ public class WatchingTask : IHasTaskId
             this.LogInfo($"Created task ID: {taskid}");
         };
 
-        this.LogInfo($"Watcher started; Listening at {Serialize(Source)} for an action {TaskAction} with data {Serialize(TaskData)} and output to {Serialize(Output)}");
+        this.LogInfo($"Watcher started; Data: {JsonConvert.SerializeObject(this, Init.IsDebug ? LocalApi.JsonSettingsWithType : new JsonSerializerSettings())}");
         Source.StartListening(this);
     }
 

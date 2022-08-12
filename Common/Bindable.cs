@@ -6,20 +6,27 @@ namespace Common
 {
     public delegate void ChangedDelegate<T>(T oldv, T newv);
 
-    public interface IBindable { }
+    public interface IBindable
+    {
+        object Value { get; }
+
+        void LoadFromJson(JToken token, JsonSerializer? serializer);
+    }
     public interface IReadOnlyBindable<T> : IBindable
     {
         public event ChangedDelegate<T> Changed;
-        T Value { get; }
+        new T Value { get; }
 
         void SubscribeChanged(ChangedDelegate<T> action, bool invokeImmediately = false);
         IReadOnlyBindable<T> GetBoundCopy();
     }
+    [JsonObject, JsonConverter(typeof(CollectionBindableJsonConverter))]
     public class Bindable<T> : IReadOnlyBindable<T>
     {
         public event ChangedDelegate<T> Changed = delegate { };
         List<WeakReference<Bindable<T>>>? Bounds;
 
+        object IBindable.Value => Value!;
         protected T _Value;
         public virtual T Value
         {
@@ -33,6 +40,7 @@ namespace Common
                     Changed(oldvalue, value);
             }
         }
+
 
         public Bindable(T defaultValue = default!)
         {
@@ -71,6 +79,7 @@ namespace Common
             if (!EqualityComparer<T>.Default.Equals(Value, value))
                 Value = value;
         }
+        public void LoadFromJson(JToken token, JsonSerializer? serializer) => Value = token.ToObject<T>(serializer ?? JsonSettings.Default)!;
 
         public void Bound(Bindable<T> bindable)
         {
@@ -117,17 +126,15 @@ namespace Common
         }
     }
 
-    public interface ICollectionBindable
+    public interface ICollectionBindable : IBindable
     {
-        public System.Collections.IEnumerable Value { get; }
-
         void Execute(Action action);
         void Clear();
     }
     [JsonObject, JsonConverter(typeof(CollectionBindableJsonConverter))]
     public abstract class CollectionBindable<TCollection> : ICollectionBindable where TCollection : System.Collections.IEnumerable
     {
-        System.Collections.IEnumerable ICollectionBindable.Value => Value;
+        object IBindable.Value => Value;
 
         bool EventEnabled = true;
         public event Action<TCollection> Changed = delegate { };
@@ -155,6 +162,7 @@ namespace Common
         }
 
         public abstract void Clear();
+        public abstract void LoadFromJson(JToken token, JsonSerializer? serializer);
 
         [OnDeserialized]
         void OnDeserializing(StreamingContext _) => RaiseChangedEvent();
@@ -195,6 +203,7 @@ namespace Common
             Values.Clear();
             RaiseChangedEvent();
         }
+        public override void LoadFromJson(JToken token, JsonSerializer? serializer) => SetRange(token.ToObject<T[]>(serializer ?? JsonSettings.Default)!);
 
         List<T>.Enumerator GetEnumerator() => Values.GetEnumerator();
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
@@ -253,6 +262,7 @@ namespace Common
             Dictionary.Clear();
             RaiseChangedEvent();
         }
+        public override void LoadFromJson(JToken token, JsonSerializer? serializer) => SetRange(token.ToObject<Dictionary<TKey, TValue>>(serializer ?? JsonSettings.Default)!);
 
         public bool ContainsKey(TKey key) => Dictionary.ContainsKey(key);
         public bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value) => Dictionary.TryGetValue(key, out value);
@@ -263,22 +273,17 @@ namespace Common
     }
 
 
-    class CollectionBindableJsonConverter : JsonConverter<ICollectionBindable>
+    class CollectionBindableJsonConverter : JsonConverter<IBindable>
     {
-        public override ICollectionBindable? ReadJson(JsonReader reader, Type objectType, ICollectionBindable? existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override IBindable? ReadJson(JsonReader reader, Type objectType, IBindable? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             if (existingValue is null) throw new NotImplementedException("Deserializing AE is not yet supported");
 
-            existingValue.Execute(() =>
-            {
-                existingValue.Clear();
-                serializer.Populate(reader, existingValue.Value);
-            });
-
+            existingValue.LoadFromJson(JToken.Load(reader), LocalApi.JsonSerializerWithType);
             return existingValue;
         }
 
-        public override void WriteJson(JsonWriter writer, ICollectionBindable? value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, IBindable? value, JsonSerializer serializer)
         {
             if (value is null)
             {
@@ -286,7 +291,21 @@ namespace Common
                 return;
             }
 
-            JToken.FromObject(value.Value).WriteTo(writer);
+            object obj;
+
+            if (value.Value is System.Collections.IList)
+            {
+                // protection from EnumerationException of List<T>
+                obj = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!
+                    .MakeGenericMethod(
+                        value.Value.GetType().GetInterfaces()
+                        .First(x => x.Name.StartsWith(nameof(System.Collections.IEnumerable)) && x.IsGenericType).GetGenericArguments())!
+                    .Invoke(null, new[] { value.Value })!;
+            }
+            else obj = value.Value;
+
+
+            (obj is null ? JValue.CreateNull() : JToken.FromObject(obj, LocalApi.JsonSerializerWithType)).WriteTo(writer);
         }
     }
 }

@@ -8,9 +8,16 @@ public class MPlusWatchingTaskSource : IWatchingTaskSource
     [JsonIgnore] readonly CancellationTokenSource TokenSource = new();
 
     [MPlusDirectory] public readonly string Directory;
-    [DescriberIgnore] public string SinceIid { get; private set; } = string.Empty;
+    [DescriberIgnore] public string SinceIid { get; private set; }
 
-    public MPlusWatchingTaskSource(string directory) => Directory = directory;
+    public MPlusWatchingTaskSource(string directory) : this(directory, string.Empty) { }
+
+    [JsonConstructor]
+    public MPlusWatchingTaskSource(string directory, string sinceIid)
+    {
+        Directory = directory;
+        SinceIid = sinceIid;
+    }
 
     public void StartListening(WatchingTask task)
     {

@@ -1,4 +1,5 @@
 using System.Net;
+using Newtonsoft.Json.Linq;
 
 namespace Node.Listeners;
 
@@ -13,12 +14,17 @@ public class NodeStateListener : ListenerBase
         new Thread(async () =>
         {
             var handle = new EventWaitHandle(false, EventResetMode.AutoReset);
-            NodeGlobalState.Instance.AnyChanged.Subscribe(handle, () => handle.Set());
+            var changed = null as string;
+            NodeGlobalState.Instance.AnyChanged.Subscribe(handle, v => { changed = v; handle.Set(); });
 
             var writer = new LocalPipe.Writer(context.Response.OutputStream);
             while (true)
             {
-                var wrote = await writer.WriteAsync(NodeGlobalState.Instance).ConfigureAwait(false);
+                JObject json;
+                if (changed is null) json = JObject.FromObject(NodeGlobalState.Instance);
+                else json = new JObject() { [changed] = JToken.FromObject(typeof(NodeGlobalState).GetField(changed)!.GetValue(NodeGlobalState.Instance)!), };
+
+                var wrote = await writer.WriteAsync(json).ConfigureAwait(false);
                 if (!wrote) return;
 
                 handle.WaitOne();

@@ -1,4 +1,5 @@
 using System.Web;
+using Avalonia.Controls.Templates;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -21,7 +22,6 @@ namespace NodeUI.Pages
             this.PreventClosing();
             SubscribeToStateChanges();
             _ = StartStateListener(CancellationToken.None);
-            _ = UICache.GetTasksInfoAsync();
 
 
             var tabs = new TabbedControl();
@@ -61,6 +61,22 @@ namespace NodeUI.Pages
         }
         async Task StartStateListener(CancellationToken token)
         {
+            if (Init.IsDebug)
+                try
+                {
+                    var cachefile = Path.Combine(Init.ConfigDirectory, "nodeinfocache");
+                    if (File.Exists(cachefile))
+                    {
+                        try { JsonConvert.PopulateObject(File.ReadAllText(cachefile), NodeGlobalState.Instance, LocalApi.JsonSettingsWithType); }
+                        catch { }
+                    }
+
+                    NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>
+                        File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, LocalApi.JsonSettingsWithType)));
+                }
+                catch { }
+
+
             var consecutive = 0;
             while (true)
             {
@@ -110,7 +126,7 @@ namespace NodeUI.Pages
                 Children.Add(infotb);
                 updatetext();
                 Settings.AnyChanged += updatetext;
-                NodeGlobalState.Instance.AnyChanged.Subscribe(this, updatetext);
+                NodeGlobalState.Instance.AnyChanged.Subscribe(this, _ => updatetext());
 
                 var langbtn = new MPButton()
                 {
@@ -178,7 +194,19 @@ namespace NodeUI.Pages
         {
             public PluginsTab()
             {
-                Children.Add(new SoftwareStats());
+                var scroll = new ScrollViewer()
+                {
+                    Content = new StackPanel()
+                    {
+                        Orientation = Orientation.Vertical,
+                        Children = {
+                            new OurPlugins(),
+                            new SoftwareStats(),
+                        },
+                    },
+                };
+
+                Children.Add(scroll);
             }
 
 
@@ -206,7 +234,7 @@ namespace NodeUI.Pages
                     UICache.StartUpdatingStats();
                     UICache.SoftwareStats.SubscribeChanged((_, stats) => Dispatcher.UIThread.Post(() =>
                     {
-                        InfoTextBlock.Text = $"Last update: {DateTimeOffset.Now}";
+                        InfoTextBlock.Text = $"SOFTWARE STATS\nLast update: {DateTimeOffset.Now}";
                         ItemsPanel.Children.Clear();
                         foreach (var (type, stat) in stats.OrderByDescending(x => x.Value.Total).ThenByDescending(x => x.Value.ByVersion.Count))
                         {
@@ -221,7 +249,110 @@ namespace NodeUI.Pages
                         }
                     }), true);
                 }
+            }
+            class OurPlugins : Panel
+            {
+                public OurPlugins()
+                {
+                    var infotext = new TextBlock();
 
+                    var items = new ListBox()
+                    {
+                        ItemTemplate = new FuncDataTemplate<Plugin>((plugin, _) => new TextBlock() { Text = $"{plugin.Type} {plugin.Version}: {plugin.Path}" }),
+                    };
+
+                    Children.Add(new Grid()
+                    {
+                        RowDefinitions = RowDefinitions.Parse("Auto *"),
+                        Children =
+                        {
+                            infotext.WithRow(0),
+                            items.WithRow(1),
+                        },
+                    });
+
+                    NodeGlobalState.Instance.InstalledPlugins.SubscribeChanged(info => Dispatcher.UIThread.Post(() =>
+                    {
+                        infotext.Text = $"OUR PLUGINS\nLast update: {DateTimeOffset.Now}";
+                        items.Items = info;
+                    }), true);
+                }
+            }
+        }
+        class TasksTab : Panel
+        {
+            public TasksTab()
+            {
+                var scroll = new ScrollViewer()
+                {
+                    Content = new StackPanel()
+                    {
+                        Orientation = Orientation.Vertical,
+                        Children = {
+                            new ExecutingTasks(),
+                        },
+                    },
+                };
+
+                Children.Add(scroll);
+            }
+
+
+            class ExecutingTasks : Panel
+            {
+                public ExecutingTasks()
+                {
+                    var infotext = new TextBlock();
+
+                    var items = new ListBox()
+                    {
+                        ItemTemplate = new FuncDataTemplate<ReceivedTask>((task, _) => new TextBlock() { Text = $"{task.Id} {task.Info.TaskType}" }),
+                    };
+
+                    Children.Add(new Grid()
+                    {
+                        RowDefinitions = RowDefinitions.Parse("Auto *"),
+                        Children =
+                        {
+                            infotext.WithRow(0),
+                            items.WithRow(1),
+                        },
+                    });
+
+                    NodeGlobalState.Instance.ExecutingTasks.SubscribeChanged(info => Dispatcher.UIThread.Post(() =>
+                    {
+                        infotext.Text = $"EXECUTING TASKS\nLast update: {DateTimeOffset.Now}";
+                        items.Items = info;
+                    }), true);
+                }
+            }
+            class PlacedTasks : Panel
+            {
+                public PlacedTasks()
+                {
+                    var infotext = new TextBlock();
+
+                    var items = new ListBox()
+                    {
+                        ItemTemplate = new FuncDataTemplate<PlacedTask>((task, _) => new TextBlock() { Text = $"{task.Id} {task.Info.Type}" }),
+                    };
+
+                    Children.Add(new Grid()
+                    {
+                        RowDefinitions = RowDefinitions.Parse("Auto *"),
+                        Children =
+                        {
+                            infotext.WithRow(0),
+                            items.WithRow(1),
+                        },
+                    });
+
+                    NodeGlobalState.Instance.PlacedTasks.SubscribeChanged(info => Dispatcher.UIThread.Post(() =>
+                    {
+                        infotext.Text = $"PLACED TASKS\nLast update: {DateTimeOffset.Now}";
+                        items.Items = info;
+                    }), true);
+                }
             }
         }
         class BenchmarkTab : Panel

@@ -15,4 +15,3 @@ public static class NodeSettings
         PlacedTasks = new(nameof(PlacedTasks));
     }
 }
-public record PlacedTask(string Id, TaskCreationInfo Info);
