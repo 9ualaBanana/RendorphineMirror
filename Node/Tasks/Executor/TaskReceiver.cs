@@ -36,7 +36,7 @@ public class TaskReceiver : IDisposable
             var json = JObject.Parse(query["task"]!)!;
 
             var taskinfo = JsonConvert.DeserializeObject<TaskInfo>(query["task"]!)!;
-            _logger.Info($"Received a new task: id: {{Id}}; sign: {{Sign}}; data {query["task"]}", taskid, sign);
+            _logger.Info($"Received a new task: id: {taskid}; sign: {sign}; data {query["task"]}");
 
             context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("{\"ok\":1}"));
             context.Response.Close();
