@@ -21,6 +21,7 @@ public class PluginToDeploy : IEquatable<PluginToDeploy>, IEquatable<Plugin>
 
     public PluginDeploymentInfo GetDeploymentInfo(string? installationPath = default) => Type switch
     {
+        PluginType.Blender => new BlenderDeploymentInfo(installationPath),
         PluginType.Python => new PythonDeploymentInfo(installationPath),
         PluginType.Python_Esrgan => new PythonEsrganDeploymentInfo(installationPath),
     };
