@@ -1,3 +1,3 @@
-namespace Common.NodeToUI;
+namespace Common.Tasks;
 
 public record TaskObject(string FileName, long Size);

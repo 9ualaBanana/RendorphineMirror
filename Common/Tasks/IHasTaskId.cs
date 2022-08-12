@@ -1,4 +1,4 @@
-namespace Common.NodeToUI;
+namespace Common.Tasks;
 
 public interface IHasTaskId
 {
