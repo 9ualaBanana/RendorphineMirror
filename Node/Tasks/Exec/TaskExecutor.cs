@@ -2,7 +2,10 @@ using System.Diagnostics;
 
 namespace Node.Tasks.Exec;
 
-public record TaskExecuteData(string Input, string Output, string Id, IPluginAction Action, Plugin Plugin) : IHasTaskId;
+public record TaskExecuteData(string Input, string Output, string Id, IPluginAction Action, Plugin Plugin) : ILoggable
+{
+    string ILoggable.LogName => $"Task {Id}";
+}
 
 public abstract class TaskExecutor<TBase> : ITaskExecutor
 {
@@ -56,8 +59,8 @@ public abstract class ProcessTaskExecutor<TBase> : TaskExecutor<TBase>
                 var str = await input.ReadLineAsync().ConfigureAwait(false);
                 if (str is null) return;
 
-                if (err) task.LogExecErr(str);
-                else task.LogExecInfo(str);
+                if (err) task.LogErr(str);
+                else task.LogInfo(str);
             }
         }
     }
