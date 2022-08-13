@@ -27,6 +27,21 @@ namespace NodeUI
             icon.FixException();
 
 
+            NodeGlobalState.Instance.ExecutingTasks.SubscribeChanged(e => Dispatcher.UIThread.Post(() =>
+            {
+                if (e.Count == 0) icon.ToolTipText = LocalizedString.String("idle");
+                else
+                {
+                    var task = e[0];
+
+                    icon.ToolTipText = $@"
+                        {task.Id}
+                        {NodeGlobalState.Instance.GetPluginType(task)} {task.Info.TaskType}
+                        {task.Info.Input.ToString(Newtonsoft.Json.Formatting.None)}
+                        ".TrimLines();
+                }
+            }), true);
+
             LocalizedString.ChangeLangWeakEvent.Subscribe(app, () => Dispatcher.UIThread.Post(updateMenus));
             updateMenus();
 

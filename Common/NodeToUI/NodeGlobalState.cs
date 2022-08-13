@@ -28,4 +28,7 @@ public class NodeGlobalState
         PlacedTasks.Changed += _ => AnyChanged.Invoke(nameof(PlacedTasks));
         WatchingTasks.Changed += _ => AnyChanged.Invoke(nameof(WatchingTasks));
     }
+
+
+    public PluginType GetPluginType(ReceivedTask task) => TaskDefinitions.Value.Actions.First(x => x.Name == task.Info.TaskType).Type;
 }

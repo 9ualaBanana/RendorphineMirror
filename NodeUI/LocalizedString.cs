@@ -141,5 +141,7 @@ namespace NodeUI
             return Key;
         }
         public string With(params object[] values) => string.Format(ToString(), values);
+
+        public static string String(string value) => new LocalizedString(value).ToString();
     }
 }
