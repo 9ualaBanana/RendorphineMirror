@@ -13,7 +13,7 @@ public class MachineInfo : IEquatable<MachineInfo>
     public string Port { get; init; } = null!;
     public HashSet<Plugin> InstalledPlugins { get; init; } = null!;
 
-    public string BriefInfoMDv2 => $"*{NodeName}* {PCName} (v.*{Version}*) | *{IP}:{Port}*";
+    public string BriefInfoMDv2 => $"*{NodeName}* {PCName} (v.*{Version}*) | *{IP}:{Port}* | *{IP}:{Port}/helloworld*";
 
     public bool NameContainsAny(IEnumerable<string> names) => 
         names.Select(name => name.CaseInsensitive())
