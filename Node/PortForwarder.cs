@@ -9,23 +9,29 @@ namespace Node
         public static void Initialize() { }
         static PortForwarder()
         {
-            NatUtility.DeviceFound += found;
+            NatUtility.DeviceFound += (_, args) => found(args).Consume();
             NatUtility.StartDiscovery(NatProtocol.Upnp);
 
 
-            static void found(object? _, DeviceEventArgs args)
+            static async Task found(DeviceEventArgs args)
             {
                 var device = args.Device;
 
                 try
                 {
-                    var mappings = device.GetAllMappings();
+                    var mappings = await device.GetAllMappingsAsync();
                     map(mappings, "renderphine", Settings.BUPnpPort);
                     map(mappings, "renderphine-srv", Settings.BUPnpServerPort);
                     map(mappings, "renderphine-dht", Settings.BDhtPort);
                     map(mappings, "renderphine-trt", Settings.BTorrentPort);
                 }
-                catch (Exception ex) { _logger.Error(ex, "[UPnP] Could not create mapping: "); }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "[UPnP] Could not create mapping: ");
+
+                    await Task.Delay(5000);
+                    await found(args);
+                }
 
 
                 void map(Mapping[] mappings, string name, Bindable<ushort> portb)
