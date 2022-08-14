@@ -6,6 +6,7 @@ public static class TaskList
     static readonly ImmutableArray<ITaskExecutor> Executors;
     public static ImmutableArray<IPluginAction> Actions;
 
+    public static void Initialize() { }
     static TaskList()
     {
         Executors = new ITaskExecutor[]

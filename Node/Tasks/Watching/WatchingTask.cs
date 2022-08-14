@@ -22,4 +22,8 @@ public class WatchingTask : ILoggable
         ExecuteLocally = executeLocally;
         Id = id ?? Guid.NewGuid().ToString();
     }
+
+
+    // TODO: version
+    public WatchingTaskInfo AsInfo() => new(Id, null, TaskAction, JObject.FromObject(Source), JObject.FromObject(Output), TaskData, ExecuteLocally);
 }

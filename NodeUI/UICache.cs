@@ -2,7 +2,7 @@ namespace NodeUI;
 
 public static class UICache
 {
-    public static readonly Bindable<ImmutableDictionary<PluginType, SoftwareStats>> SoftwareStats = new(ImmutableDictionary<PluginType, SoftwareStats>.Empty);
+    public static readonly BindableDictionary<PluginType, SoftwareStats> SoftwareStats = new(ImmutableDictionary<PluginType, SoftwareStats>.Empty);
     static Thread? StatsUpdatingThread;
     static Timer? StatsUpdatingTimer;
 
@@ -18,7 +18,7 @@ public static class UICache
     static async Task<OperationResult> UpdateStatsAsync()
     {
         var data = await Apis.GetSoftwareStatsAsync().ConfigureAwait(false);
-        if (data) SoftwareStats.Value = data.Value;
+        if (data) SoftwareStats.SetRange(data.Value);
 
         return data.GetResult();
     }

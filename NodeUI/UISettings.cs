@@ -7,8 +7,8 @@ public static class UISettings
     public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
     public static bool ShortcutsCreated { get => BShortcutsCreated.Value; set => BShortcutsCreated.Value = value; }
 
-    public static readonly DatabaseBindable<string?> BLanguage;
-    public static readonly DatabaseBindable<bool> BShortcutsCreated;
+    public static readonly DatabaseValue<string?> BLanguage;
+    public static readonly DatabaseValue<bool> BShortcutsCreated;
 
     static UISettings()
     {

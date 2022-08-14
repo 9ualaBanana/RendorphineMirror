@@ -27,8 +27,10 @@ namespace NodeUI
             icon.FixException();
 
 
-            NodeGlobalState.Instance.ExecutingTasks.SubscribeChanged(e => Dispatcher.UIThread.Post(() =>
+            NodeGlobalState.Instance.ExecutingTasks.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
             {
+                var e = NodeGlobalState.Instance.ExecutingTasks;
+
                 if (e.Count == 0) icon.ToolTipText = LocalizedString.String("idle");
                 else
                 {

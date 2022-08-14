@@ -16,7 +16,11 @@ namespace NodeUI
 
         static LocalizedString()
         {
-            UISettings.BLanguage.SubscribeChanged((oldv, newv) => SetLocale(newv!));
+            UISettings.BLanguage.Bindable.SubscribeChanged(() =>
+            {
+                if (Locale != UISettings.BLanguage.Value)
+                    SetLocale(UISettings.BLanguage.Value!);
+            });
 
             Locale = CultureInfo.CurrentUICulture.Name;
             if (Locale.Length == 0) Locale = "en-US";

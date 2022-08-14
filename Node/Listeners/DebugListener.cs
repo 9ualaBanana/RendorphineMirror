@@ -30,14 +30,6 @@ public class DebugListener : ExecutableListenerBase
             return await WriteSuccess(response);
         }
 
-        if (path == "getcfg")
-        {
-            var cfg = new JObject();
-            foreach (var setting in Settings.Bindables)
-                cfg[setting.Name] = setting.ToJson();
-
-            return await WriteJToken(response, cfg).ConfigureAwait(false);
-        }
         if (path == "login")
         {
             var loginr = ReadQueryString(context.Request.QueryString, "login");

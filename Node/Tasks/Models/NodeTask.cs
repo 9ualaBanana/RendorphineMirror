@@ -50,7 +50,7 @@ public static class NodeTask
         var id = idr.ThrowIfError();
 
         _logger.Info("Task registered with ID {Id}", id);
-        NodeSettings.PlacedTasks.Add(new(id, info));
+        NodeSettings.PlacedTasks.Bindable.Add(new(id, info));
         return id;
     }
 

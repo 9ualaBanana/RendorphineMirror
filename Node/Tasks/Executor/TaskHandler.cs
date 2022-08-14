@@ -35,14 +35,14 @@ public static class TaskHandler
     {
         try
         {
-            NodeSettings.SavedTasks.Add(task);
+            NodeSettings.SavedTasks.Bindable.Add(task);
             await HandleAsync(task, httpClient, token).ConfigureAwait(false);
         }
         catch (Exception ex) { _logger.Error(ex.ToString()); }
         finally
         {
             task.LogInfo($"Removing");
-            NodeSettings.SavedTasks.Remove(task);
+            NodeSettings.SavedTasks.Bindable.Remove(task);
         }
     }
     public static async Task HandleAsync(ReceivedTask task, HttpClient? httpClient = null, CancellationToken cancellationToken = default)

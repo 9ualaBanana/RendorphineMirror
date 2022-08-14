@@ -110,7 +110,7 @@ if (NodeSettings.WatchingTasks.Count != 0)
 {
     logger.Info("Found {WatchingTasksCount} watching tasks, starting...", NodeSettings.WatchingTasks.Count);
 
-    foreach (var task in NodeSettings.WatchingTasks)
+    foreach (var task in NodeSettings.WatchingTasks.Bindable)
         task.StartWatcher();
 }
 
@@ -119,13 +119,13 @@ if (NodeSettings.SavedTasks.Count != 0)
     logger.Info("Found {SavedTasksCount} saved tasks, starting...", NodeSettings.SavedTasks.Count);
 
     // .ToArray() to not cause exception while removing tasks
-    foreach (var task in NodeSettings.SavedTasks.ToArray())
+    foreach (var task in NodeSettings.SavedTasks.Bindable.ToArray())
     {
         try { await TaskHandler.HandleAsync(task, Api.Client).ConfigureAwait(false); }
         finally
         {
             task.LogInfo("Removing");
-            NodeSettings.SavedTasks.Remove(task);
+            NodeSettings.SavedTasks.Bindable.Remove(task);
         }
     }
 }
@@ -135,6 +135,7 @@ Thread.Sleep(-1);
 
 async Task InitializePlugins()
 {
+    TaskList.Initialize();
     PluginsManager.RegisterPluginDiscoverers(
         new BlenderPluginDiscoverer(),
         new Autodesk3dsMaxPluginDiscoverer(),
