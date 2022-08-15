@@ -15,8 +15,20 @@ public static class EsrganTasks
         protected override async Task<string> Execute(ReceivedTask task, UpscaleEsrganInfo data)
         {
             var output = GetTaskOutputFile(task);
-            var exepath = Environment.OSVersion.Platform == PlatformID.Win32NT ? "powershell.exe" : "/bin/sh";
-            var args = getScriptFile();
+            var exepath = Environment.OSVersion.Platform == PlatformID.Win32NT ? "cmd" : "/bin/sh";
+
+            var args = "";
+
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                // hide window
+                args += "/c start /min \"\" ";
+
+                // bypass powershell restrictions
+                args += "powershell -ExecutionPolicy Bypass -File ";
+            }
+
+            args += getScriptFile();
 
             await ExecuteProcess(exepath, args, false, onRead, task);
             return output;
@@ -38,10 +50,16 @@ public static class EsrganTasks
             string getScriptFile()
             {
                 var plugindir = Path.GetDirectoryName(task.Plugin.GetInstance().Path);
-                var installfile = Path.GetTempFileName();
+                var installfile = Path.Combine(Path.GetDirectoryName(output)!, "p.ps1");
                 var pythonpath = PluginType.Python.GetInstance().Path;
 
-                var pythonstart = pythonpath + " ";
+                // i hate powershell
+                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                    pythonpath = pythonpath.Replace(" ", "' '");
+                else pythonpath = pythonpath.Replace(" ", @"\ ");
+
+
+                var pythonstart = "python ";
 
                 // unbuffered output, for progress tracking
                 pythonstart += "-u ";
