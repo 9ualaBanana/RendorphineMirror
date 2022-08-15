@@ -22,7 +22,7 @@ public class DebugListener : ExecutableListenerBase
         }
         if (path == "addtask")
         {
-            var task = new ReceivedTask("verylongtaskid", new TaskInfo(new TaskObject("filename", 798798), new() { ["type"] = "MPlus" }, new() { ["type"] = "MPlusoutput" }, new() { ["type"] = "hflip" }), true);
+            var task = new ReceivedTask("verylongtaskid", new TaskInfo(new TaskObject("filename", 798798), new() { ["type"] = "MPlus" }, new() { ["type"] = "MPlus" }, new() { ["type"] = "EditVideo", ["hflip"] = true }), true);
             NodeGlobalState.Instance.ExecutingTasks.Add(task);
 
             _ = Task.Delay(5000).ContinueWith(_ => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
@@ -30,14 +30,6 @@ public class DebugListener : ExecutableListenerBase
             return await WriteSuccess(response);
         }
 
-        if (path == "getcfg")
-        {
-            var cfg = new JObject();
-            foreach (var setting in Settings.Bindables)
-                cfg[setting.Name] = setting.ToJson();
-
-            return await WriteJToken(response, cfg).ConfigureAwait(false);
-        }
         if (path == "login")
         {
             var loginr = ReadQueryString(context.Request.QueryString, "login");

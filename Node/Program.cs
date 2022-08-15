@@ -74,7 +74,7 @@ if (!Init.IsDebug || halfrelease)
     captured.Add(userSettingsHeartbeat);
 }
 
-var taskreceiver = new TaskReceiver(Api.Client);
+var taskreceiver = new TaskReceiver();
 taskreceiver.StartAsync().Consume();
 
 new PublicListener().Start();
@@ -110,7 +110,7 @@ if (NodeSettings.WatchingTasks.Count != 0)
 {
     logger.Info("Found {WatchingTasksCount} watching tasks, starting...", NodeSettings.WatchingTasks.Count);
 
-    foreach (var task in NodeSettings.WatchingTasks)
+    foreach (var task in NodeSettings.WatchingTasks.Bindable)
         task.StartWatcher();
 }
 
@@ -119,13 +119,13 @@ if (NodeSettings.SavedTasks.Count != 0)
     logger.Info("Found {SavedTasksCount} saved tasks, starting...", NodeSettings.SavedTasks.Count);
 
     // .ToArray() to not cause exception while removing tasks
-    foreach (var task in NodeSettings.SavedTasks.ToArray())
+    foreach (var task in NodeSettings.SavedTasks.Bindable.ToArray())
     {
-        try { await TaskHandler.HandleAsync(task, Api.Client).ConfigureAwait(false); }
+        try { await TaskHandler.HandleAsync(task).ConfigureAwait(false); }
         finally
         {
             task.LogInfo("Removing");
-            NodeSettings.SavedTasks.Remove(task);
+            NodeSettings.SavedTasks.Bindable.Remove(task);
         }
     }
 }
@@ -135,6 +135,7 @@ Thread.Sleep(-1);
 
 async Task InitializePlugins()
 {
+    TaskList.Initialize();
     PluginsManager.RegisterPluginDiscoverers(
         new BlenderPluginDiscoverer(),
         new Autodesk3dsMaxPluginDiscoverer(),

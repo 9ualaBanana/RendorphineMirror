@@ -16,7 +16,11 @@ namespace NodeUI
 
         static LocalizedString()
         {
-            UISettings.BLanguage.SubscribeChanged((oldv, newv) => SetLocale(newv!));
+            UISettings.BLanguage.Bindable.SubscribeChanged(() =>
+            {
+                if (Locale != UISettings.BLanguage.Value)
+                    SetLocale(UISettings.BLanguage.Value!);
+            });
 
             Locale = CultureInfo.CurrentUICulture.Name;
             if (Locale.Length == 0) Locale = "en-US";
@@ -141,5 +145,7 @@ namespace NodeUI
             return Key;
         }
         public string With(params object[] values) => string.Format(ToString(), values);
+
+        public static string String(string value) => new LocalizedString(value).ToString();
     }
 }

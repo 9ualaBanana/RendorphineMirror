@@ -16,16 +16,21 @@ public class NodeGlobalState
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
     public readonly BindableList<ReceivedTask> ExecutingTasks = new();
     public readonly BindableList<PlacedTask> PlacedTasks = new();
-    public readonly BindableList<JObject> WatchingTasks = new();
+    public readonly BindableList<WatchingTaskInfo> WatchingTasks = new();
 
 
     private NodeGlobalState()
     {
-        TaskDefinitions.Changed += (_, _) => AnyChanged.Invoke(nameof(TaskDefinitions));
-        InstalledPlugins.Changed += _ => AnyChanged.Invoke(nameof(InstalledPlugins));
-        ExecutingBenchmarks.Changed += _ => AnyChanged.Invoke(nameof(ExecutingBenchmarks));
-        ExecutingTasks.Changed += _ => AnyChanged.Invoke(nameof(ExecutingTasks));
-        PlacedTasks.Changed += _ => AnyChanged.Invoke(nameof(PlacedTasks));
-        WatchingTasks.Changed += _ => AnyChanged.Invoke(nameof(WatchingTasks));
+        TaskDefinitions.Changed += () => AnyChanged.Invoke(nameof(TaskDefinitions));
+        InstalledPlugins.Changed += () => AnyChanged.Invoke(nameof(InstalledPlugins));
+        ExecutingBenchmarks.Changed += () => AnyChanged.Invoke(nameof(ExecutingBenchmarks));
+        ExecutingTasks.Changed += () => AnyChanged.Invoke(nameof(ExecutingTasks));
+        PlacedTasks.Changed += () => AnyChanged.Invoke(nameof(PlacedTasks));
+        WatchingTasks.Changed += () => AnyChanged.Invoke(nameof(WatchingTasks));
     }
+
+
+    public PluginType GetPluginTypeFromAction(string action) => TaskDefinitions.Value.Actions.First(x => x.Name == action).Type;
+    public PluginType GetPluginType(ReceivedTask task) => GetPluginTypeFromAction(task.Info.TaskType);
+    public Plugin GetPluginInstance(PluginType type) => InstalledPlugins.First(x => x.Type == type);
 }

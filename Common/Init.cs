@@ -84,6 +84,8 @@ namespace Common
         {
             try
             {
+                if (Debugger.IsAttached) return "debug";
+
                 var assembly = typeof(Init).Assembly.Location ?? Environment.ProcessPath!;
                 if (FileVersionInfo.GetVersionInfo(assembly).ProductVersion is { } ver && ver != "1.0.0")
                     return ver;

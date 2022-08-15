@@ -30,25 +30,6 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
-        if (path == "startlocaltask")
-        {
-            return await Test(request, response, "type", "data", "input", "output", async (type, data, input, output) =>
-            {
-                // TODO: fill in TaskObject
-                var task = new ReceivedTask(
-                    ReceivedTask.GenerateLocal(),
-                    new TaskInfo(new("file.mov", 123),
-                    JObject.FromObject(new UserTaskInputInfo(input)),
-                    JObject.FromObject(new UserTaskOutputInfo(Path.GetDirectoryName(output)!, Path.GetFileName(output))),
-                    JObject.Parse(data)
-                ), true);
-
-                TaskHandler.HandleReceivedTask(task).Consume();
-
-                return await WriteJToken(response, task.Id).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-
         if (path == "reloadcfg")
         {
             Settings.Reload();
@@ -69,34 +50,9 @@ public class LocalListener : ExecutableListenerBase
                 return await WriteJson(response, resp).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
-        if (path == "setcfg")
-        {
-            return await Test(request, response, "key", "value", async (key, value) =>
-            {
-                var bindable = Settings.Bindables.FirstOrDefault(x => x.Name == key);
-                if (bindable is null) return await WriteErr(response, "no such cfg").ConfigureAwait(false);
-
-                try { bindable.SetFromJson(value); }
-                catch (Exception ex) { return await WriteErr(response, "invalid value: " + ex.Message).ConfigureAwait(false); }
-
-                return await writeConfig().ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-        if (path == "getcfg") return await writeConfig().ConfigureAwait(false);
 
 
         return HttpStatusCode.NotFound;
-
-
-        async Task<HttpStatusCode> writeConfig()
-        {
-            var cfg = new JObject();
-            foreach (var setting in Settings.Bindables)
-                if (!setting.Hidden)
-                    cfg[setting.Name] = setting.ToJson();
-
-            return await WriteJToken(response, cfg).ConfigureAwait(false);
-        }
     }
 
     protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
@@ -118,7 +74,7 @@ public class LocalListener : ExecutableListenerBase
 
             var wt = new WatchingTask(task.Input.ToObject<IWatchingTaskSource>(LocalApi.JsonSerializerWithType)!, task.Action, task.Data, task.Output.ToObject<IWatchingTaskOutputInfo>(LocalApi.JsonSerializerWithType)!, task.ExecuteLocally);
             wt.StartWatcher();
-            NodeSettings.WatchingTasks.Add(wt);
+            NodeSettings.WatchingTasks.Bindable.Add(wt);
 
             return await WriteSuccess(response).ConfigureAwait(false);
         }

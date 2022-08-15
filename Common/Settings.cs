@@ -42,10 +42,10 @@ namespace Common
         public static ushort TorrentPort { get => BTorrentPort.Value; set => BTorrentPort.Value = value; }
         public static string NodeName { get => BNodeName.Value!; set => BNodeName.Value = value!; }
 
-        public static readonly DatabaseBindable<string> BServerUrl;
-        public static readonly DatabaseBindable<ushort> BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort;
-        public static readonly DatabaseBindable<string?> BNodeName;
-        public static readonly DatabaseBindable<AuthInfo?> BAuthInfo;
+        public static readonly DatabaseValue<string> BServerUrl;
+        public static readonly DatabaseValue<ushort> BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort;
+        public static readonly DatabaseValue<string?> BNodeName;
+        public static readonly DatabaseValue<AuthInfo?> BAuthInfo;
 
         static readonly SQLiteConnection Connection;
         const string ConfigTable = "config";
@@ -65,7 +65,7 @@ namespace Common
             BUPnpServerPort = new(nameof(UPnpServerPort), 5125);
             BDhtPort = new(nameof(DhtPort), 6223);
             BTorrentPort = new(nameof(TorrentPort), 6224);
-            BAuthInfo = new(nameof(AuthInfo), default) { Hidden = true };
+            BAuthInfo = new(nameof(AuthInfo), default);
             BNodeName = new(nameof(NodeName), null);
         }
 
@@ -123,6 +123,15 @@ namespace Common
         }
 
         [return: NotNullIfNotNull("defaultValue")]
+        static string Load(string path, string defaultValue)
+        {
+            using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
+
+            if (!query.Read()) return defaultValue;
+            return query.GetString(0);
+        }
+
+        [return: NotNullIfNotNull("defaultValue")]
         static T? Load<T>(string path, T? defaultValue)
         {
             using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
@@ -139,64 +148,77 @@ namespace Common
             );
         }
 
-        public interface IDatabaseBindable
+
+        public interface IDatabaseBindable : IBindable
         {
-            bool Hidden { get; init; }
             string Name { get; }
 
+            void Save();
             void Reload();
-
-            JToken ToJson();
-            void SetFromJson(string json);
         }
-        public class DatabaseBindable<T> : Bindable<T>, IDatabaseBindable
-        {
-            public bool Hidden { get; init; }
-            public string Name { get; }
+        public interface IDatabaseBindable<T> : IDatabaseBindable, IReadOnlyBindable<T> { }
 
-            public DatabaseBindable(string name, T defaultValue = default!) : base(defaultValue)
+        public abstract class DatabaseValueBase<T, TBindable> : IDatabaseBindable<T> where TBindable : IReadOnlyBindable<T>
+        {
+            public event Action? Changed { add => Bindable.Changed += value; remove => Bindable.Changed -= value; }
+            public T Value => Bindable.Value;
+
+            public string Name { get; }
+            public readonly TBindable Bindable;
+
+
+            public DatabaseValueBase(string name, TBindable bindable)
             {
                 Name = name;
+                Bindable = bindable;
 
                 Reload();
-                Changed += (oldv, newv) =>
+                Bindable.Changed += () =>
                 {
-                    Save(name, newv);
+                    Settings.Save(name, Value);
                     AnyChanged?.Invoke();
                 };
 
                 _Bindables.Add(this);
             }
 
-            public void Reload() => Value = Load(Name, _Value)!;
-
-            public JToken ToJson() => JToken.FromObject(Value!, LocalApi.JsonSerializerWithType);
-            public void SetFromJson(string json) => Value = JsonConvert.DeserializeObject<T>(json, LocalApi.JsonSettingsWithType)!;
-        }
-        public class DatabaseBindableList<T> : BindableList<T>, IDatabaseBindable
-        {
-            public bool Hidden { get; init; }
-            public string Name { get; }
-
-            public DatabaseBindableList(string name)
+            public void Reload()
             {
-                Name = name;
-
-                Reload();
-                Changed += value =>
-                {
-                    Settings.Save(name, value);
-                    AnyChanged?.Invoke();
-                };
-
-                _Bindables.Add(this);
+                if (Load(Name) is { } jstr)
+                    Bindable.LoadFromJson(JToken.Parse(jstr), LocalApi.JsonSerializerWithType);
             }
 
-            public void Reload() => SetRange(Load(Name, Array.Empty<T>()));
-            public void Save() => Settings.Save(Name, base.Value);
 
-            public JToken ToJson() => JToken.FromObject(Value, LocalApi.JsonSerializerWithType);
-            public void SetFromJson(string json) => SetRange(JsonConvert.DeserializeObject<T[]>(json, LocalApi.JsonSettingsWithType) ?? Array.Empty<T>());
+            static string? Load(string path)
+            {
+                using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
+
+                if (!query.Read()) return null;
+                return query.GetString(0);
+            }
+            public void Save() => Settings.Save(Name, Value);
+
+            JToken IBindable.AsJson(JsonSerializer? serializer) => Bindable.AsJson(serializer);
+            void IBindable.LoadFromJson(JToken json, JsonSerializer? serializer) => Bindable.LoadFromJson(json, serializer);
+        }
+
+        public class DatabaseValue<T> : DatabaseValueBase<T, Bindable<T>>, IBindable<T>
+        {
+            public new T Value { get => Bindable.Value; set => Bindable.Value = value; }
+
+            public DatabaseValue(string name, T defaultValue) : base(name, new(defaultValue)) { }
+        }
+        public class DatabaseValueList<T> : DatabaseValueBase<IReadOnlyList<T>, BindableList<T>>
+        {
+            public int Count => Bindable.Count;
+
+            public DatabaseValueList(string name, IEnumerable<T>? values = null) : base(name, new(values)) { }
+        }
+        public class DatabaseValueDictionary<TKey, TValue> : DatabaseValueBase<IReadOnlyDictionary<TKey, TValue>, BindableDictionary<TKey, TValue>> where TKey : notnull
+        {
+            public int Count => Bindable.Count;
+
+            public DatabaseValueDictionary(string name, IEnumerable<KeyValuePair<TKey, TValue>>? values = null) : base(name, new(values)) { }
         }
     }
 }

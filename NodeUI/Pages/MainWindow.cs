@@ -1,5 +1,4 @@
 using System.Web;
-using Avalonia.Controls.Templates;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -21,12 +20,14 @@ namespace NodeUI.Pages
 
             this.PreventClosing();
             SubscribeToStateChanges();
-            _ = StartStateListener(CancellationToken.None);
+            UICache.StartUpdatingStats();
+            UICache.StartUpdatingState().Consume();
 
 
             var tabs = new TabbedControl();
             tabs.Add("tab.dashboard", new DashboardTab());
             tabs.Add("tab.plugins", new PluginsTab());
+            tabs.Add("tasks", new TasksTab());
             tabs.Add("tab.benchmark", new BenchmarkTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("torrent test", new TorrentTab());
@@ -37,8 +38,10 @@ namespace NodeUI.Pages
         void SubscribeToStateChanges()
         {
             IMessageBox? benchmb = null;
-            NodeGlobalState.Instance.ExecutingBenchmarks.Changed += benchs => Dispatcher.UIThread.Post(() =>
+            NodeGlobalState.Instance.ExecutingBenchmarks.Changed += () => Dispatcher.UIThread.Post(() =>
             {
+                var benchs = NodeGlobalState.Instance.ExecutingBenchmarks;
+
                 if (benchs.Count != 0)
                 {
                     if (benchmb is null)
@@ -59,58 +62,36 @@ namespace NodeUI.Pages
                 }
             });
         }
-        async Task StartStateListener(CancellationToken token)
+
+
+        static class NamedList
         {
-            if (Init.IsDebug)
-                try
-                {
-                    var cachefile = Path.Combine(Init.ConfigDirectory, "nodeinfocache");
-                    if (File.Exists(cachefile))
-                    {
-                        try { JsonConvert.PopulateObject(File.ReadAllText(cachefile), NodeGlobalState.Instance, LocalApi.JsonSettingsWithType); }
-                        catch { }
-                    }
+            public static NamedList<T> Create<T>(string title, IReadOnlyBindableCollection<T> items, Func<T, IControl> templatefunc) => new(title, items, templatefunc);
+        }
+        class NamedList<T> : Grid
+        {
+            // GC protected instance
+            readonly IReadOnlyBindableCollection<T> Items;
 
-                    NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>
-                        File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, LocalApi.JsonSettingsWithType)));
-                }
-                catch { }
-
-
-            var consecutive = 0;
-            while (true)
+            public NamedList(string title, IReadOnlyBindableCollection<T> items, Func<T, IControl> templatefunc)
             {
-                try
-                {
-                    var stream = await LocalPipe.SendLocalAsync("getstate").ConfigureAwait(false);
-                    var reader = LocalPipe.CreateReader(stream);
-                    consecutive = 0;
+                Items = items = items.GetBoundCopy();
 
-                    while (true)
+                Children.Add(new Grid()
+                {
+                    RowDefinitions = RowDefinitions.Parse("Auto *"),
+                    Children =
                     {
-                        var read = reader.Read();
-                        if (!read) break;
-                        if (token.IsCancellationRequested) return;
+                        new TextBlock()
+                            .With(tb => Items.SubscribeChanged(() => Dispatcher.UIThread.Post(() => tb.Text = $"{title}\nLast update: {DateTimeOffset.Now}"), true))
+                            .WithRow(0),
 
-                        var jtoken = JToken.Load(reader);
-                        _logger.Debug($"Node state updated: {jtoken.ToString(Formatting.None)}");
-
-                        using var tokenreader = jtoken.CreateReader();
-                        LocalApi.JsonSerializerWithType.Populate(tokenreader, NodeGlobalState.Instance);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (consecutive < 3) _logger.Error($"Could not read node state: {ex.Message}, reconnecting...");
-                    else if (consecutive == 3) _logger.Error($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
-
-                    consecutive++;
-                }
-
-                await Task.Delay(1_000).ConfigureAwait(false);
+                        TypedItemsControl.Create(items, templatefunc)
+                            .WithRow(1),
+                    },
+                });
             }
         }
-
 
         class DashboardTab : Panel
         {
@@ -199,84 +180,32 @@ namespace NodeUI.Pages
                     Content = new StackPanel()
                     {
                         Orientation = Orientation.Vertical,
-                        Children = {
-                            new OurPlugins(),
-                            new SoftwareStats(),
+                        Spacing = 20,
+                        Children =
+                        {
+                            NamedList.Create("Software stats", UICache.SoftwareStats, softToControl),
+                            NamedList.Create("Our plugins", NodeGlobalState.Instance.InstalledPlugins, pluginToControl),
                         },
                     },
                 };
 
                 Children.Add(scroll);
-            }
 
 
-            class SoftwareStats : Panel
-            {
-                readonly TextBlock InfoTextBlock;
-                readonly StackPanel ItemsPanel;
-
-                public SoftwareStats()
+                IControl softToControl(KeyValuePair<PluginType, SoftwareStats> value)
                 {
-                    InfoTextBlock = new();
-                    ItemsPanel = new();
+                    var (type, stat) = value;
 
-                    Children.Add(new Grid()
+                    return new Expander()
                     {
-                        RowDefinitions = RowDefinitions.Parse("Auto *"),
-                        Children =
+                        Header = $"{type} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long) x.Value.Total)} total installed versions)",
+                        Content = new ItemsControl()
                         {
-                            InfoTextBlock.WithRow(0),
-                            ItemsPanel.WithRow(1),
+                            Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
                         },
-                    });
-
-
-                    UICache.StartUpdatingStats();
-                    UICache.SoftwareStats.SubscribeChanged((_, stats) => Dispatcher.UIThread.Post(() =>
-                    {
-                        InfoTextBlock.Text = $"SOFTWARE STATS\nLast update: {DateTimeOffset.Now}";
-                        ItemsPanel.Children.Clear();
-                        foreach (var (type, stat) in stats.OrderByDescending(x => x.Value.Total).ThenByDescending(x => x.Value.ByVersion.Count))
-                        {
-                            ItemsPanel.Children.Add(new Expander()
-                            {
-                                Header = $"{type} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long) x.Value.Total)} total installed versions)",
-                                Content = new ItemsControl()
-                                {
-                                    Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
-                                },
-                            });
-                        }
-                    }), true);
-                }
-            }
-            class OurPlugins : Panel
-            {
-                public OurPlugins()
-                {
-                    var infotext = new TextBlock();
-
-                    var items = new ListBox()
-                    {
-                        ItemTemplate = new FuncDataTemplate<Plugin>((plugin, _) => new TextBlock() { Text = $"{plugin.Type} {plugin.Version}: {plugin.Path}" }),
                     };
-
-                    Children.Add(new Grid()
-                    {
-                        RowDefinitions = RowDefinitions.Parse("Auto *"),
-                        Children =
-                        {
-                            infotext.WithRow(0),
-                            items.WithRow(1),
-                        },
-                    });
-
-                    NodeGlobalState.Instance.InstalledPlugins.SubscribeChanged(info => Dispatcher.UIThread.Post(() =>
-                    {
-                        infotext.Text = $"OUR PLUGINS\nLast update: {DateTimeOffset.Now}";
-                        items.Items = info;
-                    }), true);
                 }
+                IControl pluginToControl(Plugin plugin) => new TextBlock() { Text = $"{plugin.Type} {plugin.Version}: {plugin.Path}" };
             }
         }
         class TasksTab : Panel
@@ -288,70 +217,91 @@ namespace NodeUI.Pages
                     Content = new StackPanel()
                     {
                         Orientation = Orientation.Vertical,
-                        Children = {
-                            new ExecutingTasks(),
+                        Spacing = 20,
+                        Children =
+                        {
+                            NamedList.Create("Executing tasks", NodeGlobalState.Instance.ExecutingTasks, execTasksCreate),
+                            NamedList.Create("Watching tasks", NodeGlobalState.Instance.WatchingTasks, watchingTasksCreate),
+                            NamedList.Create("Placed tasks", NodeGlobalState.Instance.PlacedTasks, placedTasksCreate),
                         },
                     },
                 };
 
                 Children.Add(scroll);
-            }
 
 
-            class ExecutingTasks : Panel
-            {
-                public ExecutingTasks()
+                IControl execTasksCreate(ReceivedTask task)
                 {
-                    var infotext = new TextBlock();
+                    var statustb = new TextBlock();
 
-                    var items = new ListBox()
+                    return new Expander()
                     {
-                        ItemTemplate = new FuncDataTemplate<ReceivedTask>((task, _) => new TextBlock() { Text = $"{task.Id} {task.Info.TaskType}" }),
-                    };
-
-                    Children.Add(new Grid()
-                    {
-                        RowDefinitions = RowDefinitions.Parse("Auto *"),
-                        Children =
+                        Header = $"{task.Id} {task.Plugin} {task.Action}",
+                        Content = new StackPanel()
                         {
-                            infotext.WithRow(0),
-                            items.WithRow(1),
+                            Orientation = Orientation.Vertical,
+                            Children =
+                            {
+                                new TextBlock() { Text = $"Data: {task.Info.Data.ToString(Formatting.None)}" },
+                                new TextBlock() { Text = $"Input: {task.Info.Input.ToString(Formatting.None)}" },
+                                new TextBlock() { Text = $"Output: {task.Info.Output.ToString(Formatting.None)}" },
+                                statustb,
+                            },
                         },
-                    });
-
-                    NodeGlobalState.Instance.ExecutingTasks.SubscribeChanged(info => Dispatcher.UIThread.Post(() =>
-                    {
-                        infotext.Text = $"EXECUTING TASKS\nLast update: {DateTimeOffset.Now}";
-                        items.Items = info;
-                    }), true);
+                    };
                 }
-            }
-            class PlacedTasks : Panel
-            {
-                public PlacedTasks()
+                IControl placedTasksCreate(PlacedTask task)
                 {
-                    var infotext = new TextBlock();
-
-                    var items = new ListBox()
+                    var statustb = new TextBlock();
+                    var statusbtn = new MPButton()
                     {
-                        ItemTemplate = new FuncDataTemplate<PlacedTask>((task, _) => new TextBlock() { Text = $"{task.Id} {task.Info.Type}" }),
+                        Text = "Update status",
+                        OnClick = async () =>
+                        {
+                            var state = await task.GetTaskStateAsync();
+                            if (!state)
+                            {
+                                statustb.Text = "error " + state.AsString();
+                                return;
+                            }
+
+                            statustb.Text = JsonConvert.SerializeObject(state.Value, Formatting.None);
+                        },
                     };
 
-                    Children.Add(new Grid()
+                    return new Expander()
                     {
-                        RowDefinitions = RowDefinitions.Parse("Auto *"),
-                        Children =
+                        Header = $"{task.Id} {task.Info.Type} {task.Info.Action}",
+                        Content = new StackPanel()
                         {
-                            infotext.WithRow(0),
-                            items.WithRow(1),
+                            Orientation = Orientation.Vertical,
+                            Children =
+                            {
+                                new TextBlock() { Text = $"Data: {task.Info.Data.ToString(Formatting.None)}" },
+                                new TextBlock() { Text = $"Input: {task.Info.Input.ToString(Formatting.None)}" },
+                                new TextBlock() { Text = $"Output: {task.Info.Output.ToString(Formatting.None)}" },
+                                statustb,
+                                statusbtn,
+                            },
                         },
-                    });
-
-                    NodeGlobalState.Instance.PlacedTasks.SubscribeChanged(info => Dispatcher.UIThread.Post(() =>
+                    };
+                }
+                IControl watchingTasksCreate(WatchingTaskInfo task)
+                {
+                    return new Expander()
                     {
-                        infotext.Text = $"PLACED TASKS\nLast update: {DateTimeOffset.Now}";
-                        items.Items = info;
-                    }), true);
+                        Header = $"{task.Id} {NodeGlobalState.Instance.GetPluginTypeFromAction(task.TaskAction)} {task.TaskAction}",
+                        Content = new StackPanel()
+                        {
+                            Orientation = Orientation.Vertical,
+                            Children =
+                            {
+                                new TextBlock() { Text = $"Data: {task.TaskData.ToString(Formatting.None)}" },
+                                new TextBlock() { Text = $"Source: {task.Source.ToString(Formatting.None)}" },
+                                new TextBlock() { Text = $"Output: {task.Output.ToString(Formatting.None)}" },
+                            },
+                        },
+                    };
                 }
             }
         }
@@ -384,7 +334,7 @@ namespace NodeUI.Pages
                 {
 
                 };
-                Settings.BNodeName.SubscribeChanged((oldv, newv) => Dispatcher.UIThread.Post(() => nicktb.Text = newv), true);
+                Settings.BNodeName.Bindable.SubscribeChanged(() => Dispatcher.UIThread.Post(() => nicktb.Text = Settings.NodeName), true);
 
                 var nicksbtn = new MPButton()
                 {

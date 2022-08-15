@@ -12,9 +12,7 @@ public abstract class UploadSessionData
 
     protected UploadSessionData(string url, FileInfo file)
     {
-        if (url.EndsWith('/')) url = url[..^1];
-
-        Endpoint = url + "/initupload";
+        Endpoint = url;
         File = file;
     }
 
@@ -28,7 +26,7 @@ public class UserUploadSessionData : UploadSessionData
     {
     }
 
-    public UserUploadSessionData(string url, FileInfo file) : base(url, file)
+    public UserUploadSessionData(string url, FileInfo file) : base((url.EndsWith('/') ? url[..^1] : url) + "/initupload", file)
     {
     }
 

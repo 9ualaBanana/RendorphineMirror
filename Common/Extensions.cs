@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 namespace Common
@@ -29,7 +30,7 @@ namespace Common
             }
         }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
 
-        public static T ThrowIfNull<T>(this T? value, string? message = null)
+        public static T ThrowIfNull<T>([NotNull] this T? value, string? message = null)
         {
             if (value is null)
                 throw new NullReferenceException(message ?? "Value is null");

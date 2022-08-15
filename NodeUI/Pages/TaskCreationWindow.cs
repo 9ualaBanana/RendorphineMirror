@@ -335,6 +335,60 @@ namespace NodeUI.Pages
                 Setting.UpdateValue();
             }
         }
+        abstract class EndPart : TaskPart
+        {
+            public override event Action<bool>? OnChoose;
+            public override LocalizedString Title => new("Waiting");
+            public override TaskPart? Next => null;
+
+            protected abstract string StartTaskEndpoint { get; }
+
+            readonly TextBlock StatusTextBlock;
+
+            public EndPart(TaskCreationInfo builder) : base(builder)
+            {
+                Children.Add(StatusTextBlock = new TextBlock());
+                StartTaskAsync().Consume();
+            }
+
+            static void ForEachProperty(JToken jobj, Action<JObject, JProperty> func)
+            {
+                foreach (var (parent, property) in getProperties(jobj).ToArray())
+                    func(parent, property);
+
+                IEnumerable<(JObject parent, JProperty property)> getProperties(JToken token) =>
+                    token is not JObject obj
+                        ? Enumerable.Empty<(JObject, JProperty)>()
+                        : obj.Properties().Select(p => (obj, p))
+                            .Concat(obj.Values().SelectMany(getProperties));
+            }
+            static void ProcessObject(JToken jobj)
+            {
+                ForEachProperty(jobj, (parent, property) =>
+                {
+                    // remove null
+                    if (property.Value is null || property.Value?.Type == JTokenType.Null)
+                        parent.Remove(property.Name);
+                });
+            }
+
+            async Task StartTaskAsync()
+            {
+                ProcessObject(Builder.Data);
+                ProcessObject(Builder.Input);
+                ProcessObject(Builder.Output);
+
+                var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
+                var taskid = await LocalApi.Post<string>(LocalApi.LocalIP, StartTaskEndpoint, new StringContent(serialized)).ConfigureAwait(false);
+                if (!taskid)
+                {
+                    Dispatcher.UIThread.Post(() => StatusTextBlock.Text = $"error {taskid}");
+                    return;
+                }
+
+                Dispatcher.UIThread.Post(() => StatusTextBlock.Text = $"task {taskid} created");
+            }
+        }
 
 
         class TaskCreationPanel : Panel
@@ -423,93 +477,14 @@ namespace NodeUI.Pages
             }
             class ChooseParametersPart : TaskCreationWindow.ParametersPart
             {
-                public override TaskPart? Next => new WaitingPart(Builder);
+                public override TaskPart? Next => new EndPart(Builder);
                 public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
             }
-            class WaitingPart : TaskPart
+            class EndPart : TaskCreationWindow.EndPart
             {
-                public override event Action<bool>? OnChoose;
-                public override LocalizedString Title => new("Waiting");
-                public override TaskPart? Next => null;
+                protected override string StartTaskEndpoint => "starttask";
 
-                readonly TextBlock StatusTextBlock;
-
-                public WaitingPart(TaskCreationInfo builder) : base(builder)
-                {
-                    Children.Add(StatusTextBlock = new TextBlock());
-                    StartTaskAsync().Consume();
-                }
-
-                string Status() => @$"
-                    waiting {Builder.Action}
-                    using {Builder.Type}
-                    v {Builder.Version ?? "<any>"}
-                    from {Builder.Input.ToString(Formatting.None)}
-                    to {Builder.Output.ToString(Formatting.None)}
-                    and {Builder.Data.ToString(Formatting.None)}
-                    ".TrimLines();
-                void Status(string? text) => Dispatcher.UIThread.Post(() => StatusTextBlock.Text = text + Environment.NewLine + Status());
-
-                static void ForEachProperty(JToken jobj, Action<JObject, JProperty> func)
-                {
-                    foreach (var (parent, property) in getProperties(jobj).ToArray())
-                        func(parent, property);
-
-                    IEnumerable<(JObject parent, JProperty property)> getProperties(JToken token) =>
-                        token is not JObject obj
-                            ? Enumerable.Empty<(JObject, JProperty)>()
-                            : obj.Properties().Select(p => (obj, p))
-                                .Concat(obj.Values().SelectMany(getProperties));
-                }
-                static void ProcessObject(JToken jobj)
-                {
-                    ForEachProperty(jobj, (parent, property) =>
-                    {
-                        // remove null
-                        if (property.Value is null || property.Value?.Type == JTokenType.Null)
-                            parent.Remove(property.Name);
-                    });
-                }
-
-                async Task StartTaskAsync()
-                {
-                    ProcessObject(Builder.Data);
-                    ProcessObject(Builder.Input);
-                    ProcessObject(Builder.Output);
-
-                    var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
-                    var post = await LocalApi.Post<string>(LocalApi.LocalIP, "starttask", new StringContent(serialized)).ConfigureAwait(false);
-                    if (!post)
-                    {
-                        Status($"error {post}");
-                        return;
-                    }
-
-                    var taskid = post.Value;
-
-                    var stt = "";
-                    Status(stt = $"taskid={taskid}\n{stt}");
-
-                    var token = new CancellationTokenSource();
-                    Dispatcher.UIThread.Post(() => ((Window) VisualRoot!).Closed += (_, _) => token.Cancel());
-
-                    while (true)
-                    {
-                        if (token.Token.IsCancellationRequested) return;
-
-                        var stater = await Apis.GetTaskStateAsync(taskid);
-                        if (!stater)
-                        {
-                            Status($"error getting task state {stater}\n{stt}");
-                            continue;
-                        }
-
-                        var state = stater.Value;
-                        Status($"task state: {state.State} {JsonConvert.SerializeObject(state)}\n{stt}".TrimLines());
-
-                        await Task.Delay(1000);
-                    }
-                }
+                public EndPart(TaskCreationInfo builder) : base(builder) { }
             }
         }
         static class WatchingTaskCreationPanel
@@ -568,54 +543,12 @@ namespace NodeUI.Pages
                 public override TaskPart? Next => new EndPart(Builder);
                 public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
             }
-            class EndPart : TaskPart
+            
+            class EndPart : TaskCreationWindow.EndPart
             {
-                public override event Action<bool>? OnChoose;
-                public override LocalizedString Title => new("End");
-                public override TaskPart? Next => null;
+                protected override string StartTaskEndpoint => "startwatchingtask";
 
-                public EndPart(TaskCreationInfo builder) : base(builder)
-                {
-                    StartTaskAsync().Consume();
-                    // TODO: start task
-                    Children.Add(new TextBlock() { Text = "done thx" });
-                }
-
-                static void ForEachProperty(JToken jobj, Action<JObject, JProperty> func)
-                {
-                    foreach (var (parent, property) in getProperties(jobj).ToArray())
-                        func(parent, property);
-
-                    IEnumerable<(JObject parent, JProperty property)> getProperties(JToken token) =>
-                        token is not JObject obj
-                            ? Enumerable.Empty<(JObject, JProperty)>()
-                            : obj.Properties().Select(p => (obj, p))
-                                .Concat(obj.Values().SelectMany(getProperties));
-                }
-                static void ProcessObject(JToken jobj)
-                {
-                    ForEachProperty(jobj, (parent, property) =>
-                    {
-                        // remove null
-                        if (property.Value is null || property.Value?.Type == JTokenType.Null)
-                            parent.Remove(property.Name);
-                    });
-                }
-
-                async Task StartTaskAsync()
-                {
-                    ProcessObject(Builder.Data);
-                    ProcessObject(Builder.Input);
-                    ProcessObject(Builder.Output);
-
-                    var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
-                    var post = await LocalApi.Post<string>(LocalApi.LocalIP, "startwatchingtask", new StringContent(serialized)).ConfigureAwait(false);
-                    if (!post)
-                    {
-                        // Status($"error {post}");
-                        return;
-                    }
-                }
+                public EndPart(TaskCreationInfo builder) : base(builder) { }
             }
         }
 

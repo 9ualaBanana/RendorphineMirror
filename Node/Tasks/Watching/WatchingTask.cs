@@ -2,8 +2,10 @@ using Newtonsoft.Json.Linq;
 
 namespace Common.Tasks;
 
-public class WatchingTask
+public class WatchingTask : ILoggable
 {
+    string ILoggable.LogName => $"Watching task {Id}";
+
     public string Id { get; }
     public readonly IWatchingTaskSource Source;
     public readonly string TaskAction;
@@ -20,4 +22,8 @@ public class WatchingTask
         ExecuteLocally = executeLocally;
         Id = id ?? Guid.NewGuid().ToString();
     }
+
+
+    // TODO: version
+    public WatchingTaskInfo AsInfo() => new(Id, null, TaskAction, JObject.FromObject(Source), JObject.FromObject(Output), TaskData, ExecuteLocally);
 }

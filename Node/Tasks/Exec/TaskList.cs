@@ -3,18 +3,16 @@ namespace Node.Tasks.Exec;
 public static class TaskList
 {
     public static readonly ImmutableArray<PluginType> Types = Enum.GetValues<PluginType>().ToImmutableArray();
-    static readonly ImmutableArray<ITaskExecutor> Executors;
     public static ImmutableArray<IPluginAction> Actions;
 
+    public static void Initialize() { }
     static TaskList()
     {
-        Executors = new ITaskExecutor[]
+        Actions = new IEnumerable<IPluginAction>[]
         {
-            FFMpegTasks.Instance,
-            EsrganTasks.Instance,
-        }.ToImmutableArray();
-
-        Actions = Executors.SelectMany(x => x.GetTasks()).ToImmutableArray();
+            FFMpegTasks.CreateTasks(),
+            EsrganTasks.CreateTasks(),
+        }.SelectMany(x => x).ToImmutableArray();
 
         NodeGlobalState.Instance.TaskDefinitions.Value = serializeActions();
 

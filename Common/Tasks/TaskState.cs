@@ -1,5 +1,9 @@
-﻿namespace Common.Tasks;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
+namespace Common.Tasks;
+
+[JsonConverter(typeof(StringEnumConverter))]
 public enum TaskState
 {
     Queued,

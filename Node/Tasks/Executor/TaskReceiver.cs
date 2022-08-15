@@ -11,13 +11,11 @@ public class TaskReceiver : IDisposable
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
     readonly HttpListener _httpListener = new();
-    readonly HttpClient _httpClient;
     readonly CancellationToken _cancellationToken;
 
-    public TaskReceiver(HttpClient httpClient, CancellationToken cancellationToken = default)
+    public TaskReceiver(CancellationToken cancellationToken = default)
     {
         _httpListener.Prefixes.Add($"http://*:{PortForwarding.Port}/rphtaskexec/launchtask/");
-        _httpClient = httpClient;
         _cancellationToken = cancellationToken;
     }
 
@@ -36,12 +34,12 @@ public class TaskReceiver : IDisposable
             var json = JObject.Parse(query["task"]!)!;
 
             var taskinfo = JsonConvert.DeserializeObject<TaskInfo>(query["task"]!)!;
-            _logger.Info($"Received a new task: id: {{Id}}; sign: {{Sign}}; data {query["task"]}", taskid, sign);
+            _logger.Info($"Received a new task: id: {taskid}; sign: {sign}; data {query["task"]}");
 
             context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("{\"ok\":1}"));
             context.Response.Close();
 
-            TaskHandler.HandleReceivedTask(new ReceivedTask(taskid, taskinfo, false), _httpClient, _cancellationToken).Consume();
+            TaskHandler.HandleReceivedTask(new ReceivedTask(taskid, taskinfo, false), _cancellationToken).Consume();
         }
     }
 

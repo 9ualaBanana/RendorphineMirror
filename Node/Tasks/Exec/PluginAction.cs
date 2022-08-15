@@ -1,4 +1,4 @@
-using Newtonsoft.Json.Linq;
+using System.Diagnostics;
 
 namespace Node.Tasks.Exec;
 
@@ -10,39 +10,83 @@ public interface IPluginAction
     FileFormat FileFormat { get; }
 
     ValueTask<string> Execute(ReceivedTask task, string input);
-    ValueTask<string> Execute(string taskid, string input, string output, JObject datajson);
 }
-public class PluginAction<T> : IPluginAction where T : new()
+public abstract class PluginAction<T> : IPluginAction
 {
     Type IPluginAction.DataType => typeof(T);
 
-    public string Name { get; }
-    public PluginType Type { get; }
-    public FileFormat FileFormat { get; }
+    public abstract string Name { get; }
+    public abstract PluginType Type { get; }
+    public abstract FileFormat FileFormat { get; }
 
-    public readonly Func<TaskExecuteData, T, ValueTask<string>> ExecuteFunc;
-
-    public PluginAction(PluginType type, string name, FileFormat fileformat, Func<TaskExecuteData, T, ValueTask<string>> func)
+    public async ValueTask<string> Execute(ReceivedTask task, string input)
     {
-        Type = type;
-        Name = name;
-        FileFormat = fileformat;
-        ExecuteFunc = func;
+        task.LogInfo($"Executing...");
+        Directory.CreateDirectory(GetTaskOutputDir(task));
+
+        var data = task.Info.Data.ToObject<T>();
+        if (data is null) throw new Exception("Could not deserialize input data: " + task.Info.Data);
+
+        var output = await Execute(task, data).ConfigureAwait(false);
+
+        task.LogInfo($"Completed {Type} {Name} execution");
+        task.LogInfo($"Output file: {output}");
+        return output;
     }
 
-    public ValueTask<string> Execute(ReceivedTask task, string input)
+    protected abstract Task<string> Execute(ReceivedTask task, T data);
+
+
+    protected static string GetTaskDir(ReceivedTask task) => Path.Combine(Init.TaskFilesDirectory, task.Id);
+    protected static string GetTaskOutputDir(ReceivedTask task) => Path.Combine(GetTaskDir(task), "output");
+    protected static string GetTaskOutputFile(ReceivedTask task) => Path.Combine(GetTaskOutputDir(task), Path.GetFileName(task.InputFile.ThrowIfNull("Task input file path was not provided")));
+
+    protected static Process StartProcess(string exepath, string args, ILoggable? logobj)
     {
-        var output = Path.Combine(Init.TaskFilesDirectory, task.Id, Path.GetFileNameWithoutExtension(input) + "_out" + Path.GetExtension(input));
-        return Execute(task.Id, input, output, task.Info.Data);
+        logobj?.LogInfo($"Starting {exepath} {args}");
+
+        var process = Process.Start(new ProcessStartInfo(exepath, args) { RedirectStandardOutput = true, RedirectStandardError = true });
+        if (process is null) throw new InvalidOperationException("Could not start plugin process");
+
+        return process;
     }
-    public async ValueTask<string> Execute(string taskid, string input, string output, JObject datajson)
+    protected static void EnsureZeroStatusCode(Process process)
     {
-        var data = datajson.ToObject<T>();
-        if (data is null) throw new InvalidOperationException("Could not deserialize input data: " + datajson);
+        if (process.ExitCode != 0)
+            throw new Exception($"Task process ended with exit code {process.ExitCode}");
+    }
+    protected static Task StartReadingProcessOutput(Process process, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj)
+    {
+        return Task.WhenAll(
+            startReading(process.StandardOutput, false),
+            startReading(process.StandardError, !stderrToStdout)
+        );
 
-        Directory.CreateDirectory(Path.GetDirectoryName(output)!);
 
-        var tk = new TaskExecuteData(input, output, taskid, this, Type.GetInstance());
-        return await ExecuteFunc(tk, data).ConfigureAwait(false);
+        async Task startReading(StreamReader input, bool err)
+        {
+            while (true)
+            {
+                var str = await input.ReadLineAsync().ConfigureAwait(false);
+                if (str is null) return;
+
+                var logstr = $"[Process {process.Id}] {str}";
+                if (err) logobj?.LogErr(logstr);
+                else logobj?.LogInfo(logstr);
+
+                onRead?.Invoke(err, str);
+            }
+        }
+    }
+
+    protected static async Task ExecuteProcess(string exepath, string args, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj)
+    {
+        using var process = StartProcess(exepath, args, logobj);
+        var reading = StartReadingProcessOutput(process, stderrToStdout, onRead, logobj);
+
+        await process.WaitForExitAsync();
+        await reading;
+
+        EnsureZeroStatusCode(process);
     }
 }

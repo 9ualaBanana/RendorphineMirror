@@ -1,311 +1,179 @@
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Common
 {
-    public delegate void ChangedDelegate<T>(T oldv, T newv);
-
     public interface IBindable
     {
-        object Value { get; }
-
-        void LoadFromJson(JToken token, JsonSerializer? serializer);
+        JToken AsJson(JsonSerializer? serializer);
+        void LoadFromJson(JToken json, JsonSerializer? serializer);
     }
     public interface IReadOnlyBindable<T> : IBindable
     {
-        public event ChangedDelegate<T> Changed;
-        new T Value { get; }
-
-        void SubscribeChanged(ChangedDelegate<T> action, bool invokeImmediately = false);
-        IReadOnlyBindable<T> GetBoundCopy();
+        event Action? Changed;
+        T Value { get; }
     }
-    [JsonObject, JsonConverter(typeof(CollectionBindableJsonConverter))]
-    public class Bindable<T> : IReadOnlyBindable<T>
+    public interface IBindable<T> : IReadOnlyBindable<T>
     {
-        public event ChangedDelegate<T> Changed = delegate { };
-        List<WeakReference<Bindable<T>>>? Bounds;
+        new T Value { get; set; }
+    }
 
-        object IBindable.Value => Value!;
-        protected T _Value;
-        public virtual T Value
-        {
-            get => _Value;
-            set
-            {
-                var oldvalue = _Value;
-                _Value = value;
+    [JsonObject, JsonConverter(typeof(BindableJsonConverter))]
+    public abstract class BindableBase<T>
+    {
+        public event Action? Changed;
+        readonly List<WeakReference<BindableBase<T>>> References = new();
 
-                if (!EqualityComparer<T>.Default.Equals(value, oldvalue))
-                    Changed(oldvalue, value);
-            }
-        }
+        public T Value { get => _Value; protected set => InternalSet(value, this); }
+        T _Value;
 
+        protected BindableBase(T defval) => _Value = defval;
 
-        public Bindable(T defaultValue = default!)
-        {
-            _Value = defaultValue;
-            Changed += updateBound;
-
-
-            void updateBound(T _, T __)
-            {
-                if (Bounds is null) return;
-
-                for (int i = 0; i < Bounds.Count; i++)
-                {
-                    var weakr = Bounds[i];
-                    if (!weakr.TryGetTarget(out var b))
-                    {
-                        i--;
-                        Bounds.Remove(weakr);
-                        continue;
-                    }
-
-                    b.Value = Value;
-                }
-            }
-        }
-
-        public void RaiseChangedEvent() => Changed(Value!, Value!);
-        public void SubscribeChanged(ChangedDelegate<T> action, bool invokeImmediately = false)
+        public void SubscribeChanged(Action action, bool executeImmediately = false)
         {
             Changed += action;
-            if (invokeImmediately) action(Value, Value);
+            if (executeImmediately) TriggerValueChanged();
+        }
+        public void TriggerValueChanged() => InternalSet(Value, this);
+
+        void InternalSet(T value, BindableBase<T> eventSource)
+        {
+            _Value = value;
+            Changed?.Invoke();
+
+            // TODO: remove weakrefs
+            foreach (var weak in References)
+                if (weak.TryGetTarget(out var obj) && obj != eventSource)
+                    obj.InternalSet(value, this);
         }
 
-        public void SetValue(T value)
+        public void Bind(BindableBase<T> other)
         {
-            if (!EqualityComparer<T>.Default.Equals(Value, value))
-                Value = value;
+            this.References.Add(new(other));
+            other.References.Add(new(this));
+            this.CopyValueFrom(other);
         }
-        public void LoadFromJson(JToken token, JsonSerializer? serializer) => Value = token.ToObject<T>(serializer ?? JsonSettings.Default)!;
-
-        public void Bound(Bindable<T> bindable)
+        public virtual BindableBase<T> GetBoundCopy()
         {
-            (Bounds ??= new()).Add(new(bindable));
-            (bindable.Bounds ??= new()).Add(new(this));
-        }
-        public Bindable<T> GetBoundCopy()
-        {
-            var b = new Bindable<T>(Value);
-            b.Bound(this);
+            var obj = (BindableBase<T>) (
+                Activator.CreateInstance(GetType(), default(T))
+                ?? Activator.CreateInstance(GetType())
+                ?? throw new Exception($"A valid {GetType().Name} constructor was not found")
+            );
 
-            return b;
-        }
-
-        IReadOnlyBindable<T> IReadOnlyBindable<T>.GetBoundCopy() => GetBoundCopy();
-    }
-    public class IntBindable : Bindable<int>
-    {
-        public override int Value
-        {
-            get => base.Value;
-            set => base.Value = Math.Clamp(value, Min, Max);
-        }
-        readonly int Min, Max;
-
-        public IntBindable(int min = int.MinValue, int max = int.MaxValue, int defaultValue = default) : base(defaultValue)
-        {
-            Min = min;
-            Max = max;
-        }
-    }
-    public class LockableBindable<T> : Bindable<T>
-    {
-        public bool Locked = false;
-
-        public override T Value
-        {
-            get => base.Value;
-            set
-            {
-                if (Locked) return;
-                base.Value = value;
-            }
-        }
-    }
-
-    public interface ICollectionBindable : IBindable
-    {
-        void Execute(Action action);
-        void Clear();
-    }
-    [JsonObject, JsonConverter(typeof(CollectionBindableJsonConverter))]
-    public abstract class CollectionBindable<TCollection> : ICollectionBindable where TCollection : System.Collections.IEnumerable
-    {
-        object IBindable.Value => Value;
-
-        bool EventEnabled = true;
-        public event Action<TCollection> Changed = delegate { };
-
-        public abstract TCollection Value { get; }
-
-        public void RaiseChangedEvent()
-        {
-            if (EventEnabled)
-                Changed(Value);
-        }
-        public void SubscribeChanged(Action<TCollection> action, bool invokeImmediately = false)
-        {
-            Changed += action;
-            if (invokeImmediately) action(Value);
+            obj.Bind(this);
+            return obj;
         }
 
         public void Execute(Action action)
         {
-            EventEnabled = false;
-            using (var _ = new FuncDispose(() => EventEnabled = true))
-                action();
-
-            RaiseChangedEvent();
+            action();
+            TriggerValueChanged();
         }
 
-        public abstract void Clear();
-        public abstract void LoadFromJson(JToken token, JsonSerializer? serializer);
-
-        [OnDeserialized]
-        void OnDeserializing(StreamingContext _) => RaiseChangedEvent();
+        [OnDeserialized] void OnDeserializing(StreamingContext _) => TriggerValueChanged();
+        public virtual JToken AsJson(JsonSerializer? serializer) => Value is null ? JValue.CreateNull() : JToken.FromObject(Value!, serializer ?? JsonSettings.Default);
+        public virtual void LoadFromJson(JToken json, JsonSerializer? serializer) => Value = json.ToObject<T>(serializer ?? JsonSettings.Default)!;
+        protected virtual void CopyValueFrom(BindableBase<T> other) => Value = other.Value;
     }
-    public class BindableList<T> : CollectionBindable<IReadOnlyList<T>>, IReadOnlyList<T>
-    {
-        public int Count => Value.Count;
-        protected readonly List<T> Values = new();
-        public override IReadOnlyList<T> Value => Values;
-
-        public T this[int index] => Value[index];
-
-        public void Add(T item)
-        {
-            Values.Add(item);
-            RaiseChangedEvent();
-        }
-        public void AddRange(IEnumerable<T> items)
-        {
-            Values.AddRange(items);
-            RaiseChangedEvent();
-        }
-        public void SetRange(IEnumerable<T> items)
-        {
-            Values.Clear();
-            Values.AddRange(items);
-            RaiseChangedEvent();
-        }
-        public bool Remove(T item)
-        {
-            var removed = Values.Remove(item);
-            RaiseChangedEvent();
-
-            return removed;
-        }
-        public override void Clear()
-        {
-            Values.Clear();
-            RaiseChangedEvent();
-        }
-        public override void LoadFromJson(JToken token, JsonSerializer? serializer) => SetRange(token.ToObject<T[]>(serializer ?? JsonSettings.Default)!);
-
-        List<T>.Enumerator GetEnumerator() => Values.GetEnumerator();
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
-    }
-    public class BindableDictionary<TKey, TValue> : CollectionBindable<IReadOnlyDictionary<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue> where TKey : notnull
-    {
-        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => ((IReadOnlyDictionary<TKey, TValue>) Dictionary).Keys;
-        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => ((IReadOnlyDictionary<TKey, TValue>) Dictionary).Values;
-        public Dictionary<TKey, TValue>.KeyCollection Keys => Dictionary.Keys;
-        public Dictionary<TKey, TValue>.ValueCollection Values => Dictionary.Values;
-
-        public int Count => Value.Count;
-        protected readonly Dictionary<TKey, TValue> Dictionary = new();
-        public override IReadOnlyDictionary<TKey, TValue> Value => Dictionary;
-
-        public TValue this[TKey key]
-        {
-            get => Value[key];
-            set
-            {
-                Dictionary[key] = value;
-                RaiseChangedEvent();
-            }
-        }
-
-        public void Add(TKey key, TValue value)
-        {
-            Dictionary.Add(key, value);
-            RaiseChangedEvent();
-        }
-        public void AddRange(IEnumerable<KeyValuePair<TKey, TValue>> items)
-        {
-            foreach (var (key, value) in items)
-                Dictionary.Add(key, value);
-
-            RaiseChangedEvent();
-        }
-        public void SetRange(IEnumerable<KeyValuePair<TKey, TValue>> items)
-        {
-            Dictionary.Clear();
-            foreach (var (key, value) in items)
-                Dictionary.Add(key, value);
-
-            RaiseChangedEvent();
-        }
-        public bool Remove(TKey key)
-        {
-            var removed = Dictionary.Remove(key);
-            RaiseChangedEvent();
-
-            return removed;
-        }
-        public override void Clear()
-        {
-            Dictionary.Clear();
-            RaiseChangedEvent();
-        }
-        public override void LoadFromJson(JToken token, JsonSerializer? serializer) => SetRange(token.ToObject<Dictionary<TKey, TValue>>(serializer ?? JsonSettings.Default)!);
-
-        public bool ContainsKey(TKey key) => Dictionary.ContainsKey(key);
-        public bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value) => Dictionary.TryGetValue(key, out value);
-
-        Dictionary<TKey, TValue>.Enumerator GetEnumerator() => Dictionary.GetEnumerator();
-        IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator() => GetEnumerator();
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
-    }
-
-
-    class CollectionBindableJsonConverter : JsonConverter<IBindable>
+    class BindableJsonConverter : JsonConverter<IBindable>
     {
         public override IBindable? ReadJson(JsonReader reader, Type objectType, IBindable? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
-            if (existingValue is null) throw new NotImplementedException("Deserializing AE is not yet supported");
+            if (existingValue is null) throw new NotImplementedException("Non-populating deserializing IBindables is not supported yet");
 
             existingValue.LoadFromJson(JToken.Load(reader), LocalApi.JsonSerializerWithType);
             return existingValue;
         }
 
-        public override void WriteJson(JsonWriter writer, IBindable? value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, IBindable? value, JsonSerializer serializer) =>
+            (value?.AsJson(serializer) ?? JValue.CreateNull()).WriteTo(writer);
+    }
+
+    public class Bindable<T> : BindableBase<T>, IBindable<T>
+    {
+        public new T Value { get => base.Value; set => base.Value = value; }
+
+        public Bindable(T defval = default!) : base(defval) { }
+
+        public override Bindable<T> GetBoundCopy() => (Bindable<T>) base.GetBoundCopy();
+    }
+
+    public interface IReadOnlyBindableCollection<out T> : IReadOnlyCollection<T>
+    {
+        IReadOnlyBindableCollection<T> GetBoundCopy();
+        void SubscribeChanged(Action action, bool executeImmediately = false);
+    }
+    public class BindableList<T> : BindableBase<IReadOnlyList<T>>, IReadOnlyBindable<IReadOnlyList<T>>, IReadOnlyBindableCollection<T>, IReadOnlyList<T>
+    {
+        public int Count => Value.Count;
+        protected new List<T> Value => (List<T>) base.Value;
+
+        public BindableList(IEnumerable<T>? values = null) : base(new List<T>())
         {
-            if (value is null)
-            {
-                writer.WriteNull();
-                return;
-            }
-
-            object obj;
-
-            if (value.Value is System.Collections.IList)
-            {
-                // protection from EnumerationException of List<T>
-                obj = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!
-                    .MakeGenericMethod(
-                        value.Value.GetType().GetInterfaces()
-                        .First(x => x.Name.StartsWith(nameof(System.Collections.IEnumerable)) && x.IsGenericType).GetGenericArguments())!
-                    .Invoke(null, new[] { value.Value })!;
-            }
-            else obj = value.Value;
-
-
-            (obj is null ? JValue.CreateNull() : JToken.FromObject(obj, LocalApi.JsonSerializerWithType)).WriteTo(writer);
+            if (values is not null)
+                Value.AddRange(values);
         }
+
+        public T this[int index] { get => Value[index]; set => Execute(() => Value[index] = value); }
+
+        public void Add(T value) => Execute(() => Value.Add(value));
+        public void AddRange(IEnumerable<T> values) => Execute(() => Value.AddRange(values));
+        public void SetRange(IEnumerable<T> values) => Execute(() => { Value.Clear(); Value.AddRange(values); });
+        public void Remove(T value) => Execute(() => Value.Remove(value));
+        public void Clear() => Execute(Value.Clear);
+
+        public override JToken AsJson(JsonSerializer? serializer) => JToken.FromObject(Value.ToArray(), serializer ?? JsonSettings.Default);
+        public override void LoadFromJson(JToken json, JsonSerializer? serializer) => SetRange(json.ToObject<T[]>(serializer ?? JsonSettings.Default)!);
+        protected override void CopyValueFrom(BindableBase<IReadOnlyList<T>> other) => SetRange(other.Value);
+        public override BindableList<T> GetBoundCopy() => (BindableList<T>) base.GetBoundCopy();
+
+        public IEnumerator<T> GetEnumerator() => Value.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        IReadOnlyBindableCollection<T> IReadOnlyBindableCollection<T>.GetBoundCopy() => GetBoundCopy();
+        void IReadOnlyBindableCollection<T>.SubscribeChanged(Action action, bool executeImmediately) => SubscribeChanged(action, executeImmediately);
+    }
+    public class BindableDictionary<TKey, TValue> : BindableBase<IReadOnlyDictionary<TKey, TValue>>, IReadOnlyBindable<IReadOnlyDictionary<TKey, TValue>>,
+        IReadOnlyBindableCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue> where TKey : notnull
+    {
+        public int Count => Value.Count;
+        protected new Dictionary<TKey, TValue> Value => (Dictionary<TKey, TValue>) base.Value;
+
+        public IEnumerable<TKey> Keys => Value.Keys;
+        public IEnumerable<TValue> Values => Value.Values;
+
+        public BindableDictionary(IEnumerable<KeyValuePair<TKey, TValue>>? values = null) : base(new Dictionary<TKey, TValue>())
+        {
+            if (values is not null)
+                foreach (var (key, value) in values)
+                    Value.Add(key, value);
+        }
+
+        public TValue this[TKey key] { get => Value[key]; set => Execute(() => Value[key] = value); }
+        public bool ContainsKey(TKey key) => Value.ContainsKey(key);
+        public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => Value.TryGetValue(key, out value);
+
+        public void Add(TKey key, TValue value) => Execute(() => Value.Add(key, value));
+        public void AddRange(IEnumerable<KeyValuePair<TKey, TValue>> values) => Execute(() => AddRangeInternal(values));
+        void AddRangeInternal(IEnumerable<KeyValuePair<TKey, TValue>> values)
+        {
+            foreach (var (key, value) in values)
+                Value.Add(key, value);
+        }
+        public void SetRange(IEnumerable<KeyValuePair<TKey, TValue>> values) => Execute(() => { Value.Clear(); AddRangeInternal(values); });
+        public void Remove(TKey key) => Execute(() => Value.Remove(key));
+        public void Clear() => Execute(Value.Clear);
+
+        public override void LoadFromJson(JToken json, JsonSerializer? serializer) => SetRange(json.ToObject<Dictionary<TKey, TValue>>(LocalApi.JsonSerializerWithType)!);
+        protected override void CopyValueFrom(BindableBase<IReadOnlyDictionary<TKey, TValue>> other) => SetRange(other.Value);
+        IReadOnlyBindableCollection<KeyValuePair<TKey, TValue>> IReadOnlyBindableCollection<KeyValuePair<TKey, TValue>>.GetBoundCopy() => GetBoundCopy();
+        public override BindableDictionary<TKey, TValue> GetBoundCopy() => (BindableDictionary<TKey, TValue>) base.GetBoundCopy();
+
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => Value.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

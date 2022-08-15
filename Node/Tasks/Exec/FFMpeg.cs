@@ -83,67 +83,106 @@ public class EditVideoInfo : MediaEditInfo
 }
 public class EditRasterInfo : MediaEditInfo { }
 
-public class FFMpegTasks : ProcessTaskExecutor<MediaEditInfo>
+public static class FFMpegTasks
 {
-    public static readonly FFMpegTasks Instance = new();
-    protected override bool SendStderrToStdout => true;
+    public static IEnumerable<IPluginAction> CreateTasks() => new IPluginAction[] { new FFMpegEditVideo(), new FFMpegEditRaster() };
 
-    public readonly PluginAction<EditVideoInfo> EditVideo;
-    public readonly PluginAction<EditRasterInfo> EditRaster;
 
-    private FFMpegTasks()
+    abstract class FFMpegEditAction<T> : PluginAction<T> where T : MediaEditInfo
     {
-        EditVideo = new(PluginType.FFmpeg, nameof(EditVideo), FileFormat.Mov, Start);
-        EditRaster = new(PluginType.FFmpeg, nameof(EditRaster), FileFormat.Jpeg, Start);
+        public override PluginType Type => PluginType.FFmpeg;
+
+        protected override async Task<string> Execute(ReceivedTask task, T data)
+        {
+            task.InputFile.ThrowIfNull();
+            var frames = (await FFProbe.Get(task.InputFile, task))?.Streams.FirstOrDefault()?.Frames ?? 0;
+            task.LogInfo($"{task.InputFile} length: {frames} frames");
+
+            var output = GetTaskOutputFile(task);
+            var exepath = task.Plugin.GetInstance().Path;
+            var args = getArgs();
+
+            await ExecuteProcess(exepath, args, true, onRead, task);
+            return output;
+
+
+            void onRead(bool err, string line)
+            {
+                // frame=  502 fps=0.0 q=29.0 size=     256kB time=00:00:14.84 bitrate= 141.3kbits/s speed=29.5x
+                if (!line.StartsWith("frame=")) return;
+
+                var spt = line.AsSpan("frame=".Length).TrimStart();
+                spt = spt.Slice(0, spt.IndexOf(' '));
+                var frame = ulong.Parse(spt);
+
+                task.Progress = Math.Clamp((double) frame / frames, 0, 1);
+                NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
+            }
+            string getArgs()
+            {
+                var vfilters = string.Join(',', data.ConstructFFMpegArguments());
+                if (vfilters.Length == 0) throw new Exception("No vfilters specified in task");
+
+
+                var args = "";
+
+                // dont output useless info
+                args += "-hide_banner ";
+
+                // force rewrite output file if exists
+                args += "-y ";
+
+                // input file
+                args += $"-i \"{task.InputFile}\" ";
+
+                // video filters
+                args += $"-vf \"{vfilters}\" ";
+
+                // don't reencode audio
+                args += $"-c:a copy ";
+
+                // output path
+                args += $" \"{output}\" ";
+
+                return args;
+            }
+        }
+    }
+    class FFMpegEditVideo : FFMpegEditAction<EditVideoInfo>
+    {
+        public override string Name => "EditVideo";
+        public override FileFormat FileFormat => FileFormat.Mov;
+    }
+    class FFMpegEditRaster : FFMpegEditAction<EditRasterInfo>
+    {
+        public override string Name => "EditRaster";
+        public override FileFormat FileFormat => FileFormat.Jpeg;
     }
 
-    public override IEnumerable<IPluginAction> GetTasks() => new IPluginAction[] { EditVideo, EditRaster };
 
-    protected override string GetArguments(TaskExecuteData task, MediaEditInfo data)
+    static class FFProbe
     {
-        var vfilters = string.Join(',', data.ConstructFFMpegArguments());
-        if (vfilters.Length == 0) throw new Exception("No vfilters specified in task");
+        public static async Task<FFProbeInfo?> Get(string file, ILoggable? logobj)
+        {
+            var ffprobe =
+                File.Exists("/bin/ffprobe") ? "/bin/ffprobe"
+                : File.Exists("assets/ffprobe.exe") ? "assets/ffprobe.exe"
+                : null;
+
+            if (ffprobe is null) return null;
+
+            var args = $"-hide_banner -v quiet -print_format json -show_streams -count_frames \"{file}\"";
+            logobj?.LogInfo($"Starting {args} {args}");
 
 
-        var args = "";
+            var proc = Process.Start(new ProcessStartInfo(ffprobe, args) { RedirectStandardOutput = true });
+            if (proc is null) return null;
 
-        // dont output useless info
-        args += "-hide_banner ";
+            var str = await proc.StandardOutput.ReadToEndAsync();
+            return JsonConvert.DeserializeObject<FFProbeInfo>(str);
+        }
 
-        // force rewrite output file if exists
-        args += "-y ";
-
-        // input file
-        args += $"-i \"{task.Input}\" ";
-
-        // video filters
-        args += $"-vf \"{vfilters}\" ";
-
-        // don't reencode audio
-        args += $"-c:a copy ";
-
-        // output path
-        args += $" \"{task.Output}\" ";
-
-        return args;
+        public record FFProbeInfo(ImmutableArray<FFProbeStreamInfo> Streams);
+        public record FFProbeStreamInfo([JsonProperty("codec_name")] string CodecName, int Width, int Height, [JsonProperty("nb_read_frames")] ulong Frames);
     }
-    static async ValueTask<FFProbeInfo?> FFProbe(string[] files)
-    {
-        var ffprobe =
-            File.Exists("/bin/ffprobe") ? "/bin/ffprobe"
-            : File.Exists("assets/ffprobe.exe") ? "assets/ffprobe.exe"
-            : null;
-
-        if (ffprobe is null) return null;
-
-        var proc = Process.Start(new ProcessStartInfo(ffprobe, $"-hide_banner -v quiet -print_format json -show_streams \"{files[0]}\"") { RedirectStandardOutput = true });
-        if (proc is null) return null;
-
-        var str = await proc.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-        return JsonConvert.DeserializeObject<FFProbeInfo>(str);
-    }
-
-
-    record FFProbeInfo(ImmutableArray<FFProbeStreamInfo> Streams);
-    record FFProbeStreamInfo(string CodecName, int Width, int Height);
 }
