@@ -23,23 +23,17 @@ public static class PluginsManager
 
 
     #region Deployment
-    public static async Task TryDeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, PluginsDeployer deployer)
+    public static async Task DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, PluginsDeployer deployer)
     {
         foreach (var plugin in LeaveOnlyUninstalled(plugins))
-            await TryDeployUninstalledPluginAsync(plugin, deployer);
-    }
-
-    public static async Task TryDeployUninstalledPluginAsync(PluginToDeploy plugin, PluginsDeployer deployer)
-    {
-        _logger.Info("Deploying {PluginType} plugin", plugin.Type);
-
-        try { await DeployUninstalledPluginAsync(plugin, deployer); _logger.Info("{PluginType} plugin is deployed", plugin.Type); }
-        catch (Exception ex) { _logger.Error(ex, "{PluginType} plugin couldn't be deployed", plugin.Type); }
+            await DeployUninstalledPluginAsync(plugin, deployer);
     }
 
     public static async Task DeployUninstalledPluginAsync(PluginToDeploy plugin, PluginsDeployer deployer)
     {
+        _logger.Info("Deploying {PluginType} plugin", plugin.Type);
         await deployer.DeployAsync(plugin.GetDeploymentInfo());
+        _logger.Info("{PluginType} plugin is deployed", plugin.Type);
         await DiscoverInstalledPluginsInBackground();
     }
     #endregion

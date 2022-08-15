@@ -15,13 +15,16 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
         ReadAll(installSoftware, userSettings.InstallSoftware);
 
         var nodeInstallSoftwareForAllNodes= (JObject?)jObject.Property("nodeinstallsoftware")?.Value;
-        var nodeInstallSoftware = (JObject?)nodeInstallSoftwareForAllNodes?.Property(Settings.Guid!)?.Value;
-        ReadAll(nodeInstallSoftware, userSettings.NodeInstallSoftware);
+        foreach (var nodeSpecificSoftwareProperty in nodeInstallSoftwareForAllNodes?.Properties()!)
+        {
+            userSettings.NodeInstallSoftware.Add(nodeSpecificSoftwareProperty.Name, new());
+            ReadAll((JObject?)nodeSpecificSoftwareProperty.Value, userSettings.NodeInstallSoftware[nodeSpecificSoftwareProperty.Name]);
+        }
 
         return userSettings;
     }
 
-    static void ReadAll(JObject? pluginsJObject, IList<PluginToDeploy> deserializedPlugins)
+    static void ReadAll(JObject? pluginsJObject, HashSet<PluginToDeploy> deserializedPlugins)
     {
         if (pluginsJObject is null) return;
 
@@ -53,13 +56,13 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
             writer.WriteEndObject();
         }
 
-        if (value.NodeInstallSoftware.Any())
+        if (value.ThisNodeInstallSoftware.Any())
         {
             writer.WritePropertyName("nodeinstallsoftware"); writer.WriteStartObject();
 
-                writer.WritePropertyName(value.Guid); writer.WriteStartObject();
+                writer.WritePropertyName(value.Guid!); writer.WriteStartObject();
 
-                    WritePlugins(writer, value.NodeInstallSoftware, serializer);
+                    WritePlugins(writer, value.ThisNodeInstallSoftware, serializer);
 
                 writer.WriteEndObject();
 

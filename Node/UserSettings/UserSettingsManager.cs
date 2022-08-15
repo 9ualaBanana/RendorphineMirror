@@ -9,10 +9,12 @@ public class UserSettingsManager : IHeartbeatGenerator
 
     readonly HttpClient _httpClient;
     readonly CancellationToken _cancellationToken;
+    readonly string _endpoint = $"{Api.TaskManagerEndpoint}/getmysettings";
+    string BuildUrl(string? sessionId = default) => $"{_endpoint}?sessionid={sessionId ?? Settings.SessionId}";
 
 
     #region IHeartbeatProducer
-    public HttpRequestMessage Request => new(HttpMethod.Get, $"{Api.TaskManagerEndpoint}/getmysettings?sessionid={Settings.SessionId}");
+    public HttpRequestMessage Request => new(HttpMethod.Get, BuildUrl());
     bool _deploymentInProcess = false;
     public EventHandler<HttpResponseMessage> ResponseHandler => async (_, response) =>
     {
@@ -46,27 +48,27 @@ public class UserSettingsManager : IHeartbeatGenerator
     }
 
 
-    public async Task<UserSettings?> TryFetchAsync()
+    public async Task<UserSettings?> TryFetchAsync(string? sessionId = default)
     {
         try
         {
-            var userSettings = await FetchAsync(_cancellationToken); _logger.Debug("User settings were successfully fetched");
+            var userSettings = await FetchAsync(sessionId, _cancellationToken); _logger.Debug("User settings were successfully fetched");
             return userSettings;
         }
         catch (Exception ex) { _logger.Error(ex, "Couldn't fetch user settings"); return null; }
     }
 
-    public async Task<UserSettings> FetchAsync(CancellationToken cancellationToken = default)
+    public async Task<UserSettings> FetchAsync(string? sessionId = default, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetAsync(Request.RequestUri, cancellationToken);
+        var response = await _httpClient.GetAsync(BuildUrl(sessionId), cancellationToken);
         return await UserSettings.ReadOrThrowAsync(response);
     }
 
     /// <inheritdoc cref="SetAsync(UserSettings, string?, CancellationToken)"/>
-    public async Task TrySetAsync(UserSettings userSettings, string? sessionId = default, CancellationToken cancellationToken = default)
+    public async Task<bool> TrySetAsync(UserSettings userSettings, string? sessionId = default, CancellationToken cancellationToken = default)
     {
-        try { await SetAsync(userSettings, sessionId, cancellationToken); _logger.Debug("User settings were successfully set"); }
-        catch (Exception ex) { _logger.Error(ex, "Couldn't set user settings"); }
+        try { await SetAsync(userSettings, sessionId, cancellationToken); _logger.Debug("User settings were successfully set"); return true; }
+        catch (Exception ex) { _logger.Error(ex, "Couldn't set user settings"); return false; }
     }
 
     /// <remarks>
@@ -79,8 +81,8 @@ public class UserSettingsManager : IHeartbeatGenerator
             { new StringContent(sessionId ?? Settings.SessionId!), "sessionid" },
             { new StringContent(JsonConvert.SerializeObject(userSettings)), "settings" }
         };
-        (await _httpClient.PostAsync(
-            $"{Api.TaskManagerEndpoint}/setusersettings", httpContent, cancellationToken)
-            ).EnsureSuccessStatusCode();
+        await Api.GetJsonFromResponseIfSuccessfulAsync(
+            await _httpClient.PostAsync($"{Api.TaskManagerEndpoint}/setusersettings", httpContent, cancellationToken)
+            );
     }
 }

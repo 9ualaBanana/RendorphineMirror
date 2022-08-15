@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Machine.Plugins.Deployment;
 
@@ -37,7 +36,7 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
     ///     } <br/>
     /// }
     /// </remarks>
-    public static IEnumerable<PluginToDeploy>? ReadSubpluginsFrom(JToken pluginVersion)
+    public static HashSet<PluginToDeploy> ReadSubpluginsFrom(JToken pluginVersion)
     {
         return ((JObject)pluginVersion).Properties()
             .Select(subPluginProperty => new PluginToDeploy()
@@ -45,7 +44,7 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
                 Type = Enum.Parse<PluginType>(subPluginProperty.Name, true),
                 Version = (string) ((JObject)subPluginProperty.Value).Property("version")!,
                 SubPlugins = ReadSubSubPluginsFrom(((JObject)subPluginProperty.Value).Property("subplugins")!)
-            });
+            }).ToHashSet();
     }
 
     /// <remarks>
@@ -53,14 +52,14 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
     ///     "[susubplugin_name]": "[subsubplugin_version]", <br/>
     /// }
     /// </remarks>
-    static IEnumerable<PluginToDeploy>? ReadSubSubPluginsFrom(JProperty subSubPluginsProperty)
+    static HashSet<PluginToDeploy> ReadSubSubPluginsFrom(JProperty subSubPluginsProperty)
     {
         return ((JObject)subSubPluginsProperty.Value).Properties()
             .Select(subSubPlugin => new PluginToDeploy()
             {
                 Type = Enum.Parse<PluginType>(subSubPlugin.Name, true),
                 Version = (string)subSubPlugin.Value!
-            });
+            }).ToHashSet();
     }
 
     public override void WriteJson(JsonWriter writer, PluginToDeploy? plugin, JsonSerializer serializer)
@@ -75,7 +74,7 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
 
             writer.WritePropertyName("plugins"); writer.WriteStartObject();
 
-                if (ShouldBeWritten(plugin.SubPlugins))
+                if (plugin.SubPlugins.Any())
                     WriteSubplugins(writer, plugin.SubPlugins);
 
             writer.WriteEndObject();
@@ -96,7 +95,7 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
             writer.WritePropertyName("version"); writer.WriteValue(subPlugin.Version);
             writer.WritePropertyName("subplugins"); writer.WriteStartObject();
 
-                if (ShouldBeWritten(subPlugin.SubPlugins))
+                if (subPlugin.SubPlugins.Any())
                     WriteSubSubPlugins(writer, subPlugin.SubPlugins);
 
             writer.WriteEndObject();
@@ -115,7 +114,4 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
         writer.WritePropertyName(subSubPlugin.Type.ToString().ToLowerInvariant());
         writer.WriteValue(subSubPlugin.Version);
     }
-
-    static bool ShouldBeWritten([NotNullWhen(true)] IEnumerable<PluginToDeploy>? childrenPlugins) =>
-        childrenPlugins is not null && childrenPlugins.Any();
 }
