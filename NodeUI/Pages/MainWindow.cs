@@ -288,7 +288,7 @@ namespace NodeUI.Pages
 
                     return new Expander()
                     {
-                        Header = $"{task.Id} {NodeGlobalState.Instance.GetPluginType(task)} {task.Info.TaskType}",
+                        Header = $"{task.Id} {task.Plugin} {task.Action}",
                         Content = new StackPanel()
                         {
                             Orientation = Orientation.Vertical,

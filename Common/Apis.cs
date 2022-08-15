@@ -1,5 +1,3 @@
-using Common.NodeToUI;
-
 namespace Common;
 
 public static class Apis
@@ -20,7 +18,7 @@ public static class Apis
     public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this PlacedTask task) => GetTaskStateAsync(task.Id);
     public static async ValueTask<OperationResult> ChangeStateAsync(this ReceivedTask task, TaskState state)
     {
-        _logger.Info("Changing task {TaskId} status to {TaskState}", task.Id, state);
+        task.LogInfo($"State changed to {state}");
         if (task.ExecuteLocally) return true;
 
         var result = await Api.ApiGet($"{Api.TaskManagerEndpoint}/mytaskstatechanged", "changing state",

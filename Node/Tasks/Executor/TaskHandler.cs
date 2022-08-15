@@ -31,12 +31,12 @@ public static class TaskHandler
             { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
         };
 
-    public static async Task HandleReceivedTask(ReceivedTask task, HttpClient? httpClient = null, CancellationToken token = default)
+    public static async Task HandleReceivedTask(ReceivedTask task, CancellationToken token = default)
     {
         try
         {
             NodeSettings.SavedTasks.Bindable.Add(task);
-            await HandleAsync(task, httpClient, token).ConfigureAwait(false);
+            await HandleAsync(task, token).ConfigureAwait(false);
         }
         catch (Exception ex) { _logger.Error(ex.ToString()); }
         finally
@@ -45,12 +45,10 @@ public static class TaskHandler
             NodeSettings.SavedTasks.Bindable.Remove(task);
         }
     }
-    public static async Task HandleAsync(ReceivedTask task, HttpClient? httpClient = null, CancellationToken cancellationToken = default)
+    public static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         try
         {
-            httpClient ??= new();
-
             NodeGlobalState.Instance.ExecutingTasks.Add(task);
             using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
 
@@ -63,6 +61,7 @@ public static class TaskHandler
 
             task.LogInfo($"Downloading file...");
             var input = await inputobj.Download(task, cancellationToken).ConfigureAwait(false);
+            task.InputFile = input;
             task.LogInfo($"File downloaded to {input}");
             await task.ChangeStateAsync(TaskState.Active);
 
@@ -91,7 +90,7 @@ public static class TaskHandler
 
                     task.LogInfo($"Uploading...");
                     var queryString = $"sessionid={Settings.SessionId}&iid={outiid}&nodename={Settings.NodeName}";
-                    await httpClient.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken);
+                    await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken);
                     task.LogInfo($"Result uploaded");
                 }
                 catch (Exception ex) { _logger.Error("Error sending result to reepo: " + ex); }

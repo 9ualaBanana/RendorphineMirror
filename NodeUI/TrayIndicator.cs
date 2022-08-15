@@ -164,7 +164,7 @@ namespace NodeUI
                     if ((time / 3) % 2 == 0)
                         return drawOnGreen("1/" + NodeGlobalState.Instance.ExecutingTasks.Count);
 
-                    return drawOnGreen((int) (NodeGlobalState.Instance.ExecutingTasks.FirstOrDefault()?.Progress ?? 0) + "%");
+                    return drawOnGreen((int) ((NodeGlobalState.Instance.ExecutingTasks.FirstOrDefault()?.Progress ?? 0) * 100) + "%");
                 }
                 WindowIcon drawOnGreen(string text)
                 {

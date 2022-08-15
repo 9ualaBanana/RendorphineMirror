@@ -74,7 +74,7 @@ if (!Init.IsDebug || halfrelease)
     captured.Add(userSettingsHeartbeat);
 }
 
-var taskreceiver = new TaskReceiver(Api.Client);
+var taskreceiver = new TaskReceiver();
 taskreceiver.StartAsync().Consume();
 
 new PublicListener().Start();
@@ -121,7 +121,7 @@ if (NodeSettings.SavedTasks.Count != 0)
     // .ToArray() to not cause exception while removing tasks
     foreach (var task in NodeSettings.SavedTasks.Bindable.ToArray())
     {
-        try { await TaskHandler.HandleAsync(task, Api.Client).ConfigureAwait(false); }
+        try { await TaskHandler.HandleAsync(task).ConfigureAwait(false); }
         finally
         {
             task.LogInfo("Removing");

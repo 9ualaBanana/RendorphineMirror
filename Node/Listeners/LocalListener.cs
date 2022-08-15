@@ -30,25 +30,6 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
-        if (path == "startlocaltask")
-        {
-            return await Test(request, response, "type", "data", "input", "output", async (type, data, input, output) =>
-            {
-                // TODO: fill in TaskObject
-                var task = new ReceivedTask(
-                    ReceivedTask.GenerateLocal(),
-                    new TaskInfo(new("file.mov", 123),
-                    JObject.FromObject(new UserTaskInputInfo(input)),
-                    JObject.FromObject(new UserTaskOutputInfo(Path.GetDirectoryName(output)!, Path.GetFileName(output))),
-                    JObject.Parse(data)
-                ), true);
-
-                TaskHandler.HandleReceivedTask(task).Consume();
-
-                return await WriteJToken(response, task.Id).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-
         if (path == "reloadcfg")
         {
             Settings.Reload();

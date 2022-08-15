@@ -1,8 +1,6 @@
-using Machine.Plugins;
+namespace Common.Tasks;
 
-namespace Node;
-
-public static class Extensions
+public static class TaskExtensions
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -11,6 +9,5 @@ public static class Extensions
     public static void LogErr(this ILoggable obj, Exception ex) => obj.LogErr(ex.ToString());
 
 
-    public static Plugin GetInstance(this PluginType type) => PluginsManager.DiscoverInstalledPlugins().First(x => x.Type == type);
-    public static Plugin GetPlugin(this ReceivedTask type) => type.GetAction().Type.GetInstance();
+    public static Plugin GetInstance(this PluginType type) => NodeGlobalState.Instance.GetPluginInstance(type);
 }

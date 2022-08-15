@@ -12,11 +12,11 @@ public static class NodeTask
         OperationResult<string> taskid;
         if (info.ExecuteLocally)
         {
-            taskid = ReceivedTask.GenerateLocal();
+            taskid = ReceivedTask.GenerateLocalId();
 
             // TODO: fill in TaskObject
             var tk = new ReceivedTask(taskid.Value, new TaskInfo(new("file.mov", 123), info.Input, info.Output, info.Data), true);
-            TaskHandler.HandleAsync(tk, new(), default).Consume();
+            TaskHandler.HandleReceivedTask(tk).Consume();
         }
         else taskid = await RegisterAsync(info).ConfigureAwait(false);
 

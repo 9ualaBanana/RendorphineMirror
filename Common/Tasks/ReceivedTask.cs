@@ -2,8 +2,14 @@
 
 public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILoggable
 {
-    public double Progress = 0;
     string ILoggable.LogName => $"Task {Id}";
 
-    public static string GenerateLocal() => "local_" + Guid.NewGuid();
+    public string Action => Info.TaskType;
+    public PluginType Plugin => NodeGlobalState.Instance.GetPluginTypeFromAction(Action);
+
+    // 0-1
+    public double Progress = 0;
+    public string? InputFile;
+
+    public static string GenerateLocalId() => "local_" + Guid.NewGuid();
 }

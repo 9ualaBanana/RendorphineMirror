@@ -1,63 +1,66 @@
 namespace Node.Tasks.Exec;
 
-public class UpscaleEsrganInfo
+public class UpscaleEsrganInfo { }
+public static class EsrganTasks
 {
+    public static IEnumerable<IPluginAction> CreateTasks() => new IPluginAction[] { new UpscaleEsrgan() };
 
-}
-public class EsrganTasks : ProcessTaskExecutor<UpscaleEsrganInfo>
-{
-    public static readonly EsrganTasks Instance = new();
 
-    public readonly PluginAction<UpscaleEsrganInfo> UpscaleEsrgan;
-
-    private EsrganTasks()
+    class UpscaleEsrgan : PluginAction<UpscaleEsrganInfo>
     {
-        UpscaleEsrgan = new(PluginType.Python_Esrgan, nameof(UpscaleEsrgan), FileFormat.Jpeg, Start);
-    }
+        public override string Name => "UpscaleEsrgan";
+        public override PluginType Type => PluginType.Python_Esrgan;
+        public override FileFormat FileFormat => FileFormat.Jpeg;
 
-    public override IEnumerable<IPluginAction> GetTasks() => new IPluginAction[] { UpscaleEsrgan };
-
-    protected override string GetArguments(TaskExecuteData task, UpscaleEsrganInfo data)
-    {
-        var plugindir = Path.GetDirectoryName(task.Plugin.Path);
-
-        var installfile = Path.GetTempFileName();
-
-        var pythonstart = @$"python test.py ""{task.Input}"" ""{task.Output}"" --tile_size 384";
-
-        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+        protected override async Task<string> Execute(ReceivedTask task, UpscaleEsrganInfo data)
         {
-            var script = $@"
-                Set-Location ""{plugindir}""
-                {PluginType.Python.GetInstance().Path} -m venv venv
-                ./venv/Scripts/activate
-                pip3 install -r ./installation/requirements.txt
-                foreach($line in Get-Content ./installation/precommands.txt){{
-                    Invoke-Expression $line
-                }}
+            var output = GetTaskOutputFile(task);
+            var exepath = Environment.OSVersion.Platform == PlatformID.Win32NT ? "powershell.exe" : "/bin/sh";
+            var args = getScriptFile();
 
-                {pythonstart}
-            ";
-            File.WriteAllText(installfile, script);
+            await ExecuteProcess(exepath, args, false, delegate { }, task); // TODO: progress?
+            return output;
+
+
+            string getScriptFile()
+            {
+                var plugindir = Path.GetDirectoryName(task.Plugin.GetInstance().Path);
+                var installfile = Path.GetTempFileName();
+                var pythonstart = @$"python test.py ""{task.InputFile}"" ""{output}"" --tile_size 384";
+
+                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                {
+                    var script = $@"
+                        Set-Location ""{plugindir}""
+                        {PluginType.Python.GetInstance().Path} -m venv venv
+                        ./venv/Scripts/activate
+                        pip3 install -r ./installation/requirements.txt
+                        foreach($line in Get-Content ./installation/precommands.txt){{
+                            Invoke-Expression $line
+                        }}
+
+                        {pythonstart}
+                    ";
+                    File.WriteAllText(installfile, script);
+                }
+                else
+                {
+                    var script = $@"
+                        #!/bin/bash
+
+                        cd ""{plugindir}""
+                        {PluginType.Python.GetInstance().Path} -m venv venv
+                        source ./venv/bin/activate
+                        pip3 install -r ./installation/requirements.txt
+                        sh ./installation/precommands.txt
+
+                        {pythonstart}
+                    ";
+                    File.WriteAllText(installfile, script);
+                }
+
+                return installfile;
+            }
         }
-        else
-        {
-            var script = $@"
-                #!/bin/bash
-
-                cd ""{plugindir}""
-                {PluginType.Python.GetInstance().Path} -m venv venv
-                source ./venv/bin/activate
-                pip3 install -r ./installation/requirements.txt
-                sh ./installation/precommands.txt
-
-                {pythonstart}
-            ";
-            File.WriteAllText(installfile, script);
-        }
-
-        return installfile;
     }
-
-    protected override string GetExecutable(TaskExecuteData task) => Environment.OSVersion.Platform == PlatformID.Win32NT ? "powershell.exe" : "/bin/sh";
 }
