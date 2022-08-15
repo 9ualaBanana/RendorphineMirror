@@ -85,7 +85,7 @@ internal static class Benchmark
         {
             rating = (await zipBenchmark.RunAsync()).Bps,
             pratings = new { ffmpeg = ffmpegRating },
-            load = -1,
+            load = .0001,
         };
     }
 
@@ -100,9 +100,9 @@ internal static class Benchmark
         catch (Exception) { }
         return new
         {
-            rating = -1,
+            rating = 10_000_000, // TODO: rating load etc
             pratings = new { ffmpeg = ffmpegRating },
-            load = -1,
+            load = .0001,
         };
     }
 
