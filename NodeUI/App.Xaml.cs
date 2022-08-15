@@ -32,6 +32,9 @@ namespace NodeUI
                 else UISettings.Language = LocalizedString.Locale;
 
                 this.InitializeTrayIndicator();
+                UICache.StartUpdatingStats();
+                UICache.StartUpdatingState().Consume();
+
                 MainTheme.Apply(Resources, Styles);
 
                 if (!Environment.GetCommandLineArgs().Contains("hidden"))

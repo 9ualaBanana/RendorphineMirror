@@ -20,8 +20,6 @@ namespace NodeUI.Pages
 
             this.PreventClosing();
             SubscribeToStateChanges();
-            UICache.StartUpdatingStats();
-            UICache.StartUpdatingState().Consume();
 
 
             var tabs = new TabbedControl();
