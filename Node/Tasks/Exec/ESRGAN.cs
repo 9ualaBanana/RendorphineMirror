@@ -18,21 +18,53 @@ public static class EsrganTasks
             var exepath = Environment.OSVersion.Platform == PlatformID.Win32NT ? "powershell.exe" : "/bin/sh";
             var args = getScriptFile();
 
-            await ExecuteProcess(exepath, args, false, delegate { }, task); // TODO: progress?
+            await ExecuteProcess(exepath, args, false, onRead, task);
             return output;
 
 
+            void onRead(bool err, string line)
+            {
+                if (!line.StartsWith("Progress:")) return;
+
+                // Progress: 1/20
+                var spt = line.AsSpan("Progress: ".Length);
+                var slashidx = spt.IndexOf('/');
+                var num1 = double.Parse(spt.Slice(0, slashidx));
+                var num2 = double.Parse(spt.Slice(slashidx + 1));
+
+                task.Progress = num1 / num2;
+                NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
+            }
             string getScriptFile()
             {
                 var plugindir = Path.GetDirectoryName(task.Plugin.GetInstance().Path);
                 var installfile = Path.GetTempFileName();
-                var pythonstart = @$"python test.py ""{task.InputFile}"" ""{output}"" --tile_size 384";
+                var pythonpath = PluginType.Python.GetInstance().Path;
+
+                var pythonstart = pythonpath + " ";
+
+                // unbuffered output, for progress tracking
+                pythonstart += "-u ";
+
+                // esrgan start file
+                pythonstart += "test.py ";
+
+                // input file
+                pythonstart += $"\"{task.InputFile}\" ";
+
+                // output file
+                pythonstart += $"\"{output}\" ";
+
+                // tile size; TODO: automatically determine
+                pythonstart += "--tile_size 384 ";
+
+
 
                 if (Environment.OSVersion.Platform == PlatformID.Win32NT)
                 {
                     var script = $@"
                         Set-Location ""{plugindir}""
-                        {PluginType.Python.GetInstance().Path} -m venv venv
+                        {pythonpath} -m venv venv
                         ./venv/Scripts/activate
                         pip3 install -r ./installation/requirements.txt
                         foreach($line in Get-Content ./installation/precommands.txt){{
@@ -49,7 +81,7 @@ public static class EsrganTasks
                         #!/bin/bash
 
                         cd ""{plugindir}""
-                        {PluginType.Python.GetInstance().Path} -m venv venv
+                        {pythonpath} -m venv venv
                         source ./venv/bin/activate
                         pip3 install -r ./installation/requirements.txt
                         sh ./installation/precommands.txt

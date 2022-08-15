@@ -55,10 +55,12 @@ public abstract class PluginAction<T> : IPluginAction
         if (process.ExitCode != 0)
             throw new Exception($"Task process ended with exit code {process.ExitCode}");
     }
-    protected static void StartReadingProcessOutput(Process process, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj)
+    protected static Task StartReadingProcessOutput(Process process, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj)
     {
-        startReading(process.StandardOutput, false).Consume();
-        startReading(process.StandardError, !stderrToStdout).Consume();
+        return Task.WhenAll(
+            startReading(process.StandardOutput, false),
+            startReading(process.StandardError, !stderrToStdout)
+        );
 
 
         async Task startReading(StreamReader input, bool err)
@@ -80,9 +82,11 @@ public abstract class PluginAction<T> : IPluginAction
     protected static async Task ExecuteProcess(string exepath, string args, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj)
     {
         using var process = StartProcess(exepath, args, logobj);
-        StartReadingProcessOutput(process, stderrToStdout, onRead, logobj);
+        var reading = StartReadingProcessOutput(process, stderrToStdout, onRead, logobj);
 
         await process.WaitForExitAsync();
+        await reading;
+
         EnsureZeroStatusCode(process);
     }
 }
