@@ -12,7 +12,7 @@ public class TaskReceiver : ExecutableListenerBase
 
     protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
     {
-        using var response = context.Response;
+        var response = context.Response;
 
         var querystr = await new StreamReader(context.Request.InputStream).ReadToEndAsync().ConfigureAwait(false);
         var query = HttpUtility.ParseQueryString(querystr);
