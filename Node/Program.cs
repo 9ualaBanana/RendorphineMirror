@@ -74,10 +74,8 @@ if (!Init.IsDebug || halfrelease)
     captured.Add(userSettingsHeartbeat);
 }
 
-var taskreceiver = new TaskReceiver();
-taskreceiver.StartAsync().Consume();
-
 new PublicListener().Start();
+new TaskReceiver().Start();
 new NodeStateListener().Start();
 new DirectoryDiffListener().Start();
 if (Init.IsDebug) new DebugListener().Start();
