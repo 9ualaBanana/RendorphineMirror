@@ -10,6 +10,5 @@ public class TopazGigapixelAIPluginDiscoverer : PluginDiscoverer
     };
     protected override string ParentDirectoryPattern => "Topaz Video Enhance AI";
     protected override string ExecutableName => "Topaz Video Enhance AI.exe";
-
-    protected override Plugin GetDiscoveredPlugin(string executablePath) => new TopazGigapixelAIPlugin(executablePath);
+    protected override PluginType PluginType => PluginType.TopazGigapixelAI;
 }

@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 
-namespace Common.NodeToUI;
+namespace Common.Tasks;
 
 public class TaskCreationInfo
 {

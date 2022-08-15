@@ -1,4 +1,4 @@
-﻿namespace Common.NodeToUI;
+﻿namespace Common.Tasks;
 
 public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : IHasTaskId
 {

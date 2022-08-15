@@ -8,10 +8,9 @@ public class Autodesk3dsMaxPluginDiscoverer : PluginDiscoverer
         $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\Autodesk",
         $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\Autodesk",
     };
-
     protected override string ParentDirectoryPattern => "3ds Max ????";
-
     protected override string ExecutableName => "3dsmax.exe";
+    protected override PluginType PluginType => PluginType.Autodesk3dsMax;
 
-    protected override Plugin GetDiscoveredPlugin(string executablePath) => new Autodesk3dsMaxPlugin(executablePath);
+    protected override string DetermineVersion(string exepath) => Directory.GetParent(exepath)!.Name.Split().Last();
 }

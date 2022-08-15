@@ -1,4 +1,4 @@
-namespace Node.Tasks.Watching;
+namespace Common.Tasks;
 
 public interface IWatchingTaskSource : IDisposable
 {

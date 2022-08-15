@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
-namespace Node.Tasks.Models;
+namespace Common.Tasks;
 
+[JsonConverter(typeof(StringEnumConverter))]
 public enum TaskInputOutputType
 {
     User,

@@ -59,22 +59,6 @@ public class OtherUserWatchingTaskSource : IWatchingTaskSource
                 // TODO: get file, use it, upload back
             }
         }
-
-        var pipe = await LocalPipe.SendAsync($"http://{node.Info.Ip}:{node.Info.Port}/watcher/listen?dir={HttpUtility.UrlEncode(Directory)}&sessionid={Settings.SessionId}").ConfigureAwait(false);
-        var reader = LocalPipe.CreateReader(pipe);
-
-        while (true)
-        {
-            var read = await reader.ReadAsync().ConfigureAwait(false);
-            if (!read) break;
-
-            var file = JToken.Load(reader).Value<NodeFileInfo>()!;
-
-            var downloader = new PacketsDownloader(new P2P.Models.DownloadFileInfo(Settings.SessionId!, file.FileName, file.Size, Path.GetExtension(file.FileName).Substring(1)));
-            downloader.DownloadCompleted += (_, path) => FileAdded?.Invoke(new(path, new UserTaskInputInfo(path)));
-
-            await downloader.StartAsync(CancellationToken.None).ConfigureAwait(false);
-        }
     }
 
     public void Dispose()

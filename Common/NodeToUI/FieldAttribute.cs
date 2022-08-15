@@ -20,5 +20,9 @@ public class DefaultAttribute : DescriberAttributeBase
     public DefaultAttribute(object value) => Value = value;
 }
 
+public class DescriberIgnoreAttribute : DescriberAttributeBase { }
+
 public class LocalFileAttribute : DescriberAttributeBase { }
 public class LocalDirectoryAttribute : DescriberAttributeBase { }
+
+public class MPlusDirectoryAttribute : DescriberAttributeBase { }

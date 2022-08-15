@@ -3,15 +3,17 @@ using Newtonsoft.Json.Serialization;
 
 namespace Common;
 
-public class JsonSettings
+public static class JsonSettings
 {
-    public static JsonSerializerSettings LowercaseIgnoreNull = new()
+    public static readonly JsonSerializer Default = JsonSerializer.CreateDefault();
+
+    public static readonly JsonSerializerSettings LowercaseIgnoreNull = new()
     {
         DefaultValueHandling = DefaultValueHandling.Ignore,
         ContractResolver = LowercaseContract.Instance,
         Formatting = Formatting.None,
     };
-    public static JsonSerializer LowercaseIgnoreNullS = JsonSerializer.Create(LowercaseIgnoreNull);
+    public static readonly JsonSerializer LowercaseIgnoreNullS = JsonSerializer.Create(LowercaseIgnoreNull);
 
 
     class LowercaseContract : DefaultContractResolver

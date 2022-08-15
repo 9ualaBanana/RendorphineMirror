@@ -1,5 +1,9 @@
-﻿namespace Common;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
+namespace Common;
+
+[JsonConverter(typeof(StringEnumConverter))]
 public enum PluginType
 {
     FFmpeg,

@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 
-namespace Common.NodeToUI;
+namespace Common.Tasks;
 
 public record TaskInfo(TaskObject Object, JObject Input, JObject Output, JObject Data)
 {

@@ -106,6 +106,7 @@ namespace NodeUI.Pages
 
                 part.OnChoose += UpdateButtons;
                 UpdateButtons(false);
+
             }
             void ShowNext()
             {
@@ -116,6 +117,7 @@ namespace NodeUI.Pages
                 if (next is null) return;
 
                 ShowPart(next);
+                Dispatcher.UIThread.Post(next.Initialize);
             }
             void ShowPrev()
             {
@@ -146,22 +148,50 @@ namespace NodeUI.Pages
 
             protected TaskPart(TaskCreationInfo builder) => Builder = builder;
 
+            public virtual void Initialize() { }
             public virtual void OnNext() { }
+        }
+
+        abstract class LocalRemoteTaskPart : TaskPart
+        {
+            public override event Action<bool>? OnChoose;
+            public override LocalizedString Title => new("Choose Type (execute locally or send to another node)");
+
+            protected readonly TypedListBox<TType> Types;
+
+            protected LocalRemoteTaskPart(TaskCreationInfo builder) : base(builder)
+            {
+                Types = new(Enum.GetValues<TType>(), t => new TextBlock() { Text = t.ToString() });
+                Types.SelectionChanged += (obj, e) => OnChoose?.Invoke(Types.SelectedItems.Count != 0);
+                Children.Add(Types);
+
+                Dispatcher.UIThread.Post(() => Types.SelectedIndex = 0);
+            }
+
+
+            public enum TType { Remote, Local }
         }
         abstract class ChoosePluginPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Plugin");
 
-            protected readonly TypedListBox<PluginType> PluginsList;
+            public ChoosePluginPart(TaskCreationInfo builder) : base(builder) { }
 
-            public ChoosePluginPart() : base(new())
+            public override void Initialize()
             {
-                PluginsList = CreateListBox(Enum.GetValues<PluginType>(), type => new TextBlock() { Text = type.GetName() });
-                PluginsList.SelectionChanged += (obj, e) =>
-                    OnChoose?.Invoke(PluginsList.SelectedItems.Count != 0);
+                var plugins = Enum.GetValues<PluginType>();
+                if (Builder.ExecuteLocally)
+                    plugins = NodeGlobalState.Instance.InstalledPlugins.Value.Select(x => x.Type).ToArray();
 
-                Children.Add(PluginsList);
+                var list = CreateListBox(plugins, type => new TextBlock() { Text = type.GetName() });
+                list.SelectionChanged += (obj, e) =>
+                {
+                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                    Builder.Type = list.SelectedItem;
+                };
+
+                Children.Add(list);
             }
         }
         abstract class ChooseVersionPart : TaskPart
@@ -171,20 +201,23 @@ namespace NodeUI.Pages
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new($"Choose {Builder.Type.GetName()} Version");
 
-            protected readonly TypedListBox<string> VersionsList;
+            public ChooseVersionPart(TaskCreationInfo builder) : base(builder) { }
 
-            public ChooseVersionPart(TaskCreationInfo builder) : base(builder)
+            public override void Initialize()
             {
                 string[] versions;
-                if (UICache.SoftwareStats.Value.TryGetValue(builder.Type, out var stats))
+                if (UICache.SoftwareStats.Value.TryGetValue(Builder.Type, out var stats))
                     versions = stats.ByVersion.Keys.ToArray();
                 else versions = Array.Empty<string>();
 
-                VersionsList = CreateListBox(versions.Prepend(AnyVersion).ToArray(), version => new TextBlock() { Text = version });
-                VersionsList.SelectionChanged += (obj, e) => OnChoose?.Invoke(VersionsList.SelectedItems.Count != 0);
-                Dispatcher.UIThread.Post(() => VersionsList.SelectedIndex = 0);
+                var list = CreateListBox(versions.Prepend(AnyVersion).ToArray(), version => new TextBlock() { Text = version });
+                list.SelectionChanged += (obj, e) =>
+                {
+                    Builder.Version = list.SelectedItem == AnyVersion ? null : list.SelectedItem;
+                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                };
 
-                Children.Add(VersionsList);
+                Children.Add(list);
             }
         }
         abstract class ChooseActionPart : TaskPart
@@ -192,24 +225,29 @@ namespace NodeUI.Pages
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Choose Action");
 
-            protected readonly TypedListBox<TaskActionDescriber> ActionsList;
+            public ChooseActionPart(TaskCreationInfo builder) : base(builder) { }
 
-            public ChooseActionPart(TaskCreationInfo builder) : base(builder)
+            public override void Initialize()
             {
-                var ac = UICache.GetTasksInfoAsync().GetAwaiter().GetResult();
-                ActionsList = CreateListBox(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Actions.Where(x => x.Type == builder.Type).ToArray(), action => new TextBlock() { Text = action.Name });
-                ActionsList.SelectionChanged += (obj, e) =>
-                    OnChoose?.Invoke(ActionsList.SelectedItems.Count != 0);
+                var list = CreateListBox(NodeGlobalState.Instance.TaskDefinitions.Value.Actions.Where(x => x.Type == Builder.Type).ToArray(), action => new TextBlock() { Text = action.Name });
+                list.SelectionChanged += (obj, e) =>
+                {
+                    Builder.Action = list.SelectedItem.Name;
+                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                };
 
-                Children.Add(ActionsList);
+                Children.Add(list);
             }
         }
 
         abstract class ChooseInputOutputPartBase<T> : TaskPart
         {
-            protected readonly Panel SettingPanel;
+            public sealed override event Action<bool>? OnChoose;
+            protected Panel SettingPanel { get; private set; } = null!;
 
-            public ChooseInputOutputPartBase(IReadOnlyList<T> describers, Func<T, IControl> templateFunc, TaskCreationInfo builder) : base(builder)
+            public ChooseInputOutputPartBase(TaskCreationInfo builder) : base(builder) { }
+
+            protected void Init(IReadOnlyList<T> describers, Func<T, IControl> templateFunc)
             {
                 var types = new ComboBox()
                 {
@@ -231,16 +269,20 @@ namespace NodeUI.Pages
                 Children.Add(grid);
 
                 types.Subscribe(ComboBox.SelectedItemProperty, item => OnSetItem((T) item!));
+                Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
             }
 
             protected abstract void OnSetItem(T item);
         }
         abstract class ChooseInputOutputPart : ChooseInputOutputPartBase<TaskInputOutputDescriber>
         {
-            protected JObject InputOutputJson => (JObject) Setting!.Property.Value;
-            Settings.ISetting? Setting;
+            protected JObject InputOutputJson => (JObject) Setting.Property.Value;
+            Settings.ISetting Setting = null!;
 
-            public ChooseInputOutputPart(ImmutableArray<TaskInputOutputDescriber> describers, TaskCreationInfo builder) : base(describers, t => new TextBlock() { Text = t.Type }, builder) { }
+            public ChooseInputOutputPart(TaskCreationInfo builder) : base(builder) { }
+
+            protected void InitFromCache(Func<TasksFullDescriber, ImmutableArray<TaskInputOutputDescriber>> func) => Init(func(NodeGlobalState.Instance.TaskDefinitions.Value));
+            protected void Init(IReadOnlyList<TaskInputOutputDescriber> describers) => Init(describers, t => new TextBlock() { Text = t.Type });
 
             protected override void OnSetItem(TaskInputOutputDescriber? describer)
             {
@@ -268,16 +310,19 @@ namespace NodeUI.Pages
             public override event Action<bool>? OnChoose;
             public override LocalizedString Title => new("Modify Parameters");
 
-            protected readonly JObject Data = new();
-            readonly Settings.ISetting Setting;
+            Settings.ISetting Setting = null!;
 
-            public ParametersPart(TaskCreationInfo builder) : base(builder)
+            public ParametersPart(TaskCreationInfo builder) : base(builder) { }
+
+            public override void Initialize()
             {
-                var describer = UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Actions.First(x => x.Name == builder.Action).DataDescriber;
-                Data.RemoveAll();
-                Data["type"] = builder.Action;
+                var describer = NodeGlobalState.Instance.TaskDefinitions.Value.Actions.First(x => x.Name == Builder.Action).DataDescriber;
+                var data = Builder.Data = new JObject();
 
-                var parent = new JObject() { [describer.Name] = Data, };
+                data.RemoveAll();
+                data["type"] = Builder.Action;
+
+                var parent = new JObject() { [describer.Name] = data, };
                 Setting = Settings.Create(parent.Property(describer.Name)!, describer);
                 Children.Add(Setting);
 
@@ -289,25 +334,6 @@ namespace NodeUI.Pages
                 base.OnNext();
                 Setting.UpdateValue();
             }
-        }
-        abstract class LocalRemoteTaskPart : TaskPart
-        {
-            public override event Action<bool>? OnChoose;
-            public override LocalizedString Title => new("Choose Type (execute locally or send to another node)");
-
-            protected readonly TypedListBox<TType> Types;
-
-            protected LocalRemoteTaskPart(TaskCreationInfo builder) : base(builder)
-            {
-                Types = new(Enum.GetValues<TType>(), t => new TextBlock() { Text = t.ToString() });
-                Types.SelectionChanged += (obj, e) => OnChoose?.Invoke(Types.SelectedItems.Count != 0);
-                Children.Add(Types);
-
-                Dispatcher.UIThread.Post(() => Types.SelectedIndex = 0);
-            }
-
-
-            public enum TType { Remote, Local }
         }
 
 
@@ -323,8 +349,8 @@ namespace NodeUI.Pages
 
                 public override TaskPart? Next => TypesList.SelectedItem switch
                 {
-                    TaskCreationType.Normal => new NormalTaskCreationPanel.ChoosePluginPart(),
-                    TaskCreationType.WatchingRepeating => new WatchingTaskCreationPanel.ChoosePluginPart(),
+                    TaskCreationType.Normal => new NormalTaskCreationPanel.LocalRemotePart(new()),
+                    TaskCreationType.WatchingRepeating => new WatchingTaskCreationPanel.LocalRemotePart(new()),
                     _ => throw new InvalidOperationException(),
                 };
 
@@ -346,47 +372,59 @@ namespace NodeUI.Pages
 
         static class NormalTaskCreationPanel
         {
-            public class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
+            public class LocalRemotePart : TaskCreationWindow.LocalRemoteTaskPart
             {
-                public override TaskPart? Next => new ChooseVersionPart(Builder.With(x => x.Type = PluginsList.SelectedItem));
+                public override TaskPart? Next => new ChoosePluginPart(Builder.With(x => x.ExecuteLocally = Types.SelectedItem == TType.Local));
+                public LocalRemotePart(TaskCreationInfo builder) : base(builder) { }
             }
+            class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
+            {
+                public override TaskPart? Next => Builder.ExecuteLocally ? new ChooseActionPart(Builder) : new ChooseVersionPart(Builder);
+                public ChoosePluginPart(TaskCreationInfo info) : base(info) { }
+            }
+
             class ChooseVersionPart : TaskCreationWindow.ChooseVersionPart
             {
-                public override TaskPart? Next => new ChooseActionPart(Builder.With(x => x.Version = (VersionsList.SelectedItem == AnyVersion ? null : VersionsList.SelectedItem)));
+                public override TaskPart? Next => new ChooseActionPart(Builder);
                 public ChooseVersionPart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChooseActionPart : TaskCreationWindow.ChooseActionPart
             {
-                public override TaskPart? Next => new ChooseInputPart(Builder.With(x => x.Action = ActionsList.SelectedItem.Name));
+                public override TaskPart? Next => new ChooseInputPart(Builder);
                 public ChooseActionPart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChooseInputPart : ChooseInputOutputPart
             {
-                public override event Action<bool>? OnChoose;
                 public override LocalizedString Title => new("Choose Input");
-                public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
+                public override TaskPart? Next => new ChooseOutputPart(Builder);
 
-                public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Inputs, builder) =>
-                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
+                public ChooseInputPart(TaskCreationInfo builder) : base(builder) { }
+
+                public override void Initialize() => InitFromCache(info => info.Inputs);
+                public override void OnNext()
+                {
+                    base.OnNext();
+                    Builder.Input = InputOutputJson;
+                }
             }
             class ChooseOutputPart : TaskCreationWindow.ChooseInputOutputPart
             {
-                public override event Action<bool>? OnChoose;
                 public override LocalizedString Title => new("Choose Output");
-                public override TaskPart? Next => new ChooseParametersPart(Builder.With(x => x.Output = InputOutputJson));
+                public override TaskPart? Next => new ChooseParametersPart(Builder);
 
-                public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().Outputs, builder) =>
-                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
+                public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
+
+                public override void Initialize() => InitFromCache(info => info.Outputs);
+                public override void OnNext()
+                {
+                    base.OnNext();
+                    Builder.Output = InputOutputJson;
+                }
             }
             class ChooseParametersPart : TaskCreationWindow.ParametersPart
             {
-                public override TaskPart? Next => new LocalRemotePart(Builder.With(x => x.Data = Data));
+                public override TaskPart? Next => new WaitingPart(Builder);
                 public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
-            }
-            class LocalRemotePart : TaskCreationWindow.LocalRemoteTaskPart
-            {
-                public override TaskPart? Next => new WaitingPart(Builder.With(x => x.ExecuteLocally = Types.SelectedItem == TType.Local));
-                public LocalRemotePart(TaskCreationInfo builder) : base(builder) { }
             }
             class WaitingPart : TaskPart
             {
@@ -476,47 +514,59 @@ namespace NodeUI.Pages
         }
         static class WatchingTaskCreationPanel
         {
-            public class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
+            public class LocalRemotePart : TaskCreationWindow.LocalRemoteTaskPart
             {
-                public override TaskPart? Next => new ChooseVersionPart(Builder.With(x => x.Type = PluginsList.SelectedItem));
+                public override TaskPart? Next => new ChoosePluginPart(Builder.With(x => x.ExecuteLocally = Types.SelectedItem == TType.Local));
+                public LocalRemotePart(TaskCreationInfo builder) : base(builder) { }
+            }
+            class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
+            {
+                public override TaskPart? Next => Builder.ExecuteLocally ? new ChooseActionPart(Builder) : new ChooseVersionPart(Builder);
+
+                public ChoosePluginPart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChooseVersionPart : TaskCreationWindow.ChooseVersionPart
             {
-                public override TaskPart? Next => new ChooseActionPart(Builder.With(x => x.Version = (VersionsList.SelectedItem == AnyVersion ? null : VersionsList.SelectedItem)));
+                public override TaskPart? Next => new ChooseActionPart(Builder);
                 public ChooseVersionPart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChooseActionPart : TaskCreationWindow.ChooseActionPart
             {
-                public override TaskPart? Next => new ChooseInputPart(Builder.With(x => x.Action = ActionsList.SelectedItem.Name));
+                public override TaskPart? Next => new ChooseInputPart(Builder);
                 public ChooseActionPart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChooseInputPart : ChooseInputOutputPart
             {
-                public override event Action<bool>? OnChoose;
                 public override LocalizedString Title => new("Choose Input");
-                public override TaskPart? Next => new ChooseOutputPart(Builder.With(x => x.Input = InputOutputJson));
+                public override TaskPart? Next => new ChooseOutputPart(Builder);
 
-                public ChooseInputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().WatchingInputs, builder) =>
-                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
+                public ChooseInputPart(TaskCreationInfo builder) : base(builder) { }
+
+                public override void Initialize() => InitFromCache(info => info.Inputs);
+                public override void OnNext()
+                {
+                    base.OnNext();
+                    Builder.Input = InputOutputJson;
+                }
             }
             class ChooseOutputPart : TaskCreationWindow.ChooseInputOutputPart
             {
-                public override event Action<bool>? OnChoose;
                 public override LocalizedString Title => new("Choose Output");
-                public override TaskPart? Next => new ChooseParametersPart(Builder.With(x => x.Output = InputOutputJson));
+                public override TaskPart? Next => new ChooseParametersPart(Builder);
 
-                public ChooseOutputPart(TaskCreationInfo builder) : base(UICache.GetTasksInfoAsync().GetAwaiter().GetResult().WatchingOutputs, builder) =>
-                    Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
+                public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
+
+                public override void Initialize() => InitFromCache(info => info.Outputs);
+                public override void OnNext()
+                {
+                    base.OnNext();
+                    Builder.Output = InputOutputJson;
+                }
             }
             class ChooseParametersPart : TaskCreationWindow.ParametersPart
             {
-                public override TaskPart? Next => new LocalRemotePart(Builder.With(x => x.Data = Data));
+                public override TaskPart? Next => new EndPart(Builder);
                 public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
-            }
-            class LocalRemotePart : TaskCreationWindow.LocalRemoteTaskPart
-            {
-                public override TaskPart? Next => new EndPart(Builder.With(x => x.ExecuteLocally = Types.SelectedItem == TType.Local));
-                public LocalRemotePart(TaskCreationInfo builder) : base(builder) { }
             }
             class EndPart : TaskPart
             {
@@ -681,7 +731,7 @@ namespace NodeUI.Pages
                     public LocalFileSetting(TextSetting setting) : base(setting)
                     {
                         var btn = new MPButton() { Text = new("Pick a file") };
-                        btn.OnClick += () => new OpenFileDialog() { AllowMultiple = false }.ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => btn.Text = new(File = t.Result!.First())));
+                        btn.OnClick += () => new OpenFileDialog() { AllowMultiple = false }.ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => btn.Text = new(File = t.Result?.FirstOrDefault() ?? string.Empty)));
                         Children.Add(btn);
                     }
 
@@ -694,7 +744,7 @@ namespace NodeUI.Pages
                     public LocalDirSetting(TextSetting setting) : base(setting)
                     {
                         var btn = new MPButton() { Text = new("Pick a directory") };
-                        btn.OnClick += () => new OpenFolderDialog().ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => btn.Text = new(Dir = t.Result!)));
+                        btn.OnClick += () => new OpenFolderDialog().ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => btn.Text = new(Dir = t.Result ?? string.Empty)));
                         Children.Add(btn);
                     }
 
