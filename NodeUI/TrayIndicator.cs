@@ -78,8 +78,7 @@ namespace NodeUI
             icon.Clicked += (_, _) => open();
             icon.FixException();
 
-            InitializeTooltipText(icon);
-            InitializeAnimatedIcon(icon);
+            InitializeIconInfo(icon);
 
             LocalizedString.ChangeLangWeakEvent.Subscribe(app, () => Dispatcher.UIThread.Post(updateMenus));
             updateMenus();
@@ -123,26 +122,7 @@ namespace NodeUI
             }).Start();
         }
 
-        static void InitializeTooltipText(TrayIcon icon)
-        {
-            NodeGlobalState.Instance.ExecutingTasks.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
-            {
-                var e = NodeGlobalState.Instance.ExecutingTasks;
-
-                if (e.Count == 0) icon.ToolTipText = LocalizedString.String("idle");
-                else
-                {
-                    var task = e[0];
-
-                    icon.ToolTipText = $@"
-                        {task.Id}
-                        {NodeGlobalState.Instance.GetPluginType(task)} {task.Info.TaskType}
-                        {task.Info.Input.ToString(Newtonsoft.Json.Formatting.None)}
-                        ".TrimLines();
-                }
-            }), true);
-        }
-        static void InitializeAnimatedIcon(TrayIcon icon)
+        static void InitializeIconInfo(TrayIcon icon)
         {
             var iconcache = new Dictionary<string, WindowIcon>();
             int time = -1;
@@ -158,8 +138,25 @@ namespace NodeUI
 
                 WindowIcon getIcon()
                 {
-                    if (NodeGlobalState.Instance.ExecutingTasks.Count == 0) return Yellow;
-                    // TODO: error
+                    if (!UICache.IsConnectedToNode)
+                    {
+                        icon.ToolTipText = LocalizedString.String("No connection to node");
+                        return Red;
+                    }
+                    if (NodeGlobalState.Instance.ExecutingTasks.Count == 0)
+                    {
+                        icon.ToolTipText = LocalizedString.String("Idle");
+                        return Yellow;
+                    }
+
+
+                    var task = NodeGlobalState.Instance.ExecutingTasks[0];
+
+                    icon.ToolTipText = $@"
+                        {task.Id}
+                        {NodeGlobalState.Instance.GetPluginType(task)} {task.Info.TaskType}
+                        {task.Info.Input.ToString(Newtonsoft.Json.Formatting.None)}
+                        ".TrimLines();
 
                     if ((time / 3) % 2 == 0)
                         return drawOnGreen("1/" + NodeGlobalState.Instance.ExecutingTasks.Count);

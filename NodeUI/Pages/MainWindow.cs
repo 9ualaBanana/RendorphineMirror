@@ -20,7 +20,8 @@ namespace NodeUI.Pages
 
             this.PreventClosing();
             SubscribeToStateChanges();
-            _ = StartStateListener(CancellationToken.None);
+            UICache.StartUpdatingStats();
+            UICache.StartUpdatingState().Consume();
 
 
             var tabs = new TabbedControl();
@@ -60,59 +61,6 @@ namespace NodeUI.Pages
                     benchmb = null;
                 }
             });
-        }
-        async Task StartStateListener(CancellationToken token)
-        {
-            UICache.StartUpdatingStats();
-
-            if (Init.IsDebug)
-                try
-                {
-                    var cachefile = Path.Combine(Init.ConfigDirectory, "nodeinfocache");
-                    if (File.Exists(cachefile))
-                    {
-                        try { JsonConvert.PopulateObject(File.ReadAllText(cachefile), NodeGlobalState.Instance, LocalApi.JsonSettingsWithType); }
-                        catch { }
-                    }
-
-                    NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>
-                        File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, LocalApi.JsonSettingsWithType)));
-                }
-                catch { }
-
-
-            var consecutive = 0;
-            while (true)
-            {
-                try
-                {
-                    var stream = await LocalPipe.SendLocalAsync("getstate").ConfigureAwait(false);
-                    var reader = LocalPipe.CreateReader(stream);
-                    consecutive = 0;
-
-                    while (true)
-                    {
-                        var read = reader.Read();
-                        if (!read) break;
-                        if (token.IsCancellationRequested) return;
-
-                        var jtoken = JToken.Load(reader);
-                        _logger.Debug($"Node state updated: {string.Join(", ", (jtoken as JObject)?.Properties().Select(x => x.Name) ?? new[] { jtoken.ToString(Formatting.None) })}");
-
-                        using var tokenreader = jtoken.CreateReader();
-                        LocalApi.JsonSerializerWithType.Populate(tokenreader, NodeGlobalState.Instance);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (consecutive < 3) _logger.Error($"Could not read node state: {ex.Message}, reconnecting...");
-                    else if (consecutive == 3) _logger.Error($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
-
-                    consecutive++;
-                }
-
-                await Task.Delay(1_000).ConfigureAwait(false);
-            }
         }
 
 
