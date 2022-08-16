@@ -23,4 +23,14 @@ public class TaskCreationInfo
         Data = data;
         ExecuteLocally = executeLocally;
     }
+    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, object data, bool executeLocally = false)
+    {
+        Type = pluginType;
+        Version = pluginVersion;
+        Action = action;
+        Input = JObject.FromObject(input, JsonSettings.LowercaseIgnoreNullS);
+        Output = JObject.FromObject(output, JsonSettings.LowercaseIgnoreNullS);
+        Data = JObject.FromObject(data, JsonSettings.LowercaseIgnoreNullS).WithProperty("type", action);
+        ExecuteLocally = executeLocally;
+    }
 }

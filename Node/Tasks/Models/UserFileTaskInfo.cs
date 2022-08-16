@@ -1,19 +1,10 @@
 namespace Node.Tasks.Models;
 
-public class UserTaskInputInfo : ITaskInputInfo
+public record UserTaskInput(UserTaskInputInfo Info) : ITaskInput
 {
-    public TaskInputOutputType Type => TaskInputOutputType.User;
-
-    [LocalFile] public readonly string Path;
-
-    public UserTaskInputInfo(string path)
-    {
-        Path = path;
-    }
-
     public ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
-        if (task.ExecuteLocally) return Path.AsVTask();
+        if (task.ExecuteLocally) return Info.Path.AsVTask();
 
         throw new NotImplementedException();
     }
@@ -23,25 +14,14 @@ public class UserTaskInputInfo : ITaskInputInfo
         throw new NotImplementedException();
     }
 }
-public class UserTaskOutputInfo : ITaskOutputInfo
+public record UserTaskOutput(UserTaskOutputInfo Info) : ITaskOutput
 {
-    public TaskInputOutputType Type => TaskInputOutputType.User;
-
-    [LocalDirectory] public readonly string Directory;
-    public readonly string FileName;
-
-    public UserTaskOutputInfo(string directory, string fileName)
-    {
-        Directory = directory;
-        FileName = fileName;
-    }
-
     public ValueTask Upload(ReceivedTask task, string file)
     {
         if (task.ExecuteLocally)
         {
-            System.IO.Directory.CreateDirectory(Directory);
-            File.Move(file, Path.Combine(Directory, FileName), true);
+            Directory.CreateDirectory(Info.Directory);
+            File.Move(file, Path.Combine(Info.Directory, Info.FileName), true);
             return ValueTask.CompletedTask;
         }
 

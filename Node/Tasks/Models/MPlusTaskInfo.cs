@@ -2,13 +2,8 @@
 
 namespace Node.Tasks.Models;
 
-public class MPlusTaskInputInfo : ITaskInputInfo
+public record MPlusTaskInput(MPlusTaskInputInfo Info) : ITaskInput
 {
-    public TaskInputOutputType Type => TaskInputOutputType.MPlus;
-    public readonly string Iid;
-
-    public MPlusTaskInputInfo(string iid) => Iid = iid;
-
     public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var fformat = TaskList.GetAction(task.Info).FileFormat;
@@ -29,22 +24,8 @@ public class MPlusTaskInputInfo : ITaskInputInfo
 
     public ValueTask Upload() => ValueTask.CompletedTask;
 }
-public class MPlusTaskOutputInfo : ITaskOutputInfo
+public record MPlusTaskOutput(MPlusTaskOutputInfo Info) : ITaskOutput
 {
-    public TaskInputOutputType Type => TaskInputOutputType.MPlus;
-
-    [Default("output_file.mov")]
-    public readonly string Name;
-
-    [Default("output_dir")]
-    public readonly string Directory;
-
-    public MPlusTaskOutputInfo(string name, string directory)
-    {
-        Name = name;
-        Directory = directory;
-    }
-
     public async ValueTask Upload(ReceivedTask task, string file)
     {
         await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(file, task.Id));
