@@ -5,14 +5,16 @@ using Newtonsoft.Json.Linq;
 
 namespace Node.Listeners;
 
-public class TaskReceiver : ExecutableListenerBase
+public class TaskReceiver : ListenerBase
 {
     protected override string? Prefix => "rphtaskexec/launchtask";
     protected override bool IsLocal => false;
 
-    protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
+    protected override async ValueTask Execute(HttpListenerContext context)
     {
-        var response = context.Response;
+        if (context.Request.HttpMethod != "POST") return;
+
+        using var response = context.Response;
 
         var querystr = await new StreamReader(context.Request.InputStream).ReadToEndAsync().ConfigureAwait(false);
         var query = HttpUtility.ParseQueryString(querystr);
@@ -22,7 +24,7 @@ public class TaskReceiver : ExecutableListenerBase
             .Next(taskid => ReadQueryString(query, "sign")
             .Next(sign => ReadQueryString(query, "task")
             .Next(task => (taskid, sign, task).AsOpResult())));
-        if (!values) return HttpStatusCode.Forbidden;
+        if (!values) return;
 
         var (taskid, sign, task) = values.Result;
         var json = JObject.Parse(task)!;
@@ -30,9 +32,9 @@ public class TaskReceiver : ExecutableListenerBase
         var taskinfo = JsonConvert.DeserializeObject<TaskInfo>(task)!;
         _logger.Info($"Received a new task: id: {taskid}; sign: {sign}; data {task}");
 
-        await WriteSuccess(context.Response);
-        TaskHandler.HandleReceivedTask(new ReceivedTask(taskid, taskinfo, false)).Consume();
+        response.StatusCode = (int) await WriteText(response, "{\"ok\":1}");
+        response.Close();
 
-        return HttpStatusCode.OK;
+        TaskHandler.HandleReceivedTask(new ReceivedTask(taskid, taskinfo, false)).Consume();
     }
 }
