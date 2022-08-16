@@ -24,6 +24,17 @@
             ]
         },
         {
+            "label": "buildregistry",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/SoftwareRegistry/SoftwareRegistry.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ]
+        },
+        {
             "label": "buildpinger",
             "command": "dotnet",
             "type": "process",
