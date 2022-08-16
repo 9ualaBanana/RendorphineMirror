@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Models;
 
@@ -23,6 +24,22 @@ public static class NodeTask
         return taskid;
     }
 
+    public static ValueTask<OperationResult<string>> RegisterAsync(string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, object data)
+    {
+        var task = TaskList.TryGet(action);
+        if (task is null) throw new Exception($"Task action {action} was not found");
+
+        var info = new TaskCreationInfo(
+            task.Type,
+            pluginVersion,
+            action,
+            JObject.FromObject(input, JsonSettings.LowercaseIgnoreNullS),
+            JObject.FromObject(output, JsonSettings.LowercaseIgnoreNullS),
+            JObject.FromObject(data, JsonSettings.LowercaseIgnoreNullS).WithProperty("type", action),
+            false
+        );
+        return RegisterAsync(info);
+    }
     public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info)
     {
         var data = info.Data;
