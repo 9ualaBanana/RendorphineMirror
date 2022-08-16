@@ -99,7 +99,7 @@ public static class FFMpegTasks
             task.LogInfo($"{task.InputFile} length: {frames} frames");
 
             var output = GetTaskOutputFile(task);
-            var exepath = task.Plugin.GetInstance().Path;
+            var exepath = task.GetPlugin().GetInstance().Path;
             var args = getArgs();
 
             await ExecuteProcess(exepath, args, true, onRead, task);

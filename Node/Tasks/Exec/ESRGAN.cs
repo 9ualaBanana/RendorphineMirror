@@ -49,7 +49,7 @@ public static class EsrganTasks
             }
             string getScriptFile()
             {
-                var plugindir = Path.GetDirectoryName(task.Plugin.GetInstance().Path);
+                var plugindir = Path.GetDirectoryName(task.GetPlugin().GetInstance().Path);
                 var installfile = Path.Combine(Path.GetDirectoryName(output)!, "p.ps1");
                 var pythonpath = PluginType.Python.GetInstance().Path;
 
