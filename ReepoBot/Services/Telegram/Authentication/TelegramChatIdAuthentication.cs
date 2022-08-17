@@ -25,7 +25,7 @@ public class TelegramChatIdAuthentication
     internal async Task AuthenticateAsync(Message message)
     {
         if (IsAuthenticated(message.Chat.Id))
-        { await _bot.TrySendMessageAsync(message.Chat.Id, "You are already authenticated.", _logger); return; }
+        { await _bot.TrySendMessageAsync(message.Chat.Id, "You are already authenticated."); return; }
 
         await TryAuthenticateAsyncFrom(message);
     }
@@ -35,12 +35,12 @@ public class TelegramChatIdAuthentication
         if (TelegramCredentials.TryParse(message, out var credentials))
         {
             if (await TryAuthenticateAsync(credentials!))
-                _ = _bot.TrySendMessageAsync(message.Chat.Id, "You are successfully authenticated.", _logger);
+                await _bot.TrySendMessageAsync(message.Chat.Id, "You are successfully authenticated.");
             else
-                _ = _bot.TrySendMessageAsync(message.Chat.Id, "Wrong credentials.", _logger);
+                await _bot.TrySendMessageAsync(message.Chat.Id, "Wrong credentials.");
         }
         else
-        { _ = _bot.TrySendMessageAsync(message.Chat.Id, "Credentials are in a wrong format.", _logger); return; }
+        { await _bot.TrySendMessageAsync(message.Chat.Id, "Credentials are in a wrong format."); return; }
     }
 
     async Task<bool> TryAuthenticateAsync(TelegramCredentials credentials)
@@ -68,12 +68,12 @@ public class TelegramChatIdAuthentication
         return (string)((JObject)await GetJsonFromResponseIfSuccessfulAsync(response)).Property("sessionid")!;
     }
 
-    internal void LogOut(ChatId id)
+    internal async Task LogOutAsync(ChatId id)
     {
         if (!IsAuthenticated(id))
-        { _ = _bot.TrySendMessageAsync(id, "You are not authenticated.", _logger); }
+        { await _bot.TrySendMessageAsync(id, "You are not authenticated."); }
         else
-        { _authenticatedUsers.Remove(id); _ = _bot.TrySendMessageAsync(id, "You are successfully logged out.", _logger); }
+        { _authenticatedUsers.Remove(id); await _bot.TrySendMessageAsync(id, "You are successfully logged out."); }
     }
 
     bool IsAuthenticated(ChatId id) => _authenticatedUsers.ContainsKey(id);

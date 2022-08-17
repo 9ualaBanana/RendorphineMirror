@@ -29,7 +29,7 @@ public class TelegramUpdateHandler
                 await _messageHandler.HandleAsync(update);
                 break;
             case UpdateType.MyChatMember:
-                _myChatMemberHandler.Handle(update);
+                await _myChatMemberHandler.HandleAsync(update);
                 break;
             default:
                 _logger.LogWarning("No handler for update of {UpdateType} type is found", update.Type);

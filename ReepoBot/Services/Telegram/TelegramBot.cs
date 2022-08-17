@@ -10,6 +10,8 @@ namespace ReepoBot.Services.Telegram;
 
 public class TelegramBot : TelegramBotClient
 {
+    ILogger _logger = null!;
+
     public Subscriptions Subscriptions = new("subscriptions.txt");
 
     public TelegramBot(string token, HttpClient? httpClient = null)
@@ -24,9 +26,13 @@ public class TelegramBot : TelegramBotClient
         return bot;
     }
 
-    internal void TryNotifySubscribers(
+    internal void UseLoggerFrom(IServiceProvider serviceProvider)
+    {
+        _logger = serviceProvider.GetRequiredService<ILogger<TelegramBot>>();
+    }
+
+    internal async Task TryNotifySubscribersAsync(
         InputOnlineFile video,
-        ILogger logger,
         InputMedia? thumb = null,
         string? caption = null,
         int? width = null,
@@ -34,22 +40,40 @@ public class TelegramBot : TelegramBotClient
         IReplyMarkup? replyMarkup = null)
     {
         foreach (var subscriber in Subscriptions)
-        {
-            _ = TrySendVideoAsync(subscriber, video, logger, thumb, caption, width, height, replyMarkup);
-        }
+            await TrySendVideoAsync(subscriber, video, thumb, caption, width, height, replyMarkup);
     }
 
-    internal void TryNotifySubscribers(string text, ILogger logger, IReplyMarkup? replyMarkup = null)
+    internal async Task TryNotifySubscribersAsync(string text, IReplyMarkup? replyMarkup = null)
     {
         foreach (var subscriber in Subscriptions)
-        {
-            _ = TrySendMessageAsync(subscriber, text, logger, replyMarkup);
-        }
+            await TrySendMessageAsync(subscriber, text, replyMarkup);
     }
 
-    internal async Task<bool> TrySendVideoAsync(ChatId chatId,
+    internal async Task<bool> TrySendImageAsync(
+        ChatId chatId,
+        InputOnlineFile image,
+        string? caption = null,
+        IReplyMarkup? replyMarkup = null)
+    {
+        try
+        {
+            await this.SendPhotoAsync(
+                chatId,
+                image,
+                caption: caption?.Sanitize(),
+                replyMarkup: replyMarkup,
+                parseMode: ParseMode.MarkdownV2);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Following image couldn't be sent to {Chat}:\n\n{Image}", chatId, image);
+        }
+        return false;
+    }
+
+    internal async Task<bool> TrySendVideoAsync(
+        ChatId chatId,
         InputOnlineFile video,
-        ILogger logger,
         InputMedia? thumb = null,
         string? caption = null,
         int? width = null,
@@ -71,13 +95,13 @@ public class TelegramBot : TelegramBotClient
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Following video couldn't be sent to {Chat}:\n\n{Video}\n{Thumbnail}",
+            _logger.LogError(ex, "Following video couldn't be sent to {Chat}:\n\n{Video}\n{Thumbnail}",
                 chatId, video, thumb);
         }
         return false;
     }
 
-    internal async Task<bool> TrySendMessageAsync(ChatId chatId, string text, ILogger logger, IReplyMarkup? replyMarkup = null)
+    internal async Task<bool> TrySendMessageAsync(ChatId chatId, string text, IReplyMarkup? replyMarkup = null)
     {
         try
         {
@@ -90,7 +114,7 @@ public class TelegramBot : TelegramBotClient
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Following message couldn't be sent to {Chat}:\n\n{Message}", chatId, text);
+            _logger.LogError(ex, "Following message couldn't be sent to {Chat}:\n\n{Message}", chatId, text);
         }
         return false;
     }

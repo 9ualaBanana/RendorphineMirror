@@ -25,10 +25,7 @@ public class TelegramMessageHandler
         var message = update.Message!;
         _logger.LogDebug("Dispatching {Message}...", nameof(Message));
         if (IsCommand(message))
-        {
-            await _commandHandler.HandleAsync(update);
-            return;
-        }
+        { await _commandHandler.HandleAsync(update); return; }
         else if (IsSystemMessage(message))
         {
             _logger.LogTrace("System messages are handled by {Handler}", nameof(TelegramChatMemberUpdatedHandler));
@@ -37,11 +34,8 @@ public class TelegramMessageHandler
         _logger.LogWarning("The following message couldn't be handled:\n{Message}", message.Text);
     }
 
-    static bool IsCommand(Message message)
-    {
-        var messageText = message.Text;
-        return messageText is not null && messageText.StartsWith('/') && messageText.Length > 1;
-    }
+    static bool IsCommand(Message message) =>
+        message.Text is not null && message.Text.StartsWith('/') && message.Text.Length > 1;
 
     bool IsSystemMessage(Message message)
     {

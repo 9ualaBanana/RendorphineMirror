@@ -18,7 +18,7 @@ public abstract class AuthenticatedCommand : Command
         var authenticationToken = Authentication.GetTokenFor(id);
 
         if (authenticationToken is not null) await HandleAsync(update, authenticationToken);
-        else await Bot.TrySendMessageAsync(id, "Authentication required.", Logger);
+        else await Bot.TrySendMessageAsync(id, "Authentication required.");
     }
 
     protected abstract Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken);

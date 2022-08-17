@@ -12,7 +12,7 @@ public class GitHubController : ControllerBase
     [HttpPost]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
-    public ActionResult ReceiveGitHubEvent(
+    public async Task<ActionResult> ReceiveGitHubEvent(
         [FromHeader(Name = "X-Hub-Signature-256")] string signature,
         [FromHeader(Name = "X-GitHub-Event")] string eventType,
         [FromServices] GitHubEventForwarder gitHubEventForwarder,
@@ -23,7 +23,7 @@ public class GitHubController : ControllerBase
         var gitHubEvent = new GitHubEvent(eventType, signature, payload);
         try
         {
-            gitHubEventForwarder.Handle(gitHubEvent);
+            await gitHubEventForwarder.HandleAsync(gitHubEvent);
         }
         catch (Exception ex)
         {

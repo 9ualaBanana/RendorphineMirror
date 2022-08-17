@@ -25,6 +25,6 @@ public class RemoveCommand : AuthenticatedCommand
         var message = new StringBuilder().Append($"{nodesRemoved} nodes were removed.");
         if (nodesRemoved > 0) message.Append("Nodes with specified names are either online or not found.");
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message.ToString(), Logger);
+        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message.ToString());
     }
 }

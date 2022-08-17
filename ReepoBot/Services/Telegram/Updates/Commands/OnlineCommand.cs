@@ -19,6 +19,6 @@ public class OnlineCommand : AuthenticatedCommand
     protected override async Task HandleAsync(Update update, TelegramAuthenticationToken _)
     {
         var message = $"Online: *{_nodeSupervisor.NodesOnline.Count}*\nOffline: {_nodeSupervisor.NodesOffline.Count}";
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message, Logger);
+        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message);
     }
 }

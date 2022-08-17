@@ -24,7 +24,7 @@ public class PingListCommand : AuthenticatedCommand
     {
         _logger.LogDebug("Listing all nodes...");
         var message = ListNodesOrderedByName();
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message, _logger);
+        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message);
     }
 
     string ListNodesOrderedByName()

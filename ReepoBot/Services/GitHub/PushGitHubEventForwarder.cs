@@ -17,7 +17,7 @@ public class PushGitHubEventForwarder
         _bot = bot;
     }
 
-    public void Handle(GitHubEvent githubEvent)
+    public async Task HandleAsync(GitHubEvent githubEvent)
     {
         var payload = githubEvent.Payload;
         var repo = payload["repository"]!;
@@ -58,7 +58,7 @@ public class PushGitHubEventForwarder
             }
         });
 
-        _bot.TryNotifySubscribers(text, _logger, replyMarkup: replyMarkup);
+        await _bot.TryNotifySubscribersAsync(text, replyMarkup: replyMarkup);
     }
 
     static IEnumerable<string> GetCommitMessages(JToken commits)

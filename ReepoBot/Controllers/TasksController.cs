@@ -23,9 +23,8 @@ public class TasksController : ControllerBase
         if (mpItem.IsVideo)
         {
             var videoPreview = mpItem.AsVideoPreview;
-            bot.TryNotifySubscribers(
+            await bot.TryNotifySubscribersAsync(
                 videoPreview.Mp4Url,
-                logger,
                 videoPreview.ThumbnailMediumUrl,
                 caption: $"{videoPreview.Title}\n\nNode: {nodeName}\nTask ID: *{videoPreview.TaskId}*\nM+ IID: *{videoPreview.MpIid}*",
                 videoPreview.Width,

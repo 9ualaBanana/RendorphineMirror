@@ -28,6 +28,8 @@ builder.Services.AddSingleton(await botInitialization);
 
 var app = builder.Build();
 
+app.Services.GetRequiredService<TelegramBot>().UseLoggerFrom(app.Services);
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
