@@ -25,7 +25,7 @@ public static class NodeTask
 
     public static string ZipFiles(IEnumerable<string> files)
     {
-        var directoryName = Path.Combine(Path.GetTempPath(), "renderphine_temp");
+        var directoryName = Path.Combine(Path.GetTempPath(), "renderphin_temp");
         Directory.CreateDirectory(directoryName);
         var archiveName = Path.Combine(directoryName, Guid.NewGuid().ToString() + ".zip");
 
@@ -40,7 +40,7 @@ public static class NodeTask
     }
     public static IEnumerable<string> UnzipFiles(string zipfile)
     {
-        var directoryName = Path.Combine(Path.GetTempPath(), "renderphine_temp", Guid.NewGuid().ToString());
+        var directoryName = Path.Combine(Path.GetTempPath(), "renderphin_temp", Guid.NewGuid().ToString());
         Directory.CreateDirectory(directoryName);
 
         using var archivefile = File.OpenRead(zipfile);
