@@ -20,7 +20,12 @@ public class TelegramChatIdAuthentication
         _httpClient = httpClientFactory.CreateClient();
     }
 
-    internal TelegramAuthenticationToken? GetTokenFor(ChatId id) => IsAuthenticated(id) ? _authenticatedUsers[id] : null;
+    internal TelegramAuthenticationToken? GetTokenFor(ChatId id)
+    {
+        if (IsAuthenticated(id)) return _authenticatedUsers[id];
+
+        _ = _bot.TrySendMessageAsync(id, "Authentication required."); return null;
+    }
 
     internal async Task AuthenticateAsync(Message message)
     {
