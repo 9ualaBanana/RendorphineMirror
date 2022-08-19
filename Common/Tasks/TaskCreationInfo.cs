@@ -28,8 +28,8 @@ public class TaskCreationInfo
         Type = pluginType;
         Version = pluginVersion;
         Action = action;
-        Input = JObject.FromObject(input, JsonSettings.LowercaseIgnoreNullS);
-        Output = JObject.FromObject(output, JsonSettings.LowercaseIgnoreNullS);
+        Input = JObject.FromObject(input, JsonSettings.LowercaseS);
+        Output = JObject.FromObject(output, JsonSettings.LowercaseS);
         Data = JObject.FromObject(data, JsonSettings.LowercaseIgnoreNullS).WithProperty("type", action);
         ExecuteLocally = executeLocally;
     }
