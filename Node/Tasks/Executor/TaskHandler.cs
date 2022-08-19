@@ -19,6 +19,7 @@ public static class TaskHandler
     public static ITaskInput DeserializeInput(JObject input) =>
         GetInputOutputType(input) switch
         {
+            TaskInputOutputType.DownloadLink => new DownloadLinkTaskInput(input.ToObject<DownloadLinkTaskInputInfo>()!),
             TaskInputOutputType.MPlus => new MPlusTaskInput(input.ToObject<MPlusTaskInputInfo>()!),
             TaskInputOutputType.User => new UserTaskInput(input.ToObject<UserTaskInputInfo>()!),
             { } type => throw new NotSupportedException($"Task input type {type} is not supported"),

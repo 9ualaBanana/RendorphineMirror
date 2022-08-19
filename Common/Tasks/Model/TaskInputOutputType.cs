@@ -8,4 +8,5 @@ public enum TaskInputOutputType
 {
     User,
     MPlus,
+    DownloadLink,
 }
