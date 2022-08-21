@@ -2,9 +2,9 @@
 
 internal static class CommandsExtensions
 {
-    internal static string Command(this string command) => command.Split(null, 2).First().Trim();
+    internal static string Command(this string command) => command.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).First().Trim();
 
-    internal static IEnumerable<string> Arguments(this string command) => command.Split(null, 2).Last().Trim().Split();
+    internal static IEnumerable<string> Arguments(this string command) => command.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Last().Trim().Split();
 
     internal static IEnumerable<string> UnquotedArguments(this string command) =>
         command.Arguments().TakeWhile(argument => !argument.StartsWith('"'));
@@ -19,6 +19,7 @@ internal static class CommandsExtensions
 
     internal static IServiceCollection AddTelegramBotCommands(this IServiceCollection serviceCollection) =>
         serviceCollection
+            .AddScoped<TelegramCommandHandler>()
             .AddScoped<Command, LoginCommand>()
             .AddScoped<Command, PingListCommand>()
             .AddScoped<Command, PingCommand>()

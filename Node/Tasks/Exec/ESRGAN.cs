@@ -8,7 +8,7 @@ public static class EsrganTasks
 
     class UpscaleEsrgan : PluginAction<UpscaleEsrganInfo>
     {
-        public override string Name => "UpscaleEsrgan";
+        public override string Name => "EsrganUpscale";
         public override PluginType Type => PluginType.Python_Esrgan;
         public override FileFormat FileFormat => FileFormat.Jpeg;
 

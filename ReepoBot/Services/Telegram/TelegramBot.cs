@@ -31,7 +31,16 @@ public class TelegramBot : TelegramBotClient
         _logger = serviceProvider.GetRequiredService<ILogger<TelegramBot>>();
     }
 
-    internal async Task TryNotifySubscribersAsync(
+    internal async Task TryNotifySubscribersAboutImageAsync(
+        InputOnlineFile image,
+        string? caption = null,
+        IReplyMarkup? replyMarkup = null)
+    {
+        foreach (var subscriber in Subscriptions)
+            await TrySendImageAsync(subscriber, image, caption, replyMarkup);
+    }
+
+    internal async Task TryNotifySubscribersAboutVideoAsync(
         InputOnlineFile video,
         InputMedia? thumb = null,
         string? caption = null,

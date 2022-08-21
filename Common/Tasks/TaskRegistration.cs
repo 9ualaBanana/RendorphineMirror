@@ -7,7 +7,7 @@ public static class TaskRegistration
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
     public static event Action<PlacedTask> TaskRegistered = delegate { };
 
-    public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info)
+    public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, string? sessionId = default)
     {
         var data = info.Data;
         var taskobj = new TaskObject("3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 12345678);
@@ -16,7 +16,7 @@ public static class TaskRegistration
 
         var values = new List<(string, string)>()
         {
-            ("sessionid", Settings.SessionId!),
+            ("sessionid", sessionId ?? Settings.SessionId!),
             ("object", JsonConvert.SerializeObject(taskobj, JsonSettings.LowercaseIgnoreNull)),
             ("input", input.ToString(Formatting.None)),
             ("output", output.ToString(Formatting.None)),

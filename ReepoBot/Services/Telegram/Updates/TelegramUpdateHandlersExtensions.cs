@@ -1,5 +1,6 @@
 ﻿using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram.Updates.Commands;
+using ReepoBot.Services.Telegram.Updates.Images;
 
 namespace ReepoBot.Services.Telegram.Updates;
 
@@ -10,7 +11,9 @@ public static class TelegramUpdateHandlersExtensions
         return serviceCollection
             .AddSingleton<TelegramUpdateHandler>()
             .AddScoped<TelegramMessageHandler>()
-            .AddScoped<TelegramCommandHandler>()
+            .AddTelegramBotCommands()
+            .AddTelegramImageProcessing()
+            .AddScoped<TelegramCallbackQueryHandler>()
             .AddScoped<TelegramChatMemberUpdatedHandler>()
             .AddSingleton<NodeSupervisor>();
     }
