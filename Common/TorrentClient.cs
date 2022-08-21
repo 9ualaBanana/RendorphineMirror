@@ -4,6 +4,7 @@ using MonoTorrent.Client;
 
 namespace Common
 {
+    public record JsonPeer(string PeerId, ushort Port);
     public static class TorrentClient
     {
         public static ushort DhtPort => Settings.DhtPort;
@@ -24,18 +25,17 @@ namespace Common
         }
 
 
-        static Task<BEncodedDictionary> CreateTorrent(string directory) => CreateTorrent(new TorrentFileSource(directory));
-        static Task<BEncodedDictionary> CreateTorrent(ITorrentFileSource source) => Creator.CreateAsync(source);
+        public static Task<byte[]> CreateTorrent(string directory) => CreateTorrent(new TorrentFileSource(directory));
+        public static async Task<byte[]> CreateTorrent(ITorrentFileSource source) => (await Creator.CreateAsync(source)).Encode();
 
         public static async Task<(byte[] data, TorrentManager manager)> CreateAddTorrent(string directory)
         {
             var data = await CreateTorrent(directory).ConfigureAwait(false);
-            var encoded = data.Encode();
-            var torrent = await Torrent.LoadAsync(encoded).ConfigureAwait(false);
+            var torrent = await Torrent.LoadAsync(data).ConfigureAwait(false);
             var manager = Client.Torrents.FirstOrDefault(x => x.InfoHash == torrent.InfoHash);
             if (manager is null) manager = await AddOrGetTorrent(torrent, Path.GetFullPath(Path.Combine(directory, ".."))).ConfigureAwait(false);
 
-            return (encoded, manager);
+            return (data, manager);
         }
 
         public static TorrentManager? TryGet(InfoHash hash) => Client.Torrents.FirstOrDefault(x => x.InfoHash == hash);

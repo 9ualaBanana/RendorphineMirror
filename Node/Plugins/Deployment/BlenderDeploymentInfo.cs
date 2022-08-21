@@ -1,8 +1,8 @@
 ﻿using System.IO.Compression;
 
-namespace Machine.Plugins.Deployment;
+namespace Node.Plugins.Deployment;
 
-internal record BlenderDeploymentInfo : PluginDeploymentInfo
+internal record BlenderDeploymentInfo : DownloadablePluginDeploymentInfo
 {
     public BlenderDeploymentInfo(string? installationPath = default) : base(installationPath)
     {

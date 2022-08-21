@@ -8,12 +8,12 @@ namespace Common
         public static readonly JsonSerializerSettings JsonSettingsWithType = new() { TypeNameHandling = TypeNameHandling.Auto, };
         public static readonly JsonSerializer JsonSerializerWithType = JsonSerializer.Create(JsonSettingsWithType);
 
-        public static string LocalIP => $"127.0.0.1:{Settings.LocalListenPort}";
+        public static string LocalIP => $"http://127.0.0.1:{Settings.LocalListenPort}";
         static readonly HttpClient Client = new();
 
         static string AddHttp(string url)
         {
-            if (!url.StartsWith("http://")) return "http://" + url;
+            if (!url.StartsWith("http")) return "http://" + url;
             return url;
         }
 

@@ -1,4 +1,5 @@
-﻿using System.Data.Common;
+﻿using System.Collections;
+using System.Data.Common;
 using System.Data.SQLite;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
@@ -34,6 +35,7 @@ namespace Common
         public static bool? IsSlave => AuthInfo?.Slave;
         public static AuthInfo? AuthInfo { get => BAuthInfo.Value; set => BAuthInfo.Value = value; }
 
+        public const string RegistryUrl = "https://t.microstock.plus:7897";
         public static string ServerUrl { get => BServerUrl.Value; set => BServerUrl.Value = value; }
         public static ushort LocalListenPort { get => BLocalListenPort.Value; set => BLocalListenPort.Value = value; }
         public static ushort UPnpPort { get => BUPnpPort.Value; set => BUPnpPort.Value = value; }
@@ -208,17 +210,23 @@ namespace Common
 
             public DatabaseValue(string name, T defaultValue) : base(name, new(defaultValue)) { }
         }
-        public class DatabaseValueList<T> : DatabaseValueBase<IReadOnlyList<T>, BindableList<T>>
+        public class DatabaseValueList<T> : DatabaseValueBase<IReadOnlyList<T>, BindableList<T>>, IEnumerable<T>
         {
             public int Count => Bindable.Count;
 
             public DatabaseValueList(string name, IEnumerable<T>? values = null) : base(name, new(values)) { }
+
+            public IEnumerator<T> GetEnumerator() => Bindable.GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
-        public class DatabaseValueDictionary<TKey, TValue> : DatabaseValueBase<IReadOnlyDictionary<TKey, TValue>, BindableDictionary<TKey, TValue>> where TKey : notnull
+        public class DatabaseValueDictionary<TKey, TValue> : DatabaseValueBase<IReadOnlyDictionary<TKey, TValue>, BindableDictionary<TKey, TValue>>, IEnumerable<KeyValuePair<TKey,TValue>> where TKey : notnull
         {
             public int Count => Bindable.Count;
 
             public DatabaseValueDictionary(string name, IEnumerable<KeyValuePair<TKey, TValue>>? values = null) : base(name, new(values)) { }
+
+            public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => Bindable.GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }

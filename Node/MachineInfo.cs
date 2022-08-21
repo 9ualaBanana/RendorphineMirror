@@ -1,9 +1,6 @@
-﻿global using Common;
-global using NLog;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using Machine.MessageBuilders;
-using Machine.Plugins;
 
 namespace Machine;
 
