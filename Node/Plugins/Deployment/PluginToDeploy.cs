@@ -12,13 +12,6 @@ public class PluginToDeploy : IEquatable<PluginToDeploy>, IEquatable<Plugin>
     public IEnumerable<PluginToDeploy> SelfAndSubPlugins => SubPlugins.Any() ?
         AsEnumerable.Concat(SubPlugins.SelectMany(subPlugin => subPlugin.SelfAndSubPlugins)) : AsEnumerable;
 
-    public PluginDeploymentInfo GetDeploymentInfo(string? installationPath = default) => Type switch
-    {
-        PluginType.Blender => new BlenderDeploymentInfo(installationPath),
-        PluginType.Python => new PythonDeploymentInfo(installationPath),
-        _ => new ScriptPluginDeploymentInfo(this),
-    };
-
 
     #region EqualityContract
     public static bool operator !=(PluginToDeploy this_, PluginToDeploy? other) => !this_.Equals(other);

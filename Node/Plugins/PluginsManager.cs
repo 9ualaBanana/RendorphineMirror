@@ -32,7 +32,7 @@ public static class PluginsManager
     public static async Task DeployUninstalledPluginAsync(PluginToDeploy plugin)
     {
         _logger.Info("Deploying {PluginType} plugin", plugin.Type);
-        await plugin.GetDeploymentInfo().DeployAsync();
+        await new ScriptPluginDeploymentInfo(plugin).DeployAsync();
         _logger.Info("{PluginType} plugin is deployed", plugin.Type);
         await DiscoverInstalledPluginsInBackground();
     }
