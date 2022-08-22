@@ -15,27 +15,14 @@ public static class EsrganTasks
         protected override async Task<string> Execute(ReceivedTask task, UpscaleEsrganInfo data)
         {
             var output = GetTaskOutputFile(task);
-            var exepath = Environment.OSVersion.Platform == PlatformID.Win32NT ? "cmd" : "/bin/sh";
 
-            var args = "";
-
-            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-            {
-                // hide window
-                args += "/c start /min \"\" ";
-
-                // bypass powershell restrictions
-                args += "powershell -ExecutionPolicy Bypass -File ";
-            }
-
-            args += getScriptFile();
-
-            await ExecuteProcess(exepath, args, false, onRead, task);
+            await Task.Run(() => ExecutePowerShell(getScript(), false, onRead, task));
             return output;
 
 
-            void onRead(bool err, string line)
+            void onRead(bool err, object obj)
             {
+                var line = obj.ToString()!;
                 if (!line.StartsWith("Progress:")) return;
 
                 // Progress: 1/20
@@ -47,16 +34,10 @@ public static class EsrganTasks
                 task.Progress = num1 / num2;
                 NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
             }
-            string getScriptFile()
+            string getScript()
             {
-                var plugindir = Path.GetDirectoryName(task.GetPlugin().GetInstance().Path);
-                var installfile = Path.Combine(Path.GetDirectoryName(output)!, "p.ps1");
-                var pythonpath = PluginType.Python.GetInstance().Path;
-
-                // i hate powershell
-                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-                    pythonpath = pythonpath.Replace(" ", "' '");
-                else pythonpath = pythonpath.Replace(" ", @"\ ");
+                var plugindir = Path.GetFullPath(Path.GetDirectoryName(task.GetPlugin().GetInstance().Path)!);
+                var pythonpath = PluginType.Python.GetInstance().Path.Replace(" ", "' '");
 
 
                 var pythonstart = "python ";
@@ -77,39 +58,23 @@ public static class EsrganTasks
                 pythonstart += "--tile_size 384 ";
 
 
+                var script = $@"
+                    Set-Location ""{plugindir}""
+                    {pythonpath} -m venv venv
+                    if (Test-Path -Path ./venv/bin/activate.ps1 -PathType Leaf)
+                    {{ ./venv/bin/activate }}
+                    if (Test-Path -Path ./venv/Scripts/activate.ps1 -PathType Leaf)
+                    {{ ./venv/Scripts/activate }}
 
-                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-                {
-                    var script = $@"
-                        Set-Location ""{plugindir}""
-                        {pythonpath} -m venv venv
-                        ./venv/Scripts/activate
-                        pip3 install -r ./installation/requirements.txt
-                        foreach($line in Get-Content ./installation/precommands.txt){{
-                            Invoke-Expression $line
-                        }}
+                    pip3 install -r ./installation/requirements.txt
+                    foreach($line in Get-Content ./installation/precommands.txt){{
+                        Invoke-Expression $line
+                    }}
 
-                        {pythonstart}
-                    ";
-                    File.WriteAllText(installfile, script);
-                }
-                else
-                {
-                    var script = $@"
-                        #!/bin/bash
+                    {pythonstart}
+                ";
 
-                        cd ""{plugindir}""
-                        {pythonpath} -m venv venv
-                        source ./venv/bin/activate
-                        pip3 install -r ./installation/requirements.txt
-                        sh ./installation/precommands.txt
-
-                        {pythonstart}
-                    ";
-                    File.WriteAllText(installfile, script);
-                }
-
-                return installfile;
+                return script;
             }
         }
     }

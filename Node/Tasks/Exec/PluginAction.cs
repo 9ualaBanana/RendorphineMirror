@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Management.Automation;
+using System.Management.Automation.Runspaces;
 
 namespace Node.Tasks.Exec;
 
@@ -88,5 +90,48 @@ public abstract class PluginAction<T> : IPluginAction
         await reading;
 
         EnsureZeroStatusCode(process);
+    }
+    protected static void ExecutePowerShell(string script, bool stderrToStdout, Action<bool, object>? onRead, ILoggable? logobj)
+    {
+        var session = InitialSessionState.CreateDefault();
+        session.Variables.Add(new SessionStateVariableEntry("ErrorActionPreference", "Stop", "Error action preference"));
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            session.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.Unrestricted;
+
+        using var runspace = RunspaceFactory.CreateRunspace(session);
+        runspace.Open();
+
+        using var pipeline = runspace.CreatePipeline();
+
+        pipeline.Output.DataReady += (obj, e) =>
+        {
+            foreach (var item in pipeline.Output.NonBlockingRead())
+            {
+                var logstr = $"[PowerShell {pipeline.GetHashCode()}] {item}";
+                logobj?.LogInfo(logstr);
+
+                onRead?.Invoke(false, item.ToString()!);
+            }
+        };
+        pipeline.Error.DataReady += (obj, e) =>
+        {
+            foreach (var item in pipeline.Error.NonBlockingRead())
+            {
+                var logstr = $"[PowerShell {pipeline.GetHashCode()}] {item}";
+                if (stderrToStdout) logobj?.LogInfo(logstr);
+                else logobj?.LogErr(logstr);
+
+                onRead?.Invoke(!stderrToStdout, item.ToString()!);
+            }
+        };
+
+        pipeline.Commands.AddScript(script);
+        var invoke = pipeline.Invoke();
+
+        if (pipeline.PipelineStateInfo.Reason is not null)
+            throw pipeline.PipelineStateInfo.Reason;
+
+        // foreach (var err in pipeline..Streams.Error)
+        //     throw err.Exception;
     }
 }
