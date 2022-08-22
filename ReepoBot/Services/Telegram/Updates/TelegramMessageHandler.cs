@@ -28,6 +28,7 @@ public class TelegramMessageHandler
     {
         var message = update.Message!;
         _logger.LogDebug("Dispatching {Message}...", nameof(Message));
+
         if (IsCommand(message))
         { await _commandHandler.HandleAsync(update); return; }
         else if (IsImage(message))
@@ -37,6 +38,7 @@ public class TelegramMessageHandler
             _logger.LogTrace("System messages are handled by {Handler}", nameof(TelegramChatMemberUpdatedHandler));
             return; // Bot adding and removal are handled via `UpdateType.MyChatMember` updates.
         }
+
         _logger.LogWarning("The following message couldn't be handled:\n{Message}", message.Text);
     }
 

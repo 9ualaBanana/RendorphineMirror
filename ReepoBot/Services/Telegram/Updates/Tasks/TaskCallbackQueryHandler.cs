@@ -2,7 +2,7 @@
 using ReepoBot.Services.Telegram.Authentication;
 using Telegram.Bot.Types;
 
-namespace ReepoBot.Services.Telegram.Updates.Images;
+namespace ReepoBot.Services.Telegram.Updates.Tasks;
 
 public class TaskCallbackQueryHandler
 {

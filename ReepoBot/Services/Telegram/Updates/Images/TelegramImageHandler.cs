@@ -1,5 +1,4 @@
 ﻿using ReepoBot.Services.Telegram.FileRegistry;
-using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -20,8 +19,8 @@ public class TelegramImageHandler
 
     public async Task HandleAsync(Update update)
     {
-        TelegramImage image;
-        image = update.Message!.Document is not null ? TelegramImage.From(update.Message.Document!) : TelegramImage.From(update.Message.Photo!.Last());
+        var image = update.Message!.Document is not null ?
+            TelegramImage.From(update.Message.Document!) : TelegramImage.From(update.Message.Photo!.Last());
 
         //if (image.Size < 1_000_000)
         //{ await _bot.TrySendMessageAsync(update.Message.Chat.Id, "Resolution of the image must be at least 1 MP."); return; }

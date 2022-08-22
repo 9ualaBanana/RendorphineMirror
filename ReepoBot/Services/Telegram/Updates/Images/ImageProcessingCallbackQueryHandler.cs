@@ -6,6 +6,7 @@ using Telegram.Bot;
 using ReepoBot.Services.Telegram.FileRegistry;
 using Common;
 using Telegram.Bot.Types.ReplyMarkups;
+using ReepoBot.Services.Telegram.Updates.Tasks;
 
 namespace ReepoBot.Services.Telegram.Updates.Images;
 

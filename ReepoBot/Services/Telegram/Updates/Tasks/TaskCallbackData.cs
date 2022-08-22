@@ -1,4 +1,4 @@
-﻿namespace ReepoBot.Services.Telegram.Updates.Images;
+﻿namespace ReepoBot.Services.Telegram.Updates.Tasks;
 
 public record TaskCallbackData : TelegramCallbackData<TaskQueryFlags>
 {
