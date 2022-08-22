@@ -5,15 +5,16 @@ global using Common.Tasks;
 global using Common.Tasks.Model;
 global using Machine;
 global using NLog;
+global using Node.Plugins;
+global using Node.Registry;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Executor;
 global using Node.Tasks.Models;
 global using Node.Tasks.Watching;
 using System.Diagnostics;
-using Machine.Plugins;
-using Machine.Plugins.Discoverers;
 using Node;
 using Node.Listeners;
+using Node.Plugins.Discoverers;
 using Node.Profiling;
 using Node.UserSettings;
 

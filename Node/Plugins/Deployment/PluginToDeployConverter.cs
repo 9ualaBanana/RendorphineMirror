@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Machine.Plugins.Deployment;
+namespace Node.Plugins.Deployment;
 
 public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
 {

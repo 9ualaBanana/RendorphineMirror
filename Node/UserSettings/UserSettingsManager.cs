@@ -1,4 +1,4 @@
-﻿using Machine.Plugins.Deployment;
+﻿using Node.Plugins.Deployment;
 using Newtonsoft.Json;
 
 namespace Node.UserSettings;
@@ -36,7 +36,7 @@ public class UserSettingsManager : IHeartbeatGenerator
     async Task DeployUninstalledPluginsAsync(HttpResponseMessage response)
     {
         var userSettings = await UserSettings.ReadOrThrowAsync(response);
-        await userSettings.TryDeployUninstalledPluginsAsync(new PluginsDeployer(_httpClient, _cancellationToken));
+        await userSettings.TryDeployUninstalledPluginsAsync();
     }
     #endregion
 

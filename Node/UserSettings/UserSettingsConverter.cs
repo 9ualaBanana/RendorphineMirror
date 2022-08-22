@@ -1,4 +1,4 @@
-﻿using Machine.Plugins.Deployment;
+﻿using Node.Plugins.Deployment;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

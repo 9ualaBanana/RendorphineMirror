@@ -117,31 +117,10 @@ public abstract class ListenerBase
     protected static JsonSerializer JsonSerializerWithTypes => LocalApi.JsonSerializerWithType;
 
     protected void LogRequest(HttpListenerRequest request) => _logger.Trace(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
-    protected static JObject JsonFromOpResult(in OperationResult result)
-    {
-        var json = new JObject() { ["ok"] = new JValue(result.Success), };
-        if (!result) json["errormsg"] = result.AsString();
-
-        return json;
-    }
-    protected static JObject JsonFromOpResult<T>(in OperationResult<T> result)
-    {
-        var json = JsonFromOpResult(result.EString);
-        if (result) json["value"] = JToken.FromObject(result.Value!);
-
-        return json;
-    }
-    protected static JObject JsonFromOpResult(JToken token)
-    {
-        var json = JsonFromOpResult((OperationResult) true);
-        json["value"] = token;
-
-        return json;
-    }
-    protected static Task<HttpStatusCode> WriteSuccess(HttpListenerResponse response) => _Write(response, JsonFromOpResult((OperationResult) true));
-    protected static Task<HttpStatusCode> WriteJson<T>(HttpListenerResponse response, in OperationResult<T> result) => _Write(response, JsonFromOpResult(result));
-    protected static Task<HttpStatusCode> WriteJson(HttpListenerResponse response, in OperationResult result) => _Write(response, JsonFromOpResult(result));
-    protected static Task<HttpStatusCode> WriteJToken(HttpListenerResponse response, JToken json) => _Write(response, JsonFromOpResult(json));
+    protected static Task<HttpStatusCode> WriteSuccess(HttpListenerResponse response) => _Write(response, JsonApi.Success());
+    protected static Task<HttpStatusCode> WriteJson<T>(HttpListenerResponse response, in OperationResult<T> result) => _Write(response, JsonApi.JsonFromOpResult(result));
+    protected static Task<HttpStatusCode> WriteJson(HttpListenerResponse response, in OperationResult result) => _Write(response, JsonApi.JsonFromOpResult(result));
+    protected static Task<HttpStatusCode> WriteJToken(HttpListenerResponse response, JToken json) => _Write(response, JsonApi.JsonFromOpResult(json));
 
     protected static async Task<HttpStatusCode> _Write(HttpListenerResponse response, JObject json, HttpStatusCode code = HttpStatusCode.OK)
     {

@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Machine.Plugins.Deployment;
+namespace Node.Plugins.Deployment;
 
 [JsonConverter(typeof(PluginToDeployConverter))]
 public class PluginToDeploy : IEquatable<PluginToDeploy>, IEquatable<Plugin>
@@ -11,13 +11,6 @@ public class PluginToDeploy : IEquatable<PluginToDeploy>, IEquatable<Plugin>
     internal IEnumerable<PluginToDeploy> AsEnumerable => new PluginToDeploy[] { this };
     public IEnumerable<PluginToDeploy> SelfAndSubPlugins => SubPlugins.Any() ?
         AsEnumerable.Concat(SubPlugins.SelectMany(subPlugin => subPlugin.SelfAndSubPlugins)) : AsEnumerable;
-
-    public PluginDeploymentInfo GetDeploymentInfo(string? installationPath = default) => Type switch
-    {
-        PluginType.Blender => new BlenderDeploymentInfo(installationPath),
-        PluginType.Python => new PythonDeploymentInfo(installationPath),
-        PluginType.Python_Esrgan => new PythonEsrganDeploymentInfo(installationPath),
-    };
 
 
     #region EqualityContract

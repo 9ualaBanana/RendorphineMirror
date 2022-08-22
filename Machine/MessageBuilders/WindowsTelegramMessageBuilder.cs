@@ -8,9 +8,9 @@ using UnitsNet;
 namespace Machine.MessageBuilders;
 
 [SupportedOSPlatform("windows")]
-internal class WindowsHardwareInfoMessage
+public class WindowsHardwareInfoMessage
 {
-    internal static string Build()
+    public static string Build()
     {
         var message = new StringBuilder();
 

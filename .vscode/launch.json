@@ -54,6 +54,18 @@
             "stopAtEntry": false
         },
         {
+            "name": "Registry",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildregistry",
+            "program": "${workspaceFolder}/SoftwareRegistry/bin/Debug/net6.0/SoftwareRegistry.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
             "name": "Pinger",
             "type": "coreclr",
             "request": "launch",

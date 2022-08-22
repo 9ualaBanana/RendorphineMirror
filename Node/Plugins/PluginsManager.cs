@@ -1,7 +1,7 @@
-﻿using Machine.Plugins.Deployment;
-using Machine.Plugins.Discoverers;
+﻿using Node.Plugins.Deployment;
+using Node.Plugins.Discoverers;
 
-namespace Machine.Plugins;
+namespace Node.Plugins;
 
 public static class PluginsManager
 {
@@ -23,16 +23,16 @@ public static class PluginsManager
 
 
     #region Deployment
-    public static async Task DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, PluginsDeployer deployer)
+    public static async Task DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins)
     {
         foreach (var plugin in LeaveOnlyUninstalled(plugins))
-            await DeployUninstalledPluginAsync(plugin, deployer);
+            await DeployUninstalledPluginAsync(plugin);
     }
 
-    public static async Task DeployUninstalledPluginAsync(PluginToDeploy plugin, PluginsDeployer deployer)
+    public static async Task DeployUninstalledPluginAsync(PluginToDeploy plugin)
     {
         _logger.Info("Deploying {PluginType} plugin", plugin.Type);
-        await deployer.DeployAsync(plugin.GetDeploymentInfo());
+        await new ScriptPluginDeploymentInfo(plugin).DeployAsync();
         _logger.Info("{PluginType} plugin is deployed", plugin.Type);
         await DiscoverInstalledPluginsInBackground();
     }

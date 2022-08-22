@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace Machine.Plugins.Discoverers;
+namespace Node.Plugins.Discoverers;
 
 public abstract class PluginDiscoverer
 {

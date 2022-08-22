@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 
-namespace Machine.Plugins.Deployment;
+namespace Node.Plugins.Deployment;
 
-public record PythonDeploymentInfo : PluginDeploymentInfo
+public record PythonDeploymentInfo : DownloadablePluginDeploymentInfo
 {
     public PythonDeploymentInfo(string? installationPath = default) : base(installationPath)
     {

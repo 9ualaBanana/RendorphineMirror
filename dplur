@@ -1,0 +1,3 @@
+#!/bin/bash
+
+./dp registry SoftwareRegistry Release linux-x64

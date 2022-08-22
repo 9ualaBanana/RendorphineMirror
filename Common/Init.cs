@@ -7,14 +7,18 @@ using System.Diagnostics;
 
 namespace Common
 {
+    public static class Initializer
+    {
+        public static string ConfigDirectory = "renderphine";
+    }
     public static class Init
     {
         readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
         public static readonly bool IsDebug = false;
         static readonly bool DebugFileExists = false;
-        public static readonly string ConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "renderphine");
-        public static readonly string LogDirectory = Path.Combine(ConfigDirectory, "logs");
+        public static readonly string ConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), Initializer.ConfigDirectory);
+        public static readonly string LogDirectory = Path.GetFullPath("logs");
         public static readonly string TaskFilesDirectory = Path.Combine(ConfigDirectory, "tasks");
         public static readonly string Version = GetVersion();
 

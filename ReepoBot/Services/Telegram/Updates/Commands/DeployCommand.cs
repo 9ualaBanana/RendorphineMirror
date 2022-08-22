@@ -1,5 +1,5 @@
 ﻿using Common;
-using Machine.Plugins.Deployment;
+using Node.Plugins.Deployment;
 using Node.UserSettings;
 using ReepoBot.Services.Node;
 using ReepoBot.Services.Telegram.Authentication;
