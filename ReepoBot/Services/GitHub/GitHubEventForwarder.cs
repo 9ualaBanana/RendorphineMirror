@@ -16,7 +16,7 @@ public class GitHubEventForwarder
         _bot = bot;
     }
 
-    public void Handle(GitHubEvent githubEvent)
+    public async Task HandleAsync(GitHubEvent githubEvent)
     {
         _logger.LogDebug("Dispatching GitHub event with {Type} type...", githubEvent.EventType);
         switch (githubEvent.EventType)
@@ -25,7 +25,7 @@ public class GitHubEventForwarder
                 new PingGitHubEventForwarder(_loggerFactory).Handle(githubEvent);
                 break;
             case "push":
-                new PushGitHubEventForwarder(_loggerFactory, _bot).Handle(githubEvent);
+                await new PushGitHubEventForwarder(_loggerFactory, _bot).HandleAsync(githubEvent);
                 break;
             default:
                 _logger.LogDebug("GitHub event with {Type} type couldn't be handled", githubEvent.EventType);

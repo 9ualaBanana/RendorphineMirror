@@ -31,7 +31,7 @@ public class PingCommand : AuthenticatedCommand
                 );
         var message = ListOnlineNodes(onlineNodesToList);
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message, Logger);
+        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message);
     }
 
     string ListOnlineNodes(IEnumerable<KeyValuePair<MachineInfo, TimerPlus>> onlineNodesToList)

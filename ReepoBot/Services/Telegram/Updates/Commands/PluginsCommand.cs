@@ -25,7 +25,7 @@ public class PluginsCommand : AuthenticatedCommand
 
         var message = ListInstalledPluginsFor(nodesWhosePluginsToShow);
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message, Logger);
+        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message);
     }
 
     string ListInstalledPluginsFor(IEnumerable<MachineInfo> nodesInfo)

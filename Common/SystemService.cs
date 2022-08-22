@@ -33,7 +33,7 @@ namespace Common
                 using var ts = new TaskService();
 
                 var task = ts.NewTask();
-                task.RegistrationInfo.Description = "Renderphine pinger";
+                task.RegistrationInfo.Description = " pinger";
                 task.Actions.Add(new ExecAction(pingerexe, @$"""{nodeexe}"" ""{updaterexe}""", Directory.GetCurrentDirectory()));
                 task.Principal.RunLevel = TaskRunLevel.Highest;
                 task.Settings.DisallowStartIfOnBatteries = false;
@@ -69,7 +69,7 @@ namespace Common
             {
                 var service = $@"
                     [Unit]
-                    Description=Renderphine tracker
+                    Description=Renderphin tracker
 
                     [Service]
                     Type=oneshot
@@ -79,7 +79,7 @@ namespace Common
                 ";
                 var timer = $@"
                     [Unit]
-                    Description=Renderphine tracker
+                    Description=Renderphin tracker
 
                     [Timer]
                     OnActiveSec=1min

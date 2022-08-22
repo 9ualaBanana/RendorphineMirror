@@ -17,18 +17,18 @@ public class TelegramChatMemberUpdatedHandler
         _bot = bot;
     }
 
-    public void Handle(Update update)
+    public async Task HandleAsync(Update update)
     {
         _logger.LogDebug("Dispatching {ChatMemberUpdated}...", nameof(ChatMemberUpdated));
 
         var chatMemberUpdate = update.MyChatMember!;
         if (BotIsAddedToChat(chatMemberUpdate))
-            { HandleBotIsAddedToChat(chatMemberUpdate); return; }
+            { await HandleBotIsAddedToChatAsync(chatMemberUpdate); return; }
         else if (BotIsRemovedFromChat(chatMemberUpdate))
             { HandleBotIsRemovedFromChat(chatMemberUpdate); return; }
     }
 
-    void HandleBotIsAddedToChat(ChatMemberUpdated chatMemberUpdate)
+    async Task HandleBotIsAddedToChatAsync(ChatMemberUpdated chatMemberUpdate)
     {
         var subscriber = chatMemberUpdate.Chat.Id;
 
@@ -41,7 +41,7 @@ public class TelegramChatMemberUpdatedHandler
             _logger.LogInformation("New subscriber was added: {Subscriber}", subscriber);
 
         const string message = "You are subscribed to events now. Remove me from the chat to unsubscribe.";
-        _ = _bot.TrySendMessageAsync(subscriber, message, _logger);
+        await _bot.TrySendMessageAsync(subscriber, message);
     }
 
     void HandleBotIsRemovedFromChat(ChatMemberUpdated chatMemberUpdate)

@@ -234,7 +234,7 @@ namespace NodeUI.Pages
 
                     return new Expander()
                     {
-                        Header = $"{task.Id} {task.Plugin} {task.Action}",
+                        Header = $"{task.Id} {task.GetPlugin()} {task.Action}",
                         Content = new StackPanel()
                         {
                             Orientation = Orientation.Vertical,

@@ -2,6 +2,7 @@
 global using Common;
 global using Common.NodeToUI;
 global using Common.Tasks;
+global using Common.Tasks.Model;
 global using Machine;
 global using NLog;
 global using Node.Plugins;
@@ -96,6 +97,7 @@ PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
     }
 }).Consume();
 
+TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Bindable.Add;
 
 /*NodeSettings.WatchingTasks.Add(WatchingTask.Create(
     new LocalWatchingTaskSource("/tmp/ae"),
@@ -103,6 +105,7 @@ PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
     new() { Hflip = true, },
     new MPlusWatchingTaskOutputInfo("rep_outputdir")
 ));*/
+
 
 
 if (NodeSettings.WatchingTasks.Count != 0)

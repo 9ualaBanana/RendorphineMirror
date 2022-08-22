@@ -1,4 +1,4 @@
-namespace Node.Tasks.Models;
+namespace Common.Tasks.Model;
 
 public abstract record TaskRequirementBase(string Name, ImmutableArray<string>? Versions);
 

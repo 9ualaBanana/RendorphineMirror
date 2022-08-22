@@ -8,7 +8,7 @@ public static class EsrganTasks
 
     class UpscaleEsrgan : PluginAction<UpscaleEsrganInfo>
     {
-        public override string Name => "UpscaleEsrgan";
+        public override string Name => "EsrganUpscale";
         public override PluginType Type => PluginType.Python_Esrgan;
         public override FileFormat FileFormat => FileFormat.Jpeg;
 
@@ -49,7 +49,7 @@ public static class EsrganTasks
             }
             string getScriptFile()
             {
-                var plugindir = Path.GetDirectoryName(task.Plugin.GetInstance().Path);
+                var plugindir = Path.GetDirectoryName(task.GetPlugin().GetInstance().Path);
                 var installfile = Path.Combine(Path.GetDirectoryName(output)!, "p.ps1");
                 var pythonpath = PluginType.Python.GetInstance().Path;
 

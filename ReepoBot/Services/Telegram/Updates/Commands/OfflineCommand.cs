@@ -23,7 +23,7 @@ public class OfflineCommand : AuthenticatedCommand
 
         var message = ListOfflineNodes();
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message, Logger);
+        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message);
     }
 
     string ListOfflineNodes()

@@ -14,6 +14,6 @@ public class LogoutCommand : AuthenticatedCommand
 
     protected override async Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken)
     {
-        Authentication.LogOut(update.Message!.Chat.Id);
+        await Authentication.LogOutAsync(update.Message!.Chat.Id);
     }
 }

@@ -5,7 +5,6 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
     string ILoggable.LogName => $"Task {Id}";
 
     public string Action => Info.TaskType;
-    public PluginType Plugin => NodeGlobalState.Instance.GetPluginTypeFromAction(Action);
 
     // 0-1
     public double Progress = 0;

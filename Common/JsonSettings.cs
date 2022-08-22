@@ -15,6 +15,13 @@ public static class JsonSettings
     };
     public static readonly JsonSerializer LowercaseIgnoreNullS = JsonSerializer.Create(LowercaseIgnoreNull);
 
+    public static readonly JsonSerializerSettings Lowercase = new()
+    {
+        ContractResolver = LowercaseContract.Instance,
+        Formatting = Formatting.None,
+    };
+    public static readonly JsonSerializer LowercaseS = JsonSerializer.Create(Lowercase);
+
 
     class LowercaseContract : DefaultContractResolver
     {

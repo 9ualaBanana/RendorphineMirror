@@ -14,6 +14,8 @@ public class MpItem
     public string Type => _jsonElement.GetProperty("type").GetString()!;
 
     public bool IsVideo => Type == "video";
+    public bool IsImage => Type == "raster";
 
-    public VideoPreview AsVideoPreview => new(_jsonElement); 
+    public VideoPreview AsVideoPreview => new(_jsonElement);
+    public ImagePreview AsImagePreview => new(_jsonElement);
 }

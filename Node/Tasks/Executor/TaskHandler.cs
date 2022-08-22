@@ -16,18 +16,19 @@ public static class TaskHandler
         return Enum.Parse<TaskInputOutputType>(token.Value<string>()!);
     }
 
-    public static ITaskInputInfo DeserializeInput(JObject input) =>
+    public static ITaskInput DeserializeInput(JObject input) =>
         GetInputOutputType(input) switch
         {
-            TaskInputOutputType.MPlus => input.ToObject<MPlusTaskInputInfo>()!,
-            TaskInputOutputType.User => input.ToObject<UserTaskInputInfo>()!,
+            TaskInputOutputType.DownloadLink => new DownloadLinkTaskInput(input.ToObject<DownloadLinkTaskInputInfo>()!),
+            TaskInputOutputType.MPlus => new MPlusTaskInput(input.ToObject<MPlusTaskInputInfo>()!),
+            TaskInputOutputType.User => new UserTaskInput(input.ToObject<UserTaskInputInfo>()!),
             { } type => throw new NotSupportedException($"Task input type {type} is not supported"),
         };
-    public static ITaskOutputInfo DeserializeOutput(JObject output) =>
+    public static ITaskOutput DeserializeOutput(JObject output) =>
         GetInputOutputType(output) switch
         {
-            TaskInputOutputType.MPlus => output.ToObject<MPlusTaskOutputInfo>()!,
-            TaskInputOutputType.User => output.ToObject<UserTaskOutputInfo>()!,
+            TaskInputOutputType.MPlus => new MPlusTaskOutput(output.ToObject<MPlusTaskOutputInfo>()!),
+            TaskInputOutputType.User => new UserTaskOutput(output.ToObject<UserTaskOutputInfo>()!),
             { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
         };
 
@@ -73,7 +74,7 @@ public static class TaskHandler
             task.LogInfo($"File uploaded");
             await task.ChangeStateAsync(TaskState.Finished);
 
-            if (outputobj is MPlusTaskOutputInfo mplusoutput)
+            if (outputobj is MPlusTaskOutput mplusoutput)
             {
                 try
                 {

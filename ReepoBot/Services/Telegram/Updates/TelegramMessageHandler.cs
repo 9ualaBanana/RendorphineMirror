@@ -1,4 +1,5 @@
 ﻿using ReepoBot.Services.Telegram.Updates.Commands;
+using ReepoBot.Services.Telegram.Updates.Images;
 using Telegram.Bot.Types;
 
 namespace ReepoBot.Services.Telegram.Updates;
@@ -9,15 +10,18 @@ public class TelegramMessageHandler
 
     readonly TelegramBot _bot;
     readonly TelegramCommandHandler _commandHandler;
+    readonly TelegramImageHandler _imageHandler;
 
     public TelegramMessageHandler(
         ILogger<TelegramMessageHandler> logger,
         TelegramBot bot,
-        TelegramCommandHandler commandHandler)
+        TelegramCommandHandler commandHandler,
+        TelegramImageHandler imageHandler)
     {
         _logger = logger;
         _bot = bot;
         _commandHandler = commandHandler;
+        _imageHandler = imageHandler;
     }
 
     public async Task HandleAsync(Update update)
@@ -25,10 +29,9 @@ public class TelegramMessageHandler
         var message = update.Message!;
         _logger.LogDebug("Dispatching {Message}...", nameof(Message));
         if (IsCommand(message))
-        {
-            await _commandHandler.HandleAsync(update);
-            return;
-        }
+        { await _commandHandler.HandleAsync(update); return; }
+        else if (IsImage(message))
+        { await _imageHandler.HandleAsync(update); return; }
         else if (IsSystemMessage(message))
         {
             _logger.LogTrace("System messages are handled by {Handler}", nameof(TelegramChatMemberUpdatedHandler));
@@ -37,11 +40,13 @@ public class TelegramMessageHandler
         _logger.LogWarning("The following message couldn't be handled:\n{Message}", message.Text);
     }
 
-    static bool IsCommand(Message message)
-    {
-        var messageText = message.Text;
-        return messageText is not null && messageText.StartsWith('/') && messageText.Length > 1;
-    }
+    static bool IsCommand(Message message) =>
+        message.Text is not null && message.Text.StartsWith('/') && message.Text.Length > 1;
+
+    static bool IsImage(Message message) => IsImage(message.Document) || message.Photo is not null;
+
+    static bool IsImage(Document? document) =>
+        document is not null && document.MimeType is not null && document.MimeType.StartsWith("image");
 
     bool IsSystemMessage(Message message)
     {

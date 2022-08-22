@@ -9,14 +9,14 @@ namespace ReepoBot.Controllers;
 public class NodeController : ControllerBase
 {
     [HttpPost("ping")]
-    public void UpdateNodeStatus(
+    public async Task UpdateNodeStatus(
         [FromBody] MachineInfo nodeInfo,
         [FromServices] NodeSupervisor nodeSupervisor,
         [FromServices] ILogger<NodeController> logger)
     {
         logger.LogDebug("Received ping from {Node}", nodeInfo.BriefInfoMDv2);
 
-        nodeSupervisor.UpdateNodeStatus(nodeInfo);
+        await nodeSupervisor.UpdateNodeStatusAsync(nodeInfo);
     }
 
     //[HttpPost("profile")]

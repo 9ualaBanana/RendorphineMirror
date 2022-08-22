@@ -11,7 +11,7 @@ namespace Common
         public static ushort ListenPort => Settings.TorrentPort;
         public static BEncodedString PeerId => Client.PeerId;
 
-        static readonly TorrentCreator Creator = new TorrentCreator() { CreatedBy = "Renderphine v" + Init.Version };
+        static readonly TorrentCreator Creator = new TorrentCreator() { CreatedBy = "Renderphin v" + Init.Version };
         public static readonly ClientEngine Client;
 
         static TorrentClient()

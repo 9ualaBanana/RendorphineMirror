@@ -51,7 +51,7 @@ public class NodeSupervisor
         _bot = bot;
     }
 
-    internal void UpdateNodeStatus(MachineInfo nodeInfo)
+    internal async Task UpdateNodeStatusAsync(MachineInfo nodeInfo)
     {
         _logger.LogDebug("Updating node status...");
 
@@ -59,7 +59,7 @@ public class NodeSupervisor
         else
         {
             var thatNodeOnline = GetNodeAlreadyOnline(nodeInfo);
-            if (thatNodeOnline is not null && thatNodeOnline.Version != nodeInfo.Version) UpdateNodeVersion(thatNodeOnline, nodeInfo);
+            if (thatNodeOnline is not null && thatNodeOnline.Version != nodeInfo.Version) await UpdateNodeVersionAsync(thatNodeOnline, nodeInfo);
         } 
 
         if (NodesOnline.TryGetValue(nodeInfo, out var nodeUptimeTimer))
@@ -88,7 +88,7 @@ public class NodeSupervisor
         _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
     }
 
-    void UpdateNodeVersion(MachineInfo nodeOnline, MachineInfo updatedNode)
+    async Task UpdateNodeVersionAsync(MachineInfo nodeOnline, MachineInfo updatedNode)
     {
         if (!NodesOnline.TryRemove(nodeOnline, out var uptimeTimer)) return;
         NodesOnline.TryAdd(updatedNode, uptimeTimer);
@@ -99,9 +99,7 @@ public class NodeSupervisor
         }
         AllNodes.Add(updatedNode);
 
-        _bot.TryNotifySubscribers(
-            text: $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{updatedNode.Version}*.",
-            _logger);
+        await _bot.TryNotifySubscribersAsync(text: $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{updatedNode.Version}*.");
     }
 
     TimerPlus Timer
