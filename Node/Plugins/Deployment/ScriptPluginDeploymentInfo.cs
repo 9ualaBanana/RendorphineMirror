@@ -7,7 +7,7 @@ public record ScriptPluginDeploymentInfo(PluginToDeploy Plugin) : PluginDeployme
     public override async Task DeployAsync(bool deleteInstaller = true)
     {
         var software = (await SoftwareRegistry.GetSoftware()).ThrowIfError();
-        var flat = flatten(software).ToImmutableDictionary(x => x.TypeName.ToLowerInvariant());
+        var flat = SoftwareDefinition.Flatten(software).ToImmutableDictionary(x => x.TypeName.ToLowerInvariant());
 
         foreach (var plugin in Plugin.SelfAndSubPlugins)
         {
@@ -18,9 +18,5 @@ public record ScriptPluginDeploymentInfo(PluginToDeploy Plugin) : PluginDeployme
 
             PowerShellInvoker.Invoke(script);
         }
-
-
-        static IEnumerable<SoftwareDefinition> flatten(IEnumerable<SoftwareDefinition> software) =>
-            software.Concat(software.SelectMany(x => flatten(x.Plugins)));
     }
 }

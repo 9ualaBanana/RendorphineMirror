@@ -54,7 +54,14 @@ public class SoftwareController : ControllerBase
     public JObject GetPeerId() => JsonApi.Success(new JsonPeer(TorrentClient.PeerId.UrlEncode(), TorrentClient.DhtPort));
 
     [HttpGet("getsoft")]
-    public JObject GetSoftware([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist) => JsonApi.Success(softlist.Software);
+    public JObject GetSoftware([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,
+        [Query] string? name = null, [Query] string? version = null)
+    {
+        if (name is null) return JsonApi.Success(softlist.Software);
+        if (version is null) return JsonApi.JsonFromOpResult(GetSoft(softlist, name));
+
+        return JsonApi.JsonFromOpResult(GetSoft(softlist, name, version, out _));
+    }
 
 
     [HttpPost("addsoft")]
@@ -146,7 +153,7 @@ public class SoftwareController : ControllerBase
 
     OperationResult<SoftwareDefinition> GetSoft(SoftList softlist, string name)
     {
-        var soft = softlist.Software.FirstOrDefault(x => x.TypeName.Equals(name, StringComparison.OrdinalIgnoreCase));
+        var soft = SoftwareDefinition.Flatten(softlist.Software).FirstOrDefault(x => x.TypeName.Equals(name, StringComparison.OrdinalIgnoreCase));
         if (soft is null) return OperationResult.Err("Software does not exists");
 
         return soft;
