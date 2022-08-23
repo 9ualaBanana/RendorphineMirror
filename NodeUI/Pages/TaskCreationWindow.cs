@@ -544,7 +544,7 @@ namespace NodeUI.Pages
                 public override TaskPart? Next => new EndPart(Builder);
                 public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
             }
-            
+
             class EndPart : TaskCreationWindow.EndPart
             {
                 protected override string StartTaskEndpoint => "startwatchingtask";
@@ -664,9 +664,18 @@ namespace NodeUI.Pages
 
                     public LocalFileSetting(TextSetting setting) : base(setting)
                     {
+                        var textinput = new TextBox();
+                        textinput.Subscribe(TextBox.TextProperty, text => File = text);
+
                         var btn = new MPButton() { Text = new("Pick a file") };
-                        btn.OnClick += () => new OpenFileDialog() { AllowMultiple = false }.ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => btn.Text = new(File = t.Result?.FirstOrDefault() ?? string.Empty)));
-                        Children.Add(btn);
+                        btn.OnClick += () => new OpenFileDialog() { AllowMultiple = false }.ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = new(t.Result?.FirstOrDefault() ?? string.Empty)));
+
+                        var grid = new Grid()
+                        {
+                            ColumnDefinitions = ColumnDefinitions.Parse("8* 2*"),
+                            Children = { textinput.WithColumn(0), btn.WithColumn(1), },
+                        };
+                        Children.Add(grid);
                     }
 
                     public override void UpdateValue() => Set(File);
@@ -677,9 +686,18 @@ namespace NodeUI.Pages
 
                     public LocalDirSetting(TextSetting setting) : base(setting)
                     {
+                        var textinput = new TextBox();
+                        textinput.Subscribe(TextBox.TextProperty, text => Dir = text);
+
                         var btn = new MPButton() { Text = new("Pick a directory") };
-                        btn.OnClick += () => new OpenFolderDialog().ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => btn.Text = new(Dir = t.Result ?? string.Empty)));
-                        Children.Add(btn);
+                        btn.OnClick += () => new OpenFolderDialog().ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = new(t.Result ?? string.Empty)));
+
+                        var grid = new Grid()
+                        {
+                            ColumnDefinitions = ColumnDefinitions.Parse("8* 2*"),
+                            Children = { textinput.WithColumn(0), btn.WithColumn(1), },
+                        };
+                        Children.Add(grid);
                     }
 
                     public override void UpdateValue() => Set(Dir);
