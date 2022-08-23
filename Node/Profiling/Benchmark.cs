@@ -80,10 +80,9 @@ internal static class Benchmark
             ffmpegRating = (await new FFmpegBenchmark(_sampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnCpuAsync()).Bps;
         }
         catch (Exception) { }
-        using var zipBenchmark = new ZipBenchmark(testDataSize);
         return new
         {
-            rating = (await zipBenchmark.RunAsync()).Bps,
+            rating = (await new ZipBenchmark(testDataSize).RunAsync()).Bps,
             pratings = new { ffmpeg = ffmpegRating },
             load = .0001,
         };

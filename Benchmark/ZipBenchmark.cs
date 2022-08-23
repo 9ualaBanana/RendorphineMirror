@@ -3,38 +3,38 @@ using System.IO.Compression;
 
 namespace Benchmark;
 
-public class ZipBenchmark : IDisposable
+public class ZipBenchmark
 {
-    readonly Stream _stream;
-    readonly Stream _zippedStream;
+    readonly int _dataSize;
+    readonly DirectoryInfo _directoryToZip;
 
-    public ZipBenchmark(int streamSize)
+    public ZipBenchmark(int dataSize)
     {
-        _stream = GenerateTrashDataStream(streamSize);
-        _zippedStream = new MemoryStream(streamSize);
+        _dataSize = dataSize;
+        _directoryToZip = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
+        using var file = File.Create(Path.Combine(_directoryToZip.FullName, Path.GetRandomFileName()));
+        FillFileWithTrashData(file, dataSize);
     }
 
-    static Stream GenerateTrashDataStream(int streamSize)
+    static void FillFileWithTrashData(FileStream file, int dataSize)
     {
-        var trashData = new byte[streamSize];
-        new Random().NextBytes(trashData);
-        return new MemoryStream(trashData);
+        var random = new Random();
+        for (int i = 0; i < dataSize; i++)
+            file.WriteByte((byte)random.Next(byte.MaxValue));
     }
 
     public async Task<BenchmarkResult> RunAsync()
     {
-        using var zipper = new GZipStream(_zippedStream, CompressionMode.Compress);
         var sw = Stopwatch.StartNew();
-        await _stream.CopyToAsync(zipper);
+        await _directoryToZip.DeleteAfterAsync(ZipAsync);
         sw.Stop();
 
-        return new(_stream.Length, sw.Elapsed);
+        return new(_dataSize, sw.Elapsed);
     }
 
-    public void Dispose()
+    static async Task ZipAsync(string directoryPath)
     {
-        GC.SuppressFinalize(this);
-        _stream?.Dispose();
-        _zippedStream?.Dispose();
+        void zipping() => ZipFile.CreateFromDirectory(directoryPath, Path.ChangeExtension(directoryPath, ".zip"));
+        await Task.Run(zipping);
     }
 }
