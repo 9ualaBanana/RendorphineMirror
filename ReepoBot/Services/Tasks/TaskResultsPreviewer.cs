@@ -1,4 +1,6 @@
-﻿using ReepoBot.Models.TaskResultPreviews;
+﻿using Common;
+using Newtonsoft.Json.Linq;
+using ReepoBot.Models.TaskResultPreviews;
 using System.Text.Json;
 
 namespace ReepoBot.Services.Tasks;
@@ -14,8 +16,9 @@ public class TaskResultsPreviewer
         _logger = logger;
     }
 
-    public async Task<MpItem> GetMyMPItemAsync(string sessionId, string iid)
+    public async Task<MpItem> GetMyMPItemAsync(string sessionId, string taskId)
     {
+        string iid = (await GetTaskOutputIidAsync(sessionId, taskId)).Result;
         JsonElement mpItem;
         while (true)
         {
@@ -28,5 +31,13 @@ public class TaskResultsPreviewer
             if (mpItem.GetProperty("state").GetString() == "received")
                 return new(mpItem);
         }
+    }
+
+    async Task<OperationResult<string>> GetTaskOutputIidAsync(string sessionId, string taskId)
+    {
+        return await Apis.GetTaskStateAsync(taskId, sessionId)
+            .Next(taskinfo => taskinfo.Output["ingesterhost"]?.Value<string>().AsOpResult() ?? OperationResult.Err("Could not find ingester host"))
+            .Next(ingester => Api.ApiGet<string>($"https://{ingester}/content/vcupload/getiid", "iid", "Getting output iid", ("extid", taskId)))
+            .ConfigureAwait(false);
     }
 }

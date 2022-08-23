@@ -48,64 +48,35 @@ public static class TaskHandler
     }
     public static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
+        NodeGlobalState.Instance.ExecutingTasks.Add(task);
+        using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
+
+
+        task.LogInfo($"Started");
+
+        var inputobj = DeserializeInput(task.Info.Input);
+        var outputobj = DeserializeOutput(task.Info.Output);
+        task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
+
+        task.LogInfo($"Downloading file...");
+        var input = await inputobj.Download(task, cancellationToken).ConfigureAwait(false);
+        task.InputFile = input;
+        task.LogInfo($"File downloaded to {input}");
+        await task.ChangeStateAsync(TaskState.Active);
+
+        var output = await TaskList.GetAction(task.Info).Execute(task, input).ConfigureAwait(false);
+        await task.ChangeStateAsync(TaskState.Output);
+
+        task.LogInfo($"Uploading output file {output} ...");
+        await outputobj.Upload(task, output).ConfigureAwait(false);
+        task.LogInfo($"File uploaded");
+
+        var queryString = $"sessionid={Settings.SessionId}&taskid={task.Id}&nodename={Settings.NodeName}";
+
         try
         {
-            NodeGlobalState.Instance.ExecutingTasks.Add(task);
-            using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
-
-
-            task.LogInfo($"Started");
-
-            var inputobj = DeserializeInput(task.Info.Input);
-            var outputobj = DeserializeOutput(task.Info.Output);
-            task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
-
-            task.LogInfo($"Downloading file...");
-            var input = await inputobj.Download(task, cancellationToken).ConfigureAwait(false);
-            task.InputFile = input;
-            task.LogInfo($"File downloaded to {input}");
-            await task.ChangeStateAsync(TaskState.Active);
-
-            var output = await TaskList.GetAction(task.Info).Execute(task, input).ConfigureAwait(false);
-            await task.ChangeStateAsync(TaskState.Output);
-
-            task.LogInfo($"Uploading output file {output} ...");
-            await outputobj.Upload(task, output).ConfigureAwait(false);
-            task.LogInfo($"File uploaded");
-            await task.ChangeStateAsync(TaskState.Finished);
-
-            if (outputobj is MPlusTaskOutput mplusoutput)
-            {
-                try
-                {
-                    task.LogInfo($"Uploading result to the reepo...");
-
-                    task.LogInfo($"Getting output iid...");
-                    var outiidr = await Apis.GetTaskStateAsync(task.Id)
-                        .Next(taskinfo => taskinfo.Output["ingesterhost"]?.Value<string>().AsOpResult() ?? OperationResult.Err("Could not find ingester host"))
-                        .Next(ingester => Api.ApiGet<string>($"https://{ingester}/content/vcupload/getiid", "iid", "Getting output iid", ("extid", task.Id)))
-                        .ConfigureAwait(false);
-
-                    var outiid = outiidr.ThrowIfError();
-                    task.LogInfo($"Got output iid: {outiid}");
-
-                    task.LogInfo($"Uploading...");
-                    var queryString = $"sessionid={Settings.SessionId}&iid={outiid}&nodename={Settings.NodeName}";
-                    await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken);
-                    task.LogInfo($"Result uploaded");
-                }
-                catch (Exception ex) { _logger.Error("Error sending result to reepo: " + ex); }
-            }
+            await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken);
         }
-        catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
-        {
-            task.LogErr(ex);
-            await task.ChangeStateAsync(TaskState.Canceled);
-        }
-        catch (Exception ex)
-        {
-            task.LogErr(ex);
-            await task.ChangeStateAsync(TaskState.Failed);
-        }
+        catch (Exception ex) { _logger.Error("Error sending result to reepo: " + ex); }
     }
 }
