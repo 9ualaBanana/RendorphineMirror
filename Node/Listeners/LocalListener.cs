@@ -76,7 +76,7 @@ public class LocalListener : ExecutableListenerBase
             wt.StartWatcher();
             NodeSettings.WatchingTasks.Bindable.Add(wt);
 
-            return await WriteSuccess(response).ConfigureAwait(false);
+            return await WriteJson(response, wt.Id.AsOpResult()).ConfigureAwait(false);
         }
 
         return HttpStatusCode.NotFound;
