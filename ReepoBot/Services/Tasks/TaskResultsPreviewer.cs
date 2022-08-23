@@ -9,16 +9,21 @@ public class TaskResultsPreviewer
 {
     readonly HttpClient _httpClient;
     readonly ILogger<TaskResultsPreviewer> _logger;
+    readonly TaskRegistry _taskRegistry;
 
-    public TaskResultsPreviewer(IHttpClientFactory httpClientFactory, ILogger<TaskResultsPreviewer> logger)
+    public TaskResultsPreviewer(IHttpClientFactory httpClientFactory, ILogger<TaskResultsPreviewer> logger, TaskRegistry taskRegistry)
     {
         _httpClient = httpClientFactory.CreateClient();
         _logger = logger;
+        _taskRegistry = taskRegistry;
     }
 
-    public async Task<MpItem> GetMyMPItemAsync(string sessionId, string taskId)
+    public async Task<MpItem?> GetMyMPItemAsync(string taskId)
     {
-        string iid = (await GetTaskOutputIidAsync(sessionId, taskId)).Result;
+        _taskRegistry.Remove(taskId, out var sessionId);
+        if (sessionId is null) return null;
+
+        string iid = (await GetTaskOutputIidAsync(taskId, sessionId)).Result;
         JsonElement mpItem;
         while (true)
         {
@@ -33,7 +38,7 @@ public class TaskResultsPreviewer
         }
     }
 
-    async Task<OperationResult<string>> GetTaskOutputIidAsync(string sessionId, string taskId)
+    static async Task<OperationResult<string>> GetTaskOutputIidAsync(string taskId, string sessionId)
     {
         return await Apis.GetTaskStateAsync(taskId, sessionId)
             .Next(taskinfo => taskinfo.Output["ingesterhost"]?.Value<string>().AsOpResult() ?? OperationResult.Err("Could not find ingester host"))

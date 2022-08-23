@@ -71,7 +71,7 @@ public static class TaskHandler
         await outputobj.Upload(task, output).ConfigureAwait(false);
         task.LogInfo($"File uploaded");
 
-        var queryString = $"sessionid={Settings.SessionId}&taskid={task.Id}&nodename={Settings.NodeName}";
+        var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
 
         try
         {
