@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Direx" Version="0.1.0" />
     <PackageReference Include="NLog" Version="5.0.1" />
     <PackageReference Include="UnitsNet" Version="4.136.0" />
   </ItemGroup>
