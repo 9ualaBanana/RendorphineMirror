@@ -15,8 +15,8 @@ public static class Apis
     public static ValueTask<OperationResult<ImmutableArray<NodeInfo>>> GetMyNodesAsync(string? sessionid = null) =>
         Api.ApiGet<ImmutableArray<NodeInfo>>($"{TaskManagerEndpoint}/getmynodes", "nodes", "Getting my nodes", ("sessionid", sessionid ?? Settings.SessionId!));
 
-    public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this PlacedTask task, string? sessionId = default) => GetTaskStateAsync(task.Id, sessionId);
-    public static async ValueTask<OperationResult> ChangeStateAsync(this ReceivedTask task, TaskState state, string? sessionId = default)
+    public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this ITask task, string? sessionId = default) => GetTaskStateAsync(task.Id, sessionId);
+    public static async ValueTask<OperationResult> ChangeStateAsync(this ITask task, TaskState state, string? sessionId = default)
     {
         task.LogInfo($"State changed to {state}");
         if (task.ExecuteLocally) return true;

@@ -99,13 +99,30 @@ PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
 
 TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Bindable.Add;
 
-/*NodeSettings.WatchingTasks.Add(WatchingTask.Create(
-    new LocalWatchingTaskSource("/tmp/ae"),
-    FFMpegTasks.EditVideo,
-    new() { Hflip = true, },
-    new MPlusWatchingTaskOutputInfo("rep_outputdir")
-));*/
 
+logger.Info($"Found {NodeSettings.PlacedTasks.Bindable.Count(x => x.State != TaskState.Finished && x.State != TaskState.Failed && x.State != TaskState.Canceled)} non-finished placed tasks");
+new Thread(async () =>
+{
+    while (true)
+    {
+        foreach (var task in NodeSettings.PlacedTasks.Bindable.ToArray())
+        {
+            try
+            {
+                await TaskRegistration.CheckCompletion(task);
+            }
+            catch (Exception ex) when (ex.Message.Contains("no task with such "))
+            {
+                task.LogErr("Placed task does not exists on the server, removing");
+                NodeSettings.PlacedTasks.Bindable.Remove(task);
+            }
+        }
+
+        NodeSettings.PlacedTasks.Save();
+        await Task.Delay(30_000);
+    }
+})
+{ IsBackground = true }.Start();
 
 
 if (NodeSettings.WatchingTasks.Count != 0)
@@ -122,14 +139,7 @@ if (NodeSettings.SavedTasks.Count != 0)
 
     // .ToArray() to not cause exception while removing tasks
     foreach (var task in NodeSettings.SavedTasks.Bindable.ToArray())
-    {
-        try { await TaskHandler.HandleAsync(task).ConfigureAwait(false); }
-        finally
-        {
-            task.LogInfo("Removing");
-            NodeSettings.SavedTasks.Bindable.Remove(task);
-        }
-    }
+        await TaskHandler.HandleAsync(task).ConfigureAwait(false);
 }
 
 Thread.Sleep(-1);

@@ -37,4 +37,28 @@ public static class TaskRegistration
         TaskRegistered(new PlacedTask(id, info));
         return id;
     }
+
+    /// <summary> Checks task state and sets it to Finished if completed </summary>
+    public static async ValueTask CheckCompletion(PlacedTask task)
+    {
+        if (task.State == TaskState.Finished) return;
+
+        var stater = await task.GetTaskStateAsync();
+        var state = stater.ThrowIfError();
+        task.State = state.State;
+
+        if (state.State != TaskState.Output) return;
+
+        // if upload is completed
+        if (state.Output["ingesterhost"] is not null)
+        {
+            task.LogInfo("Completed");
+            await task.ChangeStateAsync(TaskState.Finished);
+            task.State = TaskState.Finished;
+
+            return;
+        }
+
+        // TODO: /\ works only for MPlus output; do for others
+    }
 }
