@@ -103,6 +103,34 @@ public class PublicListener : ExecutableListenerBase
             return HttpStatusCode.OK;
         }
 
+        if (path == "logs")
+        {
+            string logDir = Init.LogDirectory;
+            string[] files = Directory.GetFiles(logDir);
+            string? q = context.Request.QueryString["id"];
+            string info = "";
+
+            if (q == null || !int.TryParse(q, out _))
+            {
+                for (int i = 0; i < files.Length; i++)
+                    info += $"<a href='/logs?id={i}'>{Path.GetFileName(files[i])}</a></br>";
+            }
+            else
+            {
+                int fileId = int.Parse(q);
+                info += $"FILE_ID: {q}\n";
+
+                if (fileId < 0 || fileId >= files.Length)
+                    info += "File not found.";
+                else
+                    info += File.ReadAllText(files[fileId]);
+            }
+
+            using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+            writer.Write(info);
+
+            return HttpStatusCode.OK;
+        }
 
         return HttpStatusCode.NotFound;
     }
