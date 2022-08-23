@@ -518,7 +518,7 @@ namespace NodeUI.Pages
 
                 public ChooseInputPart(TaskCreationInfo builder) : base(builder) { }
 
-                public override void Initialize() => InitFromCache(info => info.Inputs);
+                public override void Initialize() => InitFromCache(info => info.WatchingInputs);
                 public override void OnNext()
                 {
                     base.OnNext();
@@ -532,7 +532,7 @@ namespace NodeUI.Pages
 
                 public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
 
-                public override void Initialize() => InitFromCache(info => info.Outputs);
+                public override void Initialize() => InitFromCache(info => info.WatchingOutputs);
                 public override void OnNext()
                 {
                     base.OnNext();
