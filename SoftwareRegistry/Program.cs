@@ -66,9 +66,9 @@ public class SoftwareController : ControllerBase
 
     [HttpPost("addsoft")]
     public JObject AddSoftware([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,
-        [Body] SoftwareDefinition soft)
+        [Query] string name, [Body] SoftwareDefinition soft)
     {
-        softlist.Add(soft);
+        softlist.Add(name, soft);
         return JsonApi.Success(softlist.Software);
     }
 
@@ -77,9 +77,9 @@ public class SoftwareController : ControllerBase
         [Query] string name)
     {
         var data = GetSoft(softlist, name)
-            .Next(ver =>
+            .Next(soft =>
             {
-                softlist.Remove(ver);
+                softlist.Remove(name);
                 return softlist.AsOpResult();
             });
 
@@ -93,7 +93,7 @@ public class SoftwareController : ControllerBase
         var data = GetSoft(softlist, name, version, out var soft)
             .Next(ver =>
             {
-                softlist.Replace(soft, soft with { Versions = soft.Versions.Remove(ver) });
+                softlist.Replace(name, soft with { Versions = soft.Versions.Remove(version) });
                 return softlist.AsOpResult();
             });
 
@@ -111,7 +111,7 @@ public class SoftwareController : ControllerBase
                 using (var reader = soft.CreateReader())
                     new JsonSerializer().Populate(reader, copy);
 
-                softlist.Replace(prev, copy);
+                softlist.Replace(name, copy);
                 return softlist.AsOpResult();
             });
 
@@ -129,7 +129,7 @@ public class SoftwareController : ControllerBase
                 using (var reader = soft.CreateReader())
                     new JsonSerializer().Populate(reader, copy);
 
-                softlist.Replace(prevsoft, prevsoft with { Versions = prevsoft.Versions.Replace(prev, copy) });
+                softlist.Replace(name, prevsoft with { Versions = prevsoft.Versions.SetItem(version, copy) });
                 return softlist.AsOpResult();
             });
 
@@ -153,8 +153,8 @@ public class SoftwareController : ControllerBase
 
     OperationResult<SoftwareDefinition> GetSoft(SoftList softlist, string name)
     {
-        var soft = SoftwareDefinition.Flatten(softlist.Software).FirstOrDefault(x => x.TypeName.Equals(name, StringComparison.OrdinalIgnoreCase));
-        if (soft is null) return OperationResult.Err("Software does not exists");
+        if (!softlist.Software.TryGetValue(name, out var soft))
+            return OperationResult.Err("Software does not exists");
 
         return soft;
     }
@@ -164,8 +164,8 @@ public class SoftwareController : ControllerBase
         soft = softr.Value;
         if (!softr) return softr.EString;
 
-        var ver = softr.Value.Versions.FirstOrDefault(x => x.Version.Equals(version, StringComparison.OrdinalIgnoreCase));
-        if (ver is null) return OperationResult.Err("Version does not exists");
+        if (!soft.Versions.TryGetValue(version, out var ver))
+            return OperationResult.Err("Version does not exists");
 
         return ver;
     }

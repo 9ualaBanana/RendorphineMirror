@@ -12,6 +12,10 @@ public static class Apis
     public static ValueTask<OperationResult<ImmutableArray<NodeInfo>>> GetMyNodesAsync(string? sessionid = null) =>
         Api.ApiGet<ImmutableArray<NodeInfo>>($"{TaskManagerEndpoint}/getmynodes", "nodes", "Getting my nodes", ("sessionid", sessionid ?? Settings.SessionId!));
 
+    public static ValueTask<OperationResult<ImmutableDictionary<string, SoftwareDefinition>>> GetSoftwareAsync() =>
+        LocalApi.Send<ImmutableDictionary<string, SoftwareDefinition>>(Settings.RegistryUrl, "getsoft")
+        .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
+
     public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this ITask task, string? sessionId = default) => GetTaskStateAsync(task.Id, sessionId);
     public static async ValueTask<OperationResult> ChangeStateAsync(this ITask task, TaskState state, string? sessionId = default)
     {
