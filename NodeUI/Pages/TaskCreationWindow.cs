@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Avalonia.Controls.Templates;
+using Common.Tasks.Model;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

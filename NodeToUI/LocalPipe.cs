@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Common.NodeToUI;
+namespace NodeToUI;
 
 public static class LocalPipe
 {

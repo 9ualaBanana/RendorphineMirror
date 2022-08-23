@@ -1,4 +1,4 @@
-namespace Common.NodeToUI;
+namespace NodeToUI;
 
 public static class TaskExtensions
 {

@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Common.NodeToUI;
+namespace NodeToUI;
 
 /// <summary> Node runtime state. Not being saved anywhere and is used for node -> ui communication </summary>
 public class NodeGlobalState

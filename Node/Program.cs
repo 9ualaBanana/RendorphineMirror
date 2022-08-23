@@ -1,6 +1,6 @@
 ﻿global using System.Collections.Immutable;
 global using Common;
-global using Common.NodeToUI;
+global using NodeToUI;
 global using Common.Tasks;
 global using Common.Tasks.Model;
 global using Machine;

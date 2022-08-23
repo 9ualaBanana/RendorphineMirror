@@ -1,7 +1,7 @@
 using System.Reflection;
 using Newtonsoft.Json;
 
-namespace Common.NodeToUI;
+namespace NodeToUI;
 
 public abstract class FieldDescriber
 {

@@ -1,3 +1,3 @@
-namespace Common.NodeToUI;
+namespace NodeToUI;
 
 public enum FileFormat { Jpeg, Mov }
