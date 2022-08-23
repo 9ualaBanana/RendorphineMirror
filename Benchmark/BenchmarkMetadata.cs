@@ -9,14 +9,13 @@ public static class BenchmarkMetadata
 
     readonly static Assembly _assembly = Assembly.GetExecutingAssembly();
 
-    public readonly static Version Version = ReadAssemblyVersionOrThrow();
-    static Version ReadAssemblyVersionOrThrow()
+    public static Version Version
     {
-        var version = _assembly.GetName().Version;
-        if (version is not null) return version;
-
-        const string errorMessage = "Benchmark version is not specified";
-        _logger.Fatal(errorMessage);
-        throw new MissingMemberException(errorMessage, nameof(AssemblyName.Version));
+        get
+        {
+            var version = _assembly.GetName().Version!;
+            _logger.Info("Benchmark version: {Version}", version);
+            return version;
+        }
     }
 }
