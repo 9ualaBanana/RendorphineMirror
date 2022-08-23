@@ -14,78 +14,81 @@ public class ReadWriteBenchmark
         _dataSize = size;
     }
 
+    /// <inheritdoc cref="RunAsync(DriveInfo)"/>
+    [SupportedOSPlatform("windows")]
+    public async Task<(BenchmarkResult Read, BenchmarkResult Write)> RunAsync(string driveName) =>
+        await RunAsync(new DriveInfo(driveName));
+
     /// <exception cref="IOException" />
     /// <exception cref="UnauthorizedAccessException" />
     /// <exception cref="InsufficientMemoryException" />
     [SupportedOSPlatform("windows")]
-    public async Task<(BenchmarkResult Read, BenchmarkResult Write)> RunAsync(string driveName)
+    public async Task<(BenchmarkResult Read, BenchmarkResult Write)> RunAsync(DriveInfo drive)
     {
-        var drive = new DriveInfo(driveName);
         if (drive.AvailableFreeSpace < _dataSize)
             throw new InsufficientMemoryException("Not enough available free space on the specified drive.");
 
-        TimeSpan readTime, writeTime;
         // Required for writing to the system drive as writing to its root is forbidden.
-        var tempDir = Directory.CreateDirectory(
+        return await Directory.CreateDirectory(
             Path.Combine(drive.Name, Path.GetRandomFileName())
-            );
-        var fileHandle = FileHelper.CreateUnbufferedFile(tempDir.FullName);
+            ).DeleteAfterAsync(RunBenchmarkInDirectoryAsync);
+    }
 
-        using (var safeFileHandle = new SafeFileHandle(fileHandle, true))
+    [SupportedOSPlatform("windows")]
+    async Task<(BenchmarkResult Read, BenchmarkResult Write)> RunBenchmarkInDirectoryAsync(DirectoryInfo directory)
+    {
+        TimeSpan readTime, writeTime;
+        using (var safeFileHandle = new SafeFileHandle(IOHelper.CreateUnbufferedFile(directory.FullName), true))
         {
-            writeTime = await RunWriteBenchmarkAsync(safeFileHandle);
-            readTime = await RunReadBenchmarkAsync(safeFileHandle);
+            var fileHandle = safeFileHandle.DangerousGetHandle();
+            writeTime = await RunWriteBenchmarkAsync(fileHandle);
+            readTime = await RunReadBenchmarkAsync(fileHandle);
         }
-        tempDir.Delete(true);
-
-        return (new (_dataSize, readTime), new (_dataSize, writeTime));
+        return (new(_dataSize, readTime), new(_dataSize, writeTime));
     }
 
     [SupportedOSPlatform("windows")]
-    async Task<TimeSpan> RunWriteBenchmarkAsync(SafeFileHandle safeFileHandle)
+    async Task<TimeSpan> RunWriteBenchmarkAsync(IntPtr fileHandle)
     {
         var sw = Stopwatch.StartNew();
-        await Task.Run(() =>
-        {
-            var dataChunk = new byte[_chunkSize];
-            long actualChunkSize = _chunkSize;
-            long totalBytesWritten = 0;
-            while (totalBytesWritten < _dataSize)
-            {
-                if (_dataSize - totalBytesWritten < _chunkSize) actualChunkSize = _dataSize - totalBytesWritten;
-                if (FileHelper.WriteFile(
-                    safeFileHandle.DangerousGetHandle(),
-                    dataChunk[..(Index)actualChunkSize],
-                    out var bytesWritten,
-                    totalBytesWritten)
-                )
-                { totalBytesWritten += bytesWritten; }
-            }
-        });
+        await Task.Run(() => RunWriteBenchmark(fileHandle));
         sw.Stop();
         return sw.Elapsed;
     }
 
     [SupportedOSPlatform("windows")]
-    async Task<TimeSpan> RunReadBenchmarkAsync(SafeFileHandle safeFileHandle)
+    void RunWriteBenchmark(IntPtr fileHandle)
+    {
+        var dataChunk = new byte[_chunkSize];
+        long actualChunkSize = _chunkSize;
+        long totalBytesWritten = 0;
+        while (totalBytesWritten < _dataSize)
+        {
+            if (_dataSize - totalBytesWritten < _chunkSize)
+                actualChunkSize = _dataSize - totalBytesWritten;
+            if (IOHelper.WriteFile(fileHandle, dataChunk[..(Index)actualChunkSize], out var bytesWritten, offset: totalBytesWritten))
+            { totalBytesWritten += bytesWritten; }
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    async Task<TimeSpan> RunReadBenchmarkAsync(IntPtr fileHandle)
     {
         var sw = Stopwatch.StartNew();
-        await Task.Run(() =>
-        {
-            var outputBuffer = new byte[_chunkSize];
-            long totalBytesRead = 0;
-            while (totalBytesRead < _dataSize)
-            {
-                if (FileHelper.ReadFile(
-                    safeFileHandle.DangerousGetHandle(),
-                    outputBuffer,
-                    out var bytesRead,
-                    totalBytesRead)
-                ) 
-                { totalBytesRead += bytesRead; }
-            }
-        });
+        await Task.Run(() => RunReadBenchmark(fileHandle));
         sw.Stop();
         return sw.Elapsed;
+    }
+
+    [SupportedOSPlatform("windows")]
+    void RunReadBenchmark(IntPtr fileHandle)
+    {
+        var outputBuffer = new byte[_chunkSize];
+        long totalBytesRead = 0;
+        while (totalBytesRead < _dataSize)
+        {
+            if (IOHelper.ReadFile(fileHandle, outputBuffer, out var bytesRead, offset: totalBytesRead))
+            { totalBytesRead += bytesRead; }
+        }
     }
 }

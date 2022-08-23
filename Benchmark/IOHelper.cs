@@ -1,8 +1,10 @@
 ﻿using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace Benchmark;
 
-internal static class FileHelper
+[SupportedOSPlatform("windows")]
+internal static class IOHelper
 {
     /// <summary>
     /// *WARNING* Certain requirements regarding file sizes and <paramref name="offset"/>s must be met when working with unbuffered files.
@@ -54,26 +56,26 @@ internal static class FileHelper
         int highBytes, lowBytes;
         if (BitConverter.IsLittleEndian)
         {
-            lowBytes = BitConverter.ToInt32(bytes[..(bytes.Length / 2)]);
+            lowBytes = BitConverter.ToInt32(bytes.AsSpan()[..(bytes.Length / 2)]);
             highBytes = BitConverter.ToInt32(bytes, bytes.Length / 2);
         }
         else
         {
             lowBytes = BitConverter.ToInt32(bytes, bytes.Length / 2);
-            highBytes = BitConverter.ToInt32(bytes[..(bytes.Length / 2)]);
+            highBytes = BitConverter.ToInt32(bytes.AsSpan()[..(bytes.Length / 2)]);
         }
         return (highBytes, lowBytes);
     }
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
     static extern IntPtr CreateFile(
-     [MarshalAs(UnmanagedType.LPWStr)] string filename,
-     [MarshalAs(UnmanagedType.U4)] FileAccess access,
-     [MarshalAs(UnmanagedType.U4)] FileShare share,
-     IntPtr securityAttributes,
-     [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
-     [MarshalAs(UnmanagedType.U4)] UnmanagedFileAttributes flagsAndAttributes,
-     IntPtr templateFile);
+        [MarshalAs(UnmanagedType.LPWStr)] string filename,
+        [MarshalAs(UnmanagedType.U4)] FileAccess access,
+        [MarshalAs(UnmanagedType.U4)] FileShare share,
+        IntPtr securityAttributes,
+        [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
+        [MarshalAs(UnmanagedType.U4)] UnmanagedFileAttributes flagsAndAttributes,
+        IntPtr templateFile);
 
     [DllImport("kernel32.dll")]
     static extern bool WriteFile(IntPtr hFile, byte[] lpBuffer,
