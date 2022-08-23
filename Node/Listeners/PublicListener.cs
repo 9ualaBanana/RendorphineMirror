@@ -132,6 +132,13 @@ public class PublicListener : ExecutableListenerBase
             return HttpStatusCode.OK;
         }
 
+        if (path == "")
+        {
+            using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+            writer.Write("WE'LL FUCK THIS WORLD!");
+            return HttpStatusCode.OK;
+        }
+
         return HttpStatusCode.NotFound;
     }
     protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
