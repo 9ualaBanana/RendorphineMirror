@@ -1,3 +1,3 @@
-namespace Common.NodeToUI;
+namespace NodeToUI;
 
 public record DirectoryContents(string Path, ImmutableArray<string> Directories);

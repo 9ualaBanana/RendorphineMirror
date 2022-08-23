@@ -19,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Machine", "Machine\Machine.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoftwareRegistry", "SoftwareRegistry\SoftwareRegistry.csproj", "{3AD84387-36C6-4262-B133-0086152DCC78}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeToUI", "NodeToUI\NodeToUI.csproj", "{2C9D929E-3EF0-4271-8624-ED3BF6DF725D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +59,10 @@ Global
 		{3AD84387-36C6-4262-B133-0086152DCC78}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3AD84387-36C6-4262-B133-0086152DCC78}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3AD84387-36C6-4262-B133-0086152DCC78}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C9D929E-3EF0-4271-8624-ED3BF6DF725D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C9D929E-3EF0-4271-8624-ED3BF6DF725D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C9D929E-3EF0-4271-8624-ED3BF6DF725D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C9D929E-3EF0-4271-8624-ED3BF6DF725D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

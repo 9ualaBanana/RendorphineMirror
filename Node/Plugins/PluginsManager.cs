@@ -47,7 +47,7 @@ public static class PluginsManager
     {
         InstalledPlugins = _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover()).ToHashSet();
         _logger.Info("List of installed plugins is updated");
-        Common.NodeToUI.NodeGlobalState.Instance.InstalledPlugins.SetRange(InstalledPlugins);
+        NodeToUI.NodeGlobalState.Instance.InstalledPlugins.SetRange(InstalledPlugins);
         return InstalledPlugins;
     }
 

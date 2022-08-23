@@ -22,7 +22,7 @@ public static class UICache
     }
     static async Task<OperationResult> UpdateStatsAsync()
     {
-        var data = await Apis.GetSoftwareStatsAsync().ConfigureAwait(false);
+        var data = await Api.ApiGet<ImmutableDictionary<PluginType, SoftwareStats>>($"{Api.TaskManagerEndpoint}/getsoftwarestats", "stats").ConfigureAwait(false);
         if (data) SoftwareStats.SetRange(data.Value);
 
         return data.GetResult();

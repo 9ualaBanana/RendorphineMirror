@@ -17,7 +17,7 @@ global using Avalonia.Styling;
 global using Avalonia.Threading;
 global using Avalonia.VisualTree;
 global using Common;
-global using Common.NodeToUI;
+global using NodeToUI;
 global using Common.Tasks;
 global using NLog;
 global using NodeUI.Controls;

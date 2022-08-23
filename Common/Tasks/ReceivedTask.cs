@@ -1,6 +1,6 @@
 ﻿namespace Common.Tasks;
 
-public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILoggable
+public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ITask
 {
     string ILoggable.LogName => $"Task {Id}";
 

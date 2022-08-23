@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace Common
+namespace NodeToUI
 {
     public static class PortForwarding
     {

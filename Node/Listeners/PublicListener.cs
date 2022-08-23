@@ -78,23 +78,6 @@ public class PublicListener : ExecutableListenerBase
             return await WriteJson(response, contents.AsOpResult());
         }
 
-        // TODO: dont send stuff
-        if (path == "getlogs")
-        {
-            var stream = new MemoryStream();
-
-            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, true))
-            {
-                foreach (var file in Directory.GetFiles(Init.LogDirectory, "*", SearchOption.AllDirectories))
-                    archive.CreateEntryFromFile(file, Path.GetRelativePath(Path.GetDirectoryName(file)!, file));
-
-                archive.CreateEntryFromFile(Settings.DbPath, Path.GetFileName(Settings.DbPath));
-            }
-
-            stream.Seek(0, SeekOrigin.Begin);
-            await stream.CopyToAsync(response.OutputStream).ConfigureAwait(false);
-        }
-
         if (path == "helloworld")
         {
             using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
@@ -129,6 +112,13 @@ public class PublicListener : ExecutableListenerBase
             using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
             writer.Write(info);
 
+            return HttpStatusCode.OK;
+        }
+
+        if (path == "")
+        {
+            using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+            writer.Write("WE'LL FUCK THIS WORLD!");
             return HttpStatusCode.OK;
         }
 
