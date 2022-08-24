@@ -174,7 +174,7 @@ public class PublicListener : ExecutableListenerBase
         if (path == "")
         {
             using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-            writer.Write("WE'LL FUCK THIS WORLD!");
+            writer.Write("<a href='/gallery'>Gallery</a><br><a href='/logs'>Logs</a>");
             return HttpStatusCode.OK;
         }
 
