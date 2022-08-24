@@ -28,7 +28,7 @@ if (!Debugger.IsAttached)
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 await InitializePlugins();
 
-//new LocalListener().Start();
+new LocalListener().Start();
 
 if (Settings.SessionId is not null)
 {
