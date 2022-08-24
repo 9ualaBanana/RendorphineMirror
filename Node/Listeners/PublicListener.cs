@@ -106,24 +106,37 @@ public class PublicListener : ExecutableListenerBase
         if (path == "logs")
         {
             string logDir = Init.LogDirectory;
-            string[] files = Directory.GetFiles(logDir);
+            string[] folders = Directory.GetDirectories(logDir);
             string? q = context.Request.QueryString["id"];
             string info = "";
 
             if (q == null || !int.TryParse(q, out _))
             {
-                for (int i = 0; i < files.Length; i++)
-                    info += $"<a href='/logs?id={i}'>{Path.GetFileName(files[i])}</a></br>";
+                int i = 0;
+                foreach (string folder in folders)
+                {
+                    string[] files = Directory.GetFiles(folder);
+                    info += $"<b style='font-size: 32px'>{Path.GetFileName(folder)}</b></br>";
+                    foreach (string file in files)
+                    {
+                        info += $"<a href='/logs?id={i++}'>{Path.GetFileName(file)}</a></br>";
+                    }
+                }
             }
             else
             {
-                int fileId = int.Parse(q);
-                info += $"FILE_ID: {q}\n";
-
-                if (fileId < 0 || fileId >= files.Length)
-                    info += "File not found.";
-                else
-                    info += File.ReadAllText(files[fileId]);
+                int i = 0;
+                int id = int.Parse(q);
+                foreach(string folder in folders)
+                {
+                    string[] files = Directory.GetFiles(folder);
+                    if(i + files.Length - 1 >= id)
+                    {
+                        info = File.ReadAllText(files[id - i]);
+                        break;
+                    }
+                    i += files.Length;
+                }
             }
 
             using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
