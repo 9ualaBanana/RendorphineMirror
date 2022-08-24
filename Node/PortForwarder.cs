@@ -39,7 +39,7 @@ namespace Node
                 }
 
 
-                void map(Mapping[] mappings, string name, IBindable<ushort> portb)
+                void map(Mapping[] mappings, string name, Settings.IDatabaseValueBindable<ushort> portb)
                 {
                     name += "-" + Environment.MachineName;
                     var mapping = mappings.FirstOrDefault(x => x.Description == name);

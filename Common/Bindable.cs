@@ -10,11 +10,15 @@ namespace Common
     {
         JToken AsJson(JsonSerializer? serializer);
         void LoadFromJson(JToken json, JsonSerializer? serializer);
+
+        void SubscribeChanged(Action action, bool executeImmediately = false);
     }
-    public interface IReadOnlyBindable<T> : IBindable
+    public interface IReadOnlyBindable<out T> : IBindable
     {
         event Action? Changed;
         T Value { get; }
+
+        IReadOnlyBindable<T> GetBoundCopy();
     }
     public interface IBindable<T> : IReadOnlyBindable<T>
     {
@@ -22,7 +26,7 @@ namespace Common
     }
 
     [JsonObject, JsonConverter(typeof(BindableJsonConverter))]
-    public abstract class BindableBase<T>
+    public abstract class BindableBase<T> : IReadOnlyBindable<T>
     {
         public event Action? Changed;
         readonly List<WeakReference<BindableBase<T>>> References = new();
@@ -56,6 +60,8 @@ namespace Common
             other.References.Add(new(this));
             this.CopyValueFrom(other);
         }
+
+        IReadOnlyBindable<T> IReadOnlyBindable<T>.GetBoundCopy() => GetBoundCopy();
         public virtual BindableBase<T> GetBoundCopy()
         {
             var obj = (BindableBase<T>) (
@@ -102,10 +108,9 @@ namespace Common
         public override Bindable<T> GetBoundCopy() => (Bindable<T>) base.GetBoundCopy();
     }
 
-    public interface IReadOnlyBindableCollection<out T> : IReadOnlyCollection<T>
+    public interface IReadOnlyBindableCollection<out T> : IBindable, IReadOnlyCollection<T>
     {
         IReadOnlyBindableCollection<T> GetBoundCopy();
-        void SubscribeChanged(Action action, bool executeImmediately = false);
     }
     public class BindableList<T> : BindableBase<IReadOnlyList<T>>, IReadOnlyBindable<IReadOnlyList<T>>, IReadOnlyBindableCollection<T>, IReadOnlyList<T>
     {
@@ -135,7 +140,7 @@ namespace Common
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         IReadOnlyBindableCollection<T> IReadOnlyBindableCollection<T>.GetBoundCopy() => GetBoundCopy();
-        void IReadOnlyBindableCollection<T>.SubscribeChanged(Action action, bool executeImmediately) => SubscribeChanged(action, executeImmediately);
+        void IBindable.SubscribeChanged(Action action, bool executeImmediately) => SubscribeChanged(action, executeImmediately);
     }
     public class BindableDictionary<TKey, TValue> : BindableBase<IReadOnlyDictionary<TKey, TValue>>, IReadOnlyBindable<IReadOnlyDictionary<TKey, TValue>>,
         IReadOnlyBindableCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue> where TKey : notnull

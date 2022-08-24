@@ -1,6 +1,5 @@
 ﻿global using System.Collections.Immutable;
 global using Common;
-global using NodeToUI;
 global using Common.Tasks;
 global using Common.Tasks.Model;
 global using Machine;
@@ -11,6 +10,7 @@ global using Node.Tasks.Exec;
 global using Node.Tasks.Executor;
 global using Node.Tasks.Models;
 global using Node.Tasks.Watching;
+global using NodeToUI;
 using System.Diagnostics;
 using Node;
 using Node.Listeners;
@@ -97,50 +97,19 @@ PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
     }
 }).Consume();
 
+
+logger.Info(@$"Tasks found
+    {NodeSettings.WatchingTasks.Count} watching
+    {NodeSettings.QueuedTasks.Count} queued
+    {NodeSettings.PlacedTasks.Count} placed
+    {NodeSettings.PlacedTasks.Bindable.Count(x => x.State is not (TaskState.Finished or TaskState.Failed or TaskState.Canceled))} non-finished placed
+".TrimLines().Replace("\n", "; "));
+
+
 TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Bindable.Add;
-
-
-logger.Info($"Found {NodeSettings.PlacedTasks.Bindable.Count(x => x.State != TaskState.Finished && x.State != TaskState.Failed && x.State != TaskState.Canceled)} non-finished placed tasks");
-new Thread(async () =>
-{
-    while (true)
-    {
-        foreach (var task in NodeSettings.PlacedTasks.Bindable.ToArray())
-        {
-            try
-            {
-                await TaskRegistration.CheckCompletion(task);
-            }
-            catch (Exception ex) when (ex.Message.Contains("no task with such "))
-            {
-                task.LogErr("Placed task does not exists on the server, removing");
-                NodeSettings.PlacedTasks.Bindable.Remove(task);
-            }
-        }
-
-        NodeSettings.PlacedTasks.Save();
-        await Task.Delay(30_000);
-    }
-})
-{ IsBackground = true }.Start();
-
-
-if (NodeSettings.WatchingTasks.Count != 0)
-{
-    logger.Info("Found {WatchingTasksCount} watching tasks, starting...", NodeSettings.WatchingTasks.Count);
-
-    foreach (var task in NodeSettings.WatchingTasks.Bindable)
-        task.StartWatcher();
-}
-
-if (NodeSettings.SavedTasks.Count != 0)
-{
-    logger.Info("Found {SavedTasksCount} saved tasks, starting...", NodeSettings.SavedTasks.Count);
-
-    // .ToArray() to not cause exception while removing tasks
-    foreach (var task in NodeSettings.SavedTasks.Bindable.ToArray())
-        await TaskHandler.HandleAsync(task).ConfigureAwait(false);
-}
+TaskHandler.StartUpdatingTaskState();
+TaskHandler.StartWatchingTasks();
+TaskHandler.StartListening();
 
 Thread.Sleep(-1);
 

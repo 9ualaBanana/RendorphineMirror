@@ -7,6 +7,54 @@ public static class TaskHandler
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
+    /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
+    public static void StartListening()
+    {
+        new Thread(async () =>
+        {
+            while (true)
+            {
+                await Task.Delay(2_000);
+                if (NodeSettings.QueuedTasks.Count == 0) continue;
+
+                try { await HandleAsync(NodeSettings.QueuedTasks.Bindable[0]); }
+                catch (Exception ex) { _logger.Error(ex.ToString()); }
+            }
+        })
+        { IsBackground = true }.Start();
+    }
+    /// <summary> Polls all non-finished placed tasks, set their state to Finished if finished </summary>
+    public static void StartUpdatingTaskState()
+    {
+        new Thread(async () =>
+        {
+            while (true)
+            {
+                foreach (var task in NodeSettings.PlacedTasks.Bindable.ToArray())
+                {
+                    try { await TaskRegistration.CheckCompletion(task); }
+                    catch (Exception ex) when (ex.Message.Contains("no task with such "))
+                    {
+                        task.LogErr("Placed task does not exists on the server, removing");
+                        NodeSettings.PlacedTasks.Bindable.Remove(task);
+                    }
+                }
+
+                NodeSettings.PlacedTasks.Save();
+                await Task.Delay(30_000);
+            }
+        })
+        { IsBackground = true }.Start();
+    }
+
+    public static void StartWatchingTasks()
+    {
+        foreach (var task in NodeSettings.WatchingTasks.Bindable)
+            task.StartWatcher();
+    }
+
+
+
     static TaskInputOutputType GetInputOutputType(JObject json)
     {
         var token = json.Property("type", StringComparison.OrdinalIgnoreCase)?.Value!;
@@ -16,6 +64,7 @@ public static class TaskHandler
         return Enum.Parse<TaskInputOutputType>(token.Value<string>()!);
     }
 
+    // TODO: refactor these two somehow
     public static ITaskInput DeserializeInput(JObject input) =>
         GetInputOutputType(input) switch
         {
@@ -32,15 +81,13 @@ public static class TaskHandler
             { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
         };
 
-    public static async Task HandleReceivedTask(ReceivedTask task, CancellationToken token = default)
-    {
-        NodeSettings.SavedTasks.Bindable.Add(task);
-        await HandleAsync(task, token).ConfigureAwait(false);
-    }
-
-    public static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
+    static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         const int attempts = 3;
+
+        NodeGlobalState.Instance.ExecutingTasks.Add(task);
+        using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
+        task.LogInfo($"Started");
 
         for (int attempt = 0; attempt < attempts; attempt++)
         {
@@ -49,7 +96,7 @@ public static class TaskHandler
                 await _HandleAsync(task, cancellationToken);
 
                 task.LogInfo($"Completed, removing");
-                NodeSettings.SavedTasks.Bindable.Remove(task);
+                NodeSettings.QueuedTasks.Bindable.Remove(task);
                 return;
             }
             catch (Exception ex)
@@ -58,15 +105,11 @@ public static class TaskHandler
                 task.LogInfo($"Failed to execute task, retrying... ({attempt + 1}/{attempts})");
             }
         }
+
+        task.LogErr($"Could not execute this task after {attempts} attempts");
     }
     static async Task _HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        NodeGlobalState.Instance.ExecutingTasks.Add(task);
-        using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
-
-
-        task.LogInfo($"Started");
-
         var inputobj = DeserializeInput(task.Info.Input);
         var outputobj = DeserializeOutput(task.Info.Output);
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
@@ -86,10 +129,7 @@ public static class TaskHandler
 
         var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
 
-        try
-        {
-            await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken);
-        }
+        try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
         catch (Exception ex) { _logger.Error("Error sending result to reepo: " + ex); }
     }
 }

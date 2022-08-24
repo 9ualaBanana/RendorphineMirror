@@ -151,14 +151,18 @@ namespace Common
         }
 
 
-        public interface IDatabaseBindable : IBindable
+        public interface IDatabaseBindable
         {
             string Name { get; }
 
             void Save();
             void Reload();
         }
-        public interface IDatabaseBindable<T> : IDatabaseBindable, IReadOnlyBindable<T> { }
+        public interface IDatabaseBindable<T> : IDatabaseBindable { }
+        public interface IDatabaseValueBindable<T> : IDatabaseBindable<T>
+        {
+            T Value { get; set; }
+        }
 
         public abstract class DatabaseValueBase<T, TBindable> : IDatabaseBindable<T> where TBindable : IReadOnlyBindable<T>
         {
@@ -199,12 +203,9 @@ namespace Common
                 return query.GetString(0);
             }
             public void Save() => Settings.Save(Name, Value);
-
-            JToken IBindable.AsJson(JsonSerializer? serializer) => Bindable.AsJson(serializer);
-            void IBindable.LoadFromJson(JToken json, JsonSerializer? serializer) => Bindable.LoadFromJson(json, serializer);
         }
 
-        public class DatabaseValue<T> : DatabaseValueBase<T, Bindable<T>>, IBindable<T>
+        public class DatabaseValue<T> : DatabaseValueBase<T, Bindable<T>>, IDatabaseValueBindable<T>
         {
             public new T Value { get => Bindable.Value; set => Bindable.Value = value; }
 
@@ -219,7 +220,7 @@ namespace Common
             public IEnumerator<T> GetEnumerator() => Bindable.GetEnumerator();
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
-        public class DatabaseValueDictionary<TKey, TValue> : DatabaseValueBase<IReadOnlyDictionary<TKey, TValue>, BindableDictionary<TKey, TValue>>, IEnumerable<KeyValuePair<TKey,TValue>> where TKey : notnull
+        public class DatabaseValueDictionary<TKey, TValue> : DatabaseValueBase<IReadOnlyDictionary<TKey, TValue>, BindableDictionary<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>> where TKey : notnull
         {
             public int Count => Bindable.Count;
 
