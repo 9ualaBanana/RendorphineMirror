@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
-using Machine.MessageBuilders;
 
 namespace Machine;
 
@@ -23,13 +22,13 @@ public record MachineInfo
         _installedPlugins ??= await PluginsManager.DiscoverInstalledPluginsInBackground();
     public static async Task<string> GetBriefInfoAsync() => $"{NodeName} {PCName} (v.{Version}) | {await GetPublicIPAsync()}:{Port}";
 
-    public static async Task<string> ToTelegramMessageAsync(bool verbose = false)
-    {
-        if (!verbose) return await GetBriefInfoAsync();
+    //public static async Task<string> ToTelegramMessageAsync(bool verbose = false)
+    //{
+    //    if (!verbose) return await GetBriefInfoAsync();
 
-        if (OperatingSystem.IsWindows()) return WindowsHardwareInfoMessage.Build();
-        throw new PlatformNotSupportedException();
-    }
+    //    if (OperatingSystem.IsWindows()) return WindowsHardwareInfoMessage.Build();
+    //    throw new PlatformNotSupportedException();
+    //}
 
     public static async Task<JsonContent> AsJsonContentAsync() => JsonContent.Create(new
     {
