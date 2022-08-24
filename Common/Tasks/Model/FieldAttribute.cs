@@ -1,4 +1,4 @@
-namespace Common.NodeToUI;
+namespace Common.Tasks.Model;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public abstract class DescriberAttributeBase : Attribute { }

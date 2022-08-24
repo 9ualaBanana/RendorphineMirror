@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Web;
 using MonoTorrent;
 using Newtonsoft.Json;
@@ -29,6 +30,8 @@ namespace NodeUI.Pages
             tabs.Add("tab.benchmark", new BenchmarkTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("torrent test", new TorrentTab());
+            if (Init.IsDebug)
+                tabs.Add("registry", new RegistryTab());
 
             Content = tabs;
         }
@@ -465,6 +468,81 @@ namespace NodeUI.Pages
                     }
                     catch { Dispatcher.UIThread.Post(() => button.Text = new("LOCAL connection error")); }
                 }
+            }
+        }
+        class RegistryTab : Panel
+        {
+            public RegistryTab() => Reload().Consume();
+
+            async Task Reload()
+            {
+                var softlist = (await Apis.GetSoftwareAsync()).ThrowIfError();
+
+                Children.Clear();
+                var stuff = new StackPanel()
+                {
+                    Orientation = Orientation.Vertical,
+                };
+                Children.Add(stuff);
+
+
+                foreach (var (softname, soft) in softlist)
+                {
+                    var bgrid = new StackPanel()
+                    {
+                        Orientation = Orientation.Vertical,
+                        Children = { new TextBlock() { Text = soft.VisualName } },
+                    };
+                    stuff.Children.Add(bgrid);
+
+
+                    foreach (var (vername, version) in soft.Versions)
+                    {
+                        var installtb = new TextBox()
+                        {
+                            AcceptsReturn = true,
+                            AcceptsTab = true,
+                            Text = version.InstallScript,
+                        };
+                        MPButton updatebtn = null!;
+                        updatebtn = new MPButton()
+                        {
+                            Text = "send",
+                            OnClick = async () =>
+                            {
+                                var json = new JObject()
+                                {
+                                    ["InstallScript"] = installtb.Text,
+                                };
+
+                                var send = await LocalApi.Post(Settings.RegistryUrl, $"editver?name={HttpUtility.UrlEncode(softname)}&version={HttpUtility.UrlEncode(vername)}",
+                                    new StringContent(json.ToString()) { Headers = { ContentType = new MediaTypeHeaderValue("application/json") } });
+
+
+                                if (send) updatebtn.Text = "sent!!!!";
+                                else updatebtn.Text = "err " + send.AsString();
+
+                                await Task.Delay(2_000);
+                                updatebtn.Text = "send";
+                            },
+                        };
+
+                        var grid = new StackPanel()
+                        {
+                            Margin = new Thickness(20, 0, 0, 0),
+                            Orientation = Orientation.Vertical,
+                            Children =
+                            {
+                                new TextBlock() { Text = vername },
+                                installtb,
+                                updatebtn,
+                            },
+                        };
+                        bgrid.Children.Add(grid);
+                    }
+
+                }
+
             }
         }
     }

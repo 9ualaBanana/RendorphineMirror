@@ -34,19 +34,32 @@ public static class TaskHandler
 
     public static async Task HandleReceivedTask(ReceivedTask task, CancellationToken token = default)
     {
-        try
+        NodeSettings.SavedTasks.Bindable.Add(task);
+        await HandleAsync(task, token).ConfigureAwait(false);
+    }
+
+    public static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
+    {
+        const int attempts = 3;
+
+        for (int attempt = 0; attempt < attempts; attempt++)
         {
-            NodeSettings.SavedTasks.Bindable.Add(task);
-            await HandleAsync(task, token).ConfigureAwait(false);
-        }
-        catch (Exception ex) { _logger.Error(ex.ToString()); }
-        finally
-        {
-            task.LogInfo($"Removing");
-            NodeSettings.SavedTasks.Bindable.Remove(task);
+            try
+            {
+                await _HandleAsync(task, cancellationToken);
+
+                task.LogInfo($"Completed, removing");
+                NodeSettings.SavedTasks.Bindable.Remove(task);
+                return;
+            }
+            catch (Exception ex)
+            {
+                task.LogErr(ex);
+                task.LogInfo($"Failed to execute task, retrying... ({attempt + 1}/{attempts})");
+            }
         }
     }
-    public static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
+    static async Task _HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         NodeGlobalState.Instance.ExecutingTasks.Add(task);
         using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
@@ -71,7 +84,7 @@ public static class TaskHandler
         await outputobj.Upload(task, output).ConfigureAwait(false);
         task.LogInfo($"File uploaded");
 
-        var queryString = $"sessionid={Settings.SessionId}&taskid={task.Id}&nodename={Settings.NodeName}";
+        var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
 
         try
         {

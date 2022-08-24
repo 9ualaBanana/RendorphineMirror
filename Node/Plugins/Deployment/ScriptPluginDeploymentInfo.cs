@@ -6,15 +6,14 @@ public record ScriptPluginDeploymentInfo(PluginToDeploy Plugin) : PluginDeployme
 
     public override async Task DeployAsync(bool deleteInstaller = true)
     {
-        var software = (await SoftwareRegistry.GetSoftware()).ThrowIfError();
-        var flat = SoftwareDefinition.Flatten(software).ToImmutableDictionary(x => x.TypeName.ToLowerInvariant());
+        var software = (await Apis.GetSoftwareAsync()).ThrowIfError();
 
         foreach (var plugin in Plugin.SelfAndSubPlugins)
         {
             _logger.Info($"Installing {plugin.Type} {plugin.Version}");
 
-            var soft = flat[plugin.Type.ToString().ToLowerInvariant()];
-            var script = (string.IsNullOrWhiteSpace(Plugin.Version) ? soft.Versions.Last() : soft.Versions.First(x => x.Version == Plugin.Version)).InstallScript;
+            var soft = software[plugin.Type.ToString().ToLowerInvariant()];
+            var script = (string.IsNullOrWhiteSpace(Plugin.Version) ? soft.Versions.OrderBy(x => x.Key).Last().Value : soft.Versions[plugin.Version]).InstallScript;
 
             PowerShellInvoker.Invoke(script);
         }

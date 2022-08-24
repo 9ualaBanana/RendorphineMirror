@@ -2,10 +2,12 @@ namespace SoftwareRegistry;
 
 public class SoftList
 {
-    readonly Settings.DatabaseValue<ImmutableArray<SoftwareDefinition>> SoftwareBindable = new(nameof(Software), ImmutableArray<SoftwareDefinition>.Empty);
-    public ImmutableArray<SoftwareDefinition> Software => SoftwareBindable.Value;
+    readonly Settings.DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>> SoftwareBindable = new(nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
+    public ImmutableDictionary<string, SoftwareDefinition> Software => SoftwareBindable.Value;
 
-    public void Add(SoftwareDefinition soft) => SoftwareBindable.Value = Software.Add(soft);
-    public void Replace(SoftwareDefinition oldv, SoftwareDefinition newv) => SoftwareBindable.Value = Software.Replace(oldv, newv);
-    public void Remove(SoftwareDefinition soft) => SoftwareBindable.Value = Software.Remove(soft);
+    public SoftList() => SoftwareBindable.Value = SoftwareBindable.Value.WithComparers(StringComparer.OrdinalIgnoreCase);
+
+    public void Add(string type, SoftwareDefinition soft) => SoftwareBindable.Value = Software.Add(type, soft);
+    public void Replace(string type, SoftwareDefinition newv) => SoftwareBindable.Value = Software.SetItem(type, newv);
+    public void Remove(string type) => SoftwareBindable.Value = Software.Remove(type);
 }

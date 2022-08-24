@@ -18,7 +18,6 @@ public class TasksController : ControllerBase
 
     [HttpPost("result_preview")]
     public async Task<JsonContent> NotifySubscribersAboutResultPreview(
-    [FromQuery] string sessionId,
     [FromQuery] string taskId,
     [FromQuery] string nodeName,
     [FromServices] TelegramBot bot,
@@ -27,8 +26,10 @@ public class TasksController : ControllerBase
     {
         logger.LogDebug("Received task result preview");
 
-        var mpItem = await taskResultsPreviewer.GetMyMPItemAsync(sessionId, taskId);
-        if (mpItem.IsVideo)
+        var mpItem = await taskResultsPreviewer.GetMyMPItemAsync(taskId);
+        if (mpItem is null)
+            await bot.TryNotifySubscribersAsync($"Couldn't retrieve the task result ({taskId}).");
+        else if (mpItem.IsVideo)
         {
             var videoPreview = mpItem.AsVideoPreview;
             await bot.TryNotifySubscribersAboutVideoAsync(
