@@ -2,7 +2,7 @@
 
 namespace Machine;
 
-internal class NvidiaGPU
+internal static class NvidiaGPU
 {
     internal static List<GPU> Info
     {
@@ -11,7 +11,7 @@ internal class NvidiaGPU
             using var allGpuUuidsQueryResult = Process.Start(AllGpuUuidsQuery)!;
             var allGpuUuids = GetUuidsAsStrings(allGpuUuidsQueryResult);
 
-            return allGpuUuids.Select(gpuUuid => GetInfoFor(gpuUuid)).ToList();
+            return allGpuUuids.Select(GetInfoFor).ToList();
         }
     }
 
@@ -53,7 +53,7 @@ internal class NvidiaGPU
                     "name," +
                     "memory.used,memory.total," +
                     "clocks.current.graphics,clocks.max.graphics," +
-                    "clocks.current.memory,clocks.max.memory";
+                    "clocks.current.memory,clocks.max.memory,utilization.gpu";
         var format = "--format=csv,noheader,nounits";
 
         return new("nvidia-smi", $"{query} -i={uuid} {format}")
@@ -70,20 +70,22 @@ internal class NvidiaGPU
 
         _ = ulong.TryParse(splitQueryResult[2], out var usedMemory);
         _ = ulong.TryParse(splitQueryResult[3], out var totalMemory);
-        _ = ulong.TryParse(splitQueryResult[4], out var currentCoreClock);
-        _ = ulong.TryParse(splitQueryResult[5], out var maxCoreClock);
-        _ = ulong.TryParse(splitQueryResult[6], out var currentMemoryClock);
-        _ = ulong.TryParse(splitQueryResult[7], out var maxMemoryClock);
+        _ = ulong.TryParse(splitQueryResult[4], out var currentCoreClockSpeed);
+        _ = ulong.TryParse(splitQueryResult[5], out var maxCoreClockSpeed);
+        _ = ulong.TryParse(splitQueryResult[6], out var currentMemoryClockSpeed);
+        _ = ulong.TryParse(splitQueryResult[7], out var maxMemoryClockSpeed);
+        _ = uint.TryParse(splitQueryResult[8], out var loadPercentage);
 
         return new(
             UUID: uuid,
             Name: splitQueryResult[1],
             UsedMemory: usedMemory,
             TotalMemory: totalMemory,
-            CurrentCoreClock: currentCoreClock,
-            MaxCoreClock: maxCoreClock,
-            CurrentMemoryClock: currentMemoryClock,
-            MaxMemoryClock: maxMemoryClock
+            CurrentCoreClockSpeed: currentCoreClockSpeed,
+            MaxCoreClockSpeed: maxCoreClockSpeed,
+            CurrentMemoryClockSpeed: currentMemoryClockSpeed,
+            MaxMemoryClockSpeed: maxMemoryClockSpeed,
+            LoadPercentage: loadPercentage
         );
     }
 

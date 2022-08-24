@@ -7,10 +7,11 @@ public record GPU(
     string Name,
     ulong TotalMemory,
     ulong UsedMemory,
-    ulong MaxCoreClock,
-    ulong CurrentCoreClock,
-    ulong MaxMemoryClock,
-    ulong CurrentMemoryClock)
+    ulong MaxCoreClockSpeed,
+    ulong CurrentCoreClockSpeed,
+    ulong MaxMemoryClockSpeed,
+    ulong CurrentMemoryClockSpeed,
+    uint LoadPercentage)
 {
     public static List<GPU> Info
     {
