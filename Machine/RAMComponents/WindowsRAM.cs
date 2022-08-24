@@ -1,10 +1,9 @@
 ﻿using System.Management;
 using System.Runtime.Versioning;
-using UnitsNet;
 
 namespace Machine;
 
-[SupportedOSPlatform("Windows")]
+[SupportedOSPlatform("windows")]
 internal static class WindowsRAM
 {
 
@@ -17,17 +16,19 @@ internal static class WindowsRAM
 
             var ramUnits = new List<RAM>(ramMbos.Count);
             foreach (var ramMbo in ramMbos)
-            {
-                _ = uint.TryParse(ramMbo["ConfiguredClockSpeed"].ToString(), out var speed);
-                _ = ulong.TryParse(ramMbo["Capacity"].ToString(), out var capacity);
-                var deviceLocator = ramMbo["DeviceLocator"].ToString()!;
-                var serialNumber = ramMbo["SerialNumber"].ToString()!;
-
-                ramUnits.Add(new(speed, capacity, FreeMemory, deviceLocator, serialNumber));
-            }
-
+                ramUnits.Add(ToRAM(ramMbo));
             return ramUnits;
         }
+    }
+
+    internal static RAM ToRAM(ManagementBaseObject mbo)
+    {
+        _ = uint.TryParse(mbo["ConfiguredClockSpeed"].ToString(), out var speed);
+        _ = ulong.TryParse(mbo["Capacity"].ToString(), out var capacity);
+        var deviceLocator = mbo["DeviceLocator"].ToString()!;
+        var serialNumber = mbo["SerialNumber"].ToString()!;
+
+        return new(speed, capacity, FreeMemory, deviceLocator, serialNumber);
     }
 
     static ulong FreeMemory
