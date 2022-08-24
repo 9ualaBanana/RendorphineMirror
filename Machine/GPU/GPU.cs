@@ -22,5 +22,16 @@ public record GPU(
         }
     }
 
-    static bool IsNvidia => Process.Start(new ProcessStartInfo("nvidia-smi", "--version") { CreateNoWindow = true }) is not null;
+    static bool IsNvidia
+    {
+        get
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo("nvidia-smi", "--version") { CreateNoWindow = true });
+                return true;
+            }
+            catch { return false; }
+        }
+    }
 }
