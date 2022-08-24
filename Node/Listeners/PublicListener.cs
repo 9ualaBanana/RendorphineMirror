@@ -148,7 +148,7 @@ public class PublicListener : ExecutableListenerBase
                     info += $"<br><h3>{Path.GetFileName(task.First())}</h3>";
                     foreach (string file in task.Key)
                     {
-                        info += $"<img width='200px' src='{Path.GetFileName(task.First()) + "?name=" + Path.GetFileName(file)}'>";
+                        info += $"<img width='200px' src='./gallery/{Path.GetFileName(task.First()) + "?name=" + Path.GetFileName(file)}'>";
                     }
                 }
 
