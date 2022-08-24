@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Executor;
@@ -93,7 +93,22 @@ public static class TaskHandler
         {
             try
             {
+                var starttime = DateTimeOffset.Now;
                 await _HandleAsync(task, cancellationToken);
+
+
+                var json = new JObject()
+                {
+                    ["starttime"] = starttime.ToUnixTimeMilliseconds(),
+                    ["endtime"] = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+                    ["attempt"] = attempt,
+                    ["info"] = JObject.FromObject(task),
+                };
+
+                task.LogInfo($"Writing info: {json.ToString(Formatting.None)}");
+                using (var infofile = new JsonTextWriter(new StreamWriter(File.Open(task.FSExecutionInfo(), FileMode.Create, FileAccess.Write))))
+                    new JsonSerializer() { Formatting = Formatting.Indented }.Serialize(infofile, json);
+
 
                 task.LogInfo($"Completed, removing");
                 NodeSettings.QueuedTasks.Bindable.Remove(task);

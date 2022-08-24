@@ -14,7 +14,7 @@ public static class EsrganTasks
 
         protected override async Task<string> Execute(ReceivedTask task, UpscaleEsrganInfo data)
         {
-            var output = GetTaskOutputFile(task);
+            var output = task.FSOutputFile();
 
             await Task.Run(() => ExecutePowerShell(getScript(), false, onRead, task));
             return output;

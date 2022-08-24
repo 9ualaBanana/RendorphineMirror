@@ -98,7 +98,7 @@ public static class FFMpegTasks
             var frames = (await FFProbe.Get(task.InputFile, task))?.Streams.FirstOrDefault()?.Frames ?? 0;
             task.LogInfo($"{task.InputFile} length: {frames} frames");
 
-            var output = GetTaskOutputFile(task);
+            var output = task.FSOutputFile();
             var exepath = task.GetPlugin().GetInstance().Path;
             var args = getArgs();
 

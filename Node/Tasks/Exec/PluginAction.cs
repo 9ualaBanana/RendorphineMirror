@@ -24,7 +24,7 @@ public abstract class PluginAction<T> : IPluginAction
     public async ValueTask<string> Execute(ReceivedTask task, string input)
     {
         task.LogInfo($"Executing...");
-        Directory.CreateDirectory(GetTaskOutputDir(task));
+        Directory.CreateDirectory(task.FSOutputDirectory());
 
         var data = task.Info.Data.ToObject<T>();
         if (data is null) throw new Exception("Could not deserialize input data: " + task.Info.Data);
@@ -38,10 +38,6 @@ public abstract class PluginAction<T> : IPluginAction
 
     protected abstract Task<string> Execute(ReceivedTask task, T data);
 
-
-    protected static string GetTaskDir(ReceivedTask task) => Path.Combine(Init.TaskFilesDirectory, task.Id);
-    protected static string GetTaskOutputDir(ReceivedTask task) => Path.Combine(GetTaskDir(task), "output");
-    protected static string GetTaskOutputFile(ReceivedTask task) => Path.Combine(GetTaskOutputDir(task), Path.GetFileName(task.InputFile.ThrowIfNull("Task input file path was not provided")));
 
     protected static Process StartProcess(string exepath, string args, ILoggable? logobj)
     {

@@ -11,4 +11,10 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ITas
     public string? InputFile;
 
     public static string GenerateLocalId() => "local_" + Guid.NewGuid();
+
+
+    public string FSDataDirectory() => Path.Combine(Init.TaskFilesDirectory, Id);
+    public string FSOutputDirectory() => Path.Combine(FSDataDirectory(), "output");
+    public string FSOutputFile() => Path.Combine(FSOutputDirectory(), Path.GetFileName(InputFile.ThrowIfNull("Task input file path was not provided")));
+    public string FSExecutionInfo() => Path.Combine(FSOutputDirectory(), "info.json");
 }

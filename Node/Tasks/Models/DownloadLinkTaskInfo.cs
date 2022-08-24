@@ -7,7 +7,7 @@ public record DownloadLinkTaskInput(DownloadLinkTaskInputInfo Info) : ITaskInput
         var fformat = TaskList.GetAction(task.Info).FileFormat;
         var format = fformat.ToString().ToLowerInvariant();
 
-        var dir = Path.Combine(Init.TaskFilesDirectory, task.Id);
+        var dir = task.FSDataDirectory();
         Directory.CreateDirectory(dir);
 
         var fileName = Path.Combine(dir, $"input.{format}");
