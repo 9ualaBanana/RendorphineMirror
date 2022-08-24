@@ -1,27 +1,21 @@
-﻿using System.ComponentModel;
-using System.Management;
-using System.Runtime.Versioning;
+﻿namespace Machine;
 
-namespace Machine;
-
-public static class CPU
+public record CPU(
+    string Name,
+    uint CoreCount,
+    uint ThreadCount,
+    ulong CurrentClockSpeed,
+    ulong MaxClockSpeed,
+    uint LoadPercentage)
 {
-    public static Container Info()
+    public static List<CPU> Info
     {
-        if (OperatingSystem.IsWindows()) return WindowsInfo();
-        //if (OperatingSystem.IsLinux()) return await LinuxGetForAll();
-        throw new PlatformNotSupportedException();
-    }
-
-    [SupportedOSPlatform("windows")]
-    static Container WindowsInfo()
-    {
-        using ManagementObjectSearcher cpuSearcher = new("SELECT * FROM Win32_Processor");
-        using ManagementObjectCollection cpuUnits = cpuSearcher.Get();
-
-        var container = new Container();
-        foreach (var cpu in cpuUnits) container.Add(cpu);
-        return container;
+        get
+        {
+            if (OperatingSystem.IsWindows()) return WindowsCPU.Info;
+            //if (OperatingSystem.IsLinux()) return await LinuxGetForAll();
+            throw new PlatformNotSupportedException();
+        }
     }
 
     //async static Task<List<CpuInfo>> LinuxGetForAll()
