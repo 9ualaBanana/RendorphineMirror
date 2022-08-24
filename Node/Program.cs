@@ -28,7 +28,7 @@ if (!Debugger.IsAttached)
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 await InitializePlugins();
 
-new LocalListener().Start();
+//new LocalListener().Start();
 
 if (Settings.SessionId is not null)
 {
@@ -77,9 +77,9 @@ if (!Init.IsDebug || halfrelease)
 }
 
 new PublicListener().Start();
-new TaskReceiver().Start();
-new NodeStateListener().Start();
-new DirectoryDiffListener().Start();
+//new TaskReceiver().Start();
+//new NodeStateListener().Start();
+//new DirectoryDiffListener().Start();
 if (Init.IsDebug) new DebugListener().Start();
 
 PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
