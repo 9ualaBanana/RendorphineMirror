@@ -126,7 +126,8 @@ async Task InitializePlugins()
         new DaVinciResolvePluginDiscoverer(),
         new FFmpegPluginDiscoverer(),
         new PythonPluginDiscoverer(),
-        new PythonEsrganPluginDiscoverer()
+        new PythonEsrganPluginDiscoverer(),
+        new VeeeVectorizerPluginDiscoverer()
     );
 
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
