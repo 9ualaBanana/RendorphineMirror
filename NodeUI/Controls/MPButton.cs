@@ -1,8 +1,8 @@
 namespace NodeUI.Controls
 {
-    public class MPButton : ClickableControl
+    public class MPButton : ClickableControl<MPButton>
     {
-        public LocalizedString Text { set => TextBlock.Bind(TextBlock.TextProperty, value); }
+        public LocalizedString Text { get => TextBlock.GetValue(TextBlock.TextProperty); set => TextBlock.Bind(TextBlock.TextProperty, value); }
         public new FontWeight FontWeight { get => TextBlock.FontWeight; set => TextBlock.FontWeight = value; }
         public new double FontSize { get => TextBlock.FontSize; set => TextBlock.FontSize = value; }
 

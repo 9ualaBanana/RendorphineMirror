@@ -1,5 +1,21 @@
 namespace NodeUI.Controls
 {
+    public class ClickableControl<TSelf> : ClickableControl where TSelf : ClickableControl<TSelf>
+    {
+        public Action<TSelf> OnClickSelf = delegate { };
+
+        public ClickableControl()
+        {
+            if (this is not TSelf)
+                throw new InvalidOperationException($"Invalid value of `<TSelf>`, should be of type {GetType()} and not {typeof(TSelf)}");
+        }
+
+        protected override void Clicked()
+        {
+            base.Clicked();
+            OnClickSelf((TSelf) this);
+        }
+    }
     public class ClickableControl : UserControl
     {
         public Action OnClick = delegate { };
@@ -16,13 +32,15 @@ namespace NodeUI.Controls
             this.GetObservable(IsEnabledProperty).Subscribe(updateFocusable);
         }
 
+        protected virtual void Clicked() => OnClick();
+
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
 
             if (!IsFocused || !IsEnabled || e.Key != Key.Enter) return;
 
-            OnClick();
+            Clicked();
             e.Handled = true;
         }
 
@@ -45,7 +63,7 @@ namespace NodeUI.Controls
             e.Handled = true;
 
             if (this.GetVisualsAt(e.GetPosition(this)).Any(c => this == c || this.IsVisualAncestorOf(c)))
-                OnClick();
+                Clicked();
         }
         protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e) => IsPressed = false;
     }

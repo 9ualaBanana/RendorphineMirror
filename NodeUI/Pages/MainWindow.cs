@@ -67,16 +67,16 @@ namespace NodeUI.Pages
 
         static class NamedList
         {
-            public static NamedList<T> Create<T>(string title, IReadOnlyBindableCollection<T> items, Func<T, IControl> templatefunc) => new(title, items, templatefunc);
+            public static NamedList<T> Create<T>(string title, IReadOnlyCollection<T> items, Func<T, IControl> templatefunc) => new(title, items, templatefunc);
         }
         class NamedList<T> : Grid
         {
             // GC protected instance
-            readonly IReadOnlyBindableCollection<T> Items;
+            readonly IReadOnlyCollection<T> Items;
 
-            public NamedList(string title, IReadOnlyBindableCollection<T> items, Func<T, IControl> templatefunc)
+            public NamedList(string title, IReadOnlyCollection<T> items, Func<T, IControl> templatefunc)
             {
-                Items = items = items.GetBoundCopy();
+                Items = items = (items as IReadOnlyBindableCollection<T>)?.GetBoundCopy() ?? items;
 
                 Children.Add(new Grid()
                 {
@@ -84,7 +84,7 @@ namespace NodeUI.Pages
                     Children =
                     {
                         new TextBlock()
-                            .With(tb => Items.SubscribeChanged(() => Dispatcher.UIThread.Post(() => tb.Text = $"{title}\nLast update: {DateTimeOffset.Now}"), true))
+                            .With(tb => (items as IReadOnlyBindableCollection<T>)?.SubscribeChanged(() => Dispatcher.UIThread.Post(() => tb.Text = $"{title}\nLast update: {DateTimeOffset.Now}"), true))
                             .WithRow(0),
 
                         TypedItemsControl.Create(items, templatefunc)
@@ -476,73 +476,152 @@ namespace NodeUI.Pages
 
             async Task Reload()
             {
-                var softlist = (await Apis.GetSoftwareAsync()).ThrowIfError();
-
                 Children.Clear();
-                var stuff = new StackPanel()
+
+                var softlist = (await Apis.GetSoftwareAsync()).ThrowIfError();
+                Children.Add(new StackPanel()
                 {
-                    Orientation = Orientation.Vertical,
-                };
-                Children.Add(stuff);
+                    Children =
+                    {
+                        new MPButton()
+                        {
+                            Text = "+ add soft",
+                            Margin = new Thickness(0, 0, 0, bottom: 20),
+                            OnClickSelf = addSoft,
+                        },
+                        NamedList.Create("Software Registry", softlist, x => softToControl(x.Key, x.Value)),
+                    },
+                });
 
 
-                foreach (var (softname, soft) in softlist)
+                static async Task setTextTimed(MPButton button, string text, int duration)
                 {
-                    var bgrid = new StackPanel()
+                    var prevtext = button.Text;
+                    button.Text = text;
+
+                    await Task.Delay(2_000);
+                    button.Text = prevtext;
+                }
+                async void addSoft(MPButton button)
+                {
+                    var softname = "NewSoftTodo";
+                    var soft = new SoftwareDefinition("New Soft Todo", ImmutableDictionary<string, SoftwareVersionDefinition>.Empty, null, ImmutableArray<string>.Empty);
+
+                    var send = await LocalApi.Post(Settings.RegistryUrl, $"addsoft?name={HttpUtility.UrlEncode(softname)}",
+                        new StringContent(JsonConvert.SerializeObject(soft)) { Headers = { ContentType = new MediaTypeHeaderValue("application/json") } });
+
+                    if (!send) await setTextTimed(button, "err " + send.AsString(), 2000);
+                    else await Reload();
+                }
+                IControl softToControl(string softname, SoftwareDefinition soft)
+                {
+                    var softnametb = new TextBox() { Text = soft.VisualName };
+                    var addnewbtn = new MPButton()
+                    {
+                        Text = "+ add version",
+                        OnClick = async () =>
+                        {
+                            var vername = "1.0.0-todo";
+                            var ver = new SoftwareVersionDefinition("<installscript>");
+
+                            var send = await LocalApi.Post(Settings.RegistryUrl, $"addver?name={HttpUtility.UrlEncode(softname)}&version={HttpUtility.UrlEncode(vername)}",
+                                new StringContent(JsonConvert.SerializeObject(ver)) { Headers = { ContentType = new MediaTypeHeaderValue("application/json") } });
+
+                            await Reload();
+                        },
+                    };
+
+                    var content = new StackPanel()
                     {
                         Orientation = Orientation.Vertical,
-                        Children = { new TextBlock() { Text = soft.VisualName } },
+                        Children =
+                        {
+                            new MPButton() { Text = "update software", OnClickSelf = updateSoft, },
+                            softnametb,
+                            addnewbtn,
+                            NamedList.Create(softname, soft.Versions,
+                                x => new Expander()
+                                {
+                                    Header = x.Key,
+                                    Margin = new Thickness(left: 20, 0, 0, 0),
+                                    Content = verToControl(x.Key, x.Value),
+                                }
+                            ),
+                        },
                     };
-                    stuff.Children.Add(bgrid);
 
-
-                    foreach (var (vername, version) in soft.Versions)
+                    return new Expander()
                     {
+                        Header = softname,
+                        Content = content,
+                    };
+
+
+                    async void updateSoft(MPButton button)
+                    {
+                        var json = new JObject()
+                        {
+                            ["VisualName"] = softnametb.Text,
+                        };
+
+                        var send = await LocalApi.Post(Settings.RegistryUrl, $"editsoft?name={HttpUtility.UrlEncode(softname)}",
+                            new StringContent(json.ToString()) { Headers = { ContentType = new MediaTypeHeaderValue("application/json") } });
+
+                        await setTextTimed(button, send ? "send!!!!" : ("err " + send.AsString()), 2000);
+                    }
+                    IControl verToControl(string vername, SoftwareVersionDefinition version)
+                    {
+                        var delbtn = new MPButton()
+                        {
+                            Text = "!!! DELETE VERSION !!!",
+                            Margin = new Thickness(0, 0, 0, bottom: 20),
+                            OnClickSelf = deleteVersion,
+                        };
+
+                        var versiontb = new TextBox() { Text = vername };
                         var installtb = new TextBox()
                         {
                             AcceptsReturn = true,
                             AcceptsTab = true,
                             Text = version.InstallScript,
                         };
-                        MPButton updatebtn = null!;
-                        updatebtn = new MPButton()
-                        {
-                            Text = "send",
-                            OnClick = async () =>
-                            {
-                                var json = new JObject()
-                                {
-                                    ["InstallScript"] = installtb.Text,
-                                };
 
-                                var send = await LocalApi.Post(Settings.RegistryUrl, $"editver?name={HttpUtility.UrlEncode(softname)}&version={HttpUtility.UrlEncode(vername)}",
-                                    new StringContent(json.ToString()) { Headers = { ContentType = new MediaTypeHeaderValue("application/json") } });
+                        var updatebtn = new MPButton() { Text = "send", OnClickSelf = updateVersion, };
 
-
-                                if (send) updatebtn.Text = "sent!!!!";
-                                else updatebtn.Text = "err " + send.AsString();
-
-                                await Task.Delay(2_000);
-                                updatebtn.Text = "send";
-                            },
-                        };
-
-                        var grid = new StackPanel()
+                        return new StackPanel()
                         {
                             Margin = new Thickness(20, 0, 0, 0),
                             Orientation = Orientation.Vertical,
                             Children =
                             {
-                                new TextBlock() { Text = vername },
+                                delbtn,
+                                versiontb,
                                 installtb,
                                 updatebtn,
                             },
                         };
-                        bgrid.Children.Add(grid);
+
+
+                        async void updateVersion(MPButton updatebtn)
+                        {
+                            var json = new JObject()
+                            {
+                                ["InstallScript"] = installtb.Text,
+                            };
+
+                            var send = await LocalApi.Post(Settings.RegistryUrl, $"editver?name={HttpUtility.UrlEncode(softname)}&version={HttpUtility.UrlEncode(vername)}&newversion={HttpUtility.UrlEncode(versiontb.Text)}",
+                                new StringContent(json.ToString()) { Headers = { ContentType = new MediaTypeHeaderValue("application/json") } });
+
+                            await setTextTimed(updatebtn, send ? "send!!!!" : ("err " + send.AsString()), 2000);
+                        }
+                        async void deleteVersion(MPButton delbtn)
+                        {
+                            var send = await LocalApi.Send(Settings.RegistryUrl, $"delver?name={HttpUtility.UrlEncode(softname)}&version={HttpUtility.UrlEncode(vername)}");
+                            if (!send) await setTextTimed(delbtn, "err " + send.AsString(), 2000);
+                            else await Reload();
+                        }
                     }
-
                 }
-
             }
         }
     }
