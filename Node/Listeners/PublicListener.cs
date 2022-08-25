@@ -89,24 +89,37 @@ public class PublicListener : ExecutableListenerBase
         if (path == "logs")
         {
             string logDir = Init.LogDirectory;
-            string[] files = Directory.GetFiles(logDir);
+            string[] folders = Directory.GetDirectories(logDir);
             string? q = context.Request.QueryString["id"];
             string info = "";
 
             if (q == null || !int.TryParse(q, out _))
             {
-                for (int i = 0; i < files.Length; i++)
-                    info += $"<a href='/logs?id={i}'>{Path.GetFileName(files[i])}</a></br>";
+                int i = 0;
+                foreach (string folder in folders)
+                {
+                    string[] files = Directory.GetFiles(folder);
+                    info += $"<b style='font-size: 32px'>{Path.GetFileName(folder)}</b></br>";
+                    foreach (string file in files)
+                    {
+                        info += $"<a href='/logs?id={i++}'>{Path.GetFileName(file)}</a></br>";
+                    }
+                }
             }
             else
             {
-                int fileId = int.Parse(q);
-                info += $"FILE_ID: {q}\n";
-
-                if (fileId < 0 || fileId >= files.Length)
-                    info += "File not found.";
-                else
-                    info += File.ReadAllText(files[fileId]);
+                int i = 0;
+                int id = int.Parse(q);
+                foreach(string folder in folders)
+                {
+                    string[] files = Directory.GetFiles(folder);
+                    if(i + files.Length - 1 >= id)
+                    {
+                        info = File.ReadAllText(files[id - i]);
+                        break;
+                    }
+                    i += files.Length;
+                }
             }
 
             using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
@@ -115,10 +128,53 @@ public class PublicListener : ExecutableListenerBase
             return HttpStatusCode.OK;
         }
 
+        if (path.StartsWith("gallery"))
+        {
+            string[] fileExt = { "jpg", "jpeg", "png" };
+            string taskDir = Init.TaskFilesDirectory;
+            
+
+            if (path == "gallery")
+            {
+                IEnumerable<string> foldersWithOutputs = Directory.GetDirectories(taskDir)
+                .Where(d => Directory.Exists(d + "/output") && Directory.EnumerateFiles(d + "/output").Any());
+                var tasksFiles = foldersWithOutputs
+                    .GroupBy(folder => fileExt.SelectMany(ext => Directory.EnumerateFiles(folder + "/output", "*." + ext)));
+
+                string info = "<html><body>";
+
+                foreach (var task in tasksFiles)
+                {
+                    info += $"<br><h3>{Path.GetFileName(task.First())}</h3>";
+                    foreach (string file in task.Key)
+                    {
+                        info += $"<img width='200px' src='./gallery/{Path.GetFileName(task.First()) + "?name=" + Path.GetFileName(file)}'>";
+                    }
+                }
+
+                info += "</body></html>";
+
+                using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+                writer.Write(info);
+                return HttpStatusCode.OK;
+            }
+            else
+            {
+                string name = context.Request.QueryString["name"] ?? "";
+                string file = taskDir + "/" + Path.GetFileName(Path.GetFileName(path)) + "/output/" + name;
+                if (File.Exists(file))
+                {
+                    using var writer = new BinaryWriter(response.OutputStream, System.Text.Encoding.Default, leaveOpen: true);
+                    writer.Write(File.ReadAllBytes(file));
+                    return HttpStatusCode.OK;
+                }
+            }
+        }
+
         if (path == "")
         {
             using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-            writer.Write("WE'LL FUCK THIS WORLD!");
+            writer.Write("<a href='/gallery'>Gallery</a><br><a href='/logs'>Logs</a>");
             return HttpStatusCode.OK;
         }
 
