@@ -1,35 +1,31 @@
 ﻿using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Services.Telegram.Authentication;
 using Telegram.Services.Telegram.FileRegistry;
-using Telegram.Services.Telegram.Updates.Images;
 
-namespace Telegram.Services.Telegram.Updates.Commands;
+namespace Telegram.Services.Telegram.Updates.Images;
 
-public class ProcessCommand : AuthenticatedCommand
+public class TelegramImageHandler
 {
+    readonly ILogger _logger;
+    readonly TelegramBot _bot;
     readonly TelegramFileRegistry _fileRegistry;
 
-    public ProcessCommand(ILogger<ProcessCommand> logger, TelegramBot bot, TelegramChatIdAuthentication authentication, TelegramFileRegistry fileRegistry)
-        : base(logger, bot, authentication)
+    public TelegramImageHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, TelegramFileRegistry fileRegistry)
     {
+        _logger = logger;
+        _bot = bot;
         _fileRegistry = fileRegistry;
     }
 
-    public override string Value => "process";
-
-    protected override async Task HandleAsync(Update update, TelegramAuthenticationToken _)
+    public async Task HandleAsync(Update update)
     {
-        if (!ContainsImage(update.Message!))
-        { await Bot.TrySendMessageAsync(update.Message!.Chat.Id, "The message doesn't contain an image to process."); return; }
-
         var image = update.Message!.Document is not null ?
             TelegramImage.From(update.Message.Document!) : TelegramImage.From(update.Message.Photo!.Last());
 
         //if (image.Size < 1_000_000)
         //{ await _bot.TrySendMessageAsync(update.Message.Chat.Id, "Resolution of the image must be at least 1 MP."); return; }
 
-        await Bot.TrySendMessageAsync(update.Message.Chat.Id, "*Choose how to process the image*", replyMarkup: CreateReplyMarkupForLowResolutionImage(image));
+        await _bot.TrySendMessageAsync(update.Message.Chat.Id, "*Choose how to process the image*", replyMarkup: CreateReplyMarkupForLowResolutionImage(image));
     }
 
     InlineKeyboardMarkup ReplyMarkupFor(TelegramImage image) => image.Size switch
@@ -62,9 +58,4 @@ public class ProcessCommand : AuthenticatedCommand
     {
         throw new NotImplementedException();
     }
-
-    static bool ContainsImage(Message message) => IsImage(message.Document) || message.Photo is not null;
-
-    static bool IsImage(Document? document) =>
-        document is not null && document.MimeType is not null && document.MimeType.StartsWith("image");
 }

@@ -8,6 +8,7 @@ public static class ImageProcessingExtensions
 {
     public static IServiceCollection AddTelegramImageProcessing(this IServiceCollection serviceCollection) =>
         serviceCollection
+            .AddScoped<TelegramImageHandler>()
             .AddScoped<ImageProcessingCallbackQueryHandler>()
             .AddSingleton<TaskRegistry>()
             .AddSingleton<TelegramFileRegistry>()
