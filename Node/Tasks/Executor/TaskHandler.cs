@@ -134,8 +134,7 @@ public static class TaskHandler
 
         var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
 
-        if (!task.ExecuteLocally)
-            try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
-            catch (Exception ex) { _logger.Error("Error sending result to reepo: " + ex); }
+        try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
+        catch (Exception ex) { _logger.Error("Error sending result to reepo: " + ex); }
     }
 }
