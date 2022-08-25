@@ -4,28 +4,20 @@ using Telegram.Services.Telegram.Authentication;
 
 namespace Telegram.Services.Telegram.Updates.Tasks;
 
-public class TaskCallbackQueryHandler
+public class TaskCallbackQueryHandler : AuthenticatedTelegramUpdateHandler
 {
-    readonly ILogger _logger;
-    readonly TelegramBot _bot;
-    readonly TelegramChatIdAuthentication _authentication;
-
     public TaskCallbackQueryHandler(
         ILogger<TaskCallbackQueryHandler> logger,
         TelegramBot bot,
-        TelegramChatIdAuthentication authentication)
+        TelegramChatIdAuthenticator authenticator) : base(logger, bot, authenticator)
     {
-        _logger = logger;
-        _bot = bot;
-        _authentication = authentication;
     }
 
-    public async Task HandleAsync(Update update)
+
+
+    protected async override Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken)
     {
         var chatId = update.CallbackQuery!.Message!.Chat.Id;
-
-        var authenticationToken = _authentication.GetTokenFor(chatId);
-        if (authenticationToken is null) return;
 
         var taskCallbackData = new TaskCallbackData(update.CallbackQuery.Data!);
 
@@ -34,11 +26,11 @@ public class TaskCallbackQueryHandler
             var taskState = await Apis.GetTaskStateAsync(taskCallbackData.TaskId, authenticationToken.SessionId);
             if (taskState)
             {
-                await _bot.TrySendMessageAsync(chatId, $"TaskID: *{taskCallbackData.TaskId}*\nState: *{taskState.Result.State}*\nProgress: *{taskState.Result.Progress}*\nServer: *{taskState.Result.Server}*");
+                await Bot.TrySendMessageAsync(chatId, $"TaskID: *{taskCallbackData.TaskId}*\nState: *{taskState.Result.State}*\nProgress: *{taskState.Result.Progress}*\nServer: *{taskState.Result.Server}*");
             }
             else
             {
-                await _bot.TrySendMessageAsync(chatId, "Couldn't get task progress.");
+                await Bot.TrySendMessageAsync(chatId, "Couldn't get task progress.");
             }
         }
     }

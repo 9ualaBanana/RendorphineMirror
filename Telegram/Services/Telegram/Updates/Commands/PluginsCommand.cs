@@ -2,7 +2,6 @@
 using Telegram.Bot.Types;
 using Telegram.Models;
 using Telegram.Services.Node;
-using Telegram.Services.Telegram;
 using Telegram.Services.Telegram.Authentication;
 
 namespace Telegram.Services.Telegram.Updates.Commands;
@@ -11,11 +10,15 @@ public class PluginsCommand : AuthenticatedCommand
 {
     readonly NodeSupervisor _nodeSupervisor;
 
-    public PluginsCommand(ILogger<PluginsCommand> logger, TelegramBot bot, TelegramChatIdAuthentication authentication, NodeSupervisor nodeSupervisor)
-        : base(logger, bot, authentication)
+
+
+    public PluginsCommand(ILogger<PluginsCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, NodeSupervisor nodeSupervisor)
+        : base(logger, bot, authenticator)
     {
         _nodeSupervisor = nodeSupervisor;
     }
+
+
 
     public override string Value => "plugins";
 

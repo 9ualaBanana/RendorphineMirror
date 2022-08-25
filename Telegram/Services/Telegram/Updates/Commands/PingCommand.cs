@@ -1,9 +1,7 @@
 ﻿using System.Text;
 using Telegram.Bot.Types;
 using Telegram.Models;
-using Telegram.Services;
 using Telegram.Services.Node;
-using Telegram.Services.Telegram;
 using Telegram.Services.Telegram.Authentication;
 
 namespace Telegram.Services.Telegram.Updates.Commands;
@@ -12,8 +10,10 @@ public class PingCommand : AuthenticatedCommand
 {
     readonly NodeSupervisor _nodeSupervisor;
 
-    public PingCommand(ILogger<PingCommand> logger, TelegramBot bot, TelegramChatIdAuthentication authentication, NodeSupervisor nodeSupervisor)
-        : base(logger, bot, authentication)
+
+
+    public PingCommand(ILogger<PingCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, NodeSupervisor nodeSupervisor)
+        : base(logger, bot, authenticator)
     {
         _nodeSupervisor = nodeSupervisor;
     }

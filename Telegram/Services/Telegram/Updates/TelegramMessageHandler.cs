@@ -4,30 +4,29 @@ using Telegram.Services.Telegram.Updates.Images;
 
 namespace Telegram.Services.Telegram.Updates;
 
-public class TelegramMessageHandler
+public class TelegramMessageHandler : TelegramUpdateHandler
 {
-    readonly ILogger _logger;
-
-    readonly TelegramBot _bot;
     readonly TelegramCommandHandler _commandHandler;
     readonly TelegramImageHandler _imageHandler;
+
+
 
     public TelegramMessageHandler(
         ILogger<TelegramMessageHandler> logger,
         TelegramBot bot,
         TelegramCommandHandler commandHandler,
-        TelegramImageHandler imageHandler)
+        TelegramImageHandler imageHandler) : base(logger, bot)
     {
-        _logger = logger;
-        _bot = bot;
         _commandHandler = commandHandler;
         _imageHandler = imageHandler;
     }
 
-    public async Task HandleAsync(Update update)
+
+
+    public override async Task HandleAsync(Update update)
     {
         var message = update.Message!;
-        _logger.LogDebug("Dispatching {Message}...", nameof(Message));
+        Logger.LogDebug("Dispatching {Message}...", nameof(Message));
 
         if (IsCommand(message))
         { await _commandHandler.HandleAsync(update); return; }
@@ -35,23 +34,20 @@ public class TelegramMessageHandler
         { await _imageHandler.HandleAsync(update); return; }
         else if (IsSystemMessage(message))
         {
-            _logger.LogTrace("System messages are handled by {Handler}", nameof(TelegramChatMemberUpdatedHandler));
+            Logger.LogTrace("System messages are handled by {Handler}", nameof(TelegramChatMemberUpdatedHandler));
             return; // Bot adding and removal are handled via `UpdateType.MyChatMember` updates.
         }
-
-        _logger.LogWarning("The following message couldn't be handled:\n{Message}", message.Text);
     }
 
     static bool IsCommand(Message message) =>
         message.Text is not null && message.Text.StartsWith('/') && message.Text.Length > 1;
 
     static bool IsImage(Message message) => IsImage(message.Document) || message.Photo is not null;
-
     static bool IsImage(Document? document) =>
         document is not null && document.MimeType is not null && document.MimeType.StartsWith("image");
 
     bool IsSystemMessage(Message message)
     {
-        return message.LeftChatMember?.Id == _bot.BotId || message.NewChatMembers?.First().Id == _bot.BotId;
+        return message.LeftChatMember?.Id == Bot.BotId || message.NewChatMembers?.First().Id == Bot.BotId;
     }
 }

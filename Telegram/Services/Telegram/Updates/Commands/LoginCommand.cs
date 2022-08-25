@@ -5,15 +5,15 @@ namespace Telegram.Services.Telegram.Updates.Commands;
 
 public class LoginCommand : Command
 {
-    public LoginCommand(ILogger<LoginCommand> logger, TelegramBot bot, TelegramChatIdAuthentication authentication)
-        : base(logger, bot, authentication)
-    {
-    }
+    readonly TelegramChatIdAuthenticator _authenticator;
+    public LoginCommand(ILogger<LoginCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator)
+        : base(logger, bot)
+    { _authenticator = authenticator; }
 
     public override string Value => "login";
 
-    internal override async Task HandleAsync(Update update)
+    public override async Task HandleAsync(Update update)
     {
-        await Authentication.AuthenticateAsync(update.Message!);
+        await _authenticator.AuthenticateAsync(update.Message!);
     }
 }

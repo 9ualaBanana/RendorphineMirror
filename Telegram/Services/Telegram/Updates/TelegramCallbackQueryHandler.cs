@@ -5,35 +5,41 @@ using Telegram.Services.Telegram.Updates.Tasks;
 
 namespace Telegram.Services.Telegram.Updates;
 
-public class TelegramCallbackQueryHandler
+public class TelegramCallbackQueryHandler : TelegramUpdateHandler
 {
-    readonly ILogger _logger;
-    readonly TelegramBot _bot;
     readonly ImageProcessingCallbackQueryHandler _imageProcessingHandler;
     readonly TaskCallbackQueryHandler _taskHandler;
+
+
 
     public TelegramCallbackQueryHandler(
         ILogger<TelegramCallbackQueryHandler> logger,
         TelegramBot bot,
         ImageProcessingCallbackQueryHandler imageProcessingHandler,
-        TaskCallbackQueryHandler taskHandler)
+        TaskCallbackQueryHandler taskHandler) : base(logger, bot)
     {
-        _logger = logger;
-        _bot = bot;
         _imageProcessingHandler = imageProcessingHandler;
         _taskHandler = taskHandler;
     }
 
-    public async Task HandleAsync(Update update)
-    {
-        await _bot.AnswerCallbackQueryAsync(update.CallbackQuery!.Id);
-        _logger.LogDebug("Callback query with following data is received: {Data}", update.CallbackQuery!.Data);
 
-        if (ImageProcessingCallbackData.Matches(update.CallbackQuery!.Data!))
+
+    public override async Task HandleAsync(Update update)
+    {
+        var callbackQuery = update.CallbackQuery!;
+        await AnswerCallbackQueryAsync(callbackQuery);
+
+        if (ImageProcessingCallbackData.Matches(callbackQuery.Data!))
         { await _imageProcessingHandler.HandleAsync(update); return; }
-        if (TaskCallbackData.Matches(update.CallbackQuery!.Data!))
+        if (TaskCallbackData.Matches(callbackQuery.Data!))
         { await _taskHandler.HandleAsync(update); return; }
 
-        _logger.LogError("Callback query didn't match any handlers");
+        Logger.LogError("Callback query didn't match any handlers");
+    }
+
+    async Task AnswerCallbackQueryAsync(CallbackQuery callbackQuery)
+    {
+        await Bot.AnswerCallbackQueryAsync(callbackQuery.Id);
+        Logger.LogDebug("Callback query with following data is received: {Data}", callbackQuery.Data);
     }
 }

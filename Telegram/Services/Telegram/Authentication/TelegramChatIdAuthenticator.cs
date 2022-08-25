@@ -1,10 +1,10 @@
-﻿using Newtonsoft.Json;
+﻿using Common;
 using Newtonsoft.Json.Linq;
 using Telegram.Bot.Types;
 
 namespace Telegram.Services.Telegram.Authentication;
 
-public class TelegramChatIdAuthentication
+public class TelegramChatIdAuthenticator
 {
     readonly ILogger _logger;
 
@@ -13,14 +13,18 @@ public class TelegramChatIdAuthentication
 
     readonly Dictionary<ChatId, TelegramAuthenticationToken> _authenticatedUsers = new();
 
-    public TelegramChatIdAuthentication(ILogger<TelegramChatIdAuthentication> logger, TelegramBot bot, IHttpClientFactory httpClientFactory)
+
+
+    public TelegramChatIdAuthenticator(ILogger<TelegramChatIdAuthenticator> logger, TelegramBot bot, IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _bot = bot;
         _httpClient = httpClientFactory.CreateClient();
     }
 
-    internal TelegramAuthenticationToken? GetTokenFor(ChatId id)
+
+
+    internal TelegramAuthenticationToken? TryGetTokenFor(ChatId id)
     {
         if (IsAuthenticated(id)) return _authenticatedUsers[id];
 
@@ -53,7 +57,7 @@ public class TelegramChatIdAuthentication
         try
         {
             var sessionId = await AuthenticateAsync(credentials); _authenticatedUsers.Add(credentials.ChatId, new(credentials.ChatId, sessionId));
-            _logger.LogDebug("User is authenticated:\nLogin: {Login}\nPassword: {Password}", credentials.Login, credentials.Password);
+            _logger.LogDebug("User is authenticated: {Login}", credentials.Login);
             return true;
         }
         catch (HttpRequestException) { }
@@ -70,7 +74,7 @@ public class TelegramChatIdAuthentication
             ["guid"] = Guid.NewGuid().ToString()
         });
         var response = await _httpClient.PostAsync("https://tasks.microstock.plus/rphtaskmgr/login", httpContent);
-        return (string)((JObject)await GetJsonFromResponseIfSuccessfulAsync(response)).Property("sessionid")!;
+        return (string)((JObject)await Api.GetJsonFromResponseIfSuccessfulAsync(response)).Property("sessionid")!;
     }
 
     internal async Task LogOutAsync(ChatId id)
@@ -82,26 +86,4 @@ public class TelegramChatIdAuthentication
     }
 
     bool IsAuthenticated(ChatId id) => _authenticatedUsers.ContainsKey(id);
-
-    static async ValueTask<JToken> GetJsonFromResponseIfSuccessfulAsync(HttpResponseMessage response, string? errorDetails = null)
-    {
-        response.EnsureSuccessStatusCode();
-
-        using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-        using var reader = new JsonTextReader(new StreamReader(stream));
-        var responseJson = JToken.Load(reader);
-        var responseStatusCode = responseJson["ok"]?.Value<int>();
-        if (responseStatusCode != 1)
-        {
-            if (responseJson["errormessage"]?.Value<string>() is { } errmsg)
-                throw new HttpRequestException(errmsg);
-
-            if (responseJson["errorcode"]?.Value<string>() is { } errcode)
-                throw new HttpRequestException($"{errorDetails} Server responded with {errcode} error code");
-
-            throw new HttpRequestException($"{errorDetails} Server responded with {responseStatusCode} status code");
-        }
-
-        return responseJson;
-    }
 }

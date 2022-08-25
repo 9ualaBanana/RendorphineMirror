@@ -4,28 +4,26 @@ using Telegram.Services.Telegram.FileRegistry;
 
 namespace Telegram.Services.Telegram.Updates.Images;
 
-public class TelegramImageHandler
+public class TelegramImageHandler : TelegramUpdateHandler
 {
-    readonly ILogger _logger;
-    readonly TelegramBot _bot;
     readonly TelegramFileRegistry _fileRegistry;
 
+
+
     public TelegramImageHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, TelegramFileRegistry fileRegistry)
+        : base(logger, bot)
     {
-        _logger = logger;
-        _bot = bot;
         _fileRegistry = fileRegistry;
     }
 
-    public async Task HandleAsync(Update update)
+
+
+    public override async Task HandleAsync(Update update)
     {
-        var image = update.Message!.Document is not null ?
-            TelegramImage.From(update.Message.Document!) : TelegramImage.From(update.Message.Photo!.Last());
-
-        //if (image.Size < 1_000_000)
-        //{ await _bot.TrySendMessageAsync(update.Message.Chat.Id, "Resolution of the image must be at least 1 MP."); return; }
-
-        await _bot.TrySendMessageAsync(update.Message.Chat.Id, "*Choose how to process the image*", replyMarkup: CreateReplyMarkupForLowResolutionImage(image));
+        await Bot.TrySendMessageAsync(
+            update.Message!.Chat.Id,
+            "*Choose how to process the image*",
+            replyMarkup: CreateReplyMarkupForLowResolutionImage(TelegramImage.From(update.Message)));
     }
 
     InlineKeyboardMarkup ReplyMarkupFor(TelegramImage image) => image.Size switch

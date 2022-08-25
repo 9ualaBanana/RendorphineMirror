@@ -12,12 +12,16 @@ public class DeployCommand : AuthenticatedCommand
     readonly NodeSupervisor _nodeSupervisor;
     readonly HttpClient _httpClient;
 
-    public DeployCommand(ILogger<DeployCommand> logger, TelegramBot bot, TelegramChatIdAuthentication authentication, NodeSupervisor nodeSupervisor, IHttpClientFactory httpClientFactory)
-        : base(logger, bot, authentication)
+
+
+    public DeployCommand(ILogger<DeployCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, NodeSupervisor nodeSupervisor, IHttpClientFactory httpClientFactory)
+        : base(logger, bot, authenticator)
     {
         _nodeSupervisor = nodeSupervisor;
         _httpClient = httpClientFactory.CreateClient();
     }
+
+
 
     public override string Value => "deploy";
 

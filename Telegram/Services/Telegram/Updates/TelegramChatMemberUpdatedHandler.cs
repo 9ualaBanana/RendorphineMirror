@@ -3,23 +3,19 @@ using Telegram.Bot.Types.Enums;
 
 namespace Telegram.Services.Telegram.Updates;
 
-public class TelegramChatMemberUpdatedHandler
+public class TelegramChatMemberUpdatedHandler : TelegramUpdateHandler
 {
-    readonly ILogger _logger;
-
-    readonly TelegramBot _bot;
-
     public TelegramChatMemberUpdatedHandler(
         ILogger<TelegramChatMemberUpdatedHandler> logger,
-        TelegramBot bot)
+        TelegramBot bot) : base(logger, bot)
     {
-        _logger = logger;
-        _bot = bot;
     }
 
-    public async Task HandleAsync(Update update)
+
+
+    public override async Task HandleAsync(Update update)
     {
-        _logger.LogDebug("Dispatching {ChatMemberUpdated}...", nameof(ChatMemberUpdated));
+        Logger.LogDebug("Dispatching {ChatMemberUpdated}...", nameof(ChatMemberUpdated));
 
         var chatMemberUpdate = update.MyChatMember!;
         if (BotIsAddedToChat(chatMemberUpdate))
@@ -32,28 +28,28 @@ public class TelegramChatMemberUpdatedHandler
     {
         var subscriber = chatMemberUpdate.Chat.Id;
 
-        var subscribersCount = _bot.Subscriptions.Count;
-        _bot.Subscriptions.Add(subscriber);
+        var subscribersCount = Bot.Subscriptions.Count;
+        Bot.Subscriptions.Add(subscriber);
 
-        if (_bot.Subscriptions.Count == subscribersCount)
-        { _logger.LogError("New subscriber wasn't added"); return; }
+        if (Bot.Subscriptions.Count == subscribersCount)
+        { Logger.LogError("New subscriber wasn't added"); return; }
         else
-            _logger.LogInformation("New subscriber was added: {Subscriber}", subscriber);
+            Logger.LogInformation("New subscriber was added: {Subscriber}", subscriber);
 
         const string message = "You are subscribed to events now. Remove me from the chat to unsubscribe.";
-        await _bot.TrySendMessageAsync(subscriber, message);
+        await Bot.TrySendMessageAsync(subscriber, message);
     }
 
     void HandleBotIsRemovedFromChat(ChatMemberUpdated chatMemberUpdate)
     {
         var subscriber = chatMemberUpdate.Chat.Id;
-        var subscribersCount = _bot.Subscriptions.Count;
-        _bot.Subscriptions.Remove(subscriber);
+        var subscribersCount = Bot.Subscriptions.Count;
+        Bot.Subscriptions.Remove(subscriber);
 
-        if (_bot.Subscriptions.Count == subscribersCount)
-            _logger.LogError("Subscriber wasn't removed");
+        if (Bot.Subscriptions.Count == subscribersCount)
+            Logger.LogError("Subscriber wasn't removed");
         else
-            _logger.LogInformation("Subscriber was removed: {Subscriber}", subscriber);
+            Logger.LogInformation("Subscriber was removed: {Subscriber}", subscriber);
     }
 
     bool BotIsAddedToChat(ChatMemberUpdated chatMemberUpdate)
@@ -61,13 +57,13 @@ public class TelegramChatMemberUpdatedHandler
         var newChatMember = chatMemberUpdate.NewChatMember;
         var oldChatMember = chatMemberUpdate.OldChatMember;
         // Doesn't match when the bot is being promoted.
-        return newChatMember.User.Id == _bot.BotId && IsAddedToChat(newChatMember) && !IsAddedToChat(oldChatMember);
+        return newChatMember.User.Id == Bot.BotId && IsAddedToChat(newChatMember) && !IsAddedToChat(oldChatMember);
     }
 
     bool BotIsRemovedFromChat(ChatMemberUpdated chatMemberUpdate)
     {
         var newChatMember = chatMemberUpdate.NewChatMember;
-        return newChatMember.User.Id == _bot.BotId && !IsAddedToChat(newChatMember);
+        return newChatMember.User.Id == Bot.BotId && !IsAddedToChat(newChatMember);
     }
 
     static bool IsAddedToChat(ChatMember chatMember)

@@ -9,7 +9,7 @@ public static class TelegramUpdateHandlersExtensions
     public static IServiceCollection AddTelegramUpdateHandlers(this IServiceCollection serviceCollection)
     {
         return serviceCollection
-            .AddSingleton<TelegramUpdateHandler>()
+            .AddSingleton<TelegramUpdateTypeHandler>()
             .AddScoped<TelegramMessageHandler>()
             .AddTelegramBotCommands()
             .AddTelegramImageProcessing()

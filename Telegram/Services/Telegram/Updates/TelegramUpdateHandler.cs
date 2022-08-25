@@ -1,45 +1,21 @@
 ﻿using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 
 namespace Telegram.Services.Telegram.Updates;
 
-public class TelegramUpdateHandler
+public abstract class TelegramUpdateHandler
 {
-    readonly ILogger _logger;
+    protected readonly ILogger Logger;
+    protected readonly TelegramBot Bot;
 
-    readonly TelegramMessageHandler _messageHandler;
-    readonly TelegramCallbackQueryHandler _callbackQueryHandler;
-    readonly TelegramChatMemberUpdatedHandler _myChatMemberHandler;
 
-    public TelegramUpdateHandler(
-        ILogger<TelegramUpdateHandler> logger,
-        TelegramMessageHandler messageHandler,
-        TelegramCallbackQueryHandler callbackHandler,
-        TelegramChatMemberUpdatedHandler myChatMemberHandler)
+
+    public TelegramUpdateHandler(ILogger logger, TelegramBot bot)
     {
-        _logger = logger;
-        _messageHandler = messageHandler;
-        _callbackQueryHandler = callbackHandler;
-        _myChatMemberHandler = myChatMemberHandler;
+        Logger = logger;
+        Bot = bot;
     }
 
-    public async Task HandleAsync(Update update)
-    {
-        _logger.LogDebug("Update of {UpdateType} type is received", update.Type);
-        switch (update.Type)
-        {
-            case UpdateType.Message:
-                await _messageHandler.HandleAsync(update);
-                break;
-            case UpdateType.CallbackQuery:
-                await _callbackQueryHandler.HandleAsync(update);
-                break;
-            case UpdateType.MyChatMember:
-                await _myChatMemberHandler.HandleAsync(update);
-                break;
-            default:
-                return;
-        }
-        _logger.LogDebug("Update of {UpdateType} type is handled", update.Type);
-    }
+
+
+    public abstract Task HandleAsync(Update update);
 }

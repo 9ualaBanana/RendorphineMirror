@@ -9,11 +9,15 @@ public class RemoveCommand : AuthenticatedCommand
 {
     readonly NodeSupervisor _nodeSupervisor;
 
-    public RemoveCommand(ILogger<RemoveCommand> logger, TelegramBot bot, TelegramChatIdAuthentication authentication, NodeSupervisor nodeSupervisor)
-        : base(logger, bot, authentication)
+
+
+    public RemoveCommand(ILogger<RemoveCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, NodeSupervisor nodeSupervisor)
+        : base(logger, bot, authenticator)
     {
         _nodeSupervisor = nodeSupervisor;
     }
+
+
 
     public override string Value => "remove";
 

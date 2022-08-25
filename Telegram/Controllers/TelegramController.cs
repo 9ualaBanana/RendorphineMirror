@@ -11,10 +11,10 @@ public class TelegramController : ControllerBase
     [HttpPost]
     public async Task ReceiveUpdate(
         [FromBody] Update update,
-        [FromServices] TelegramUpdateHandler telegramUpdateHandler,
+        [FromServices] TelegramUpdateTypeHandler telegramUpdateTypeHandler,
         [FromServices] ILogger<TelegramController> logger)
     {
-        try { await telegramUpdateHandler.HandleAsync(update); }
+        try { await telegramUpdateTypeHandler.HandleAsync(update); }
         catch (Exception ex) { logger.LogError(ex, "Update couldn't be handled"); return; }
     }
 }

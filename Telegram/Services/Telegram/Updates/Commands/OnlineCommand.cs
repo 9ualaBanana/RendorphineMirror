@@ -8,11 +8,13 @@ public class OnlineCommand : AuthenticatedCommand
 {
     readonly NodeSupervisor _nodeSupervisor;
 
-    public OnlineCommand(ILogger<OnlineCommand> logger, TelegramBot bot, TelegramChatIdAuthentication authentication, NodeSupervisor nodeSupervisor)
-        : base(logger, bot, authentication)
+    public OnlineCommand(ILogger<OnlineCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, NodeSupervisor nodeSupervisor)
+        : base(logger, bot, authenticator)
     {
         _nodeSupervisor = nodeSupervisor;
     }
+
+
 
     public override string Value => "online";
 

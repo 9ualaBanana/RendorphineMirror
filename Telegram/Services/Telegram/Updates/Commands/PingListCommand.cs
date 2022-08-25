@@ -2,7 +2,6 @@
 using Telegram.Bot.Types;
 using Telegram.Models;
 using Telegram.Services.Node;
-using Telegram.Services.Telegram;
 using Telegram.Services.Telegram.Authentication;
 
 namespace Telegram.Services.Telegram.Updates.Commands;
@@ -12,12 +11,16 @@ public class PingListCommand : AuthenticatedCommand
     readonly ILogger _logger;
     readonly NodeSupervisor _nodeSupervisor;
 
-    public PingListCommand(ILogger<PingListCommand> logger, TelegramBot bot, TelegramChatIdAuthentication authentication, NodeSupervisor nodeSupervisor)
-        : base(logger, bot, authentication)
+
+
+    public PingListCommand(ILogger<PingListCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, NodeSupervisor nodeSupervisor)
+        : base(logger, bot, authenticator)
     {
         _logger = logger;
         _nodeSupervisor = nodeSupervisor;
     }
+
+
 
     public override string Value => "pinglist";
 

@@ -20,7 +20,7 @@ builder.Services.AddTelegramUpdateHandlers();
 Task<TelegramBot> botInitialization = TelegramBot.Initialize(
     builder.Configuration["BotToken"], builder.Configuration["Host"]);
 
-builder.Services.AddSingleton<TelegramChatIdAuthentication>();
+builder.Services.AddSingleton<TelegramChatIdAuthenticator>();
 builder.Services.AddScoped<TaskResultsPreviewer>();
 builder.Services.AddScoped<GitHubEventForwarder>();
 builder.Services.AddSingleton(await botInitialization);
