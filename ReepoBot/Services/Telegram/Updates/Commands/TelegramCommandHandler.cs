@@ -24,7 +24,7 @@ public class TelegramCommandHandler
 
     string GetCommandFrom(Update update)
     {
-        var receivedCommandMessage = update.Message!.Text!;
+        var receivedCommandMessage = update.Message!.Text ?? update.Message.Caption!;
         var command = receivedCommandMessage.Command();
         var arguments = receivedCommandMessage.Arguments();
 

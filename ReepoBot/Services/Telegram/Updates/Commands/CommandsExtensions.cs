@@ -26,6 +26,7 @@ internal static class CommandsExtensions
             .AddScoped<Command, OnlineCommand>()
             .AddScoped<Command, OfflineCommand>()
             .AddScoped<Command, PluginsCommand>()
+            .AddScoped<Command, ProcessCommand>()
             .AddScoped<Command, DeployCommand>()
             .AddScoped<Command, RemoveCommand>()
             .AddScoped<Command, LogoutCommand>();

@@ -34,6 +34,6 @@ public class TelegramCallbackQueryHandler
         if (TaskCallbackData.Matches(update.CallbackQuery!.Data!))
         { await _taskHandler.HandleAsync(update); return; }
 
-        _logger.LogWarning("Callback query didn't match any handlers");
+        _logger.LogError("Callback query didn't match any handlers");
     }
 }
