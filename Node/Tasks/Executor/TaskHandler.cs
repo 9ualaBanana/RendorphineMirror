@@ -83,32 +83,22 @@ public static class TaskHandler
 
     static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        const int attempts = 3;
+        const int maxattempts = 3;
 
         NodeGlobalState.Instance.ExecutingTasks.Add(task);
         using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
         task.LogInfo($"Started");
 
-        for (int attempt = 0; attempt < attempts; attempt++)
+        for (int attempt = 0; attempt < maxattempts; attempt++)
         {
             try
             {
                 var starttime = DateTimeOffset.Now;
                 await _HandleAsync(task, cancellationToken);
 
-
-                var json = new JObject()
-                {
-                    ["starttime"] = starttime.ToUnixTimeMilliseconds(),
-                    ["endtime"] = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
-                    ["attempt"] = attempt,
-                    ["info"] = JObject.FromObject(task),
-                };
-
-                task.LogInfo($"Writing info: {json.ToString(Formatting.None)}");
-                using (var infofile = new JsonTextWriter(new StreamWriter(File.Open(task.FSExecutionInfo(), FileMode.Create, FileAccess.Write))))
-                    new JsonSerializer() { Formatting = Formatting.Indented }.Serialize(infofile, json);
-
+                var endtime = DateTimeOffset.Now;
+                task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
+                NodeSettings.CompletedTasks.Add(task.Id, new CompletedTask(starttime, endtime, task) { Attempt = attempt });
 
                 task.LogInfo($"Completed, removing");
                 NodeSettings.QueuedTasks.Bindable.Remove(task);
@@ -117,11 +107,11 @@ public static class TaskHandler
             catch (Exception ex)
             {
                 task.LogErr(ex);
-                task.LogInfo($"Failed to execute task, retrying... ({attempt + 1}/{attempts})");
+                task.LogInfo($"Failed to execute task, retrying... ({attempt + 1}/{maxattempts})");
             }
         }
 
-        task.LogErr($"Could not execute this task after {attempts} attempts");
+        task.LogErr($"Could not execute this task after {maxattempts} attempts");
     }
     static async Task _HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {

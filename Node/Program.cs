@@ -99,6 +99,7 @@ PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
 
 
 logger.Info(@$"Tasks found
+    {NodeSettings.CompletedTasks.Count} self-completed
     {NodeSettings.WatchingTasks.Count} watching
     {NodeSettings.QueuedTasks.Count} queued
     {NodeSettings.PlacedTasks.Count} placed

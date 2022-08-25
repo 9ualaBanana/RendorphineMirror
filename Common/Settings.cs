@@ -50,7 +50,6 @@ namespace Common
         public static readonly DatabaseValue<AuthInfo?> BAuthInfo;
 
         static readonly SQLiteConnection Connection;
-        const string ConfigTable = "config";
 
         static Settings()
         {
@@ -58,7 +57,7 @@ namespace Common
             Connection = new SQLiteConnection("Data Source=" + DbPath + ";Version=3;cache=shared");
             if (!File.Exists(DbPath)) SQLiteConnection.CreateFile(DbPath);
             Connection.Open();
-            CreateDBTable();
+            OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA cache=shared;")).LogIfError();
 
 
             BServerUrl = new(nameof(ServerUrl), "https://t.microstock.plus:8443");
@@ -69,21 +68,6 @@ namespace Common
             BTorrentPort = new(nameof(TorrentPort), 6224);
             BAuthInfo = new(nameof(AuthInfo), default);
             BNodeName = new(nameof(NodeName), null);
-        }
-
-
-        static void CreateDBTable()
-        {
-            try
-            {
-                ExecuteNonQuery($"create table if not exists {ConfigTable} (key text primary key unique, value text null);");
-                ExecuteNonQuery("PRAGMA cache=shared;");
-            }
-            catch (SQLiteException ex)
-            {
-                _logger.Fatal(ex.ToString());
-                throw;
-            }
         }
 
         static int ExecuteNonQuery(string command)
@@ -124,38 +108,9 @@ namespace Common
                 bindable.Reload();
         }
 
-        [return: NotNullIfNotNull("defaultValue")]
-        static string Load(string path, string defaultValue)
-        {
-            using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
-
-            if (!query.Read()) return defaultValue;
-            return query.GetString(0);
-        }
-
-        [return: NotNullIfNotNull("defaultValue")]
-        static T? Load<T>(string path, T? defaultValue)
-        {
-            using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
-            if (!query.Read()) return defaultValue;
-
-            var str = query.GetString(0);
-            return JsonConvert.DeserializeObject<T>(str, LocalApi.JsonSettingsWithType);
-        }
-        static void Save<T>(string path, T value)
-        {
-            ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
-                new SQLiteParameter("key", path),
-                new SQLiteParameter("value", JsonConvert.SerializeObject(value, LocalApi.JsonSettingsWithType))
-            );
-        }
-
 
         public interface IDatabaseBindable
         {
-            string Name { get; }
-
-            void Save();
             void Reload();
         }
         public interface IDatabaseBindable<T> : IDatabaseBindable { }
@@ -166,6 +121,8 @@ namespace Common
 
         public abstract class DatabaseValueBase<T, TBindable> : IDatabaseBindable<T> where TBindable : IReadOnlyBindable<T>
         {
+            protected const string ConfigTable = "config";
+
             public event Action? Changed { add => Bindable.Changed += value; remove => Bindable.Changed -= value; }
             public T Value => Bindable.Value;
 
@@ -181,7 +138,7 @@ namespace Common
                 Reload();
                 Bindable.Changed += () =>
                 {
-                    Settings.Save(name, Value);
+                    Save();
                     AnyChanged?.Invoke();
                 };
 
@@ -190,19 +147,20 @@ namespace Common
 
             public void Reload()
             {
-                if (Load(Name) is { } jstr)
-                    Bindable.LoadFromJson(JToken.Parse(jstr), LocalApi.JsonSerializerWithType);
+                ExecuteNonQuery($"create table if not exists {ConfigTable} (key text primary key unique, value text null);");
+
+                using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", Name));
+                if (!query.Read()) return;
+
+                Bindable.LoadFromJson(JToken.Parse(query.GetString(0)), LocalApi.JsonSerializerWithType);
             }
-
-
-            static string? Load(string path)
+            public void Save()
             {
-                using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", path));
-
-                if (!query.Read()) return null;
-                return query.GetString(0);
+                ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
+                    new SQLiteParameter("key", Name),
+                    new SQLiteParameter("value", JsonConvert.SerializeObject(Value, LocalApi.JsonSettingsWithType))
+                );
             }
-            public void Save() => Settings.Save(Name, Value);
         }
 
         public class DatabaseValue<T> : DatabaseValueBase<T, Bindable<T>>, IDatabaseValueBindable<T>
@@ -227,6 +185,93 @@ namespace Common
             public DatabaseValueDictionary(string name, IEnumerable<KeyValuePair<TKey, TValue>>? values = null) : base(name, new(values)) { }
 
             public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => Bindable.GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        public class DatabaseValueSplitList<T> : IDatabaseBindable, IReadOnlyList<T>
+        {
+            public int Count => Items.Count;
+            readonly List<T> Items = new();
+
+            readonly string TableName;
+
+            public DatabaseValueSplitList(string table)
+            {
+                TableName = table;
+                Reload();
+            }
+
+            public T this[int index] => Items[index];
+            public void Add(T value)
+            {
+                Items.Add(value);
+
+                ExecuteNonQuery(@$"insert into {TableName}(value) values (@value)",
+                    new SQLiteParameter("value", JsonConvert.SerializeObject(value, LocalApi.JsonSettingsWithType))
+                );
+            }
+
+            public void Reload()
+            {
+                ExecuteNonQuery($"create table if not exists {TableName} (value text null);");
+                var reader = ExecuteQuery($"select * from {TableName} order by rowid");
+
+                while (reader.Read())
+                {
+                    var valuejson = reader.GetString(reader.GetOrdinal("value"));
+                    Items.Add(JToken.Parse(valuejson).ToObject<T>(LocalApi.JsonSerializerWithType)!);
+                }
+            }
+
+
+            public IEnumerator<T> GetEnumerator() => Items.GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+        public class DatabaseValueSplitDictionary<TKey, TValue> : IDatabaseBindable, IReadOnlyDictionary<TKey, TValue> where TKey : notnull
+        {
+            public IEnumerable<TKey> Keys => Items.Keys;
+            public IEnumerable<TValue> Values => Items.Values;
+
+            public int Count => Items.Count;
+            readonly Dictionary<TKey, TValue> Items = new();
+
+            readonly string TableName;
+
+            public DatabaseValueSplitDictionary(string table)
+            {
+                TableName = table;
+                Reload();
+            }
+
+            public TValue this[TKey key] => Items[key];
+            public bool ContainsKey(TKey key) => Items.ContainsKey(key);
+            public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => Items.TryGetValue(key, out value);
+
+            public void Add(TKey key, TValue value)
+            {
+                Items.Add(key, value);
+
+                ExecuteNonQuery(@$"insert into {TableName}(key, value) values (@key, @value)",
+                    new SQLiteParameter("key", JsonConvert.SerializeObject(key, LocalApi.JsonSettingsWithType)),
+                    new SQLiteParameter("value", JsonConvert.SerializeObject(value, LocalApi.JsonSettingsWithType))
+                );
+            }
+
+            public void Reload()
+            {
+                ExecuteNonQuery($"create table if not exists {TableName} (key text primary key unique, value text null);");
+                var reader = ExecuteQuery($"select * from {TableName}");
+
+                while (reader.Read())
+                {
+                    var key = JToken.Parse(reader.GetString(reader.GetOrdinal("key"))).ToObject<TKey>(LocalApi.JsonSerializerWithType)!;
+                    var value = JToken.Parse(reader.GetString(reader.GetOrdinal("value"))).ToObject<TValue>(LocalApi.JsonSerializerWithType)!;
+                    Items.Add(key, value);
+                }
+            }
+
+
+            public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => Items.GetEnumerator();
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
