@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 
 namespace Node.Tasks.Exec;
@@ -11,7 +10,7 @@ public interface IPluginAction
     string Name { get; }
     FileFormat FileFormat { get; }
 
-    ValueTask<string> Execute(ReceivedTask task, string input);
+    Task Execute(ReceivedTask task);
 }
 public abstract class PluginAction<T> : IPluginAction
 {
@@ -21,23 +20,38 @@ public abstract class PluginAction<T> : IPluginAction
     public abstract PluginType Type { get; }
     public abstract FileFormat FileFormat { get; }
 
-    public async ValueTask<string> Execute(ReceivedTask task, string input)
+    public async Task Execute(ReceivedTask task)
     {
         task.LogInfo($"Executing...");
-        Directory.CreateDirectory(task.FSOutputDirectory());
 
         var data = task.Info.Data.ToObject<T>();
         if (data is null) throw new Exception("Could not deserialize input data: " + task.Info.Data);
 
-        var output = await Execute(task, data).ConfigureAwait(false);
-
+        await Execute(task, data).ConfigureAwait(false);
         task.LogInfo($"Completed {Type} {Name} execution");
-        task.LogInfo($"Output file: {output}");
-        return output;
     }
 
-    protected abstract Task<string> Execute(ReceivedTask task, T data);
+    protected abstract Task Execute(ReceivedTask task, T data);
 
+
+    protected static async ValueTask UploadResult(ReceivedTask task, ITaskOutput output, string resultfile)
+    {
+        await task.ChangeStateAsync(TaskState.Output);
+
+        task.LogInfo($"Uploading output file {resultfile} to {task.Info.Output.ToString(Newtonsoft.Json.Formatting.None)} ...");
+        await output.Upload(task, resultfile).ConfigureAwait(false);
+        task.LogInfo($"Output file {resultfile} uploaded");
+
+        await SendFileToReepo(task);
+    }
+    static async Task SendFileToReepo(ReceivedTask task, CancellationToken cancellationToken = default)
+    {
+        if (task.ExecuteLocally) return; // TODO: remove when local tasks go through the task manager
+
+        var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
+        try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
+        catch (Exception ex) { task.LogErr("Error sending result to reepo: " + ex); }
+    }
 
     protected static Process StartProcess(string exepath, string args, ILoggable? logobj)
     {

@@ -88,22 +88,22 @@ public static class FFMpegTasks
     public static IEnumerable<IPluginAction> CreateTasks() => new IPluginAction[] { new FFMpegEditVideo(), new FFMpegEditRaster() };
 
 
-    abstract class FFMpegEditAction<T> : PluginAction<T> where T : MediaEditInfo
+    abstract class FFMpegEditAction<T> : InputOutputPluginAction<T> where T : MediaEditInfo
     {
         public override PluginType Type => PluginType.FFmpeg;
 
-        protected override async Task<string> Execute(ReceivedTask task, T data)
+        protected override async Task Execute(ReceivedTask task, T data, ITaskInput input, ITaskOutput output)
         {
-            task.InputFile.ThrowIfNull();
+            var outputfile = task.FSOutputFile();
+
             var frames = (await FFProbe.Get(task.InputFile, task))?.Streams.FirstOrDefault()?.Frames ?? 0;
             task.LogInfo($"{task.InputFile} length: {frames} frames");
 
-            var output = task.FSOutputFile();
             var exepath = task.GetPlugin().GetInstance().Path;
             var args = getArgs();
 
             await ExecuteProcess(exepath, args, true, onRead, task);
-            return output;
+            await UploadResult(task, output, outputfile);
 
 
             void onRead(bool err, string line)
@@ -142,7 +142,7 @@ public static class FFMpegTasks
                 args += $"-c:a copy ";
 
                 // output path
-                args += $" \"{output}\" ";
+                args += $" \"{outputfile}\" ";
 
                 return args;
             }

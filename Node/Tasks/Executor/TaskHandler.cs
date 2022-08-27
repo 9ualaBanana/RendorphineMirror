@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Executor;
 
@@ -54,6 +53,8 @@ public static class TaskHandler
     }
 
 
+    public static ITaskInput DeserializeInput(this ReceivedTask task) => DeserializeInput(task.Info.Input);
+    public static ITaskOutput DeserializeOutput(this ReceivedTask task) => DeserializeOutput(task.Info.Output);
 
     static TaskInputOutputType GetInputOutputType(JObject json)
     {
@@ -94,7 +95,7 @@ public static class TaskHandler
             try
             {
                 var starttime = DateTimeOffset.Now;
-                await _HandleAsync(task, cancellationToken);
+                await TaskList.GetAction(task.Info).Execute(task).ConfigureAwait(false);
 
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
@@ -112,29 +113,5 @@ public static class TaskHandler
         }
 
         task.LogErr($"Could not execute this task after {maxattempts} attempts");
-    }
-    static async Task _HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
-    {
-        var inputobj = DeserializeInput(task.Info.Input);
-        var outputobj = DeserializeOutput(task.Info.Output);
-        task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
-
-        task.LogInfo($"Downloading file...");
-        var input = await inputobj.Download(task, cancellationToken).ConfigureAwait(false);
-        task.InputFile = input;
-        task.LogInfo($"File downloaded to {input}");
-        await task.ChangeStateAsync(TaskState.Active);
-
-        var output = await TaskList.GetAction(task.Info).Execute(task, input).ConfigureAwait(false);
-        await task.ChangeStateAsync(TaskState.Output);
-
-        task.LogInfo($"Uploading output file {output} ...");
-        await outputobj.Upload(task, output).ConfigureAwait(false);
-        task.LogInfo($"File uploaded");
-
-        var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
-
-        try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
-        catch (Exception ex) { _logger.Error("Error sending result to reepo: " + ex); }
     }
 }

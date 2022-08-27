@@ -1,4 +1,6 @@
-﻿namespace Common.Tasks;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Common.Tasks;
 
 public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ITask
 {
@@ -15,6 +17,8 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ITas
 
     public string FSDataDirectory() => Path.Combine(Init.TaskFilesDirectory, Id);
     public string FSOutputDirectory() => Path.Combine(FSDataDirectory(), "output");
-    public string FSOutputFile() => Path.Combine(FSOutputDirectory(), Path.GetFileName(InputFile.ThrowIfNull("Task input file path was not provided")));
     public string FSExecutionInfo() => Path.Combine(FSOutputDirectory(), "info.json");
+
+    [MemberNotNull("InputFile")]
+    public string FSOutputFile() => Path.Combine(FSOutputDirectory(), Path.GetFileName(InputFile.ThrowIfNull("Task input file path was not provided")));
 }
