@@ -86,6 +86,16 @@ public static class TaskHandler
     {
         const int maxattempts = 3;
 
+        var state = await task.GetTaskStateAsync();
+        state.LogIfError();
+        if (state && state.Value.State is (TaskState.Finished or TaskState.Canceled or TaskState.Failed))
+        {
+            task.LogInfo($"Invalid task state: {state.Value.State}, removing");
+            NodeSettings.QueuedTasks.Bindable.Remove(task);
+
+            return;
+        }
+
         NodeGlobalState.Instance.ExecutingTasks.Add(task);
         using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
         task.LogInfo($"Started");
