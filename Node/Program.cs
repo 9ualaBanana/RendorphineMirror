@@ -80,6 +80,7 @@ new PublicListener().Start();
 new TaskReceiver().Start();
 new NodeStateListener().Start();
 new DirectoryDiffListener().Start();
+new PublicPagesListener().Start();
 if (Init.IsDebug) new DebugListener().Start();
 
 PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
