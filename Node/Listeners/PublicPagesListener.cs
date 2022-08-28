@@ -9,7 +9,7 @@ namespace Node.Listeners
 {
     public class PublicPagesListener : ExecutableListenerBase
     {
-        protected override bool IsLocal => false;
+        //protected override bool IsLocal => false;
 
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
@@ -17,46 +17,44 @@ namespace Node.Listeners
             var response = context.Response;
 
 
-            if (path.StartsWith("gallery"))
+            if (path == "gallery")
             {
-                string[] fileExt = { "jpg", "jpeg", "png" };
-                string taskDir = Init.TaskFilesDirectory;
+                string? daysString = context.Request.QueryString["days"];
+                int days;
 
+                if (daysString == null || !int.TryParse(daysString, out days)) days = 30;
 
-                if (path == "gallery")
+                string info = "<html><body>";
+                info += $"<form method='get'><input type ='number' name='days' value={days}><input type = 'submit'></form>";
+                info += $"<b>Files for last {days} days</b><br>";
+
+                var sortedTasks = NodeSettings.CompletedTasks
+                    .Where(t => t.Value.StartTime >= DateTime.Now.AddDays(-1 * days));
+
+                foreach (var task in sortedTasks)
                 {
-                    IEnumerable<string> foldersWithOutputs = Directory.GetDirectories(taskDir)
-                    .Where(d => Directory.Exists(d + "/output") && Directory.EnumerateFiles(d + "/output").Any());
-                    var tasksFiles = foldersWithOutputs
-                        .GroupBy(folder => fileExt.SelectMany(ext => Directory.EnumerateFiles(folder + "/output", "*." + ext)));
-
-                    string info = "<html><body>";
-
-                    foreach (var task in tasksFiles)
-                    {
-                        info += $"<br><h3>{Path.GetFileName(task.First())}</h3>";
-                        foreach (string file in task.Key)
-                        {
-                            info += $"<img width='200px' src='./gallery/{Path.GetFileName(task.First()) + "?name=" + Path.GetFileName(file)}'>";
-                        }
-                    }
-
-                    info += "</body></html>";
-
-                    using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-                    writer.Write(info);
-                    return HttpStatusCode.OK;
+                    info += $"<img width='200px' src='./getfile/{task.Key}'>";
+                    info += $"<details>ID:{task.Value.TaskInfo.Id}\nStart:{task.Value.StartTime.ToString()}/nFinish:{task.Value.FinishTime}</details>";
                 }
-                else
+
+                info += "</body></html>";
+
+                using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+                writer.Write(info);
+                return HttpStatusCode.OK;
+            }
+
+            if (path.StartsWith("getfile"))
+            {
+                string taskId = Path.GetFileName(path);
+                var tasks = NodeSettings.CompletedTasks;
+                if (!tasks.ContainsKey(taskId)) return HttpStatusCode.NotFound;
+                string file = tasks[taskId].TaskInfo.FSOutputFile();
+                if (File.Exists(file))
                 {
-                    string name = context.Request.QueryString["name"] ?? "";
-                    string file = taskDir + "/" + Path.GetFileName(Path.GetFileName(path)) + "/output/" + name;
-                    if (File.Exists(file))
-                    {
-                        using var writer = new BinaryWriter(response.OutputStream, System.Text.Encoding.Default, leaveOpen: true);
-                        writer.Write(File.ReadAllBytes(file));
-                        return HttpStatusCode.OK;
-                    }
+                    using var writer = new BinaryWriter(response.OutputStream, System.Text.Encoding.Default, leaveOpen: true);
+                    writer.Write(File.ReadAllBytes(file));
+                    return HttpStatusCode.OK;
                 }
             }
 
