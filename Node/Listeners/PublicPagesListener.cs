@@ -11,6 +11,8 @@ namespace Node.Listeners
     {
         //protected override bool IsLocal => false;
 
+        static string[] imagesExtentions = { ".jpg", ".jpeg", ".png" };
+
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
             var request = context.Request;
@@ -29,7 +31,8 @@ namespace Node.Listeners
                 info += $"<b>Files for last {days} days</b><br>";
 
                 var sortedTasks = NodeSettings.CompletedTasks
-                    .Where(t => t.Value.StartTime >= DateTime.Now.AddDays(-1 * days));
+                    .Where(t => t.Value.StartTime >= DateTime.Now.AddDays(-1 * days)
+                        && imagesExtentions.Contains(Path.GetExtension(t.Value.TaskInfo.FSOutputFile())));
 
                 foreach (var task in sortedTasks)
                 {
