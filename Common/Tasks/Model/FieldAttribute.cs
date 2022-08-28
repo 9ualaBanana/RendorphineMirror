@@ -26,3 +26,24 @@ public class LocalFileAttribute : DescriberAttributeBase { }
 public class LocalDirectoryAttribute : DescriberAttributeBase { }
 
 public class MPlusDirectoryAttribute : DescriberAttributeBase { }
+
+public class ArrayRangedAttribute : DescriberAttributeBase
+{
+    public readonly int Min, Max;
+
+    public ArrayRangedAttribute(int min = 0, int max = int.MaxValue)
+    {
+        Min = min;
+        Max = max;
+    }
+}
+
+public class ArrayItemAttribute : DescriberAttributeBase
+{
+    public readonly Attribute[] Attributes;
+
+    public ArrayItemAttribute(Attribute[] attributes)
+    {
+        Attributes = attributes;
+    }
+}

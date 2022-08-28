@@ -515,6 +515,8 @@ namespace NodeUI.Pages
                 }
                 IControl softToControl(string softname, SoftwareDefinition soft)
                 {
+                    // return TaskCreationWindow.Settings.Create(new("_aed_", JObject.FromObject(soft)), FieldDescriber.Create(typeof(SoftwareDefinition)));
+
                     var softnametb = new TextBox() { Text = soft.VisualName };
                     var addnewbtn = new MPButton()
                     {

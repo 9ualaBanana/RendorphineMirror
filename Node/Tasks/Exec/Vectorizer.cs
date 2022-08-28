@@ -2,9 +2,13 @@ using Newtonsoft.Json;
 
 namespace Node.Tasks.Exec;
 
-public record VeeeVectorizeInfo(
-    [property: JsonProperty("lod")] ImmutableArray<int> Lods
-);
+public class VeeeVectorizeInfo
+{
+    [JsonProperty("lod")]
+    [ArrayRanged(min: 1), Ranged(1, 10_000)]
+    public int[] Lods = null!;
+}
+
 
 public static class VectorizerTasks
 {

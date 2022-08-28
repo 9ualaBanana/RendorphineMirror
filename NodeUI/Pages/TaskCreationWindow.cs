@@ -554,7 +554,7 @@ namespace NodeUI.Pages
         }
 
 
-        static class Settings
+        public static class Settings
         {
             public static Setting Create(JProperty property, FieldDescriber describer) => describer.Nullable ? new NullableSetting(_Create(property, describer)) : _Create(property, describer);
             static Setting _Create(JProperty property, FieldDescriber describer) =>
@@ -564,6 +564,9 @@ namespace NodeUI.Pages
                     StringDescriber txt => new TextSetting(txt, property),
                     NumberDescriber num => new NumberSetting(num, property),
                     ObjectDescriber obj => new ObjectSetting(obj, property),
+
+                    DictionaryDescriber dic => new DictionarySetting(dic, property),
+                    CollectionDescriber col => new CollectionSetting(col, property),
 
                     _ => throw new InvalidOperationException($"Could not find setting type fot {describer.GetType().Name}"),
                 };
@@ -732,6 +735,12 @@ namespace NodeUI.Pages
                             Value = setting.Get().Value<double?>() ?? 0,
                         };
 
+                        if (setting.Describer.IsInteger)
+                        {
+                            Slider.TickFrequency = 1;
+                            Slider.IsSnapToTickEnabled = true;
+                        }
+
                         var valuetext = new TextBlock();
                         Slider.Subscribe(Slider.ValueProperty, v => valuetext.Text = v.ToString());
 
@@ -774,6 +783,183 @@ namespace NodeUI.Pages
                     {
                         if (Describer.IsInteger) Set(long.Parse(TextBox.Text));
                         else Set(double.Parse(TextBox.Text));
+                    }
+                }
+            }
+            class DictionarySetting : Setting
+            {
+                readonly List<ISetting> Settings = new();
+
+                public DictionarySetting(DictionaryDescriber describer, JObject jobj) : this(describer, new JProperty("____", jobj)) { }
+                public DictionarySetting(DictionaryDescriber describer, JProperty property) : base(property)
+                {
+                    Background = new SolidColorBrush(new Color(20, 0, 0, 0));
+                    Margin = new Thickness(10, 0, 0, 0);
+
+                    var jobj = property.Value as JObject;
+                    if (jobj is null) property.Value = jobj = new JObject();
+
+                    var list = new StackPanel() { Orientation = Orientation.Vertical };
+                    var grid = new StackPanel()
+                    {
+                        Orientation = Orientation.Vertical,
+                        Spacing = 10,
+                        Children =
+                        {
+                            new MPButton()
+                            {
+                                Text = "+ add",
+                                OnClick = () =>
+                                {
+                                    jobj.Add(JsonConvert.SerializeObject(JToken.FromObject(toobj(describer.KeyType)!)), JToken.FromObject(toobj(describer.ValueType)!));
+                                    recreate();
+
+
+                                    static object? toobj(Type type)
+                                    {
+                                        if (type == typeof(string)) return "";
+                                        return new JObject().ToObject(type)!;
+                                    }
+                                },
+                            },
+                            list,
+                        },
+                    };
+                    Children.Add(grid);
+                    recreate();
+
+
+                    void recreate()
+                    {
+                        Settings.Clear();
+                        list.Children.Clear();
+
+                        var fielddescriber = FieldDescriber.Create(describer.ValueType, describer.Attributes);
+                        foreach (var property in jobj.Properties())
+                        {
+                            var key = property.Name;
+                            var value = property.Value;
+
+                            var setting = Create(property, fielddescriber);
+                            var set = new StackPanel()
+                            {
+                                Orientation = Orientation.Vertical,
+                                Spacing = 10,
+                                Children =
+                                {
+                                    new MPButton()
+                                    {
+                                        Text = "- delete",
+                                        OnClick = () =>
+                                        {
+                                            jobj.Remove(key);
+                                            recreate();
+                                        },
+                                    },
+                                    setting,
+                                },
+                            };
+
+                            list.Children.Add(new Expander() { Header = key, Content = set, });
+                            Settings.Add(setting);
+                        }
+                    }
+                }
+
+                public override void UpdateValue()
+                {
+                    foreach (var setting in Settings)
+                        setting.UpdateValue();
+                }
+            }
+            class CollectionSetting : Setting
+            {
+                readonly List<ISetting> Settings = new();
+
+                public CollectionSetting(CollectionDescriber describer, JArray jarr) : this(describer, new JProperty("____", jarr)) { }
+                public CollectionSetting(CollectionDescriber describer, JProperty property) : base(property)
+                {
+                    Background = new SolidColorBrush(new Color(20, 0, 0, 0));
+                    Margin = new Thickness(10, 0, 0, 0);
+
+                    var jarr = property.Value as JArray;
+                    if (jarr is null) property.Value = jarr = new JArray();
+
+                    var list = new StackPanel() { Orientation = Orientation.Vertical };
+
+                    var addbtn = new MPButton()
+                    {
+                        Text = "+ add",
+                        OnClick = () =>
+                        {
+                            jarr.Add(toobj(describer.ValueType)!);
+                            recreate();
+
+                            static object? toobj(Type type)
+                            {
+                                if (type == typeof(string)) return "";
+
+                                try { return Activator.CreateInstance(type)!; }
+                                catch { }
+
+                                return new JObject().ToObject(type)!;
+                            }
+                        },
+                    };
+
+                    var grid = new StackPanel()
+                    {
+                        Orientation = Orientation.Vertical,
+                        Spacing = 10,
+                        Children = { addbtn, list },
+                    };
+                    Children.Add(grid);
+                    recreate();
+
+
+                    void recreate()
+                    {
+                        Settings.Clear();
+                        list.Children.Clear();
+
+                        var fielddescriber = FieldDescriber.Create(describer.ValueType, describer.Attributes);
+                        for (int i = 0; i < jarr.Count; i++)
+                        {
+                            var value = jarr[i];
+
+                            var setting = Create(new JProperty("_" + i, value), fielddescriber);
+                            var set = new StackPanel()
+                            {
+                                Orientation = Orientation.Vertical,
+                                Spacing = 10,
+                                Children =
+                                {
+                                    new MPButton()
+                                    {
+                                        Text = "- delete",
+                                        OnClick = () =>
+                                        {
+                                            jarr.Remove(value);
+                                            recreate();
+                                        },
+                                    },
+                                    setting,
+                                },
+                            };
+
+                            list.Children.Add(new Expander() { Header = i.ToString(), Content = set, });
+                            Settings.Add(setting);
+                        }
+                    }
+                }
+
+                public override void UpdateValue()
+                {
+                    int index = 0;
+                    foreach (var setting in Settings)
+                    {
+                        setting.UpdateValue();
+                        ((JArray) Property.Value)[index++] = setting.Property.Value;
                     }
                 }
             }

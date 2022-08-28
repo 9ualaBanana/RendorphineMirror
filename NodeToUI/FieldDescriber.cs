@@ -20,7 +20,8 @@ public abstract class FieldDescriber
     }
 
 
-    public static FieldDescriber Create(Type type) => Create(type, type.Name, false, null, ImmutableArray<Attribute>.Empty);
+    public static FieldDescriber Create(Type type) => Create(type, ImmutableArray<Attribute>.Empty);
+    public static FieldDescriber Create(Type type, ImmutableArray<Attribute> attributes) => Create(type, type.Name, false, null, attributes);
     public static FieldDescriber Create(PropInfo field, Type parent) => Create(field.FieldType, field.Name, field.IsNullable(), field.GetAttribute<DefaultAttribute>()?.Value,
         field.GetAttributes<Attribute>().Where(x => x.GetType().Namespace?.StartsWith("System.") != true).ToImmutableArray());
 
@@ -37,6 +38,11 @@ public abstract class FieldDescriber
         if (type.GetInterfaces().Any(x => x.Name.StartsWith("INumber", StringComparison.Ordinal)))
             return new NumberDescriber(name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue, IsInteger = !type.GetInterfaces().Any(x => x.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal)) };
 
+        if (assignableToGeneric(type, typeof(IReadOnlyDictionary<,>)))
+            return DictionaryDescriber.Create(type, name, jsonTypeName, nullable, attributes, defaultValue);
+        if (assignableToGeneric(type, typeof(IReadOnlyCollection<>)))
+            return CollectionDescriber.Create(type, name, jsonTypeName, nullable, attributes, defaultValue);
+
         if (type.IsClass)
             return new ObjectDescriber(name, jsonTypeName, nullable, PropInfo.CreateFromChildren(type).Select(x => Create(x, type)).ToImmutableArray(), attributes) { DefaultValue = defaultValue };
 
@@ -44,6 +50,22 @@ public abstract class FieldDescriber
 
 
         bool istype<T>() => type == typeof(T);
+        static bool assignableToGeneric(Type type, Type genericType)
+        {
+            var interfaceTypes = type.GetInterfaces();
+
+            foreach (var it in interfaceTypes)
+                if (it.IsGenericType && it.GetGenericTypeDefinition() == genericType)
+                    return true;
+
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == genericType)
+                return true;
+
+            var baseType = type.BaseType;
+            if (baseType is null) return false;
+
+            return assignableToGeneric(baseType, genericType);
+        }
     }
 
 
@@ -119,4 +141,42 @@ public class ObjectDescriber : FieldDescriber
 
     public ObjectDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<FieldDescriber> fields, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) =>
         Fields = fields;
+}
+
+public interface ICollectionDescriber
+{
+    Type ValueType { get; }
+}
+public class DictionaryDescriber : FieldDescriber, ICollectionDescriber
+{
+    public readonly Type KeyType;
+    public Type ValueType { get; }
+
+    private DictionaryDescriber(Type keyType, Type valueType, string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes)
+    {
+        KeyType = keyType;
+        ValueType = valueType;
+    }
+
+
+    public static DictionaryDescriber Create(Type type, string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes, object? defaultValue = null)
+    {
+        type = type.GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>));
+        return new(type.GetGenericArguments()[0], type.GetGenericArguments()[1], name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue };
+    }
+}
+public class CollectionDescriber : FieldDescriber, ICollectionDescriber
+{
+    public Type ValueType { get; }
+
+    [JsonConstructor]
+    private CollectionDescriber(Type valueType, string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) =>
+        ValueType = valueType;
+
+
+    public static CollectionDescriber Create(Type type, string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes, object? defaultValue = null)
+    {
+        type = type.GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IReadOnlyCollection<>));
+        return new(type.GetGenericArguments()[0], name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue };
+    }
 }
