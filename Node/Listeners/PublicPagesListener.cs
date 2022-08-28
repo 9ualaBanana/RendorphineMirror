@@ -24,6 +24,7 @@ namespace Node.Listeners
             {
                 string? daysString = context.Request.QueryString["days"];
                 int days;
+                string debugInfo = "";
 
                 if (daysString == null || !int.TryParse(daysString, out days)) days = 30;
 
@@ -31,15 +32,26 @@ namespace Node.Listeners
                 info += $"<form method='get'><input type ='number' name='days' value={days}><input type = 'submit'></form>";
                 info += $"<b>Files for last {days} days</b><br>";
 
-                var sortedTasks = NodeSettings.CompletedTasks
+                var filteredTasks = NodeSettings.CompletedTasks
                     .Where(t => t.Value.StartTime >= DateTime.Now.AddDays(-1 * days)
                         && imagesExtentions.Contains(Path.GetExtension(t.Value.TaskInfo.FSOutputFile())));
 
-                foreach (var task in sortedTasks)
+                debugInfo += "Completed Tasks count: " + NodeSettings.CompletedTasks.Count.ToString() + "\n";
+                debugInfo += "Filtered Tasks count: " + filteredTasks.Count().ToString() + "\n";
+                if (NodeSettings.CompletedTasks.Any())
+                {
+                    var first = NodeSettings.CompletedTasks.First().Value;
+                    debugInfo += "Strart time about first task: " + first.StartTime.ToString() + "\n";
+                    debugInfo += "Task info for first task: " + first.TaskInfo.InputFile + "|" + first.TaskInfo.FSOutputFile() + "|" + first.TaskInfo.Info.Output.ToString();
+                }
+
+                foreach (var task in filteredTasks)
                 {
                     info += $"<img width='200px' src='./getfile/{task.Key}'>";
                     info += $"<details>ID:{task.Value.TaskInfo.Id}\nStart:{task.Value.StartTime.ToString()}/nFinish:{task.Value.FinishTime}</details>";
                 }
+
+                info += $"<details>{debugInfo}</details>";
 
                 info += "</body></html>";
 
