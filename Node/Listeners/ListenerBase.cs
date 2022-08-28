@@ -13,7 +13,7 @@ public abstract class ListenerBase
     protected virtual string? Prefix => null;
     protected virtual bool IsLocal => true;
     protected virtual bool RequiresAuthentication => false;
-    protected int Port => IsLocal ? Settings.LocalListenPort : PortForwarding.Port;
+    protected virtual int Port => IsLocal ? Settings.LocalListenPort : PortForwarding.Port;
 
     readonly List<string> CachedAuthentications = new();
 
