@@ -9,7 +9,7 @@ namespace Node.Listeners
 {
     public class PublicPagesListener : ExecutableListenerBase
     {
-        //protected override bool IsLocal => false;
+        protected override bool IsLocal => false;
 
         static string[] imagesExtentions = { ".jpg", ".jpeg", ".png" };
 
