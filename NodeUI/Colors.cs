@@ -30,9 +30,15 @@ namespace NodeUI
         #endregion
 
 
+        public static SolidColorBrush From(uint rgb) => new SolidColorBrush(Color.FromUInt32((0xFFFFFFU - rgb) | 0xFF000000));
+        public static SolidColorBrush From(byte r, byte g, byte b, byte a = 255) => new SolidColorBrush(new Color(a, (byte) (255 - r), (byte) (255 - g), (byte) (255 - b)));
+        public static SolidColorBrush From(byte gray, byte a = 255) => From((byte) (255 - gray), (byte) (255 - gray), (byte) (255 - gray), a);
+
+        /*
         public static SolidColorBrush From(uint rgb) => new SolidColorBrush(Color.FromUInt32(rgb | 0xFF000000));
         public static SolidColorBrush From(byte r, byte g, byte b, byte a = 255) => new SolidColorBrush(new Color(a, r, g, b));
         public static SolidColorBrush From(byte gray, byte a = 255) => From(gray, gray, gray, a);
+        */
 
         static byte Clamp(int value) => (byte) System.Math.Clamp(value, 0, 255);
         public static SolidColorBrush Darken(this SolidColorBrush brush, int amount) => Lighten(brush, -amount);
