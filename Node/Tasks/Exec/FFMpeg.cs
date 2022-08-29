@@ -4,9 +4,19 @@ using Newtonsoft.Json;
 
 namespace Node.Tasks.Exec;
 
-public class Crop
+public class FFMpegCrop
 {
     public int X, Y, W, H;
+}
+public class FFMpegSpeed
+{
+    [JsonProperty("spd")]
+    [Default(1d)]
+    public double Speed;
+
+    [JsonProperty("interp")]
+    [Default(false)]
+    public bool Interpolated;
 }
 public abstract class MediaEditInfo
 {
@@ -17,7 +27,7 @@ public abstract class MediaEditInfo
         NumberGroupSeparator = string.Empty,
     };
 
-    public Crop? Crop;
+    public FFMpegCrop? Crop;
 
     [Default(false)]
     public bool? Hflip;
@@ -46,13 +56,13 @@ public abstract class MediaEditInfo
     public double? RotationRadians;
 
 
-    public virtual IEnumerable<string> ConstructFFMpegArguments()
+    public virtual void ConstructFFMpegArguments(FFMpegTasks.FFProbe.FFProbeInfo ffprobe, ArgList args, List<string> filters)
     {
-        if (Crop is not null) yield return $"crop={Crop.W.ToString(NumberFormat)}:{Crop.H.ToString(NumberFormat)}:{Crop.X.ToString(NumberFormat)}:{Crop.Y.ToString(NumberFormat)}";
+        if (Crop is not null) filters.Add($"crop={Crop.W.ToString(NumberFormat)}:{Crop.H.ToString(NumberFormat)}:{Crop.X.ToString(NumberFormat)}:{Crop.Y.ToString(NumberFormat)}");
 
-        if (Hflip == true) yield return "hflip";
-        if (Vflip == true) yield return "vflip";
-        if (RotationRadians is not null) yield return $"rotate={RotationRadians.Value.ToString(NumberFormat)}";
+        if (Hflip == true) filters.Add("hflip");
+        if (Vflip == true) filters.Add("vflip");
+        if (RotationRadians is not null) filters.Add($"rotate={RotationRadians.Value.ToString(NumberFormat)}");
 
         var eq = new List<string>();
         if (Brightness is not null) eq.Add($"brightness={Brightness.Value.ToString(NumberFormat)}");
@@ -60,11 +70,14 @@ public abstract class MediaEditInfo
         if (Contrast is not null) eq.Add($"contrast={Contrast.Value.ToString(NumberFormat)}");
         if (Gamma is not null) eq.Add($"gamma={Gamma.Value.ToString(NumberFormat)}");
 
-        if (eq.Count != 0) yield return $"eq={string.Join(':', eq)}";
+        if (eq.Count != 0) filters.Add($"eq={string.Join(':', eq)}");
     }
 }
 public class EditVideoInfo : MediaEditInfo
 {
+    [JsonProperty("spd")]
+    public FFMpegSpeed? Speed;
+
     [JsonProperty("startFrame")]
     [Default(0d)]
     public double? StartFrame;
@@ -72,13 +85,20 @@ public class EditVideoInfo : MediaEditInfo
     [JsonProperty("endFrame")]
     public double? EndFrame;
 
-    public override IEnumerable<string> ConstructFFMpegArguments()
+    public override void ConstructFFMpegArguments(FFMpegTasks.FFProbe.FFProbeInfo ffprobe, ArgList args, List<string> filters)
     {
-        var args = base.ConstructFFMpegArguments();
-        foreach (var arg in args)
-            yield return arg;
+        base.ConstructFFMpegArguments(ffprobe, args, filters);
 
-        if (EndFrame is not null && StartFrame is not null) yield return $"trim=start_frame={StartFrame.Value.ToString(NumberFormat)}:end_frame={EndFrame.Value.ToString(NumberFormat)}";
+        if (Speed is not null)
+        {
+            filters.Add($"setpts={(1d / Speed.Speed).ToString(NumberFormat)}*PTS");
+
+            var fps = ffprobe.VideoStream.FrameRate;
+            args.Add("-r", Math.Max(fps, (fps * Speed.Speed)).ToString(NumberFormat));
+            if (Speed.Interpolated) filters.Add($"minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps={Math.Max(fps, (fps * Speed.Speed)).ToString(NumberFormat)}'");
+        }
+
+        if (EndFrame is not null && StartFrame is not null) filters.Add($"trim=start_frame={StartFrame.Value.ToString(NumberFormat)}:end_frame={EndFrame.Value.ToString(NumberFormat)}");
     }
 }
 public class EditRasterInfo : MediaEditInfo { }
@@ -96,7 +116,8 @@ public static class FFMpegTasks
         {
             var outputfile = task.FSOutputFile();
 
-            var frames = (await FFProbe.Get(task.InputFile, task))?.Streams.FirstOrDefault()?.Frames ?? 0;
+            var ffprobe = await FFProbe.Get(task.InputFile, task) ?? throw new Exception();
+            var frames = ffprobe.VideoStream.Frames;
             task.LogInfo($"{task.InputFile} length: {frames} frames");
 
             var exepath = task.GetPlugin().GetInstance().Path;
@@ -118,33 +139,27 @@ public static class FFMpegTasks
                 task.Progress = Math.Clamp((double) frame / frames, 0, 1);
                 NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
             }
-            string getArgs()
+            IEnumerable<string> getArgs()
             {
-                var vfilters = string.Join(',', data.ConstructFFMpegArguments());
-                if (vfilters.Length == 0) throw new Exception("No vfilters specified in task");
+                var argsarr = new ArgList();
+                var filtersarr = new List<string>();
 
+                data.ConstructFFMpegArguments(ffprobe, argsarr, filtersarr);
+                if (filtersarr.Count == 0) throw new Exception("No vfilters specified in task");
 
-                var args = "";
+                return new ArgList()
+                {
+                    "-hide_banner",                         // dont output useless info
+                    "-hwaccel", "auto",                     // enable hardware acceleration
+                    "-y",                                   // force rewrite output file if exists
+                    "-i", task.InputFile,                   // input file
 
-                // dont output useless info
-                args += "-hide_banner ";
+                    argsarr,
 
-                // force rewrite output file if exists
-                args += "-y ";
-
-                // input file
-                args += $"-i \"{task.InputFile}\" ";
-
-                // video filters
-                args += $"-vf \"{vfilters}\" ";
-
-                // don't reencode audio
-                args += $"-c:a copy ";
-
-                // output path
-                args += $" \"{outputfile}\" ";
-
-                return args;
+                    "-vf", string.Join(',', filtersarr),    // video filters
+                    "-c:a", "copy",                         // don't reencode audio
+                    outputfile,                             // output path
+                };
             }
         }
     }
@@ -160,29 +175,43 @@ public static class FFMpegTasks
     }
 
 
-    static class FFProbe
+    public static class FFProbe
     {
-        public static async Task<FFProbeInfo?> Get(string file, ILoggable? logobj)
+        public static async Task<FFProbeInfo> Get(string file, ILoggable? logobj)
         {
-            var ffprobe =
-                File.Exists("/bin/ffprobe") ? "/bin/ffprobe"
-                : File.Exists("assets/ffprobe.exe") ? "assets/ffprobe.exe"
-                : null;
+            var ffprobe = File.Exists("/bin/ffprobe") ? "/bin/ffprobe" : "assets/ffprobe.exe";
 
-            if (ffprobe is null) return null;
-
+            // TODO: dont count frames, too long for some videos
             var args = $"-hide_banner -v quiet -print_format json -show_streams -count_frames \"{file}\"";
-            logobj?.LogInfo($"Starting {args} {args}");
+            logobj?.LogInfo($"Starting {ffprobe} {args}");
 
 
             var proc = Process.Start(new ProcessStartInfo(ffprobe, args) { RedirectStandardOutput = true });
-            if (proc is null) return null;
+            if (proc is null) throw new Exception("Could not start ffprobe");
 
             var str = await proc.StandardOutput.ReadToEndAsync();
-            return JsonConvert.DeserializeObject<FFProbeInfo>(str);
+            return JsonConvert.DeserializeObject<FFProbeInfo>(str) ?? throw new Exception($"Could not parse ffprobe output: {str}");
         }
 
-        public record FFProbeInfo(ImmutableArray<FFProbeStreamInfo> Streams);
-        public record FFProbeStreamInfo([JsonProperty("codec_name")] string CodecName, int Width, int Height, [JsonProperty("nb_read_frames")] ulong Frames);
+
+        public enum FFProbeCodecType { Unknown, Video, Audio }
+        public record FFProbeInfo(ImmutableArray<FFProbeStreamInfo> Streams)
+        {
+            // die if there are multiple video streams
+            public FFProbeStreamInfo VideoStream => Streams.Single(x => x.CodecType == FFProbeCodecType.Video);
+        };
+
+        public record FFProbeStreamInfo(
+            int Width,
+            int Height,
+            [JsonProperty("codec_name")] string CodecName,
+            [JsonProperty("codec_type")] FFProbeCodecType CodecType,
+            [JsonProperty("nb_read_frames")] ulong Frames,
+            [JsonProperty("r_frame_rate")] string FrameRateString
+        )
+        {
+            public double FrameRate => double.Parse(FrameRateString.Split('/')[0]) / double.Parse(FrameRateString.Split('/')[1]);
+        }
+
     }
 }

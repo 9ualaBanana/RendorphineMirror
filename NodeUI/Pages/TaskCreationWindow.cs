@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Avalonia.Controls.Templates;
 using Common.Tasks.Model;
@@ -781,8 +782,8 @@ namespace NodeUI.Pages
 
                     public override void UpdateValue()
                     {
-                        if (Describer.IsInteger) Set(long.Parse(TextBox.Text));
-                        else Set(double.Parse(TextBox.Text));
+                        if (Describer.IsInteger) Set(long.Parse(TextBox.Text, CultureInfo.InvariantCulture));
+                        else Set(double.Parse(TextBox.Text, CultureInfo.InvariantCulture));
                     }
                 }
             }
