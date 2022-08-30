@@ -56,9 +56,10 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet("getinput/{id}")]
-    public FileResult GetInput([FromRoute] string id, [FromServices] TelegramFileRegistry fileRegistry)
+    public ActionResult GetInput([FromRoute] string id, [FromServices] TelegramFileRegistry fileRegistry)
     {
-        if (fileRegistry.TryGet(id) is null) NotFound();
-        return PhysicalFile(Path.Combine(_appEnvironment.ContentRootPath, fileRegistry.Path, id), "image/jpg");
+        if (fileRegistry.TryGet(id) is null) return NotFound();
+        try { return PhysicalFile(Path.Combine(_appEnvironment.ContentRootPath, fileRegistry.Path, id), "image/jpg"); }
+        catch { return NotFound(); }
     }
 }
