@@ -24,7 +24,6 @@ public static class Apis
     public static async ValueTask<OperationResult> ChangeStateAsync(this ITask task, TaskState state, string? sessionId = default)
     {
         task.LogInfo($"State changed to {state}");
-        if (task.ExecuteLocally) return true;
 
         var result = await Api.ApiGet($"{Api.TaskManagerEndpoint}/mytaskstatechanged", "changing state",
             ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id), ("newstate", state.ToString().ToLowerInvariant())).ConfigureAwait(false);

@@ -6,5 +6,5 @@ public record TaskFullState(TaskState State, double Progress, JObject Output, Ta
 public record TaskServer(string Host, string Userid, string Nickname);
 
 
-public record DbTaskFullState(string Id, string UserId, ulong Registered, TaskState State, double Progress, JObject Input, JObject Output, JObject Data, TaskServer? Server = null)
+public record DbTaskFullState(string Id, string UserId, ulong Registered, TaskPolicy LaunchPolicy, TaskState State, double Progress, JObject Input, JObject Output, JObject Data, TaskServer? Server = null)
     : TaskFullState(State, Progress, Output, Server);

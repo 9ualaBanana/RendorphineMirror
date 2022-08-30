@@ -154,24 +154,25 @@ namespace NodeUI.Pages
             public virtual void OnNext() { }
         }
 
-        abstract class LocalRemoteTaskPart : TaskPart
+        abstract class PolicyTaskPart : TaskPart
         {
             public override event Action<bool>? OnChoose;
-            public override LocalizedString Title => new("Choose Type (execute locally or send to another node)");
+            public override LocalizedString Title => new("Choose Policy");
 
-            protected readonly TypedListBox<TType> Types;
+            protected PolicyTaskPart(TaskCreationInfo builder) : base(builder) { }
 
-            protected LocalRemoteTaskPart(TaskCreationInfo builder) : base(builder)
+            public override void Initialize()
             {
-                Types = new(Enum.GetValues<TType>(), t => new TextBlock() { Text = t.ToString() });
-                Types.SelectionChanged += (obj, e) => OnChoose?.Invoke(Types.SelectedItems.Count != 0);
-                Children.Add(Types);
+                var list = TypedListBox.Create(Enum.GetValues<TaskPolicy>(), t => new TextBlock() { Text = t.ToString() });
+                list.SelectionChanged += (obj, e) =>
+                {
+                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                    Builder.Policy = list.SelectedItem;
+                };
 
-                Dispatcher.UIThread.Post(() => Types.SelectedIndex = 0);
+                Children.Add(list);
+                Dispatcher.UIThread.Post(() => list.SelectedIndex = 0);
             }
-
-
-            public enum TType { Remote, Local }
         }
         abstract class ChoosePluginPart : TaskPart
         {
@@ -183,7 +184,7 @@ namespace NodeUI.Pages
             public override void Initialize()
             {
                 var plugins = Enum.GetValues<PluginType>();
-                if (Builder.ExecuteLocally)
+                if (Builder.Policy == TaskPolicy.SameNode)
                     plugins = NodeGlobalState.Instance.InstalledPlugins.Value.Select(x => x.Type).ToArray();
 
                 var list = CreateListBox(plugins, type => new TextBlock() { Text = type.GetName() });
@@ -428,14 +429,14 @@ namespace NodeUI.Pages
 
         static class NormalTaskCreationPanel
         {
-            public class LocalRemotePart : TaskCreationWindow.LocalRemoteTaskPart
+            public class LocalRemotePart : TaskCreationWindow.PolicyTaskPart
             {
-                public override TaskPart? Next => new ChoosePluginPart(Builder.With(x => x.ExecuteLocally = Types.SelectedItem == TType.Local));
+                public override TaskPart? Next => new ChoosePluginPart(Builder);
                 public LocalRemotePart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
             {
-                public override TaskPart? Next => Builder.ExecuteLocally ? new ChooseActionPart(Builder) : new ChooseVersionPart(Builder);
+                public override TaskPart? Next => new ChooseVersionPart(Builder);
                 public ChoosePluginPart(TaskCreationInfo info) : base(info) { }
             }
 
@@ -491,14 +492,14 @@ namespace NodeUI.Pages
         }
         static class WatchingTaskCreationPanel
         {
-            public class LocalRemotePart : TaskCreationWindow.LocalRemoteTaskPart
+            public class LocalRemotePart : TaskCreationWindow.PolicyTaskPart
             {
-                public override TaskPart? Next => new ChoosePluginPart(Builder.With(x => x.ExecuteLocally = Types.SelectedItem == TType.Local));
+                public override TaskPart? Next => new ChoosePluginPart(Builder);
                 public LocalRemotePart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
             {
-                public override TaskPart? Next => Builder.ExecuteLocally ? new ChooseActionPart(Builder) : new ChooseVersionPart(Builder);
+                public override TaskPart? Next => new ChooseVersionPart(Builder);
 
                 public ChoosePluginPart(TaskCreationInfo builder) : base(builder) { }
             }

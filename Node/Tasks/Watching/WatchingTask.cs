@@ -11,19 +11,22 @@ public class WatchingTask : ILoggable
     public readonly string TaskAction;
     public readonly JObject TaskData;
     public readonly IWatchingTaskOutputInfo Output;
-    public readonly bool ExecuteLocally;
+    public readonly TaskPolicy Policy;
 
-    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output, bool executeLocally, string? id = null)
+    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output, TaskPolicy policy = TaskPolicy.SameNode, bool executeLocally = false, string? id = null)
     {
+        Id = id ?? Guid.NewGuid().ToString();
+
         Source = source;
         TaskAction = taskaction;
         TaskData = taskData;
         Output = output;
-        ExecuteLocally = executeLocally;
-        Id = id ?? Guid.NewGuid().ToString();
+        Policy = policy;
+
+        if (executeLocally) Policy = TaskPolicy.OwnNodes;
     }
 
 
     // TODO: version
-    public WatchingTaskInfo AsInfo() => new(Id, null, TaskAction, JObject.FromObject(Source), JObject.FromObject(Output), TaskData, ExecuteLocally);
+    public WatchingTaskInfo AsInfo() => new(Id, null, TaskAction, JObject.FromObject(Source), JObject.FromObject(Output), TaskData, Policy);
 }
