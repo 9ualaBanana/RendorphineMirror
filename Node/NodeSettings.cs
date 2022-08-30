@@ -4,17 +4,20 @@ namespace Node;
 
 public static class NodeSettings
 {
-    public static DatabaseValueList<ReceivedTask> SavedTasks;
-    public static DatabaseValueList<WatchingTask> WatchingTasks;
-    public static DatabaseValueList<PlacedTask> PlacedTasks;
+    public static readonly DatabaseValueList<ReceivedTask> QueuedTasks;
+    public static readonly DatabaseValueList<WatchingTask> WatchingTasks;
+    public static readonly DatabaseValueList<PlacedTask> PlacedTasks;
+    public static readonly DatabaseValueSplitDictionary<string, CompletedTask> CompletedTasks;
 
     static NodeSettings()
     {
-        SavedTasks = new(nameof(SavedTasks));
+        QueuedTasks = new(nameof(QueuedTasks));
         WatchingTasks = new(nameof(WatchingTasks));
         PlacedTasks = new(nameof(PlacedTasks));
+        CompletedTasks = new(nameof(CompletedTasks));
 
         WatchingTasks.Bindable.SubscribeChanged(() => NodeGlobalState.Instance.WatchingTasks.SetRange(WatchingTasks.Bindable.Select(x => x.AsInfo())), true);
         NodeGlobalState.Instance.PlacedTasks.Bind(PlacedTasks.Bindable);
+        NodeGlobalState.Instance.QueuedTasks.Bind(QueuedTasks.Bindable);
     }
 }

@@ -1,11 +1,60 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Executor;
 
 public static class TaskHandler
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
+    /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
+    public static void StartListening()
+    {
+        new Thread(async () =>
+        {
+            while (true)
+            {
+                await Task.Delay(2_000);
+                if (NodeSettings.QueuedTasks.Count == 0) continue;
+
+                try { await HandleAsync(NodeSettings.QueuedTasks.Bindable[0]); }
+                catch (Exception ex) { _logger.Error(ex.ToString()); }
+            }
+        })
+        { IsBackground = true }.Start();
+    }
+    /// <summary> Polls all non-finished placed tasks, set their state to Finished if finished </summary>
+    public static void StartUpdatingTaskState()
+    {
+        new Thread(async () =>
+        {
+            while (true)
+            {
+                foreach (var task in NodeSettings.PlacedTasks.Bindable.ToArray())
+                {
+                    try { await TaskRegistration.CheckCompletion(task); }
+                    catch (Exception ex) when (ex.Message.Contains("no task with such "))
+                    {
+                        task.LogErr("Placed task does not exists on the server, removing");
+                        NodeSettings.PlacedTasks.Bindable.Remove(task);
+                    }
+                }
+
+                NodeSettings.PlacedTasks.Save();
+                await Task.Delay(30_000);
+            }
+        })
+        { IsBackground = true }.Start();
+    }
+
+    public static void StartWatchingTasks()
+    {
+        foreach (var task in NodeSettings.WatchingTasks.Bindable)
+            task.StartWatcher();
+    }
+
+
+    public static ITaskInput DeserializeInput(this ReceivedTask task) => DeserializeInput(task.Info.Input);
+    public static ITaskOutput DeserializeOutput(this ReceivedTask task) => DeserializeOutput(task.Info.Output);
 
     static TaskInputOutputType GetInputOutputType(JObject json)
     {
@@ -16,6 +65,7 @@ public static class TaskHandler
         return Enum.Parse<TaskInputOutputType>(token.Value<string>()!);
     }
 
+    // TODO: refactor these two somehow
     public static ITaskInput DeserializeInput(JObject input) =>
         GetInputOutputType(input) switch
         {
@@ -32,64 +82,46 @@ public static class TaskHandler
             { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
         };
 
-    public static async Task HandleReceivedTask(ReceivedTask task, CancellationToken token = default)
+    static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        NodeSettings.SavedTasks.Bindable.Add(task);
-        await HandleAsync(task, token).ConfigureAwait(false);
-    }
+        const int maxattempts = 3;
 
-    public static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
-    {
-        const int attempts = 3;
+        var state = await task.GetTaskStateAsync();
+        state.LogIfError();
+        if (state && state.Value.State is (TaskState.Finished or TaskState.Canceled or TaskState.Failed))
+        {
+            task.LogInfo($"Invalid task state: {state.Value.State}, removing");
+            NodeSettings.QueuedTasks.Bindable.Remove(task);
 
-        for (int attempt = 0; attempt < attempts; attempt++)
+            return;
+        }
+
+        NodeGlobalState.Instance.ExecutingTasks.Add(task);
+        using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
+        task.LogInfo($"Started");
+
+        for (int attempt = 0; attempt < maxattempts; attempt++)
         {
             try
             {
-                await _HandleAsync(task, cancellationToken);
+                var starttime = DateTimeOffset.Now;
+                await TaskList.GetAction(task.Info).Execute(task).ConfigureAwait(false);
+
+                var endtime = DateTimeOffset.Now;
+                task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
+                NodeSettings.CompletedTasks.Add(task.Id, new CompletedTask(starttime, endtime, task) { Attempt = attempt });
 
                 task.LogInfo($"Completed, removing");
-                NodeSettings.SavedTasks.Bindable.Remove(task);
+                NodeSettings.QueuedTasks.Bindable.Remove(task);
                 return;
             }
             catch (Exception ex)
             {
                 task.LogErr(ex);
-                task.LogInfo($"Failed to execute task, retrying... ({attempt + 1}/{attempts})");
+                task.LogInfo($"Failed to execute task, retrying... ({attempt + 1}/{maxattempts})");
             }
         }
-    }
-    static async Task _HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
-    {
-        NodeGlobalState.Instance.ExecutingTasks.Add(task);
-        using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
 
-
-        task.LogInfo($"Started");
-
-        var inputobj = DeserializeInput(task.Info.Input);
-        var outputobj = DeserializeOutput(task.Info.Output);
-        task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
-
-        task.LogInfo($"Downloading file...");
-        var input = await inputobj.Download(task, cancellationToken).ConfigureAwait(false);
-        task.InputFile = input;
-        task.LogInfo($"File downloaded to {input}");
-        await task.ChangeStateAsync(TaskState.Active);
-
-        var output = await TaskList.GetAction(task.Info).Execute(task, input).ConfigureAwait(false);
-        await task.ChangeStateAsync(TaskState.Output);
-
-        task.LogInfo($"Uploading output file {output} ...");
-        await outputobj.Upload(task, output).ConfigureAwait(false);
-        task.LogInfo($"File uploaded");
-
-        var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
-
-        try
-        {
-            await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken);
-        }
-        catch (Exception ex) { _logger.Error("Error sending result to reepo: " + ex); }
+        task.LogErr($"Could not execute this task after {maxattempts} attempts");
     }
 }

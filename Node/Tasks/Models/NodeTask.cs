@@ -15,7 +15,7 @@ public static class NodeTask
 
             // TODO: fill in TaskObject
             var tk = new ReceivedTask(taskid.Value, new TaskInfo(new("file.mov", 123), info.Input, info.Output, info.Data), true);
-            TaskHandler.HandleReceivedTask(tk).Consume();
+            NodeSettings.QueuedTasks.Bindable.Add(tk);
         }
         else taskid = await TaskRegistration.RegisterAsync(info).ConfigureAwait(false);
 

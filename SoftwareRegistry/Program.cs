@@ -27,7 +27,7 @@ foreach (var dir in Directory.GetDirectories("torrents"))
 
     var torrent = await Torrent.LoadAsync(torrentfile);
     await TorrentClient.AddOrGetTorrent(torrent, dir);
-    logger.Info("Started torrent " + torrent.InfoHash);
+    logger.Info("Started torrent " + torrentfile + " " + torrent.InfoHash.UrlEncode());
 }
 logger.Info("Torrent listening at :" + TorrentClient.DhtPort);
 
@@ -72,7 +72,21 @@ public class SoftwareController : ControllerBase
         return JsonApi.Success(softlist.Software);
     }
 
-    [HttpPost("delsoft")]
+    [HttpPost("addver")]
+    public JObject AddVersion([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,
+        [Query] string name, string version, [Body] SoftwareVersionDefinition ver)
+    {
+        var data = GetSoft(softlist, name)
+            .Next(soft =>
+            {
+                softlist.Replace(name, soft with { Versions = soft.Versions.Add(version, ver) });
+                return softlist.AsOpResult();
+            });
+
+        return JsonApi.Success(softlist.Software);
+    }
+
+    [HttpGet("delsoft")]
     public JObject DeleteSoftware([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,
         [Query] string name)
     {
@@ -86,7 +100,7 @@ public class SoftwareController : ControllerBase
         return JsonApi.JsonFromOpResult(data);
     }
 
-    [HttpPost("delver")]
+    [HttpGet("delver")]
     public JObject DeleteVersion([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,
         [Query] string name, [Query] string version)
     {
@@ -102,7 +116,7 @@ public class SoftwareController : ControllerBase
 
     [HttpPost("editsoft")]
     public JObject EditSoftware([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,
-        [Query] string name, [Body] JObject soft)
+        [Query] string name, [Body] JObject soft, [Query] string? newname = null)
     {
         var data = GetSoft(softlist, name)
             .Next(prev =>
@@ -111,7 +125,7 @@ public class SoftwareController : ControllerBase
                 using (var reader = soft.CreateReader())
                     new JsonSerializer().Populate(reader, copy);
 
-                softlist.Replace(name, copy);
+                softlist.Replace(name, copy, newname);
                 return softlist.AsOpResult();
             });
 
@@ -120,7 +134,7 @@ public class SoftwareController : ControllerBase
 
     [HttpPost("editver")]
     public JObject EditVersion([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,
-        [Query] string name, [Query] string version, [Body] JObject soft)
+        [Query] string name, [Query] string version, [Body] JObject soft, [Query] string? newversion = null)
     {
         var data = GetSoft(softlist, name, version, out var prevsoft)
             .Next(prev =>
@@ -129,7 +143,7 @@ public class SoftwareController : ControllerBase
                 using (var reader = soft.CreateReader())
                     new JsonSerializer().Populate(reader, copy);
 
-                softlist.Replace(name, prevsoft with { Versions = prevsoft.Versions.SetItem(version, copy) });
+                softlist.Replace(name, prevsoft with { Versions = prevsoft.Versions.Remove(version).SetItem(newversion ?? version, copy) });
                 return softlist.AsOpResult();
             });
 

@@ -17,6 +17,7 @@ public record MachineInfo
         catch (Exception) { return IPAddress.None; }
     }
     readonly public static string Port = PortForwarding.Port.ToString();
+    readonly public static string WebServerPort = PortForwarding.ServerPort.ToString();
     static IReadOnlyCollection<Plugin>? _installedPlugins;
     public static async Task<IReadOnlyCollection<Plugin>> DiscoverInstalledPluginsInBackground() =>
         _installedPlugins ??= await PluginsManager.DiscoverInstalledPluginsInBackground();

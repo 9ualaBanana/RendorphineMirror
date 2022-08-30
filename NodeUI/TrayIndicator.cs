@@ -159,7 +159,7 @@ namespace NodeUI
                         ".TrimLines();
 
                     if ((time / 3) % 2 == 0)
-                        return drawOnGreen("1/" + NodeGlobalState.Instance.ExecutingTasks.Count);
+                        return drawOnGreen(NodeGlobalState.Instance.ExecutingTasks.Count + "/" + NodeGlobalState.Instance.QueuedTasks.Count);
 
                     return drawOnGreen((int) ((NodeGlobalState.Instance.ExecutingTasks.FirstOrDefault()?.Progress ?? 0) * 100) + "%");
                 }

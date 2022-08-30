@@ -14,6 +14,7 @@ public class NodeGlobalState
     public readonly Bindable<TasksFullDescriber> TaskDefinitions = new();
     public readonly BindableList<Plugin> InstalledPlugins = new();
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
+    public readonly BindableList<ReceivedTask> QueuedTasks = new();
     public readonly BindableList<ReceivedTask> ExecutingTasks = new();
     public readonly BindableList<PlacedTask> PlacedTasks = new();
     public readonly BindableList<WatchingTaskInfo> WatchingTasks = new();
@@ -24,6 +25,7 @@ public class NodeGlobalState
         TaskDefinitions.Changed += () => AnyChanged.Invoke(nameof(TaskDefinitions));
         InstalledPlugins.Changed += () => AnyChanged.Invoke(nameof(InstalledPlugins));
         ExecutingBenchmarks.Changed += () => AnyChanged.Invoke(nameof(ExecutingBenchmarks));
+        QueuedTasks.Changed += () => AnyChanged.Invoke(nameof(QueuedTasks));
         ExecutingTasks.Changed += () => AnyChanged.Invoke(nameof(ExecutingTasks));
         PlacedTasks.Changed += () => AnyChanged.Invoke(nameof(PlacedTasks));
         WatchingTasks.Changed += () => AnyChanged.Invoke(nameof(WatchingTasks));

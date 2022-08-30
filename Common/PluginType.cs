@@ -11,6 +11,7 @@ public enum PluginType
     TopazGigapixelAI,
     Autodesk3dsMax,
     Blender,
+    VeeeVectorizer,
 
     Python,
     Python_Esrgan,

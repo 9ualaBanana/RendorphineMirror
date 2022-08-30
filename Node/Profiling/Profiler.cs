@@ -50,6 +50,7 @@ internal static class Profiler
         {
             ["ip"] = (await MachineInfo.GetPublicIPAsync()).ToString(),
             ["port"] = int.Parse(MachineInfo.Port),
+            ["webport"] = int.Parse(MachineInfo.WebServerPort),
             ["nickname"] = Settings.NodeName,
             ["guid"] = Settings.Guid,
             ["version"] = MachineInfo.Version,

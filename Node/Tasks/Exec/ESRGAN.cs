@@ -6,18 +6,18 @@ public static class EsrganTasks
     public static IEnumerable<IPluginAction> CreateTasks() => new IPluginAction[] { new UpscaleEsrgan() };
 
 
-    class UpscaleEsrgan : PluginAction<UpscaleEsrganInfo>
+    class UpscaleEsrgan : InputOutputPluginAction<UpscaleEsrganInfo>
     {
         public override string Name => "EsrganUpscale";
         public override PluginType Type => PluginType.Python_Esrgan;
         public override FileFormat FileFormat => FileFormat.Jpeg;
 
-        protected override async Task<string> Execute(ReceivedTask task, UpscaleEsrganInfo data)
+        protected override async Task Execute(ReceivedTask task, UpscaleEsrganInfo data, ITaskInput input, ITaskOutput output)
         {
-            var output = GetTaskOutputFile(task);
+            var outputfile = task.FSOutputFile();
 
             await Task.Run(() => ExecutePowerShell(getScript(), false, onRead, task));
-            return output;
+            await UploadResult(task, output, outputfile);
 
 
             void onRead(bool err, object obj)
@@ -52,7 +52,7 @@ public static class EsrganTasks
                 pythonstart += $"\"{task.InputFile}\" ";
 
                 // output file
-                pythonstart += $"\"{output}\" ";
+                pythonstart += $"\"{outputfile}\" ";
 
                 // tile size; TODO: automatically determine
                 pythonstart += "--tile_size 384 ";

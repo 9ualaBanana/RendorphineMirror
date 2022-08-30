@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 
 namespace Node.Tasks.Exec;
@@ -11,7 +10,7 @@ public interface IPluginAction
     string Name { get; }
     FileFormat FileFormat { get; }
 
-    ValueTask<string> Execute(ReceivedTask task, string input);
+    Task Execute(ReceivedTask task);
 }
 public abstract class PluginAction<T> : IPluginAction
 {
@@ -21,37 +20,54 @@ public abstract class PluginAction<T> : IPluginAction
     public abstract PluginType Type { get; }
     public abstract FileFormat FileFormat { get; }
 
-    public async ValueTask<string> Execute(ReceivedTask task, string input)
+    public async Task Execute(ReceivedTask task)
     {
         task.LogInfo($"Executing...");
-        Directory.CreateDirectory(GetTaskOutputDir(task));
 
         var data = task.Info.Data.ToObject<T>();
         if (data is null) throw new Exception("Could not deserialize input data: " + task.Info.Data);
 
-        var output = await Execute(task, data).ConfigureAwait(false);
-
+        await Execute(task, data).ConfigureAwait(false);
         task.LogInfo($"Completed {Type} {Name} execution");
-        task.LogInfo($"Output file: {output}");
-        return output;
     }
 
-    protected abstract Task<string> Execute(ReceivedTask task, T data);
+    protected abstract Task Execute(ReceivedTask task, T data);
 
 
-    protected static string GetTaskDir(ReceivedTask task) => Path.Combine(Init.TaskFilesDirectory, task.Id);
-    protected static string GetTaskOutputDir(ReceivedTask task) => Path.Combine(GetTaskDir(task), "output");
-    protected static string GetTaskOutputFile(ReceivedTask task) => Path.Combine(GetTaskOutputDir(task), Path.GetFileName(task.InputFile.ThrowIfNull("Task input file path was not provided")));
-
-    protected static Process StartProcess(string exepath, string args, ILoggable? logobj)
+    protected static async ValueTask UploadResult(ReceivedTask task, ITaskOutput output, string resultfile)
     {
-        logobj?.LogInfo($"Starting {exepath} {args}");
+        await task.ChangeStateAsync(TaskState.Output);
 
-        var process = Process.Start(new ProcessStartInfo(exepath, args) { RedirectStandardOutput = true, RedirectStandardError = true });
+        task.LogInfo($"Uploading output file {resultfile} to {task.Info.Output.ToString(Newtonsoft.Json.Formatting.None)} ...");
+        await output.Upload(task, resultfile).ConfigureAwait(false);
+        task.LogInfo($"Output file {resultfile} uploaded");
+
+        await SendFileToReepo(task);
+    }
+    static async Task SendFileToReepo(ReceivedTask task, CancellationToken cancellationToken = default)
+    {
+        if (task.ExecuteLocally) return; // TODO: remove when local tasks go through the task manager
+
+        var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
+        try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
+        catch (Exception ex) { task.LogErr("Error sending result to reepo: " + ex); }
+    }
+
+    static Process StartProcess(string exepath, string args, IEnumerable<string> argsarr, ILoggable? logobj)
+    {
+        logobj?.LogInfo($"Starting {exepath} {args}{string.Join(' ', argsarr)}");
+
+        var startinfo = new ProcessStartInfo(exepath, args) { RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (var arg in argsarr) startinfo.ArgumentList.Add(arg);
+
+        var process = Process.Start(startinfo);
         if (process is null) throw new InvalidOperationException("Could not start plugin process");
 
         return process;
     }
+    protected static Process StartProcess(string exepath, IEnumerable<string> args, ILoggable? logobj) => StartProcess(exepath, "", args, logobj);
+    protected static Process StartProcess(string exepath, string args, ILoggable? logobj) => StartProcess(exepath, args, Enumerable.Empty<string>(), logobj);
+
     protected static void EnsureZeroStatusCode(Process process)
     {
         if (process.ExitCode != 0)
@@ -81,9 +97,9 @@ public abstract class PluginAction<T> : IPluginAction
         }
     }
 
-    protected static async Task ExecuteProcess(string exepath, string args, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj)
+    static async Task ExecuteProcess(string exepath, string args, IEnumerable<string> argsarr, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj)
     {
-        using var process = StartProcess(exepath, args, logobj);
+        using var process = StartProcess(exepath, args, argsarr, logobj);
         var reading = StartReadingProcessOutput(process, stderrToStdout, onRead, logobj);
 
         await process.WaitForExitAsync();
@@ -91,6 +107,12 @@ public abstract class PluginAction<T> : IPluginAction
 
         EnsureZeroStatusCode(process);
     }
+    protected static Task ExecuteProcess(string exepath, IEnumerable<string> args, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj) =>
+        ExecuteProcess(exepath, "", args, stderrToStdout, onRead, logobj);
+    protected static Task ExecuteProcess(string exepath, string args, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj) =>
+        ExecuteProcess(exepath, args, Enumerable.Empty<string>(), stderrToStdout, onRead, logobj);
+
+
     protected static void ExecutePowerShell(string script, bool stderrToStdout, Action<bool, object>? onRead, ILoggable? logobj)
     {
         var session = InitialSessionState.CreateDefault();

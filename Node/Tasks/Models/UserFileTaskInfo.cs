@@ -21,7 +21,7 @@ public record UserTaskOutput(UserTaskOutputInfo Info) : ITaskOutput
         if (task.ExecuteLocally)
         {
             Directory.CreateDirectory(Info.Directory);
-            File.Move(file, Path.Combine(Info.Directory, Info.FileName), true);
+            File.Copy(file, Path.Combine(Info.Directory, Info.FileName), true);
             return ValueTask.CompletedTask;
         }
 

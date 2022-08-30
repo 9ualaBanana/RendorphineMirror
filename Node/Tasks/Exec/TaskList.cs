@@ -12,6 +12,7 @@ public static class TaskList
         {
             FFMpegTasks.CreateTasks(),
             EsrganTasks.CreateTasks(),
+            VectorizerTasks.CreateTasks(),
         }.SelectMany(x => x).ToImmutableArray();
 
         NodeGlobalState.Instance.TaskDefinitions.Value = serializeActions();

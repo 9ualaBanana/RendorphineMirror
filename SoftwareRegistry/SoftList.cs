@@ -8,6 +8,6 @@ public class SoftList
     public SoftList() => SoftwareBindable.Value = SoftwareBindable.Value.WithComparers(StringComparer.OrdinalIgnoreCase);
 
     public void Add(string type, SoftwareDefinition soft) => SoftwareBindable.Value = Software.Add(type, soft);
-    public void Replace(string type, SoftwareDefinition newv) => SoftwareBindable.Value = Software.SetItem(type, newv);
+    public void Replace(string type, SoftwareDefinition newv, string? newtype = null) => SoftwareBindable.Value = Software.Remove(type).SetItem(newtype ?? type, newv);
     public void Remove(string type) => SoftwareBindable.Value = Software.Remove(type);
 }
