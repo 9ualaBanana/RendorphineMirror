@@ -107,6 +107,14 @@ logger.Info(@$"Tasks found
     {NodeSettings.PlacedTasks.Bindable.Count(x => x.State is not (TaskState.Finished or TaskState.Failed or TaskState.Canceled))} non-finished placed
 ".TrimLines().Replace("\n", "; "));
 
+Task.WhenAll(Enum.GetValues<TaskState>().Select(s => Apis.GetMyTasksAsync(s).Then(x => (s, x).AsOpResult()).AsTask()))
+    .Then(items =>
+    {
+        logger.Info($"Server tasks: {string.Join(", ", items.Select(oplistr => $"{oplistr.ThrowIfError().s}: {oplistr.ThrowIfError().x.ThrowIfError().Length}"))}");
+        return true;
+    })
+    .AsTask().Consume();
+
 
 TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Bindable.Add;
 TaskHandler.StartUpdatingTaskState();
