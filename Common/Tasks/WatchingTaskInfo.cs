@@ -8,9 +8,9 @@ public class WatchingTaskInfo
     public readonly string? Version;
     public readonly string TaskAction;
     public readonly JObject Source, Output, TaskData;
-    public readonly bool ExecuteLocally;
+    public readonly TaskPolicy Policy;
 
-    public WatchingTaskInfo(string id, string? version, string taskaction, JObject source, JObject output, JObject taskdata, bool executeLocally)
+    public WatchingTaskInfo(string id, string? version, string taskaction, JObject source, JObject output, JObject taskdata, TaskPolicy policy = TaskPolicy.AllNodes, bool executeLocally = false)
     {
         Id = id;
         Version = version;
@@ -18,6 +18,8 @@ public class WatchingTaskInfo
         Source = source;
         Output = output;
         TaskData = taskdata;
-        ExecuteLocally = executeLocally;
+        Policy = policy;
+
+        if (executeLocally) Policy = TaskPolicy.OwnNodes;
     }
 }

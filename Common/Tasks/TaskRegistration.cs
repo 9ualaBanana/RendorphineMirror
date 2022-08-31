@@ -21,6 +21,7 @@ public static class TaskRegistration
             ("input", input.ToString(Formatting.None)),
             ("output", output.ToString(Formatting.None)),
             ("data", data.ToString(Formatting.None)),
+            ("policy", info.Policy.ToString()),
             ("origin", string.Empty),
         };
         if (info.Version is not null)

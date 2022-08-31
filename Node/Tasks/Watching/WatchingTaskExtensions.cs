@@ -25,10 +25,10 @@ public static class WatchingTaskExtensions
                 JObject.FromObject(input.InputData, JsonSettings.LowercaseIgnoreNullS).WithProperty("type", input.InputData.Type.ToString()),
                 JObject.FromObject(output, JsonSettings.LowercaseIgnoreNullS).WithProperty("type", output.Type.ToString()),
                 JObject.FromObject(task.TaskData, JsonSettings.LowercaseIgnoreNullS),
-                task.ExecuteLocally
+                task.Policy
             );
 
-            var register = await NodeTask.RegisterOrExecute(taskinfo).ConfigureAwait(false);
+            var register = await TaskRegistration.RegisterAsync(taskinfo).ConfigureAwait(false);
             var taskid = register.ThrowIfError();
 
             task.LogInfo($"Created task ID: {taskid}");

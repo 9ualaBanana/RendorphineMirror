@@ -6,22 +6,6 @@ public static class NodeTask
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-    public static async ValueTask<OperationResult<string>> RegisterOrExecute(TaskCreationInfo info)
-    {
-        OperationResult<string> taskid;
-        if (info.ExecuteLocally)
-        {
-            taskid = ReceivedTask.GenerateLocalId();
-
-            // TODO: fill in TaskObject
-            var tk = new ReceivedTask(taskid.Value, new TaskInfo(new("file.mov", 123), info.Input, info.Output, info.Data), true);
-            NodeSettings.QueuedTasks.Bindable.Add(tk);
-        }
-        else taskid = await TaskRegistration.RegisterAsync(info).ConfigureAwait(false);
-
-        return taskid;
-    }
-
 
     public static string ZipFiles(IEnumerable<string> files)
     {

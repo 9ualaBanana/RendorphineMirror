@@ -42,6 +42,14 @@ else
     logger.Info("Authentication completed");
 }
 
+// TODO: remove after one update \/
+if (Settings.SessionId is not null && Settings.UserId is null)
+{
+    var s = Settings.AuthInfo!.Value;
+    Settings.AuthInfo = new AuthInfo(s.SessionId, s.Email, s.Guid, (await Apis.GetMyNodesAsync()).ThrowIfError().First().UserId, s.Slave);
+}
+
+
 if (!Init.IsDebug || halfrelease)
     PortForwarder.Initialize();
 
@@ -106,6 +114,14 @@ logger.Info(@$"Tasks found
     {NodeSettings.PlacedTasks.Count} placed
     {NodeSettings.PlacedTasks.Bindable.Count(x => x.State is not (TaskState.Finished or TaskState.Failed or TaskState.Canceled))} non-finished placed
 ".TrimLines().Replace("\n", "; "));
+
+Task.WhenAll(Enum.GetValues<TaskState>().Select(s => Apis.GetMyTasksAsync(s).Then(x => (s, x).AsOpResult()).AsTask()))
+    .Then(items =>
+    {
+        logger.Info($"Server tasks: {string.Join(", ", items.Select(oplistr => $"{oplistr.ThrowIfError().s}: {oplistr.ThrowIfError().x.ThrowIfError().Length}"))}");
+        return true;
+    })
+    .AsTask().Consume();
 
 
 TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Bindable.Add;

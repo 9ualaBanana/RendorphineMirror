@@ -63,7 +63,7 @@ public class LocalListener : ExecutableListenerBase
         if (path == "starttask")
         {
             var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-            var taskid = await NodeTask.RegisterOrExecute(task);
+            var taskid = await TaskRegistration.RegisterAsync(task);
 
             return await WriteJson(response, taskid).ConfigureAwait(false);
         }
@@ -72,7 +72,7 @@ public class LocalListener : ExecutableListenerBase
         {
             var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
 
-            var wt = new WatchingTask(task.Input.ToObject<IWatchingTaskSource>(LocalApi.JsonSerializerWithType)!, task.Action, task.Data, task.Output.ToObject<IWatchingTaskOutputInfo>(LocalApi.JsonSerializerWithType)!, task.ExecuteLocally);
+            var wt = new WatchingTask(task.Input.ToObject<IWatchingTaskSource>(LocalApi.JsonSerializerWithType)!, task.Action, task.Data, task.Output.ToObject<IWatchingTaskOutputInfo>(LocalApi.JsonSerializerWithType)!, task.Policy);
             wt.StartWatcher();
             NodeSettings.WatchingTasks.Bindable.Add(wt);
 
