@@ -56,7 +56,8 @@ public class TelegramChatIdAuthenticator
     {
         try
         {
-            var sessionId = await AuthenticateAsync(credentials); _authenticatedUsers.Add(credentials.ChatId, new(credentials.ChatId, sessionId));
+            var authenticatedUser = await AuthenticateAsync(credentials);
+            _authenticatedUsers.Add(credentials.ChatId, new(credentials.ChatId, authenticatedUser.UserId, authenticatedUser.SessionId));
             _logger.LogDebug("User is authenticated: {Login}", credentials.Login);
             return true;
         }
@@ -65,7 +66,7 @@ public class TelegramChatIdAuthenticator
         return false;
     }
 
-    async Task<string> AuthenticateAsync(TelegramCredentials credentials)
+    async Task<MPlusAuthenticationToken> AuthenticateAsync(TelegramCredentials credentials)
     {
         var httpContent = new FormUrlEncodedContent(new Dictionary<string, string>()
         {
@@ -74,7 +75,7 @@ public class TelegramChatIdAuthenticator
             ["guid"] = Guid.NewGuid().ToString()
         });
         var response = await _httpClient.PostAsync("https://tasks.microstock.plus/rphtaskmgr/login", httpContent);
-        return (string)((JObject)await Api.GetJsonFromResponseIfSuccessfulAsync(response)).Property("sessionid")!;
+        return ((JObject)await Api.GetJsonFromResponseIfSuccessfulAsync(response)).ToObject<MPlusAuthenticationToken>()!;
     }
 
     internal async Task LogOutAsync(ChatId id)
