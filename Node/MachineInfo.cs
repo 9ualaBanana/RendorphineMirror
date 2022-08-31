@@ -5,6 +5,7 @@ namespace Machine;
 
 public record MachineInfo
 {
+    public static string UserId => Settings.UserId!;
     public static string NodeName => Settings.NodeName!;
     readonly public static string UserName = Environment.UserName;
     readonly public static string PCName = Environment.MachineName;
@@ -33,6 +34,7 @@ public record MachineInfo
 
     public static async Task<JsonContent> AsJsonContentAsync() => JsonContent.Create(new
     {
+        UserId,
         NodeName,
         PCName,
         UserName,

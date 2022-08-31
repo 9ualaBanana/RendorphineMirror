@@ -4,6 +4,7 @@ namespace Telegram.Models;
 
 public class MachineInfo : IEquatable<MachineInfo>
 {
+    public string UserId { get; set; } = null!;
     public string NodeName { get; set; } = null!;
     public string PCName { get; set; } = null!;
     public string UserName { get; set; } = null!;
@@ -14,6 +15,8 @@ public class MachineInfo : IEquatable<MachineInfo>
     public HashSet<Plugin> InstalledPlugins { get; init; } = null!;
 
     public string BriefInfoMDv2 => $"*{NodeName}* {PCName} (v.*{Version}*) | *{IP}:{Port}* | *{IP}:{Port}/helloworld*";
+
+    public MachineInfo WithVersionUpdatedTo(string version) { Version = version; return this; }
 
     public bool NameContainsAny(IEnumerable<string> names) =>
         names.Select(name => name.CaseInsensitive())

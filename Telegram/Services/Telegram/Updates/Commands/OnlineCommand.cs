@@ -6,21 +6,23 @@ namespace Telegram.Services.Telegram.Updates.Commands;
 
 public class OnlineCommand : AuthenticatedCommand
 {
-    readonly NodeSupervisor _nodeSupervisor;
+    readonly UserNodes _userNodes;
 
-    public OnlineCommand(ILogger<OnlineCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, NodeSupervisor nodeSupervisor)
+    public OnlineCommand(ILogger<OnlineCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, UserNodes userNodes)
         : base(logger, bot, authenticator)
     {
-        _nodeSupervisor = nodeSupervisor;
+        _userNodes = userNodes;
     }
 
 
 
     public override string Value => "online";
 
-    protected override async Task HandleAsync(Update update, TelegramAuthenticationToken _)
+    protected override async Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken)
     {
-        var message = $"Online: *{_nodeSupervisor.NodesOnline.Count}*\nOffline: {_nodeSupervisor.NodesOffline.Count}";
+        if (!_userNodes.TryGetUserNodeSupervisor(authenticationToken, out var userNodesSupervisor, Bot, update.Message!.Chat.Id))
+            return;
+        var message = $"Online: *{userNodesSupervisor.NodesOnline.Count}*\nOffline: {userNodesSupervisor.NodesOffline.Count}";
         await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message);
     }
 }

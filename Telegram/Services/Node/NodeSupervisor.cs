@@ -1,146 +1,114 @@
 ﻿using Telegram.Services.Telegram;
-using System.Collections.Concurrent;
-using System.Timers;
 using Telegram.Models;
+using System.Collections.Specialized;
+using Telegram.Services.Telegram.Updates.Commands;
 
 namespace Telegram.Services.Node;
 
 public class NodeSupervisor
 {
-    internal readonly HashSet<MachineInfo> AllNodes = new();
-    internal readonly ConcurrentDictionary<MachineInfo, TimerPlus> NodesOnline = new();
-    internal HashSet<MachineInfo> NodesOffline => AllNodes.ToHashSet().Except(NodesOnline.Keys).ToHashSet();
+    internal readonly AutoStorage<MachineInfo> NodesOnline;
+    internal readonly AutoStorage<MachineInfo> AllNodes;
+    internal HashSet<MachineInfo> NodesOffline => AllNodes.Except(NodesOnline).ToHashSet();
 
-    readonly object _allNodesLock = new();
+    readonly object _lock = new();
     readonly ILogger<NodeSupervisor> _logger;
     readonly TelegramBot _bot;
-    double _idleTimeBeforeGoingOffline = -1;
-    double IdleTimeBeforeNodeGoesOffline
-    {
-        get
-        {
-            if (_idleTimeBeforeGoingOffline != -1) return _idleTimeBeforeGoingOffline;
-
-            const string configKey = "TimeBeforeNodeGoesOffline";
-            double result = TimeSpan.FromMinutes(10).TotalMilliseconds;
-            try
-            {
-                result = double.Parse(_configuration[configKey]);
-            }
-            catch (ArgumentNullException ex)
-            {
-                _logger.LogWarning(ex, "\"{ConfigKey}\" config key is not defined.", configKey);
-            }
-            catch (FormatException ex)
-            {
-                _logger.LogWarning(ex, "Value of \"{ConfigKey}\" can't be parsed as double.", configKey);
-            }
-            catch (OverflowException ex)
-            {
-                _logger.LogWarning(ex, "Value of \"{ConfigKey}\" overflows.", configKey);
-            }
-            return _idleTimeBeforeGoingOffline = result;
-        }
-    }
-    readonly IConfiguration _configuration;
 
     public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot)
     {
+        AllNodes = new();
+        NodesOnline = new(configuration.ReadIdleTimeBeforeGoingOfflineFrom(logger));
+        NodesOnline.ItemStorageTimeElapsed += OnNodeWentOffline;
         _logger = logger;
-        _configuration = configuration;
         _bot = bot;
     }
+
 
     internal async Task UpdateNodeStatusAsync(MachineInfo nodeInfo)
     {
         _logger.LogDebug("Updating node status...");
 
-        if (!NodesOnline.ContainsKey(nodeInfo)) AddNewNode(nodeInfo);
-        else
-        {
-            var thatNodeOnline = GetNodeAlreadyOnline(nodeInfo);
-            if (thatNodeOnline is not null && thatNodeOnline.Version != nodeInfo.Version) await UpdateNodeVersionAsync(thatNodeOnline, nodeInfo);
-        }
-
-        if (NodesOnline.TryGetValue(nodeInfo, out var nodeUptimeTimer))
-        {
-            nodeUptimeTimer.Stop();
-            nodeUptimeTimer.Start();
-        }
+        await AddOrUpdateNodeAsync(nodeInfo);
 
         _logger.LogDebug("Node status is updated");
     }
 
-    MachineInfo? GetNodeAlreadyOnline(MachineInfo nodeInfo)
+    async Task AddOrUpdateNodeAsync(MachineInfo nodeInfo)
     {
-        try
+        // Using `nodeInfo` to look for `nodeOnline` is alright because MachineInfo's equality is based on its NodeName.
+        // Also using `nodeInfo` allows adding `nodeInfo` if it's not online or update `nodeOnline's` version to the one of `nodeInfo` if it is.
+        var wasOnline = NodesOnline.TryGetValue(nodeInfo, out var nodeOnline);
+
+        lock (_lock)
         {
-            return NodesOnline.Single(nodeOnline => nodeOnline.Key == nodeInfo).Key;
+            AllNodes.AddOrUpdateValue(nodeInfo, nodeInfo);
+            NodesOnline.AddOrUpdateValue(nodeInfo, nodeInfo);
         }
-        catch (Exception) { return null; }
-    }
 
-    void AddNewNode(MachineInfo nodeInfo)
-    {
-        AllNodes.Add(nodeInfo);
-        if (!NodesOnline.TryAdd(nodeInfo, Timer)) return;
-
-        _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
-    }
-
-    async Task UpdateNodeVersionAsync(MachineInfo nodeOnline, MachineInfo updatedNode)
-    {
-        if (!NodesOnline.TryRemove(nodeOnline, out var uptimeTimer)) return;
-        NodesOnline.TryAdd(updatedNode, uptimeTimer);
-
-        lock (_allNodesLock)
+        if (wasOnline)
         {
-            if (AllNodes.Contains(nodeOnline)) AllNodes.Remove(nodeOnline);
+            if (nodeOnline!.Version != nodeInfo.Version)
+                await _bot.TryNotifySubscribersAsync($"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{nodeInfo.Version}*.");
         }
-        AllNodes.Add(updatedNode);
-
-        await _bot.TryNotifySubscribersAsync(text: $"{updatedNode.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{updatedNode.Version}*.");
+        else _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
     }
 
-    TimerPlus Timer
+    void OnNodeWentOffline(object? sender, AutoStorageItem<MachineInfo> e)
     {
-        get
-        {
-            var timer = new TimerPlus(IdleTimeBeforeNodeGoesOffline) { AutoReset = false };
-            timer.Elapsed += OnNodeWentOffline;
-            return timer;
-        }
-    }
-
-    void OnNodeWentOffline(object? sender, ElapsedEventArgs e)
-    {
-        var offlineNodeInfo = NodesOnline.Single(node => node.Value == sender).Key;
-        NodesOnline.TryRemove(offlineNodeInfo, out var _);
-
-        _logger.LogError("{Node} went offline after {Time} ms since the last ping.",
-            offlineNodeInfo.BriefInfoMDv2, IdleTimeBeforeNodeGoesOffline);
+        _logger.LogWarning("{Node} went offline after {Time} ms since the last ping.",
+            e.Value.BriefInfoMDv2, e.Timer.Interval);
     }
 
     /// <returns>
     /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="nodeInfo" />;
     /// <c>null</c> if <paramref name="nodeInfo"/> is offline.
     /// </returns>
-    internal TimeSpan? GetUptimeFor(MachineInfo nodeInfo)
-    {
-        NodesOnline.TryGetValue(nodeInfo, out var uptime);
-        return uptime?.ElapsedTime;
-    }
+    internal TimeSpan? UptimeOf(MachineInfo nodeInfo) =>
+        NodesOnline.TryGetStorageTimer(nodeInfo, out var storageTimer) ?
+            storageTimer.Uptime : null;
 
     internal int TryRemoveNodesWithNames(params string[] nodeNames)
     {
-        var namesToRemove = nodeNames.Select(nodeName => nodeName.ToLowerInvariant());
-        var nodesOffline = NodesOffline;
-        lock (_allNodesLock)
+        var namesToRemove = nodeNames.Select(nodeName => nodeName.CaseInsensitive());
+        int removedNodes = 0;
+        lock (_lock)
         {
-            return AllNodes.RemoveWhere(node => node.NameContainsAny(namesToRemove) && nodesOffline.Contains(node));
+            foreach (var node in AllNodes)
+            {
+                if (node.NameContainsAny(namesToRemove) && NodesOffline.Contains(node))
+                { AllNodes.Remove(node); removedNodes++; }
+            }
         }
+        return removedNodes;
     }
 
     internal IEnumerable<MachineInfo> GetNodesByName(string nodeNameStart) =>
-        AllNodes.Where(node => node.NodeName.ToLowerInvariant().StartsWith(nodeNameStart.ToLowerInvariant()));
+        AllNodes.Where(node => node.NodeName.CaseInsensitive().StartsWith(nodeNameStart.CaseInsensitive()));
+}
+
+static class IConfigurationExtensions
+{
+    internal static double ReadIdleTimeBeforeGoingOfflineFrom(this IConfiguration configuration, ILogger logger)
+    {
+        const string configKey = "TimeBeforeNodeGoesOffline";
+        double result = TimeSpan.FromMinutes(10).TotalMilliseconds;
+        try
+        {
+            result = double.Parse(configuration[configKey]);
+        }
+        catch (ArgumentNullException ex)
+        {
+            logger.LogWarning(ex, "\"{ConfigKey}\" config key is not defined.", configKey);
+        }
+        catch (FormatException ex)
+        {
+            logger.LogWarning(ex, "Value of \"{ConfigKey}\" can't be parsed as double.", configKey);
+        }
+        catch (OverflowException ex)
+        {
+            logger.LogWarning(ex, "Value of \"{ConfigKey}\" overflows.", configKey);
+        }
+        return result;
+    }
 }

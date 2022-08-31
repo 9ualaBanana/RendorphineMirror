@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Telegram.Models;
 using Telegram.Services.Node;
+using Telegram.Services.Telegram;
 
 namespace Telegram.Controllers;
 
@@ -11,12 +12,18 @@ public class NodeController : ControllerBase
     [HttpPost("ping")]
     public async Task UpdateNodeStatus(
         [FromBody] MachineInfo nodeInfo,
-        [FromServices] NodeSupervisor nodeSupervisor,
-        [FromServices] ILogger<NodeController> logger)
+        [FromServices] UserNodes userNodes,
+        [FromServices] ILogger<NodeController> logger,
+        [FromServices] ILoggerFactory loggerFactory,
+        [FromServices] IConfiguration configuration,
+        [FromServices] TelegramBot bot)
     {
         logger.LogDebug("Received ping from {Node}", nodeInfo.BriefInfoMDv2);
 
-        await nodeSupervisor.UpdateNodeStatusAsync(nodeInfo);
+        await userNodes.GetOrAdd(
+            nodeInfo.UserId,
+            new NodeSupervisor(loggerFactory.CreateLogger<NodeSupervisor>(), configuration, bot)
+            ).UpdateNodeStatusAsync(nodeInfo);
     }
 
     //[HttpPost("profile")]

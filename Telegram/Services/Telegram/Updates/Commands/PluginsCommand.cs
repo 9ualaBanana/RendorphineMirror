@@ -8,24 +8,28 @@ namespace Telegram.Services.Telegram.Updates.Commands;
 
 public class PluginsCommand : AuthenticatedCommand
 {
-    readonly NodeSupervisor _nodeSupervisor;
+    readonly UserNodes _userNodes;
 
 
 
-    public PluginsCommand(ILogger<PluginsCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, NodeSupervisor nodeSupervisor)
+    public PluginsCommand(ILogger<PluginsCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, UserNodes userNodes)
         : base(logger, bot, authenticator)
     {
-        _nodeSupervisor = nodeSupervisor;
+        _userNodes = userNodes;
     }
 
 
 
     public override string Value => "plugins";
 
-    protected override async Task HandleAsync(Update update, TelegramAuthenticationToken _)
+    protected override async Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken)
     {
         var nodeNamesWhosePluginsToShow = update.Message!.Text!.QuotedArguments();
-        var nodesWhosePluginsToShow = _nodeSupervisor.AllNodes.Where(node => node.NameContainsAny(nodeNamesWhosePluginsToShow));
+
+        if (!_userNodes.TryGetUserNodeSupervisor(authenticationToken, out var userNodesSupervisor, Bot, authenticationToken.ChatId))
+            return;
+        var nodesWhosePluginsToShow = userNodesSupervisor.AllNodes
+            .Where(node => node.NameContainsAny(nodeNamesWhosePluginsToShow));
 
         var message = ListInstalledPluginsFor(nodesWhosePluginsToShow);
 

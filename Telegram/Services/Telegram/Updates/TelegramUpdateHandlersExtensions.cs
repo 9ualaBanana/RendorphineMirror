@@ -15,6 +15,6 @@ public static class TelegramUpdateHandlersExtensions
             .AddTelegramImageProcessing()
             .AddScoped<TelegramCallbackQueryHandler>()
             .AddScoped<TelegramChatMemberUpdatedHandler>()
-            .AddSingleton<NodeSupervisor>();
+            .AddSingleton<UserNodes>();
     }
 }

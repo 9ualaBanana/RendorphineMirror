@@ -9,15 +9,15 @@ namespace Telegram.Services.Telegram.Updates.Commands;
 
 public class DeployCommand : AuthenticatedCommand
 {
-    readonly NodeSupervisor _nodeSupervisor;
+    readonly UserNodes _userNodes;
     readonly HttpClient _httpClient;
 
 
 
-    public DeployCommand(ILogger<DeployCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, NodeSupervisor nodeSupervisor, IHttpClientFactory httpClientFactory)
+    public DeployCommand(ILogger<DeployCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, UserNodes userNodes, IHttpClientFactory httpClientFactory)
         : base(logger, bot, authenticator)
     {
-        _nodeSupervisor = nodeSupervisor;
+        _userNodes = userNodes;
         _httpClient = httpClientFactory.CreateClient();
     }
 
@@ -42,7 +42,10 @@ public class DeployCommand : AuthenticatedCommand
 
         if (nodeNames.Any())
         {
-            foreach (var node in nodeNames.SelectMany(_nodeSupervisor.GetNodesByName))
+            if (!_userNodes.TryGetUserNodeSupervisor(authenticationToken, out var userNodesSupervisor, Bot, authenticationToken.ChatId))
+                return;
+
+            foreach (var node in nodeNames.SelectMany(_userNodes[authenticationToken.SessionId].GetNodesByName))
             {
                 var nodeSettings = new UserSettings(node.Guid) { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware };
                 nodeSettings.ThisNodeInstallSoftware.UnionEachWith(plugins);
