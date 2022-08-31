@@ -42,6 +42,14 @@ else
     logger.Info("Authentication completed");
 }
 
+// TODO: remove after one update \/
+if (Settings.SessionId is not null && Settings.UserId is null)
+{
+    var s = Settings.AuthInfo!.Value;
+    Settings.AuthInfo = new AuthInfo(s.SessionId, s.Email, s.Guid, (await Apis.GetMyNodesAsync()).ThrowIfError().First().UserId, s.Slave);
+}
+
+
 if (!Init.IsDebug || halfrelease)
     PortForwarder.Initialize();
 
