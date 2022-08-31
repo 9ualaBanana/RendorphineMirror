@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Executor;
 
@@ -87,7 +87,6 @@ public static class TaskHandler
         const int maxattempts = 3;
 
         var state = await task.GetTaskStateAsync();
-        state.LogIfError();
         if (state && state.Value.State is (TaskState.Finished or TaskState.Canceled or TaskState.Failed))
         {
             task.LogInfo($"Invalid task state: {state.Value.State}, removing");
