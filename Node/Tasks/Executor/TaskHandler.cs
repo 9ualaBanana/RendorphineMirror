@@ -11,13 +11,26 @@ public static class TaskHandler
     {
         new Thread(async () =>
         {
+            int index = 0;
+
             while (true)
             {
                 await Task.Delay(2_000);
                 if (NodeSettings.QueuedTasks.Count == 0) continue;
 
-                try { await HandleAsync(NodeSettings.QueuedTasks.Bindable[0]); }
-                catch (Exception ex) { _logger.Error(ex.ToString()); }
+                index = Math.Max(index, NodeSettings.QueuedTasks.Bindable.Count - 1);
+
+                try
+                {
+                    await HandleAsync(NodeSettings.QueuedTasks.Bindable[index]);
+                    index = 0;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex.ToString());
+                    _logger.Info("Skipping a task");
+                    index++;
+                }
             }
         })
         { IsBackground = true }.Start();
