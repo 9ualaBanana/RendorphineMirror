@@ -23,7 +23,8 @@ public abstract class PluginDiscoverer
         RegexExecutable = ExecutableRegex is null ? null : new Regex(ExecutableRegex, RegexOptions.Compiled);
     }
 
-    public IEnumerable<Plugin> Discover()
+    public IEnumerable<Plugin> Discover() => GetPluginsInDirectories(GetPossiblePluginDirectories());
+    protected virtual IEnumerable<string> GetPossiblePluginDirectories()
     {
         var directories = InstallationPaths
             .Where(Directory.Exists)
@@ -40,6 +41,11 @@ public abstract class PluginDiscoverer
         if (Environment.OSVersion.Platform == PlatformID.Unix)
             directories = directories.Append("/bin");
 
+
+        return directories;
+    }
+    protected virtual IEnumerable<Plugin> GetPluginsInDirectories(IEnumerable<string> directories)
+    {
         return directories
             .SelectMany(pluginDirectory =>
                 Directory.EnumerateFiles(
