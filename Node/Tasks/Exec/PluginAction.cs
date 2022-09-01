@@ -34,19 +34,25 @@ public abstract class PluginAction<T> : IPluginAction
     protected abstract Task Execute(ReceivedTask task, T data);
 
 
-    protected static async ValueTask UploadResult(ReceivedTask task, ITaskOutput output, string resultfile)
+    protected static ValueTask UploadResult(ReceivedTask task, ITaskOutput output, string resultfile, string? postfix = null) =>
+        UploadResult(task, output, new[] { (resultfile, postfix) });
+    protected static async ValueTask UploadResult(ReceivedTask task, ITaskOutput output, IEnumerable<(string file, string? postfix)> results)
     {
         await task.ChangeStateAsync(TaskState.Output);
 
-        task.LogInfo($"Uploading output file {resultfile} to {task.Info.Output.ToString(Newtonsoft.Json.Formatting.None)} ...");
-        await output.Upload(task, resultfile).ConfigureAwait(false);
-        task.LogInfo($"Output file {resultfile} uploaded");
+        foreach (var (file, postfix) in results)
+        {
+            task.LogInfo($"Uploading output file {file} {(postfix is null ? null : ("+" + postfix))} to {task.Info.Output.ToString(Newtonsoft.Json.Formatting.None)} ...");
+            await output.Upload(task, file, postfix).ConfigureAwait(false);
+            task.LogInfo($"Output file {file} uploaded");
+        }
 
-        await SendFileToReepo(task);
+
+        await NotifyReepoOfTaskCompletion(task);
     }
-    static async Task SendFileToReepo(ReceivedTask task, CancellationToken cancellationToken = default)
+    static async Task NotifyReepoOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        if (task.ExecuteLocally) return; // TODO: remove when local tasks go through the task manager
+        if (task.ExecuteLocally) return;
 
         var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
         try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }

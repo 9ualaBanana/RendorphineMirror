@@ -16,12 +16,14 @@ public record UserTaskInput(UserTaskInputInfo Info) : ITaskInput
 }
 public record UserTaskOutput(UserTaskOutputInfo Info) : ITaskOutput
 {
-    public ValueTask Upload(ReceivedTask task, string file)
+    public ValueTask Upload(ReceivedTask task, string file, string? postfix)
     {
         if (task.ExecuteLocally)
         {
+            var filename = Path.GetFileNameWithoutExtension(Info.FileName) + postfix + Path.GetExtension(Info.FileName);
+
             Directory.CreateDirectory(Info.Directory);
-            File.Copy(file, Path.Combine(Info.Directory, Info.FileName), true);
+            File.Copy(file, Path.Combine(Info.Directory, filename), true);
             return ValueTask.CompletedTask;
         }
 
