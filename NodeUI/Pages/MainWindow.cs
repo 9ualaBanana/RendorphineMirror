@@ -222,7 +222,7 @@ namespace NodeUI.Pages
                     versionslist.SelectedIndex = 0;
 
                     var pluginslist = TypedComboBox.Create(Array.Empty<string>());
-                    pluginslist.SelectionChanged += (obj, e) => versionslist.Items = UICache.SoftwareStats[Enum.Parse<PluginType>(pluginslist.SelectedItem)].ByVersion.Select(x => x.Key).ToArray();
+                    pluginslist.SelectionChanged += (obj, e) => versionslist.Items = UICache.SoftwareStats[Enum.Parse<PluginType>(pluginslist.SelectedItem ?? PluginType.FFmpeg.ToString())].ByVersion.Select(x => x.Key).ToArray();
                     pluginslist.SelectedIndex = 0;
 
                     var cp = UICache.SoftwareStats.GetBoundCopy();
