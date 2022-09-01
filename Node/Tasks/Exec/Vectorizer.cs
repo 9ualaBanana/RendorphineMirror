@@ -27,7 +27,9 @@ public static class VectorizerTasks
             var outputdir = task.FSOutputDirectory();
 
             var exepath = task.GetPlugin().GetInstance().Path;
-            var args = task.InputFile;
+
+            // quotes are important here, ddo not remove
+            var args = "\"" + task.InputFile + "\"";
 
             var plugindir = Path.GetDirectoryName(exepath)!;
             var outdir = Path.Combine(plugindir, "out");
