@@ -95,6 +95,23 @@ public static class TaskHandler
             { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
         };
 
+
+    public static async ValueTask<OperationResult<string>> RegisterOrExecute(TaskCreationInfo info)
+    {
+        OperationResult<string> taskid;
+        if (info.ExecuteLocally)
+        {
+            taskid = ReceivedTask.GenerateLocalId();
+
+            // TODO: fill in TaskObject
+            var tk = new ReceivedTask(taskid.Value, new TaskInfo(new("file.mov", 123), info.Input, info.Output, info.Data), true);
+            NodeSettings.QueuedTasks.Bindable.Add(tk);
+        }
+        else taskid = await TaskRegistration.RegisterAsync(info).ConfigureAwait(false);
+
+        return taskid;
+    }
+
     static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         const int maxattempts = 3;
@@ -135,5 +152,10 @@ public static class TaskHandler
         }
 
         task.LogErr($"Could not execute this task after {maxattempts} attempts");
+        if (task.ExecuteLocally)
+        {
+            task.LogInfo("Since this task is local, removing it");
+            NodeSettings.QueuedTasks.Bindable.Remove(task);
+        }
     }
 }

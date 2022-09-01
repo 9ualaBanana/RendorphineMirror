@@ -28,7 +28,7 @@ public static class WatchingTaskExtensions
                 task.Policy
             );
 
-            var register = await TaskRegistration.RegisterAsync(taskinfo).ConfigureAwait(false);
+            var register = await TaskHandler.RegisterOrExecute(taskinfo).ConfigureAwait(false);
             var taskid = register.ThrowIfError();
 
             task.LogInfo($"Created task ID: {taskid}");

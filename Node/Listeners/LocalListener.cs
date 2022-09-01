@@ -63,7 +63,7 @@ public class LocalListener : ExecutableListenerBase
         if (path == "starttask")
         {
             var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-            var taskid = await TaskRegistration.RegisterAsync(task);
+            var taskid = await TaskHandler.RegisterOrExecute(task);
 
             return await WriteJson(response, taskid).ConfigureAwait(false);
         }
