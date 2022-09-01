@@ -51,5 +51,14 @@ namespace NodeUI.Controls
                 TextBlock.Foreground = v ? Colors.White : Colors.GrayButton;
             });
         }
+
+        public async Task TemporarySetText(string text, int duration = 2000)
+        {
+            var prevtext = Text;
+            Text = text;
+
+            await Task.Delay(duration);
+            Text = prevtext;
+        }
     }
 }
