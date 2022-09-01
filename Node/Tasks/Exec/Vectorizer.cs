@@ -23,7 +23,8 @@ public static class VectorizerTasks
 
         protected override async Task Execute(ReceivedTask task, VeeeVectorizeInfo data, ITaskInput input, ITaskOutput output)
         {
-            var outputfile = task.FSOutputFile();
+            task.InputFile.ThrowIfNull();
+            var outputdir = task.FSOutputDirectory();
 
             var exepath = task.GetPlugin().GetInstance().Path;
             var args = task.InputFile;
@@ -37,7 +38,15 @@ public static class VectorizerTasks
             File.WriteAllText(Path.Combine(plugindir, "config.xml"), GetConfig(data.Lods));
 
             await ExecuteProcess(exepath, args, false, delegate { }, task);
-            await UploadResult(task, output, outputfile);
+
+            Directory.Delete(outputdir, true);
+            Directory.Move(outdir, outputdir);
+            foreach (var file in Directory.GetFiles(outputdir))
+            {
+                // bluenight_dark.250.g.eps > 250.g
+                var postfix = "." + string.Join('.', file.Split('.')[^3..^1]);
+                await UploadResult(task, output, file, postfix);
+            }
         }
 
 
