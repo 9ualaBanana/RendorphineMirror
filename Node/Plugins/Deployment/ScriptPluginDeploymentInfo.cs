@@ -15,7 +15,7 @@ public record ScriptPluginDeploymentInfo(PluginToDeploy Plugin) : PluginDeployme
             var soft = software[plugin.Type.ToString().ToLowerInvariant()];
             var script = (string.IsNullOrWhiteSpace(Plugin.Version) ? soft.Versions.OrderBy(x => x.Key).Last().Value : soft.Versions[plugin.Version]).InstallScript;
 
-            PowerShellInvoker.Invoke(script);
+            PowerShellInvoker.InstallPlugin(plugin, script, deleteInstaller);
         }
     }
 }

@@ -12,24 +12,32 @@ using Query = Microsoft.AspNetCore.Mvc.FromQueryAttribute;
 using Srv = Microsoft.AspNetCore.Mvc.FromServicesAttribute;
 
 Initializer.ConfigDirectory = "renderphin_registry";
+Init.Initialize();
 
 var logger = LogManager.GetCurrentClassLogger();
 
 Directory.CreateDirectory("torrents");
-foreach (var dir in Directory.GetDirectories("torrents"))
+foreach (var dir in Directory.GetDirectories("torrents").Concat(Directory.GetDirectories("torrents").SelectMany(Directory.GetDirectories)))
 {
-    var torrentfile = Path.ChangeExtension(dir, ".torrent");
+    if (Directory.GetFiles(dir).Length == 0) continue;
+
+    var torrentfile = Path.Combine("torrents", Path.GetRelativePath("torrents", dir.EndsWith('/') ? dir[..^1] : dir).Replace('/', '.') + ".torrent");
     if (!File.Exists(torrentfile))
     {
+        logger.Info("Creating torrent from " + dir);
+
         var bytes = await TorrentClient.CreateTorrent(dir);
         await File.WriteAllBytesAsync(torrentfile, bytes);
     }
 
     var torrent = await Torrent.LoadAsync(torrentfile);
-    await TorrentClient.AddOrGetTorrent(torrent, dir);
-    logger.Info("Started torrent " + torrentfile + " " + torrent.InfoHash.UrlEncode());
+    var manager = await TorrentClient.AddOrGetTorrent(torrent, dir);
+    logger.Info("Started torrent " + torrentfile + " " + torrent.InfoHash.ToHex());
 }
-logger.Info("Torrent listening at :" + TorrentClient.DhtPort);
+logger.Info("Torrent listening at dht" + TorrentClient.DhtPort + " and trt" + TorrentClient.ListenPort);
+
+foreach (var t in TorrentClient.Client.Torrents)
+    await t.LocalPeerAnnounceAsync();
 
 
 
@@ -51,7 +59,7 @@ app.Run();
 public class SoftwareController : ControllerBase
 {
     [HttpGet("getpeer")]
-    public JObject GetPeerId() => JsonApi.Success(new JsonPeer(TorrentClient.PeerId.UrlEncode(), TorrentClient.DhtPort));
+    public JObject GetPeerId() => JsonApi.Success(new JsonPeer(TorrentClient.PeerId.UrlEncode(), ImmutableArray.Create(TorrentClient.ListenPort)));
 
     [HttpGet("getsoft")]
     public JObject GetSoftware([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,

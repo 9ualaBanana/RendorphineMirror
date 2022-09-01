@@ -4,9 +4,11 @@ using MonoTorrent.Client;
 
 namespace Common
 {
-    public record JsonPeer(string PeerId, ushort Port);
+    public record JsonPeer(string PeerId, ImmutableArray<ushort> Ports);
     public static class TorrentClient
     {
+        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
         public static ushort DhtPort => Settings.DhtPort;
         public static ushort ListenPort => Settings.TorrentPort;
         public static BEncodedString PeerId => Client.PeerId;
@@ -52,11 +54,11 @@ namespace Common
 
             if (Init.IsDebug)
             {
-                manager.PeersFound += (obj, e) => Console.WriteLine("PeersFound " + torrent.InfoHash.ToHex() + " " + e.GetType().Name + " " + e.NewPeers + " " + string.Join(", ", manager.GetPeersAsync().Result.Select(x => x.Uri)));
-                manager.PeerConnected += (obj, e) => Console.WriteLine("PeerConnected " + torrent.InfoHash.ToHex() + " " + e.Peer.Uri);
-                manager.PeerDisconnected += (obj, e) => Console.WriteLine("PeerDisconnected " + torrent.InfoHash.ToHex() + " " + e.Peer.Uri);
-                manager.TorrentStateChanged += (obj, e) => Console.WriteLine("TorrentStateChanged " + torrent.InfoHash.ToHex() + " " + e.NewState);
-                manager.ConnectionAttemptFailed += (obj, e) => Console.WriteLine("ConnectionAttemptFailed " + torrent.InfoHash.ToHex() + " " + e);
+                manager.PeersFound += (obj, e) => _logger.Trace("PeersFound " + torrent.InfoHash.ToHex() + " " + e.GetType().Name + " " + e.NewPeers + " " + string.Join(", ", manager.GetPeersAsync().Result.Select(x => x.Uri)));
+                manager.PeerConnected += (obj, e) => _logger.Trace("PeerConnected " + torrent.InfoHash.ToHex() + " " + e.Peer.Uri);
+                manager.PeerDisconnected += (obj, e) => _logger.Trace("PeerDisconnected " + torrent.InfoHash.ToHex() + " " + e.Peer.Uri);
+                manager.TorrentStateChanged += (obj, e) => _logger.Trace("TorrentStateChanged " + torrent.InfoHash.ToHex() + " " + e.NewState);
+                manager.ConnectionAttemptFailed += (obj, e) => _logger.Trace("ConnectionAttemptFailed " + torrent.InfoHash.ToHex() + " " + e.Peer.ConnectionUri + " " + e.Reason);
             }
 
             await manager.HashCheckAsync(autoStart: true).ConfigureAwait(false);
