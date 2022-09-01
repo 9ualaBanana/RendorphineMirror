@@ -233,8 +233,6 @@ namespace NodeUI.Pages
                     }), true);
                     Bindable = cp;
 
-                    /*var plugintb = new TextBox() { Text = "Plugin name" };*/
-                    var versiontb = new TextBox() { Text = "Plugin version" };
                     var installbtn = new MPButton()
                     {
                         Text = "Install plugin",
