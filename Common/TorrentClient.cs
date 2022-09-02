@@ -30,13 +30,14 @@ namespace Common
         public static Task<byte[]> CreateTorrent(string directory) => CreateTorrent(new TorrentFileSource(directory));
         public static async Task<byte[]> CreateTorrent(ITorrentFileSource source) => (await Creator.CreateAsync(source)).Encode();
 
-        public static async Task<(byte[] data, TorrentManager manager)> CreateAddTorrent(string directory)
+        public static async Task<(byte[] data, TorrentManager manager)> CreateAddTorrent(string directory, bool addTracker = false)
         {
             var data = await CreateTorrent(directory).ConfigureAwait(false);
             var torrent = await Torrent.LoadAsync(data).ConfigureAwait(false);
             var manager = Client.Torrents.FirstOrDefault(x => x.InfoHash == torrent.InfoHash);
             if (manager is null) manager = await AddOrGetTorrent(torrent, Path.GetFullPath(Path.Combine(directory, ".."))).ConfigureAwait(false);
 
+            if (addTracker) await manager.TrackerManager.AddTrackerAsync(new Uri("https://t.microstock.plus/"));
             return (data, manager);
         }
 

@@ -7,5 +7,5 @@ public class LocalWatchingTaskOutputInfo : IWatchingTaskOutputInfo
 
     public LocalWatchingTaskOutputInfo(string directory) => Directory = directory;
 
-    public ITaskOutputInfo CreateOutput(string file) => new UserTaskOutputInfo(Directory, file);
+    public ITaskOutputInfo CreateOutput(string file) => new TorrentTaskOutputInfo(Directory, file);
 }

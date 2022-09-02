@@ -3,6 +3,8 @@ namespace Common.Tasks.Model;
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public abstract class DescriberAttributeBase : Attribute { }
 
+public class HiddenAttribute : DescriberAttributeBase { }
+
 public class RangedAttribute : DescriberAttributeBase
 {
     public readonly double Min, Max;

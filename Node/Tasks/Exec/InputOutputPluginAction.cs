@@ -9,17 +9,14 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         Directory.CreateDirectory(task.FSOutputDirectory());
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
 
-        var inputobj = TaskHandler.DeserializeInput(task.Info.Input);
-        var outputobj = TaskHandler.DeserializeOutput(task.Info.Output);
-
         await task.ChangeStateAsync(TaskState.Input);
         task.LogInfo($"Downloading input...");
-        var input = await inputobj.Download(task, default).ConfigureAwait(false);
+        var input = await TaskInputOutput.Download(task, default).ConfigureAwait(false);
         task.InputFile = input;
         task.LogInfo($"Input downloaded to {input}");
 
         await task.ChangeStateAsync(TaskState.Active);
-        await Execute(task, data, inputobj, outputobj).ConfigureAwait(false);
+        await ExecuteImpl(task, data).ConfigureAwait(false);
 
         await NotifyReepoOfTaskCompletion(task);
     }
@@ -33,6 +30,5 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         catch (Exception ex) { task.LogErr("Error sending result to reepo: " + ex); }
     }
 
-    // TODO: something about multiple outputs ????
-    protected abstract Task Execute(ReceivedTask task, T data, ITaskInput input, ITaskOutput output);
+    protected abstract Task ExecuteImpl(ReceivedTask task, T data);
 }

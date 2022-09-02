@@ -34,16 +34,16 @@ public abstract class PluginAction<T> : IPluginAction
     protected abstract Task Execute(ReceivedTask task, T data);
 
 
-    protected static ValueTask UploadResult(ReceivedTask task, ITaskOutput output, string resultfile, string? postfix = null) =>
-        UploadResult(task, output, new[] { (resultfile, postfix) });
-    protected static async ValueTask UploadResult(ReceivedTask task, ITaskOutput output, IEnumerable<(string file, string? postfix)> results)
+    protected static ValueTask UploadResult(ReceivedTask task, string resultfile, string? postfix = null) =>
+        UploadResult(task, new[] { (resultfile, postfix) });
+    protected static async ValueTask UploadResult(ReceivedTask task, IEnumerable<(string file, string? postfix)> results)
     {
         await task.ChangeStateAsync(TaskState.Output);
 
         foreach (var (file, postfix) in results)
         {
             task.LogInfo($"Uploading output file {file} {(postfix is null ? null : ("+" + postfix))} to {task.Info.Output.ToString(Newtonsoft.Json.Formatting.None)} ...");
-            await output.Upload(task, file, postfix).ConfigureAwait(false);
+            await TaskInputOutput.UploadResult(task, file, postfix).ConfigureAwait(false);
             task.LogInfo($"Output file {file} uploaded");
         }
     }

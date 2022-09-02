@@ -1,10 +1,10 @@
-﻿using Node.P2P.Upload;
+using Node.P2P.Upload;
 
 namespace Node.Tasks.Models;
 
-public record MPlusTaskInput(MPlusTaskInputInfo Info) : ITaskInput
+public class MPlusTaskInfo
 {
-    public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
+    public static async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var fformat = TaskList.GetAction(task.Info).FileFormat;
         var format = fformat.ToString().ToLowerInvariant();
@@ -21,13 +21,8 @@ public record MPlusTaskInput(MPlusTaskInputInfo Info) : ITaskInput
 
         return fileName;
     }
-
-    public ValueTask Upload() => ValueTask.CompletedTask;
-}
-public record MPlusTaskOutput(MPlusTaskOutputInfo Info) : ITaskOutput
-{
-    public async ValueTask Upload(ReceivedTask task, string file, string? postfix)
+    public static async ValueTask UploadResult(ReceivedTask task, string file, string? postfix, CancellationToken cancellationToken)
     {
-        await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(file, task.Id, postfix));
+        await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(file, task.Id, postfix), cancellationToken: cancellationToken);
     }
 }

@@ -113,7 +113,7 @@ public static class FFMpegTasks
     {
         public override PluginType Type => PluginType.FFmpeg;
 
-        protected override async Task Execute(ReceivedTask task, T data, ITaskInput input, ITaskOutput output)
+        protected override async Task ExecuteImpl(ReceivedTask task, T data)
         {
             var outputfile = task.FSOutputFile();
 
@@ -130,7 +130,7 @@ public static class FFMpegTasks
             duration /= rate;
 
             await ExecuteProcess(exepath, args, true, onRead, task);
-            await UploadResult(task, output, outputfile);
+            await UploadResult(task, outputfile);
 
 
             void onRead(bool err, string line)

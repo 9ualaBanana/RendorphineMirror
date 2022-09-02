@@ -6,14 +6,14 @@ namespace Common.Tasks.Model;
 [JsonConverter(typeof(StringEnumConverter))]
 public enum TaskInputType
 {
-    User,
     MPlus,
     DownloadLink,
+    Torrent,
 }
 
 [JsonConverter(typeof(StringEnumConverter))]
 public enum TaskOutputType
 {
-    User,
     MPlus,
+    Torrent,
 }

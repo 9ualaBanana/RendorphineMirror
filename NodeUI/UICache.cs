@@ -31,22 +31,15 @@ public static class UICache
     public static bool IsConnectedToNode { get; private set; }
     public static async Task StartUpdatingState(CancellationToken token = default)
     {
+        var cachefile = Path.Combine(Init.ConfigDirectory, "nodeinfocache");
+
         if (Init.IsDebug)
-            try
-            {
-                var cachefile = Path.Combine(Init.ConfigDirectory, "nodeinfocache");
-                if (File.Exists(cachefile))
-                {
-                    try { JsonConvert.PopulateObject(File.ReadAllText(cachefile), NodeGlobalState.Instance, LocalApi.JsonSettingsWithType); }
-                    catch { }
-                }
+        {
+            NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>
+                File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, LocalApi.JsonSettingsWithType)));
+        }
 
-                NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>
-                    File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, LocalApi.JsonSettingsWithType)));
-            }
-            catch { }
-
-
+        var cacheloaded = !Init.IsDebug; // dont load from cache is not debug
         var consecutive = 0;
         while (true)
         {
@@ -77,6 +70,18 @@ public static class UICache
                 else if (consecutive == 3) _logger.Error($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
 
                 consecutive++;
+
+
+                if (!cacheloaded)
+                {
+                    cacheloaded = true;
+
+                    if (File.Exists(cachefile))
+                    {
+                        try { JsonConvert.PopulateObject(File.ReadAllText(cachefile), NodeGlobalState.Instance, LocalApi.JsonSettingsWithType); }
+                        catch { }
+                    }
+                }
             }
 
             await Task.Delay(1_000).ConfigureAwait(false);

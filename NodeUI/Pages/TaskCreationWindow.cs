@@ -308,11 +308,7 @@ namespace NodeUI.Pages
                 SettingPanel.Children.Clear();
                 if (describer is null) return;
 
-                var obj = new JObject()
-                {
-                    ["$type"] = describer.Object.JsonTypeName,
-                    ["type"] = describer.Type,
-                };
+                var obj = new JObject() { ["type"] = describer.Type, };
                 var parent = new JObject() { [describer.Type] = obj, };
 
                 Setting = Settings.Create(parent.Property(describer.Type)!, describer.Object);
@@ -639,6 +635,7 @@ namespace NodeUI.Pages
             {
                 protected SettingChild(SettingContainer<T> parent) : base(parent.Describer, parent.Property) { }
             }
+
 
             class BoolSetting : Setting<BooleanDescriber>
             {
@@ -1005,6 +1002,8 @@ namespace NodeUI.Pages
 
                     foreach (var field in describer.Fields)
                     {
+                        if (field.Attributes.OfType<HiddenAttribute>().Any()) continue;
+
                         var jsonkey = field.Attributes.OfType<JsonPropertyAttribute>().FirstOrDefault()?.PropertyName ?? field.Name;
                         if (!jobj.ContainsKey(jsonkey))
                             jobj[jsonkey] = new JValue(field.DefaultValue);

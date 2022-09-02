@@ -21,7 +21,7 @@ public static class VectorizerTasks
         public override PluginType Type => PluginType.VeeeVectorizer;
         public override FileFormat FileFormat => FileFormat.Jpeg;
 
-        protected override async Task Execute(ReceivedTask task, VeeeVectorizeInfo data, ITaskInput input, ITaskOutput output)
+        protected override async Task ExecuteImpl(ReceivedTask task, VeeeVectorizeInfo data)
         {
             task.InputFile.ThrowIfNull();
             var outputdir = task.FSOutputDirectory();
@@ -47,7 +47,7 @@ public static class VectorizerTasks
             {
                 // bluenight_dark.250.g.eps > 250.g
                 var postfix = "." + string.Join('.', file.Split('.')[^3..^1]);
-                await UploadResult(task, output, file, postfix);
+                await UploadResult(task, file, postfix);
             }
         }
 

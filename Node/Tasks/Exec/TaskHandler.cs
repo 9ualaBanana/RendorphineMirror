@@ -1,11 +1,7 @@
-using Newtonsoft.Json.Linq;
-
-namespace Node.Tasks.Executor;
+namespace Node.Tasks.Exec;
 
 public static class TaskHandler
 {
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
     /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
     public static void StartListening()
     {
@@ -20,15 +16,16 @@ public static class TaskHandler
 
                 index = Math.Max(index, NodeSettings.QueuedTasks.Bindable.Count - 1);
 
+                var task = NodeSettings.QueuedTasks.Bindable[index];
                 try
                 {
-                    await HandleAsync(NodeSettings.QueuedTasks.Bindable[index]);
+                    await HandleAsync(task);
                     index = 0;
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex.ToString());
-                    _logger.Info("Skipping a task");
+                    task.LogErr(ex);
+                    task.LogInfo("Skipping a task");
                     index++;
                 }
             }
@@ -65,35 +62,6 @@ public static class TaskHandler
             task.StartWatcher();
     }
 
-
-    public static ITaskInput DeserializeInput(this ReceivedTask task) => DeserializeInput(task.Info.Input);
-    public static ITaskOutput DeserializeOutput(this ReceivedTask task) => DeserializeOutput(task.Info.Output);
-
-    static T GetInputOutputType<T>(JObject json) where T : struct, Enum
-    {
-        var token = json.Property("type", StringComparison.OrdinalIgnoreCase)?.Value!;
-
-        if (token.Type == JTokenType.Integer)
-            return Enum.GetValues<T>()[token.Value<int>()];
-        return Enum.Parse<T>(token.Value<string>()!);
-    }
-
-    // TODO: refactor these two somehow
-    public static ITaskInput DeserializeInput(JObject input) =>
-        GetInputOutputType<TaskInputType>(input) switch
-        {
-            TaskInputType.DownloadLink => new DownloadLinkTaskInput(input.ToObject<DownloadLinkTaskInputInfo>()!),
-            TaskInputType.MPlus => new MPlusTaskInput(input.ToObject<MPlusTaskInputInfo>()!),
-            TaskInputType.User => new UserTaskInput(input.ToObject<UserTaskInputInfo>()!),
-            { } type => throw new NotSupportedException($"Task input type {type} is not supported"),
-        };
-    public static ITaskOutput DeserializeOutput(JObject output) =>
-        GetInputOutputType<TaskOutputType>(output) switch
-        {
-            TaskOutputType.MPlus => new MPlusTaskOutput(output.ToObject<MPlusTaskOutputInfo>()!),
-            TaskOutputType.User => new UserTaskOutput(output.ToObject<UserTaskOutputInfo>()!),
-            { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
-        };
 
 
     public static async ValueTask<OperationResult<string>> RegisterOrExecute(TaskCreationInfo info)

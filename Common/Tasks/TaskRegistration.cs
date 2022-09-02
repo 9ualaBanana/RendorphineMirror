@@ -11,15 +11,18 @@ public static class TaskRegistration
     {
         var data = info.Data;
         var taskobj = new TaskObject("3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 12345678);
-        var input = info.Input;
-        var output = info.Output;
+        var input = TaskInputOutputInfo.DeserializeInput(info.Input);
+        var output = TaskInputOutputInfo.DeserializeOutput(info.Output);
+
+        await input.InitializeAsync();
+        await output.InitializeAsync();
 
         var values = new List<(string, string)>()
         {
             ("sessionid", sessionId ?? Settings.SessionId!),
             ("object", JsonConvert.SerializeObject(taskobj, JsonSettings.LowercaseIgnoreNull)),
-            ("input", input.ToString(Formatting.None)),
-            ("output", output.ToString(Formatting.None)),
+            ("input", JsonConvert.SerializeObject(input, JsonSettings.LowercaseIgnoreNull)),
+            ("output", JsonConvert.SerializeObject(output, JsonSettings.LowercaseIgnoreNull)),
             ("data", data.ToString(Formatting.None)),
             ("policy", info.Policy.ToString()),
             ("origin", string.Empty),

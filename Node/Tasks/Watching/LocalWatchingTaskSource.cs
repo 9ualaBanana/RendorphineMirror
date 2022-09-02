@@ -24,7 +24,7 @@ public class LocalWatchingTaskSource : IWatchingTaskSource
             if (!File.Exists(e.FullPath)) return;
 
             var filename = Path.GetFileName(e.FullPath);
-            var info = new UserTaskInputInfo(e.FullPath);
+            var info = new TorrentTaskInputInfo(e.FullPath, link: null!);
             FileAdded?.Invoke(new(filename, info));
         };
 

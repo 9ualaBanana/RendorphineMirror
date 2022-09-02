@@ -12,12 +12,12 @@ public static class EsrganTasks
         public override PluginType Type => PluginType.Python_Esrgan;
         public override FileFormat FileFormat => FileFormat.Jpeg;
 
-        protected override async Task Execute(ReceivedTask task, UpscaleEsrganInfo data, ITaskInput input, ITaskOutput output)
+        protected override async Task ExecuteImpl(ReceivedTask task, UpscaleEsrganInfo data)
         {
             var outputfile = task.FSOutputFile();
 
             await Task.Run(() => ExecutePowerShell(getScript(), false, onRead, task));
-            await UploadResult(task, output, outputfile);
+            await UploadResult(task, outputfile);
 
 
             void onRead(bool err, object obj)

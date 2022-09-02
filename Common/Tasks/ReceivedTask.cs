@@ -12,6 +12,12 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ITas
     public double Progress = 0;
     public string? InputFile;
 
+
+    public ITaskInputInfo Input => _Input ??= TaskInputOutputInfo.DeserializeInput(Info.Input);
+    ITaskInputInfo? _Input;
+    public ITaskOutputInfo Output => _Output ??= TaskInputOutputInfo.DeserializeOutput(Info.Input);
+    ITaskOutputInfo? _Output;
+
     public static string GenerateLocalId() => "local_" + Guid.NewGuid();
 
 
