@@ -30,10 +30,10 @@ namespace Common
         static readonly List<IDatabaseBindable> _Bindables = new();
         public static readonly string DbPath;
 
-        public static string? SessionId => AuthInfo?.SessionId;
-        public static string? Email => AuthInfo?.Email;
-        public static string? Guid => AuthInfo?.Guid;
-        public static string? UserId => AuthInfo?.UserId;
+        public static string SessionId => AuthInfo?.SessionId!;
+        public static string Email => AuthInfo?.Email!;
+        public static string Guid => AuthInfo?.Guid!;
+        public static string UserId => AuthInfo?.UserId!;
         public static bool? IsSlave => AuthInfo?.Slave;
         public static AuthInfo? AuthInfo { get => BAuthInfo.Value; set => BAuthInfo.Value = value; }
 
