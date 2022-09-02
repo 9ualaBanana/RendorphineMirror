@@ -1,8 +1,11 @@
 ﻿namespace Common.Tasks.Model;
 
-public interface ITaskInputOutputInfo
+public interface ITaskInputOutputInfo { }
+public interface ITaskInputInfo : ITaskInputOutputInfo
 {
-    TaskInputOutputType Type { get; }
+    TaskInputType Type { get; }
 }
-public interface ITaskInputInfo : ITaskInputOutputInfo { }
-public interface ITaskOutputInfo : ITaskInputOutputInfo { }
+public interface ITaskOutputInfo : ITaskInputOutputInfo
+{
+    TaskOutputType Type { get; }
+}

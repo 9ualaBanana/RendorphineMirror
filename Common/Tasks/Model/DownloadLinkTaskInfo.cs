@@ -2,7 +2,7 @@
 
 public class DownloadLinkTaskInputInfo : ITaskInputInfo
 {
-    public TaskInputOutputType Type => TaskInputOutputType.DownloadLink;
+    public TaskInputType Type => TaskInputType.DownloadLink;
 
     public readonly string Url;
 

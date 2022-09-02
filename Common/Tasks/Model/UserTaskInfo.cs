@@ -2,7 +2,7 @@ namespace Common.Tasks.Model;
 
 public class UserTaskInputInfo : ITaskInputInfo
 {
-    public TaskInputOutputType Type => TaskInputOutputType.User;
+    public TaskInputType Type => TaskInputType.User;
 
     [LocalFile] public readonly string Path;
 
@@ -10,7 +10,7 @@ public class UserTaskInputInfo : ITaskInputInfo
 }
 public class UserTaskOutputInfo : ITaskOutputInfo
 {
-    public TaskInputOutputType Type => TaskInputOutputType.User;
+    public TaskOutputType Type => TaskOutputType.User;
 
     [LocalDirectory] public readonly string Directory;
     public readonly string FileName;

@@ -69,29 +69,29 @@ public static class TaskHandler
     public static ITaskInput DeserializeInput(this ReceivedTask task) => DeserializeInput(task.Info.Input);
     public static ITaskOutput DeserializeOutput(this ReceivedTask task) => DeserializeOutput(task.Info.Output);
 
-    static TaskInputOutputType GetInputOutputType(JObject json)
+    static T GetInputOutputType<T>(JObject json) where T : struct, Enum
     {
         var token = json.Property("type", StringComparison.OrdinalIgnoreCase)?.Value!;
 
         if (token.Type == JTokenType.Integer)
-            return Enum.GetValues<TaskInputOutputType>()[token.Value<int>()];
-        return Enum.Parse<TaskInputOutputType>(token.Value<string>()!);
+            return Enum.GetValues<T>()[token.Value<int>()];
+        return Enum.Parse<T>(token.Value<string>()!);
     }
 
     // TODO: refactor these two somehow
     public static ITaskInput DeserializeInput(JObject input) =>
-        GetInputOutputType(input) switch
+        GetInputOutputType<TaskInputType>(input) switch
         {
-            TaskInputOutputType.DownloadLink => new DownloadLinkTaskInput(input.ToObject<DownloadLinkTaskInputInfo>()!),
-            TaskInputOutputType.MPlus => new MPlusTaskInput(input.ToObject<MPlusTaskInputInfo>()!),
-            TaskInputOutputType.User => new UserTaskInput(input.ToObject<UserTaskInputInfo>()!),
+            TaskInputType.DownloadLink => new DownloadLinkTaskInput(input.ToObject<DownloadLinkTaskInputInfo>()!),
+            TaskInputType.MPlus => new MPlusTaskInput(input.ToObject<MPlusTaskInputInfo>()!),
+            TaskInputType.User => new UserTaskInput(input.ToObject<UserTaskInputInfo>()!),
             { } type => throw new NotSupportedException($"Task input type {type} is not supported"),
         };
     public static ITaskOutput DeserializeOutput(JObject output) =>
-        GetInputOutputType(output) switch
+        GetInputOutputType<TaskOutputType>(output) switch
         {
-            TaskInputOutputType.MPlus => new MPlusTaskOutput(output.ToObject<MPlusTaskOutputInfo>()!),
-            TaskInputOutputType.User => new UserTaskOutput(output.ToObject<UserTaskOutputInfo>()!),
+            TaskOutputType.MPlus => new MPlusTaskOutput(output.ToObject<MPlusTaskOutputInfo>()!),
+            TaskOutputType.User => new UserTaskOutput(output.ToObject<UserTaskOutputInfo>()!),
             { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
         };
 

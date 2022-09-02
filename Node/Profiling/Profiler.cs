@@ -56,12 +56,12 @@ internal static class Profiler
             ["version"] = MachineInfo.Version,
             ["allowedinputs"] = new JsonObject()
             {
-                [TaskInputOutputType.MPlus.ToString()] = 1,
-                [TaskInputOutputType.DownloadLink.ToString()] = 1,
+                [TaskInputType.MPlus.ToString()] = 1,
+                [TaskInputType.DownloadLink.ToString()] = 1,
             },
             ["allowedoutputs"] = new JsonObject()
             {
-                [TaskInputOutputType.MPlus.ToString()] = 1
+                [TaskOutputType.MPlus.ToString()] = 1
             },
             ["allowedtypes"] = allowedtypes,
             ["pricing"] = new JsonObject()

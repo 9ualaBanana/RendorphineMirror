@@ -23,13 +23,13 @@ public static class TaskList
             var actions = Actions.Select(serialize).ToImmutableArray();
             var inputs = new[]
             {
-                serializeinout<MPlusTaskInputInfo>(TaskInputOutputType.MPlus),
-                serializeinout<UserTaskInputInfo>(TaskInputOutputType.User),
+                serializeinout<MPlusTaskInputInfo>(TaskInputType.MPlus.ToString()),
+                serializeinout<UserTaskInputInfo>(TaskInputType.User.ToString()),
             }.ToImmutableArray();
             var outputs = new[]
             {
-                serializeinout<MPlusTaskOutputInfo>(TaskInputOutputType.MPlus),
-                serializeinout<UserTaskOutputInfo>(TaskInputOutputType.User),
+                serializeinout<MPlusTaskOutputInfo>(TaskOutputType.MPlus.ToString()),
+                serializeinout<UserTaskOutputInfo>(TaskOutputType.User.ToString()),
             }.ToImmutableArray();
             var watchinginputs = new[]
             {
@@ -47,7 +47,7 @@ public static class TaskList
 
 
             static TaskActionDescriber serialize(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
-            static TaskInputOutputDescriber serializeinout<T>(TaskInputOutputType type) => serializeval<T>(type.ToString());
+            static TaskInputOutputDescriber serializeinout<T>(string type) => serializeval<T>(type);
             static TaskInputOutputDescriber serializeval<T>(string name) => new TaskInputOutputDescriber(name, (ObjectDescriber) FieldDescriber.Create(typeof(T)));
         }
     }

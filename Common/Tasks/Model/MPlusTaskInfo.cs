@@ -2,7 +2,7 @@ namespace Common.Tasks.Model;
 
 public class MPlusTaskInputInfo : ITaskInputInfo
 {
-    public TaskInputOutputType Type => TaskInputOutputType.MPlus;
+    public TaskInputType Type => TaskInputType.MPlus;
 
     public readonly string Iid;
 
@@ -10,7 +10,7 @@ public class MPlusTaskInputInfo : ITaskInputInfo
 }
 public class MPlusTaskOutputInfo : ITaskOutputInfo
 {
-    public TaskInputOutputType Type => TaskInputOutputType.MPlus;
+    public TaskOutputType Type => TaskOutputType.MPlus;
 
     [Default("output_file.mov")]
     public readonly string Name;
