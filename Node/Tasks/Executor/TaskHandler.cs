@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Executor;
 
@@ -11,13 +11,26 @@ public static class TaskHandler
     {
         new Thread(async () =>
         {
+            int index = 0;
+
             while (true)
             {
                 await Task.Delay(2_000);
                 if (NodeSettings.QueuedTasks.Count == 0) continue;
 
-                try { await HandleAsync(NodeSettings.QueuedTasks.Bindable[0]); }
-                catch (Exception ex) { _logger.Error(ex.ToString()); }
+                index = Math.Max(index, NodeSettings.QueuedTasks.Bindable.Count - 1);
+
+                try
+                {
+                    await HandleAsync(NodeSettings.QueuedTasks.Bindable[index]);
+                    index = 0;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex.ToString());
+                    _logger.Info("Skipping a task");
+                    index++;
+                }
             }
         })
         { IsBackground = true }.Start();
@@ -82,12 +95,28 @@ public static class TaskHandler
             { } type => throw new NotSupportedException($"Task output type {type} is not supported"),
         };
 
+
+    public static async ValueTask<OperationResult<string>> RegisterOrExecute(TaskCreationInfo info)
+    {
+        OperationResult<string> taskid;
+        if (info.ExecuteLocally)
+        {
+            taskid = ReceivedTask.GenerateLocalId();
+
+            // TODO: fill in TaskObject
+            var tk = new ReceivedTask(taskid.Value, new TaskInfo(new("file.mov", 123), info.Input, info.Output, info.Data), true);
+            NodeSettings.QueuedTasks.Bindable.Add(tk);
+        }
+        else taskid = await TaskRegistration.RegisterAsync(info).ConfigureAwait(false);
+
+        return taskid;
+    }
+
     static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         const int maxattempts = 3;
 
         var state = await task.GetTaskStateAsync();
-        state.LogIfError();
         if (state && state.Value.State is (TaskState.Finished or TaskState.Canceled or TaskState.Failed))
         {
             task.LogInfo($"Invalid task state: {state.Value.State}, removing");
@@ -123,5 +152,10 @@ public static class TaskHandler
         }
 
         task.LogErr($"Could not execute this task after {maxattempts} attempts");
+        if (task.ExecuteLocally)
+        {
+            task.LogInfo("Since this task is local, removing it");
+            NodeSettings.QueuedTasks.Bindable.Remove(task);
+        }
     }
 }

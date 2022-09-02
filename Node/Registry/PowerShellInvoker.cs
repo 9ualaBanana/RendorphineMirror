@@ -1,12 +1,40 @@
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
+using Node.Plugins.Deployment;
 
 namespace Node.Registry;
 
 public static class PowerShellInvoker
 {
-    public static IReadOnlyCollection<PSObject> Invoke(string script)
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
+    public static IReadOnlyCollection<PSObject> InstallPlugin(PluginToDeploy plugin, string script, bool deleteInstaller)
+    {
+        string pldownload = null!;
+        var invok = Invoke(script, setVars);
+
+        if (deleteInstaller && Directory.Exists(pldownload))
+            Directory.Delete(pldownload, true);
+
+        return invok;
+
+
+        void setVars(PowerShell psh)
+        {
+            var prox = psh.Runspace.SessionStateProxy;
+            var plugintype = plugin.Type.ToString().ToLowerInvariant();
+            var pluginver = plugin.Version;
+            Path.GetInvalidFileNameChars().ToList().ForEach(x => pluginver = pluginver.Replace(x, '_'));
+
+            prox.SetVariable("PLTORRENT", plugintype + "." + pluginver);
+
+            prox.SetVariable("PLDOWNLOAD", pldownload = Path.Combine(prox.GetVariable("DOWNLOADS").ToString()!, plugintype, pluginver));
+            prox.SetVariable("PLINSTALL", Path.Combine(prox.GetVariable("PLUGINS").ToString()!, plugintype, pluginver));
+        }
+    }
+
+    public static IReadOnlyCollection<PSObject> Invoke(string script, Action<PowerShell>? runspaceModifFunc = null)
     {
         var runspace = RunspaceFactory.CreateRunspace();
         // TODO: restrictions on commands?
@@ -16,6 +44,7 @@ public static class PowerShellInvoker
         AddVariables(runspace);
 
         var psh = PowerShell.Create(runspace);
+        runspaceModifFunc?.Invoke(psh);
 
         psh.AddStatement()
             .AddCommand("Import-Module")
@@ -41,7 +70,7 @@ public static class PowerShellInvoker
 
         prox.SetVariable("PLUGINS", Path.GetFullPath("plugins"));
 
-        prox.SetVariable("DOWNLOADS", DownloadsDirectoryPath);
+        prox.SetVariable("DOWNLOADS", Path.Combine(DownloadsDirectoryPath, "renderphin_plugins"));
         prox.SetVariable("LOCALAPPDATA", Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
         // TODO: other
     }

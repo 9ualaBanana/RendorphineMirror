@@ -17,20 +17,25 @@ public class DownloadTorrentCmdlet : PSCmdlet
     protected override void ProcessRecord()
     {
         base.ProcessRecord();
-        ProcessAsync().Wait();
+        Download(Name, TargetPath).Wait();
     }
-    async Task ProcessAsync()
+
+
+    public static async Task Download(string name, string targetdir)
     {
-        Console.WriteLine("DOWNLOADING TORRENT " + Name + " TO " + TargetPath);
+        Console.WriteLine("DOWNLOADING TORRENT " + name + " TO " + targetdir);
         var peer = (await LocalApi.Send<JsonPeer>(Settings.RegistryUrl, "getpeer")).ThrowIfError();
 
         using var torrentstreamcopy = new MemoryStream();
-        using (var torrentstream = await new HttpClient().GetStreamAsync($"{Settings.RegistryUrl}/gettorrent?plugin={Name}"))
+        using (var torrentstream = await new HttpClient().GetStreamAsync($"{Settings.RegistryUrl}/gettorrent?plugin={name}"))
             await torrentstream.CopyToAsync(torrentstreamcopy);
 
         torrentstreamcopy.Position = 0;
-        var manager = await TorrentClient.AddOrGetTorrent(await Torrent.LoadAsync(torrentstreamcopy), TargetPath); // TODO: move IP declaration into registry or something 
-        await manager.AddPeerAsync(new Peer(BEncodedString.FromUrlEncodedString(peer.PeerId), new Uri("ipv4://135.125.237.7:" + peer.Port)));
+        var manager = await TorrentClient.AddOrGetTorrent(await Torrent.LoadAsync(torrentstreamcopy), targetdir);
+
+        // TODO:                                                                                     move IP declaration into registry or something 
+        foreach (var port in peer.Ports)
+            await manager.AddPeerAsync(new Peer(BEncodedString.FromUrlEncodedString(peer.PeerId), new Uri("ipv4://135.125.237.7:" + port)));
         // " + Settings.RegistryUrl.Split('/')[^1].Split(':')[0] + "
 
         while (true)

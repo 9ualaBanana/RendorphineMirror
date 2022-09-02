@@ -184,6 +184,8 @@ namespace NodeUI.Pages
                         Spacing = 20,
                         Children =
                         {
+                            new InstallPluginPanel(),
+                            new Panel() { Background = Colors.Black, Width = 400, },
                             NamedList.Create("Software stats", UICache.SoftwareStats, softToControl),
                             NamedList.Create("Our plugins", NodeGlobalState.Instance.InstalledPlugins, pluginToControl),
                         },
@@ -207,6 +209,49 @@ namespace NodeUI.Pages
                     };
                 }
                 IControl pluginToControl(Plugin plugin) => new TextBlock() { Text = $"{plugin.Type} {plugin.Version}: {plugin.Path}" };
+            }
+
+
+            class InstallPluginPanel : Panel
+            {
+                readonly object Bindable;
+
+                public InstallPluginPanel()
+                {
+                    var versionslist = TypedComboBox.Create(Array.Empty<string>());
+                    versionslist.SelectedIndex = 0;
+
+                    var pluginslist = TypedComboBox.Create(Array.Empty<string>());
+                    pluginslist.SelectionChanged += (obj, e) => versionslist.Items = UICache.SoftwareStats[Enum.Parse<PluginType>(pluginslist.SelectedItem ?? PluginType.FFmpeg.ToString())].ByVersion.Select(x => x.Key).ToArray();
+                    pluginslist.SelectedIndex = 0;
+
+                    var cp = UICache.SoftwareStats.GetBoundCopy();
+                    cp.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+                    {
+                        pluginslist.Items = UICache.SoftwareStats.Select(x => x.Key.ToString()).ToArray();
+                        pluginslist.SelectedIndex = pluginslist.SelectedIndex;
+                    }), true);
+                    Bindable = cp;
+
+                    /*var plugintb = new TextBox() { Text = "Plugin name" };*/
+                    var versiontb = new TextBox() { Text = "Plugin version" };
+                    var installbtn = new MPButton()
+                    {
+                        Text = "Install plugin",
+                        OnClickSelf = async self =>
+                        {
+                            var res = await LocalApi.Send($"deploy?type={HttpUtility.UrlEncode(pluginslist.SelectedItem)}&version={HttpUtility.UrlEncode(versionslist.SelectedItem)}");
+                            if (!res) await self.TemporarySetText("err " + res.AsString());
+                        },
+                    };
+
+                    var panel = new StackPanel()
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Children = { pluginslist, versionslist, installbtn },
+                    };
+                    Children.Add(panel);
+                }
             }
         }
         class TasksTab : Panel
@@ -494,14 +539,7 @@ namespace NodeUI.Pages
                 });
 
 
-                static async Task setTextTimed(MPButton button, string text, int duration)
-                {
-                    var prevtext = button.Text;
-                    button.Text = text;
-
-                    await Task.Delay(2_000);
-                    button.Text = prevtext;
-                }
+                static Task setTextTimed(MPButton button, string text, int duration) => button.TemporarySetText(text, duration);
                 async void addSoft(MPButton button)
                 {
                     var softname = "NewSoftTodo";

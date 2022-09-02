@@ -11,9 +11,10 @@ public class TaskCreationInfo
     public JObject Output = default!;
     public JObject Data = default!;
     public TaskPolicy Policy = TaskPolicy.AllNodes;
+    public bool ExecuteLocally = false;
 
     public TaskCreationInfo() { }
-    public TaskCreationInfo(PluginType type, string? version, string action, JObject input, JObject output, JObject data, TaskPolicy policy = TaskPolicy.AllNodes, bool executeLocally = false)
+    public TaskCreationInfo(PluginType type, string? version, string action, JObject input, JObject output, JObject data, TaskPolicy policy = TaskPolicy.AllNodes)
     {
         Type = type;
         Version = version;
@@ -22,10 +23,8 @@ public class TaskCreationInfo
         Output = output;
         Data = data;
         Policy = policy;
-
-        if (executeLocally) Policy = TaskPolicy.OwnNodes;
     }
-    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, object data, TaskPolicy policy = TaskPolicy.AllNodes, bool executeLocally = false)
+    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, object data, TaskPolicy policy = TaskPolicy.AllNodes)
     {
         Type = pluginType;
         Version = pluginVersion;
@@ -34,7 +33,5 @@ public class TaskCreationInfo
         Output = JObject.FromObject(output, JsonSettings.LowercaseS);
         Data = JObject.FromObject(data, JsonSettings.LowercaseIgnoreNullS).WithProperty("type", action);
         Policy = policy;
-
-        if (executeLocally) Policy = TaskPolicy.OwnNodes;
     }
 }

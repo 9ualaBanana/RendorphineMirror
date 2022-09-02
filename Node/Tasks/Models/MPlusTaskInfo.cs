@@ -26,8 +26,8 @@ public record MPlusTaskInput(MPlusTaskInputInfo Info) : ITaskInput
 }
 public record MPlusTaskOutput(MPlusTaskOutputInfo Info) : ITaskOutput
 {
-    public async ValueTask Upload(ReceivedTask task, string file)
+    public async ValueTask Upload(ReceivedTask task, string file, string? postfix)
     {
-        await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(file, task.Id));
+        await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(file, task.Id, postfix));
     }
 }

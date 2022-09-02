@@ -36,32 +36,42 @@ public class UserUploadSessionData : UploadSessionData
             ["sessionid"] = Settings.SessionId!,
             ["name"] = File.Name,
             ["size"] = File.Length.ToString(),
-            ["extension"] = File.Extension
+            ["extension"] = File.Extension,
         });
 }
 
 public class MPlusUploadSessionData : UploadSessionData
 {
     public readonly string TaskId;
+    public readonly string? Postfix;
 
-    internal MPlusUploadSessionData(string filePath, string taskId)
-        : this(new FileInfo(filePath), taskId)
+    internal MPlusUploadSessionData(string filePath, string taskId, string? postfix)
+        : this(new FileInfo(filePath), taskId, postfix)
     {
     }
 
-    public MPlusUploadSessionData(FileInfo file, string taskId) : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
+    public MPlusUploadSessionData(FileInfo file, string taskId, string? postfix) : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
     {
         TaskId = taskId;
+        Postfix = postfix;
     }
 
-    public override FormUrlEncodedContent HttpContent => new(
-        new Dictionary<string, string>()
+    public override FormUrlEncodedContent HttpContent
+    {
+        get
         {
-            ["sessionid"] = Settings.SessionId!,
-            ["taskid"] = TaskId,
-            ["fsize"] = File.Length.ToString(),
-            ["mimetype"] = "video/mp4",
-            ["lastmodified"] = File.LastWriteTimeUtc.ToBinary().ToString(),
-            ["origin"] = string.Empty
-        });
+            var dict = new Dictionary<string, string>()
+            {
+                ["sessionid"] = Settings.SessionId!,
+                ["taskid"] = TaskId,
+                ["fsize"] = File.Length.ToString(),
+                ["mimetype"] = "video/mp4",
+                ["lastmodified"] = File.LastWriteTimeUtc.ToBinary().ToString(),
+                ["origin"] = string.Empty,
+            };
+
+            if (Postfix is not null) dict["postfix"] = Postfix;
+            return new(dict);
+        }
+    }
 }

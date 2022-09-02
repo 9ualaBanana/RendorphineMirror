@@ -1,6 +1,7 @@
 using System.Net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Node.Plugins.Deployment;
 using Node.Profiling;
 
 namespace Node.Listeners;
@@ -51,6 +52,15 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
+        if (path == "deploy")
+        {
+            return await Test(request, response, "type", "version", async (type, version) =>
+            {
+                new ScriptPluginDeploymentInfo(new PluginToDeploy() { Type = Enum.Parse<PluginType>(type, true), Version = version }).DeployAsync().Consume();
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
 
         return HttpStatusCode.NotFound;
     }
@@ -63,7 +73,7 @@ public class LocalListener : ExecutableListenerBase
         if (path == "starttask")
         {
             var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-            var taskid = await TaskRegistration.RegisterAsync(task);
+            var taskid = await TaskHandler.RegisterOrExecute(task);
 
             return await WriteJson(response, taskid).ConfigureAwait(false);
         }

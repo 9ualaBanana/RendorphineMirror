@@ -45,17 +45,16 @@ namespace NodeToUI
 
         public static async Task<bool> IsPortOpenAndListening(string host, int port, CancellationToken token = default)
         {
-            var task = new TaskCompletionSource<bool>(true);
-
-            var ar = new SocketAsyncEventArgs() { RemoteEndPoint = new IPEndPoint(IPAddress.Loopback, port) };
-            ar.Completed += (obj, e) =>
+            try
             {
-                task.SetResult(e.SocketError == SocketError.Success);
-                ar.Dispose();
-            };
-            Socket.ConnectAsync(SocketType.Stream, ProtocolType.Tcp, ar);
+                using var client = new TcpClient();
+                await client.ConnectAsync(host, port, token);
 
-            return await task.Task;
+                return true;
+            }
+            catch { }
+
+            return false;
         }
     }
 }

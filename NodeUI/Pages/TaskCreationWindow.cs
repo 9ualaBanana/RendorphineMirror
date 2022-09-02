@@ -163,15 +163,31 @@ namespace NodeUI.Pages
 
             public override void Initialize()
             {
-                var list = TypedListBox.Create(Enum.GetValues<TaskPolicy>(), t => new TextBlock() { Text = t.ToString() });
+                var list = TypedListBox.Create(Enum.GetValues<LocallablePolicy>(), t => new TextBlock() { Text = t.ToString() });
                 list.SelectionChanged += (obj, e) =>
                 {
                     OnChoose?.Invoke(list.SelectedItems.Count != 0);
-                    Builder.Policy = list.SelectedItem;
+
+                    Builder.Policy = list.SelectedItem switch
+                    {
+                        LocallablePolicy.Local => TaskPolicy.SameNode,
+                        _ => (TaskPolicy) list.SelectedItem,
+                    };
+
+                    Builder.ExecuteLocally = list.SelectedItem == LocallablePolicy.Local;
                 };
 
                 Children.Add(list);
                 Dispatcher.UIThread.Post(() => list.SelectedIndex = 0);
+            }
+
+
+            enum LocallablePolicy
+            {
+                AllNodes = TaskPolicy.AllNodes,
+                OwnNodes = TaskPolicy.OwnNodes,
+                SameNode = TaskPolicy.SameNode,
+                Local,
             }
         }
         abstract class ChoosePluginPart : TaskPart

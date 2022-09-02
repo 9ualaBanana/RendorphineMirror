@@ -20,6 +20,17 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
         await task.ChangeStateAsync(TaskState.Active);
         await Execute(task, data, inputobj, outputobj).ConfigureAwait(false);
+
+        await NotifyReepoOfTaskCompletion(task);
+    }
+
+    static async Task NotifyReepoOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
+    {
+        if (task.ExecuteLocally) return;
+
+        var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
+        try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
+        catch (Exception ex) { task.LogErr("Error sending result to reepo: " + ex); }
     }
 
     // TODO: something about multiple outputs ????
