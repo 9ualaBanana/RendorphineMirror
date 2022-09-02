@@ -12,9 +12,10 @@ public class MachineInfo : IEquatable<MachineInfo>
     public string Version { get; set; } = null!;
     public string IP { get; init; } = null!;
     public string Port { get; init; } = null!;
+    public string WebServerPort { get; init; } = null!;
     public HashSet<Plugin> InstalledPlugins { get; init; } = null!;
 
-    public string BriefInfoMDv2 => $"*{NodeName}* {PCName} (v.*{Version}*) | *{IP}:{Port}* | *{IP}:{Port}/helloworld*";
+    public string BriefInfoMDv2 => $"*{NodeName}* {PCName} (v.*{Version}*) | *{IP}:{Port}* | *{IP}:{WebServerPort}/*";
 
     public MachineInfo WithVersionUpdatedTo(string version) { Version = version; return this; }
 

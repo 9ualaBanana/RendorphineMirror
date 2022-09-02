@@ -42,6 +42,7 @@ public record MachineInfo
         Version,
         IP = (await GetPublicIPAsync()).ToString(),
         Port,
+        WebServerPort,
         InstalledPlugins = await DiscoverInstalledPluginsInBackground(),
     });
 }
