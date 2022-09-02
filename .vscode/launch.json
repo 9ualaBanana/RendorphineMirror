@@ -66,6 +66,18 @@
             "stopAtEntry": false
         },
         {
+            "name": "Tracker",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildtracker",
+            "program": "${workspaceFolder}/TorrentTracker/bin/Debug/net6.0/TorrentTracker.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
             "name": "Pinger",
             "type": "coreclr",
             "request": "launch",

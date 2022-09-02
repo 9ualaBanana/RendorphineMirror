@@ -35,6 +35,17 @@
             ]
         },
         {
+            "label": "buildtracker",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/TorrentTracker/TorrentTracker.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ]
+        },
+        {
             "label": "buildpinger",
             "command": "dotnet",
             "type": "process",

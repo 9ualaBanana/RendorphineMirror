@@ -21,6 +21,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeToUI", "NodeToUI\NodeTo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telegram", "Telegram\Telegram.csproj", "{0F791DCA-1471-4EEF-AC9E-F6F223254968}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorrentTracker", "TorrentTracker\TorrentTracker.csproj", "{4C7F6898-5AFE-4D8B-89D9-6AB8DD7A30E1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +65,10 @@ Global
 		{0F791DCA-1471-4EEF-AC9E-F6F223254968}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0F791DCA-1471-4EEF-AC9E-F6F223254968}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0F791DCA-1471-4EEF-AC9E-F6F223254968}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C7F6898-5AFE-4D8B-89D9-6AB8DD7A30E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C7F6898-5AFE-4D8B-89D9-6AB8DD7A30E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C7F6898-5AFE-4D8B-89D9-6AB8DD7A30E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C7F6898-5AFE-4D8B-89D9-6AB8DD7A30E1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
