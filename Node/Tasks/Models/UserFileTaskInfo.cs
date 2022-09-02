@@ -4,7 +4,8 @@ public record UserTaskInput(UserTaskInputInfo Info) : ITaskInput
 {
     public ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
-        if (task.ExecuteLocally) return Info.Path.AsVTask();
+        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
+            return Info.Path.AsVTask();
 
         throw new NotImplementedException();
     }
@@ -18,7 +19,7 @@ public record UserTaskOutput(UserTaskOutputInfo Info) : ITaskOutput
 {
     public ValueTask Upload(ReceivedTask task, string file, string? postfix)
     {
-        if (task.ExecuteLocally)
+        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
         {
             var filename = Path.GetFileNameWithoutExtension(Info.FileName) + postfix + Path.GetExtension(Info.FileName);
 

@@ -22,7 +22,8 @@ public class DebugListener : ExecutableListenerBase
         }
         if (path == "addtask")
         {
-            var task = new ReceivedTask("verylongtaskid", new TaskInfo(new TaskObject("filename", 798798), new() { ["type"] = "MPlus" }, new() { ["type"] = "MPlus" }, new() { ["type"] = "EditVideo", ["hflip"] = true }), true);
+            var task = new ReceivedTask("verylongtaskid", new TaskInfo(new TaskObject("filename", 798798), new() { ["type"] = "MPlus" }, new() { ["type"] = "MPlus" }, new() { ["type"] = "EditVideo", ["hflip"] = true },
+                TaskPolicy.SameNode, Settings.Guid), true);
             NodeGlobalState.Instance.ExecutingTasks.Add(task);
 
             _ = Task.Delay(5000).ContinueWith(_ => NodeGlobalState.Instance.ExecutingTasks.Remove(task));

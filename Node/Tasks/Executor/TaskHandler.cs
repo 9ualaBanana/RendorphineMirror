@@ -104,7 +104,7 @@ public static class TaskHandler
             taskid = ReceivedTask.GenerateLocalId();
 
             // TODO: fill in TaskObject
-            var tk = new ReceivedTask(taskid.Value, new TaskInfo(new("file.mov", 123), info.Input, info.Output, info.Data), true);
+            var tk = new ReceivedTask(taskid.Value, new TaskInfo(new("file.mov", 123), info.Input, info.Output, info.Data, TaskPolicy.SameNode, Settings.Guid), true);
             NodeSettings.QueuedTasks.Bindable.Add(tk);
         }
         else taskid = await TaskRegistration.RegisterAsync(info).ConfigureAwait(false);
