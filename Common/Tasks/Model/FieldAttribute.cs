@@ -37,13 +37,3 @@ public class ArrayRangedAttribute : DescriberAttributeBase
         Max = max;
     }
 }
-
-public class ArrayItemAttribute : DescriberAttributeBase
-{
-    public readonly Attribute[] Attributes;
-
-    public ArrayItemAttribute(Attribute[] attributes)
-    {
-        Attributes = attributes;
-    }
-}
