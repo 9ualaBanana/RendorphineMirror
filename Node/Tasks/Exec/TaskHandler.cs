@@ -5,21 +5,14 @@ public static class TaskHandler
     public static IEnumerable<ITaskHandler> HandlerList => Handlers.Values;
     static readonly Dictionary<TaskInputOutputType, ITaskHandler> Handlers = new();
 
-    static TaskHandler()
-    {
-        AddHandler(new MPlusTaskHandler());
-        AddHandler(new DownloadLinkTaskHandler());
-        AddHandler(new TorrentTaskHandler());
-    }
 
-
-    public static void InitializePlacedTasks()
+    public static async ValueTask InitializePlacedTasksAsync()
     {
         foreach (var task in NodeSettings.PlacedTasks)
-        {
-
-        }
+            await InitializePlacedTask(task);
     }
+    public static ValueTask InitializePlacedTask(DbTaskFullState task) =>
+        task.TryGetHandler<IPlacedTaskInitializationHandler>()?.InitializeAsync(task) ?? ValueTask.CompletedTask;
 
     /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
     public static void StartListening()
@@ -74,8 +67,8 @@ public static class TaskHandler
         async ValueTask check(DbTaskFullState task)
         {
             if (task.State == TaskState.Finished) return;
-            if (!Handlers.TryGetValue(task.Output.Type, out var _handler) || _handler is not ITaskCompletionCheckHandler handler)
-                return;
+            var handler = task.TryGetHandler<IPlacedTaskCompletionCheckHandler>();
+            if (handler is null) return;
 
             try
             {
@@ -85,6 +78,8 @@ public static class TaskHandler
                 task.LogInfo("Completed");
                 (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
                 task.State = TaskState.Finished;
+
+                await (task.TryGetHandler<IPlacedTaskOnCompletedHandler>()?.OnCompleted(task) ?? ValueTask.CompletedTask);
             }
             catch (Exception ex) when (ex.Message.Contains("no task with such "))
             {
@@ -167,10 +162,13 @@ public static class TaskHandler
 
 
     public static void AddHandler(ITaskHandler handler) => Handlers.Add(handler.Type, handler);
+    public static void AddHandlers(params ITaskHandler[] handlers)
+    {
+        foreach (var handler in handlers)
+            AddHandler(handler);
+    }
 
-    public static ITaskInputHandler? TryGetInputHandler(this ReceivedTask task) => Handlers[task.Input.Type] as ITaskInputHandler;
-    public static ITaskOutputHandler? TryGetOutputHandler(this ReceivedTask task) => Handlers[task.Output.Type] as ITaskOutputHandler;
-    public static ITaskCompletionCheckHandler? TryGetCompletionHandler(this ReceivedTask task) => Handlers[task.Output.Type] as ITaskCompletionCheckHandler;
+    static T? TryGetHandler<T>(this ReceivedTask task) where T : class, ITaskHandler => Handlers[task.Output.Type] as T;
 
     public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => (ITaskInputHandler) Handlers[task.Input.Type];
     public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => (ITaskOutputHandler) Handlers[task.Output.Type];

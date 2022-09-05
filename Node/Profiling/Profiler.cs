@@ -39,7 +39,7 @@ internal static class Profiler
         return _cachedProfile = new FormUrlEncodedContent(payloadContent);
     }
 
-    static async Task<string> SerializeNodeProfileAsync()   
+    static async Task<string> SerializeNodeProfileAsync()
     {
         var allowedtypes = new JsonObject();
         foreach (var plugin in await MachineInfo.DiscoverInstalledPluginsInBackground().ConfigureAwait(false))
@@ -54,17 +54,8 @@ internal static class Profiler
             ["nickname"] = Settings.NodeName,
             ["guid"] = Settings.Guid,
             ["version"] = MachineInfo.Version,
-            ["allowedinputs"] = new JsonObject()
-            {
-                [nameof(TaskInputOutputType.MPlus)] = 1,
-                [nameof(TaskInputOutputType.DownloadLink)] = 1,
-                [nameof(TaskInputOutputType.Torrent)] = 1,
-            },
-            ["allowedoutputs"] = new JsonObject()
-            {
-                [nameof(TaskInputOutputType.MPlus)] = 1,
-                [nameof(TaskInputOutputType.Torrent)] = 1,
-            },
+            ["allowedinputs"] = new JsonObject(),
+            ["allowedoutputs"] = new JsonObject(),
             ["allowedtypes"] = allowedtypes,
             ["pricing"] = new JsonObject()
             {
@@ -77,6 +68,11 @@ internal static class Profiler
             },
             ["software"] = JsonSerializer.SerializeToNode(await BuildSoftwarePayloadAsync()),
         };
+
+        foreach (var handler in TaskHandler.HandlerList.OfType<ITaskInputHandler>())
+            obj["allowedinputs"]![handler.Type.ToString()] = 1;
+        foreach (var handler in TaskHandler.HandlerList.OfType<ITaskOutputHandler>())
+            obj["allowedoutputs"]![handler.Type.ToString()] = 1;
 
         if (_benchmarkResults is not null)
             obj["hardware"] = JsonSerializer.SerializeToNode(_benchmarkResults);

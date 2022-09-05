@@ -2,7 +2,7 @@ using Node.P2P.Upload;
 
 namespace Node.Tasks.Models;
 
-public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler, ITaskCompletionCheckHandler
+public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTaskCompletionCheckHandler
 {
     public TaskInputOutputType Type => TaskInputOutputType.MPlus;
 

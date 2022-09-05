@@ -26,12 +26,14 @@ public static class TaskInputOutputInfo
             createObject<MPlusTaskInputInfo>(),
             createObject<DownloadLinkTaskInputInfo>(),
             createObject<TorrentTaskInputInfo>(),
+            createObject<UserTaskInputInfo>(),
         }.ToImmutableDictionary(x => x.Type, x => x.GetType());
 
         Outputs = new ITaskOutputInfo[]
         {
             createObject<MPlusTaskOutputInfo>(),
             createObject<TorrentTaskOutputInfo>(),
+            createObject<UserTaskOutputInfo>(),
         }.ToImmutableDictionary(x => x.Type, x => x.GetType());
 
 

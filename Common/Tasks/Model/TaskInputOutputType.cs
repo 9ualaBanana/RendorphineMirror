@@ -9,4 +9,5 @@ public enum TaskInputOutputType
     MPlus,
     DownloadLink,
     Torrent,
+    User,
 }

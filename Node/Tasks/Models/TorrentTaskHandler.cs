@@ -1,18 +1,22 @@
 using MonoTorrent;
+using MonoTorrent.Client;
 
 namespace Node.Tasks.Models;
 
-public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
+public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTaskInitializationHandler, IPlacedTaskOnCompletedHandler
 {
     public TaskInputOutputType Type => TaskInputOutputType.Torrent;
+
+    readonly Dictionary<string, TorrentManager> Torrents = new();
 
     public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (TorrentTaskInputInfo) task.Input;
+        info.Link.ThrowIfNull();
 
         if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
         {
-            // TODO: remove after testin
+            // TODO: remove comment after testin
             // return info.Path;
         }
 
@@ -23,6 +27,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
         return Directory.GetFiles(dir).Single();
     }
+
     public async ValueTask UploadResult(ReceivedTask task, string file, string? postfix, CancellationToken cancellationToken)
     {
         var info = (TorrentTaskOutputInfo) task.Output;
@@ -47,5 +52,22 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
         info.Link = manager.MagnetLink.ToV1String();
 
         TorrentClient.SaveTorrent(manager);
+    }
+
+    public async ValueTask InitializeAsync(DbTaskFullState task)
+    {
+        var input = (TorrentTaskInputInfo) task.Input;
+        var magnet = MagnetLink.FromUri(new Uri(input.Link.ThrowIfNull()));
+
+        var manager = await TorrentClient.StartMagnet(magnet, Path.GetDirectoryName(input.Path)!);
+        Torrents.Add(task.Id, manager);
+    }
+
+    public async ValueTask OnCompleted(DbTaskFullState task)
+    {
+        if (!Torrents.TryGetValue(task.Id, out var manager)) return;
+
+        await manager.StopAsync(TimeSpan.FromSeconds(5));
+        Torrents.Remove(task.Id);
     }
 }
