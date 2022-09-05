@@ -24,7 +24,7 @@ public class NodeController : ControllerBase
 
         await userNodes.GetOrAdd(
             nodeInfo.UserId,
-            new NodeSupervisor(loggerFactory.CreateLogger<NodeSupervisor>(), configuration, bot, users)
+            _ => new NodeSupervisor(loggerFactory.CreateLogger<NodeSupervisor>(), configuration, bot, users)
             ).UpdateNodeStatusAsync(nodeInfo);
     }
 
