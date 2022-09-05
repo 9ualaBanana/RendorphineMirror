@@ -1,27 +1,23 @@
 ﻿using System.Runtime.Serialization;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Common.Tasks.Model;
 
-public interface ITaskInputOutputInfo { }
-public interface ITaskInputInfo : ITaskInputOutputInfo
+public interface ITaskInputOutputInfo
 {
-    TaskInputType Type { get; }
+    TaskInputOutputType Type { get; }
 
     ValueTask InitializeAsync() => ValueTask.CompletedTask;
 }
-public interface ITaskOutputInfo : ITaskInputOutputInfo
-{
-    TaskOutputType Type { get; }
-
-    ValueTask InitializeAsync() => ValueTask.CompletedTask;
-}
+public interface ITaskInputInfo : ITaskInputOutputInfo { }
+public interface ITaskOutputInfo : ITaskInputOutputInfo { }
 
 
 public static class TaskInputOutputInfo
 {
-    public static ImmutableDictionary<TaskInputType, ITaskInputInfo> Inputs;
-    public static ImmutableDictionary<TaskOutputType, ITaskOutputInfo> Outputs;
+    public static ImmutableDictionary<TaskInputOutputType, Type> Inputs;
+    public static ImmutableDictionary<TaskInputOutputType, Type> Outputs;
 
     static TaskInputOutputInfo()
     {
@@ -30,13 +26,15 @@ public static class TaskInputOutputInfo
             createObject<MPlusTaskInputInfo>(),
             createObject<DownloadLinkTaskInputInfo>(),
             createObject<TorrentTaskInputInfo>(),
-        }.ToImmutableDictionary(x => x.Type);
+            createObject<UserTaskInputInfo>(),
+        }.ToImmutableDictionary(x => x.Type, x => x.GetType());
 
         Outputs = new ITaskOutputInfo[]
         {
             createObject<MPlusTaskOutputInfo>(),
             createObject<TorrentTaskOutputInfo>(),
-        }.ToImmutableDictionary(x => x.Type);
+            createObject<UserTaskOutputInfo>(),
+        }.ToImmutableDictionary(x => x.Type, x => x.GetType());
 
 
         // this should return valid object for getting only the .Type property
@@ -45,6 +43,6 @@ public static class TaskInputOutputInfo
     }
 
 
-    public static ITaskInputInfo DeserializeInput(JObject input) => TaskInputOutputInfo.Inputs[input["type"]!.Value<TaskInputType>()];
-    public static ITaskOutputInfo DeserializeOutput(JObject output) => TaskInputOutputInfo.Outputs[output["type"]!.Value<TaskOutputType>()];
+    public static ITaskInputInfo DeserializeInput(JObject input) => (ITaskInputInfo) input.ToObject(TaskInputOutputInfo.Inputs[input["type"]!.ToObject<TaskInputOutputType>()])!;
+    public static ITaskOutputInfo DeserializeOutput(JObject output) => (ITaskOutputInfo) output.ToObject(TaskInputOutputInfo.Outputs[output["type"]!.ToObject<TaskInputOutputType>()])!;
 }

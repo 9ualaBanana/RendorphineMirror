@@ -17,6 +17,8 @@ using Node.Plugins.Discoverers;
 using Node.Profiling;
 using Node.UserSettings;
 
+var ae = await Apis.GetMyTasksAsync(TaskState.Finished, null, Settings.SessionId);
+
 var halfrelease = args.Contains("release");
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
@@ -124,6 +126,8 @@ Task.WhenAll(Enum.GetValues<TaskState>().Select(s => Apis.GetMyTasksAsync(s).The
 
 
 TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Bindable.Add;
+
+await TaskHandler.InitializePlacedTasksAsync();
 TaskHandler.StartUpdatingTaskState();
 TaskHandler.StartWatchingTasks();
 TaskHandler.StartListening();
@@ -145,8 +149,15 @@ async Task InitializePlugins()
         new VeeeVectorizerPluginDiscoverer()
     );
 
+    TaskHandler.AddHandlers(
+        new MPlusTaskHandler(),
+        new DownloadLinkTaskHandler(),
+        new TorrentTaskHandler()
+    );
+
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
     Task.Run(() => logger.Info($"Found {{Plugins}} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {Path.GetFullPath(x.Path)}"))}", plugins.Count)).Consume();
+
 }
 async ValueTask AuthWithGui()
 {

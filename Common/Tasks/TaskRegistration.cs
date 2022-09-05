@@ -1,11 +1,12 @@
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Common.Tasks;
 
 public static class TaskRegistration
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-    public static event Action<PlacedTask> TaskRegistered = delegate { };
+    public static event Action<DbTaskFullState> TaskRegistered = delegate { };
 
     public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, string? sessionId = default)
     {
@@ -33,36 +34,18 @@ public static class TaskRegistration
             values.Add(("software", JsonConvert.SerializeObject(soft, JsonSettings.LowercaseIgnoreNull)));
         }
 
-        _logger.Info("Registering task: {Task}", JsonConvert.SerializeObject(info));
+        _logger.Info("Registering task: {Task}", string.Join("; ", values.Skip(1).Select(x => x.Item1 + ": " + x.Item2)));
         var idr = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
         var id = idr.ThrowIfError();
 
         _logger.Info("Task registered with ID {Id}", id);
-        TaskRegistered(new PlacedTask(id, info));
-        return id;
-    }
-
-    /// <summary> Checks task state and sets it to Finished if completed </summary>
-    public static async ValueTask CheckCompletion(PlacedTask task)
-    {
-        if (task.State == TaskState.Finished) return;
-
-        var stater = await task.GetTaskStateAsync();
-        var state = stater.ThrowIfError();
-        task.State = state.State;
-
-        if (state.State != TaskState.Output) return;
-
-        // if upload is completed
-        if (state.Output["ingesterhost"] is not null)
+        var placed = new DbTaskFullState(id, Settings.Guid, info.Policy, taskobj, JObject.FromObject(input), JObject.FromObject(output), data)
         {
-            task.LogInfo("Completed");
-            await task.ChangeStateAsync(TaskState.Finished);
-            task.State = TaskState.Finished;
+            UserId = Settings.UserId,
+            Registered = (ulong) DateTimeOffset.Now.ToUnixTimeSeconds(),
+        };
+        TaskRegistered(placed);
 
-            return;
-        }
-
-        // TODO: /\ works only for MPlus output; do for others
+        return id;
     }
 }

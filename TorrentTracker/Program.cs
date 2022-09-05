@@ -11,6 +11,9 @@ var logger = LogManager.GetCurrentClassLogger();
 
 var tracker = new TrackerServer();
 
+tracker.PeerAnnounced += (obj, e) => logger.Info($"PeerAnnounced {e.Peer}");
+tracker.PeerTimedOut += (obj, e) => logger.Info($"PeerTimedOut {e.Peer}");
+
 const int port = 5120;
 var listener = TrackerListenerFactory.CreateHttp(port);
 tracker.RegisterListener(listener);

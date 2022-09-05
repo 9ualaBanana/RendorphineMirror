@@ -294,7 +294,7 @@ namespace NodeUI.Pages
                         },
                     };
                 }
-                IControl placedTasksCreate(PlacedTask task)
+                IControl placedTasksCreate(DbTaskFullState task)
                 {
                     var statustb = new TextBlock();
                     var statusbtn = new MPButton()
@@ -315,7 +315,7 @@ namespace NodeUI.Pages
 
                     return new Expander()
                     {
-                        Header = $"{task.Id} {task.Info.Type} {task.Info.Action}",
+                        Header = $"{task.Id} {task.GetPlugin()} {task.Action}",
                         Content = new StackPanel()
                         {
                             Orientation = Orientation.Vertical,

@@ -1,23 +1,19 @@
-using MonoTorrent;
-using Newtonsoft.Json;
-
 namespace Common.Tasks.Model;
 
 public class TorrentTaskInputInfo : ITaskInputInfo
 {
-    public TaskInputType Type => TaskInputType.Torrent;
+    public TaskInputOutputType Type => TaskInputOutputType.Torrent;
 
-    [Hidden] public string Link;
+    [Hidden] public string? Link;
     [LocalFile] public readonly string Path;
 
-    [JsonConstructor] public TorrentTaskInputInfo() => Link = Path = null!;
-    public TorrentTaskInputInfo(string path, string link)
+    public TorrentTaskInputInfo(string path, string? link = null)
     {
         Path = path;
         Link = link;
     }
 
-    async ValueTask ITaskInputInfo.InitializeAsync()
+    async ValueTask ITaskInputOutputInfo.InitializeAsync()
     {
         if (Link is not null) return;
 
@@ -27,14 +23,7 @@ public class TorrentTaskInputInfo : ITaskInputInfo
 }
 public class TorrentTaskOutputInfo : ITaskOutputInfo
 {
-    public TaskOutputType Type => TaskOutputType.Torrent;
+    public TaskInputOutputType Type => TaskInputOutputType.Torrent;
 
-    [LocalDirectory] public readonly string Directory;
-    public readonly string FileName;
-
-    public TorrentTaskOutputInfo(string directory, string fileName)
-    {
-        Directory = directory;
-        FileName = fileName;
-    }
+    [Hidden] public string? Link;
 }

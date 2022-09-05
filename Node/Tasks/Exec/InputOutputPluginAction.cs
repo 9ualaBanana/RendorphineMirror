@@ -11,7 +11,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
         await task.ChangeStateAsync(TaskState.Input);
         task.LogInfo($"Downloading input...");
-        var input = await TaskInputOutput.Download(task, default).ConfigureAwait(false);
+        var input = await TaskHandler.Download(task, default).ConfigureAwait(false);
         task.InputFile = input;
         task.LogInfo($"Input downloaded to {input}");
 

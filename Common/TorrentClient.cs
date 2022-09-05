@@ -8,6 +8,7 @@ namespace Common
     public static class TorrentClient
     {
         readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+        static readonly string SavedTorrentsDirectory = Path.Combine(Init.ConfigDirectory, "torrents");
 
         public static ushort DhtPort => Settings.DhtPort;
         public static ushort ListenPort => Settings.TorrentPort;
@@ -15,9 +16,12 @@ namespace Common
 
         static readonly TorrentCreator Creator = new TorrentCreator() { CreatedBy = "Renderphin v" + Init.Version };
         public static readonly ClientEngine Client;
+        static readonly Settings.DatabaseValueList<string> SavedTorrents;
 
         static TorrentClient()
         {
+            SavedTorrents = new(nameof(SavedTorrents));
+
             var esettings = new EngineSettingsBuilder()
             {
                 DhtPort = DhtPort,
@@ -26,6 +30,24 @@ namespace Common
             Client = new ClientEngine(esettings.ToSettings());
         }
 
+
+        /// <summary> Save the torrent for it to start after node restart </summary>
+        public static void SaveTorrent(TorrentManager manager) => SavedTorrents.Bindable.Add(manager.MagnetLink.ToV1String());
+
+        // unsave is a stupid name but names like DeleteTorrent would be ambiguous
+        public static void UnsaveTorrent(TorrentManager manager) => SavedTorrents.Bindable.Remove(manager.MagnetLink.ToV1String());
+
+        public static IEnumerable<MagnetLink> GetSavedTorrents() => SavedTorrents.Bindable.Select(uri => MagnetLink.FromUri(new Uri(uri)));
+
+
+        public static Task<TorrentManager> StartMagnet(string magnet, string targetdir) => StartMagnet(MagnetLink.FromUri(new Uri(magnet)), targetdir);
+        public static async Task<TorrentManager> StartMagnet(MagnetLink magnet, string targetdir)
+        {
+            var manager = await Client.AddAsync(magnet, targetdir);
+            await manager.StartAsync();
+
+            return manager;
+        }
 
         public static Task<byte[]> CreateTorrent(string directory) => CreateTorrent(new TorrentFileSource(directory));
         public static async Task<byte[]> CreateTorrent(ITorrentFileSource source) => (await Creator.CreateAsync(source)).Encode();
@@ -37,7 +59,7 @@ namespace Common
             var manager = Client.Torrents.FirstOrDefault(x => x.InfoHash == torrent.InfoHash);
             if (manager is null) manager = await AddOrGetTorrent(torrent, Path.GetFullPath(Path.Combine(directory, ".."))).ConfigureAwait(false);
 
-            if (addTracker) await manager.TrackerManager.AddTrackerAsync(new Uri("https://t.microstock.plus/"));
+            if (addTracker) await manager.TrackerManager.AddTrackerAsync(new Uri("https://t.microstock.plus:5120"));
             return (data, manager);
         }
 
@@ -64,6 +86,20 @@ namespace Common
 
             await manager.HashCheckAsync(autoStart: true).ConfigureAwait(false);
             return manager;
+        }
+
+        public static async Task WaitForCompletion(TorrentManager manager, CancellationToken token = default)
+        {
+            while (true)
+            {
+                if (token.IsCancellationRequested) return;
+
+                await Task.Delay(2000);
+                if (manager.Progress == 100 || manager.State == TorrentState.Seeding)
+                    break;
+            }
+
+            await manager.StopAsync(TimeSpan.FromSeconds(10));
         }
     }
 }

@@ -2,6 +2,18 @@ namespace Node.Tasks.Exec;
 
 public static class TaskHandler
 {
+    public static IEnumerable<ITaskHandler> HandlerList => Handlers.Values;
+    static readonly Dictionary<TaskInputOutputType, ITaskHandler> Handlers = new();
+
+
+    public static async ValueTask InitializePlacedTasksAsync()
+    {
+        foreach (var task in NodeSettings.PlacedTasks)
+            await InitializePlacedTask(task);
+    }
+    public static ValueTask InitializePlacedTask(DbTaskFullState task) =>
+        task.TryGetHandler<IPlacedTaskInitializationHandler>()?.InitializeAsync(task) ?? ValueTask.CompletedTask;
+
     /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
     public static void StartListening()
     {
@@ -41,12 +53,8 @@ public static class TaskHandler
             {
                 foreach (var task in NodeSettings.PlacedTasks.Bindable.ToArray())
                 {
-                    try { await TaskRegistration.CheckCompletion(task); }
-                    catch (Exception ex) when (ex.Message.Contains("no task with such "))
-                    {
-                        task.LogErr("Placed task does not exists on the server, removing");
-                        NodeSettings.PlacedTasks.Bindable.Remove(task);
-                    }
+                    try { await check(task); }
+                    catch (Exception ex) { task.LogErr(ex); }
                 }
 
                 NodeSettings.PlacedTasks.Save();
@@ -54,6 +62,31 @@ public static class TaskHandler
             }
         })
         { IsBackground = true }.Start();
+
+
+        async ValueTask check(DbTaskFullState task)
+        {
+            if (task.State == TaskState.Finished) return;
+            var handler = task.TryGetHandler<IPlacedTaskCompletionCheckHandler>();
+            if (handler is null) return;
+
+            try
+            {
+                var completed = await handler.CheckCompletion(task);
+                if (!completed) return;
+
+                task.LogInfo("Completed");
+                (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
+                task.State = TaskState.Finished;
+
+                await (task.TryGetHandler<IPlacedTaskOnCompletedHandler>()?.OnCompleted(task) ?? ValueTask.CompletedTask);
+            }
+            catch (Exception ex) when (ex.Message.Contains("no task with such "))
+            {
+                task.LogErr("Placed task does not exists on the server, removing");
+                NodeSettings.PlacedTasks.Bindable.Remove(task);
+            }
+        }
     }
 
     public static void StartWatchingTasks()
@@ -79,7 +112,6 @@ public static class TaskHandler
 
         return taskid;
     }
-
     static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         const int maxattempts = 3;
@@ -126,4 +158,24 @@ public static class TaskHandler
             NodeSettings.QueuedTasks.Bindable.Remove(task);
         }
     }
+
+
+
+    public static void AddHandler(ITaskHandler handler) => Handlers.Add(handler.Type, handler);
+    public static void AddHandlers(params ITaskHandler[] handlers)
+    {
+        foreach (var handler in handlers)
+            AddHandler(handler);
+    }
+
+    static T? TryGetHandler<T>(this ReceivedTask task) where T : class, ITaskHandler => Handlers[task.Output.Type] as T;
+
+    public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => (ITaskInputHandler) Handlers[task.Input.Type];
+    public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => (ITaskOutputHandler) Handlers[task.Output.Type];
+
+    public static ValueTask<string> Download(ReceivedTask task, CancellationToken token = default) =>
+        task.GetInputHandler().Download(task, token);
+
+    public static ValueTask UploadResult(ReceivedTask task, string file, string? postfix, CancellationToken token = default) =>
+        task.GetOutputHandler().UploadResult(task, file, postfix, token);
 }
