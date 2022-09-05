@@ -18,37 +18,33 @@ public class TelegramChatMemberUpdatedHandler : TelegramUpdateHandler
         Logger.LogDebug("Dispatching {ChatMemberUpdated}...", nameof(ChatMemberUpdated));
 
         var chatMemberUpdate = update.MyChatMember!;
-        if (BotIsAddedToChat(chatMemberUpdate))
-        { await HandleBotIsAddedToChatAsync(chatMemberUpdate); return; }
-        else if (BotIsRemovedFromChat(chatMemberUpdate))
+        //if (BotIsAddedToChat(chatMemberUpdate))
+        //{ await HandleBotIsAddedToChatAsync(chatMemberUpdate); return; }
+        if (BotIsRemovedFromChat(chatMemberUpdate))
         { HandleBotIsRemovedFromChat(chatMemberUpdate); return; }
     }
 
-    async Task HandleBotIsAddedToChatAsync(ChatMemberUpdated chatMemberUpdate)
-    {
-        var subscriber = chatMemberUpdate.Chat.Id;
+    //async Task HandleBotIsAddedToChatAsync(ChatMemberUpdated chatMemberUpdate)
+    //{
+    //    var subscriber = chatMemberUpdate.Chat.Id;
 
-        var subscribersCount = Bot.Subscriptions.Count;
-        Bot.Subscriptions.Add(subscriber);
+    //    var subscribersCount = Bot.Subscriptions.Count;
+    //    Bot.Subscriptions.Add(subscriber);
 
-        if (Bot.Subscriptions.Count == subscribersCount)
-        { Logger.LogError("New subscriber wasn't added"); return; }
-        else
-            Logger.LogInformation("New subscriber was added: {Subscriber}", subscriber);
+    //    if (Bot.Subscriptions.Count == subscribersCount)
+    //    { Logger.LogError("New subscriber wasn't added"); return; }
+    //    else
+    //        Logger.LogInformation("New subscriber was added: {Subscriber}", subscriber);
 
-        const string message = "You are subscribed to events now. Remove me from the chat to unsubscribe.";
-        await Bot.TrySendMessageAsync(subscriber, message);
-    }
+    //    const string message = "You are subscribed to events now. Remove me from the chat to unsubscribe.";
+    //    await Bot.TrySendMessageAsync(subscriber, message);
+    //}
 
     void HandleBotIsRemovedFromChat(ChatMemberUpdated chatMemberUpdate)
     {
         var subscriber = chatMemberUpdate.Chat.Id;
-        var subscribersCount = Bot.Subscriptions.Count;
-        Bot.Subscriptions.Remove(subscriber);
 
-        if (Bot.Subscriptions.Count == subscribersCount)
-            Logger.LogError("Subscriber wasn't removed");
-        else
+        if (Bot.Subscriptions.Remove(subscriber))
             Logger.LogInformation("Subscriber was removed: {Subscriber}", subscriber);
     }
 

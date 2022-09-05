@@ -58,6 +58,9 @@ public class TelegramChatIdAuthenticator
         {
             var authenticatedUser = await AuthenticateAsync(credentials);
             _authenticatedUsers.Add(credentials.ChatId, new(credentials.ChatId, authenticatedUser.UserId, authenticatedUser.SessionId));
+            if (authenticatedUser.IsAdmin)
+                _bot.Subscriptions.Add(long.Parse(credentials.ChatId!));
+
             _logger.LogDebug("User is authenticated: {Login}", credentials.Login);
             return true;
         }
