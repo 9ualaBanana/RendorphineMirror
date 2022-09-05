@@ -33,7 +33,7 @@ public static class TaskRegistration
             values.Add(("software", JsonConvert.SerializeObject(soft, JsonSettings.LowercaseIgnoreNull)));
         }
 
-        _logger.Info("Registering task: {Task}", JsonConvert.SerializeObject(info));
+        _logger.Info("Registering task: {Task}", string.Join("; ", values.Skip(1).Select(x => x.Item1 + ": " + x.Item2)));
         var idr = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
         var id = idr.ThrowIfError();
 
@@ -45,6 +45,8 @@ public static class TaskRegistration
     /// <summary> Checks task state and sets it to Finished if completed </summary>
     public static async ValueTask CheckCompletion(PlacedTask task)
     {
+        
+
         if (task.State == TaskState.Finished) return;
 
         var stater = await task.GetTaskStateAsync();

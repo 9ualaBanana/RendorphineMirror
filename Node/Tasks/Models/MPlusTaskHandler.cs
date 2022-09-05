@@ -2,9 +2,11 @@ using Node.P2P.Upload;
 
 namespace Node.Tasks.Models;
 
-public class MPlusTaskInfo
+public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler, ITaskCompletionCheckHandler
 {
-    public static async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
+    public TaskInputOutputType Type => TaskInputOutputType.MPlus;
+
+    public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var fformat = TaskList.GetAction(task.Info).FileFormat;
         var format = fformat.ToString().ToLowerInvariant();
@@ -21,8 +23,22 @@ public class MPlusTaskInfo
 
         return fileName;
     }
-    public static async ValueTask UploadResult(ReceivedTask task, string file, string? postfix, CancellationToken cancellationToken)
+    public async ValueTask UploadResult(ReceivedTask task, string file, string? postfix, CancellationToken cancellationToken)
     {
         await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(file, task.Id, postfix), cancellationToken: cancellationToken);
+    }
+
+    public async ValueTask<bool> CheckCompletion(PlacedTask task)
+    {
+        if (task.State == TaskState.Finished) return false;
+
+        var stater = await task.GetTaskStateAsync();
+        var state = stater.ThrowIfError();
+        task.State = state.State;
+
+        if (state.State != TaskState.Output) return false;
+
+        // not null if upload is completed
+        return state.Output["ingesterhost"] is not null;
     }
 }

@@ -1,8 +1,10 @@
 namespace Node.Tasks.Models;
 
-public class DownloadLinkTaskInfo
+public class DownloadLinkTaskHandler : ITaskInputHandler
 {
-    public static async ValueTask<string> LinkDownload(ReceivedTask task, CancellationToken cancellationToken)
+    public TaskInputOutputType Type => TaskInputOutputType.DownloadLink;
+
+    public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (DownloadLinkTaskInputInfo) task.Input;
 

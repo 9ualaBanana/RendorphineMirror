@@ -2,10 +2,10 @@ namespace Node.Tasks.Watching;
 
 public class LocalWatchingTaskOutputInfo : IWatchingTaskOutputInfo
 {
-    public TaskOutputType Type => TaskOutputType.MPlus;
+    public TaskInputOutputType Type => TaskInputOutputType.MPlus;
     [LocalDirectory] public readonly string Directory;
 
     public LocalWatchingTaskOutputInfo(string directory) => Directory = directory;
 
-    public ITaskOutputInfo CreateOutput(string file) => new TorrentTaskOutputInfo(Directory, file);
+    public ITaskOutputInfo CreateOutput(string file) => new TorrentTaskOutputInfo(/*Directory, file*/); // TODO: ????????????????
 }

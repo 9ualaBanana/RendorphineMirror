@@ -2,6 +2,25 @@ namespace Node.Tasks.Exec;
 
 public static class TaskHandler
 {
+    public static IEnumerable<ITaskHandler> HandlerList => Handlers.Values;
+    static readonly Dictionary<TaskInputOutputType, ITaskHandler> Handlers = new();
+
+    static TaskHandler()
+    {
+        AddHandler(new MPlusTaskHandler());
+        AddHandler(new DownloadLinkTaskHandler());
+        AddHandler(new TorrentTaskHandler());
+    }
+
+
+    public static void InitializePlacedTasks()
+    {
+        foreach (var task in NodeSettings.PlacedTasks)
+        {
+            
+        }
+    }
+
     /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
     public static void StartListening()
     {
@@ -39,8 +58,12 @@ public static class TaskHandler
         {
             while (true)
             {
+                var noncompleted = await Apis.GetMyTasksAsync(TaskState)
+
                 foreach (var task in NodeSettings.PlacedTasks.Bindable.ToArray())
                 {
+
+                    
                     try { await TaskRegistration.CheckCompletion(task); }
                     catch (Exception ex) when (ex.Message.Contains("no task with such "))
                     {
@@ -79,7 +102,6 @@ public static class TaskHandler
 
         return taskid;
     }
-
     static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         const int maxattempts = 3;
@@ -126,4 +148,21 @@ public static class TaskHandler
             NodeSettings.QueuedTasks.Bindable.Remove(task);
         }
     }
+
+
+
+    public static void AddHandler(ITaskHandler handler) => Handlers.Add(handler.Type, handler);
+
+    public static ITaskInputHandler? TryGetInputHandler(this ReceivedTask task) => Handlers[task.Input.Type] as ITaskInputHandler;
+    public static ITaskOutputHandler? TryGetOutputHandler(this ReceivedTask task) => Handlers[task.Output.Type] as ITaskOutputHandler;
+    public static ITaskCompletionCheckHandler? TryGetCompletionHandler(this ReceivedTask task) => Handlers[task.Output.Type] as ITaskCompletionCheckHandler;
+
+    public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => (ITaskInputHandler) Handlers[task.Input.Type];
+    public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => (ITaskOutputHandler) Handlers[task.Output.Type];
+
+    public static ValueTask<string> Download(ReceivedTask task, CancellationToken token = default) =>
+        task.GetInputHandler().Download(task, token);
+
+    public static ValueTask UploadResult(ReceivedTask task, string file, string? postfix, CancellationToken token = default) =>
+        task.GetOutputHandler().UploadResult(task, file, postfix, token);
 }

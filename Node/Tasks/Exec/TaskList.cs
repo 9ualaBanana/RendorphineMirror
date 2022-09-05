@@ -23,13 +23,13 @@ public static class TaskList
             var actions = Actions.Select(serialize).ToImmutableArray();
             var inputs = new[]
             {
-                serializeinout<MPlusTaskInputInfo>(nameof(TaskInputType.MPlus)),
-                serializeinout<TorrentTaskInputInfo>(nameof(TaskInputType.Torrent)),
+                serializeinout<MPlusTaskInputInfo>(nameof(TaskInputOutputType.MPlus)),
+                serializeinout<TorrentTaskInputInfo>(nameof(TaskInputOutputType.Torrent)),
             }.ToImmutableArray();
             var outputs = new[]
             {
-                serializeinout<MPlusTaskOutputInfo>(nameof(TaskOutputType.MPlus)),
-                serializeinout<TorrentTaskOutputInfo>(nameof(TaskOutputType.Torrent)),
+                serializeinout<MPlusTaskOutputInfo>(nameof(TaskInputOutputType.MPlus)),
+                serializeinout<TorrentTaskOutputInfo>(nameof(TaskInputOutputType.Torrent)),
             }.ToImmutableArray();
             var watchinginputs = new[]
             {

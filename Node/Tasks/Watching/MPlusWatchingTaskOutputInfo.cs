@@ -2,7 +2,7 @@ namespace Node.Tasks.Watching;
 
 public class MPlusWatchingTaskOutputInfo : IWatchingTaskOutputInfo
 {
-    public TaskInputType Type => TaskInputType.MPlus;
+    public TaskInputOutputType Type => TaskInputOutputType.MPlus;
     public readonly string Directory;
 
     public MPlusWatchingTaskOutputInfo(string directory) => Directory = directory;

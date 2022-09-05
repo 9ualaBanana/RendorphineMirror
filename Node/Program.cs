@@ -124,6 +124,8 @@ Task.WhenAll(Enum.GetValues<TaskState>().Select(s => Apis.GetMyTasksAsync(s).The
 
 
 TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Bindable.Add;
+
+TaskHandler.InitializePlacedTasks();
 TaskHandler.StartUpdatingTaskState();
 TaskHandler.StartWatchingTasks();
 TaskHandler.StartListening();
