@@ -30,13 +30,10 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler, ITaskComp
 
     public async ValueTask<bool> CheckCompletion(DbTaskFullState task)
     {
-        if (task.State == TaskState.Finished) return false;
-
         var state = (await task.GetTaskStateAsync()).ThrowIfError();
         task.State = state.State;
-        if (state.State != TaskState.Output) return false;
 
         // not null if upload is completed
-        return state.Output["ingesterhost"] is not null;
+        return state.State == TaskState.Output && state.Output["ingesterhost"] is not null;
     }
 }

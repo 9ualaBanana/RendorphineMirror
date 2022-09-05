@@ -17,7 +17,7 @@ public static class TaskHandler
     {
         foreach (var task in NodeSettings.PlacedTasks)
         {
-            
+
         }
     }
 
@@ -60,14 +60,8 @@ public static class TaskHandler
             {
                 foreach (var task in NodeSettings.PlacedTasks.Bindable.ToArray())
                 {
-                    
-                    
-                    try { await TaskRegistration.CheckCompletion(task); }
-                    catch (Exception ex) when (ex.Message.Contains("no task with such "))
-                    {
-                        task.LogErr("Placed task does not exists on the server, removing");
-                        NodeSettings.PlacedTasks.Bindable.Remove(task);
-                    }
+                    try { await check(task); }
+                    catch (Exception ex) { task.LogErr(ex); }
                 }
 
                 NodeSettings.PlacedTasks.Save();
@@ -75,6 +69,29 @@ public static class TaskHandler
             }
         })
         { IsBackground = true }.Start();
+
+
+        async ValueTask check(DbTaskFullState task)
+        {
+            if (task.State == TaskState.Finished) return;
+            if (!Handlers.TryGetValue(task.Output.Type, out var _handler) || _handler is not ITaskCompletionCheckHandler handler)
+                return;
+
+            try
+            {
+                var completed = await handler.CheckCompletion(task);
+                if (!completed) return;
+
+                task.LogInfo("Completed");
+                (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
+                task.State = TaskState.Finished;
+            }
+            catch (Exception ex) when (ex.Message.Contains("no task with such "))
+            {
+                task.LogErr("Placed task does not exists on the server, removing");
+                NodeSettings.PlacedTasks.Bindable.Remove(task);
+            }
+        }
     }
 
     public static void StartWatchingTasks()

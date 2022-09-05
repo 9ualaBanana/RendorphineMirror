@@ -20,8 +20,8 @@ public static class Apis
         LocalApi.Send<ImmutableDictionary<string, SoftwareDefinition>>(Settings.RegistryUrl, "getsoft")
         .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
 
-    public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this ITask task, string? sessionId = default) => GetTaskStateAsync(task.Id, sessionId);
-    public static async ValueTask<OperationResult> ChangeStateAsync(this ITask task, TaskState state, string? sessionId = default)
+    public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this ReceivedTask task, string? sessionId = default) => GetTaskStateAsync(task.Id, sessionId);
+    public static async ValueTask<OperationResult> ChangeStateAsync(this ReceivedTask task, TaskState state, string? sessionId = default)
     {
         task.LogInfo($"State changed to {state}");
         if (task.ExecuteLocally) return true;

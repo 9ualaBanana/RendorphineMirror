@@ -39,35 +39,13 @@ public static class TaskRegistration
         var id = idr.ThrowIfError();
 
         _logger.Info("Task registered with ID {Id}", id);
-        var placed = new DbTaskFullState(id, Settings.UserId, (ulong) DateTimeOffset.Now.ToUnixTimeSeconds(), Settings.Guid, info.Policy, TaskState.Queued, 0, taskobj, JObject.FromObject(input), JObject.FromObject(output), data, null);
+        var placed = new DbTaskFullState(id, Settings.Guid, info.Policy, taskobj, JObject.FromObject(input), JObject.FromObject(output), data)
+        {
+            UserId = Settings.UserId,
+            Registered = (ulong) DateTimeOffset.Now.ToUnixTimeSeconds(),
+        };
         TaskRegistered(placed);
 
         return id;
-    }
-
-    /// <summary> Checks task state and sets it to Finished if completed </summary>
-    public static async ValueTask CheckCompletion(PlacedTask task)
-    {
-
-
-        if (task.State == TaskState.Finished) return;
-
-        var stater = await task.GetTaskStateAsync();
-        var state = stater.ThrowIfError();
-        task.State = state.State;
-
-        if (state.State != TaskState.Output) return;
-
-        // if upload is completed
-        if (state.Output["ingesterhost"] is not null)
-        {
-            task.LogInfo("Completed");
-            await task.ChangeStateAsync(TaskState.Finished);
-            task.State = TaskState.Finished;
-
-            return;
-        }
-
-        // TODO: /\ works only for MPlus output; do for others
     }
 }
