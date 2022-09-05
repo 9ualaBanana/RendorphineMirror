@@ -1,11 +1,12 @@
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Common.Tasks;
 
 public static class TaskRegistration
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-    public static event Action<PlacedTask> TaskRegistered = delegate { };
+    public static event Action<DbTaskFullState> TaskRegistered = delegate { };
 
     public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, string? sessionId = default)
     {
@@ -38,14 +39,16 @@ public static class TaskRegistration
         var id = idr.ThrowIfError();
 
         _logger.Info("Task registered with ID {Id}", id);
-        TaskRegistered(new PlacedTask(id, info));
+        var placed = new DbTaskFullState(id, Settings.UserId, (ulong) DateTimeOffset.Now.ToUnixTimeSeconds(), Settings.Guid, info.Policy, TaskState.Queued, 0, taskobj, JObject.FromObject(input), JObject.FromObject(output), data, null);
+        TaskRegistered(placed);
+
         return id;
     }
 
     /// <summary> Checks task state and sets it to Finished if completed </summary>
     public static async ValueTask CheckCompletion(PlacedTask task)
     {
-        
+
 
         if (task.State == TaskState.Finished) return;
 

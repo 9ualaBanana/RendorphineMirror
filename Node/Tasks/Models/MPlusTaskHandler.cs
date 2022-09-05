@@ -28,14 +28,12 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler, ITaskComp
         await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(file, task.Id, postfix), cancellationToken: cancellationToken);
     }
 
-    public async ValueTask<bool> CheckCompletion(PlacedTask task)
+    public async ValueTask<bool> CheckCompletion(DbTaskFullState task)
     {
         if (task.State == TaskState.Finished) return false;
 
-        var stater = await task.GetTaskStateAsync();
-        var state = stater.ThrowIfError();
+        var state = (await task.GetTaskStateAsync()).ThrowIfError();
         task.State = state.State;
-
         if (state.State != TaskState.Output) return false;
 
         // not null if upload is completed

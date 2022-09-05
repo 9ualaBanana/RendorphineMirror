@@ -6,7 +6,7 @@ public static class NodeSettings
 {
     public static readonly DatabaseValueList<ReceivedTask> QueuedTasks;
     public static readonly DatabaseValueList<WatchingTask> WatchingTasks;
-    public static readonly DatabaseValueList<PlacedTask> PlacedTasks;
+    public static readonly DatabaseValueList<DbTaskFullState> PlacedTasks;
     public static readonly DatabaseValueSplitDictionary<string, CompletedTask> CompletedTasks;
 
     static NodeSettings()

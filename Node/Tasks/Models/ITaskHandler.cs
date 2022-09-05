@@ -16,5 +16,5 @@ public interface ITaskOutputHandler : ITaskHandler
 public interface ITaskCompletionCheckHandler : ITaskHandler
 {
     /// <summary> Check tasks for completion and returns true if task needs to be set to Finished </summary>
-    ValueTask<bool> CheckCompletion(PlacedTask task);
+    ValueTask<bool> CheckCompletion(DbTaskFullState task);
 }

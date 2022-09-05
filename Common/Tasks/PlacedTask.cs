@@ -1,6 +1,6 @@
 namespace Common.Tasks;
 
-public record PlacedTask(string Id, TaskCreationInfo Info) : ITask
+public record PlacedTaske(string Id, TaskCreationInfo Info) : ITask
 {
     string ILoggable.LogName => $"Task {Id}";
     public TaskState State = TaskState.Input;

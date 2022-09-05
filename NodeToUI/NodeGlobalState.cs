@@ -16,7 +16,7 @@ public class NodeGlobalState
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
     public readonly BindableList<ReceivedTask> QueuedTasks = new();
     public readonly BindableList<ReceivedTask> ExecutingTasks = new();
-    public readonly BindableList<PlacedTask> PlacedTasks = new();
+    public readonly BindableList<DbTaskFullState> PlacedTasks = new();
     public readonly BindableList<WatchingTaskInfo> WatchingTasks = new();
 
 

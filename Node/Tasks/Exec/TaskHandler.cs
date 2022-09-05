@@ -58,11 +58,9 @@ public static class TaskHandler
         {
             while (true)
             {
-                var noncompleted = await Apis.GetMyTasksAsync(TaskState)
-
                 foreach (var task in NodeSettings.PlacedTasks.Bindable.ToArray())
                 {
-
+                    
                     
                     try { await TaskRegistration.CheckCompletion(task); }
                     catch (Exception ex) when (ex.Message.Contains("no task with such "))
