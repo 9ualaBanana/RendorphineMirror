@@ -15,10 +15,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
         info.Link.ThrowIfNull();
 
         if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
-        {
-            // TODO: remove comment after testin
-            // return info.Path;
-        }
+            return info.Path;
 
 
         var dir = task.FSInputDirectory();
@@ -50,12 +47,13 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
         post.ThrowIfError();
 
         info.Link = manager.MagnetLink.ToV1String();
-
-        TorrentClient.SaveTorrent(manager);
+        NodeSettings.QueuedTasks.Save();
     }
 
-    public async ValueTask InitializeAsync(DbTaskFullState task)
+    public async ValueTask InitializePlacedTaskAsync(DbTaskFullState task)
     {
+        task.LogInfo("Starting torrent upload");
+
         var input = (TorrentTaskInputInfo) task.Input;
         var magnet = MagnetLink.FromUri(new Uri(input.Link.ThrowIfNull()));
 
@@ -63,7 +61,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
         Torrents.Add(task.Id, manager);
     }
 
-    public async ValueTask OnCompleted(DbTaskFullState task)
+    public async ValueTask OnPlacedTaskCompleted(DbTaskFullState task)
     {
         if (!Torrents.TryGetValue(task.Id, out var manager)) return;
 

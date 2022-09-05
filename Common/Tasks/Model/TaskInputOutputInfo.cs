@@ -43,6 +43,6 @@ public static class TaskInputOutputInfo
     }
 
 
-    public static ITaskInputInfo DeserializeInput(JObject input) => (ITaskInputInfo) input.ToObject(TaskInputOutputInfo.Inputs[input["type"]!.ToObject<TaskInputOutputType>()])!;
-    public static ITaskOutputInfo DeserializeOutput(JObject output) => (ITaskOutputInfo) output.ToObject(TaskInputOutputInfo.Outputs[output["type"]!.ToObject<TaskInputOutputType>()])!;
+    public static ITaskInputInfo DeserializeInput(JObject input) => (ITaskInputInfo) input.ToObject(TaskInputOutputInfo.Inputs[input.GetValue("type", StringComparison.OrdinalIgnoreCase)!.ToObject<TaskInputOutputType>()])!;
+    public static ITaskOutputInfo DeserializeOutput(JObject output) => (ITaskOutputInfo) output.ToObject(TaskInputOutputInfo.Outputs[output.GetValue("type", StringComparison.OrdinalIgnoreCase)!.ToObject<TaskInputOutputType>()])!;
 }

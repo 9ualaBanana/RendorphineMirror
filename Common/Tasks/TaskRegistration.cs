@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Common.Tasks;
 
@@ -39,7 +38,7 @@ public static class TaskRegistration
         var id = idr.ThrowIfError();
 
         _logger.Info("Task registered with ID {Id}", id);
-        var placed = new DbTaskFullState(id, Settings.Guid, info.Policy, taskobj, JObject.FromObject(input), JObject.FromObject(output), data)
+        var placed = new DbTaskFullState(id, Settings.Guid, info.Policy, taskobj, input, output, data)
         {
             UserId = Settings.UserId,
             Registered = (ulong) DateTimeOffset.Now.ToUnixTimeSeconds(),

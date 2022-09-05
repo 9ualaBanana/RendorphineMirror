@@ -13,10 +13,8 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
     public string? InputFile;
 
 
-    public ITaskInputInfo Input => _Input ??= TaskInputOutputInfo.DeserializeInput(Info.Input);
-    ITaskInputInfo? _Input;
-    public ITaskOutputInfo Output => _Output ??= TaskInputOutputInfo.DeserializeOutput(Info.Output);
-    ITaskOutputInfo? _Output;
+    public ITaskInputInfo Input => Info.Input;
+    public ITaskOutputInfo Output => Info.Output;
 
     public static string GenerateLocalId() => "local_" + Guid.NewGuid();
 

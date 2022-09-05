@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Common.Tasks;
@@ -12,6 +13,9 @@ public record DbTaskFullState : ReceivedTask
     public TaskServer? Server { get; init; }
     public TaskState State = TaskState.Queued;
 
+    [JsonConstructor]
     public DbTaskFullState(string id, string originGuid, TaskPolicy launchPolicy, TaskObject @object, JObject input, JObject output, JObject data)
+        : base(id, new TaskInfo(@object, input, output, data, launchPolicy, originGuid), false) { }
+    public DbTaskFullState(string id, string originGuid, TaskPolicy launchPolicy, TaskObject @object, ITaskInputInfo input, ITaskOutputInfo output, JObject data)
         : base(id, new TaskInfo(@object, input, output, data, launchPolicy, originGuid), false) { }
 }

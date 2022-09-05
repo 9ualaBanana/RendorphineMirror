@@ -13,7 +13,7 @@ public static class NodeSettings
     {
         QueuedTasks = new(nameof(QueuedTasks));
         WatchingTasks = new(nameof(WatchingTasks));
-        PlacedTasks = new(nameof(PlacedTasks));
+        PlacedTasks = new("PlacedTasks2");
         CompletedTasks = new(nameof(CompletedTasks));
 
         WatchingTasks.Bindable.SubscribeChanged(() => NodeGlobalState.Instance.WatchingTasks.SetRange(WatchingTasks.Bindable.Select(x => x.AsInfo())), true);

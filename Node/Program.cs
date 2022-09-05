@@ -17,7 +17,6 @@ using Node.Plugins.Discoverers;
 using Node.Profiling;
 using Node.UserSettings;
 
-var ae = await Apis.GetMyTasksAsync(TaskState.Finished, null, Settings.SessionId);
 
 var halfrelease = args.Contains("release");
 Init.Initialize();
@@ -115,6 +114,8 @@ logger.Info(@$"Tasks found
     {NodeSettings.PlacedTasks.Count} placed
     {NodeSettings.PlacedTasks.Bindable.Count(x => x.State is not (TaskState.Finished or TaskState.Failed or TaskState.Canceled))} non-finished placed
 ".TrimLines().Replace("\n", "; "));
+
+
 
 Task.WhenAll(Enum.GetValues<TaskState>().Select(s => Apis.GetMyTasksAsync(s).Then(x => (s, x).AsOpResult()).AsTask()))
     .Then(items =>

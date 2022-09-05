@@ -8,11 +8,13 @@ public static class TaskHandler
 
     public static async ValueTask InitializePlacedTasksAsync()
     {
+        TaskRegistration.TaskRegistered += task => InitializePlacedTaskAsync(task).AsTask().Consume();
+
         foreach (var task in NodeSettings.PlacedTasks)
-            await InitializePlacedTask(task);
+            await InitializePlacedTaskAsync(task);
     }
-    public static ValueTask InitializePlacedTask(DbTaskFullState task) =>
-        task.TryGetHandler<IPlacedTaskInitializationHandler>()?.InitializeAsync(task) ?? ValueTask.CompletedTask;
+    public static ValueTask InitializePlacedTaskAsync(DbTaskFullState task) =>
+        task.TryGetHandler<IPlacedTaskInitializationHandler>()?.InitializePlacedTaskAsync(task) ?? ValueTask.CompletedTask;
 
     /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
     public static void StartListening()
@@ -79,7 +81,7 @@ public static class TaskHandler
                 (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
                 task.State = TaskState.Finished;
 
-                await (task.TryGetHandler<IPlacedTaskOnCompletedHandler>()?.OnCompleted(task) ?? ValueTask.CompletedTask);
+                await (task.TryGetHandler<IPlacedTaskOnCompletedHandler>()?.OnPlacedTaskCompleted(task) ?? ValueTask.CompletedTask);
             }
             catch (Exception ex) when (ex.Message.Contains("no task with such "))
             {
@@ -168,7 +170,7 @@ public static class TaskHandler
             AddHandler(handler);
     }
 
-    static T? TryGetHandler<T>(this ReceivedTask task) where T : class, ITaskHandler => Handlers[task.Output.Type] as T;
+    static T? TryGetHandler<T>(this ReceivedTask task) where T : class, ITaskHandler => Handlers.TryGetValue(task.Output.Type, out var handler) ? handler as T : null;
 
     public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => (ITaskInputHandler) Handlers[task.Input.Type];
     public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => (ITaskOutputHandler) Handlers[task.Output.Type];

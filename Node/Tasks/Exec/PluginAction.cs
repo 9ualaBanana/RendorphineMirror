@@ -42,7 +42,7 @@ public abstract class PluginAction<T> : IPluginAction
 
         foreach (var (file, postfix) in results)
         {
-            task.LogInfo($"Uploading output file {file} {(postfix is null ? null : ("+" + postfix))} to {task.Info.Output.ToString(Newtonsoft.Json.Formatting.None)} ...");
+            task.LogInfo($"Uploading output file {file} {(postfix is null ? null : ("+" + postfix))} to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ...");
             await TaskHandler.UploadResult(task, file, postfix).ConfigureAwait(false);
             task.LogInfo($"Output file {file} uploaded");
         }

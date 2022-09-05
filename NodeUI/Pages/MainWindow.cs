@@ -287,8 +287,8 @@ namespace NodeUI.Pages
                             Children =
                             {
                                 new TextBlock() { Text = $"Data: {task.Info.Data.ToString(Formatting.None)}" },
-                                new TextBlock() { Text = $"Input: {task.Info.Input.ToString(Formatting.None)}" },
-                                new TextBlock() { Text = $"Output: {task.Info.Output.ToString(Formatting.None)}" },
+                                new TextBlock() { Text = $"Input: {JsonConvert.SerializeObject( task.Info.Input,Formatting.None)}" },
+                                new TextBlock() { Text = $"Output: {JsonConvert.SerializeObject( task.Info.Output,Formatting.None)}" },
                                 statustb,
                             },
                         },
@@ -322,8 +322,8 @@ namespace NodeUI.Pages
                             Children =
                             {
                                 new TextBlock() { Text = $"Data: {task.Info.Data.ToString(Formatting.None)}" },
-                                new TextBlock() { Text = $"Input: {task.Info.Input.ToString(Formatting.None)}" },
-                                new TextBlock() { Text = $"Output: {task.Info.Output.ToString(Formatting.None)}" },
+                                new TextBlock() { Text = $"Input: {JsonConvert.SerializeObject(task.Info.Input, Formatting.None)}" },
+                                new TextBlock() { Text = $"Output: {JsonConvert.SerializeObject(task.Info.Output, Formatting.None)}" },
                                 statustb,
                                 statusbtn,
                             },
