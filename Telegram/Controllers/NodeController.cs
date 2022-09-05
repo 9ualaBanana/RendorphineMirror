@@ -2,6 +2,7 @@
 using Telegram.Models;
 using Telegram.Services.Node;
 using Telegram.Services.Telegram;
+using Telegram.Services.Telegram.Authentication;
 
 namespace Telegram.Controllers;
 
@@ -16,13 +17,14 @@ public class NodeController : ControllerBase
         [FromServices] ILogger<NodeController> logger,
         [FromServices] ILoggerFactory loggerFactory,
         [FromServices] IConfiguration configuration,
-        [FromServices] TelegramBot bot)
+        [FromServices] TelegramBot bot,
+        [FromServices] AuthentcatedUsersRegistry users)
     {
         logger.LogDebug("Received ping from {Node}", nodeInfo.BriefInfoMDv2);
 
         await userNodes.GetOrAdd(
             nodeInfo.UserId,
-            new NodeSupervisor(loggerFactory.CreateLogger<NodeSupervisor>(), configuration, bot)
+            new NodeSupervisor(loggerFactory.CreateLogger<NodeSupervisor>(), configuration, bot, users)
             ).UpdateNodeStatusAsync(nodeInfo);
     }
 

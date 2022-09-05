@@ -10,23 +10,25 @@ public class TelegramChatIdAuthenticator
 
     readonly TelegramBot _bot;
     readonly HttpClient _httpClient;
+    readonly AuthentcatedUsersRegistry _users;
 
-    readonly Dictionary<ChatId, TelegramAuthenticationToken> _authenticatedUsers = new();
+    readonly Dictionary<ChatId, TelegramAuthenticationToken> _authenticationTokens = new();
 
 
 
-    public TelegramChatIdAuthenticator(ILogger<TelegramChatIdAuthenticator> logger, TelegramBot bot, IHttpClientFactory httpClientFactory)
+    public TelegramChatIdAuthenticator(ILogger<TelegramChatIdAuthenticator> logger, TelegramBot bot, IHttpClientFactory httpClientFactory, AuthentcatedUsersRegistry users)
     {
         _logger = logger;
         _bot = bot;
         _httpClient = httpClientFactory.CreateClient();
+        _users = users;
     }
 
 
 
     internal TelegramAuthenticationToken? TryGetTokenFor(ChatId id)
     {
-        if (IsAuthenticated(id)) return _authenticatedUsers[id];
+        if (IsAuthenticated(id)) return _authenticationTokens[id];
 
         _ = _bot.TrySendMessageAsync(id, "Authentication required."); return null;
     }
@@ -57,7 +59,8 @@ public class TelegramChatIdAuthenticator
         try
         {
             var authenticatedUser = await AuthenticateAsync(credentials);
-            _authenticatedUsers.Add(credentials.ChatId, new(credentials.ChatId, authenticatedUser.UserId, authenticatedUser.SessionId));
+            _authenticationTokens.Add(credentials.ChatId, new(credentials.ChatId, authenticatedUser.UserId, authenticatedUser.SessionId));
+            _users.GetOrAdd(authenticatedUser.UserId, new HashSet<ChatId>()).Add(credentials.ChatId!);
             if (authenticatedUser.IsAdmin)
                 _bot.Subscriptions.Add(long.Parse(credentials.ChatId!));
 
@@ -86,8 +89,12 @@ public class TelegramChatIdAuthenticator
         if (!IsAuthenticated(id))
         { await _bot.TrySendMessageAsync(id, "You are not authenticated."); }
         else
-        { _authenticatedUsers.Remove(id); await _bot.TrySendMessageAsync(id, "You are successfully logged out."); }
+        {
+            _authenticationTokens.Remove(id);
+            _users.TryRemove(_users.SingleOrDefault(user => user.Value.Contains(id)).Key, out var _);
+            await _bot.TrySendMessageAsync(id, "You are successfully logged out.");
+        }
     }
 
-    bool IsAuthenticated(ChatId id) => _authenticatedUsers.ContainsKey(id);
+    bool IsAuthenticated(ChatId id) => _authenticationTokens.ContainsKey(id);
 }
