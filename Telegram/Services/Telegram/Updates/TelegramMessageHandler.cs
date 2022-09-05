@@ -42,7 +42,7 @@ public class TelegramMessageHandler : TelegramUpdateHandler
     static bool IsCommand(Message message) =>
         message.Text is not null && message.Text.StartsWith('/') && message.Text.Length > 1;
 
-    static bool IsImage(Message message) => IsImage(message.Document) || message.Photo is not null;
+    static bool IsImage(Message message) => IsImage(message.Document) || message.Photo is not null || Uri.IsWellFormedUriString(message.Text, UriKind.Absolute);
     static bool IsImage(Document? document) =>
         document is not null && document.MimeType is not null && document.MimeType.StartsWith("image");
 

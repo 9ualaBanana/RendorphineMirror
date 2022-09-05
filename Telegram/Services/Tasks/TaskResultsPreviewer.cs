@@ -34,6 +34,7 @@ public class TaskResultsPreviewer
 
             if (mpItem.GetProperty("state").GetString() == "received")
             { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new(mpItem); }
+            else Thread.Sleep(500);
         }
     }
 

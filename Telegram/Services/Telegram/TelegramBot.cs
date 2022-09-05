@@ -13,10 +13,12 @@ public class TelegramBot : TelegramBotClient
     ILogger _logger = null!;
 
     public Subscriptions Subscriptions = new("subscriptions.txt");
+    readonly public HttpClient HttpClient;
 
     public TelegramBot(string token, HttpClient? httpClient = null)
         : base(token, httpClient)
     {
+        HttpClient = httpClient ?? new HttpClient();
     }
 
     internal static async Task<TelegramBot> Initialize(string token, string webhookHost)
