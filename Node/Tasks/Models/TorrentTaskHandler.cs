@@ -20,8 +20,14 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
 
         var dir = task.FSInputDirectory();
         var manager = await TorrentClient.StartMagnet(MagnetLink.FromUri(new Uri(info.Link)), dir);
-        await TorrentClient.WaitForCompletion(manager, cancellationToken);
 
+        try { await TorrentClient.AddTrackers(manager); }
+        catch (Exception ex) { LogManager.GetCurrentClassLogger().Error($"Could not add trackers to {manager.InfoHash.ToHex()}: {ex}"); }
+        await manager.DhtAnnounceAsync();
+        await manager.TrackerManager.AnnounceAsync(cancellationToken);
+        await manager.TrackerManager.ScrapeAsync(cancellationToken);
+
+        await TorrentClient.WaitForCompletion(manager, cancellationToken);
         return Directory.GetFiles(dir).Single();
     }
 
@@ -59,6 +65,13 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
 
         var manager = await TorrentClient.StartMagnet(magnet, Path.GetDirectoryName(input.Path)!);
         Torrents.Add(task.Id, manager);
+
+        try { await TorrentClient.AddTrackers(manager); }
+        catch (Exception ex) { LogManager.GetCurrentClassLogger().Error($"Could not add trackers to {manager.InfoHash.ToHex()}: {ex}"); }
+
+        await manager.DhtAnnounceAsync();
+        await manager.TrackerManager.AnnounceAsync(CancellationToken.None);
+        await manager.TrackerManager.ScrapeAsync(CancellationToken.None);
     }
 
     public async ValueTask OnPlacedTaskCompleted(DbTaskFullState task)

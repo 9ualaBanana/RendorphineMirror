@@ -26,7 +26,10 @@ if (!Debugger.IsAttached)
     FileList.KillNodeUI();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
-await InitializePlugins();
+await Task.WhenAll(
+    InitializePlugins(),
+    UpdatePublicPorts()
+);
 
 new LocalListener().Start();
 
@@ -59,13 +62,6 @@ else
 {
     await AuthWithGui().ConfigureAwait(false);
     logger.Info("Authentication completed");
-}
-
-// TODO: remove after one update \/
-if (Settings.SessionId is not null && Settings.UserId is null)
-{
-    var s = Settings.AuthInfo!.Value;
-    Settings.AuthInfo = new AuthInfo(s.SessionId, s.Email, s.Guid, (await Apis.GetMyNodesAsync()).ThrowIfError().First().UserId, s.Slave);
 }
 
 
@@ -155,6 +151,22 @@ TaskHandler.StartListening();
 Thread.Sleep(-1);
 
 
+/// <summary> Check settings-saved public ports and change them if someone is already listening </summary>
+async Task UpdatePublicPorts()
+{
+    var publicip = await PortForwarding.GetPublicIPAsync();
+
+    foreach (var port in new[] { Settings.BLocalListenPort, Settings.BUPnpPort, Settings.BUPnpServerPort })
+    {
+        while (true)
+        {
+            var open = await PortForwarding.IsPortOpenAndListening(publicip.ToString(), port.Value);
+            if (!open) break;
+
+            port.Value++;
+        }
+    }
+}
 async Task InitializePlugins()
 {
     Directory.CreateDirectory("plugins");

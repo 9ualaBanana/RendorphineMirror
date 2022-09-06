@@ -63,13 +63,19 @@ namespace Common
 
 
             BServerUrl = new(nameof(ServerUrl), "https://t.microstock.plus:8443");
-            BLocalListenPort = new(nameof(LocalListenPort), 5123);
-            BUPnpPort = new(nameof(UPnpPort), 5124);
-            BUPnpServerPort = new(nameof(UPnpServerPort), 5125);
-            BDhtPort = new(nameof(DhtPort), 6223);
-            BTorrentPort = new(nameof(TorrentPort), 6224);
+            BLocalListenPort = new(nameof(LocalListenPort), randomized(5123));
+            BUPnpPort = new(nameof(UPnpPort), randomized(5223));
+            BUPnpServerPort = new(nameof(UPnpServerPort), randomized(5323));
+            BDhtPort = new(nameof(DhtPort), randomized(6223));
+            BTorrentPort = new(nameof(TorrentPort), randomized(6323));
             BAuthInfo = new(nameof(AuthInfo), default);
             BNodeName = new(nameof(NodeName), null);
+
+            foreach (var bindable in new[] { BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort })
+                bindable.Save();
+
+
+            static ushort randomized(ushort port) => (ushort) (port + Random.Shared.Next(80));
         }
 
         static int ExecuteNonQuery(string command)

@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using System.Net;
 using MonoTorrent;
 using MonoTorrent.BEncoding;
@@ -18,6 +17,8 @@ public class PublicListener : ExecutableListenerBase
 
         if (path == "ping")
             return await WriteJToken(response, $"ok from {MachineInfo.PCName} {MachineInfo.UserName} v{MachineInfo.Version}").ConfigureAwait(false);
+        if (path == "pingname")
+            return await WriteJToken(response, Settings.NodeName).ConfigureAwait(false);
 
         if (path == "torrentinfo")
         {

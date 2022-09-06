@@ -27,6 +27,11 @@ namespace Common
             Client = new ClientEngine(esettings.ToSettings());
         }
 
+        public static async Task AddTrackers(TorrentManager manager)
+        {
+            await manager.TrackerManager.AddTrackerAsync(new Uri("http://t.microstock.plus:5120/announce/"));
+            await manager.TrackerManager.AddTrackerAsync(new Uri("udp://t.microstock.plus:5121/"));
+        }
 
         public static Task<TorrentManager> StartMagnet(string magnet, string targetdir) => StartMagnet(MagnetLink.FromUri(new Uri(magnet)), targetdir);
         public static async Task<TorrentManager> StartMagnet(MagnetLink magnet, string targetdir)
@@ -47,7 +52,7 @@ namespace Common
             var torrent = await Torrent.LoadAsync(data).ConfigureAwait(false);
             var manager = TryGetManager(torrent) ?? await AddOrGetTorrent(torrent, Path.GetFullPath(Path.Combine(directory, ".."))).ConfigureAwait(false);
 
-            if (addTracker) await manager.TrackerManager.AddTrackerAsync(new Uri("https://t.microstock.plus:5120"));
+            if (addTracker) await AddTrackers(manager);
             return (data, manager);
         }
 
