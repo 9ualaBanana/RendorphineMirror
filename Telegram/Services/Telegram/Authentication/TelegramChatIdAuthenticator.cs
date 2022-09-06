@@ -92,6 +92,8 @@ public class TelegramChatIdAuthenticator
         {
             _authenticationTokens.Remove(id);
             _users.TryRemove(_users.SingleOrDefault(user => user.Value.Contains(id)).Key, out var _);
+            if (_bot.Subscriptions.Contains((long)id.Identifier!))
+                _bot.Subscriptions.Remove((long)id.Identifier!);
             await _bot.TrySendMessageAsync(id, "You are successfully logged out.");
         }
     }
