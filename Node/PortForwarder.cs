@@ -32,7 +32,7 @@ namespace Node
                 {
                     consec++;
                     if (consec <= 3)
-                        _logger.Error(ex, "[UPnP] Could not create mapping: ");
+                        _logger.Error($"[UPnP] Could not create mapping: {ex.Message}");
 
                     await Task.Delay(5000);
                     await found(args);
