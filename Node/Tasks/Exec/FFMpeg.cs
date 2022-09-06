@@ -156,12 +156,14 @@ public static class FFMpegTasks
                 return new ArgList()
                 {
                     "-hide_banner",                         // dont output useless info
-                    "-hwaccel", "auto",                     // enable hardware acceleration
+                    (data is EditVideoInfo
+                        ? new[] { "-hwaccel", "auto" }
+                        : null
+                    ),                                      // enable hardware acceleration for video
                     "-y",                                   // force rewrite output file if exists
                     "-i", task.InputFile,                   // input file
 
-                    argsarr,
-
+                    argsarr,                                // arguments
                     "-vf", string.Join(',', filtersarr),    // video filters
                     "-c:a", "copy",                         // don't reencode audio
                     outputfile,                             // output path

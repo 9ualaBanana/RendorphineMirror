@@ -7,9 +7,13 @@ public class ArgList : IEnumerable<string>
 
     readonly List<string> Arguments = new();
 
-    public void Add(string item) => Arguments.Add(item);
-    public void Add(params string[] items) => Arguments.AddRange(items);
-    public void Add(IEnumerable<string> items) => Arguments.AddRange(items);
+    public void Add(string? item)
+    {
+        if (item is not null)
+            Arguments.Add(item);
+    }
+    public void Add(params string?[]? items) => Add(items?.AsEnumerable());
+    public void Add(IEnumerable<string?>? items) => Arguments.AddRange((items?.Where(x => x is not null) ?? Enumerable.Empty<string>())!);
 
     IEnumerator<string> IEnumerable<string>.GetEnumerator() => Arguments.GetEnumerator();
     System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => Arguments.GetEnumerator();
