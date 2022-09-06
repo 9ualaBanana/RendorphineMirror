@@ -10,6 +10,7 @@ namespace NodeUI
 
         static ImmutableDictionary<string, ImmutableDictionary<string, string>> Translations = null!;
         public static string Locale { get; private set; }
+        static string? CurrentLocale;
 
 
         public readonly string? Key;
@@ -43,6 +44,9 @@ namespace NodeUI
         public static void SetLocale(CultureInfo culture) => SetLocale(culture.Name);
         public static void SetLocale(string culture)
         {
+            if (CurrentLocale == culture) return;
+            CurrentLocale = culture;
+
             if (!Translations.ContainsKey(culture))
             {
                 _logger.Error("Tried to set non-existing translation " + culture);
