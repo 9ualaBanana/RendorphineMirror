@@ -34,18 +34,10 @@ namespace Common
             IsDebug = Debugger.IsAttached || DebugFileExists;
 
             Directory.CreateDirectory(ConfigDirectory);
-
             Logging.Configure(IsDebug);
 
-            _logger.Info("{ProcessPath} {Version} on {Os} with UTC+{UtcOffset}",
-                Path.GetFileName(Environment.ProcessPath), Version, GetOSInfo(), TimeZoneInfo.Local.BaseUtcOffset);
-            _logger.Info("Debug: {IsDebug}", IsDebug);
-            _logger.Trace($"-DEBUG VERSION-");
-
-
-
-            try { _logger.Debug("Current process: {ProcessId} {ProcessName}", Environment.ProcessId, Process.GetCurrentProcess().ProcessName); }
-            catch { }
+            _logger.Info($"Starting {Environment.ProcessId} {Process.GetCurrentProcess().ProcessName}, {Path.GetFileName(Environment.ProcessPath)} {Version}"
+                + $"on {GetOSInfo()} with UTC+{TimeZoneInfo.Local.BaseUtcOffset}, {(IsDebug ? "debug" : "non-debug")}");
 
             AppDomain.CurrentDomain.UnhandledException += (_, e) => LogException(e.ExceptionObject as Exception, "UnhandledException", "unhexp");
             TaskScheduler.UnobservedTaskException += (obj, e) => LogException(e.Exception, "UnobservedTaskException", "untexp");
