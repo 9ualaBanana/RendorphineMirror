@@ -134,6 +134,8 @@ Thread.Sleep(-1);
 
 async Task InitializePlugins()
 {
+    Directory.CreateDirectory("plugins");
+
     TaskList.Initialize();
     PluginsManager.RegisterPluginDiscoverers(
         new BlenderPluginDiscoverer(),
