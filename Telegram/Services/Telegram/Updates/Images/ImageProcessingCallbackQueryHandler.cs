@@ -40,15 +40,14 @@ public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHa
 
         var imageCallbackData = new ImageProcessingCallbackData(update.CallbackQuery.Data!);
 
-        var fileId = _fileRegistry.TryGet(imageCallbackData.FileRegistryKey);
-        if (fileId is null)
+        var inputOnlineFile = _fileRegistry.TryGet(imageCallbackData.FileRegistryKey);
+        if (inputOnlineFile is null)
         { await Bot.TrySendMessageAsync(chatId, "Image is expired. Try to send it again."); return; }
 
         if (imageCallbackData.Value.HasFlag(ImageProcessingQueryFlags.Upscale) && imageCallbackData.Value.HasFlag(ImageProcessingQueryFlags.Upload))
         {
             var imagePath = Path.Combine(_fileRegistry.Path, imageCallbackData.FileRegistryKey);
-            using (var downloadedImage = System.IO.File.Create(imagePath))
-                await Bot.GetInfoAndDownloadFileAsync(fileId, downloadedImage);
+            await TelegramImage.From(inputOnlineFile).Download(imagePath, Bot);
 
             var taskId = (await TaskRegistration.RegisterAsync(
                 new TaskCreationInfo(

@@ -34,7 +34,7 @@ public class TelegramImageHandler : TelegramUpdateHandler
 
     InlineKeyboardMarkup CreateReplyMarkupForLowResolutionImage(TelegramImage image)
     {
-        var key = _fileRegistry.Add(image.FileId);
+        var key = _fileRegistry.Add(image.InputOnlineFile);
         return new(new InlineKeyboardButton[][]
         {
             //new InlineKeyboardButton[]

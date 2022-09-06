@@ -30,11 +30,11 @@ public class TaskResultsPreviewer
             mpItem = JsonDocument.Parse(
                 await _httpClient.GetStringAsync($"https://tasks.microstock.plus/rphtaskmgr/getmympitem?sessionid={authenticationToken.SessionId}&iid={iid}")
                 ).RootElement;
-            _logger.LogDebug("mympitem is received:\n{Json}", mpItem);
-
             mpItem = mpItem.GetProperty("item");
+
             if (mpItem.GetProperty("state").GetString() == "received")
-                return new(mpItem);
+            { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new(mpItem); }
+            else Thread.Sleep(500);
         }
     }
 

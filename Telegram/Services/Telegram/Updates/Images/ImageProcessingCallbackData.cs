@@ -1,6 +1,4 @@
-﻿using Telegram.Services.Telegram.Updates;
-
-namespace Telegram.Services.Telegram.Updates.Images;
+﻿namespace Telegram.Services.Telegram.Updates.Images;
 
 public record ImageProcessingCallbackData : TelegramCallbackData<ImageProcessingQueryFlags>
 {

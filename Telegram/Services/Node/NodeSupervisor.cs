@@ -2,6 +2,7 @@
 using Telegram.Models;
 using System.Collections.Specialized;
 using Telegram.Services.Telegram.Updates.Commands;
+using Telegram.Services.Telegram.Authentication;
 
 namespace Telegram.Services.Node;
 
@@ -14,14 +15,16 @@ public class NodeSupervisor
     readonly object _lock = new();
     readonly ILogger<NodeSupervisor> _logger;
     readonly TelegramBot _bot;
+    readonly AuthentcatedUsersRegistry _users;
 
-    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot)
+    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot, AuthentcatedUsersRegistry users)
     {
         AllNodes = new();
         NodesOnline = new(configuration.ReadIdleTimeBeforeGoingOfflineFrom(logger));
         NodesOnline.ItemStorageTimeElapsed += OnNodeWentOffline;
         _logger = logger;
         _bot = bot;
+        _users = users;
     }
 
 
@@ -49,7 +52,11 @@ public class NodeSupervisor
         if (wasOnline)
         {
             if (nodeOnline!.Version != nodeInfo.Version)
-                await _bot.TryNotifySubscribersAsync($"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{nodeInfo.Version}*.");
+                if (_users.TryGetValue(nodeInfo.UserId, out var chatIds))
+                {
+                    foreach (var chatId in chatIds)
+                        await _bot.TrySendMessageAsync(chatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{nodeInfo.Version}*.");
+                }
         }
         else _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
     }

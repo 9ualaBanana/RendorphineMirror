@@ -15,7 +15,9 @@ public abstract class LocalPluginDiscoverer : PluginDiscoverer
 
     protected override IEnumerable<string> GetPossiblePluginDirectories()
     {
-        var dir = Directory.GetDirectories("plugins", ParentDirectoryPattern, SearchOption.TopDirectoryOnly).SingleOrDefault();
+        string? dir = null;
+        if (Directory.Exists("plugins"))
+            dir = Directory.GetDirectories("plugins", ParentDirectoryPattern, SearchOption.TopDirectoryOnly).SingleOrDefault();
         if (dir is null) return Enumerable.Empty<string>();
 
         return Directory.GetDirectories(dir);

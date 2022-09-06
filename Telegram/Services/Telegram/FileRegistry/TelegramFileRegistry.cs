@@ -1,4 +1,6 @@
-﻿namespace Telegram.Services.Telegram.FileRegistry;
+﻿using Telegram.Bot.Types.InputFiles;
+
+namespace Telegram.Services.Telegram.FileRegistry;
 
 // Delete all already downloaded files from their folder upon initialization.
 // Also delete file from server when it expires.
@@ -14,18 +16,18 @@ public class TelegramFileRegistry
     }
     const string _Path = "file_registry";
 
-    readonly Dictionary<string, string> _fileRegistry = new();
+    readonly Dictionary<string, InputOnlineFile> _fileRegistry = new();
 
-    public string Add(string fileId)
+    public string Add(InputOnlineFile inputOnlineFile)
     {
         var key = Guid.NewGuid().ToString();
-        _fileRegistry[key] = fileId;
+        _fileRegistry[key] = inputOnlineFile;
         return key;
     }
 
-    public string? TryGet(string key)
+    public InputOnlineFile? TryGet(string key)
     {
-        _fileRegistry.TryGetValue(key, out var fileId);
-        return fileId;
+        _fileRegistry.TryGetValue(key, out var inputOnlineFile);
+        return inputOnlineFile;
     }
 }

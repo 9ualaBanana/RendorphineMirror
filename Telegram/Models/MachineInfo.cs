@@ -29,6 +29,6 @@ public class MachineInfo : IEquatable<MachineInfo>
 
     public override bool Equals(object? obj) => Equals(obj as MachineInfo);
     public bool Equals(MachineInfo? other) => NodeName.CaseInsensitive() == other?.NodeName.CaseInsensitive();
-    public override int GetHashCode() => NodeName.ToLower().GetHashCode();
+    public override int GetHashCode() => NodeName.CaseInsensitive().GetHashCode();
     #endregion
 }

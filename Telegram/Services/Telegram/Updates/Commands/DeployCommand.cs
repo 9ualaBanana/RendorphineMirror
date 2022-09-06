@@ -45,7 +45,7 @@ public class DeployCommand : AuthenticatedCommand
             if (!_userNodes.TryGetUserNodeSupervisor(authenticationToken, out var userNodesSupervisor, Bot, authenticationToken.ChatId))
                 return;
 
-            foreach (var node in nodeNames.SelectMany(_userNodes[authenticationToken.SessionId].GetNodesByName))
+            foreach (var node in nodeNames.SelectMany(userNodesSupervisor.GetNodesByName))
             {
                 var nodeSettings = new UserSettings(node.Guid) { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware };
                 nodeSettings.ThisNodeInstallSoftware.UnionEachWith(plugins);
