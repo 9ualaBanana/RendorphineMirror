@@ -37,7 +37,7 @@ namespace Common
             Logging.Configure(IsDebug);
 
             _logger.Info($"Starting {Environment.ProcessId} {Process.GetCurrentProcess().ProcessName}, {Path.GetFileName(Environment.ProcessPath)} {Version}"
-                + $"on {GetOSInfo()} with UTC+{TimeZoneInfo.Local.BaseUtcOffset}, {(IsDebug ? "debug" : "non-debug")}");
+                + $" on {GetOSInfo()} with UTC+{TimeZoneInfo.Local.BaseUtcOffset}, {(IsDebug ? "debug" : "non-debug")}");
 
             AppDomain.CurrentDomain.UnhandledException += (_, e) => LogException(e.ExceptionObject as Exception, "UnhandledException", "unhexp");
             TaskScheduler.UnobservedTaskException += (obj, e) => LogException(e.Exception, "UnobservedTaskException", "untexp");

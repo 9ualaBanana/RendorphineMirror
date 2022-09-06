@@ -1,4 +1,6 @@
 using System.Net.Http.Headers;
+using System.Reflection;
+using System.Text;
 using System.Web;
 using MonoTorrent;
 using Newtonsoft.Json;
@@ -30,6 +32,7 @@ namespace NodeUI.Pages
             tabs.Add("tab.benchmark", new BenchmarkTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("torrent test", new TorrentTab());
+            tabs.Add("logs", new LogsTab());
             if (Init.IsDebug)
                 tabs.Add("registry", new RegistryTab());
 
@@ -659,6 +662,80 @@ namespace NodeUI.Pages
                             else await Reload();
                         }
                     }
+                }
+            }
+        }
+        class LogsTab : Panel
+        {
+            public LogsTab()
+            {
+                var tab = new TabbedControl();
+                Children.Add(tab);
+
+                tab.Add("node", new LogViewer("Node"));
+                tab.Add("nodeui", new LogViewer("NodeUI"));
+                tab.Add("ONLY WORKS WHEN TEXTBOX IS FOCUSED", new Panel());
+            }
+
+
+            class LogViewer : Panel
+            {
+                public LogViewer(string logName)
+                {
+                    var flogname = logName;
+                    string getlogdir() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, "log.log").Replace("NodeUI", flogname);
+
+                    var dir = getlogdir();
+                    if (!File.Exists(dir))
+                    {
+                        logName = "dotnet";
+                        dir = getlogdir();
+                    }
+
+                    var tb = new TextBox() { AcceptsReturn = true };
+                    Children.Add(new Grid()
+                    {
+                        RowDefinitions = RowDefinitions.Parse("Auto *"),
+                        Children =
+                        {
+                            new TextBlock() { Text = dir }.WithRow(0),
+                            tb.WithRow(1),
+                        },
+                    });
+
+
+                    new Thread(() =>
+                    {
+                        var buffer = new byte[1024 * 8];
+
+                        while (true)
+                        {
+                            Thread.Sleep(1000);
+
+                            try
+                            {
+                                var visible = Dispatcher.UIThread.InvokeAsync(() => tb.IsFocused).Result;
+                                if (!visible) continue;
+
+                                int read = 0;
+                                if (File.Exists(dir))
+                                {
+                                    using var reader = File.Open(dir, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                                    reader.Position = Math.Max(reader.Length - buffer.Length, 0);
+                                    read = reader.Read(buffer);
+                                }
+
+                                var str = $"{Encoding.UTF8.GetString(buffer.AsSpan(0, read))}\n\n<read on {DateTime.Now}>";
+                                Dispatcher.UIThread.Post(() =>
+                                {
+                                    tb.Text = str;
+                                    tb.CaretIndex = tb.Text.Length;
+                                });
+                            }
+                            catch { }
+                        }
+                    })
+                    { IsBackground = true }.Start();
                 }
             }
         }
