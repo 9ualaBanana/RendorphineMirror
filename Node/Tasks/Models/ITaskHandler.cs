@@ -18,6 +18,10 @@ public interface IPlacedTaskCompletionCheckHandler : ITaskHandler
     /// <summary> Check tasks for completion and returns true if task needs to be set to Finished </summary>
     ValueTask<bool> CheckCompletion(DbTaskFullState task);
 }
+public interface IPlacedTaskResultDownloadHandler : ITaskHandler
+{
+    ValueTask DownloadResult(DbTaskFullState task);
+}
 
 public interface IPlacedTaskOnCompletedHandler : ITaskHandler
 {

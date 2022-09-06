@@ -27,10 +27,18 @@ namespace Common
             Client = new ClientEngine(esettings.ToSettings());
         }
 
-        public static async Task AddTrackers(TorrentManager manager)
+        public static async Task AddTrackers(TorrentManager manager, bool announce = false)
         {
-            await manager.TrackerManager.AddTrackerAsync(new Uri("http://t.microstock.plus:5120/announce/"));
-            await manager.TrackerManager.AddTrackerAsync(new Uri("udp://t.microstock.plus:5121/"));
+            try
+            {
+                await manager.TrackerManager.AddTrackerAsync(new Uri("http://t.microstock.plus:5120/announce/"));
+                await manager.TrackerManager.AddTrackerAsync(new Uri("udp://t.microstock.plus:5121/"));
+            }
+            catch (Exception ex) { LogManager.GetCurrentClassLogger().Error($"Could not add trackers to {manager.InfoHash.ToHex()}: {ex}"); }
+
+            await manager.DhtAnnounceAsync();
+            await manager.TrackerManager.AnnounceAsync(CancellationToken.None);
+            await manager.TrackerManager.ScrapeAsync(CancellationToken.None);
         }
 
         public static Task<TorrentManager> StartMagnet(string magnet, string targetdir) => StartMagnet(MagnetLink.FromUri(new Uri(magnet)), targetdir);
@@ -46,13 +54,12 @@ namespace Common
         public static Task<byte[]> CreateTorrent(string directory) => CreateTorrent(new TorrentFileSource(directory));
         public static async Task<byte[]> CreateTorrent(ITorrentFileSource source) => (await Creator.CreateAsync(source)).Encode();
 
-        public static async Task<(byte[] data, TorrentManager manager)> CreateAddTorrent(string directory, bool addTracker = false)
+        public static async Task<(byte[] data, TorrentManager manager)> CreateAddTorrent(string directory)
         {
             var data = await CreateTorrent(directory).ConfigureAwait(false);
             var torrent = await Torrent.LoadAsync(data).ConfigureAwait(false);
             var manager = TryGetManager(torrent) ?? await AddOrGetTorrent(torrent, Path.GetFullPath(Path.Combine(directory, ".."))).ConfigureAwait(false);
 
-            if (addTracker) await AddTrackers(manager);
             return (data, manager);
         }
 
@@ -91,8 +98,19 @@ namespace Common
                 if (token.IsCancellationRequested) return;
 
                 await Task.Delay(2000);
-                if (manager.Progress == 100 || manager.State == TorrentState.Seeding)
-                    break;
+                if (manager.Complete) break;
+            }
+
+            await manager.StopAsync(TimeSpan.FromSeconds(10));
+        }
+        public static async Task WaitForUploadCompletion(TorrentManager manager, CancellationToken token = default)
+        {
+            while (true)
+            {
+                if (token.IsCancellationRequested) return;
+
+                await Task.Delay(2000);
+                if (manager.Peers.Seeds > 0) break;
             }
 
             await manager.StopAsync(TimeSpan.FromSeconds(10));

@@ -9,14 +9,26 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         Directory.CreateDirectory(task.FSOutputDirectory());
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
 
-        await task.ChangeStateAsync(TaskState.Input);
-        task.LogInfo($"Downloading input...");
-        var input = await TaskHandler.Download(task, default).ConfigureAwait(false);
-        task.InputFile = input;
-        task.LogInfo($"Input downloaded to {input}");
+        if (task.State <= TaskState.Input || task.InputFile is null)
+        {
+            await task.ChangeStateAsync(TaskState.Input);
+            task.LogInfo($"Downloading input...");
+            var input = await TaskHandler.Download(task, default).ConfigureAwait(false);
+            task.InputFile = input;
+            task.LogInfo($"Input downloaded to {input}");
 
-        await task.ChangeStateAsync(TaskState.Active);
-        await ExecuteImpl(task, data).ConfigureAwait(false);
+            NodeSettings.QueuedTasks.Save();
+        }
+        else task.LogInfo($"Input seems to be already downloaded to {task.InputFile}");
+
+        if (task.State <= TaskState.Output)
+        {
+            await task.ChangeStateAsync(TaskState.Active);
+            NodeSettings.QueuedTasks.Save();
+
+            await ExecuteImpl(task, data).ConfigureAwait(false);
+            NodeSettings.QueuedTasks.Save();
+        }
 
         await NotifyReepoOfTaskCompletion(task);
     }

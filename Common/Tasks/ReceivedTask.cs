@@ -11,7 +11,7 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
     // 0-1
     public double Progress = 0;
     public string? InputFile;
-
+    public TaskState State = TaskState.Queued;
 
     public ITaskInputInfo Input => Info.Input;
     public ITaskOutputInfo Output => Info.Output;

@@ -3,11 +3,11 @@ using MonoTorrent.Client;
 
 namespace Node.Tasks.Models;
 
-public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTaskInitializationHandler, IPlacedTaskOnCompletedHandler
+public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTaskInitializationHandler, IPlacedTaskOnCompletedHandler, IPlacedTaskCompletionCheckHandler, IPlacedTaskResultDownloadHandler
 {
     public TaskInputOutputType Type => TaskInputOutputType.Torrent;
 
-    readonly Dictionary<string, TorrentManager> Torrents = new();
+    readonly Dictionary<string, TorrentManager> InputTorrents = new();
 
     public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
@@ -21,12 +21,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
         var dir = task.FSInputDirectory();
         var manager = await TorrentClient.StartMagnet(MagnetLink.FromUri(new Uri(info.Link)), dir);
 
-        try { await TorrentClient.AddTrackers(manager); }
-        catch (Exception ex) { LogManager.GetCurrentClassLogger().Error($"Could not add trackers to {manager.InfoHash.ToHex()}: {ex}"); }
-        await manager.DhtAnnounceAsync();
-        await manager.TrackerManager.AnnounceAsync(cancellationToken);
-        await manager.TrackerManager.ScrapeAsync(cancellationToken);
-
+        await TorrentClient.AddTrackers(manager, true);
         await TorrentClient.WaitForCompletion(manager, cancellationToken);
         return Directory.GetFiles(dir).Single();
     }
@@ -47,13 +42,29 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
         }
 
 
-        var (_, manager) = await TorrentClient.CreateAddTorrent(task.FSOutputDirectory(), true);
+        var (_, manager) = await TorrentClient.CreateAddTorrent(task.FSOutputDirectory());
+        await TorrentClient.AddTrackers(manager, true);
+        task.LogInfo($"Result magnet uri: {manager.MagnetLink.ToV1String()}");
 
         var post = await Api.ApiPost($"{Api.TaskManagerEndpoint}/inittorrenttaskoutput", "Updating output magnet uri", ("sessionid", Settings.SessionId), ("taskid", task.Id), ("link", manager.MagnetLink.ToV1String()));
         post.ThrowIfError();
 
         info.Link = manager.MagnetLink.ToV1String();
         NodeSettings.QueuedTasks.Save();
+
+        await TorrentClient.WaitForUploadCompletion(manager, cancellationToken);
+    }
+    public async ValueTask DownloadResult(DbTaskFullState task)
+    {
+        var output = (TorrentTaskOutputInfo) task.Output;
+        output.Link.ThrowIfNull();
+        task.LogInfo($"Downloading result from torrent {output.Link}");
+
+        Directory.CreateDirectory("repepe");
+        var manager = await TorrentClient.StartMagnet(output.Link, "repepe"); // TODO: output directory
+
+        await TorrentClient.AddTrackers(manager, true);
+        await TorrentClient.WaitForCompletion(manager);
     }
 
     public async ValueTask InitializePlacedTaskAsync(DbTaskFullState task)
@@ -64,21 +75,27 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
         var magnet = MagnetLink.FromUri(new Uri(input.Link.ThrowIfNull()));
 
         var manager = await TorrentClient.StartMagnet(magnet, Path.GetDirectoryName(input.Path)!);
-        Torrents.Add(task.Id, manager);
+        await TorrentClient.AddTrackers(manager, true);
 
-        try { await TorrentClient.AddTrackers(manager); }
-        catch (Exception ex) { LogManager.GetCurrentClassLogger().Error($"Could not add trackers to {manager.InfoHash.ToHex()}: {ex}"); }
-
-        await manager.DhtAnnounceAsync();
-        await manager.TrackerManager.AnnounceAsync(CancellationToken.None);
-        await manager.TrackerManager.ScrapeAsync(CancellationToken.None);
+        InputTorrents.Add(task.Id, manager);
     }
 
     public async ValueTask OnPlacedTaskCompleted(DbTaskFullState task)
     {
-        if (!Torrents.TryGetValue(task.Id, out var manager)) return;
+        if (InputTorrents.Remove(task.Id, out var managerup))
+            await managerup.StopAsync(TimeSpan.FromSeconds(5));
+    }
 
-        await manager.StopAsync(TimeSpan.FromSeconds(5));
-        Torrents.Remove(task.Id);
+    public async ValueTask<bool> CheckCompletion(DbTaskFullState task)
+    {
+        var output = (TorrentTaskOutputInfo) task.Output;
+        var state = (await Apis.GetTaskStateAsync(task, Settings.SessionId)).ThrowIfError();
+
+        task.State = state.State;
+        task.Progress = state.Progress;
+        task.Server = state.Server;
+        JsonSettings.Default.Populate(state.Output.CreateReader(), output);
+
+        return output.Link is not null;
     }
 }

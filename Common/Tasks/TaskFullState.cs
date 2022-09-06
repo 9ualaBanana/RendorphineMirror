@@ -10,8 +10,7 @@ public record DbTaskFullState : ReceivedTask
 {
     public string UserId { get; init; } = null!;
     public ulong Registered { get; init; }
-    public TaskServer? Server { get; init; }
-    public TaskState State = TaskState.Queued;
+    public TaskServer? Server;
 
     [JsonConstructor]
     public DbTaskFullState(string id, string originGuid, TaskPolicy launchPolicy, TaskObject @object, JObject input, JObject output, JObject data)

@@ -17,7 +17,9 @@ public class TorrentTaskInputInfo : ITaskInputInfo
     {
         if (Link is not null) return;
 
-        var (_, manager) = await TorrentClient.CreateAddTorrent(Path, true);
+        var (_, manager) = await TorrentClient.CreateAddTorrent(Path);
+        await TorrentClient.AddTrackers(manager, true);
+
         Link = manager.MagnetLink.ToV1String();
     }
 }

@@ -78,9 +78,14 @@ public static class TaskHandler
                 if (!completed) return;
 
                 task.LogInfo("Completed");
-                (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
-                task.State = TaskState.Finished;
 
+                if (task.TryGetHandler<IPlacedTaskResultDownloadHandler>() is { } resultdownloader)
+                {
+                    task.LogInfo("Downloading result");
+                    await resultdownloader.DownloadResult(task);
+                }
+
+                (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
                 await (task.TryGetHandler<IPlacedTaskOnCompletedHandler>()?.OnPlacedTaskCompleted(task) ?? ValueTask.CompletedTask);
             }
             catch (Exception ex) when (ex.Message.Contains("no task with such "))
