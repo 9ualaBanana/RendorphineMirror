@@ -33,6 +33,7 @@ static class Program
 
     public static void Main(string[] args)
     {
+        Init.Initialize();
         ConsoleHide.Hide();
 
         if (!Debugger.IsAttached)
