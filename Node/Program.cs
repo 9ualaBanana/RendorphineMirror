@@ -32,9 +32,28 @@ new LocalListener().Start();
 
 if (Settings.SessionId is not null)
 {
-    if (!Debugger.IsAttached)
+    logger.Info($"Session ID is present. Email: {Settings.Email}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
+
+    // TODO: remove auth check when sids stop expiring
+    logger.Info("Checking authentication...");
+
+    var check = await Apis.GetMyTasksAsync(TaskState.Queued, sessionId: Settings.SessionId);
+    if (check) logger.Info("Session ID is valid");
+    else
+    {
+        if (check.AsString().Contains("Invalid M+ session ID.", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.Info("Session ID was invalid, relogging in a slave mode");
+
+            // node name should stay the same
+            var auth = await SessionManager.AutoAuthAsync(Settings.Email);
+            auth.LogIfError();
+        }
+        else check.LogIfError("Error checking authentication: {0}");
+    }
+
+    if (Settings.SessionId is not null && !Debugger.IsAttached)
         Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
-    logger.Info("Already authenticated. Email: {Email}", Settings.Email);
 }
 else
 {
