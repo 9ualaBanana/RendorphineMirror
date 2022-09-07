@@ -140,11 +140,14 @@ async Task UpdatePublicPorts()
 
     foreach (var port in new[] { Settings.BLocalListenPort, Settings.BUPnpPort, Settings.BUPnpServerPort })
     {
+        logger.Warn($"Checking port {port.Value} for availability");
+
         while (true)
         {
-            var open = await PortForwarding.IsPortOpenAndListening(publicip.ToString(), port.Value);
+            var open = await PortForwarding.IsPortOpenAndListening(publicip.ToString(), port.Value, new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
             if (!open) break;
 
+            logger.Warn($"Port {port.Value} is already listening, skipping");
             port.Value++;
         }
     }
