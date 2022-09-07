@@ -17,7 +17,6 @@ public static class EsrganTasks
             var outputfile = task.FSOutputFile();
 
             await Task.Run(() => ExecutePowerShell(getScript(), false, onRead, task));
-            await UploadResult(task, outputfile);
 
 
             void onRead(bool err, object obj)

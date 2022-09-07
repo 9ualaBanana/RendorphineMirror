@@ -237,6 +237,7 @@ namespace NodeUI.Pages
                 };
 
                 Children.Add(list);
+                Dispatcher.UIThread.Post(() => list.SelectedIndex = 0);
             }
         }
         abstract class ChooseActionPart : TaskPart

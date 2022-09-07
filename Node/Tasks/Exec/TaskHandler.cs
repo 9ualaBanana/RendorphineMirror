@@ -10,11 +10,21 @@ public static class TaskHandler
     {
         TaskRegistration.TaskRegistered += task => InitializePlacedTaskAsync(task).AsTask().Consume();
 
-        foreach (var task in NodeSettings.PlacedTasks)
+        foreach (var task in NodeSettings.PlacedTasks.ToArray())
             await InitializePlacedTaskAsync(task);
     }
-    public static ValueTask InitializePlacedTaskAsync(DbTaskFullState task) =>
-        task.TryGetHandler<IPlacedTaskInitializationHandler>()?.InitializePlacedTaskAsync(task) ?? ValueTask.CompletedTask;
+    public static async ValueTask InitializePlacedTaskAsync(DbTaskFullState task)
+    {
+        var state = (await task.GetTaskStateAsync()).ThrowIfError().State;
+        if (state.IsFinished())
+        {
+            task.LogInfo($"Invalid task state {state}, removing");
+            NodeSettings.PlacedTasks.Bindable.Remove(task);
+            return;
+        }
+
+        await (task.TryGetHandler<IPlacedTaskInitializationHandler>()?.InitializePlacedTaskAsync(task) ?? ValueTask.CompletedTask);
+    }
 
     /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
     public static void StartListening()
@@ -87,6 +97,7 @@ public static class TaskHandler
 
                 (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
                 await (task.TryGetHandler<IPlacedTaskOnCompletedHandler>()?.OnPlacedTaskCompleted(task) ?? ValueTask.CompletedTask);
+                NodeSettings.PlacedTasks.Bindable.Remove(task);
             }
             catch (Exception ex) when (ex.Message.Contains("no task with such "))
             {
@@ -123,8 +134,9 @@ public static class TaskHandler
     {
         const int maxattempts = 3;
 
+        // /gettaskstate is only allowed to whoever placed the task, so failing this is expected and just skipped
         var state = await task.GetTaskStateAsync();
-        if (state && state.Value.State is (TaskState.Finished or TaskState.Canceled or TaskState.Failed))
+        if (state && state.Value.State.IsFinished())
         {
             task.LogInfo($"Invalid task state: {state.Value.State}, removing");
             NodeSettings.QueuedTasks.Bindable.Remove(task);
@@ -183,6 +195,6 @@ public static class TaskHandler
     public static ValueTask<string> Download(ReceivedTask task, CancellationToken token = default) =>
         task.GetInputHandler().Download(task, token);
 
-    public static ValueTask UploadResult(ReceivedTask task, string file, string? postfix, CancellationToken token = default) =>
-        task.GetOutputHandler().UploadResult(task, file, postfix, token);
+    public static ValueTask UploadResult(ReceivedTask task, CancellationToken token = default) =>
+        task.GetOutputHandler().UploadResult(task, token);
 }

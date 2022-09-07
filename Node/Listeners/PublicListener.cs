@@ -25,7 +25,7 @@ public class PublicListener : ExecutableListenerBase
             return await Test(request, response, "hash", async hash =>
             {
                 var ihash = InfoHash.FromHex(hash);
-                var manager = TorrentClient.TryGet(ihash);
+                var manager = TorrentClient.TryGetManager(ihash);
                 if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
 
                 var data = new JObject()
@@ -43,7 +43,7 @@ public class PublicListener : ExecutableListenerBase
             return await Test(request, response, "hash", async hash =>
             {
                 var ihash = InfoHash.FromHex(hash);
-                var manager = TorrentClient.TryGet(ihash);
+                var manager = TorrentClient.TryGetManager(ihash);
                 if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
 
                 _logger.Info("Stopping torrent {Hash}", hash);

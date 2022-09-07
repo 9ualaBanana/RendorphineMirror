@@ -23,8 +23,9 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
     public string FSOutputDirectory() => DirectoryCreated(Path.Combine(FSDataDirectory(), "output"));
     public string FSInputDirectory() => DirectoryCreated(Path.Combine(FSDataDirectory(), "input"));
 
+    public string FSResultsDirectory() => DirectoryCreated(Path.Combine(Path.Combine(Init.ResultFilesDirectory, Id)));
+
     [MemberNotNull("InputFile")]
-    // [Obsolete("Use FSOutputDirectory instead")]
     public string FSOutputFile() => Path.Combine(FSOutputDirectory(), Path.GetFileName(InputFile.ThrowIfNull("Task input file path was not provided")));
 
 

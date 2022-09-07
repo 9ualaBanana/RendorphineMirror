@@ -37,25 +37,7 @@ if (Settings.SessionId is not null)
 {
     logger.Info($"Session ID is present. Email: {Settings.Email}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
 
-    // TODO: remove auth check when sids stop expiring
-    logger.Info("Checking authentication...");
-
-    var check = await Apis.GetMyTasksAsync(TaskState.Queued, sessionId: Settings.SessionId);
-    if (check) logger.Info("Session ID is valid");
-    else
-    {
-        if (check.AsString().Contains("Invalid M+ session ID.", StringComparison.OrdinalIgnoreCase))
-        {
-            logger.Info("Session ID was invalid, relogging in a slave mode");
-
-            // node name should stay the same
-            var auth = await SessionManager.AutoAuthAsync(Settings.Email);
-            auth.LogIfError();
-        }
-        else check.LogIfError("Error checking authentication: {0}");
-    }
-
-    if (Settings.SessionId is not null && !Debugger.IsAttached)
+    if (!Debugger.IsAttached)
         Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 }
 else
@@ -127,7 +109,7 @@ logger.Info(@$"Tasks found
     {NodeSettings.WatchingTasks.Count} watching
     {NodeSettings.QueuedTasks.Count} queued
     {NodeSettings.PlacedTasks.Count} placed
-    {NodeSettings.PlacedTasks.Bindable.Count(x => x.State is not (TaskState.Finished or TaskState.Failed or TaskState.Canceled))} non-finished placed
+    {NodeSettings.PlacedTasks.Bindable.Count(x => !x.State.IsFinished())} non-finished placed
 ".TrimLines().Replace("\n", "; "));
 
 

@@ -43,12 +43,6 @@ public static class VectorizerTasks
 
             Directory.Delete(outputdir, true);
             Directory.Move(outdir, outputdir);
-            foreach (var file in Directory.GetFiles(outputdir))
-            {
-                // bluenight_dark.250.g.eps > 250.g
-                var postfix = "." + string.Join('.', file.Split('.')[^3..^1]);
-                await UploadResult(task, file, postfix);
-            }
         }
 
 
