@@ -188,7 +188,6 @@ public static class FFMpegTasks
         {
             var ffprobe = File.Exists("/bin/ffprobe") ? "/bin/ffprobe" : "assets/ffprobe.exe";
 
-            // TODO: dont count frames, too long for some videos
             var args = $"-hide_banner -v quiet -print_format json -show_streams -show_format \"{file}\"";
             logobj?.LogInfo($"Starting {ffprobe} {args}");
 

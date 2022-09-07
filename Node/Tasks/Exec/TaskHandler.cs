@@ -15,13 +15,8 @@ public static class TaskHandler
     }
     public static async ValueTask InitializePlacedTaskAsync(DbTaskFullState task)
     {
-        var state = (await task.GetTaskStateAsync()).ThrowIfError().State;
-        if (state.IsFinished())
-        {
-            task.LogInfo($"Invalid task state {state}, removing");
-            NodeSettings.PlacedTasks.Bindable.Remove(task);
+        if (await task.RemoveIfFinished())
             return;
-        }
 
         await (task.TryGetHandler<IPlacedTaskInitializationHandler>()?.InitializePlacedTaskAsync(task) ?? ValueTask.CompletedTask);
     }
@@ -132,18 +127,11 @@ public static class TaskHandler
     }
     static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        const int maxattempts = 3;
-
-        // /gettaskstate is only allowed to whoever placed the task, so failing this is expected and just skipped
-        var state = await task.GetTaskStateAsync();
-        if (state && state.Value.State.IsFinished())
-        {
-            task.LogInfo($"Invalid task state: {state.Value.State}, removing");
-            NodeSettings.QueuedTasks.Bindable.Remove(task);
-
+        if (await task.RemoveIfFinished())
             return;
-        }
 
+
+        const int maxattempts = 3;
         NodeGlobalState.Instance.ExecutingTasks.Add(task);
         using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
         task.LogInfo($"Started");
@@ -179,6 +167,19 @@ public static class TaskHandler
     }
 
 
+    static async ValueTask<bool> RemoveIfFinished(this ReceivedTask task)
+    {
+        var state = (await task.GetTaskStateAsync()).ThrowIfError();
+        if (state.State.IsFinished())
+        {
+            task.LogInfo($"Task is in {state.State} state, removing");
+            NodeSettings.QueuedTasks.Bindable.Remove(task);
+
+            return true;
+        }
+
+        return false;
+    }
 
     public static void AddHandler(ITaskHandler handler) => Handlers.Add(handler.Type, handler);
     public static void AddHandlers(params ITaskHandler[] handlers)
@@ -191,10 +192,4 @@ public static class TaskHandler
 
     public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => (ITaskInputHandler) Handlers[task.Input.Type];
     public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => (ITaskOutputHandler) Handlers[task.Output.Type];
-
-    public static ValueTask<string> Download(ReceivedTask task, CancellationToken token = default) =>
-        task.GetInputHandler().Download(task, token);
-
-    public static ValueTask UploadResult(ReceivedTask task, CancellationToken token = default) =>
-        task.GetOutputHandler().UploadResult(task, token);
 }
