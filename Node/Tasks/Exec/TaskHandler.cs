@@ -134,6 +134,7 @@ public static class TaskHandler
     {
         const int maxattempts = 3;
 
+        // /gettaskstate is only allowed to whoever placed the task, so failing this is expected and just skipped
         var state = await task.GetTaskStateAsync();
         if (state && state.Value.State.IsFinished())
         {
