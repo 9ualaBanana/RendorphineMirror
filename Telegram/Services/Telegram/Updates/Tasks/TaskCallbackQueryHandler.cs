@@ -25,13 +25,9 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramUpdateHandler
         {
             var taskState = await Apis.GetTaskStateAsync(taskCallbackData.TaskId, authenticationToken.SessionId);
             if (taskState)
-            {
                 await Bot.TrySendMessageAsync(chatId, $"TaskID: *{taskCallbackData.TaskId}*\nState: *{taskState.Result.State}*\nProgress: *{taskState.Result.Progress}*\nServer: *{taskState.Result.Server}*");
-            }
             else
-            {
                 await Bot.TrySendMessageAsync(chatId, "Couldn't get task progress.");
-            }
         }
     }
 }
