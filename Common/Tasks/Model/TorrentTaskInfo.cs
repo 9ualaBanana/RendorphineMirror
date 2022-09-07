@@ -1,3 +1,5 @@
+using MonoTorrent;
+
 namespace Common.Tasks.Model;
 
 public class TorrentTaskInputInfo : ITaskInputInfo
@@ -17,10 +19,9 @@ public class TorrentTaskInputInfo : ITaskInputInfo
     {
         if (Link is not null) return;
 
-        var (_, manager) = await TorrentClient.CreateAddTorrent(Path);
-        await TorrentClient.AddTrackers(manager, true);
-
-        Link = manager.MagnetLink.ToV1String();
+        var torrent = await Torrent.LoadAsync(await TorrentClient.CreateTorrent(Path));
+        var magnet = new MagnetLink(torrent.InfoHash, torrent.Name, size: torrent.Size);
+        Link = magnet.ToV1String();
     }
 }
 public class TorrentTaskOutputInfo : ITaskOutputInfo

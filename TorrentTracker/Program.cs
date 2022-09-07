@@ -14,9 +14,9 @@ var tracker = new TrackerServer()
     AllowUnregisteredTorrents = true,
     MinAnnounceInterval = TimeSpan.FromSeconds(1)
 };
-tracker.PeerAnnounced += (obj, e) => logger.Info($"PeerAnnounced {e.Peer.ClientAddress}");
-tracker.PeerTimedOut += (obj, e) => logger.Info($"PeerTimedOut {e.Peer.ClientAddress}");
-tracker.PeerScraped += (obj, e) => logger.Info($"PeerScraped {e.Torrents.Count}");
+tracker.PeerAnnounced += (obj, e) => /* */ logger.Info($"PeerAnnounced {e.Torrent.Trackable.InfoHash.ToHex()} {e.Peer.ClientAddress}");
+tracker.PeerTimedOut += (obj, e) => /*  */ logger.Info($"PeerTimedOut  {e.Torrent.Trackable.InfoHash.ToHex()} {e.Peer.ClientAddress}");
+tracker.PeerScraped += (obj, e) => /*   */ logger.Info($"PeerScraped   {string.Join(", ", e.Torrents.Select(x => x.Trackable.InfoHash.ToHex()))}");
 
 const int porth = 5120;
 var listenerh = TrackerListenerFactory.CreateHttp($"http://t.microstock.plus:{porth}/announce/");

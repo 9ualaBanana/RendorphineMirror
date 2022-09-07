@@ -109,7 +109,7 @@ logger.Info(@$"Tasks found
     {NodeSettings.WatchingTasks.Count} watching
     {NodeSettings.QueuedTasks.Count} queued
     {NodeSettings.PlacedTasks.Count} placed
-    {NodeSettings.PlacedTasks.Bindable.Count(x => x.State is not (TaskState.Finished or TaskState.Failed or TaskState.Canceled))} non-finished placed
+    {NodeSettings.PlacedTasks.Bindable.Count(x => !x.State.IsFinished())} non-finished placed
 ".TrimLines().Replace("\n", "; "));
 
 

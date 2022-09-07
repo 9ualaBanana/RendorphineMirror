@@ -130,7 +130,6 @@ public static class FFMpegTasks
             duration /= rate;
 
             await ExecuteProcess(exepath, args, true, onRead, task);
-            await UploadResult(task, outputfile);
 
 
             void onRead(bool err, string line)

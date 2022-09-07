@@ -10,7 +10,7 @@ public interface ITaskInputHandler : ITaskHandler
 }
 public interface ITaskOutputHandler : ITaskHandler
 {
-    ValueTask UploadResult(ReceivedTask task, string file, string? postfix, CancellationToken cancellationToken);
+    ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken);
 }
 
 public interface IPlacedTaskCompletionCheckHandler : ITaskHandler

@@ -31,6 +31,7 @@ public static class Apis
 
         result.LogIfError($"[{(task as ILoggable).LogName}] Error while changing task state: {{0}}");
         if (result) task.State = state;
+
         return result;
     }
 }
