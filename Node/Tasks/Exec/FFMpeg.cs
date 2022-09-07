@@ -56,13 +56,13 @@ public abstract class MediaEditInfo
     public double? RotationRadians;
 
 
-    public virtual void ConstructFFMpegArguments(FFMpegTasks.FFProbe.FFProbeInfo ffprobe, ArgList args, List<string> filters, ref double rate)
+    public virtual void ConstructFFMpegArguments(FFMpegTasks.FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate)
     {
-        if (Crop is not null) filters.Add($"crop={Crop.W.ToString(NumberFormat)}:{Crop.H.ToString(NumberFormat)}:{Crop.X.ToString(NumberFormat)}:{Crop.Y.ToString(NumberFormat)}");
+        if (Crop is not null) args.VideoFilters.Add($"crop={Crop.W.ToString(NumberFormat)}:{Crop.H.ToString(NumberFormat)}:{Crop.X.ToString(NumberFormat)}:{Crop.Y.ToString(NumberFormat)}");
 
-        if (Hflip == true) filters.Add("hflip");
-        if (Vflip == true) filters.Add("vflip");
-        if (RotationRadians is not null) filters.Add($"rotate={RotationRadians.Value.ToString(NumberFormat)}");
+        if (Hflip == true) args.VideoFilters.Add("hflip");
+        if (Vflip == true) args.VideoFilters.Add("vflip");
+        if (RotationRadians is not null) args.VideoFilters.Add($"rotate={RotationRadians.Value.ToString(NumberFormat)}");
 
         var eq = new List<string>();
         if (Brightness is not null) eq.Add($"brightness={Brightness.Value.ToString(NumberFormat)}");
@@ -70,7 +70,7 @@ public abstract class MediaEditInfo
         if (Contrast is not null) eq.Add($"contrast={Contrast.Value.ToString(NumberFormat)}");
         if (Gamma is not null) eq.Add($"gamma={Gamma.Value.ToString(NumberFormat)}");
 
-        if (eq.Count != 0) filters.Add($"eq={string.Join(':', eq)}");
+        if (eq.Count != 0) args.VideoFilters.Add($"eq={string.Join(':', eq)}");
     }
 }
 public class EditVideoInfo : MediaEditInfo
@@ -85,25 +85,38 @@ public class EditVideoInfo : MediaEditInfo
     [JsonProperty("endFrame")]
     public double? EndFrame;
 
-    public override void ConstructFFMpegArguments(FFMpegTasks.FFProbe.FFProbeInfo ffprobe, ArgList args, List<string> filters, ref double rate)
+    public override void ConstructFFMpegArguments(FFMpegTasks.FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate)
     {
-        base.ConstructFFMpegArguments(ffprobe, args, filters, ref rate);
+        base.ConstructFFMpegArguments(ffprobe, args, ref rate);
 
         if (Speed is not null)
         {
             rate = Speed.Speed;
-            filters.Add($"setpts={(1d / Speed.Speed).ToString(NumberFormat)}*PTS");
+            args.VideoFilters.Add($"setpts={(1d / Speed.Speed).ToString(NumberFormat)}*PTS");
+            args.AudioFilers.Add($"atempo={Speed.Speed.ToString(NumberFormat)}");
 
             var fps = ffprobe.VideoStream.FrameRate;
-            args.Add("-r", Math.Max(fps, (fps * Speed.Speed)).ToString(NumberFormat));
-            if (Speed.Interpolated) filters.Add($"minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps={Math.Max(fps, (fps * Speed.Speed)).ToString(NumberFormat)}'");
+            args.Args.Add("-r", Math.Max(fps, (fps * Speed.Speed)).ToString(NumberFormat));
+            if (Speed.Interpolated) args.VideoFilters.Add($"minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps={Math.Max(fps, (fps * Speed.Speed)).ToString(NumberFormat)}'");
         }
 
-        if (EndFrame is not null && StartFrame is not null) filters.Add($"trim=start_frame={StartFrame.Value.ToString(NumberFormat)}:end_frame={EndFrame.Value.ToString(NumberFormat)}");
+        if (EndFrame is not null && StartFrame is not null) args.VideoFilters.Add($"trim=start_frame={StartFrame.Value.ToString(NumberFormat)}:end_frame={EndFrame.Value.ToString(NumberFormat)}");
     }
 }
 public class EditRasterInfo : MediaEditInfo { }
 
+public readonly struct FFMpegArgsHolder
+{
+    public readonly ArgList Args;
+    public readonly List<string> VideoFilters, AudioFilers;
+
+    public FFMpegArgsHolder(ArgList args, List<string> videoFilters, List<string> audioFilers)
+    {
+        Args = args;
+        VideoFilters = videoFilters;
+        AudioFilers = audioFilers;
+    }
+}
 public static class FFMpegTasks
 {
     public static IEnumerable<IPluginAction> CreateTasks() => new IPluginAction[] { new FFMpegEditVideo(), new FFMpegEditRaster() };
@@ -147,10 +160,11 @@ public static class FFMpegTasks
             IEnumerable<string> getArgs(ref double rate)
             {
                 var argsarr = new ArgList();
-                var filtersarr = new List<string>();
+                var videofilters = new List<string>();
+                var audiofilters = new List<string>();
 
-                data.ConstructFFMpegArguments(ffprobe, argsarr, filtersarr, ref rate);
-                if (filtersarr.Count == 0) throw new Exception("No vfilters specified in task");
+                data.ConstructFFMpegArguments(ffprobe, new(argsarr, videofilters, audiofilters), ref rate);
+                if (videofilters.Count == 0) throw new Exception("No vfilters specified in task");
 
                 return new ArgList()
                 {
@@ -163,8 +177,9 @@ public static class FFMpegTasks
                     "-i", task.InputFile,                   // input file
 
                     argsarr,                                // arguments
-                    "-vf", string.Join(',', filtersarr),    // video filters
-                    "-c:a", "copy",                         // don't reencode audio
+                    "-vf", string.Join(',', videofilters),  // video filters
+                    "-af", string.Join(',', audiofilters),  // audio filters
+
                     outputfile,                             // output path
                 };
             }
