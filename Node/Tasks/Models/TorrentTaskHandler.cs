@@ -29,16 +29,22 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (TorrentTaskOutputInfo) task.Output;
+        var outputdir = task.FSResultsDirectory();
 
         if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
         {
-            // TODO: ???? with .FileName & .Directory
+            copydir(task.FSOutputDirectory(), outputdir);
+            return;
 
-            /*var filename = Path.GetFileNameWithoutExtension(info.FileName) + postfix + Path.GetExtension(info.FileName);
 
-            Directory.CreateDirectory(info.Directory);
-            File.Copy(file, Path.Combine(info.Directory, filename), true);
-            return;*/
+            void copydir(string source, string destination)
+            {
+                source = Path.GetFullPath(source);
+                destination = Path.GetFullPath(destination);
+
+                Directory.GetDirectories(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => Directory.CreateDirectory(x.Replace(source, destination)));
+                Directory.GetFiles(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => File.Copy(x, x.Replace(source, destination)));
+            }
         }
 
 
@@ -56,12 +62,15 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
     }
     public async ValueTask DownloadResult(DbTaskFullState task)
     {
+        // if task is local, downloading already handled by UploadResult
+        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
+            return;
+
         var output = (TorrentTaskOutputInfo) task.Output;
         output.Link.ThrowIfNull();
         task.LogInfo($"Downloading result from torrent {output.Link}");
 
-        Directory.CreateDirectory("repepe");
-        var manager = await TorrentClient.StartMagnet(output.Link, "repepe"); // TODO: output directory
+        var manager = await TorrentClient.StartMagnet(output.Link, task.FSResultsDirectory());
 
         await TorrentClient.AddTrackers(manager, true);
         await TorrentClient.WaitForCompletion(manager);
