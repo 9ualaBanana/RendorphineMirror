@@ -1,4 +1,5 @@
 ﻿using Common;
+using System.Text;
 using Telegram.Bot.Types;
 using Telegram.Services.Telegram.Authentication;
 
@@ -25,7 +26,17 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramUpdateHandler
         {
             var taskState = await Apis.GetTaskStateAsync(taskCallbackData.TaskId, authenticationToken.MPlus.SessionId);
             if (taskState)
-                await Bot.TrySendMessageAsync(chatId, $"TaskID: *{taskCallbackData.TaskId}*\nState: *{taskState.Result.State}*\nProgress: *{taskState.Result.Progress}*\nServer: *{taskState.Result.Server}*");
+            {
+                var messageBuilder = new StringBuilder()
+                    .AppendLine($"TaskID: *{taskCallbackData.TaskId}*")
+                    .AppendLine($"State: *{taskState.Result.State}*")
+                    .AppendLine($"Progress: *{taskState.Result.Progress}*");
+                if (taskState.Result.Times.Exist)
+                    messageBuilder.AppendLine($"Duration: *{taskState.Result.Times.Total}*");
+                messageBuilder.AppendLine($"Server: *{taskState.Result.Server}*");
+
+                await Bot.TrySendMessageAsync(chatId, messageBuilder.ToString());
+            }
             else
                 await Bot.TrySendMessageAsync(chatId, "Couldn't get task progress.");
         }

@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Common.Tasks;
 
-public record TaskFullState(TaskState State, double Progress, JObject Output, TaskServer? Server = null);
+public record TaskFullState(TaskState State, double Progress, JObject Output, TaskTimes Times, TaskServer? Server = null);
 public record TaskServer(string Host, string Userid, string Nickname);
 
 public record DbTaskFullState : ReceivedTask
