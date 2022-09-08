@@ -28,30 +28,34 @@ public class TasksController : ControllerBase
         logger.LogDebug("Received task result preview");
 
         var mpItem = await taskResultsPreviewer.GetMyMPItemAsync(taskId);
-        _ = taskRegistry.Remove(taskId, out var authenticationToken);
-        if (mpItem is null)
-            await bot.TryNotifySubscribersAsync($"Couldn't retrieve the task result ({taskId}).");
-        else if (mpItem.IsVideo)
+
+        if (taskRegistry.Remove(taskId, out var authenticationToken))
         {
-            var videoPreview = mpItem.AsVideoPreview;
-            await bot.TrySendVideoAsync(
-                authenticationToken.ChatId,
-                videoPreview.Mp4Url,
-                videoPreview.ThumbnailMediumUrl,
-                caption: $"{videoPreview.Title}\n\nNode: {nodeName}\nTask ID: *{videoPreview.TaskId}*\nM+ IID: *{videoPreview.MpIid}*",
-                videoPreview.Width,
-                videoPreview.Height);
+            if (mpItem is null)
+                await bot.TryNotifySubscribersAsync($"Couldn't retrieve the task result ({taskId}).");
+            else if (mpItem.IsVideo)
+            {
+                var videoPreview = mpItem.AsVideoPreview;
+                await bot.TrySendVideoAsync(
+                    authenticationToken.ChatId,
+                    videoPreview.Mp4Url,
+                    videoPreview.ThumbnailMediumUrl,
+                    caption: $"{videoPreview.Title}\n\nNode: {nodeName}\nTask ID: *{videoPreview.TaskId}*\nM+ IID: *{videoPreview.MpIid}*",
+                    videoPreview.Width,
+                    videoPreview.Height);
+            }
+            else if (mpItem.IsImage)
+            {
+                var imagePreview = mpItem.AsImagePreview;
+                await bot.TrySendImageAsync(
+                    authenticationToken.ChatId,
+                    imagePreview.ThumbnailMediumUrl,
+                    caption: $"{imagePreview.Title}\n\nNode: {nodeName}\nTask ID: *{imagePreview.TaskId}*\nM+ IID: *{imagePreview.MpIid}*");
+            }
+            else
+                logger.LogError("Unsupported type for task result preview: {Type}", mpItem.Type);
         }
-        else if (mpItem.IsImage)
-        {
-            var imagePreview = mpItem.AsImagePreview;
-            await bot.TrySendImageAsync(
-                authenticationToken.ChatId,
-                imagePreview.ThumbnailMediumUrl,
-                caption: $"{imagePreview.Title}\n\nNode: {nodeName}\nTask ID: *{imagePreview.TaskId}*\nM+ IID: *{imagePreview.MpIid}*");
-        }
-        else
-            logger.LogError("Unsupported type for task result preview: {Type}", mpItem.Type);
+
         return JsonContent.Create(new { ok = 1 });
     }
 

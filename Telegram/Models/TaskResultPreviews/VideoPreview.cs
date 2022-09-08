@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿using Newtonsoft.Json.Linq;
 
 namespace Telegram.Models.TaskResultPreviews;
 
@@ -22,26 +22,26 @@ public class VideoPreview
     public long WebmSize;
     public string WebmUrl;
 
-    public VideoPreview(JsonElement mpItem)
+    public VideoPreview(JToken mpItem)
     {
-        var basicMetadata = mpItem.GetProperty("metadata").GetProperty("basic");
-        Title = basicMetadata.GetProperty("title").GetString()!;
-        Description = basicMetadata.GetProperty("description").GetString()!;
-        TaskId = mpItem.GetProperty("id").GetString()!;
-        MpIid = mpItem.GetProperty("iid").GetString()!;
+        var basicMetadata = mpItem["metadata"]!["basic"]!;
+        Title = (string)basicMetadata["title"]!;
+        Description = (string)basicMetadata["description"]!;
+        TaskId = (string)mpItem["id"]!;
+        MpIid = (string)mpItem["iid"]!;
 
-        ThumbnailSmallUrl = mpItem.GetProperty("thumbnailurl").GetString()!;
-        ThumbnailMediumUrl = mpItem.GetProperty("previewurl").GetString()!;
-        ThumbnailBigUrl = mpItem.GetProperty("nowmpreviewurl").GetString()!;
+        ThumbnailSmallUrl = (string)mpItem["thumbnailurl"]!;
+        ThumbnailMediumUrl = (string)mpItem["previewurl"]!;
+        ThumbnailBigUrl = (string)mpItem["nowmpreviewurl"]!;
 
-        var videoPreview = mpItem.GetProperty("videopreview");
-        Width = videoPreview.GetProperty("width").GetInt32();
-        Height = videoPreview.GetProperty("height").GetInt32();
+        var videoPreview = mpItem["videopreview"];
+        Width = (int)videoPreview["width"]!;
+        Height = (int)videoPreview["height"]!;
 
-        Mp4Size = videoPreview.GetProperty("mp4").GetProperty("size").GetInt64();
-        Mp4Url = videoPreview.GetProperty("mp4").GetProperty("url").GetString()!;
+        Mp4Size = (long)videoPreview["mp4"]!["size"]!;
+        Mp4Url = (string)videoPreview["mp4"]!["url"]!;
 
-        WebmSize = videoPreview.GetProperty("webm").GetProperty("size").GetInt64();
-        WebmUrl = videoPreview.GetProperty("webm").GetProperty("url").GetString()!;
+        WebmSize = (long)videoPreview["webm"]!["size"]!;
+        WebmUrl = (string)videoPreview["webm"]!["url"]!;
     }
 }

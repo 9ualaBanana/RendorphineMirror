@@ -1,17 +1,17 @@
-﻿using System.Text.Json;
+﻿using Newtonsoft.Json.Linq;
 
 namespace Telegram.Models.TaskResultPreviews;
 
 public class MpItem
 {
-    readonly JsonElement _jsonElement;
+    readonly JToken _jsonElement;
 
-    public MpItem(JsonElement mpItem)
+    public MpItem(JToken mpItem)
     {
         _jsonElement = mpItem;
     }
 
-    public string Type => _jsonElement.GetProperty("type").GetString()!;
+    public string Type => (string)_jsonElement["type"]!;
 
     public bool IsVideo => Type == "video";
     public bool IsImage => Type == "raster";

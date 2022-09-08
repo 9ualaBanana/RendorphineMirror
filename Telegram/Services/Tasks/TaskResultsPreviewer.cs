@@ -1,6 +1,5 @@
 ﻿using Common;
 using Newtonsoft.Json.Linq;
-using System.Text.Json;
 using Telegram.Models.TaskResultPreviews;
 
 namespace Telegram.Services.Tasks;
@@ -24,18 +23,20 @@ public class TaskResultsPreviewer
         if (authenticationToken is null) return null;
 
         string iid = (await GetTaskOutputIidAsync(taskId, authenticationToken.MPlus.SessionId)).Result;
-        JsonElement mpItem;
+        JToken mpItem;
         while (true)
         {
-            mpItem = JsonDocument.Parse(
-                await _httpClient.GetStringAsync($"https://tasks.microstock.plus/rphtaskmgr/getmympitem?sessionid={authenticationToken.MPlus.SessionId}&iid={iid}")
-                ).RootElement;
-            if (mpItem.TryGetProperty("item", out mpItem))
+            try
             {
-                if (mpItem.GetProperty("state").GetString() == "received")
-                { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new(mpItem); }
+                mpItem = await Api.GetJsonFromResponseIfSuccessfulAsync(
+                    await _httpClient.GetAsync($"https://tasks.microstock.plus/rphtaskmgr/getmympitem?sessionid={authenticationToken.MPlus.SessionId}&iid={iid}"));
             }
-            Thread.Sleep(1000);
+            catch { return null; }
+
+            mpItem = mpItem["item"]!;
+            if ((string)mpItem["state"]! == "received")
+            { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new(mpItem); }
+            else Thread.Sleep(1000);
         }
     }
 

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿using Newtonsoft.Json.Linq;
 
 namespace Telegram.Models.TaskResultPreviews;
 
@@ -16,20 +16,20 @@ public class ImagePreview
     public int Width;
     public int Height;
 
-    public ImagePreview(JsonElement mpItem)
+    public ImagePreview(JToken mpItem)
     {
-        var basicMetadata = mpItem.GetProperty("metadata").GetProperty("basic");
-        Title = basicMetadata.GetProperty("title").GetString()!;
-        Description = basicMetadata.GetProperty("description").GetString()!;
-        TaskId = mpItem.GetProperty("id").GetString()!;
-        MpIid = mpItem.GetProperty("iid").GetString()!;
+        var basicMetadata = mpItem["metadata"]!["basic"]!;
+        Title = (string)basicMetadata["title"]!;
+        Description = (string)basicMetadata["description"]!;
+        TaskId = (string)mpItem["id"]!;
+        MpIid = (string)mpItem["iid"]!;
 
-        ThumbnailSmallUrl = mpItem.GetProperty("thumbnailurl").GetString()!;
-        ThumbnailMediumUrl = mpItem.GetProperty("previewurl").GetString()!;
-        ThumbnailBigUrl = mpItem.GetProperty("nowmpreviewurl").GetString()!;
+        ThumbnailSmallUrl = (string)mpItem["thumbnailurl"]!;
+        ThumbnailMediumUrl = (string)mpItem["previewurl"]!;
+        ThumbnailBigUrl = (string)mpItem["nowmpreviewurl"]!;
 
-        var imageDimensions = mpItem.GetProperty("media").GetProperty("jpeg");
-        Width = imageDimensions.GetProperty("width").GetInt32();
-        Height = imageDimensions.GetProperty("height").GetInt32();
+        var imageDimensions = mpItem["media"]!["jpeg"]!;
+        Width = (int)imageDimensions["width"]!;
+        Height = (int)imageDimensions["height"]!;
     }
 }
