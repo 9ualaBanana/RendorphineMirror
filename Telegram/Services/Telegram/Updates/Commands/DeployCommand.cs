@@ -14,7 +14,7 @@ public class DeployCommand : AuthenticatedCommand
 
 
 
-    public DeployCommand(ILogger<DeployCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, UserNodes userNodes, IHttpClientFactory httpClientFactory)
+    public DeployCommand(ILogger<DeployCommand> logger, TelegramBot bot, ChatAuthenticator authenticator, UserNodes userNodes, IHttpClientFactory httpClientFactory)
         : base(logger, bot, authenticator)
     {
         _userNodes = userNodes;
@@ -25,7 +25,7 @@ public class DeployCommand : AuthenticatedCommand
 
     public override string Value => "deploy";
 
-    protected override async Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken)
+    protected override async Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken)
     {
         var pluginTypes = ParsePluginTypesFrom(update.Message!.Text!);
         var nodeNames = update.Message.Text!.QuotedArguments();
@@ -34,7 +34,7 @@ public class DeployCommand : AuthenticatedCommand
             .Select(type => new PluginToDeploy() { Type = type, Version = string.Empty }).ToHashSet();
 
         var userSettingsManager = new UserSettingsManager(_httpClient);
-        var userSettings = await userSettingsManager.TryFetchAsync(authenticationToken.SessionId);
+        var userSettings = await userSettingsManager.TryFetchAsync(authenticationToken.MPlus.SessionId);
         if (userSettings is null)
         { await Bot.TrySendMessageAsync(update.Message.Chat.Id, "Plugins couldn't be deployed."); return; }
 
@@ -49,14 +49,14 @@ public class DeployCommand : AuthenticatedCommand
             {
                 var nodeSettings = new UserSettings(node.Guid) { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware };
                 nodeSettings.ThisNodeInstallSoftware.UnionEachWith(plugins);
-                if (!await userSettingsManager.TrySetAsync(nodeSettings, authenticationToken.SessionId))
+                if (!await userSettingsManager.TrySetAsync(nodeSettings, authenticationToken.MPlus.SessionId))
                 { await Bot.TrySendMessageAsync(update.Message.Chat.Id, "Plugins couldn't be deployed."); return; }
             }
         }
         else
         {
             userSettings.InstallSoftware.UnionEachWith(plugins);
-            if (!await userSettingsManager.TrySetAsync(new UserSettings() { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware }, authenticationToken.SessionId))
+            if (!await userSettingsManager.TrySetAsync(new UserSettings() { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware }, authenticationToken.MPlus.SessionId))
             { await Bot.TrySendMessageAsync(update.Message.Chat.Id, "Plugins couldn't be deployed."); return; }
         }
         await Bot.TrySendMessageAsync(update.Message.Chat.Id, "Plugins successfully added to the deploy queue.");

@@ -5,11 +5,11 @@ namespace Telegram.Services.Telegram.Updates;
 
 public abstract class AuthenticatedTelegramUpdateHandler : TelegramUpdateHandler
 {
-    protected readonly TelegramChatIdAuthenticator Authenticator;
+    protected readonly ChatAuthenticator Authenticator;
 
 
 
-    public AuthenticatedTelegramUpdateHandler(ILogger logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator)
+    public AuthenticatedTelegramUpdateHandler(ILogger logger, TelegramBot bot, ChatAuthenticator authenticator)
         : base(logger, bot)
     { Authenticator = authenticator; }
 
@@ -23,5 +23,5 @@ public abstract class AuthenticatedTelegramUpdateHandler : TelegramUpdateHandler
         if (authenticationToken is not null) await HandleAsync(update, authenticationToken);
     }
 
-    protected abstract Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken);
+    protected abstract Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken);
 }

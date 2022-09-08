@@ -4,7 +4,7 @@ using Telegram.Bot.Types;
 
 namespace Telegram.Services.Telegram.Authentication;
 
-public class TelegramChatIdAuthenticator
+public class ChatAuthenticator
 {
     readonly ILogger _logger;
 
@@ -12,11 +12,15 @@ public class TelegramChatIdAuthenticator
     readonly HttpClient _httpClient;
     readonly AuthentcatedUsersRegistry _users;
 
-    readonly Dictionary<ChatId, TelegramAuthenticationToken> _authenticationTokens = new();
+    readonly Dictionary<ChatId, ChatAuthenticationToken> _authenticationTokens = new();
 
 
 
-    public TelegramChatIdAuthenticator(ILogger<TelegramChatIdAuthenticator> logger, TelegramBot bot, IHttpClientFactory httpClientFactory, AuthentcatedUsersRegistry users)
+    public ChatAuthenticator(
+        ILogger<ChatAuthenticator> logger,
+        TelegramBot bot,
+        IHttpClientFactory httpClientFactory,
+        AuthentcatedUsersRegistry users)
     {
         _logger = logger;
         _bot = bot;
@@ -26,7 +30,7 @@ public class TelegramChatIdAuthenticator
 
 
 
-    internal TelegramAuthenticationToken? TryGetTokenFor(ChatId id)
+    internal ChatAuthenticationToken? TryGetTokenFor(ChatId id)
     {
         if (IsAuthenticated(id)) return _authenticationTokens[id];
 
@@ -58,10 +62,10 @@ public class TelegramChatIdAuthenticator
     {
         try
         {
-            var authenticatedUser = await AuthenticateAsync(credentials);
-            _authenticationTokens.Add(credentials.ChatId, new(credentials.ChatId, authenticatedUser.UserId, authenticatedUser.SessionId));
-            _users.GetOrAdd(authenticatedUser.UserId, new HashSet<ChatId>()).Add(credentials.ChatId!);
-            if (authenticatedUser.IsAdmin)
+            var mPlusAuthenticationToken = await AuthenticateAsync(credentials);
+            _authenticationTokens.Add(credentials.ChatId, new(credentials.ChatId, mPlusAuthenticationToken));
+            _users.GetOrAdd(mPlusAuthenticationToken.UserId, new HashSet<ChatId>()).Add(credentials.ChatId!);
+            if (mPlusAuthenticationToken.IsAdmin)
                 _bot.Subscriptions.Add(long.Parse(credentials.ChatId!));
 
             _logger.LogDebug("User is authenticated: {Login}", credentials.Login);

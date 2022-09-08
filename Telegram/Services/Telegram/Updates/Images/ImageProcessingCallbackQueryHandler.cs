@@ -22,7 +22,7 @@ public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHa
     public ImageProcessingCallbackQueryHandler(
         ILogger<ImageProcessingCallbackQueryHandler> logger,
         TelegramBot bot,
-        TelegramChatIdAuthenticator authenticator,
+        ChatAuthenticator authenticator,
         TaskRegistry taskRegistry,
         TelegramFileRegistry fileRegistry,
         IConfiguration configuration) : base(logger, bot, authenticator)
@@ -34,7 +34,7 @@ public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHa
 
 
 
-    protected async override Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken)
+    protected async override Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken)
     {
         var chatId = update.CallbackQuery!.Message!.Chat.Id;
 
@@ -56,7 +56,7 @@ public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHa
                     null,
                     new DownloadLinkTaskInputInfo($"{_hostUrl}/tasks/getinput/{imageCallbackData.FileRegistryKey}"),
                     new MPlusTaskOutputInfo($"{imageCallbackData.FileRegistryKey}.jpg", "upscaled"), new()
-                    ), authenticationToken.SessionId)).Result;
+                    ), authenticationToken.MPlus.SessionId)).Result;
             _taskRegistry[taskId] = authenticationToken;
 
             await Bot.TrySendMessageAsync(chatId, "Resulting image will be sent back to you as soon as it's ready.",

@@ -9,13 +9,13 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramUpdateHandler
     public TaskCallbackQueryHandler(
         ILogger<TaskCallbackQueryHandler> logger,
         TelegramBot bot,
-        TelegramChatIdAuthenticator authenticator) : base(logger, bot, authenticator)
+        ChatAuthenticator authenticator) : base(logger, bot, authenticator)
     {
     }
 
 
 
-    protected async override Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken)
+    protected async override Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken)
     {
         var chatId = update.CallbackQuery!.Message!.Chat.Id;
 
@@ -23,7 +23,7 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramUpdateHandler
 
         if (taskCallbackData.Value.HasFlag(TaskQueryFlags.Details))
         {
-            var taskState = await Apis.GetTaskStateAsync(taskCallbackData.TaskId, authenticationToken.SessionId);
+            var taskState = await Apis.GetTaskStateAsync(taskCallbackData.TaskId, authenticationToken.MPlus.SessionId);
             if (taskState)
                 await Bot.TrySendMessageAsync(chatId, $"TaskID: *{taskCallbackData.TaskId}*\nState: *{taskState.Result.State}*\nProgress: *{taskState.Result.Progress}*\nServer: *{taskState.Result.Server}*");
             else

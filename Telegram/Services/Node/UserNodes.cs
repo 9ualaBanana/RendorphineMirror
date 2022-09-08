@@ -9,12 +9,12 @@ namespace Telegram.Services.Node;
 public class UserNodes : ConcurrentDictionary<string, NodeSupervisor>
 {
     public bool TryGetUserNodeSupervisor(
-        TelegramAuthenticationToken authentictationToken,
+        ChatAuthenticationToken authentictationToken,
         [MaybeNullWhen(false)] out NodeSupervisor userNodeSupervisor,
         TelegramBot bot,
         ChatId chatId)
     {
-        if (TryGetValue(authentictationToken.UserId, out userNodeSupervisor)) return true;
+        if (TryGetValue(authentictationToken.MPlus.UserId, out userNodeSupervisor)) return true;
         else
         {
             _ = bot.TrySendMessageAsync(chatId, "No nodes owned by the current user were detected so far.");

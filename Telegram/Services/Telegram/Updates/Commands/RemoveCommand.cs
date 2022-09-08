@@ -11,7 +11,7 @@ public class RemoveCommand : AuthenticatedCommand
 
 
 
-    public RemoveCommand(ILogger<RemoveCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator, UserNodes userNodes)
+    public RemoveCommand(ILogger<RemoveCommand> logger, TelegramBot bot, ChatAuthenticator authenticator, UserNodes userNodes)
         : base(logger, bot, authenticator)
     {
         _userNodes = userNodes;
@@ -21,7 +21,7 @@ public class RemoveCommand : AuthenticatedCommand
 
     public override string Value => "remove";
 
-    protected override async Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken)
+    protected override async Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken)
     {
         var nodeNames = update.Message!.Text!.QuotedArguments().ToArray();
         if (!_userNodes.TryGetUserNodeSupervisor(authenticationToken, out var userNodesSupervisor, Bot, authenticationToken.ChatId))

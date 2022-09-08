@@ -5,14 +5,14 @@ namespace Telegram.Services.Telegram.Updates.Commands;
 
 public abstract class AuthenticatedCommand : Command
 {
-    protected readonly TelegramChatIdAuthenticator Authenticator;
+    protected readonly ChatAuthenticator Authenticator;
 
 
 
     public AuthenticatedCommand(
         ILogger<AuthenticatedCommand> logger,
         TelegramBot bot,
-        TelegramChatIdAuthenticator authenticator) : base(logger, bot)
+        ChatAuthenticator authenticator) : base(logger, bot)
     {
         Authenticator = authenticator;
     }
@@ -27,5 +27,5 @@ public abstract class AuthenticatedCommand : Command
         if (authenticationToken is not null) await HandleAsync(update, authenticationToken);
     }
 
-    protected abstract Task HandleAsync(Update update, TelegramAuthenticationToken authenticationToken);
+    protected abstract Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken);
 }

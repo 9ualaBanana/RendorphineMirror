@@ -2,6 +2,6 @@
 
 namespace Telegram.Services.Tasks;
 
-public class TaskRegistry : Dictionary<string, TelegramAuthenticationToken>
+public class TaskRegistry : Dictionary<string, ChatAuthenticationToken>
 {
 }

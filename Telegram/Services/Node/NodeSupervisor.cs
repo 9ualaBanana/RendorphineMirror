@@ -71,9 +71,12 @@ public class NodeSupervisor
     /// <see cref="TimeSpan"/> representing the last time ping was received from <paramref name="nodeInfo" />;
     /// <c>null</c> if <paramref name="nodeInfo"/> is offline.
     /// </returns>
-    internal TimeSpan? UptimeOf(MachineInfo nodeInfo) =>
-        NodesOnline.TryGetStorageTimer(nodeInfo, out var storageTimer) ?
-            storageTimer.Uptime : null;
+    internal bool UptimeOf(MachineInfo nodeInfo, out TimeSpan? uptime)
+    {
+        if (NodesOnline.TryGetStorageTimer(nodeInfo, out var storageTimer))
+        { uptime = storageTimer.Uptime; return true; }
+        else { uptime = null; return false; }
+    }
 
     internal int TryRemoveNodesWithNames(params string[] nodeNames)
     {

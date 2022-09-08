@@ -5,8 +5,8 @@ namespace Telegram.Services.Telegram.Updates.Commands;
 
 public class LoginCommand : Command
 {
-    readonly TelegramChatIdAuthenticator _authenticator;
-    public LoginCommand(ILogger<LoginCommand> logger, TelegramBot bot, TelegramChatIdAuthenticator authenticator)
+    readonly ChatAuthenticator _authenticator;
+    public LoginCommand(ILogger<LoginCommand> logger, TelegramBot bot, ChatAuthenticator authenticator)
         : base(logger, bot)
     { _authenticator = authenticator; }
 

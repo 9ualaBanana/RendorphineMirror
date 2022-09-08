@@ -1,4 +1,10 @@
-﻿namespace Telegram.Services.Telegram.Updates.Commands;
+﻿using Telegram.Services.Telegram.Updates.Commands.Offline;
+using Telegram.Services.Telegram.Updates.Commands.Online;
+using Telegram.Services.Telegram.Updates.Commands.Ping;
+using Telegram.Services.Telegram.Updates.Commands.Pinglist;
+using Telegram.Services.Telegram.Updates.Commands.Plugins;
+
+namespace Telegram.Services.Telegram.Updates.Commands;
 
 internal static class CommandsExtensions
 {
@@ -22,10 +28,15 @@ internal static class CommandsExtensions
             .AddScoped<TelegramCommandHandler>()
             .AddScoped<Command, LoginCommand>()
             .AddScoped<Command, PingListCommand>()
+            .AddScoped<Command, AdminPinglistCommand>()
             .AddScoped<Command, PingCommand>()
+            .AddScoped<Command, AdminPingCommand>()
             .AddScoped<Command, OnlineCommand>()
+            .AddScoped<Command, AdminOnlineCommand>()
             .AddScoped<Command, OfflineCommand>()
+            .AddScoped<Command, AdminOfflineCommand>()
             .AddScoped<Command, PluginsCommand>()
+            .AddScoped<Command, AdminPluginsCommand>()
             .AddScoped<Command, DeployCommand>()
             .AddScoped<Command, RemoveCommand>()
             .AddScoped<Command, LogoutCommand>();
