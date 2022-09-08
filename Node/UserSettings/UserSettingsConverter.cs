@@ -15,10 +15,13 @@ public class UserSettingsConverter : JsonConverter<UserSettings>
         ReadAll(installSoftware, userSettings.InstallSoftware);
 
         var nodeInstallSoftwareForAllNodes= (JObject?)jObject.Property("nodeinstallsoftware")?.Value;
-        foreach (var nodeSpecificSoftwareProperty in nodeInstallSoftwareForAllNodes?.Properties()!)
+        if (nodeInstallSoftwareForAllNodes is not null)
         {
-            userSettings.NodeInstallSoftware.Add(nodeSpecificSoftwareProperty.Name, new());
-            ReadAll((JObject?)nodeSpecificSoftwareProperty.Value, userSettings.NodeInstallSoftware[nodeSpecificSoftwareProperty.Name]);
+            foreach (var nodeSpecificSoftwareProperty in nodeInstallSoftwareForAllNodes.Properties()!)
+            {
+                userSettings.NodeInstallSoftware.Add(nodeSpecificSoftwareProperty.Name, new());
+                ReadAll((JObject?)nodeSpecificSoftwareProperty.Value, userSettings.NodeInstallSoftware[nodeSpecificSoftwareProperty.Name]);
+            }
         }
 
         return userSettings;
