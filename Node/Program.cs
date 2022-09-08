@@ -156,7 +156,14 @@ async Task InitializePlugins()
 {
     Directory.CreateDirectory("plugins");
 
-    TaskList.Initialize();
+
+    TaskList.Add(new[]
+    {
+        FFMpegTasks.CreateTasks(),
+        EsrganTasks.CreateTasks(),
+        VectorizerTasks.CreateTasks(),
+    });
+
     PluginsManager.RegisterPluginDiscoverers(
         new BlenderPluginDiscoverer(),
         new Autodesk3dsMaxPluginDiscoverer(),
