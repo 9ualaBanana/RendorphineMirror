@@ -37,7 +37,16 @@ if (Settings.SessionId is not null)
 {
     logger.Info($"Session ID is present. Email: {Settings.Email}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
 
-    if (!Debugger.IsAttached)
+    if (Settings.UserId is null)
+    {
+        logger.Info("User ID is null, relogging in a slave mode");
+
+        // node name should stay the same
+        var auth = await SessionManager.AutoAuthAsync(Settings.Email);
+        auth.LogIfError();
+    }
+
+    if (Settings.SessionId is not null && !Debugger.IsAttached)
         Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
 }
 else
