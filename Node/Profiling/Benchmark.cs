@@ -119,12 +119,15 @@ internal static class Benchmark
     static object GetRamAsObject()
     {
         var ramInfo = RAM.Info;
-        ulong total, free = default;
+
+        ulong total = default;
+        ulong free = default;
         try
         {
-            total = ramInfo.Aggregate(0ul, (totalCapacity, ramUnit) => totalCapacity += ramUnit.Capacity),
-            free = ramInfo.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory)
+            total = ramInfo.Aggregate(0ul, (totalCapacity, ramUnit) => totalCapacity += ramUnit.Capacity);
+            free = ramInfo.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory);
         }
+        catch { }
         return new { total, free };
     }
 }
