@@ -29,6 +29,7 @@ namespace Common
             {
                 DhtPort = DhtPort,
                 ListenPort = ListenPort,
+                CacheDirectory = Path.Combine(Directory.GetCurrentDirectory(), "cache"),
             };
             Client = new ClientEngine(esettings.ToSettings());
         }
