@@ -159,16 +159,11 @@ namespace NodeUI.Pages
 
                 void updatetext()
                 {
-                    var values = typeof(Settings).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)
-                        .Where(x => x.FieldType.IsAssignableTo(typeof(IBindable)))
-                        .Select(x => x.Name.Substring(1) + ": " + x.GetValue(null)!.GetType().GetProperty("Value")!.GetValue(x.GetValue(null)));
-
                     Dispatcher.UIThread.Post(() => infotb.Text =
                         @$"
-                        Current node state: {JsonConvert.SerializeObject(NodeGlobalState.Instance, Formatting.Indented)}
+                        Auth: {JsonConvert.SerializeObject(Settings.AuthInfo!.Value, Formatting.None)}
+                        Ports: [ LocalListen: {Settings.LocalListenPort}; UPnp: {Settings.UPnpPort}; UPnpServer: {Settings.UPnpServerPort}; Dht: {Settings.DhtPort}; Torrent: {Settings.TorrentPort} ]
 
-                        Settings:
-                        {string.Join("; ", values)}
                         Ui start time: {starttime}
                         ".TrimLines()
                     );
