@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Web;
 
-namespace Node.P2P.Models;
+namespace Node.Trasnport.Models;
 
 internal record DownloadFileInfo(
     string SessionId,

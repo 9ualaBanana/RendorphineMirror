@@ -1,4 +1,4 @@
-﻿namespace Node.P2P.Upload;
+﻿namespace Node.Trasnport.Upload;
 
 public abstract class UploadSessionData
 {

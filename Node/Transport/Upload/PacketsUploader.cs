@@ -1,7 +1,7 @@
 ﻿using Benchmark;
 using System.Diagnostics;
 
-namespace Node.P2P.Upload;
+namespace Node.Trasnport.Upload;
 
 internal class PacketsUploader : IDisposable
 {

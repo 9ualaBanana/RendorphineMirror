@@ -1,4 +1,4 @@
-﻿namespace Node.P2P;
+﻿namespace Node.Trasnport;
 
 internal record LongRange(long Start, long End)
 {

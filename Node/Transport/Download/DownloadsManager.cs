@@ -1,9 +1,9 @@
-﻿using Node.P2P.Models;
+﻿using Node.Trasnport.Models;
 using System.Net;
 using System.Text.Json;
 using Timer = System.Timers.Timer;
 
-namespace Node.P2P.Download;
+namespace Node.Trasnport.Download;
 
 internal static class DownloadsManager
 {

@@ -1,7 +1,7 @@
-﻿using Node.P2P.Models;
+﻿using Node.Trasnport.Models;
 using System.Net;
 
-namespace Node.P2P.Download;
+namespace Node.Trasnport.Download;
 
 // Launch the listener for download initializations on the downloader side.
 // Send GET request to the uploader to notify him that the downloader is started. (it's likely unnecessary)

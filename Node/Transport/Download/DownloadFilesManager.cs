@@ -1,8 +1,8 @@
-﻿using Node.P2P.Models;
+﻿using Node.Trasnport.Models;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Node.P2P.Download;
+namespace Node.Trasnport.Download;
 
 // ? Define API for checking if the file is already downloaded or is partially downloaded.
 internal class DownloadFilesManager

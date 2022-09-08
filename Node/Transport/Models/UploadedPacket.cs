@@ -1,4 +1,4 @@
-﻿namespace Node.P2P.Models;
+﻿namespace Node.Trasnport.Models;
 
 internal record struct UploadedPacket(
     long Offset,
