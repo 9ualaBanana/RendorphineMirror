@@ -58,7 +58,14 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
         info.Link = manager.MagnetLink.ToV1String();
         NodeSettings.QueuedTasks.Save();
 
-        await TorrentClient.WaitForUploadCompletion(manager, cancellationToken);
+        task.LogInfo($"Waiting for torrent result upload ({manager.InfoHash.ToHex()})");
+        while (true)
+        {
+            await Task.Delay(30_000);
+
+            var state = (await task.GetTaskStateAsync()).ThrowIfError();
+            if (state.State.IsFinished()) return;
+        }
     }
     public async ValueTask DownloadResult(DbTaskFullState task)
     {
@@ -85,6 +92,19 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
         await TorrentClient.AddTrackers(manager, true);
 
         InputTorrents.Add(task.Id, manager);
+
+
+        // if this node is behind nat, other nodes can't connect to this one, so this node should connect to others; for that we need to scrape
+        // but automatic scrape happens every ~10min, too long
+        new Thread(async () =>
+        {
+            while (InputTorrents.ContainsKey(task.Id))
+            {
+                await Task.Delay(20_000);
+                await manager.TrackerManager.ScrapeAsync(CancellationToken.None);
+            }
+        })
+        { IsBackground = true }.Start();
     }
 
     public async ValueTask OnPlacedTaskCompleted(DbTaskFullState task)

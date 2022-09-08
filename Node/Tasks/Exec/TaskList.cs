@@ -2,35 +2,23 @@ namespace Node.Tasks.Exec;
 
 public static class TaskList
 {
-    public static readonly ImmutableArray<PluginType> Types = Enum.GetValues<PluginType>().ToImmutableArray();
-    public static ImmutableArray<IPluginAction> Actions;
+    static readonly List<IPluginAction> Actions = new();
 
-    public static void Initialize() { }
-    static TaskList()
+
+    public static void Add(params IEnumerable<IPluginAction>[] actions) => Add(actions.SelectMany(x => x));
+    public static void Add(params IPluginAction[] actions) => Add(actions.AsEnumerable());
+    public static void Add(IEnumerable<IPluginAction> actions)
     {
-        Actions = new IEnumerable<IPluginAction>[]
-        {
-            FFMpegTasks.CreateTasks(),
-            EsrganTasks.CreateTasks(),
-            VectorizerTasks.CreateTasks(),
-        }.SelectMany(x => x).ToImmutableArray();
-
+        Actions.AddRange(actions);
         NodeGlobalState.Instance.TaskDefinitions.Value = serializeActions();
 
 
-        TasksFullDescriber serializeActions()
+        static TasksFullDescriber serializeActions()
         {
-            var actions = Actions.Select(serialize).ToImmutableArray();
-            var inputs = new[]
-            {
-                serializeinout<MPlusTaskInputInfo>(nameof(TaskInputOutputType.MPlus)),
-                serializeinout<TorrentTaskInputInfo>(nameof(TaskInputOutputType.Torrent)),
-            }.ToImmutableArray();
-            var outputs = new[]
-            {
-                serializeinout<MPlusTaskOutputInfo>(nameof(TaskInputOutputType.MPlus)),
-                serializeinout<TorrentTaskOutputInfo>(nameof(TaskInputOutputType.Torrent)),
-            }.ToImmutableArray();
+            var actions = Actions.Select(serializeaction).ToImmutableArray();
+            var inputs = TaskInputOutputInfo.Inputs.Select(k => serializeinout(k.Key, k.Value)).ToImmutableArray();
+            var outputs = TaskInputOutputInfo.Outputs.Select(k => serializeinout(k.Key, k.Value)).ToImmutableArray();
+
             var watchinginputs = new[]
             {
                 serializeval<MPlusWatchingTaskSource>("MPlus"),
@@ -46,8 +34,8 @@ public static class TaskList
             return new TasksFullDescriber(actions, inputs, outputs, watchinginputs, watchingoutputs);
 
 
-            static TaskActionDescriber serialize(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
-            static TaskInputOutputDescriber serializeinout<T>(string type) => serializeval<T>(type);
+            static TaskActionDescriber serializeaction(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
+            static TaskInputOutputDescriber serializeinout(TaskInputOutputType tasktype, Type type) => new TaskInputOutputDescriber(tasktype.ToString(), (ObjectDescriber) FieldDescriber.Create(type));
             static TaskInputOutputDescriber serializeval<T>(string name) => new TaskInputOutputDescriber(name, (ObjectDescriber) FieldDescriber.Create(typeof(T)));
         }
     }

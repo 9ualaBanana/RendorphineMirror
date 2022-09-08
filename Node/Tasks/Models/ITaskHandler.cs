@@ -6,11 +6,11 @@ public interface ITaskHandler
 }
 public interface ITaskInputHandler : ITaskHandler
 {
-    ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken);
+    ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken = default);
 }
 public interface ITaskOutputHandler : ITaskHandler
 {
-    ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken);
+    ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default);
 }
 
 public interface IPlacedTaskCompletionCheckHandler : ITaskHandler

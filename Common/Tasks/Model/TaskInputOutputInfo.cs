@@ -1,4 +1,4 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -21,25 +21,18 @@ public static class TaskInputOutputInfo
 
     static TaskInputOutputInfo()
     {
-        Inputs = new ITaskInputInfo[]
-        {
-            createObject<MPlusTaskInputInfo>(),
-            createObject<DownloadLinkTaskInputInfo>(),
-            createObject<TorrentTaskInputInfo>(),
-            createObject<UserTaskInputInfo>(),
-        }.ToImmutableDictionary(x => x.Type, x => x.GetType());
-
-        Outputs = new ITaskOutputInfo[]
-        {
-            createObject<MPlusTaskOutputInfo>(),
-            createObject<TorrentTaskOutputInfo>(),
-            createObject<UserTaskOutputInfo>(),
-        }.ToImmutableDictionary(x => x.Type, x => x.GetType());
-
-
-        // this should return valid object for getting only the .Type property
+        // FormatterServices.GetSafeUninitializedObject is being used to create valid object for getting only the .Type property
         // since all TaskInOutputInfo object implement ITaskInOutputInfo.Type property using `=>` and not `{ get; } =`
-        static T createObject<T>() where T : ITaskInputOutputInfo => (T) FormatterServices.GetSafeUninitializedObject(typeof(T));
+
+        var types = typeof(ITaskInputInfo).Assembly.GetTypes()
+            .Where(x => x.IsClass && !x.IsAbstract)
+            .Where(x => x.IsAssignableTo(typeof(ITaskInputInfo)) || x.IsAssignableTo(typeof(ITaskOutputInfo)))
+            .Select(FormatterServices.GetSafeUninitializedObject)
+            .Cast<ITaskInputOutputInfo>()
+            .ToArray();
+        
+        Inputs = types.OfType<ITaskInputInfo>().ToImmutableDictionary(x => x.Type, x => x.GetType());
+        Outputs = types.OfType<ITaskOutputInfo>().ToImmutableDictionary(x => x.Type, x => x.GetType());
     }
 
 

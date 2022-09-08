@@ -18,7 +18,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         if (task.State <= TaskState.Input || task.InputFile is null)
         {
             task.LogInfo($"Downloading input...");
-            var input = await TaskHandler.Download(task, default).ConfigureAwait(false);
+            var input = await task.GetInputHandler().Download(task).ConfigureAwait(false);
             task.InputFile = input;
             task.LogInfo($"Input downloaded to {input}");
 
@@ -41,7 +41,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         if (task.State <= TaskState.Output)
         {
             task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ...");
-            await TaskHandler.UploadResult(task).ConfigureAwait(false);
+            await task.GetOutputHandler().UploadResult(task).ConfigureAwait(false);
             task.LogInfo($"Result uploaded");
 
             NodeSettings.QueuedTasks.Save();

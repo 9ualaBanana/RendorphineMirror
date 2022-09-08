@@ -29,6 +29,7 @@ namespace Common
             {
                 DhtPort = DhtPort,
                 ListenPort = ListenPort,
+                CacheDirectory = Path.Combine(Directory.GetCurrentDirectory(), "cache"),
             };
             Client = new ClientEngine(esettings.ToSettings());
         }
@@ -47,13 +48,17 @@ namespace Common
             }
             catch (Exception ex) { LogManager.GetCurrentClassLogger().Error($"Could not add trackers to {manager.InfoHash.ToHex()}: {ex}"); }
 
+            if (announce) await Announce(manager);
+        }
+        public static async Task Announce(TorrentManager manager)
+        {
             await manager.DhtAnnounceAsync();
             await manager.TrackerManager.AnnounceAsync(CancellationToken.None);
             await manager.TrackerManager.ScrapeAsync(CancellationToken.None);
         }
         static void AddLoggers(TorrentManager manager)
         {
-            // if (Init.IsDebug)
+            if (Init.IsDebug)
             {
                 manager.PeersFound += (obj, e) => _logger.Trace("PeersFound " + manager.InfoHash.ToHex() + " " + e.GetType().Name + " " + e.NewPeers + " " + string.Join(", ", manager.GetPeersAsync().Result.Select(x => x.Uri)));
                 manager.PeerConnected += (obj, e) => _logger.Trace("PeerConnected " + manager.InfoHash.ToHex() + " " + e.Peer.Uri);
@@ -131,21 +136,6 @@ namespace Common
 
             await manager.StopAsync(TimeSpan.FromSeconds(10));
             _logger.Info($"Torrent {manager.InfoHash.ToHex()} was successfully downloaded, stopping");
-        }
-        public static async Task WaitForUploadCompletion(TorrentManager manager, CancellationToken token = default)
-        {
-            _logger.Info($"Waiting for upload of {manager.InfoHash.ToHex()}");
-
-            while (true)
-            {
-                if (token.IsCancellationRequested) return;
-
-                await Task.Delay(2000);
-                if (manager.Peers.Seeds > 0) break;
-            }
-
-            await manager.StopAsync(TimeSpan.FromSeconds(10));
-            _logger.Info($"Torrent {manager.InfoHash.ToHex()} was successfully uploaded, stopping");
         }
     }
 }

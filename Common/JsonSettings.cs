@@ -9,7 +9,7 @@ public static class JsonSettings
 
     public static readonly JsonSerializerSettings LowercaseIgnoreNull = new()
     {
-        DefaultValueHandling = DefaultValueHandling.Ignore,
+        NullValueHandling = NullValueHandling.Ignore,
         ContractResolver = LowercaseContract.Instance,
         Formatting = Formatting.None,
     };
