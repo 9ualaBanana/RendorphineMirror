@@ -61,16 +61,18 @@ internal static class Benchmark
     static async Task<object> GetCpuBenchmarkResultsAsObjectAsync(int testDataSize)
     {
         double ffmpegRating = default;
+        uint load = default;
         try
         {
             ffmpegRating = (await new FFmpegBenchmark(_sampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnCpuAsync()).Bps;
+            load = CPU.Info.First().LoadPercentage;
         }
         catch (Exception) { }
         return new
         {
             rating = (await new ZipBenchmark(testDataSize).RunAsync()).Bps,
             pratings = new { ffmpeg = ffmpegRating },
-            load = CPU.Info.First().LoadPercentage,
+            load
         };
     }
 
@@ -101,21 +103,28 @@ internal static class Benchmark
         foreach (var logicalDiskName in Drive.LogicalDisksNamesFromDistinctDrives)
             drivesBenchmarkResults.Add(await readWriteBenchmark.RunAsync(logicalDiskName));
 
-        return Drive.Info.Zip(drivesBenchmarkResults)
-            .Select(zip => new
-            {
-                freespace = zip.First.FreeSpace,
-                writespeed = zip.Second.Write.Bps
-            });
+        IEnumerable<object> result = Enumerable.Empty<object>();
+        try 
+        { 
+            result = Drive.Info.Zip(drivesBenchmarkResults)
+                .Select(zip => new
+                {
+                    freespace = zip.First.FreeSpace,
+                    writespeed = zip.Second.Write.Bps
+                });
+        } catch { }
+        return result;
     }
 
     static object GetRamAsObject()
     {
         var ramInfo = RAM.Info;
-        return new
+        ulong total, free = default;
+        try
         {
             total = ramInfo.Aggregate(0ul, (totalCapacity, ramUnit) => totalCapacity += ramUnit.Capacity),
             free = ramInfo.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory)
-        };
+        }
+        return new { total, free };
     }
 }
