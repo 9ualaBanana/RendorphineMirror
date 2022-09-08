@@ -68,37 +68,19 @@ public static class PowerShellInvoker
     {
         var prox = runspace.SessionStateProxy;
 
-        prox.SetVariable("PLUGINS", Path.GetFullPath("plugins"));
+        prox.SetVariable("PLUGINS", created(Path.GetFullPath("plugins")));
 
-        prox.SetVariable("DOWNLOADS", Path.Combine(DownloadsDirectoryPath, "renderphin_plugins"));
-        prox.SetVariable("LOCALAPPDATA", Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+        prox.SetVariable("DOWNLOADS", created(Path.Combine(Init.ConfigDirectory, "downloads")));
+        prox.SetVariable("LOCALAPPDATA", created(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
         // TODO: other
-    }
 
 
-    static readonly string DownloadsDirectoryPath = GetDownloadDirectory();
-    static string GetDownloadDirectory()
-    {
-        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-            return SHGetKnownFolderPath(Guid.Parse("374DE290-123F-4565-9164-39C4925E467B"), default);
-
-        if (Environment.OSVersion.Platform == PlatformID.Unix)
+        string created(string path)
         {
-            var xdg = Environment.GetEnvironmentVariable("XDG_DOWNLOAD_DIR");
-            if (xdg is not null) return xdg;
+            try { Directory.CreateDirectory(path); }
+            catch { }
 
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-            string downloads;
-            if (Directory.Exists(downloads = Path.Combine(home, "Downloads"))) return downloads;
-            if (Directory.Exists(downloads = Path.Combine(home, "Загрузки"))) return downloads;
+            return path;
         }
-
-        return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-
-        [DllImport("shell32", CharSet = CharSet.Unicode, ExactSpelling = true, PreserveSig = false)]
-        static extern string SHGetKnownFolderPath(
-            [MarshalAs(UnmanagedType.LPStruct)] Guid rfid, uint dwFlags, nint hToken = default);
     }
 }
