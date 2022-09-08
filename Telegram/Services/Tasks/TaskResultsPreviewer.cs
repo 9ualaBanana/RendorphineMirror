@@ -23,18 +23,19 @@ public class TaskResultsPreviewer
         _taskRegistry.TryGetValue(taskId, out var authenticationToken);
         if (authenticationToken is null) return null;
 
-        string iid = (await GetTaskOutputIidAsync(taskId, authenticationToken.SessionId)).Result;
+        string iid = (await GetTaskOutputIidAsync(taskId, authenticationToken.MPlus.SessionId)).Result;
         JsonElement mpItem;
         while (true)
         {
             mpItem = JsonDocument.Parse(
-                await _httpClient.GetStringAsync($"https://tasks.microstock.plus/rphtaskmgr/getmympitem?sessionid={authenticationToken.SessionId}&iid={iid}")
+                await _httpClient.GetStringAsync($"https://tasks.microstock.plus/rphtaskmgr/getmympitem?sessionid={authenticationToken.MPlus.SessionId}&iid={iid}")
                 ).RootElement;
-            mpItem = mpItem.GetProperty("item");
-
-            if (mpItem.GetProperty("state").GetString() == "received")
-            { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new(mpItem); }
-            else Thread.Sleep(1000);
+            if (mpItem.TryGetProperty("item", out mpItem))
+            {
+                if (mpItem.GetProperty("state").GetString() == "received")
+                { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new(mpItem); }
+            }
+            Thread.Sleep(1000);
         }
     }
 
