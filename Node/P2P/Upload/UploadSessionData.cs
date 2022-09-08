@@ -4,6 +4,8 @@ public abstract class UploadSessionData
 {
     public readonly string Endpoint;
     public readonly FileInfo File;
+    protected string MimeType => MimeTypes.GetMimeType(File.Name);
+
 
     protected UploadSessionData(string url, string filePath)
         : this(url, new FileInfo(filePath))
@@ -15,6 +17,7 @@ public abstract class UploadSessionData
         Endpoint = url;
         File = file;
     }
+
 
     public abstract HttpContent HttpContent { get; }
 }
@@ -30,11 +33,12 @@ public class UserUploadSessionData : UploadSessionData
     {
     }
 
+
     public override FormUrlEncodedContent HttpContent => new(
         new Dictionary<string, string>()
         {
             ["sessionid"] = Settings.SessionId!,
-            ["name"] = File.Name,
+            ["name"] = File.Name.WithGuid(),
             ["size"] = File.Length.ToString(),
             ["extension"] = File.Extension,
         });
@@ -42,19 +46,40 @@ public class UserUploadSessionData : UploadSessionData
 
 public class MPlusUploadSessionData : UploadSessionData
 {
+    public MPlusUploadSessionData(string url, string filePath) : base(url, filePath)
+    {
+    }
+
+
+    public override FormUrlEncodedContent HttpContent => new(new Dictionary<string, string>
+    {
+        ["sessionid"] = Settings.SessionId!,
+        ["directory"] = "uploaded",
+        ["fname"] = File.Name.WithGuid(),
+        ["fsize"] = File.Length.ToString(),
+        ["mimetype"] = MimeType,
+        ["lastmodified"] = File.LastWriteTimeUtc.AsUnixTimestamp(),
+        ["origin"] = string.Empty
+    });
+}
+
+public class MPlusTaskResultUploadSessionData : UploadSessionData
+{
     public readonly string TaskId;
     public readonly string? Postfix;
 
-    internal MPlusUploadSessionData(string filePath, string taskId, string? postfix)
+
+    internal MPlusTaskResultUploadSessionData(string filePath, string taskId, string? postfix)
         : this(new FileInfo(filePath), taskId, postfix)
     {
     }
 
-    public MPlusUploadSessionData(FileInfo file, string taskId, string? postfix) : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
+    public MPlusTaskResultUploadSessionData(FileInfo file, string taskId, string? postfix) : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
     {
         TaskId = taskId;
         Postfix = postfix;
     }
+
 
     public override FormUrlEncodedContent HttpContent
     {
@@ -65,8 +90,8 @@ public class MPlusUploadSessionData : UploadSessionData
                 ["sessionid"] = Settings.SessionId!,
                 ["taskid"] = TaskId,
                 ["fsize"] = File.Length.ToString(),
-                ["mimetype"] = "video/mp4",
-                ["lastmodified"] = File.LastWriteTimeUtc.ToBinary().ToString(),
+                ["mimetype"] = MimeType,
+                ["lastmodified"] = File.LastWriteTimeUtc.AsUnixTimestamp(),
                 ["origin"] = string.Empty,
             };
 

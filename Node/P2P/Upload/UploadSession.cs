@@ -76,7 +76,7 @@ internal record UploadSession(
         catch (Exception ex) { _logger.Error(ex, "Upload session couldn't be initialized"); throw; }
     }
 
-    internal static async Task<UploadSession> InitializeAsyncCore(
+    static async Task<UploadSession> InitializeAsyncCore(
         UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken)
     {
         var httpResponse = await httpClient.PostAsync(sessionData.Endpoint, sessionData.HttpContent, cancellationToken).ConfigureAwait(false);

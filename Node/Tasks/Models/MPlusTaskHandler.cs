@@ -26,7 +26,7 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTa
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {
         foreach (var file in Directory.GetFiles(task.FSOutputDirectory()))
-            await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(file, task.Id, postfix: Path.GetFileNameWithoutExtension(file)), cancellationToken: cancellationToken);
+            await PacketsTransporter.UploadAsync(new MPlusTaskResultUploadSessionData(file, task.Id, postfix: Path.GetFileNameWithoutExtension(file)), cancellationToken: cancellationToken);
     }
 
     public async ValueTask<bool> CheckCompletion(DbTaskFullState task)
