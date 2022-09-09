@@ -6,8 +6,6 @@ public interface IWatchingTaskInputOutputInfo
 }
 public interface IWatchingTaskSource : IWatchingTaskInputOutputInfo, IDisposable
 {
-    event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
-
     void StartListening(WatchingTask task);
 }
 public interface IWatchingTaskOutputInfo : IWatchingTaskInputOutputInfo

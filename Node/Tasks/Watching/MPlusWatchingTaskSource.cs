@@ -4,7 +4,6 @@ namespace Node.Tasks.Watching;
 
 public class MPlusWatchingTaskSource : IWatchingTaskSource
 {
-    public event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
     public WatchingTaskInputOutputType Type => WatchingTaskInputOutputType.MPlus;
 
     [JsonIgnore] readonly CancellationTokenSource TokenSource = new();
@@ -27,32 +26,35 @@ public class MPlusWatchingTaskSource : IWatchingTaskSource
         {
             while (true)
             {
-                if (TokenSource.IsCancellationRequested) return;
-
-                await start();
-                await Task.Delay(10_000);
-
-
-                async Task start()
+                try
                 {
-                    var res = await Api.ApiGet<ImmutableArray<NewItem>>($"{Api.TaskManagerEndpoint}/getmynewitems", "items", "Getting new items", ("sessionid", Settings.SessionId!), ("sinceiid", SinceIid), ("directory", Directory));
-                    res.LogIfError();
-                    if (!res) return;
+                    if (TokenSource.IsCancellationRequested) return;
 
-                    var items = res.Value;
-                    if (items.Length == 0) return;
+                    await start();
+                    await Task.Delay(60_000);
 
-                    foreach (var item in items)
+
+                    async Task start()
                     {
-                        var input = new MPlusTaskInputInfo(item.Iid);
-                        task.LogInfo($"New file found: {item.Iid} {Path.ChangeExtension(item.Files.Jpeg.FileName, null)}");
-                        FileAdded?.Invoke(new(item.Files.Jpeg.FileName, input));
+                        var res = await Api.ApiGet<ImmutableArray<NewItem>>($"{Api.TaskManagerEndpoint}/getmynewitems", "items", "Getting new items", ("sessionid", Settings.SessionId!), ("sinceiid", SinceIid), ("directory", Directory));
+                        res.LogIfError();
+                        if (!res) return;
 
-                        // placed here so if any of the items cause an exception, it would retry from the failed file
-                        SinceIid = item.Iid;
-                        NodeSettings.WatchingTasks.Save();
+                        var items = res.Value;
+                        if (items.Length == 0) return;
+
+                        foreach (var item in items)
+                        {
+                            var input = new MPlusTaskInputInfo(item.Iid);
+                            task.LogInfo($"New file found: {item.Iid} {Path.ChangeExtension(item.Files.Jpeg.FileName, null)}");
+
+                            await task.RegisterTask(item.Files.Jpeg.FileName, input);
+                            SinceIid = item.Iid;
+                            NodeSettings.WatchingTasks.Save();
+                        }
                     }
                 }
+                catch (Exception ex) { task.LogErr(ex); }
             }
         })
         { IsBackground = true }.Start();

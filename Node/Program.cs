@@ -96,6 +96,7 @@ new TaskReceiver().Start();
 new NodeStateListener().Start();
 new DirectoryDiffListener().Start();
 new TaskListener().Start();
+new DownloadListener().Start();
 new PublicPagesListener().Start();
 if (Init.IsDebug) new DebugListener().Start();
 

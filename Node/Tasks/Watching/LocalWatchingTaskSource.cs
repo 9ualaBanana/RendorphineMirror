@@ -4,7 +4,6 @@ namespace Node.Tasks.Watching;
 
 public class LocalWatchingTaskSource : IWatchingTaskSource
 {
-    public event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
     public WatchingTaskInputOutputType Type => WatchingTaskInputOutputType.Local;
 
     [LocalDirectory] public readonly string Directory;
@@ -16,17 +15,18 @@ public class LocalWatchingTaskSource : IWatchingTaskSource
 
     public void StartListening(WatchingTask task)
     {
+        // TODO: not use watcher sincle it doesnt work when node is stopped
         Watcher?.Dispose();
 
         System.IO.Directory.CreateDirectory(Directory);
         Watcher = new FileSystemWatcher(Directory) { IncludeSubdirectories = true };
-        Watcher.Created += (obj, e) =>
+        Watcher.Created += async (obj, e) =>
         {
             if (!File.Exists(e.FullPath)) return;
 
             var filename = Path.GetFileName(e.FullPath);
             var info = new TorrentTaskInputInfo(e.FullPath, link: null!);
-            FileAdded?.Invoke(new(filename, info));
+            await task.RegisterTask(filename, info);
         };
 
         Watcher.EnableRaisingEvents = true;

@@ -17,15 +17,21 @@ namespace Common
             Send<T>(JustGet, url, property, values, errorDetails);
         public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
             Send<T>(JustPost, url, property, values, errorDetails);
+        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string? errorDetails, HttpContent content) =>
+            Send<T, HttpContent>(JustPost, url, property, content, errorDetails);
 
         public static ValueTask<OperationResult> ApiGet(string url, string? errorDetails = null, params (string, string)[] values) =>
-            Send(JustGet, url, values, errorDetails);
+            SendOk(JustGet, url, values, errorDetails);
         public static ValueTask<OperationResult> ApiPost(string url, string? errorDetails = null, params (string, string)[] values) =>
-            Send(JustPost, url, values, errorDetails);
+            SendOk(JustPost, url, values, errorDetails);
+        public static ValueTask<OperationResult> ApiPost(string url, string? errorDetails, HttpContent content) =>
+            SendOk(JustPost, url, content, errorDetails);
 
-        static ValueTask<OperationResult> Send(Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, (string, string)[] values, string? errorDetails) =>
-            Send<bool>(func, url, "ok", values, errorDetails).Next(v => new OperationResult(v, null));
-        static ValueTask<OperationResult<T>> Send<T>(Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, string? property, (string, string)[] values, string? errorDetails)
+        static ValueTask<OperationResult> SendOk<TValues>(Func<string, TValues, Task<HttpResponseMessage>> func, string url, TValues values, string? errorDetails) =>
+            Send<bool, TValues>(func, url, "ok", values, errorDetails).Next(v => new OperationResult(v, null));
+        static ValueTask<OperationResult<T>> Send<T>(Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, string? property, (string, string)[] values, string? errorDetails) =>
+            Send<T, (string, string)[]>(func, url, property, values, errorDetails);
+        static ValueTask<OperationResult<T>> Send<T, TValues>(Func<string, TValues, Task<HttpResponseMessage>> func, string url, string? property, TValues values, string? errorDetails)
         {
             return Execute(send);
 
