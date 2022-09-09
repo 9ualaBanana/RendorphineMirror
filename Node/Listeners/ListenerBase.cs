@@ -11,17 +11,19 @@ public abstract class ListenerBase
     protected readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     protected virtual string? Prefix => null;
-    protected virtual bool IsLocal => true;
+    protected abstract ListenTypes ListenType { get; }
     protected virtual bool RequiresAuthentication => false;
-    protected virtual int[] Ports => new[] { IsLocal ? Settings.LocalListenPort : PortForwarding.Port };
 
     protected readonly HttpListener Listener = new();
 
     public void Start()
     {
-        foreach (var port in Ports)
+        if (ListenType.HasFlag(ListenTypes.Local)) addprefix($"127.0.0.1:{Settings.LocalListenPort}");
+        if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{PortForwarding.Port}");
+        if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{PortForwarding.ServerPort}");
+        void addprefix(string prefix)
         {
-            var prefix = $"http://{(IsLocal ? "127.0.0.1" : "+")}:{port}/{Prefix}";
+            prefix = $"http://{prefix}/{Prefix}";
             if (!prefix.EndsWith("/")) prefix += "/";
 
             Listener.Prefixes.Add(prefix);
@@ -89,7 +91,9 @@ public abstract class ListenerBase
         async ValueTask<bool> docheck()
         {
             var oursid = Settings.SessionId;
-            if (sid == oursid || CachedAuthentications.GetValueOrDefault(sid, false)) return true;
+            if (sid == oursid) return true;
+            if (CachedAuthentications.TryGetValue(sid, out var cached))
+                return cached;
 
             var nodes = await Apis.GetMyNodesAsync(sid).ConfigureAwait(false);
             if (!nodes) return false;
@@ -202,4 +206,14 @@ public abstract class ListenerBase
 
                 return value.AsOpResult();
             });
+
+
+
+    [Flags]
+    protected enum ListenTypes
+    {
+        Local = 1 << 0,
+        Public = 1 << 1,
+        WebServer = 1 << 2,
+    }
 }

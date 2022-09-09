@@ -1,6 +1,4 @@
 using System.Net;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Node.Plugins.Deployment;
 using Node.Profiling;
 
@@ -8,6 +6,8 @@ namespace Node.Listeners;
 
 public class LocalListener : ExecutableListenerBase
 {
+    protected override ListenTypes ListenType => ListenTypes.Local;
+
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
         var request = context.Request;

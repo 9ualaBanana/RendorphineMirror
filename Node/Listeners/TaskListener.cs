@@ -5,10 +5,9 @@ namespace Node.Listeners;
 
 public class TaskListener : ExecutableListenerBase
 {
-    protected override bool IsLocal => false;
+    protected override ListenTypes ListenType => ListenTypes.Local | ListenTypes.Public;
     protected override bool RequiresAuthentication => true;
     protected override string? Prefix => "tasks";
-    protected override int[] Ports => new[] { PortForwarding.Port, Settings.LocalListenPort };
 
 
     protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
