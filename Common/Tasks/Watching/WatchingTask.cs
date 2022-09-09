@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 
-namespace Common.Tasks;
+namespace Common.Tasks.Watching;
 
 public class WatchingTask : ILoggable
 {

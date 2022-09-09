@@ -5,6 +5,8 @@ namespace Node.Tasks.Watching;
 public class MPlusWatchingTaskSource : IWatchingTaskSource
 {
     public event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
+    public WatchingTaskInputOutputType Type => WatchingTaskInputOutputType.MPlus;
+
     [JsonIgnore] readonly CancellationTokenSource TokenSource = new();
 
     [MPlusDirectory] public readonly string Directory;

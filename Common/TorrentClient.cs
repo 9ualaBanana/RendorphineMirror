@@ -8,7 +8,6 @@ namespace Common
     public static class TorrentClient
     {
         readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-        static readonly string SavedTorrentsDirectory = Path.Combine(Init.ConfigDirectory, "torrents");
 
         public static ushort DhtPort => Settings.DhtPort;
         public static ushort ListenPort => Settings.TorrentPort;
@@ -38,6 +37,7 @@ namespace Common
             "http://t.microstock.plus:5120/announce/",
             "udp://t.microstock.plus:5121/"
         );
+
 
         public static async Task AddTrackers(TorrentManager manager, bool announce = false)
         {

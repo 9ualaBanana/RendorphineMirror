@@ -10,7 +10,7 @@ namespace Node.Listeners
     public class PublicPagesListener : ExecutableListenerBase
     {
         protected override bool IsLocal => false;
-        protected override int Port => PortForwarding.ServerPort;
+        protected override int[] Ports => new[] { PortForwarding.ServerPort };
 
         static string[] imagesExtentions = { ".jpg", ".jpeg", ".png" };
 

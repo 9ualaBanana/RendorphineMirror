@@ -5,6 +5,7 @@ namespace Node.Tasks.Watching;
 public class LocalWatchingTaskSource : IWatchingTaskSource
 {
     public event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
+    public WatchingTaskInputOutputType Type => WatchingTaskInputOutputType.Local;
 
     [LocalDirectory] public readonly string Directory;
     [JsonIgnore] FileSystemWatcher? Watcher;

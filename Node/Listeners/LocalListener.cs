@@ -64,31 +64,4 @@ public class LocalListener : ExecutableListenerBase
 
         return HttpStatusCode.NotFound;
     }
-
-    protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
-    {
-        var request = context.Request;
-        var response = context.Response;
-
-        if (path == "starttask")
-        {
-            var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-            var taskid = await TaskHandler.RegisterOrExecute(task);
-
-            return await WriteJson(response, taskid).ConfigureAwait(false);
-        }
-
-        if (path == "startwatchingtask")
-        {
-            var task = new Newtonsoft.Json.JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-
-            var wt = new WatchingTask(task.Input.ToObject<IWatchingTaskSource>(LocalApi.JsonSerializerWithType)!, task.Action, task.Data, task.Output.ToObject<IWatchingTaskOutputInfo>(LocalApi.JsonSerializerWithType)!, task.Policy);
-            wt.StartWatcher();
-            NodeSettings.WatchingTasks.Bindable.Add(wt);
-
-            return await WriteJson(response, wt.Id.AsOpResult()).ConfigureAwait(false);
-        }
-
-        return HttpStatusCode.NotFound;
-    }
 }

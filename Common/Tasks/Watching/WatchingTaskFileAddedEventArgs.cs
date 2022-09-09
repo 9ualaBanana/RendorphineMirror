@@ -1,4 +1,4 @@
-namespace Common.Tasks;
+namespace Common.Tasks.Watching;
 
 public readonly struct WatchingTaskFileAddedEventArgs
 {

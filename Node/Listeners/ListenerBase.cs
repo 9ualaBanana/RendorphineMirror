@@ -13,19 +13,21 @@ public abstract class ListenerBase
     protected virtual string? Prefix => null;
     protected virtual bool IsLocal => true;
     protected virtual bool RequiresAuthentication => false;
-    protected virtual int Port => IsLocal ? Settings.LocalListenPort : PortForwarding.Port;
-
-    readonly List<string> CachedAuthentications = new();
+    protected virtual int[] Ports => new[] { IsLocal ? Settings.LocalListenPort : PortForwarding.Port };
 
     protected readonly HttpListener Listener = new();
 
     public void Start()
     {
-        var prefix = $"http://{(IsLocal ? "127.0.0.1" : "+")}:{Port}/{Prefix}";
-        if (!prefix.EndsWith("/")) prefix += "/";
+        foreach (var port in Ports)
+        {
+            var prefix = $"http://{(IsLocal ? "127.0.0.1" : "+")}:{port}/{Prefix}";
+            if (!prefix.EndsWith("/")) prefix += "/";
 
-        _logger.Info("Starting HTTP listener on {Prefix}", prefix);
-        Listener.Prefixes.Add(prefix);
+            Listener.Prefixes.Add(prefix);
+        }
+
+        _logger.Info($"Starting HTTP {GetType().Name} on {string.Join(", ", Listener.Prefixes)}");
         Listener.Start();
 
         new Thread(() =>
@@ -41,15 +43,11 @@ public abstract class ListenerBase
                     {
                         try
                         {
-                            if (RequiresAuthentication)
+                            if (!context.Request.IsLocal && RequiresAuthentication && !(await CheckAuthentication(context)))
                             {
-                                var check = await CheckAuthentication(context).ConfigureAwait(false);
-                                if (!check)
-                                {
-                                    context.Response.StatusCode = (int) HttpStatusCode.BadRequest;
-                                    context.Response.Close();
-                                    return;
-                                }
+                                context.Response.StatusCode = (int) HttpStatusCode.BadRequest;
+                                context.Response.Close();
+                                return;
                             }
 
                             await Execute(context);
@@ -74,30 +72,36 @@ public abstract class ListenerBase
 
     protected async Task<bool> CheckAuthentication(HttpListenerContext context)
     {
-        var query = context.Request.QueryString;
-        var sid = query["sessionid"];
-        if (sid is null) return false;
-
-        if (sid == Settings.SessionId || CachedAuthentications.Contains(sid)) return true;
-
-        var mynodes = await Apis.GetMyNodesAsync(sid).ConfigureAwait(false);
-        if (!mynodes) return false;
-
-        var myuserid = mynodes.Result.Select(x => x.UserId).FirstOrDefault();
-        if (myuserid is null) return false;
-
-
-        var nodes = await Apis.GetMyNodesAsync(sid).ConfigureAwait(false);
-        if (!nodes) return false;
-
-        var theiruserid = nodes.Result.Select(x => x.UserId).FirstOrDefault();
-        if (theiruserid is null) return false;
-
-        if (myuserid != theiruserid) return false;
-
-        CachedAuthentications.Add(sid);
-        return true;
+        var sid = context.Request.QueryString["sessionid"];
+        return sid is not null && await CheckAuthentication(sid);
     }
+    static readonly Dictionary<string, bool> CachedAuthentications = new();
+
+    /// <summary> Returns true if provided sessionid is also from ours user </summary>
+    static async ValueTask<bool> CheckAuthentication(string sid)
+    {
+        var check = await docheck();
+        CachedAuthentications[sid] = check;
+
+        return check;
+
+
+        async ValueTask<bool> docheck()
+        {
+            var oursid = Settings.SessionId;
+            if (sid == oursid || CachedAuthentications.GetValueOrDefault(sid, false)) return true;
+
+            var nodes = await Apis.GetMyNodesAsync(sid).ConfigureAwait(false);
+            if (!nodes) return false;
+
+            var theiruserid = nodes.Result.Select(x => x.UserId).FirstOrDefault();
+            if (theiruserid is null) return false;
+
+            var myuserid = Settings.UserId;
+            return myuserid == theiruserid;
+        }
+    }
+
     protected string GetPath(HttpListenerContext context)
     {
         if (context.Request.Url is null) throw new InvalidOperationException();

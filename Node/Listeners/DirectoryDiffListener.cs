@@ -29,7 +29,7 @@ public class DirectoryDiffListener : ExecutableListenerBase
             .ToArray();
 
         var maxtime = files.Length == 0 ? 0 : files.Max(x => x.Item1);
-        return await WriteJson(response, new DiffOutput(maxtime, files.Select(x => x.Item2).ToImmutableArray()).AsOpResult());
+        return await WriteJson(response, new DiffOutput(maxtime, files.OrderBy(x => x.Item1).Select(x => x.Item2).ToImmutableArray()).AsOpResult());
     }
 
     public readonly record struct DiffOutput(long ModifTime, ImmutableArray<string> Files);
