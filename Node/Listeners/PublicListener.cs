@@ -8,7 +8,7 @@ namespace Node.Listeners;
 
 public class PublicListener : ExecutableListenerBase
 {
-    protected override bool IsLocal => false;
+    protected override ListenTypes ListenType => ListenTypes.Public;
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {

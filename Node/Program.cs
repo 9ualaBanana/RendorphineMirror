@@ -2,12 +2,13 @@
 global using Common;
 global using Common.Tasks;
 global using Common.Tasks.Model;
+global using Common.Tasks.Watching;
 global using Machine;
 global using NLog;
 global using Node.Plugins;
 global using Node.Registry;
 global using Node.Tasks.Exec;
-global using Node.Tasks.Models;
+global using Node.Tasks.Handlers;
 global using Node.Tasks.Watching;
 global using NodeToUI;
 using System.Diagnostics;
@@ -94,6 +95,8 @@ new PublicListener().Start();
 new TaskReceiver().Start();
 new NodeStateListener().Start();
 new DirectoryDiffListener().Start();
+new TaskListener().Start();
+new DownloadListener().Start();
 new PublicPagesListener().Start();
 if (Init.IsDebug) new DebugListener().Start();
 

@@ -1,7 +1,7 @@
 using MonoTorrent;
 using MonoTorrent.Client;
 
-namespace Node.Tasks.Models;
+namespace Node.Tasks.Handlers;
 
 public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTaskInitializationHandler, IPlacedTaskOnCompletedHandler, IPlacedTaskCompletionCheckHandler, IPlacedTaskResultDownloadHandler
 {

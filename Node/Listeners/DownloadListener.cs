@@ -1,11 +1,11 @@
+using System.IO.Compression;
 using System.Net;
-using Node.P2P.Upload;
 
 namespace Node.Listeners;
 
 public class DownloadListener : ExecutableListenerBase
 {
-    protected override bool IsLocal => false;
+    protected override ListenTypes ListenType => ListenTypes.Public;
     protected override bool RequiresAuthentication => true;
     protected override string? Prefix => "download";
 
@@ -13,23 +13,56 @@ public class DownloadListener : ExecutableListenerBase
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
         // TODO: whitelist for files or something?
+        // TODO: switch to torrent
 
         var response = context.Response;
 
-        var values = ReadQueryString(context.Request.QueryString, "path")
-            .Next(dir => ReadQueryString(context.Request.QueryString, "url")
-            .Next(url => (dir, url).AsOpResult()));
-        if (!values) return await WriteJson(response, values);
+        if (path == "taskresult")
+        {
+            var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
+            var taskdir = ReceivedTask.FSResultsDirectory(taskid);
 
-        var (file, url) = values.Value;
+            if (!Directory.Exists(taskdir) || Directory.GetFiles(taskdir).Length == 0)
+                return HttpStatusCode.NotFound;
 
+            var zipfile = Path.GetTempFileName();
+            try
+            {
+                ZipFile.CreateFromDirectory(taskdir, zipfile);
+
+                using (var reader = File.OpenRead(zipfile))
+                    await reader.CopyToAsync(response.OutputStream);
+            }
+            finally { File.Delete(zipfile); }
+
+            return HttpStatusCode.OK;
+        }
+        if (path == "uploadtask")
+        {
+            var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
+            var taskdir = ReceivedTask.FSResultsDirectory(taskid);
+
+            var zipfile = Path.GetTempFileName();
+
+            try
+            {
+                using (var writer = File.OpenWrite(zipfile))
+                    await context.Request.InputStream.CopyToAsync(writer);
+
+                ZipFile.ExtractToDirectory(zipfile, taskdir);
+            }
+            finally { File.Delete(zipfile); }
+
+            return HttpStatusCode.OK;
+        }
+
+
+        var file = ReadQueryString(context.Request.QueryString, "path").ThrowIfError();
         if (!File.Exists(file)) return await WriteErr(response, "File does not exists");
 
-        var data = new UserUploadSessionData(url, file);
-        var upload = await PacketsTransporter.UploadAsync(data);
+        using (var reader = File.OpenRead(file))
+            await reader.CopyToAsync(response.OutputStream);
 
-        return await WriteSuccess(response);
+        return HttpStatusCode.OK;
     }
-
-    readonly record struct DiffOutput(long ModifTime, ImmutableArray<string> Files);
 }

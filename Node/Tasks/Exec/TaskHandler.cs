@@ -94,9 +94,14 @@ public static class TaskHandler
                 await (task.TryGetHandler<IPlacedTaskOnCompletedHandler>()?.OnPlacedTaskCompleted(task) ?? ValueTask.CompletedTask);
                 NodeSettings.PlacedTasks.Bindable.Remove(task);
             }
-            catch (Exception ex) when (ex.Message.Contains("no task with such "))
+            catch (Exception ex) when (ex.Message.Contains("no task with such ", StringComparison.OrdinalIgnoreCase))
             {
                 task.LogErr("Placed task does not exists on the server, removing");
+                NodeSettings.PlacedTasks.Bindable.Remove(task);
+            }
+            catch (Exception ex) when (ex.Message.Contains("Invalid old task state", StringComparison.OrdinalIgnoreCase))
+            {
+                task.LogErr(ex.Message + ", removing");
                 NodeSettings.PlacedTasks.Bindable.Remove(task);
             }
         }

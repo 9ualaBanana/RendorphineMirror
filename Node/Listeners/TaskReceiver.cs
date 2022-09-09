@@ -7,8 +7,8 @@ namespace Node.Listeners;
 
 public class TaskReceiver : ListenerBase
 {
+    protected override ListenTypes ListenType => ListenTypes.Public;
     protected override string? Prefix => "rphtaskexec/launchtask";
-    protected override bool IsLocal => false;
 
     protected override async ValueTask Execute(HttpListenerContext context)
     {
