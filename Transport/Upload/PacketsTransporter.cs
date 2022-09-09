@@ -1,12 +1,13 @@
-﻿using Benchmark;
+﻿using Common;
+using NLog;
 
-namespace Node.Trasnport.Upload;
+namespace Transport.Upload;
 
-internal static class PacketsTransporter
+public static class PacketsTransporter
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-    internal static async Task<BenchmarkResult> UploadAsync(
+    public static async Task<BenchmarkResult> UploadAsync(
         UploadSessionData sessionData,
         HttpClient? httpClient = null,
         CancellationToken cancellationToken = default)

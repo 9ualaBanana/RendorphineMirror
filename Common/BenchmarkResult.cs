@@ -1,6 +1,6 @@
 ﻿using UnitsNet;
 
-namespace Benchmark;
+namespace Common;
 
 public record struct BenchmarkResult
 {

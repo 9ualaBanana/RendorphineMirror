@@ -1,7 +1,8 @@
-﻿using Node.Trasnport.Models;
+﻿using NodeToUI;
 using System.Net;
+using Transport.Models;
 
-namespace Node.Trasnport.Download;
+namespace Transport.Download;
 
 // Launch the listener for download initializations on the downloader side.
 // Send GET request to the uploader to notify him that the downloader is started. (it's likely unnecessary)

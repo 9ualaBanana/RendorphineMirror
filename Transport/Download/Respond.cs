@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Node.Trasnport.Download;
+namespace Transport.Download;
 
 internal static class Respond
 {

@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Web;
 
-namespace Node.Trasnport.Models;
+namespace Transport.Models;
 
 internal record DownloadFileInfo(
     string SessionId,

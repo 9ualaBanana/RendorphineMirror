@@ -1,8 +1,9 @@
-﻿using Node.Trasnport.Models;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
+using Transport;
+using Transport.Models;
 
-namespace Node.Trasnport.Download;
+namespace Transport.Download;
 
 // ? Define API for checking if the file is already downloaded or is partially downloaded.
 internal class DownloadFilesManager

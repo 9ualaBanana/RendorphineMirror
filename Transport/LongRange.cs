@@ -1,4 +1,4 @@
-﻿namespace Node.Trasnport;
+﻿namespace Transport;
 
 internal record LongRange(long Start, long End)
 {

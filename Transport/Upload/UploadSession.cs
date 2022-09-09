@@ -1,7 +1,9 @@
-﻿using Node.Trasnport.Models;
+﻿using NLog;
 using System.Text.Json;
+using Transport;
+using Transport.Models;
 
-namespace Node.Trasnport.Upload;
+namespace Transport.Upload;
 
 internal record UploadSession(
     UploadSessionData Data,

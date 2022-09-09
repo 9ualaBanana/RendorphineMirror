@@ -1,4 +1,4 @@
-﻿namespace Node.Trasnport.Upload;
+﻿namespace Transport.Upload;
 
 internal class UploadAdjuster
 {

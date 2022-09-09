@@ -1,20 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Library</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyVersion>1.0.0</AssemblyVersion>
 	<EnablePreviewFeatures>true</EnablePreviewFeatures>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Direx" Version="0.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\Machine\Machine.csproj" />
+    <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
   </ItemGroup>
 
 </Project>

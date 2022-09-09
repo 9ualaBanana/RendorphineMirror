@@ -1,4 +1,6 @@
-﻿namespace Node.Trasnport.Upload;
+﻿using Common;
+
+namespace Transport.Upload;
 
 public abstract class UploadSessionData
 {
@@ -24,7 +26,7 @@ public abstract class UploadSessionData
 
 public class UserUploadSessionData : UploadSessionData
 {
-    internal UserUploadSessionData(string url, string filePath)
+    public UserUploadSessionData(string url, string filePath)
     : this(url, new FileInfo(filePath))
     {
     }
@@ -46,14 +48,22 @@ public class UserUploadSessionData : UploadSessionData
 
 public class MPlusUploadSessionData : UploadSessionData
 {
-    public MPlusUploadSessionData(string url, string filePath) : base(url, filePath)
+    readonly string? _sessionId;
+
+
+    public MPlusUploadSessionData(string filePath, string? sessionId = default) : this(new FileInfo(filePath), sessionId)
     {
+    }
+
+    public MPlusUploadSessionData(FileInfo file, string? sessionId = default) : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
+    {
+        _sessionId = sessionId;
     }
 
 
     public override FormUrlEncodedContent HttpContent => new(new Dictionary<string, string>
     {
-        ["sessionid"] = Settings.SessionId!,
+        ["sessionid"] = _sessionId ?? Settings.SessionId!,
         ["directory"] = "uploaded",
         ["fname"] = File.Name.WithGuid(),
         ["fsize"] = File.Length.ToString(),
@@ -69,7 +79,7 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
     public readonly string? Postfix;
 
 
-    internal MPlusTaskResultUploadSessionData(string filePath, string taskId, string? postfix)
+    public MPlusTaskResultUploadSessionData(string filePath, string taskId, string? postfix)
         : this(new FileInfo(filePath), taskId, postfix)
     {
     }

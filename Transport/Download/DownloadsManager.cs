@@ -1,9 +1,11 @@
-﻿using Node.Trasnport.Models;
+﻿using Common;
+using NodeToUI;
 using System.Net;
 using System.Text.Json;
+using Transport.Models;
 using Timer = System.Timers.Timer;
 
-namespace Node.Trasnport.Download;
+namespace Transport.Download;
 
 internal static class DownloadsManager
 {
@@ -47,8 +49,7 @@ internal static class DownloadsManager
         return new Dictionary<string, object?>
         {
             ["fileid"] = downloader.Id,
-            //["host"] = $"d7e4-213-87-159-225.eu.ngrok.io/{downloader.Id}",
-            ["host"] = $"{await MachineInfo.GetPublicIPAsync()}:{PortForwarding.Port}/{downloader.Id}",
+            ["host"] = $"{await PortForwarding.GetPublicIPAsync()}:{PortForwarding.Port}/{downloader.Id}",
             ["uploadedbytes"] = downloader.DownloadedBytesCount,
             ["uploadedchunks"] = downloader.DownloadedPackets.OrderBy(packet => packet.Offset)
         };

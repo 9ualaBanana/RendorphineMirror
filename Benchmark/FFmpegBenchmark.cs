@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Common;
+using System.Diagnostics;
 
 namespace Benchmark;
 

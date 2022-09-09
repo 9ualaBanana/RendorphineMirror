@@ -1,4 +1,4 @@
-﻿namespace Node.Trasnport.Models;
+﻿namespace Transport.Models;
 
 internal record struct UploadedPacket(
     long Offset,
