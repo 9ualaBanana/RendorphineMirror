@@ -7,6 +7,7 @@ using Telegram.Services.Telegram.FileRegistry;
 using Telegram.Services.Tasks;
 using Telegram.Services.Telegram.Authentication;
 using Telegram.Services.Telegram.Updates.Tasks;
+using Transport.Upload;
 
 namespace Telegram.Services.Telegram.Updates.Images;
 
@@ -15,6 +16,7 @@ public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHa
     readonly TaskRegistry _taskRegistry;
     readonly TelegramFileRegistry _fileRegistry;
     readonly string _hostUrl;
+    readonly HttpClient _httpClient;
 
 
 
@@ -24,11 +26,13 @@ public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHa
         ChatAuthenticator authenticator,
         TaskRegistry taskRegistry,
         TelegramFileRegistry fileRegistry,
-        IConfiguration configuration) : base(logger, bot, authenticator)
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator)
     {
         _taskRegistry = taskRegistry;
         _fileRegistry = fileRegistry;
         _hostUrl = configuration["Host"];
+        _httpClient = httpClientFactory.CreateClient();
     }
 
 
@@ -43,11 +47,11 @@ public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHa
         if (inputOnlineFile is null)
         { await Bot.TrySendMessageAsync(chatId, "Image is expired. Try to send it again."); return; }
 
+        var imagePath = Path.ChangeExtension(Path.Combine(_fileRegistry.Path, imageCallbackData.FileRegistryKey), ".jpg");
+        await TelegramImage.From(inputOnlineFile).Download(imagePath, Bot);
+
         if (imageCallbackData.Value.HasFlag(ImageProcessingQueryFlags.Upscale) && imageCallbackData.Value.HasFlag(ImageProcessingQueryFlags.Upload))
         {
-            var imagePath = Path.Combine(_fileRegistry.Path, imageCallbackData.FileRegistryKey);
-            await TelegramImage.From(inputOnlineFile).Download(imagePath, Bot);
-
             var taskId = (await TaskRegistration.RegisterAsync(
                 new TaskCreationInfo(
                     PluginType.Python_Esrgan,
@@ -61,6 +65,15 @@ public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHa
             await Bot.TrySendMessageAsync(chatId, "Resulting image will be sent back to you as soon as it's ready.",
                 new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
                 );
+        }
+        else if (imageCallbackData.Value.HasFlag(ImageProcessingQueryFlags.Upload))
+        {
+            await Bot.TrySendMessageAsync(chatId, "Uploading the image to M+...");
+
+            try { await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(imagePath, authenticationToken.MPlus.SessionId), _httpClient); }
+            catch { await Bot.TrySendMessageAsync(chatId, "Error occured trying to upload the image to M+."); return; }
+
+            await Bot.TrySendMessageAsync(chatId, "The image was succesffully uploaded to M+.");
         }
     }
 }

@@ -1,35 +1,23 @@
 ﻿using Newtonsoft.Json.Linq;
+using Telegram.Bot.Types;
+using Telegram.Services.Telegram;
 
 namespace Telegram.Models.TaskResultPreviews;
 
-public class ImagePreview
+internal class ImagePreview : TaskResultPreview
 {
-    public string Title;
-    public string Description;
-    public string TaskId;
-    public string MpIid;
-
-    public string ThumbnailSmallUrl;
-    public string ThumbnailMediumUrl;
-    public string ThumbnailBigUrl;
-
     public int Width;
     public int Height;
 
-    public ImagePreview(JToken mpItem)
+
+    public ImagePreview(JToken mpItem, string executorNodeName) : base(mpItem, executorNodeName)
     {
-        var basicMetadata = mpItem["metadata"]!["basic"]!;
-        Title = (string)basicMetadata["title"]!;
-        Description = (string)basicMetadata["description"]!;
-        TaskId = (string)mpItem["id"]!;
-        MpIid = (string)mpItem["iid"]!;
-
-        ThumbnailSmallUrl = (string)mpItem["thumbnailurl"]!;
-        ThumbnailMediumUrl = (string)mpItem["previewurl"]!;
-        ThumbnailBigUrl = (string)mpItem["nowmpreviewurl"]!;
-
         var imageDimensions = mpItem["media"]!["jpeg"]!;
         Width = (int)imageDimensions["width"]!;
         Height = (int)imageDimensions["height"]!;
     }
+
+
+    internal override async Task SendWith(TelegramBot bot, ChatId chatId) =>
+        await bot.TrySendImageAsync(chatId, ThumbnailMediumUrl, Caption);
 }

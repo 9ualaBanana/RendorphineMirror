@@ -17,7 +17,7 @@ public class TaskResultsPreviewer
         _taskRegistry = taskRegistry;
     }
 
-    public async Task<MpItem?> GetMyMPItemAsync(string taskId)
+    public async Task<MpItem?> GetMyMPItemAsync(string taskId, string executorNodeName)
     {
         _taskRegistry.TryGetValue(taskId, out var authenticationToken);
         if (authenticationToken is null) return null;
@@ -36,8 +36,8 @@ public class TaskResultsPreviewer
 
             mpItem = mpItem["item"]!;
             if ((string)mpItem["state"]! == "received")
-            { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new(mpItem); }
-            else Thread.Sleep(1000);
+            { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new(mpItem, executorNodeName); }
+            else Thread.Sleep(2000);
         }
     }
 

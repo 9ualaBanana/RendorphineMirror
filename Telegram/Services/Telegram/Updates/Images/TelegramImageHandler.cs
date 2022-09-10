@@ -9,13 +9,11 @@ public class TelegramImageHandler : TelegramUpdateHandler
     readonly TelegramFileRegistry _fileRegistry;
 
 
-
     public TelegramImageHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, TelegramFileRegistry fileRegistry)
         : base(logger, bot)
     {
         _fileRegistry = fileRegistry;
     }
-
 
 
     public override async Task HandleAsync(Update update)
@@ -37,12 +35,12 @@ public class TelegramImageHandler : TelegramUpdateHandler
         var key = _fileRegistry.Add(image.InputOnlineFile);
         return new(new InlineKeyboardButton[][]
         {
-            //new InlineKeyboardButton[]
-            //{
-            //    InlineKeyboardButton.WithCallbackData(
-            //        "Upload to M+",
-            //        ImageProcessingCallbackData.Serialize(ImageProcessingActions.Upload, key))
-            //},
+            new InlineKeyboardButton[]
+            {
+                InlineKeyboardButton.WithCallbackData(
+                    "Upload to M+",
+                    ImageProcessingCallbackData.Serialize(ImageProcessingQueryFlags.Upload, key))
+            },
             new InlineKeyboardButton[]
             {
                 InlineKeyboardButton.WithCallbackData(

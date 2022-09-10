@@ -1,18 +1,12 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Microsoft.AspNetCore.Authentication;
+using Newtonsoft.Json.Linq;
+using Telegram.Bot.Types;
+using Telegram.Services.Telegram;
 
 namespace Telegram.Models.TaskResultPreviews;
 
-public class VideoPreview
+internal class VideoPreview : TaskResultPreview
 {
-    public string Title;
-    public string Description;
-    public string TaskId;
-    public string MpIid;
-
-    public string ThumbnailSmallUrl;
-    public string ThumbnailMediumUrl;
-    public string ThumbnailBigUrl;
-
     public int Width;
     public int Height;
 
@@ -22,19 +16,10 @@ public class VideoPreview
     public long WebmSize;
     public string WebmUrl;
 
-    public VideoPreview(JToken mpItem)
+
+    public VideoPreview(JToken mpItem, string executorNodeName) : base(mpItem, executorNodeName)
     {
-        var basicMetadata = mpItem["metadata"]!["basic"]!;
-        Title = (string)basicMetadata["title"]!;
-        Description = (string)basicMetadata["description"]!;
-        TaskId = (string)mpItem["id"]!;
-        MpIid = (string)mpItem["iid"]!;
-
-        ThumbnailSmallUrl = (string)mpItem["thumbnailurl"]!;
-        ThumbnailMediumUrl = (string)mpItem["previewurl"]!;
-        ThumbnailBigUrl = (string)mpItem["nowmpreviewurl"]!;
-
-        var videoPreview = mpItem["videopreview"];
+        var videoPreview = mpItem["videopreview"]!;
         Width = (int)videoPreview["width"]!;
         Height = (int)videoPreview["height"]!;
 
@@ -44,4 +29,8 @@ public class VideoPreview
         WebmSize = (long)videoPreview["webm"]!["size"]!;
         WebmUrl = (string)videoPreview["webm"]!["url"]!;
     }
+
+
+    internal override async Task SendWith(TelegramBot bot, ChatId chatId) =>
+        await bot.TrySendVideoAsync(chatId, Mp4Url, ThumbnailMediumUrl, Caption, Width, Height);
 }
