@@ -9,12 +9,6 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         Directory.CreateDirectory(task.FSOutputDirectory());
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
 
-        if (task.State <= TaskState.Queued)
-        {
-            await task.ChangeStateAsync(TaskState.Input);
-            NodeSettings.QueuedTasks.Save();
-        }
-
         if (task.State <= TaskState.Input || task.InputFile is null)
         {
             task.LogInfo($"Downloading input...");
