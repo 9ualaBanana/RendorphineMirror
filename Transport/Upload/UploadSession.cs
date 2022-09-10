@@ -1,6 +1,6 @@
-﻿using NLog;
-using System.Text.Json;
-using Transport;
+﻿using Common;
+using Newtonsoft.Json.Linq;
+using NLog;
 using Transport.Models;
 
 namespace Transport.Upload;
@@ -82,14 +82,13 @@ internal record UploadSession(
         UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken)
     {
         var httpResponse = await httpClient.PostAsync(sessionData.Endpoint, sessionData.HttpContent, cancellationToken).ConfigureAwait(false);
-        var rawJsonResponse = await httpResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        var response = JsonDocument.Parse(rawJsonResponse).RootElement;
+        var response = await Api.GetJsonFromResponseIfSuccessfulAsync(httpResponse);
         return new(
             sessionData,
-            response.GetProperty("fileid").GetString()!,
-            response.GetProperty("host").GetString()!,
-            response.GetProperty("uploadedbytes").GetInt64(),
-            response.GetProperty("uploadedchunks").Deserialize<UploadedPacket[]>(new JsonSerializerOptions(JsonSerializerDefaults.Web))!,
+            (string)response["fileid"]!,
+            (string)response["host"]!,
+            (long)response["uploadedbytes"]!,
+            response["uploadedchunks"]!.ToObject<UploadedPacket[]>()!,
             httpClient,
             cancellationToken);
     }

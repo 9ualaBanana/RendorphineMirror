@@ -1,7 +1,6 @@
 ﻿using Common;
 using NLog;
 using System.Diagnostics;
-using Transport;
 
 namespace Transport.Upload;
 

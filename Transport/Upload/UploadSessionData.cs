@@ -6,6 +6,14 @@ public abstract class UploadSessionData
 {
     public readonly string Endpoint;
     public readonly FileInfo File;
+    /// <summary>
+    /// Persists the same GUID suffix over multiple uses of the file name.
+    /// </summary>
+    /// <remarks>
+    /// Without that GUID persistence, file name would differ for each property/method call where it's used (e.g. HttpContent).
+    /// </remarks>
+    public string FileNameWithGuid => _fileNameWithGuid ??= File.Name.WithGuid();
+    string? _fileNameWithGuid;
     protected string MimeType => MimeTypes.GetMimeType(File.Name);
 
 
@@ -40,7 +48,7 @@ public class UserUploadSessionData : UploadSessionData
         new Dictionary<string, string>()
         {
             ["sessionid"] = Settings.SessionId!,
-            ["name"] = File.Name.WithGuid(),
+            ["name"] = FileNameWithGuid,
             ["size"] = File.Length.ToString(),
             ["extension"] = File.Extension,
         });
@@ -55,17 +63,16 @@ public class MPlusUploadSessionData : UploadSessionData
     {
     }
 
-    public MPlusUploadSessionData(FileInfo file, string? sessionId = default) : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
+    public MPlusUploadSessionData(FileInfo file, string? sessionId = default) : base($"{Api.TaskManagerEndpoint}/initselfmpoutput", file)
     {
         _sessionId = sessionId;
     }
-
 
     public override FormUrlEncodedContent HttpContent => new(new Dictionary<string, string>
     {
         ["sessionid"] = _sessionId ?? Settings.SessionId!,
         ["directory"] = "uploaded",
-        ["fname"] = File.Name.WithGuid(),
+        ["fname"] = FileNameWithGuid,
         ["fsize"] = File.Length.ToString(),
         ["mimetype"] = MimeType,
         ["lastmodified"] = File.LastWriteTimeUtc.AsUnixTimestamp(),
