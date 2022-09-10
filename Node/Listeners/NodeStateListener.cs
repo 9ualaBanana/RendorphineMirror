@@ -5,6 +5,7 @@ namespace Node.Listeners;
 
 public class NodeStateListener : ListenerBase
 {
+    protected override ListenTypes ListenType => ListenTypes.Local;
     protected override string Prefix => "getstate";
 
     protected override ValueTask Execute(HttpListenerContext context)

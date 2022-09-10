@@ -1,4 +1,4 @@
-namespace Node.Tasks.Models;
+namespace Node.Tasks.Handlers;
 
 public class DownloadLinkTaskHandler : ITaskInputHandler
 {

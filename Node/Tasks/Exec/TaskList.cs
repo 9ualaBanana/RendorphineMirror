@@ -15,28 +15,18 @@ public static class TaskList
 
         static TasksFullDescriber serializeActions()
         {
-            var actions = Actions.Select(serializeaction).ToImmutableArray();
-            var inputs = TaskInputOutputInfo.Inputs.Select(k => serializeinout(k.Key, k.Value)).ToImmutableArray();
-            var outputs = TaskInputOutputInfo.Outputs.Select(k => serializeinout(k.Key, k.Value)).ToImmutableArray();
-
-            var watchinginputs = new[]
-            {
-                serializeval<MPlusWatchingTaskSource>("MPlus"),
-                serializeval<LocalWatchingTaskSource>("User"),
-                serializeval<OtherUserWatchingTaskSource>("Other Node"),
-            }.ToImmutableArray();
-            var watchingoutputs = new[]
-            {
-                serializeval<MPlusWatchingTaskOutputInfo>("MPlus"),
-                serializeval<LocalWatchingTaskOutputInfo>("User"),
-            }.ToImmutableArray();
-
-            return new TasksFullDescriber(actions, inputs, outputs, watchinginputs, watchingoutputs);
+            return new TasksFullDescriber(
+                Actions.Select(serializeaction).ToImmutableArray(),
+                serialize(TaskModels.Inputs),
+                serialize(TaskModels.Outputs),
+                serialize(TaskModels.WatchingInputs),
+                serialize(TaskModels.WatchingOutputs)
+            );
 
 
             static TaskActionDescriber serializeaction(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
-            static TaskInputOutputDescriber serializeinout(TaskInputOutputType tasktype, Type type) => new TaskInputOutputDescriber(tasktype.ToString(), (ObjectDescriber) FieldDescriber.Create(type));
-            static TaskInputOutputDescriber serializeval<T>(string name) => new TaskInputOutputDescriber(name, (ObjectDescriber) FieldDescriber.Create(typeof(T)));
+            static ImmutableArray<TaskInputOutputDescriber> serialize<T>(ImmutableDictionary<T, Type> dict) where T : struct, Enum =>
+                dict.Select(x => new TaskInputOutputDescriber(x.Key.ToString(), (ObjectDescriber) FieldDescriber.Create(x.Value))).ToImmutableArray();
         }
     }
 

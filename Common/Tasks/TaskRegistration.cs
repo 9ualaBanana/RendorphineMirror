@@ -11,8 +11,8 @@ public static class TaskRegistration
     {
         var data = info.Data;
         var taskobj = new TaskObject("3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 12345678);
-        var input = TaskInputOutputInfo.DeserializeInput(info.Input);
-        var output = TaskInputOutputInfo.DeserializeOutput(info.Output);
+        var input = TaskModels.DeserializeInput(info.Input);
+        var output = TaskModels.DeserializeOutput(info.Output);
 
         await input.InitializeAsync();
         await output.InitializeAsync();

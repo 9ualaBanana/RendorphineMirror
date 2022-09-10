@@ -1,6 +1,6 @@
 using Transport.Upload;
 
-namespace Node.Tasks.Models;
+namespace Node.Tasks.Handlers;
 
 public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTaskCompletionCheckHandler
 {

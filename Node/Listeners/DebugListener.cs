@@ -5,6 +5,7 @@ namespace Node.Listeners;
 
 public class DebugListener : ExecutableListenerBase
 {
+    protected override ListenTypes ListenType => ListenTypes.Local;
     protected override string Prefix => "debug";
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)

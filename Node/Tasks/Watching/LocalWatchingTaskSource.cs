@@ -4,12 +4,11 @@ namespace Node.Tasks.Watching;
 
 public class LocalWatchingTaskSource : IWatchingTaskSource
 {
-    public event Action<WatchingTaskFileAddedEventArgs>? FileAdded;
+    public WatchingTaskInputOutputType Type => WatchingTaskInputOutputType.Local;
 
     [LocalDirectory] public readonly string Directory;
     [JsonIgnore] FileSystemWatcher? Watcher;
-
-    readonly List<string> SavedFiles = new();
+    long LastCheck = 0;
 
     public LocalWatchingTaskSource(string directory) => Directory = directory;
 
@@ -19,16 +18,31 @@ public class LocalWatchingTaskSource : IWatchingTaskSource
 
         System.IO.Directory.CreateDirectory(Directory);
         Watcher = new FileSystemWatcher(Directory) { IncludeSubdirectories = true };
-        Watcher.Created += (obj, e) =>
-        {
-            if (!File.Exists(e.FullPath)) return;
-
-            var filename = Path.GetFileName(e.FullPath);
-            var info = new TorrentTaskInputInfo(e.FullPath, link: null!);
-            FileAdded?.Invoke(new(filename, info));
-        };
+        Watcher.Created += async (obj, e) => await start(e.FullPath);
 
         Watcher.EnableRaisingEvents = true;
+
+        Task.Run(async () =>
+        {
+            var files = System.IO.Directory.GetFiles(Directory, "*", SearchOption.AllDirectories)
+                .Where(x => new DateTimeOffset(File.GetCreationTimeUtc(x)).ToUnixTimeMilliseconds() > LastCheck);
+
+            foreach (var file in files)
+                await start(file);
+        }).Consume();
+
+
+        async ValueTask start(string file)
+        {
+            if (!File.Exists(file)) return;
+
+            var filename = Path.GetFileName(file);
+            var info = new TorrentTaskInputInfo(file, link: null!);
+            await task.RegisterTask(filename, info);
+
+            LastCheck = new DateTimeOffset(File.GetCreationTimeUtc(file)).ToUnixTimeMilliseconds();
+            NodeSettings.WatchingTasks.Save();
+        }
     }
 
     public void Dispose() => Watcher?.Dispose();

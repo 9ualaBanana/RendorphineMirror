@@ -19,11 +19,15 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
     public static string GenerateLocalId() => "local_" + Guid.NewGuid();
 
 
-    public string FSDataDirectory() => DirectoryCreated(Path.Combine(Init.TaskFilesDirectory, Id));
-    public string FSOutputDirectory() => DirectoryCreated(Path.Combine(FSDataDirectory(), "output"));
-    public string FSInputDirectory() => DirectoryCreated(Path.Combine(FSDataDirectory(), "input"));
+    public string FSDataDirectory() => FSDataDirectory(Id);
+    public string FSOutputDirectory() => FSOutputDirectory(Id);
+    public string FSInputDirectory() => FSInputDirectory(Id);
+    public string FSResultsDirectory() => FSResultsDirectory(Id);
 
-    public string FSResultsDirectory() => DirectoryCreated(Path.Combine(Path.Combine(Init.ResultFilesDirectory, Id)));
+    public static string FSDataDirectory(string id) => DirectoryCreated(Path.Combine(Init.TaskFilesDirectory, id));
+    public static string FSOutputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "output"));
+    public static string FSInputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "input"));
+    public static string FSResultsDirectory(string id) => DirectoryCreated(Path.Combine(Path.Combine(Init.ResultFilesDirectory, id)));
 
     [MemberNotNull("InputFile")]
     public string FSOutputFile() => Path.Combine(FSOutputDirectory(), Path.GetFileName(InputFile.ThrowIfNull("Task input file path was not provided")));

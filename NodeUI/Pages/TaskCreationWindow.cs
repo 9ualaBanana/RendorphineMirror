@@ -498,7 +498,7 @@ namespace NodeUI.Pages
             }
             class EndPart : TaskCreationWindow.EndPart
             {
-                protected override string StartTaskEndpoint => "starttask";
+                protected override string StartTaskEndpoint => "tasks/start";
 
                 public EndPart(TaskCreationInfo builder) : base(builder) { }
             }
@@ -562,7 +562,7 @@ namespace NodeUI.Pages
 
             class EndPart : TaskCreationWindow.EndPart
             {
-                protected override string StartTaskEndpoint => "startwatchingtask";
+                protected override string StartTaskEndpoint => "tasks/startwatching";
 
                 public EndPart(TaskCreationInfo builder) : base(builder) { }
             }

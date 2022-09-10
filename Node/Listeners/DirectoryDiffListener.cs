@@ -4,7 +4,7 @@ namespace Node.Listeners;
 
 public class DirectoryDiffListener : ExecutableListenerBase
 {
-    protected override bool IsLocal => false;
+    protected override ListenTypes ListenType => ListenTypes.Public;
     protected override bool RequiresAuthentication => true;
     protected override string? Prefix => "dirdiff";
 
@@ -24,13 +24,13 @@ public class DirectoryDiffListener : ExecutableListenerBase
         if (!Directory.Exists(dir)) return await WriteErr(response, "Directory does not exists");
 
         var files = Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories)
-            .Select(file => (new DateTimeOffset(File.GetCreationTimeUtc(file)).ToUnixTimeMilliseconds(), file))
-            .Where(v => v.Item1 > lastcheck)
-            .ToArray();
+            .Select(file => new DiffOutputFile(file, new DateTimeOffset(File.GetCreationTimeUtc(file)).ToUnixTimeMilliseconds()))
+            .Where(v => v.ModifTime > lastcheck)
+            .ToImmutableArray();
 
-        var maxtime = files.Length == 0 ? 0 : files.Max(x => x.Item1);
-        return await WriteJson(response, new DiffOutput(maxtime, files.Select(x => x.Item2).ToImmutableArray()).AsOpResult());
+        return await WriteJson(response, new DiffOutput(files).AsOpResult());
     }
 
-    public readonly record struct DiffOutput(long ModifTime, ImmutableArray<string> Files);
+    public readonly record struct DiffOutput(ImmutableArray<DiffOutputFile> Files);
+    public readonly record struct DiffOutputFile(string Path, long ModifTime);
 }

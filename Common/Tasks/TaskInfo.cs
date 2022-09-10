@@ -9,5 +9,5 @@ public record TaskInfo(TaskObject Object, ITaskInputInfo Input, ITaskOutputInfo 
 
     [JsonConstructor]
     public TaskInfo(TaskObject @object, JObject input, JObject output, JObject data, TaskPolicy launchPolicy = TaskPolicy.AllNodes, string originGuid = "")
-        : this(@object, TaskInputOutputInfo.DeserializeInput(input), TaskInputOutputInfo.DeserializeOutput(output), data, launchPolicy, originGuid) { }
+        : this(@object, TaskModels.DeserializeInput(input), TaskModels.DeserializeOutput(output), data, launchPolicy, originGuid) { }
 }
