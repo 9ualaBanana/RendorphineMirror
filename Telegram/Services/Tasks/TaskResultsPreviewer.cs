@@ -24,6 +24,7 @@ public class TaskResultsPreviewer
 
         string iid = (await GetTaskOutputIidAsync(taskId, authenticationToken.MPlus.SessionId)).Result;
         JToken mpItem;
+        int retryAttempts = 3;
         while (true)
         {
             try
@@ -31,7 +32,7 @@ public class TaskResultsPreviewer
                 mpItem = await Api.GetJsonFromResponseIfSuccessfulAsync(
                     await _httpClient.GetAsync($"https://tasks.microstock.plus/rphtaskmgr/getmympitem?sessionid={authenticationToken.MPlus.SessionId}&iid={iid}"));
             }
-            catch { return null; }
+            catch { if (retryAttempts-- == 0) return null; else continue; }
 
             mpItem = mpItem["item"]!;
             if ((string)mpItem["state"]! == "received")
