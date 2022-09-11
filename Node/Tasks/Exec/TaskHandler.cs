@@ -175,9 +175,18 @@ public static class TaskHandler
     static async ValueTask<bool> RemoveIfFinished(this ReceivedTask task)
     {
         var state = (await task.GetTaskStateAsync()).ThrowIfError();
+        task.LogInfo($"{state.State}/{task.State}");
+
         if (state.State.IsFinished())
         {
-            task.LogInfo($"Task is in {state.State} state, removing");
+            if (state.State == TaskState.Finished && task.State == TaskState.Output)
+            {
+                task.LogInfo($"Server task state was set to finished, but the result hasn't been uploaded yet");
+                return false;
+            }
+
+
+            task.LogInfo($"Removing");
             NodeSettings.QueuedTasks.Bindable.Remove(task);
 
             return true;
