@@ -36,10 +36,9 @@ internal static class Respond
     static byte[] BuildResponse(string errorMessage) =>
         JsonSerializer.SerializeToUtf8Bytes(ResponseTemplate(ok: 0, errorMessage), _options);
 
-    static Dictionary<string, object?> ResponseTemplate(int ok, string? errorMessage = null) =>
-        new Dictionary<string, object?>()
-        {
-            ["ok"] = ok,
-            ["errormessage"] = errorMessage
-        };
+    static Dictionary<string, object?> ResponseTemplate(int ok, string? errorMessage = null) => new()
+    {
+        ["ok"] = ok,
+        ["errormessage"] = errorMessage
+    };
 }

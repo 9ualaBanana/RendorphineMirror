@@ -1,8 +1,8 @@
-﻿using Telegram.Services.Telegram;
-using Telegram.Models;
+﻿using Telegram.Models;
 using System.Collections.Specialized;
 using Telegram.Services.Telegram.Updates.Commands;
-using Telegram.Services.Telegram.Authentication;
+using Telegram.Telegram.Authentication.Services;
+using Telegram.Telegram;
 
 namespace Telegram.Services.Node;
 

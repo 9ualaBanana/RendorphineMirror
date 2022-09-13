@@ -1,9 +1,10 @@
+global using Common;
 using NLog.Web;
 using Telegram.Services.GitHub;
-using Telegram.Services.Tasks;
-using Telegram.Services.Telegram;
-using Telegram.Services.Telegram.Authentication;
-using Telegram.Services.Telegram.Updates;
+using Telegram.Telegram;
+using Telegram.Telegram.Authentication.Services;
+using Telegram.Telegram.Updates;
+using Telegram.Telegram.Updates.Tasks.ResultsPreview.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

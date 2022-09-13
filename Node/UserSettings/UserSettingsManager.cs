@@ -1,5 +1,4 @@
-﻿using Node.Plugins.Deployment;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace Node.UserSettings;
 
@@ -13,7 +12,7 @@ public class UserSettingsManager : IHeartbeatGenerator
     string BuildUrl(string? sessionId = default) => $"{_endpoint}?sessionid={sessionId ?? Settings.SessionId}";
 
 
-    #region IHeartbeatProducer
+    #region IHeartbeatGenerator
     public HttpRequestMessage Request => new(HttpMethod.Get, BuildUrl());
     bool _deploymentInProcess = false;
     public EventHandler<HttpResponseMessage> ResponseHandler => async (_, response) =>

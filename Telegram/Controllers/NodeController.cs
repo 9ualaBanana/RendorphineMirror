@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Telegram.Models;
 using Telegram.Services.Node;
-using Telegram.Services.Telegram;
-using Telegram.Services.Telegram.Authentication;
+using Telegram.Telegram;
+using Telegram.Telegram.Authentication.Services;
 
 namespace Telegram.Controllers;
 

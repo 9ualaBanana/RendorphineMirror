@@ -2,7 +2,7 @@
 using System.Text;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Models;
-using Telegram.Services.Telegram;
+using Telegram.Telegram;
 
 namespace Telegram.Services.GitHub;
 
