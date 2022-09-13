@@ -2,7 +2,7 @@ namespace Common.Tasks.Model;
 
 public class QSPreviewOutputInfo : ITaskOutputInfo
 {
-    public TaskInputOutputType Type => TaskInputOutputType.QSPreview;
+    public TaskOutputType Type => TaskOutputType.QSPreview;
 
     public readonly string Iid;
     public readonly string? TUid;

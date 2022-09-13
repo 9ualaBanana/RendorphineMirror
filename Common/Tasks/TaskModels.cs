@@ -5,7 +5,8 @@ namespace Common.Tasks;
 
 public static class TaskModels
 {
-    public static ImmutableDictionary<TaskInputOutputType, Type> Inputs, Outputs;
+    public static ImmutableDictionary<TaskInputType, Type> Inputs;
+    public static ImmutableDictionary<TaskOutputType, Type> Outputs;
     public static ImmutableDictionary<WatchingTaskInputOutputType, Type> WatchingInputs, WatchingOutputs;
 
     static TaskModels()
@@ -34,8 +35,8 @@ public static class TaskModels
     }
 
 
-    public static ITaskInputInfo DeserializeInput(JObject input) => Deserialize<ITaskInputInfo, TaskInputOutputType>(input, Inputs);
-    public static ITaskOutputInfo DeserializeOutput(JObject output) => Deserialize<ITaskOutputInfo, TaskInputOutputType>(output, Outputs);
+    public static ITaskInputInfo DeserializeInput(JObject input) => Deserialize<ITaskInputInfo, TaskInputType>(input, Inputs);
+    public static ITaskOutputInfo DeserializeOutput(JObject output) => Deserialize<ITaskOutputInfo, TaskOutputType>(output, Outputs);
     public static IWatchingTaskSource DeserializeWatchingInput(JObject input) => Deserialize<IWatchingTaskSource, WatchingTaskInputOutputType>(input, WatchingInputs);
     public static IWatchingTaskOutputInfo DeserializeWatchingOutput(JObject output) => Deserialize<IWatchingTaskOutputInfo, WatchingTaskInputOutputType>(output, WatchingOutputs);
 

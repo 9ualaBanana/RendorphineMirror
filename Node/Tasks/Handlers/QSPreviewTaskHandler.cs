@@ -2,7 +2,7 @@ namespace Node.Tasks.Handlers;
 
 public class QSPreviewTaskHandler : ITaskOutputHandler, IPlacedTaskCompletionCheckHandler, ITaskTypeFilterHandler
 {
-    public TaskInputOutputType Type => TaskInputOutputType.QSPreview;
+    TaskOutputType ITaskOutputHandler.Type => TaskOutputType.QSPreview;
 
     public ImmutableArray<string>? AllowedTaskTypes { get; } = ImmutableArray.Create("QSPreview"); // TODO: update task action name when created
     public ImmutableArray<string>? DisallowedTaskTypes => null;

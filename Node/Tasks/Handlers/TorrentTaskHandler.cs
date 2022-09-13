@@ -5,7 +5,8 @@ namespace Node.Tasks.Handlers;
 
 public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTaskInitializationHandler, IPlacedTaskOnCompletedHandler, IPlacedTaskCompletionCheckHandler, IPlacedTaskResultDownloadHandler
 {
-    public TaskInputOutputType Type => TaskInputOutputType.Torrent;
+    TaskInputType ITaskInputHandler.Type => TaskInputType.Torrent;
+    TaskOutputType ITaskOutputHandler.Type => TaskOutputType.Torrent;
 
     readonly Dictionary<string, TorrentManager> InputTorrents = new();
 

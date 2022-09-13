@@ -4,10 +4,17 @@ using Newtonsoft.Json.Converters;
 namespace Common.Tasks.Model;
 
 [JsonConverter(typeof(StringEnumConverter))]
-public enum TaskInputOutputType
+public enum TaskInputType
 {
     MPlus,
     DownloadLink,
+    Torrent,
+    User,
+}
+[JsonConverter(typeof(StringEnumConverter))]
+public enum TaskOutputType
+{
+    MPlus,
     Torrent,
     User,
     QSPreview,

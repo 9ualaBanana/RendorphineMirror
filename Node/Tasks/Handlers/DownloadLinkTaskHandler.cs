@@ -2,7 +2,7 @@ namespace Node.Tasks.Handlers;
 
 public class DownloadLinkTaskHandler : ITaskInputHandler
 {
-    public TaskInputOutputType Type => TaskInputOutputType.DownloadLink;
+    TaskInputType ITaskInputHandler.Type => TaskInputType.DownloadLink;
 
     public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {

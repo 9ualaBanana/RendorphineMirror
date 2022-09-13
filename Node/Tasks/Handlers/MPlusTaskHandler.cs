@@ -4,7 +4,8 @@ namespace Node.Tasks.Handlers;
 
 public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTaskCompletionCheckHandler
 {
-    public TaskInputOutputType Type => TaskInputOutputType.MPlus;
+    TaskInputType ITaskInputHandler.Type => TaskInputType.MPlus;
+    TaskOutputType ITaskOutputHandler.Type => TaskOutputType.MPlus;
 
     public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
     {

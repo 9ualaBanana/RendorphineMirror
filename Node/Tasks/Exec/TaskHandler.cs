@@ -2,8 +2,10 @@ namespace Node.Tasks.Exec;
 
 public static class TaskHandler
 {
-    public static IEnumerable<ITaskHandler> HandlerList => Handlers.Values;
-    static readonly Dictionary<TaskInputOutputType, ITaskHandler> Handlers = new();
+    public static IEnumerable<ITaskHandler> HandlerList => Handlers;
+    static readonly List<ITaskHandler> Handlers = new();
+    static readonly Dictionary<TaskInputType, ITaskInputHandler> InputHandlers = new();
+    static readonly Dictionary<TaskOutputType, ITaskOutputHandler> OutputHandlers = new();
 
 
     public static async ValueTask InitializePlacedTasksAsync()
@@ -18,7 +20,7 @@ public static class TaskHandler
         if (await task.RemoveIfFinished())
             return;
 
-        await (task.TryGetHandler<IPlacedTaskInitializationHandler>()?.InitializePlacedTaskAsync(task) ?? ValueTask.CompletedTask);
+        await (task.TryGetInputHandler<IPlacedTaskInitializationHandler>()?.InitializePlacedTaskAsync(task) ?? ValueTask.CompletedTask);
     }
 
     /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
@@ -74,7 +76,7 @@ public static class TaskHandler
         async ValueTask check(DbTaskFullState task)
         {
             if (task.State == TaskState.Finished) return;
-            var handler = task.TryGetHandler<IPlacedTaskCompletionCheckHandler>();
+            var handler = task.TryGetOutputHandler<IPlacedTaskCompletionCheckHandler>();
             if (handler is null) return;
 
             try
@@ -84,14 +86,14 @@ public static class TaskHandler
 
                 task.LogInfo("Completed");
 
-                if (task.TryGetHandler<IPlacedTaskResultDownloadHandler>() is { } resultdownloader)
+                if (task.TryGetOutputHandler<IPlacedTaskResultDownloadHandler>() is { } resultdownloader)
                 {
                     task.LogInfo("Downloading result");
                     await resultdownloader.DownloadResult(task);
                 }
 
                 (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
-                await (task.TryGetHandler<IPlacedTaskOnCompletedHandler>()?.OnPlacedTaskCompleted(task) ?? ValueTask.CompletedTask);
+                await (task.TryGetOutputHandler<IPlacedTaskOnCompletedHandler>()?.OnPlacedTaskCompleted(task) ?? ValueTask.CompletedTask);
                 NodeSettings.PlacedTasks.Bindable.Remove(task);
             }
             catch (Exception ex) when (ex.Message.Contains("no task with such ", StringComparison.OrdinalIgnoreCase))
@@ -195,15 +197,25 @@ public static class TaskHandler
         return false;
     }
 
-    public static void AddHandler(ITaskHandler handler) => Handlers.Add(handler.Type, handler);
+    public static void AddHandler(ITaskHandler handler)
+    {
+        Handlers.Add(handler);
+
+        if (handler is ITaskInputHandler inputh)
+            InputHandlers[inputh.Type] = inputh;
+        if (handler is ITaskOutputHandler outputh)
+            OutputHandlers[outputh.Type] = outputh;
+    }
     public static void AddHandlers(params ITaskHandler[] handlers)
     {
         foreach (var handler in handlers)
             AddHandler(handler);
     }
 
-    static T? TryGetHandler<T>(this ReceivedTask task) where T : class, ITaskHandler => Handlers.TryGetValue(task.Output.Type, out var handler) ? handler as T : null;
 
-    public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => (ITaskInputHandler) Handlers[task.Input.Type];
-    public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => (ITaskOutputHandler) Handlers[task.Output.Type];
+    public static T? TryGetInputHandler<T>(this ReceivedTask task) where T : class, ITaskInputHandler => InputHandlers[task.Input.Type] as T;
+    public static T? TryGetOutputHandler<T>(this ReceivedTask task) where T : class, ITaskOutputHandler => OutputHandlers[task.Output.Type] as T;
+
+    public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => (ITaskInputHandler) InputHandlers[task.Input.Type];
+    public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => (ITaskOutputHandler) OutputHandlers[task.Output.Type];
 }
