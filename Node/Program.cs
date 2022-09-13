@@ -190,7 +190,8 @@ async Task InitializePlugins()
     TaskHandler.AddHandlers(
         new MPlusTaskHandler(),
         new DownloadLinkTaskHandler(),
-        new TorrentTaskHandler()
+        new TorrentTaskHandler(),
+        new QSPreviewTaskHandler()
     );
 
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();

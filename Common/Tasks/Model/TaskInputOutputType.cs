@@ -10,4 +10,5 @@ public enum TaskInputOutputType
     DownloadLink,
     Torrent,
     User,
+    QSPreview,
 }

@@ -32,3 +32,9 @@ public interface IPlacedTaskInitializationHandler : ITaskHandler
     /// <summary> Initialize placed task (e.g. start torrent seeding for uploading source files) </summary>
     ValueTask InitializePlacedTaskAsync(DbTaskFullState task);
 }
+
+public interface ITaskTypeFilterHandler : ITaskHandler
+{
+    ImmutableArray<string>? AllowedTaskTypes { get; }
+    ImmutableArray<string>? DisallowedTaskTypes { get; }
+}
