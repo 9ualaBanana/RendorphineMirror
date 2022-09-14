@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net;
 
 namespace Node.Listeners
 {
@@ -15,6 +10,8 @@ namespace Node.Listeners
 
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
+            await Task.Delay(0); // to hide a warning
+
             var request = context.Request;
             var response = context.Response;
 
@@ -117,14 +114,6 @@ namespace Node.Listeners
                 writer.Write("<a href='/gallery'>Gallery</a><br><a href='/logs'>Logs</a>");
                 return HttpStatusCode.OK;
             }
-
-            return HttpStatusCode.NotFound;
-        }
-
-        protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
-        {
-            var request = context.Request;
-            var response = context.Response;
 
             return HttpStatusCode.NotFound;
         }
