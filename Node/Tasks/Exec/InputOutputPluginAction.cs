@@ -4,25 +4,41 @@ namespace Node.Tasks.Exec;
 
 public abstract class InputOutputPluginAction<T> : PluginAction<T>
 {
+    static readonly SemaphoreSlim InputSemaphore = new SemaphoreSlim(5);
+    static readonly SemaphoreSlim TaskWaitHandle = new SemaphoreSlim(1);
+    static readonly SemaphoreSlim OutputSemaphore = new SemaphoreSlim(5);
+
+    static async Task<FuncDispose> WaitDisposed(ReceivedTask task, SemaphoreSlim semaphore)
+    {
+        if (semaphore.CurrentCount == 0)
+            task.LogInfo("Waiting for the handle");
+
+        await semaphore.WaitAsync();
+        return FuncDispose.Create(semaphore.Release);
+    }
+
     protected sealed override async Task Execute(ReceivedTask task, T data)
     {
         Directory.CreateDirectory(task.FSOutputDirectory());
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
 
-        if (task.State <= TaskState.Input || task.InputFile is null)
+        if (task.State <= TaskState.Input)
         {
+            using var _ = await WaitDisposed(task, InputSemaphore);
+
             task.LogInfo($"Downloading input...");
-            var input = await task.GetInputHandler().Download(task).ConfigureAwait(false);
-            task.InputFile = input;
-            task.LogInfo($"Input downloaded to {input}");
+            await task.GetInputHandler().Download(task).ConfigureAwait(false);
+            task.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}");
 
             await task.ChangeStateAsync(TaskState.Active);
             NodeSettings.QueuedTasks.Save();
         }
-        else task.LogInfo($"Input seems to be already downloaded to {task.InputFile}");
+        else task.LogInfo($"Input seems to be already downloaded");
 
         if (task.State <= TaskState.Active)
         {
+            using var _ = await WaitDisposed(task, TaskWaitHandle);
+
             task.LogInfo($"Executing task...");
             await ExecuteImpl(task, data).ConfigureAwait(false);
             task.LogInfo($"Task executed");
@@ -34,13 +50,15 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
         if (task.State <= TaskState.Output)
         {
+            using var _ = await WaitDisposed(task, OutputSemaphore);
+
             task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ...");
             await task.GetOutputHandler().UploadResult(task).ConfigureAwait(false);
             task.LogInfo($"Result uploaded");
 
             NodeSettings.QueuedTasks.Save();
         }
-        else task.LogInfo($"Task result seems to be already uploaded (??????????????)");
+        else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
 
         await NotifyReepoOfTaskCompletion(task);
     }

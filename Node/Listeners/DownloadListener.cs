@@ -21,7 +21,7 @@ public class DownloadListener : ExecutableListenerBase
         if (path == "taskresult")
         {
             var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
-            var taskdir = ReceivedTask.FSResultsDirectory(taskid);
+            var taskdir = ReceivedTask.FSPlacedResultsDirectory(taskid);
 
             if (!Directory.Exists(taskdir) || Directory.GetFiles(taskdir).Length == 0)
                 return HttpStatusCode.NotFound;
@@ -41,7 +41,7 @@ public class DownloadListener : ExecutableListenerBase
         if (path == "uploadtask")
         {
             var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
-            var taskdir = ReceivedTask.FSResultsDirectory(taskid);
+            var taskdir = ReceivedTask.FSPlacedResultsDirectory(taskid);
 
             var zipfile = Path.GetTempFileName();
 

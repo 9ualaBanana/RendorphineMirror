@@ -20,8 +20,8 @@ namespace Common
         public static readonly string ConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), Initializer.ConfigDirectory);
         public static readonly string LogDirectory = Path.GetFullPath("logs");
         public static readonly string TaskFilesDirectory = Path.Combine(ConfigDirectory, "tasks");
+        public static readonly string PlacedTaskFilesDirectory = Path.Combine(ConfigDirectory, "ptasks");
         public static readonly string WatchingTaskFilesDirectory = Path.Combine(ConfigDirectory, "watchingtasks");
-        public static readonly string ResultFilesDirectory = Path.Combine(ConfigDirectory, "results");
         public static readonly string Version = GetVersion();
 
         public static void Initialize() { }

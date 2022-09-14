@@ -1,6 +1,6 @@
 namespace Node.Tasks.Handlers;
 
-public class QSPreviewTaskHandler : ITaskOutputHandler, IPlacedTaskCompletionCheckHandler, ITaskTypeFilterHandler
+public class QSPreviewTaskHandler : ITaskOutputHandler
 {
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.QSPreview;
 

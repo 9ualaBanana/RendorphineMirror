@@ -8,4 +8,8 @@ public readonly struct FuncDispose : IDisposable
     public FuncDispose(Action onDispose) => OnDispose = onDispose;
 
     public void Dispose() => OnDispose();
+
+
+    public static FuncDispose Create(Action callback) => new(callback);
+    public static FuncDispose Create<T>(Func<T> callback) => new(() => callback());
 }

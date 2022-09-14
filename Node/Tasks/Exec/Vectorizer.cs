@@ -19,17 +19,17 @@ public static class VectorizerTasks
     {
         public override string Name => "VeeeVectorize";
         public override PluginType Type => PluginType.VeeeVectorizer;
-        public override FileFormat FileFormat => FileFormat.Jpeg;
+        public override FileFormat InputFileFormat => FileFormat.Jpeg;
 
         protected override async Task ExecuteImpl(ReceivedTask task, VeeeVectorizeInfo data)
         {
-            task.InputFile.ThrowIfNull();
+            var inputfile = task.FSInputFile();
             var outputdir = task.FSOutputDirectory();
 
             var exepath = task.GetPlugin().GetInstance().Path;
 
             // quotes are important here, ddo not remove
-            var args = "\"" + task.InputFile + "\"";
+            var args = "\"" + inputfile + "\"";
 
             var plugindir = Path.GetDirectoryName(exepath)!;
             var outdir = Path.Combine(plugindir, "out");

@@ -60,6 +60,7 @@ namespace Common
         public static Task<HttpResponseMessage> JustGet(string url) => Client.GetAsync(url);
 
         public static Task<Stream> Download(string url) => Client.GetStreamAsync(url);
+        public static Task<HttpResponseMessage> Get(string url) => Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
 
         static async ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<T>> func)

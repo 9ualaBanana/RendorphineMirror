@@ -43,5 +43,15 @@ namespace Common
             jobj[key] = value;
             return jobj;
         }
+
+
+        public static void CopyDirectory(string source, string destination)
+        {
+            source = Path.GetFullPath(source);
+            destination = Path.GetFullPath(destination);
+
+            Directory.GetDirectories(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => Directory.CreateDirectory(x.Replace(source, destination)));
+            Directory.GetFiles(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => File.Copy(x, x.Replace(source, destination)));
+        }
     }
 }

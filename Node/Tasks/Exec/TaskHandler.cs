@@ -8,19 +8,17 @@ public static class TaskHandler
     static readonly Dictionary<TaskOutputType, ITaskOutputHandler> OutputHandlers = new();
 
 
-    public static async ValueTask InitializePlacedTasksAsync()
+    public static async Task InitializePlacedTasksAsync()
     {
-        TaskRegistration.TaskRegistered += task => InitializePlacedTaskAsync(task).AsTask().Consume();
-
-        foreach (var task in NodeSettings.PlacedTasks.ToArray())
-            await InitializePlacedTaskAsync(task);
+        TaskRegistration.TaskRegistered += task => InitializePlacedTaskAsync(task).Consume();
+        await Task.WhenAll(NodeSettings.PlacedTasks.Select(InitializePlacedTaskAsync));
     }
-    public static async ValueTask InitializePlacedTaskAsync(DbTaskFullState task)
+    public static async Task InitializePlacedTaskAsync(DbTaskFullState task)
     {
         if (await task.RemoveIfFinished())
             return;
 
-        await (task.TryGetInputHandler<IPlacedTaskInitializationHandler>()?.InitializePlacedTaskAsync(task) ?? ValueTask.CompletedTask);
+        await task.GetInputHandler().InitializePlacedTaskAsync(task);
     }
 
     /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
@@ -28,27 +26,13 @@ public static class TaskHandler
     {
         new Thread(async () =>
         {
-            int index = 0;
-
             while (true)
             {
-                await Task.Delay(2_000);
+                await Task.Delay(10_000);
                 if (NodeSettings.QueuedTasks.Count == 0) continue;
 
-                index = Math.Max(index, NodeSettings.QueuedTasks.Bindable.Count - 1);
-
-                var task = NodeSettings.QueuedTasks.Bindable[index];
-                try
-                {
-                    await HandleAsync(task);
-                    index = 0;
-                }
-                catch (Exception ex)
-                {
-                    task.LogErr(ex);
-                    task.LogInfo("Skipping a task");
-                    index++;
-                }
+                foreach (var task in NodeSettings.QueuedTasks.ToArray())
+                    HandleAsync(task).Consume();
             }
         })
         { IsBackground = true }.Start();
@@ -76,24 +60,17 @@ public static class TaskHandler
         async ValueTask check(DbTaskFullState task)
         {
             if (task.State == TaskState.Finished) return;
-            var handler = task.TryGetOutputHandler<IPlacedTaskCompletionCheckHandler>();
-            if (handler is null) return;
 
             try
             {
+                var handler = task.GetOutputHandler();
                 var completed = await handler.CheckCompletion(task);
                 if (!completed) return;
 
                 task.LogInfo("Completed");
 
-                if (task.TryGetOutputHandler<IPlacedTaskResultDownloadHandler>() is { } resultdownloader)
-                {
-                    task.LogInfo("Downloading result");
-                    await resultdownloader.DownloadResult(task);
-                }
-
+                await handler.OnPlacedTaskCompleted(task);
                 (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
-                await (task.TryGetOutputHandler<IPlacedTaskOnCompletedHandler>()?.OnPlacedTaskCompleted(task) ?? ValueTask.CompletedTask);
                 NodeSettings.PlacedTasks.Bindable.Remove(task);
             }
             catch (Exception ex) when (ex.Message.Contains("no task with such ", StringComparison.OrdinalIgnoreCase))
@@ -134,12 +111,21 @@ public static class TaskHandler
     }
     static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
+        if (NodeGlobalState.Instance.ExecutingTasks.Contains(task))
+            return;
+
         if (await task.RemoveIfFinished())
             return;
 
-
         const int maxattempts = 3;
-        NodeGlobalState.Instance.ExecutingTasks.Add(task);
+        lock (NodeGlobalState.Instance.ExecutingTasks)
+        {
+            if (NodeGlobalState.Instance.ExecutingTasks.Contains(task))
+                return;
+
+            NodeGlobalState.Instance.ExecutingTasks.Add(task);
+        }
+
         using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
         task.LogInfo($"Started");
 
@@ -213,9 +199,8 @@ public static class TaskHandler
     }
 
 
-    public static T? TryGetInputHandler<T>(this ReceivedTask task) where T : class, ITaskInputHandler => InputHandlers[task.Input.Type] as T;
-    public static T? TryGetOutputHandler<T>(this ReceivedTask task) where T : class, ITaskOutputHandler => OutputHandlers[task.Output.Type] as T;
-
     public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => (ITaskInputHandler) InputHandlers[task.Input.Type];
     public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => (ITaskOutputHandler) OutputHandlers[task.Output.Type];
+
+    public static string FSNewInputFile(this ReceivedTask task) => task.FSNewInputFile(TaskList.GetAction(task.Info).InputFileFormat.ToString().ToLowerInvariant());
 }
