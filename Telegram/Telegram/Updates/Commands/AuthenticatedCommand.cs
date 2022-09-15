@@ -10,7 +10,6 @@ public abstract class AuthenticatedCommand : Command
     protected readonly ChatAuthenticator Authenticator;
 
 
-
     public AuthenticatedCommand(
         ILogger<AuthenticatedCommand> logger,
         TelegramBot bot,
@@ -18,7 +17,6 @@ public abstract class AuthenticatedCommand : Command
     {
         Authenticator = authenticator;
     }
-
 
 
     public override async Task HandleAsync(Update update)

@@ -1,5 +1,4 @@
-﻿using Common;
-using Newtonsoft.Json.Linq;
+﻿using System.Data.Entity;
 using Telegram.Bot.Types;
 using Telegram.Telegram.Authentication.Models;
 
@@ -11,29 +10,25 @@ public class ChatAuthenticator
 
     readonly TelegramBot _bot;
     readonly HttpClient _httpClient;
-    readonly AuthentcatedUsersRegistry _users;
-
-    readonly Dictionary<ChatId, ChatAuthenticationToken> _authenticationTokens = new();
-
+    readonly AuthenticatedUsersDbContext _authenticatedUsers;
 
 
     public ChatAuthenticator(
         ILogger<ChatAuthenticator> logger,
         TelegramBot bot,
         IHttpClientFactory httpClientFactory,
-        AuthentcatedUsersRegistry users)
+        AuthenticatedUsersDbContext authenticatedUsers)
     {
         _logger = logger;
         _bot = bot;
         _httpClient = httpClientFactory.CreateClient();
-        _users = users;
+        _authenticatedUsers = authenticatedUsers;
     }
-
 
 
     internal ChatAuthenticationToken? TryGetTokenFor(ChatId id)
     {
-        if (IsAuthenticated(id)) return _authenticationTokens[id];
+        if (IsAuthenticated(id)) return _authenticatedUsers.Users.AsNoTracking().Single(user => user.ChatId == id);
 
         _ = _bot.TrySendMessageAsync(id, "Authentication required."); return null;
     }
@@ -64,8 +59,7 @@ public class ChatAuthenticator
         try
         {
             var mPlusAuthenticationToken = await AuthenticateAsync(credentials);
-            _authenticationTokens.Add(credentials.ChatId, new(credentials.ChatId, mPlusAuthenticationToken));
-            _users.GetOrAdd(mPlusAuthenticationToken.UserId, new HashSet<ChatId>()).Add(credentials.ChatId!);
+            _authenticatedUsers.Users.Add(new(credentials.ChatId, mPlusAuthenticationToken)); _authenticatedUsers.SaveChanges();
             if (mPlusAuthenticationToken.IsAdmin)
                 _bot.Subscriptions.Add(long.Parse(credentials.ChatId!));
 
@@ -86,7 +80,7 @@ public class ChatAuthenticator
             ["guid"] = Guid.NewGuid().ToString()
         });
         var response = await _httpClient.PostAsync("https://tasks.microstock.plus/rphtaskmgr/login", httpContent);
-        return ((JObject)await Api.GetJsonFromResponseIfSuccessfulAsync(response)).ToObject<MPlusAuthenticationToken>()!;
+        return (await Api.GetJsonFromResponseIfSuccessfulAsync(response)).ToObject<MPlusAuthenticationToken>()!;
     }
 
     internal async Task LogOutAsync(ChatId id)
@@ -95,13 +89,12 @@ public class ChatAuthenticator
         { await _bot.TrySendMessageAsync(id, "You are not authenticated."); }
         else
         {
-            _authenticationTokens.Remove(id);
-            _users.TryRemove(_users.SingleOrDefault(user => user.Value.Contains(id)).Key, out var _);
+            _authenticatedUsers.Remove(_authenticatedUsers.Users.Single(user => user.ChatId == id)); _authenticatedUsers.SaveChanges();
             if (_bot.Subscriptions.Contains((long)id.Identifier!))
                 _bot.Subscriptions.Remove((long)id.Identifier!);
             await _bot.TrySendMessageAsync(id, "You are successfully logged out.");
         }
     }
 
-    bool IsAuthenticated(ChatId id) => _authenticationTokens.ContainsKey(id);
+    bool IsAuthenticated(ChatId id) => _authenticatedUsers.Users.Any(user => user.ChatId == id);
 }

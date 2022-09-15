@@ -15,16 +15,16 @@ public class NodeSupervisor
     readonly object _lock = new();
     readonly ILogger<NodeSupervisor> _logger;
     readonly TelegramBot _bot;
-    readonly AuthentcatedUsersRegistry _users;
+    readonly AuthenticatedUsersDbContext _authenticatedUsers;
 
-    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot, AuthentcatedUsersRegistry users)
+    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot, AuthenticatedUsersDbContext users)
     {
         AllNodes = new();
         NodesOnline = new(configuration.ReadIdleTimeBeforeGoingOfflineFrom(logger));
         NodesOnline.ItemStorageTimeElapsed += OnNodeWentOffline;
         _logger = logger;
         _bot = bot;
-        _users = users;
+        _authenticatedUsers = users;
     }
 
 
@@ -50,14 +50,13 @@ public class NodeSupervisor
         }
 
         if (wasOnline)
-        {
             if (nodeOnline!.Version != nodeInfo.Version)
-                if (_users.TryGetValue(nodeInfo.UserId, out var chatIds))
-                {
-                    foreach (var chatId in chatIds)
-                        await _bot.TrySendMessageAsync(chatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{nodeInfo.Version}*.");
-                }
-        }
+            {
+                var userChatAuthenticationTokens = _authenticatedUsers.Users.Where(user => user.MPlus.UserId == nodeInfo.UserId);
+                if (userChatAuthenticationTokens.Any())
+                    foreach (var chatAuthenticationToken in userChatAuthenticationTokens)
+                        await _bot.TrySendMessageAsync(chatAuthenticationToken.ChatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{nodeInfo.Version}*.");
+            }
         else _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
     }
 

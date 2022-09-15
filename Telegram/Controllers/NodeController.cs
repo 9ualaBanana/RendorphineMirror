@@ -18,7 +18,7 @@ public class NodeController : ControllerBase
         [FromServices] ILoggerFactory loggerFactory,
         [FromServices] IConfiguration configuration,
         [FromServices] TelegramBot bot,
-        [FromServices] AuthentcatedUsersRegistry users)
+        [FromServices] AuthenticatedUsersDbContext users)
     {
         logger.LogDebug("Received ping from {Node}", nodeInfo.BriefInfoMDv2);
 
