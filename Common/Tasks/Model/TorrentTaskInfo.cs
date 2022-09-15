@@ -4,7 +4,7 @@ namespace Common.Tasks.Model;
 
 public class TorrentTaskInputInfo : ITaskInputInfo
 {
-    public TaskInputOutputType Type => TaskInputOutputType.Torrent;
+    public TaskInputType Type => TaskInputType.Torrent;
 
     [Hidden] public string? Link;
     [LocalFile] public readonly string Path;
@@ -26,7 +26,7 @@ public class TorrentTaskInputInfo : ITaskInputInfo
 }
 public class TorrentTaskOutputInfo : ITaskOutputInfo
 {
-    public TaskInputOutputType Type => TaskInputOutputType.Torrent;
+    public TaskOutputType Type => TaskOutputType.Torrent;
 
     [Hidden] public string? Link;
 }

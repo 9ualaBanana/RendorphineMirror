@@ -1,6 +1,8 @@
 using System.Collections.Specialized;
 using System.Net;
 using System.Text;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -207,6 +209,7 @@ public abstract class ListenerBase
                 return value.AsOpResult();
             });
 
+    protected static string GetQueryPart(StringValues values, string name) => string.Join(" ", values).Split(name + "=")[1].Split(";")[0];
 
 
     [Flags]
@@ -215,5 +218,67 @@ public abstract class ListenerBase
         Local = 1 << 0,
         Public = 1 << 1,
         WebServer = 1 << 2,
+    }
+
+    protected class CachedMultipartReader : IAsyncEnumerable<MultipartSection>, IDisposable
+    {
+        readonly string TempFileName, Boundary;
+        readonly List<IDisposable> ToDispose = new();
+
+        private CachedMultipartReader(string tempfile, string boundary)
+        {
+            TempFileName = tempfile;
+            Boundary = boundary;
+        }
+
+        public static async Task<CachedMultipartReader> Create(string boundary, Stream source)
+        {
+            var tempfile = Path.GetTempFileName();
+            using (var file = File.OpenWrite(tempfile))
+                await source.CopyToAsync(file);
+
+            return new(tempfile, boundary);
+        }
+
+        public async Task<Dictionary<string, MultipartSection>> GetSectionsAsync()
+        {
+            var result = new Dictionary<string, MultipartSection>();
+            await foreach (var section in this)
+                result.Add(GetQueryPart(section.ContentDisposition, "name"), section);
+
+            return result;
+        }
+        public async IAsyncEnumerator<MultipartSection> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        {
+            for (int i = 1; true; i++)
+            {
+                var stream = File.OpenRead(TempFileName);
+                var reader = new MultipartReader(Boundary, stream);
+                var section = null as MultipartSection;
+                for (int j = 0; j < i; j++)
+                    section = await reader.ReadNextSectionAsync();
+
+                if (section is null || section.ContentDisposition is null)
+                {
+                    stream.Dispose();
+                    break;
+                }
+
+                ToDispose.Add(stream);
+                ToDispose.Add(section.Body);
+
+                yield return section;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (File.Exists(TempFileName))
+                File.Delete(TempFileName);
+
+            foreach (var disposables in ToDispose)
+                try { disposables.Dispose(); }
+                catch { }
+        }
     }
 }

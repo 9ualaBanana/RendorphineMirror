@@ -128,9 +128,10 @@ public static class FFMpegTasks
 
         protected override async Task ExecuteImpl(ReceivedTask task, T data)
         {
-            var outputfile = task.FSOutputFile();
+            var inputfile = task.FSInputFile();
+            var outputfile = task.FSNewOutputFile(InputFileFormat.ToString().ToLowerInvariant());
 
-            var ffprobe = await FFProbe.Get(task.InputFile, task) ?? throw new Exception();
+            var ffprobe = await FFProbe.Get(inputfile, task) ?? throw new Exception();
 
 
             var exepath = task.GetPlugin().GetInstance().Path;
@@ -139,7 +140,7 @@ public static class FFMpegTasks
             var args = getArgs(ref rate);
 
             var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
-            task.LogInfo($"{task.InputFile} duration: {duration} x{rate}");
+            task.LogInfo($"{inputfile} duration: {duration} x{rate}");
             duration /= rate;
 
             await ExecuteProcess(exepath, args, true, onRead, task);
@@ -174,7 +175,7 @@ public static class FFMpegTasks
                         : null
                     ),                                      // enable hardware acceleration for video
                     "-y",                                   // force rewrite output file if exists
-                    "-i", task.InputFile,                   // input file
+                    "-i", inputfile,                        // input file
 
                     argsarr,                                // arguments
                     "-vf", string.Join(',', videofilters),  // video filters
@@ -188,12 +189,12 @@ public static class FFMpegTasks
     class FFMpegEditVideo : FFMpegEditAction<EditVideoInfo>
     {
         public override string Name => "EditVideo";
-        public override FileFormat FileFormat => FileFormat.Mov;
+        public override FileFormat InputFileFormat => FileFormat.Mov;
     }
     class FFMpegEditRaster : FFMpegEditAction<EditRasterInfo>
     {
         public override string Name => "EditRaster";
-        public override FileFormat FileFormat => FileFormat.Jpeg;
+        public override FileFormat InputFileFormat => FileFormat.Jpeg;
     }
 
 

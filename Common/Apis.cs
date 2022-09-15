@@ -22,7 +22,21 @@ public static class Apis
         LocalApi.Send<ImmutableDictionary<string, SoftwareDefinition>>(Settings.RegistryUrl, "getsoft")
         .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
 
-    public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this ReceivedTask task, string? sessionId = default) => GetTaskStateAsync(task.Id, sessionId);
+
+    public static async ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this ReceivedTask task, string? sessionId = default)
+    {
+        var state = await GetTaskStateAsync(task.Id, sessionId);
+        if (state)
+        {
+            if (task.State != state.Result.State)
+                task.LogInfo($"Placed task state changed to {state.Result.State}");
+
+            task.State = state.Result.State;
+            task.Progress = state.Result.Progress;
+        }
+
+        return state;
+    }
     public static async ValueTask<OperationResult> ChangeStateAsync(this ReceivedTask task, TaskState state, string? sessionId = default)
     {
         task.LogInfo($"Changing state to {state}");

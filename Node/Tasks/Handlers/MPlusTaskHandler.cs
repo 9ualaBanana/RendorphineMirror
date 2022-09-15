@@ -2,26 +2,21 @@ using Transport.Upload;
 
 namespace Node.Tasks.Handlers;
 
-public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTaskCompletionCheckHandler
+public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
 {
-    public TaskInputOutputType Type => TaskInputOutputType.MPlus;
+    TaskInputType ITaskInputHandler.Type => TaskInputType.MPlus;
+    TaskOutputType ITaskOutputHandler.Type => TaskOutputType.MPlus;
 
-    public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
     {
-        var fformat = TaskList.GetAction(task.Info).FileFormat;
+        var fformat = TaskList.GetAction(task.Info).InputFileFormat;
         var format = fformat.ToString().ToLowerInvariant();
         var downloadLink = await Api.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskinputdownloadlink", "link", "get download link",
             ("sessionid", Settings.SessionId!), ("taskid", task.Id), ("format", format), ("original", fformat == FileFormat.Jpeg ? "1" : "0")).ConfigureAwait(false);
 
-        var dir = Path.Combine(Init.TaskFilesDirectory, task.Id);
-        Directory.CreateDirectory(dir);
-
-        var fileName = Path.Combine(dir, $"input.{format}");
         using (var inputStream = await Api.Download(downloadLink.ThrowIfError()))
-        using (var file = File.Open(fileName, FileMode.Create, FileAccess.Write))
+        using (var file = File.Open(task.FSNewInputFile(), FileMode.Create, FileAccess.Write))
             await inputStream.CopyToAsync(file, cancellationToken);
-
-        return fileName;
     }
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {

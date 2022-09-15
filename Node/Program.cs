@@ -91,13 +91,17 @@ if (!Init.IsDebug || halfrelease)
     captured.Add(userSettingsHeartbeat);
 }
 
-new PublicListener().Start();
 new TaskReceiver().Start();
+new DirectUploadListener().Start();
+new DirectDownloadListener().Start();
+
+new PublicListener().Start();
+new TaskListener().Start();
 new NodeStateListener().Start();
 new DirectoryDiffListener().Start();
-new TaskListener().Start();
 new DownloadListener().Start();
 new PublicPagesListener().Start();
+
 if (Init.IsDebug) new DebugListener().Start();
 
 PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
@@ -137,7 +141,7 @@ Task.WhenAll(Enum.GetValues<TaskState>().Select(s => Apis.GetMyTasksAsync(s).The
 
 TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Bindable.Add;
 
-await TaskHandler.InitializePlacedTasksAsync();
+TaskHandler.InitializePlacedTasksAsync().Consume();
 TaskHandler.StartUpdatingTaskState();
 TaskHandler.StartWatchingTasks();
 TaskHandler.StartListening();
@@ -190,7 +194,9 @@ async Task InitializePlugins()
     TaskHandler.AddHandlers(
         new MPlusTaskHandler(),
         new DownloadLinkTaskHandler(),
-        new TorrentTaskHandler()
+        new TorrentTaskHandler(),
+        new QSPreviewTaskHandler(),
+        new DirectUploadTaskHandler()
     );
 
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();

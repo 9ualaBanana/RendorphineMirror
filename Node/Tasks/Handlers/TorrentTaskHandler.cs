@@ -3,19 +3,23 @@ using MonoTorrent.Client;
 
 namespace Node.Tasks.Handlers;
 
-public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlacedTaskInitializationHandler, IPlacedTaskOnCompletedHandler, IPlacedTaskCompletionCheckHandler, IPlacedTaskResultDownloadHandler
+public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
 {
-    public TaskInputOutputType Type => TaskInputOutputType.Torrent;
+    TaskInputType ITaskInputHandler.Type => TaskInputType.Torrent;
+    TaskOutputType ITaskOutputHandler.Type => TaskOutputType.Torrent;
 
     readonly Dictionary<string, TorrentManager> InputTorrents = new();
 
-    public async ValueTask<string> Download(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (TorrentTaskInputInfo) task.Input;
         info.Link.ThrowIfNull();
 
         if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
-            return info.Path;
+        {
+            task.SetInputFile(info.Path);
+            return;
+        }
 
 
         var dir = task.FSInputDirectory();
@@ -23,30 +27,17 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
 
         await TorrentClient.AddTrackers(manager, true);
         await TorrentClient.WaitForCompletion(manager, cancellationToken);
-        return Directory.GetFiles(dir).Single();
     }
 
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {
-        var info = (TorrentTaskOutputInfo) task.Output;
-        var outputdir = task.FSResultsDirectory();
-
         if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
         {
-            copydir(task.FSOutputDirectory(), outputdir);
+            Extensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
             return;
-
-
-            void copydir(string source, string destination)
-            {
-                source = Path.GetFullPath(source);
-                destination = Path.GetFullPath(destination);
-
-                Directory.GetDirectories(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => Directory.CreateDirectory(x.Replace(source, destination)));
-                Directory.GetFiles(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => File.Copy(x, x.Replace(source, destination)));
-            }
         }
 
+        var info = (TorrentTaskOutputInfo) task.Output;
 
         var (_, manager) = await TorrentClient.CreateAddTorrent(task.FSOutputDirectory());
         await TorrentClient.AddTrackers(manager, true);
@@ -66,21 +57,6 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
             var state = (await task.GetTaskStateAsync()).ThrowIfError();
             if (state.State.IsFinished()) return;
         }
-    }
-    public async ValueTask DownloadResult(DbTaskFullState task)
-    {
-        // if task is local, downloading already handled by UploadResult
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
-            return;
-
-        var output = (TorrentTaskOutputInfo) task.Output;
-        output.Link.ThrowIfNull();
-        task.LogInfo($"Downloading result from torrent {output.Link}");
-
-        var manager = await TorrentClient.StartMagnet(output.Link, task.FSResultsDirectory());
-
-        await TorrentClient.AddTrackers(manager, true);
-        await TorrentClient.WaitForCompletion(manager);
     }
 
     public async ValueTask InitializePlacedTaskAsync(DbTaskFullState task)
@@ -109,6 +85,20 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler, IPlaced
 
     public async ValueTask OnPlacedTaskCompleted(DbTaskFullState task)
     {
+        // if task is local, downloading already handled by UploadResult
+        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
+            return;
+
+        var output = (TorrentTaskOutputInfo) task.Output;
+        output.Link.ThrowIfNull();
+        task.LogInfo($"Downloading result from torrent {output.Link}");
+
+        var manager = await TorrentClient.StartMagnet(output.Link, task.FSPlacedResultsDirectory());
+
+        await TorrentClient.AddTrackers(manager, true);
+        await TorrentClient.WaitForCompletion(manager);
+
+
         if (InputTorrents.Remove(task.Id, out var managerup))
             await managerup.StopAsync(TimeSpan.FromSeconds(5));
     }

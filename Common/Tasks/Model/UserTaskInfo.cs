@@ -1,11 +1,11 @@
 namespace Common.Tasks.Model;
 
-// TODO: ?
+// TODO: here just to not crash every time loading task list
 public class UserTaskInputInfo : ITaskInputInfo
 {
-    public TaskInputOutputType Type => TaskInputOutputType.User;
+    public TaskInputType Type => TaskInputType.User;
 }
 public class UserTaskOutputInfo : ITaskOutputInfo
 {
-    public TaskInputOutputType Type => TaskInputOutputType.User;
+    public TaskOutputType Type => TaskOutputType.User;
 }

@@ -42,7 +42,7 @@ public class OtherUserWatchingTaskSource : IWatchingTaskSource
 
                             try
                             {
-                                var taskdir = ReceivedTask.FSResultsDirectory(taskid);
+                                var taskdir = ReceivedTask.FSPlacedResultsDirectory(taskid);
                                 ZipFile.CreateFromDirectory(taskdir, zipfile);
 
                                 using var stream = File.OpenRead(zipfile);
