@@ -20,13 +20,6 @@ public class FFMpegSpeed
 }
 public abstract class MediaEditInfo
 {
-    protected static readonly NumberFormatInfo NumberFormat = new()
-    {
-        NumberDecimalDigits = 2,
-        NumberDecimalSeparator = ".",
-        NumberGroupSeparator = string.Empty,
-    };
-
     public FFMpegCrop? Crop;
 
     [Default(false)]
@@ -54,24 +47,6 @@ public abstract class MediaEditInfo
     [JsonProperty("ro")]
     [Default(0), Ranged(-Math.PI * 2, Math.PI * 2)]
     public double? RotationRadians;
-
-
-    public virtual void ConstructFFMpegArguments(FFMpegTasks.FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate)
-    {
-        if (Crop is not null) args.VideoFilters.Add($"crop={Crop.W.ToString(NumberFormat)}:{Crop.H.ToString(NumberFormat)}:{Crop.X.ToString(NumberFormat)}:{Crop.Y.ToString(NumberFormat)}");
-
-        if (Hflip == true) args.VideoFilters.Add("hflip");
-        if (Vflip == true) args.VideoFilters.Add("vflip");
-        if (RotationRadians is not null) args.VideoFilters.Add($"rotate={RotationRadians.Value.ToString(NumberFormat)}");
-
-        var eq = new List<string>();
-        if (Brightness is not null) eq.Add($"brightness={Brightness.Value.ToString(NumberFormat)}");
-        if (Saturation is not null) eq.Add($"saturation={Saturation.Value.ToString(NumberFormat)}");
-        if (Contrast is not null) eq.Add($"contrast={Contrast.Value.ToString(NumberFormat)}");
-        if (Gamma is not null) eq.Add($"gamma={Gamma.Value.ToString(NumberFormat)}");
-
-        if (eq.Count != 0) args.VideoFilters.Add($"eq={string.Join(':', eq)}");
-    }
 }
 public class EditVideoInfo : MediaEditInfo
 {
@@ -84,24 +59,6 @@ public class EditVideoInfo : MediaEditInfo
 
     [JsonProperty("endFrame")]
     public double? EndFrame;
-
-    public override void ConstructFFMpegArguments(FFMpegTasks.FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate)
-    {
-        base.ConstructFFMpegArguments(ffprobe, args, ref rate);
-
-        if (Speed is not null)
-        {
-            rate = Speed.Speed;
-            args.VideoFilters.Add($"setpts={(1d / Speed.Speed).ToString(NumberFormat)}*PTS");
-            args.AudioFilers.Add($"atempo={Speed.Speed.ToString(NumberFormat)}");
-
-            var fps = ffprobe.VideoStream.FrameRate;
-            args.Args.Add("-r", Math.Max(fps, (fps * Speed.Speed)).ToString(NumberFormat));
-            if (Speed.Interpolated) args.VideoFilters.Add($"minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps={Math.Max(fps, (fps * Speed.Speed)).ToString(NumberFormat)}'");
-        }
-
-        if (EndFrame is not null && StartFrame is not null) args.VideoFilters.Add($"trim=start_frame={StartFrame.Value.ToString(NumberFormat)}:end_frame={EndFrame.Value.ToString(NumberFormat)}");
-    }
 }
 public class EditRasterInfo : MediaEditInfo { }
 
@@ -127,6 +84,13 @@ public static class FFMpegTasks
 
     abstract class FFMpegAction<T> : InputOutputPluginAction<T>
     {
+        protected static readonly NumberFormatInfo NumberFormat = new()
+        {
+            NumberDecimalDigits = 2,
+            NumberDecimalSeparator = ".",
+            NumberGroupSeparator = string.Empty,
+        };
+
         public override PluginType Type => PluginType.FFmpeg;
 
         protected sealed override async Task ExecuteImpl(ReceivedTask task, T data)
@@ -206,21 +170,56 @@ public static class FFMpegTasks
 
         protected abstract void ConstructFFMpegArguments(T data, FFMpegTasks.FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate);
     }
+
     abstract class FFMpegMediaEditAction<T> : FFMpegAction<T> where T : MediaEditInfo
     {
-        protected override void ConstructFFMpegArguments(T data, FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate) =>
-            data.ConstructFFMpegArguments(ffprobe, args, ref rate);
+        protected override void ConstructFFMpegArguments(T data, FFMpegTasks.FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate)
+        {
+            if (data.Crop is not null) args.VideoFilters.Add($"crop={data.Crop.W.ToString(NumberFormat)}:{data.Crop.H.ToString(NumberFormat)}:{data.Crop.X.ToString(NumberFormat)}:{data.Crop.Y.ToString(NumberFormat)}");
+
+            if (data.Hflip == true) args.VideoFilters.Add("hflip");
+            if (data.Vflip == true) args.VideoFilters.Add("vflip");
+            if (data.RotationRadians is not null) args.VideoFilters.Add($"rotate={data.RotationRadians.Value.ToString(NumberFormat)}");
+
+            var eq = new List<string>();
+            if (data.Brightness is not null) eq.Add($"brightness={data.Brightness.Value.ToString(NumberFormat)}");
+            if (data.Saturation is not null) eq.Add($"saturation={data.Saturation.Value.ToString(NumberFormat)}");
+            if (data.Contrast is not null) eq.Add($"contrast={data.Contrast.Value.ToString(NumberFormat)}");
+            if (data.Gamma is not null) eq.Add($"gamma={data.Gamma.Value.ToString(NumberFormat)}");
+
+            if (eq.Count != 0) args.VideoFilters.Add($"eq={string.Join(':', eq)}");
+        }
+
     }
     class FFMpegEditVideo : FFMpegMediaEditAction<EditVideoInfo>
     {
         public override string Name => "EditVideo";
         public override FileFormat InputFileFormat => FileFormat.Mov;
+
+        protected override void ConstructFFMpegArguments(EditVideoInfo data, FFMpegTasks.FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate)
+        {
+            base.ConstructFFMpegArguments(data, ffprobe, args, ref rate);
+
+            if (data.Speed is not null)
+            {
+                rate = data.Speed.Speed;
+                args.VideoFilters.Add($"setpts={(1d / data.Speed.Speed).ToString(NumberFormat)}*PTS");
+                args.AudioFilers.Add($"atempo={data.Speed.Speed.ToString(NumberFormat)}");
+
+                var fps = ffprobe.VideoStream.FrameRate;
+                args.Args.Add("-r", Math.Max(fps, (fps * data.Speed.Speed)).ToString(NumberFormat));
+                if (data.Speed.Interpolated) args.VideoFilters.Add($"minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps={Math.Max(fps, (fps * data.Speed.Speed)).ToString(NumberFormat)}'");
+            }
+
+            if (data.EndFrame is not null && data.StartFrame is not null) args.VideoFilters.Add($"trim=start_frame={data.StartFrame.Value.ToString(NumberFormat)}:end_frame={data.EndFrame.Value.ToString(NumberFormat)}");
+        }
     }
     class FFMpegEditRaster : FFMpegMediaEditAction<EditRasterInfo>
     {
         public override string Name => "EditRaster";
         public override FileFormat InputFileFormat => FileFormat.Jpeg;
     }
+
     class FFMpegQSPreview : FFMpegAction<FFMpegQSPreviewInfo>
     {
         public override string Name => "QSPreview";
