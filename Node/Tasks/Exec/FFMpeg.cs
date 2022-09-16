@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
 using Newtonsoft.Json;
@@ -47,6 +48,10 @@ public abstract class MediaEditInfo
     [JsonProperty("ro")]
     [Default(0), Ranged(-Math.PI * 2, Math.PI * 2)]
     public double? RotationRadians;
+
+    [JsonProperty("wat")]
+    [Default("qs_watermark.png")]
+    public string? Watermark;
 }
 public class EditVideoInfo : MediaEditInfo
 {
@@ -62,19 +67,32 @@ public class EditVideoInfo : MediaEditInfo
 }
 public class EditRasterInfo : MediaEditInfo { }
 
-public class FFMpegQSPreviewInfo { }
-
-public readonly struct FFMpegArgsHolder
+public class FFMpegArgsHolder
 {
-    public readonly ArgList Args;
-    public readonly List<string> VideoFilters, AudioFilers, Filtergraph;
+    public readonly FFMpegTasks.FFProbe.FFProbeInfo? FFProbe;
+    public double Rate = 1;
 
-    public FFMpegArgsHolder(ArgList args, List<string> videoFilters, List<string> audioFilers, List<string> filtergraph)
+    public readonly ArgList Args = new();
+    public readonly OrderList<string> AudioFilers = new();
+    public readonly OrderList<string> Filtergraph = new();
+
+    public FFMpegArgsHolder(FFMpegTasks.FFProbe.FFProbeInfo? ffprobe) => FFProbe = ffprobe;
+
+
+
+    public class OrderList<T> : IEnumerable<T>
     {
-        Args = args;
-        VideoFilters = videoFilters;
-        AudioFilers = audioFilers;
-        Filtergraph = filtergraph;
+        public int Count => Items.Count + ItemsLast.Count;
+
+        readonly List<T> Items = new();
+        readonly List<T> ItemsLast = new();
+
+        public void AddFirst(T item) => Items.Insert(0, item);
+        public void Add(T item) => Items.Add(item);
+        public void AddLast(T item) => ItemsLast.Add(item);
+
+        public IEnumerator<T> GetEnumerator() => Items.Concat(ItemsLast).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }
 public static class FFMpegTasks
@@ -104,7 +122,7 @@ public static class FFMpegTasks
             var exepath = task.GetPlugin().GetInstance().Path;
 
             var rate = 1d;
-            var args = getArgs(ref rate);
+            var args = GetFFMpegArgs(inputfile, outputfile, task, data, new FFMpegArgsHolder(ffprobe));
 
             var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
             task.LogInfo($"{inputfile} duration: {duration} x{rate}");
@@ -125,127 +143,148 @@ public static class FFMpegTasks
                 task.Progress = Math.Clamp(time / duration, 0, 1);
                 NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
             }
-            IEnumerable<string> getArgs(ref double rate)
-            {
-                var argsarr = new ArgList();
-                var videofilters = new List<string>();
-                var audiofilters = new List<string>();
-                var filtergraph = new List<string>();
-
-                ConstructFFMpegArguments(data, ffprobe, new(argsarr, videofilters, audiofilters, filtergraph), ref rate);
-                if (videofilters.Count != 0 && filtergraph.Count != 0)
-                    throw new Exception("Video filters and filtergraph could not be used together");
-
-                return new ArgList()
-                {
-                    // hide useless info
-                    "-hide_banner",
-
-                    // enable hardware acceleration if video
-                    (data is EditVideoInfo ? new[] { "-hwaccel", "auto" } : null ),
-
-                    // force rewrite output file if exists
-                    "-y",
-                    // input file
-                    "-i", inputfile,
-
-                    // arguments
-                    argsarr,
-
-                    // video filters
-                    iffilter(() => videofilters.Count == 0, "-vf", videofilters),
-                    // audio filters
-                    iffilter(() => audiofilters.Count == 0, "-af", audiofilters),
-                    // complex filters
-                    iffilter(() => filtergraph.Count == 0, "-filter_complex", audiofilters),
-
-                    // output path
-                    outputfile,
-                };
-
-
-                static string[]? iffilter(Func<bool> action, string arg, IEnumerable<string> filters) => action() ? new[] { arg, string.Join(',', filters) } : null;
-            }
         }
 
-        protected abstract void ConstructFFMpegArguments(T data, FFMpegTasks.FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate);
+        protected IEnumerable<string> GetFFMpegArgs(string inputfile, string outputfile, ReceivedTask task, T data, FFMpegArgsHolder argholder)
+        {
+            ConstructFFMpegArguments(task, data, argholder);
+
+            var argsarr = argholder.Args;
+            var audiofilters = argholder.AudioFilers;
+            var filtergraph = argholder.Filtergraph;
+
+            return new ArgList()
+            {
+                // hide useless info
+                "-hide_banner",
+
+                // enable hardware acceleration if video
+                (data is EditVideoInfo ? new[] { "-hwaccel", "auto" } : null ),
+
+                // force rewrite output file if exists
+                "-y",
+                // input file
+                "-i", inputfile,
+
+                // arguments
+                argsarr,
+
+                // video filters
+                filtergraph.Count == 0 ? null : new[] { "-filter_complex", string.Join(',', audiofilters) },
+
+                // audio filters
+                audiofilters.Count == 0 ? null : new[] { "-af", string.Join(',', audiofilters) },
+
+                // output path
+                outputfile,
+            };
+        }
+
+
+        protected abstract void ConstructFFMpegArguments(ReceivedTask task, T data, in FFMpegArgsHolder args);
     }
 
     abstract class FFMpegMediaEditAction<T> : FFMpegAction<T> where T : MediaEditInfo
     {
-        protected override void ConstructFFMpegArguments(T data, FFMpegTasks.FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate)
+        protected override void ConstructFFMpegArguments(ReceivedTask task, T data, in FFMpegArgsHolder args)
         {
-            if (data.Crop is not null) args.VideoFilters.Add($"crop={data.Crop.W.ToString(NumberFormat)}:{data.Crop.H.ToString(NumberFormat)}:{data.Crop.X.ToString(NumberFormat)}:{data.Crop.Y.ToString(NumberFormat)}");
-
-            if (data.Hflip == true) args.VideoFilters.Add("hflip");
-            if (data.Vflip == true) args.VideoFilters.Add("vflip");
-            if (data.RotationRadians is not null) args.VideoFilters.Add($"rotate={data.RotationRadians.Value.ToString(NumberFormat)}");
+            var filters = args.Filtergraph;
 
             var eq = new List<string>();
             if (data.Brightness is not null) eq.Add($"brightness={data.Brightness.Value.ToString(NumberFormat)}");
             if (data.Saturation is not null) eq.Add($"saturation={data.Saturation.Value.ToString(NumberFormat)}");
             if (data.Contrast is not null) eq.Add($"contrast={data.Contrast.Value.ToString(NumberFormat)}");
             if (data.Gamma is not null) eq.Add($"gamma={data.Gamma.Value.ToString(NumberFormat)}");
+            if (eq.Count != 0) filters.Add($"eq={string.Join(':', eq)}");
 
-            if (eq.Count != 0) args.VideoFilters.Add($"eq={string.Join(':', eq)}");
+
+            if (data.Hflip == true) filters.Add("hflip");
+            if (data.Vflip == true) filters.Add("vflip");
+            if (data.RotationRadians is not null) filters.Add($"rotate={data.RotationRadians.Value.ToString(NumberFormat)}");
+
+            if (data.Crop is not null) filters.AddFirst($"crop={data.Crop.W.ToString(NumberFormat)}:{data.Crop.H.ToString(NumberFormat)}:{data.Crop.X.ToString(NumberFormat)}:{data.Crop.Y.ToString(NumberFormat)}");
+
+            if (data.Watermark is not null)
+            {
+                var watermarkFile = Path.GetFullPath(Path.Combine("assets", data.Watermark));
+                if (!watermarkFile.StartsWith(Path.GetFullPath("assets"), StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException($"Invalid watermark file path: {watermarkFile}");
+
+                watermarkFile = createWatermark().GetAwaiter().GetResult();
+                async Task<string> createWatermark()
+                {
+                    var graph = "";
+
+                    // repeat watermark several times vertically and horizontally
+                    graph += "[0][0] hstack, split, vstack," + string.Join(string.Empty, Enumerable.Repeat("split, hstack, split, vstack,", 2));
+
+                    // rotate watermark -20 deg
+                    graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih),";
+
+                    var exepath = task.GetPlugin().GetInstance().Path;
+                    var tempf = Path.GetTempFileName();
+
+                    var argholder = new FFMpegArgsHolder(null);
+                    argholder.Filtergraph.Add("-filter_complex");
+                    argholder.Filtergraph.Add(graph);
+
+                    var ffargs = GetFFMpegArgs(watermarkFile, tempf, task, data, argholder);
+                    await ExecuteProcess(exepath, ffargs, true, delegate { }, task);
+
+                    return tempf;
+                }
+
+
+                args.Args.Add("-i", watermarkFile);
+                var graph = "";
+
+                // repeat watermark several times vertically and horizontally
+                graph += "[1][1] hstack, split, vstack," + string.Join(string.Empty, Enumerable.Repeat("split, hstack, split, vstack,", 2));
+
+                // rotate watermark -20 deg
+                graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih),";
+
+                // add watermark onto the base video/image
+                graph += "[0] overlay= (main_w-overlay_w)/2:(main_h-overlay_h)/2:format=auto,";
+
+                // scale everything to 640px by width
+                graph += "scale= w=in_w/in_h*640:h=640,";
+
+                // set the color format
+                graph += "format= yuv420p";
+
+                args.Filtergraph.AddLast(graph);
+            }
         }
-
     }
     class FFMpegEditVideo : FFMpegMediaEditAction<EditVideoInfo>
     {
         public override string Name => "EditVideo";
         public override FileFormat InputFileFormat => FileFormat.Mov;
 
-        protected override void ConstructFFMpegArguments(EditVideoInfo data, FFMpegTasks.FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate)
+        protected override void ConstructFFMpegArguments(ReceivedTask task, EditVideoInfo data, in FFMpegArgsHolder args)
         {
-            base.ConstructFFMpegArguments(data, ffprobe, args, ref rate);
+            var filters = args.Filtergraph;
+            base.ConstructFFMpegArguments(task, data, args);
 
             if (data.Speed is not null)
             {
-                rate = data.Speed.Speed;
-                args.VideoFilters.Add($"setpts={(1d / data.Speed.Speed).ToString(NumberFormat)}*PTS");
+                args.Rate = data.Speed.Speed;
+                filters.Add($"setpts={(1d / data.Speed.Speed).ToString(NumberFormat)}*PTS");
                 args.AudioFilers.Add($"atempo={data.Speed.Speed.ToString(NumberFormat)}");
 
-                var fps = ffprobe.VideoStream.FrameRate;
+                var fps = args.FFProbe?.VideoStream.FrameRate ?? 60;
                 args.Args.Add("-r", Math.Max(fps, (fps * data.Speed.Speed)).ToString(NumberFormat));
-                if (data.Speed.Interpolated) args.VideoFilters.Add($"minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps={Math.Max(fps, (fps * data.Speed.Speed)).ToString(NumberFormat)}'");
+                if (data.Speed.Interpolated) filters.Add($"minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps={Math.Max(fps, (fps * data.Speed.Speed)).ToString(NumberFormat)}'");
             }
 
-            if (data.EndFrame is not null && data.StartFrame is not null) args.VideoFilters.Add($"trim=start_frame={data.StartFrame.Value.ToString(NumberFormat)}:end_frame={data.EndFrame.Value.ToString(NumberFormat)}");
+            if (data.EndFrame is not null && data.StartFrame is not null) filters.AddFirst($"trim=start_frame={data.StartFrame.Value.ToString(NumberFormat)}:end_frame={data.EndFrame.Value.ToString(NumberFormat)}");
         }
     }
     class FFMpegEditRaster : FFMpegMediaEditAction<EditRasterInfo>
     {
         public override string Name => "EditRaster";
         public override FileFormat InputFileFormat => FileFormat.Jpeg;
-    }
-
-    class FFMpegQSPreview : FFMpegAction<FFMpegQSPreviewInfo>
-    {
-        public override string Name => "QSPreview";
-        public override FileFormat InputFileFormat => FileFormat.Jpeg;
-
-        protected override void ConstructFFMpegArguments(FFMpegQSPreviewInfo data, FFProbe.FFProbeInfo ffprobe, in FFMpegArgsHolder args, ref double rate)
-        {
-            var graph = "";
-
-            // repeat watermark several times vertically and horizontally
-            graph += "[1][1] hstack, split, vstack," + string.Join(string.Empty, Enumerable.Repeat("split, hstack, split, vstack,", 2));
-
-            // rotate watermark -20 deg
-            graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih),";
-
-            // add watermark onto the base video/image
-            graph += "[0] overlay= (main_w-overlay_w)/2:(main_h-overlay_h)/2:format=auto,";
-
-            // scale everything to 640px by width
-            graph += "scale= w=in_w/in_h*640:h=640,";
-
-            // set the color format
-            graph += "format= yuv420p";
-
-            args.Filtergraph.Add(graph);
-        }
     }
 
 
