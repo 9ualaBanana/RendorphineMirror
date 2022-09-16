@@ -8,7 +8,7 @@ nupkg/
 **/default.profraw
 .directory
 cache/
-assets/
+assets/*.version
 /plugins/
 /torrents/
 
