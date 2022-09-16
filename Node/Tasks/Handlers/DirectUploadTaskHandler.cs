@@ -81,7 +81,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         var info = (DirectUploadTaskOutputInfo) task.Output;
         using var result = await Api.Get($"http://{info.Host}:{info.Port}/rphtaskexec/downloadoutput?taskid={task.Id}");
 
-        var zipfile = task.GetTempFileName();
+        var zipfile = task.GetTempFileName("zip");
         using var _ = new FuncDispose(() => File.Delete(zipfile));
         using (var zipstream = File.OpenWrite(zipfile))
             await result.Content.CopyToAsync(zipstream);

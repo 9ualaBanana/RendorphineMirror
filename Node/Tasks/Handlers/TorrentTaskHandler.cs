@@ -13,8 +13,6 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (TorrentTaskInputInfo) task.Input;
-        info.Link.ThrowIfNull();
-
         if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
         {
             task.SetInputFile(info.Path);
@@ -22,6 +20,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
         }
 
 
+        info.Link.ThrowIfNull();
         var dir = task.FSInputDirectory();
         var manager = await TorrentClient.StartMagnet(MagnetLink.FromUri(new Uri(info.Link)), dir);
 

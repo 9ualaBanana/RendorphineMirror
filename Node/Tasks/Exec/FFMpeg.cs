@@ -122,7 +122,10 @@ public static class FFMpegTasks
             var exepath = task.GetPlugin().GetInstance().Path;
 
             var rate = 1d;
-            var args = GetFFMpegArgs(inputfile, outputfile, task, data, new FFMpegArgsHolder(ffprobe));
+
+            var argholder = new FFMpegArgsHolder(ffprobe);
+            ConstructFFMpegArguments(task, data, argholder);
+            var args = GetFFMpegArgs(inputfile, outputfile, task, data, argholder);
 
             var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
             task.LogInfo($"{inputfile} duration: {duration} x{rate}");
@@ -147,8 +150,6 @@ public static class FFMpegTasks
 
         protected IEnumerable<string> GetFFMpegArgs(string inputfile, string outputfile, ReceivedTask task, T data, FFMpegArgsHolder argholder)
         {
-            ConstructFFMpegArguments(task, data, argholder);
-
             var argsarr = argholder.Args;
             var audiofilters = argholder.AudioFilers;
             var filtergraph = argholder.Filtergraph;
@@ -159,7 +160,7 @@ public static class FFMpegTasks
                 "-hide_banner",
 
                 // enable hardware acceleration if video
-                (data is EditVideoInfo ? new[] { "-hwaccel", "auto" } : null ),
+                (data is EditVideoInfo ? new[] { "-hwaccel", "auto", "-threads", "1" } : null ),
 
                 // force rewrite output file if exists
                 "-y",
@@ -170,7 +171,7 @@ public static class FFMpegTasks
                 argsarr,
 
                 // video filters
-                filtergraph.Count == 0 ? null : new[] { "-filter_complex", string.Join(',', audiofilters) },
+                filtergraph.Count == 0 ? null : new[] { "-filter_complex", string.Join(',', filtergraph) },
 
                 // audio filters
                 audiofilters.Count == 0 ? null : new[] { "-af", string.Join(',', audiofilters) },
@@ -219,13 +220,12 @@ public static class FFMpegTasks
                     graph += "[0][0] hstack, split, vstack," + string.Join(string.Empty, Enumerable.Repeat("split, hstack, split, vstack,", 2));
 
                     // rotate watermark -20 deg
-                    graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih),";
+                    graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih), format= rgba";
 
                     var exepath = task.GetPlugin().GetInstance().Path;
-                    var tempf = Path.GetTempFileName();
+                    var tempf = task.GetTempFileName(Path.GetExtension(watermarkFile));
 
                     var argholder = new FFMpegArgsHolder(null);
-                    argholder.Filtergraph.Add("-filter_complex");
                     argholder.Filtergraph.Add(graph);
 
                     var ffargs = GetFFMpegArgs(watermarkFile, tempf, task, data, argholder);
@@ -238,17 +238,11 @@ public static class FFMpegTasks
                 args.Args.Add("-i", watermarkFile);
                 var graph = "";
 
-                // repeat watermark several times vertically and horizontally
-                graph += "[1][1] hstack, split, vstack," + string.Join(string.Empty, Enumerable.Repeat("split, hstack, split, vstack,", 2));
-
-                // rotate watermark -20 deg
-                graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih),";
+                // scale video to 640px by width
+                graph += "scale= w=mod(in_w/in_h*640\\,2)+in_w/in_h*640:h=640 [v];";
 
                 // add watermark onto the base video/image
-                graph += "[0] overlay= (main_w-overlay_w)/2:(main_h-overlay_h)/2:format=auto,";
-
-                // scale everything to 640px by width
-                graph += "scale= w=in_w/in_h*640:h=640,";
+                graph += "[v][1] overlay= (main_w-overlay_w)/2:(main_h-overlay_h)/2:format=auto,";
 
                 // set the color format
                 graph += "format= yuv420p";
@@ -278,7 +272,10 @@ public static class FFMpegTasks
                 if (data.Speed.Interpolated) filters.Add($"minterpolate='mi_mode=mci:mc_mode=aobmc:vsbmc=1:fps={Math.Max(fps, (fps * data.Speed.Speed)).ToString(NumberFormat)}'");
             }
 
-            if (data.EndFrame is not null && data.StartFrame is not null) filters.AddFirst($"trim=start_frame={data.StartFrame.Value.ToString(NumberFormat)}:end_frame={data.EndFrame.Value.ToString(NumberFormat)}");
+            var trim = new List<string>();
+            if (data.StartFrame is not null) trim.Add($"start_frame={data.StartFrame.Value.ToString(NumberFormat)}");
+            if (data.EndFrame is not null) trim.Add($"end_frame={data.EndFrame.Value.ToString(NumberFormat)}");
+            if (trim.Count != 0) filters.AddFirst($"trim={string.Join(';', trim)}");
         }
     }
     class FFMpegEditRaster : FFMpegMediaEditAction<EditRasterInfo>
