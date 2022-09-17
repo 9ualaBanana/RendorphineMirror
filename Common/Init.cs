@@ -22,6 +22,7 @@ namespace Common
         public static readonly string TaskFilesDirectory = Path.Combine(ConfigDirectory, "tasks");
         public static readonly string PlacedTaskFilesDirectory = Path.Combine(ConfigDirectory, "ptasks");
         public static readonly string WatchingTaskFilesDirectory = Path.Combine(ConfigDirectory, "watchingtasks");
+        static readonly string RuntimeCacheFilesDirectory = Path.Combine(ConfigDirectory, "cache");
         public static readonly string Version = GetVersion();
 
         public static void Initialize() { }
@@ -37,6 +38,9 @@ namespace Common
             IsDebug = Debugger.IsAttached || DebugFileExists;
 
             Directory.CreateDirectory(ConfigDirectory);
+            if (Directory.Exists(RuntimeCacheFilesDirectory))
+                Directory.Delete(RuntimeCacheFilesDirectory, true);
+
             Logging.Configure(IsDebug);
 
             _logger.Info($"Starting {Environment.ProcessId} {Process.GetCurrentProcess().ProcessName}, {Path.GetFileName(Environment.ProcessPath)} {Version}"
@@ -97,6 +101,16 @@ namespace Common
                 _logger.Error("Error getting version: {Exception}", ex);
                 return "UNKNOWN";
             }
+        }
+
+        public static string RuntimeCacheDirectory(string? subdir = null)
+        {
+            var dir = RuntimeCacheFilesDirectory;
+            if (subdir is not null)
+                dir = Path.Combine(dir, subdir);
+
+            Directory.CreateDirectory(dir);
+            return dir;
         }
     }
 }

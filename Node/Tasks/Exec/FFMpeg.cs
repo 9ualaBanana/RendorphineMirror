@@ -211,28 +211,7 @@ public static class FFMpegTasks
                 if (!watermarkFile.StartsWith(Path.GetFullPath("assets"), StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException($"Invalid watermark file path: {watermarkFile}");
 
-                watermarkFile = createWatermark().GetAwaiter().GetResult();
-                async Task<string> createWatermark()
-                {
-                    var graph = "";
-
-                    // repeat watermark several times vertically and horizontally
-                    graph += "[0][0] hstack, split, vstack," + string.Join(string.Empty, Enumerable.Repeat("split, hstack, split, vstack,", 2));
-
-                    // rotate watermark -20 deg
-                    graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih), format= rgba";
-
-                    var exepath = task.GetPlugin().GetInstance().Path;
-                    var tempf = task.GetTempFileName(Path.GetExtension(watermarkFile));
-
-                    var argholder = new FFMpegArgsHolder(null);
-                    argholder.Filtergraph.Add(graph);
-
-                    var ffargs = GetFFMpegArgs(watermarkFile, tempf, task, data, argholder);
-                    await ExecuteProcess(exepath, ffargs, true, delegate { }, task);
-
-                    return tempf;
-                }
+                watermarkFile = createRepeatedWatermark().GetAwaiter().GetResult();
 
 
                 args.Args.Add("-i", watermarkFile);
@@ -248,6 +227,30 @@ public static class FFMpegTasks
                 graph += "format= yuv420p";
 
                 args.Filtergraph.AddLast(graph);
+
+
+                async Task<string> createRepeatedWatermark()
+                {
+                    var repeatedWatermarkFile = Path.Combine(Init.RuntimeCacheDirectory("ffmpeg"), Path.GetFileName(watermarkFile));
+                    if (File.Exists(repeatedWatermarkFile)) return repeatedWatermarkFile;
+
+
+                    var graph = "";
+
+                    // repeat watermark several times vertically and horizontally
+                    graph += "[0][0] hstack, split, vstack," + string.Join(string.Empty, Enumerable.Repeat("split, hstack, split, vstack,", 2));
+
+                    // rotate watermark -20 deg
+                    graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih), format= rgba";
+
+                    var argholder = new FFMpegArgsHolder(null);
+                    argholder.Filtergraph.Add(graph);
+
+                    var ffargs = GetFFMpegArgs(watermarkFile, repeatedWatermarkFile, task, data, argholder);
+                    await ExecuteProcess(task.GetPlugin().GetInstance().Path, ffargs, true, delegate { }, task);
+
+                    return repeatedWatermarkFile;
+                }
             }
         }
     }
