@@ -46,6 +46,21 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
             try
             {
+                var serverr = await task.GetTaskStateAsync();
+                if (!serverr)
+                {
+                    await Task.Delay(10_000);
+                    continue;
+                }
+
+                var server = serverr.Value.Server;
+                if (server is null)
+                {
+                    await Task.Delay(10_000);
+                    continue;
+                }
+
+
                 var files = File.Exists(info.Path) ? new[] { info.Path } : Directory.GetFiles(info.Path);
                 foreach (var file in files)
                 {
@@ -56,7 +71,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
                         { new StringContent(file == files[^1] ? "1" : "0"), "last" },
                     };
 
-                    var post = await Api.ApiPost($"http://{info.Host}:{info.Port}/rphtaskexec/uploadinput", $"Uploading input files for task {task.Id}", content);
+                    var post = await Api.ApiPost($"{server.Host}/rphtaskexec/uploadinput", $"Uploading input files for task {task.Id}", content);
                     post.ThrowIfError();
 
                     break;
@@ -78,8 +93,10 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
             return;
 
+        var server = (await task.GetTaskStateAsync()).ThrowIfError().Server.ThrowIfNull("Could not find server in /getmytaskstate request");
+
         var info = (DirectUploadTaskOutputInfo) task.Output;
-        using var result = await Api.Get($"http://{info.Host}:{info.Port}/rphtaskexec/downloadoutput?taskid={task.Id}");
+        using var result = await Api.Get($"{server.Host}/rphtaskexec/downloadoutput?taskid={task.Id}");
 
         var zipfile = task.GetTempFileName("zip");
         using var _ = new FuncDispose(() => File.Delete(zipfile));

@@ -21,7 +21,9 @@ public class DirectUploadListener : MultipartListenerBase
         using (var resultfile = File.OpenWrite(filename))
             await file.Body.CopyToAsync(resultfile);
 
-        ((DirectDownloadTaskInputInfo) task.Input).Downloaded = true;
+        if ((await (sections.GetValueOrDefault("last")?.ReadAsStringAsync() ?? Task.FromResult("0"))) == "1")
+            ((DirectDownloadTaskInputInfo) task.Input).Downloaded = true;
+
         return await WriteSuccess(context.Response);
     }
 }
