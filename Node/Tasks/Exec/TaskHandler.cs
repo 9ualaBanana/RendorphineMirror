@@ -144,6 +144,14 @@ public static class TaskHandler
                 NodeSettings.QueuedTasks.Bindable.Remove(task);
                 return;
             }
+            catch (NodeTaskCanceledException ex)
+            {
+                task.LogInfo($"Task requested to be canceled on attempt ({attempt + 1}/{maxattempts}): {ex.Message}");
+
+                var set = await task.ChangeStateAsync(TaskState.Canceled);
+                if (set) task.LogInfo("Updated server task state");
+                else task.LogWarn("Could not update task state on the server though");
+            }
             catch (Exception ex)
             {
                 task.LogErr(ex);
