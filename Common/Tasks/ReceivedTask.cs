@@ -15,6 +15,7 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
 
     public ITaskInputInfo Input => Info.Input;
     public ITaskOutputInfo Output => Info.Output;
+    public bool IsFromSameNode => ExecuteLocally || Info.LaunchPolicy == TaskPolicy.SameNode || Info.OriginGuid == Settings.Guid;
 
     public static string GenerateLocalId() => "local_" + Guid.NewGuid();
 

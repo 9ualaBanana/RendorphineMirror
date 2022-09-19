@@ -11,7 +11,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
     {
         var info = (DirectDownloadTaskInputInfo) task.Input;
 
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
+        if (task.IsFromSameNode)
         {
             task.SetInput(info.Path);
             info.Downloaded = true;
@@ -23,7 +23,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         // TODO: maybe move instead of copy? but the gallery..
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
+        if (task.IsFromSameNode)
             Extensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
 
         return ValueTask.CompletedTask;
@@ -31,11 +31,8 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
     public async ValueTask InitializePlacedTaskAsync(DbTaskFullState task)
     {
-        if (task.State > TaskState.Input)
-            return;
-
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
-            return;
+        if (task.State > TaskState.Input) return;
+        if (task.IsFromSameNode) return;
 
         var info = (DirectDownloadTaskInputInfo) task.Input;
 
@@ -90,8 +87,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
     public async ValueTask OnPlacedTaskCompleted(DbTaskFullState task)
     {
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
-            return;
+        if (task.IsFromSameNode) return;
 
         var server = (await task.GetTaskStateAsync()).ThrowIfError().Server.ThrowIfNull("Could not find server in /getmytaskstate request");
 

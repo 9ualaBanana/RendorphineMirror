@@ -13,7 +13,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (TorrentTaskInputInfo) task.Input;
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
+        if (task.IsFromSameNode)
         {
             task.SetInputFile(info.Path);
             return;
@@ -30,7 +30,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
+        if (task.IsFromSameNode)
         {
             Extensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
             return;
@@ -85,8 +85,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public async ValueTask OnPlacedTaskCompleted(DbTaskFullState task)
     {
         // if task is local, downloading already handled by UploadResult
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
-            return;
+        if (task.IsFromSameNode) return;
 
         var output = (TorrentTaskOutputInfo) task.Output;
         output.Link.ThrowIfNull();
