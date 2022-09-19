@@ -25,7 +25,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
         var manager = await TorrentClient.StartMagnet(MagnetLink.FromUri(new Uri(info.Link)), dir);
 
         await TorrentClient.AddTrackers(manager, true);
-        await TorrentClient.WaitForCompletion(manager, cancellationToken);
+        await TorrentClient.WaitForCompletion(manager, new(cancellationToken, TimeSpan.FromMinutes(5)));
     }
 
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
@@ -94,7 +94,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
         var manager = await TorrentClient.StartMagnet(output.Link, task.FSPlacedResultsDirectory());
 
         await TorrentClient.AddTrackers(manager, true);
-        await TorrentClient.WaitForCompletion(manager);
+        await TorrentClient.WaitForCompletion(manager, TimeSpan.FromMinutes(5));
 
 
         if (InputTorrents.Remove(task.Id, out var managerup))

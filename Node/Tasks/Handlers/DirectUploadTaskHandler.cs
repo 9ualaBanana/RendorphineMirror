@@ -17,8 +17,13 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
             info.Downloaded = true;
         }
 
+        var token = new StuckCancellationToken(cancellationToken, TimeSpan.FromHours(1));
         while (!info.Downloaded)
+        {
+            token.ThrowIfCancellationRequested();
+            token.ThrowIfStuck($"Did not receive input files");
             await Task.Delay(2000);
+        }
     }
     public ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default)
     {

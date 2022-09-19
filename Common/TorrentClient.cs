@@ -122,16 +122,20 @@ namespace Common
             return manager;
         }
 
-        public static async Task WaitForCompletion(TorrentManager manager, CancellationToken token = default)
+        public static async Task WaitForCompletion(TorrentManager manager, StuckCancellationToken token)
         {
             _logger.Info($"Waiting for download of {manager.InfoHash.ToHex()}");
 
+            var progress = 0d;
             while (true)
             {
-                if (token.IsCancellationRequested) return;
+                if (manager.Complete) break;
+
+                token.ThrowIfCancellationRequested();
+                token.CheckStuck(ref progress, manager.Progress, $"Torrent task load was stuck at {manager.Progress}% ");
+                progress = manager.Progress;
 
                 await Task.Delay(2000);
-                if (manager.Complete) break;
             }
 
             await manager.StopAsync(TimeSpan.FromSeconds(10));
