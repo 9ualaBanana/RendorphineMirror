@@ -22,36 +22,36 @@ public class TelegramImageHandler : TelegramUpdateHandler
         await Bot.TrySendMessageAsync(
             update.Message!.Chat.Id,
             "*Choose how to process the image*",
-            replyMarkup: CreateReplyMarkupForLowResolutionImage(TelegramImage.From(update.Message)));
+            replyMarkup: CreateReplyMarkupForLowResolutionImage(TelegramMediaFile.From(update.Message)));
     }
 
-    InlineKeyboardMarkup ReplyMarkupFor(TelegramImage image) => image.Size switch
+    InlineKeyboardMarkup ReplyMarkupFor(TelegramMediaFile mediaFile) => mediaFile.Size switch
     {
-        < 20_000_000 => CreateReplyMarkupForLowResolutionImage(image),
-        _ => CreateReplyMarkupForHighResolutionImage(image)
+        < 20_000_000 => CreateReplyMarkupForLowResolutionImage(mediaFile),
+        _ => CreateReplyMarkupForHighResolutionImage(mediaFile)
     };
 
-    InlineKeyboardMarkup CreateReplyMarkupForLowResolutionImage(TelegramImage image)
+    InlineKeyboardMarkup CreateReplyMarkupForLowResolutionImage(TelegramMediaFile mediaFile)
     {
-        var key = _fileRegistry.Add(image.InputOnlineFile);
+        var key = _fileRegistry.Add(mediaFile);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]
             {
                 InlineKeyboardButton.WithCallbackData(
                     "Upload to M+",
-                    ImageProcessingCallbackData.Serialize(ImageProcessingQueryFlags.Upload, key))
+                    ImageProcessingCallbackData.Serialize(ImageProcessingQueryFlags.UploadImage, key))
             },
             new InlineKeyboardButton[]
             {
                 InlineKeyboardButton.WithCallbackData(
                     "Upscale and upload to M+",
-                    ImageProcessingCallbackData.Serialize(ImageProcessingQueryFlags.Upscale | ImageProcessingQueryFlags.Upload, key))
+                    ImageProcessingCallbackData.Serialize(ImageProcessingQueryFlags.UpscaleImage | ImageProcessingQueryFlags.UploadImage, key))
             }
         });
     }
 
-    InlineKeyboardMarkup CreateReplyMarkupForHighResolutionImage(TelegramImage image)
+    InlineKeyboardMarkup CreateReplyMarkupForHighResolutionImage(TelegramMediaFile mediaFile)
     {
         throw new NotImplementedException();
     }

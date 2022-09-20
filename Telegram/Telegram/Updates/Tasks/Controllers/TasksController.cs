@@ -1,5 +1,4 @@
-﻿using Common;
-using Common.Tasks;
+﻿using Common.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Telegram.Services.Telegram.FileRegistry;
 using Telegram.Telegram.Updates.Tasks.ResultsPreview.Services;
@@ -46,11 +45,13 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet("getinput/{id}")]
-    public ActionResult GetInput([FromRoute] string id, [FromServices] TelegramFileRegistry fileRegistry)
+    public ActionResult GetInput([FromRoute] string id, [FromServices] TelegramFileRegistry fileRegistry, ILogger<TasksController> logger)
     {
-        if (fileRegistry.TryGet(id) is null) return NotFound();
+        var file = fileRegistry.TryGet(id);
+        if (file is null) return NotFound();
 
-        var fileName = Path.ChangeExtension(Path.Combine(_appEnvironment.ContentRootPath, fileRegistry.Path, id), ".jpg");
+        var fileName = Path.ChangeExtension(Path.Combine(_appEnvironment.ContentRootPath, fileRegistry.Path, id), file.Extension);
+
         try { return PhysicalFile(fileName, MimeTypes.GetMimeType(fileName)); }
         catch { return NotFound(); }
     }

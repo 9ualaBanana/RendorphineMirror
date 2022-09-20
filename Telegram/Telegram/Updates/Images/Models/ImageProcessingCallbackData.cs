@@ -1,10 +1,9 @@
-﻿using Telegram.Telegram.Updates;
+﻿namespace Telegram.Telegram.Updates.Images.Models;
 
-namespace Telegram.Telegram.Updates.Images.Models;
-
-public record ImageProcessingCallbackData : TelegramCallbackData<ImageProcessingQueryFlags>
+public record ImageProcessingCallbackData : MediaFileProcessingCallbackData<ImageProcessingQueryFlags>
 {
-    public string FileRegistryKey => Arguments.First();
+    internal override IContentType ContentType => new ImageContentType();
+
 
     public ImageProcessingCallbackData(string callbackData)
         : base(new ImageProcessingCallbackData(ParseEnumValues(callbackData).Aggregate((r, n) => r |= n), ParseArguments(callbackData)))

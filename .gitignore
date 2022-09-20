@@ -39,3 +39,4 @@ msbuild.wrn
 .vs/
 
 BenchmarkDotNet.Artifacts
+Node/assets/1.0.0.0.version

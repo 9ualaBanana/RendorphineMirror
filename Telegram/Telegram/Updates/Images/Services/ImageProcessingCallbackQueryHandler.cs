@@ -3,7 +3,6 @@ using Common.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Services.Telegram.FileRegistry;
-using Transport.Upload;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates.Images.Models;
@@ -12,12 +11,10 @@ using Telegram.Telegram.Updates.Tasks.Services;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
-public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHandler
+public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQueryHandler
 {
     readonly TaskRegistry _taskRegistry;
-    readonly TelegramFileRegistry _fileRegistry;
     readonly string _hostUrl;
-    readonly HttpClient _httpClient;
 
 
     public ImageProcessingCallbackQueryHandler(
@@ -27,33 +24,29 @@ public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHa
         TaskRegistry taskRegistry,
         TelegramFileRegistry fileRegistry,
         IConfiguration configuration,
-        IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator)
+        IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator, fileRegistry, httpClientFactory)
     {
         _taskRegistry = taskRegistry;
-        _fileRegistry = fileRegistry;
         _hostUrl = configuration["Host"];
-        _httpClient = httpClientFactory.CreateClient();
     }
 
+    protected async override Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken) =>
+        await HandleAsync(update, authenticationToken, new ImageProcessingCallbackData(update.CallbackQuery!.Data!));
 
-    protected async override Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken)
+    protected override async Task Process<T>(
+        Update update,
+        ChatAuthenticationToken authenticationToken,
+        MediaFileProcessingCallbackData<T> mediaFileProcessingCallbackData,
+        string mediaFilePath)
     {
         var chatId = update.CallbackQuery!.Message!.Chat.Id;
 
-        var imageCallbackData = new ImageProcessingCallbackData(update.CallbackQuery.Data!);
-
-        var inputOnlineFile = _fileRegistry.TryGet(imageCallbackData.FileRegistryKey);
-        if (inputOnlineFile is null)
-        { await Bot.TrySendMessageAsync(chatId, "Image is expired. Try to send it again."); return; }
-
-        var imagePath = Path.ChangeExtension(Path.Combine(_fileRegistry.Path, imageCallbackData.FileRegistryKey), ".jpg");
-        await TelegramImage.From(inputOnlineFile).Download(imagePath, Bot);
-
-        if (imageCallbackData.Value.HasFlag(ImageProcessingQueryFlags.Upscale) && imageCallbackData.Value.HasFlag(ImageProcessingQueryFlags.Upload))
-            await UpscaleAndUploadToMPlusAsync(chatId, imageCallbackData, authenticationToken);
-        else if (imageCallbackData.Value.HasFlag(ImageProcessingQueryFlags.Upload))
-            await UploadToMPlusAsync(chatId, imagePath, authenticationToken);
+        if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UpscaleImage) && mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
+            await UpscaleAndUploadToMPlusAsync(chatId, (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!, authenticationToken);
+        else if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
+            await UploadToMPlusAsync(chatId, mediaFilePath, authenticationToken);
     }
+
 
     async Task UpscaleAndUploadToMPlusAsync(ChatId chatId, ImageProcessingCallbackData imageCallbackData, ChatAuthenticationToken authenticationToken)
     {
@@ -67,18 +60,8 @@ public class ImageProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHa
                 ), authenticationToken.MPlus.SessionId)).Result;
                 _taskRegistry[taskId] = authenticationToken;
 
-        await Bot.TrySendMessageAsync(chatId, "Resulting image will be sent back to you as soon as it's ready.",
+        await Bot.TrySendMessageAsync(chatId, "Resulting media file will be sent back to you as soon as it's ready.",
             new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
             );
-    }
-
-    async Task UploadToMPlusAsync(ChatId chatId, string imagePath, ChatAuthenticationToken authenticationToken)
-    {
-        await Bot.TrySendMessageAsync(chatId, "Uploading the image to M+...");
-
-        try { await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(imagePath, authenticationToken.MPlus.SessionId), _httpClient); }
-        catch { await Bot.TrySendMessageAsync(chatId, "Error occured trying to upload the image to M+."); return; }
-
-        await Bot.TrySendMessageAsync(chatId, "The image was succesffully uploaded to M+.");
     }
 }

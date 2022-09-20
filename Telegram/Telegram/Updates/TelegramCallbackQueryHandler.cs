@@ -10,6 +10,7 @@ namespace Telegram.Telegram.Updates;
 public class TelegramCallbackQueryHandler : TelegramUpdateHandler
 {
     readonly ImageProcessingCallbackQueryHandler _imageProcessingHandler;
+    readonly VideoProcessingCallbackQueryHandler _videoProcessingHandler;
     readonly TaskCallbackQueryHandler _taskHandler;
 
 
@@ -18,9 +19,11 @@ public class TelegramCallbackQueryHandler : TelegramUpdateHandler
         ILogger<TelegramCallbackQueryHandler> logger,
         TelegramBot bot,
         ImageProcessingCallbackQueryHandler imageProcessingHandler,
+        VideoProcessingCallbackQueryHandler videoProcessingHandler,
         TaskCallbackQueryHandler taskHandler) : base(logger, bot)
     {
         _imageProcessingHandler = imageProcessingHandler;
+        _videoProcessingHandler = videoProcessingHandler;
         _taskHandler = taskHandler;
     }
 
@@ -33,6 +36,8 @@ public class TelegramCallbackQueryHandler : TelegramUpdateHandler
 
         if (ImageProcessingCallbackData.Matches(callbackQuery.Data!))
         { await _imageProcessingHandler.HandleAsync(update); return; }
+        if (VideoProcessingCallbackData.Matches(callbackQuery.Data!))
+        { await _videoProcessingHandler.HandleAsync(update); return; }
         if (TaskCallbackData.Matches(callbackQuery.Data!))
         { await _taskHandler.HandleAsync(update); return; }
 

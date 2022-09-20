@@ -3,6 +3,6 @@
 [Flags]
 public enum ImageProcessingQueryFlags
 {
-    Upload = 1,
-    Upscale
+    UploadImage = 1,
+    UpscaleImage
 }

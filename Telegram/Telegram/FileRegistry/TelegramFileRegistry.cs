@@ -1,4 +1,4 @@
-﻿using Telegram.Bot.Types.InputFiles;
+﻿using Telegram.Telegram.Updates.Images.Models;
 
 namespace Telegram.Services.Telegram.FileRegistry;
 
@@ -16,18 +16,18 @@ public class TelegramFileRegistry
     }
     const string _Path = "file_registry";
 
-    readonly Dictionary<string, InputOnlineFile> _fileRegistry = new();
+    readonly Dictionary<string, TelegramMediaFile> _fileRegistry = new();
 
-    public string Add(InputOnlineFile inputOnlineFile)
+    public string Add(TelegramMediaFile mediaFile)
     {
         var key = Guid.NewGuid().ToString();
-        _fileRegistry[key] = inputOnlineFile;
+        _fileRegistry[key] = mediaFile;
         return key;
     }
 
-    public InputOnlineFile? TryGet(string key)
+    public TelegramMediaFile? TryGet(string key)
     {
-        _fileRegistry.TryGetValue(key, out var inputOnlineFile);
-        return inputOnlineFile;
+        _fileRegistry.TryGetValue(key, out var mediaFile);
+        return mediaFile;
     }
 }
