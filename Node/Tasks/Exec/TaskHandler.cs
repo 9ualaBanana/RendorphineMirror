@@ -144,6 +144,14 @@ public static class TaskHandler
                 NodeSettings.QueuedTasks.Bindable.Remove(task);
                 return;
             }
+            catch (NodeTaskCanceledException ex)
+            {
+                task.LogInfo($"Task requested to be canceled on attempt ({attempt + 1}/{maxattempts}): {ex.Message}");
+
+                var set = await task.ChangeStateAsync(TaskState.Canceled);
+                if (set) task.LogInfo("Updated server task state");
+                else task.LogWarn("Could not update task state on the server though");
+            }
             catch (Exception ex)
             {
                 task.LogErr(ex);
@@ -162,12 +170,26 @@ public static class TaskHandler
 
     static async ValueTask<bool> RemoveIfFinished(this ReceivedTask task)
     {
-        var state = (await task.GetTaskStateAsync()).ThrowIfError();
-        task.LogInfo($"{state.State}/{task.State}");
+        if (task.ExecuteLocally) return task.State.IsFinished();
 
-        if (state.State.IsFinished())
+        TaskState state;
+
+        if (task.ExecuteLocally)
         {
-            if (state.State == TaskState.Finished && task.State == TaskState.Output)
+            state = task.State;
+            task.LogInfo($"Local/{task.State}");
+        }
+        else
+        {
+            var stater = (await task.GetTaskStateAsync()).ThrowIfError();
+            state = stater.State;
+            task.LogInfo($"{stater.State}/{task.State}");
+        }
+
+
+        if (state.IsFinished())
+        {
+            if (task.State == TaskState.Output && state is not (TaskState.Canceled or TaskState.Failed))
             {
                 task.LogInfo($"Server task state was set to finished, but the result hasn't been uploaded yet");
                 return false;

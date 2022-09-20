@@ -19,7 +19,6 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
     protected sealed override async Task Execute(ReceivedTask task, T data)
     {
-        Directory.CreateDirectory(task.FSOutputDirectory());
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
 
         if (task.State <= TaskState.Input)

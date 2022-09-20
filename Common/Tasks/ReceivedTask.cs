@@ -15,6 +15,7 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
 
     public ITaskInputInfo Input => Info.Input;
     public ITaskOutputInfo Output => Info.Output;
+    public bool IsFromSameNode => ExecuteLocally || Info.LaunchPolicy == TaskPolicy.SameNode || Info.OriginGuid == Settings.Guid;
 
     public static string GenerateLocalId() => "local_" + Guid.NewGuid();
 
@@ -50,12 +51,14 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
         else InputFile = path;
     }
 
-    public string GetTempFileName()
+    public string GetTempFileName(string extension)
     {
+        if (!extension.StartsWith('.')) extension = "." + extension;
+
         var tempdir = DirectoryCreated(Path.Combine(FSDataDirectory(), "temp", Id));
         while (true)
         {
-            var file = Path.Combine(tempdir, Guid.NewGuid().ToString());
+            var file = Path.Combine(tempdir, Guid.NewGuid().ToString() + extension);
             if (File.Exists(file)) continue;
 
             return file;

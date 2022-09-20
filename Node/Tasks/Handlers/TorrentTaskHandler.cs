@@ -13,25 +13,24 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (TorrentTaskInputInfo) task.Input;
-        info.Link.ThrowIfNull();
-
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
+        if (task.IsFromSameNode)
         {
             task.SetInputFile(info.Path);
             return;
         }
 
 
+        info.Link.ThrowIfNull();
         var dir = task.FSInputDirectory();
         var manager = await TorrentClient.StartMagnet(MagnetLink.FromUri(new Uri(info.Link)), dir);
 
         await TorrentClient.AddTrackers(manager, true);
-        await TorrentClient.WaitForCompletion(manager, cancellationToken);
+        await TorrentClient.WaitForCompletion(manager, new(cancellationToken, TimeSpan.FromMinutes(5)));
     }
 
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
+        if (task.IsFromSameNode)
         {
             Extensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
             return;
@@ -86,8 +85,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public async ValueTask OnPlacedTaskCompleted(DbTaskFullState task)
     {
         // if task is local, downloading already handled by UploadResult
-        if (task.ExecuteLocally || task.Info.LaunchPolicy == TaskPolicy.SameNode)
-            return;
+        if (task.IsFromSameNode) return;
 
         var output = (TorrentTaskOutputInfo) task.Output;
         output.Link.ThrowIfNull();
@@ -96,7 +94,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
         var manager = await TorrentClient.StartMagnet(output.Link, task.FSPlacedResultsDirectory());
 
         await TorrentClient.AddTrackers(manager, true);
-        await TorrentClient.WaitForCompletion(manager);
+        await TorrentClient.WaitForCompletion(manager, TimeSpan.FromMinutes(5));
 
 
         if (InputTorrents.Remove(task.Id, out var managerup))

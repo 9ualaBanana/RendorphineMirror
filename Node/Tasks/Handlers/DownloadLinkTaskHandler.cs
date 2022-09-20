@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace Node.Tasks.Handlers;
 
 public class DownloadLinkTaskHandler : ITaskInputHandler
@@ -8,9 +10,15 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
     {
         var info = (DownloadLinkTaskInputInfo) task.Input;
 
-        using (var inputStream = await Api.Download(info.Url))
+        using var data = await Api.Get(info.Url);
+        if (info.Url.Contains("t.microstock.plus") && data.StatusCode == HttpStatusCode.NotFound)
+            task.ThrowCancel("Got 404 when trying to get image from the reepo");
+
+        if (data.StatusCode != HttpStatusCode.OK)
+            throw new HttpRequestException($"Download link `{info.Url}` request returned status code {data.StatusCode}", null, data.StatusCode);
+
         using (var file = File.Open(task.FSNewInputFile(), FileMode.Create, FileAccess.Write))
-            await inputStream.CopyToAsync(file, cancellationToken);
+            await data.Content.CopyToAsync(file, cancellationToken);
     }
 
 }
