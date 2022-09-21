@@ -1,4 +1,6 @@
-﻿namespace Common.Tasks;
+﻿using Newtonsoft.Json;
+
+namespace Common.Tasks;
 
 public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILoggable
 {
@@ -15,7 +17,7 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
 
     public ITaskInputInfo Input => Info.Input;
     public ITaskOutputInfo Output => Info.Output;
-    public bool IsFromSameNode => ExecuteLocally || Info.LaunchPolicy == TaskPolicy.SameNode || Info.OriginGuid == Settings.Guid;
+    [JsonIgnore] public bool IsFromSameNode => ExecuteLocally || Info.LaunchPolicy == TaskPolicy.SameNode || Info.OriginGuid == Settings.Guid;
 
     public static string GenerateLocalId() => "local_" + Guid.NewGuid();
 
