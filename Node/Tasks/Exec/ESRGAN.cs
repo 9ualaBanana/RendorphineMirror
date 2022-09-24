@@ -10,12 +10,13 @@ public static class EsrganTasks
     {
         public override string Name => "EsrganUpscale";
         public override PluginType Type => PluginType.Python_Esrgan;
-        public override FileFormat InputFileFormat => FileFormat.Jpeg;
+        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
+        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
 
         protected override async Task ExecuteImpl(ReceivedTask task, UpscaleEsrganInfo data)
         {
             var inputfile = task.FSInputFile();
-            var outputfile = task.FSNewOutputFile(InputFileFormat.ToString().ToLowerInvariant());
+            var outputfile = task.FSNewOutputFile(FileFormat.Jpeg);
 
             await Task.Run(() => ExecutePowerShell(getScript(), false, onRead, task));
 

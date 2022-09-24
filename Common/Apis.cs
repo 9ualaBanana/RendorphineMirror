@@ -33,6 +33,8 @@ public static class Apis
 
             task.State = state.Result.State;
             task.Progress = state.Result.Progress;
+            if (task is DbTaskFullState dbtask)
+                dbtask.Server = state.Result.Server;
         }
 
         return state;

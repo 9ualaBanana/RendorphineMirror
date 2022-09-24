@@ -38,6 +38,9 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         {
             using var _ = await WaitDisposed(task, TaskWaitHandle);
 
+            task.LogInfo($"Checking input files...");
+            task.GetAction().InputRequirements.Check(task).ThrowIfError();
+
             task.LogInfo($"Executing task...");
             await ExecuteImpl(task, data).ConfigureAwait(false);
             task.LogInfo($"Task executed");

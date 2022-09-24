@@ -4,40 +4,41 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
 {
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.QSPreview;
 
-    public ImmutableArray<string>? AllowedTaskTypes { get; } = ImmutableArray.Create("QSPreview"); // TODO: update task action name when created
-    public ImmutableArray<string>? DisallowedTaskTypes => null;
-
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {
-        foreach (var file in Directory.GetFiles(task.FSOutputDirectory()))
-            await Upload(file);
+        var jpeg = task.FSOutputFile(FileFormat.Jpeg);
+        var mov = task.TryFSOutputFile(FileFormat.Mov);
+
+        var res = await Api.ApiPost<InitOutputResult>($"{Api.TaskManagerEndpoint}/initqspreviewoutput", null, "Initializing qs preview result upload", ("sessionid", Settings.SessionId), ("taskid", task.Id));
+        var result = res.ThrowIfError();
 
 
-        async Task Upload(string file)
+        using var content = new MultipartFormDataContent() { { new StringContent(result.UploadId), "uploadid" }, };
+
+        content.Add(new StreamContent(File.OpenRead(jpeg))
         {
-            var res = await Api.ApiPost<InitOutputResult>($"{Api.TaskManagerEndpoint}/initqspreviewoutput", null, "Initializing qs preview result upload", ("sessionid", Settings.SessionId), ("taskid", task.Id));
-            var result = res.ThrowIfError();
+            Headers =
+            {
+                { "Content-Type", "image/jpeg" },
+                { "Content-Disposition", $"form-data; name=jpeg; filename={Path.GetFileName(jpeg)}" },
+            },
+        });
 
-
-            using var jpegcontent = new StreamContent(File.OpenRead(file))
+        if (mov is not null)
+        {
+            content.Add(new StreamContent(File.OpenRead(mov))
             {
                 Headers =
                 {
-                    { "Content-Type", "image/jpeg" },
-                    { "Content-Disposition", $"form-data; name=jpeg; filename={Path.GetFileName(file)}" },
+                    { "Content-Type", "video/mp4" },
+                    { "Content-Disposition", $"form-data; name=mp4; filename={Path.GetFileName(mov)}" },
                 },
-            };
-
-            using var content = new MultipartFormDataContent()
-            {
-                { new StringContent(result.UploadId), "uploadid" },
-                jpegcontent,
-                // { new StringContent(), "mp4" },
-            };
-
-            var uploadres = await Api.ApiPost($"{HttpHelper.AddSchemeIfNeeded(result.Host, "https")}/content/upload/qspreviews/", "Uploading qs preview", content);
-            uploadres.ThrowIfError();
+            });
         }
+
+
+        var uploadres = await Api.ApiPost($"{HttpHelper.AddSchemeIfNeeded(result.Host, "https")}/content/upload/qspreviews/", "Uploading qs preview", content);
+        uploadres.ThrowIfError();
     }
 
     public async ValueTask<bool> CheckCompletion(DbTaskFullState task)

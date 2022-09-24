@@ -19,7 +19,10 @@ public static class VectorizerTasks
     {
         public override string Name => "VeeeVectorize";
         public override PluginType Type => PluginType.VeeeVectorizer;
-        public override FileFormat InputFileFormat => FileFormat.Jpeg;
+        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
+        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements()
+            .RequiredAtLeast(FileFormat.Jpeg, 1)
+            .RequiredAtLeast(FileFormat.Eps, 1);
 
         protected override async Task ExecuteImpl(ReceivedTask task, VeeeVectorizeInfo data)
         {
@@ -32,17 +35,19 @@ public static class VectorizerTasks
             var args = "\"" + inputfile + "\"";
 
             var plugindir = Path.GetDirectoryName(exepath)!;
-            var outdir = Path.Combine(plugindir, "out");
+            var veeeoutdir = Path.Combine(plugindir, "out");
 
             // assuming we aren't executing several of veee.exe simultaneously
-            if (Directory.Exists(outdir)) Directory.Delete(outdir, true);
-            Directory.CreateDirectory(outdir);
+            if (Directory.Exists(veeeoutdir)) Directory.Delete(veeeoutdir, true);
+            Directory.CreateDirectory(veeeoutdir);
             File.WriteAllText(Path.Combine(plugindir, "config.xml"), GetConfig(data.Lods));
 
             await ExecuteProcess(exepath, args, false, delegate { }, task);
 
             Directory.Delete(outputdir, true);
-            Directory.Move(outdir, outputdir);
+            Directory.Move(veeeoutdir, outputdir);
+
+            task.AddOutputFromLocalPath(outputdir);
         }
 
 

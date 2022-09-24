@@ -13,7 +13,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
         if (task.IsFromSameNode)
         {
-            task.SetInput(info.Path);
+            task.AddInputFromLocalPath(info.Path);
             info.Downloaded = true;
         }
 

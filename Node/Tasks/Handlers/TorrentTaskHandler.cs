@@ -15,7 +15,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
         var info = (TorrentTaskInputInfo) task.Input;
         if (task.IsFromSameNode)
         {
-            task.SetInputFile(info.Path);
+            task.AddInputFromLocalPath(info.Path);
             return;
         }
 
@@ -26,6 +26,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
         await TorrentClient.AddTrackers(manager, true);
         await TorrentClient.WaitForCompletion(manager, new(cancellationToken, TimeSpan.FromMinutes(5)));
+        task.AddInputFromLocalPath(dir);
     }
 
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
@@ -106,11 +107,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
         var output = (TorrentTaskOutputInfo) task.Output;
         var state = (await Apis.GetTaskStateAsync(task, Settings.SessionId)).ThrowIfError();
 
-        task.State = state.State;
-        task.Progress = state.Progress;
-        task.Server = state.Server;
         JsonSettings.Default.Populate(state.Output.CreateReader(), output);
-
         return output.Link is not null;
     }
 }

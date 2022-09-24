@@ -178,6 +178,7 @@ async Task InitializePlugins()
         FFMpegTasks.CreateTasks(),
         EsrganTasks.CreateTasks(),
         VectorizerTasks.CreateTasks(),
+        GenerateQSPreviewTasks.CreateTasks(),
     });
 
     PluginsManager.RegisterPluginDiscoverers(

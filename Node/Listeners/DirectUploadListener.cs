@@ -12,17 +12,19 @@ public class DirectUploadListener : MultipartListenerBase
     {
         var sections = await reader.GetSectionsAsync();
         var taskid = await sections["taskid"].ReadAsStringAsync();
-        var task = NodeSettings.QueuedTasks.First(x => x.Id == taskid);
+        var task = NodeSettings.QueuedTasks.FirstOrDefault(x => x.Id == taskid).ThrowIfNull("No task found with such id");
 
         var file = sections["file"];
         using var _ = file.Body;
 
-        var filename = Path.Combine(ReceivedTask.FSInputDirectory(taskid), GetQueryPart(file.Headers["Content-Disposition"], "filename"));
+        var filename = Path.Combine(task.FSInputDirectory(), GetQueryPart(file.Headers["Content-Disposition"], "filename"));
         using (var resultfile = File.OpenWrite(filename))
             await file.Body.CopyToAsync(resultfile);
 
         if ((await (sections.GetValueOrDefault("last")?.ReadAsStringAsync() ?? Task.FromResult("0"))) == "1")
             ((DirectDownloadTaskInputInfo) task.Input).Downloaded = true;
+
+        // TODO: ограничение на закачки
 
         return await WriteSuccess(context.Response);
     }

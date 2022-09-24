@@ -12,3 +12,7 @@ public interface IWatchingTaskOutputInfo : IWatchingTaskInputOutputInfo
 {
     ITaskOutputInfo CreateOutput(string file);
 }
+public interface IMPlusWatchingTaskOutputInfo : IWatchingTaskOutputInfo
+{
+    ITaskOutputInfo CreateOutput(MPlusNewItem item, string file);
+}

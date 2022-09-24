@@ -3,9 +3,6 @@ namespace Node.Tasks.Handlers;
 public interface ITaskHandler { }
 public interface ITaskInputHandler : ITaskHandler
 {
-    ImmutableArray<string>? AllowedTaskTypes => null;
-    ImmutableArray<string>? DisallowedTaskTypes => null;
-
     TaskInputType Type { get; }
 
     ValueTask Download(ReceivedTask task, CancellationToken cancellationToken = default);
@@ -16,9 +13,6 @@ public interface ITaskInputHandler : ITaskHandler
 }
 public interface ITaskOutputHandler : ITaskHandler
 {
-    ImmutableArray<string>? AllowedTaskTypes => null;
-    ImmutableArray<string>? DisallowedTaskTypes => null;
-
     TaskOutputType Type { get; }
 
     ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default);

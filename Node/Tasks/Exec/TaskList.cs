@@ -37,4 +37,6 @@ public static class TaskList
     public static IPluginAction Get(string name) => Actions.First(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
     public static IPluginAction? TryGet(string name) => Actions.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
     public static IPluginAction? TryGet(PluginType type, string name) => Actions.FirstOrDefault(x => x.Type == type && x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    public static  IEnumerable<FileWithFormat> GetInputFiles(this ReceivedTask task) => task.GetAction().InputRequirements.GetInputFiles(task);
 }

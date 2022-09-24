@@ -9,14 +9,22 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
     public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
     {
-        var fformat = TaskList.GetAction(task.Info).InputFileFormat;
-        var format = fformat.ToString().ToLowerInvariant();
-        var downloadLink = await Api.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskinputdownloadlink", "link", "get download link",
-            ("sessionid", Settings.SessionId!), ("taskid", task.Id), ("format", format), ("original", fformat == FileFormat.Jpeg ? "1" : "0")).ConfigureAwait(false);
+        foreach (var requirement in task.GetAction().InputRequirements)
+        {
+            try { await download(requirement.Format); }
+            catch { if (requirement.Required) throw; }
+        }
 
-        using (var inputStream = await Api.Download(downloadLink.ThrowIfError()))
-        using (var file = File.Open(task.FSNewInputFile(), FileMode.Create, FileAccess.Write))
-            await inputStream.CopyToAsync(file, cancellationToken);
+
+        async Task download(FileFormat format)
+        {
+            var downloadLink = await Api.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskinputdownloadlink", "link", "get download link",
+                ("sessionid", Settings.SessionId!), ("taskid", task.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0")).ConfigureAwait(false);
+
+            using (var inputStream = await Api.Download(downloadLink.ThrowIfError()))
+            using (var file = File.Open(task.FSNewInputFile(format), FileMode.Create, FileAccess.Write))
+                await inputStream.CopyToAsync(file, cancellationToken);
+        }
     }
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {
