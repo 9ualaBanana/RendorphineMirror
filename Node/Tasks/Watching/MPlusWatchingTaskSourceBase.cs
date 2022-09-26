@@ -14,6 +14,31 @@ public abstract class MPlusWatchingTaskSourceBase : IWatchingTaskSource
 
     protected abstract ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync();
 
+    protected virtual async Task Tick(WatchingTask task)
+    {
+        var res = await FetchItemsAsync();
+        res.LogIfError();
+        if (!res) return;
+
+        var items = res.Value;
+        if (items.Length == 0) return;
+
+        foreach (var item in items.OrderBy<MPlusNewItem, long>(x => x.Registered))
+        {
+            var fileName = item.Files.Jpeg.FileName;
+            task.LogInfo($"Adding new file {item.Iid} {Path.ChangeExtension(fileName, null)}");
+
+            var output =
+                (task.Output as IMPlusWatchingTaskOutputInfo)?.CreateOutput(item, fileName)
+                ?? task.Output.CreateOutput(fileName);
+
+            var input = new MPlusTaskInputInfo(item.Iid, item.UserId);
+            await task.RegisterTask(input, output);
+
+            SinceIid = item.Iid;
+            NodeSettings.WatchingTasks.Save();
+        }
+    }
     public void StartListening(WatchingTask task)
     {
         new Thread(async () =>
@@ -24,35 +49,8 @@ public abstract class MPlusWatchingTaskSourceBase : IWatchingTaskSource
                 {
                     if (TokenSource.IsCancellationRequested) return;
 
-                    await start();
+                    await Tick(task);
                     await Task.Delay(60_000);
-
-
-                    async Task start()
-                    {
-                        var res = await FetchItemsAsync();
-                        res.LogIfError();
-                        if (!res) return;
-
-                        var items = res.Value;
-                        if (items.Length == 0) return;
-
-                        foreach (var item in items.OrderBy<MPlusNewItem, long>(x => x.Registered))
-                        {
-                            var fileName = item.Files.Jpeg.FileName;
-                            var input = new MPlusTaskInputInfo(item.Iid, item.UserId);
-                            task.LogInfo($"New file found: {item.Iid} {Path.ChangeExtension(fileName, null)}");
-
-                            var output =
-                                (task.Output as IMPlusWatchingTaskOutputInfo)?.CreateOutput(item, fileName)
-                                ?? task.Output.CreateOutput(fileName);
-
-                            await task.RegisterTask(input, output);
-
-                            SinceIid = item.Iid;
-                            NodeSettings.WatchingTasks.Save();
-                        }
-                    }
                 }
                 catch (Exception ex) { task.LogErr(ex); }
             }
