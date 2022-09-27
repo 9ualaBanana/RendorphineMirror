@@ -221,6 +221,7 @@ namespace Common
         public static OperationResult NextOnError(in this OperationResult estring, Func<OperationResult> func) => estring ? estring : func();
         public static OperationResult<TOut> NextOnError<TOut>(in this OperationResult estring, Func<OperationResult<TOut>> func) => estring ? estring : func();
         public static OperationResult NextOnError<TIn>(in this OperationResult<TIn> estring, Func<OperationResult<TIn>, OperationResult> func) => estring ? estring.EString : func(estring);
+        public static OperationResult<TOut> NextOnError<TIn,TOut>(in this OperationResult<TIn> estring, Func<OperationResult<TIn>, OperationResult<TOut>> func) => estring ? estring.EString : func(estring);
 
         // opres => Task<opres>
         public static ValueTask<OperationResult> NextOnError(in this OperationResult estring, Func<ValueTask<OperationResult>> func) => estring ? estring.AsVTask() : func();
@@ -270,8 +271,16 @@ namespace Common
         public static ValueTask<OperationResult<TOut>> Then<TIn, TOut>(this Task<TIn> task, Func<TIn, ValueTask<OperationResult<TOut>>> func) => task.ToVTask().Then(func);
         #endregion
 
-        #region MergeResults
+        #region Merge
 
+        public static OperationResult Merge(this IEnumerable<OperationResult> results)
+        {
+            foreach (var result in results)
+                if (!result)
+                    return result;
+
+            return true;
+        }
         public static OperationResult<T[]> MergeResults<T>(this IEnumerable<OperationResult<T>> results)
         {
             List<T> output;

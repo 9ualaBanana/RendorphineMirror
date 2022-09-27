@@ -48,10 +48,6 @@ public abstract class MediaEditInfo
     [JsonProperty("ro")]
     [Default(0), Ranged(-Math.PI * 2, Math.PI * 2)]
     public double? RotationRadians;
-
-    [JsonProperty("wat")]
-    [Default("qs_watermark.png")]
-    public string? Watermark;
 }
 public class EditVideoInfo : MediaEditInfo
 {
@@ -100,7 +96,7 @@ public static class FFMpegTasks
     public static IEnumerable<IPluginAction> CreateTasks() => new IPluginAction[] { new FFMpegEditVideo(), new FFMpegEditRaster() };
 
 
-    abstract class FFMpegAction<T> : InputOutputPluginAction<T>
+    public abstract class FFMpegAction<T> : InputOutputPluginAction<T>
     {
         protected static readonly NumberFormatInfo NumberFormat = new()
         {
@@ -113,38 +109,39 @@ public static class FFMpegTasks
 
         protected sealed override async Task ExecuteImpl(ReceivedTask task, T data)
         {
-            var inputfile = task.FSInputFile();
-            var outputfile = task.FSNewOutputFile(InputFileFormat.ToString().ToLowerInvariant());
-
-            var ffprobe = await FFProbe.Get(inputfile, task) ?? throw new Exception();
+            foreach (var file in task.GetInputFiles())
+                await execute(file);
 
 
-            var exepath = task.GetPlugin().GetInstance().Path;
-
-            var rate = 1d;
-
-            var argholder = new FFMpegArgsHolder(ffprobe);
-            ConstructFFMpegArguments(task, data, argholder);
-            var args = GetFFMpegArgs(inputfile, outputfile, task, data, argholder);
-
-            var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
-            task.LogInfo($"{inputfile} duration: {duration} x{rate}");
-            duration /= rate;
-
-            await ExecuteProcess(exepath, args, true, onRead, task);
-
-
-            void onRead(bool err, string line)
+            async Task execute(FileWithFormat file)
             {
-                // frame=  502 fps=0.0 q=29.0 size=     256kB time=00:00:14.84 bitrate= 141.3kbits/s speed=29.5x
-                if (!line.StartsWith("frame=")) return;
+                var inputfile = file.Path;
+                var outputfile = task.FSNewOutputFile(file.Format);
+                var ffprobe = await FFProbe.Get(inputfile, task) ?? throw new Exception();
 
-                var spt = line.AsSpan(line.IndexOf("time=", StringComparison.Ordinal) + "time=".Length).TrimStart();
-                spt = spt.Slice(0, spt.IndexOf(' '));
-                var time = TimeSpan.Parse(spt);
+                var argholder = new FFMpegArgsHolder(ffprobe);
+                ConstructFFMpegArguments(task, data, argholder);
+                var args = GetFFMpegArgs(inputfile, outputfile, task, data, argholder);
 
-                task.Progress = Math.Clamp(time / duration, 0, 1);
-                NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
+                var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
+                task.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
+                duration /= argholder.Rate;
+
+                await ExecuteProcess(task.GetPlugin().GetInstance().Path, args, true, onRead, task);
+
+
+                void onRead(bool err, string line)
+                {
+                    // frame=  502 fps=0.0 q=29.0 size=     256kB time=00:00:14.84 bitrate= 141.3kbits/s speed=29.5x
+                    if (!line.StartsWith("frame=")) return;
+
+                    var spt = line.AsSpan(line.IndexOf("time=", StringComparison.Ordinal) + "time=".Length).TrimStart();
+                    spt = spt.Slice(0, spt.IndexOf(' '));
+                    var time = TimeSpan.Parse(spt);
+
+                    task.Progress = Math.Clamp(time / duration, 0, 1);
+                    NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
+                }
             }
         }
 
@@ -204,60 +201,13 @@ public static class FFMpegTasks
             if (data.RotationRadians is not null) filters.Add($"rotate={data.RotationRadians.Value.ToString(NumberFormat)}");
 
             if (data.Crop is not null) filters.AddFirst($"crop={data.Crop.W.ToString(NumberFormat)}:{data.Crop.H.ToString(NumberFormat)}:{data.Crop.X.ToString(NumberFormat)}:{data.Crop.Y.ToString(NumberFormat)}");
-
-            if (data.Watermark is not null)
-            {
-                var watermarkFile = Path.GetFullPath(Path.Combine("assets", data.Watermark));
-                if (!watermarkFile.StartsWith(Path.GetFullPath("assets"), StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException($"Invalid watermark file path: {watermarkFile}");
-
-                watermarkFile = createRepeatedWatermark().GetAwaiter().GetResult();
-
-
-                args.Args.Add("-i", watermarkFile);
-                var graph = "";
-
-                // scale video to 640px by width
-                graph += "scale= w=mod(in_w/in_h*640\\,2)+in_w/in_h*640:h=640 [v];";
-
-                // add watermark onto the base video/image
-                graph += "[v][1] overlay= (main_w-overlay_w)/2:(main_h-overlay_h)/2:format=auto,";
-
-                // set the color format
-                graph += "format= yuv420p";
-
-                args.Filtergraph.AddLast(graph);
-
-
-                async Task<string> createRepeatedWatermark()
-                {
-                    var repeatedWatermarkFile = Path.Combine(Init.RuntimeCacheDirectory("ffmpeg"), Path.GetFileName(watermarkFile));
-                    if (File.Exists(repeatedWatermarkFile)) return repeatedWatermarkFile;
-
-
-                    var graph = "";
-
-                    // repeat watermark several times vertically and horizontally
-                    graph += "[0][0] hstack, split, vstack," + string.Join(string.Empty, Enumerable.Repeat("split, hstack, split, vstack,", 2));
-
-                    // rotate watermark -20 deg
-                    graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih), format= rgba";
-
-                    var argholder = new FFMpegArgsHolder(null);
-                    argholder.Filtergraph.Add(graph);
-
-                    var ffargs = GetFFMpegArgs(watermarkFile, repeatedWatermarkFile, task, data, argholder);
-                    await ExecuteProcess(task.GetPlugin().GetInstance().Path, ffargs, true, delegate { }, task);
-
-                    return repeatedWatermarkFile;
-                }
-            }
         }
     }
     class FFMpegEditVideo : FFMpegMediaEditAction<EditVideoInfo>
     {
         public override string Name => "EditVideo";
-        public override FileFormat InputFileFormat => FileFormat.Mov;
+        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Mov);
+        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Mov);
 
         protected override void ConstructFFMpegArguments(ReceivedTask task, EditVideoInfo data, in FFMpegArgsHolder args)
         {
@@ -284,7 +234,8 @@ public static class FFMpegTasks
     class FFMpegEditRaster : FFMpegMediaEditAction<EditRasterInfo>
     {
         public override string Name => "EditRaster";
-        public override FileFormat InputFileFormat => FileFormat.Jpeg;
+        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
+        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
     }
 
 

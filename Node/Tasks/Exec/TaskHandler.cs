@@ -11,7 +11,7 @@ public static class TaskHandler
     public static async Task InitializePlacedTasksAsync()
     {
         TaskRegistration.TaskRegistered += task => InitializePlacedTaskAsync(task).Consume();
-        await Task.WhenAll(NodeSettings.PlacedTasks.Select(InitializePlacedTaskAsync));
+        await Task.WhenAll(NodeSettings.PlacedTasks.ToArray().Select(InitializePlacedTaskAsync));
     }
     public static async Task InitializePlacedTaskAsync(DbTaskFullState task)
     {
@@ -28,7 +28,7 @@ public static class TaskHandler
         {
             while (true)
             {
-                await Task.Delay(10_000);
+                await Task.Delay(2_000);
                 if (NodeSettings.QueuedTasks.Count == 0) continue;
 
                 foreach (var task in NodeSettings.QueuedTasks.ToArray())
@@ -170,39 +170,65 @@ public static class TaskHandler
 
     static async ValueTask<bool> RemoveIfFinished(this ReceivedTask task)
     {
-        if (task.ExecuteLocally) return task.State.IsFinished();
-
-        TaskState state;
-
-        if (task.ExecuteLocally)
+        var finished = await test();
+        if (finished)
         {
-            state = task.State;
-            task.LogInfo($"Local/{task.State}");
-        }
-        else
-        {
-            var stater = (await task.GetTaskStateAsync()).ThrowIfError();
-            state = stater.State;
-            task.LogInfo($"{stater.State}/{task.State}");
+            task.LogInfo($"Removing");
+
+            NodeSettings.QueuedTasks.Bindable.Remove(task);
+            if (task is DbTaskFullState dbtask)
+                NodeSettings.PlacedTasks.Bindable.Remove(dbtask);
         }
 
+        return finished;
 
-        if (state.IsFinished())
+
+        async ValueTask<bool> test()
         {
-            if (task.State == TaskState.Output && state is not (TaskState.Canceled or TaskState.Failed))
+            if (task.ExecuteLocally) return task.State.IsFinished();
+
+            TaskState state;
+
+            if (task.ExecuteLocally)
             {
-                task.LogInfo($"Server task state was set to finished, but the result hasn't been uploaded yet");
-                return false;
+                state = task.State;
+                task.LogInfo($"Local/{task.State}");
+            }
+            else
+            {
+                var stater = await task.GetTaskStateAsync();
+                if (!stater)
+                {
+                    stater.LogIfError();
+                    if (stater.Message!.Contains("There is no task with such ID.", StringComparison.Ordinal))
+                        state = TaskState.Failed;
+                    else
+                    {
+                        stater.ThrowIfError();
+                        return false;
+                    }
+                }
+                else
+                {
+                    state = stater.Value.State;
+                    task.LogInfo($"{stater.Value.State}/{task.State}");
+                }
             }
 
 
-            task.LogInfo($"Removing");
-            NodeSettings.QueuedTasks.Bindable.Remove(task);
+            if (state.IsFinished())
+            {
+                if (task.State == TaskState.Output && state is not (TaskState.Canceled or TaskState.Failed))
+                {
+                    task.LogInfo($"Server task state was set to finished, but the result hasn't been uploaded yet");
+                    return false;
+                }
 
-            return true;
+                return true;
+            }
+
+            return false;
         }
-
-        return false;
     }
 
     public static void AddHandler(ITaskHandler handler)
@@ -223,6 +249,4 @@ public static class TaskHandler
 
     public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => (ITaskInputHandler) InputHandlers[task.Input.Type];
     public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => (ITaskOutputHandler) OutputHandlers[task.Output.Type];
-
-    public static string FSNewInputFile(this ReceivedTask task) => task.FSNewInputFile(TaskList.GetAction(task.Info).InputFileFormat.ToString().ToLowerInvariant());
 }

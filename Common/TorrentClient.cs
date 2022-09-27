@@ -58,7 +58,7 @@ namespace Common
         }
         static void AddLoggers(TorrentManager manager)
         {
-            if (Init.IsDebug)
+            //if (Init.IsDebug)
             {
                 manager.PeersFound += (obj, e) => _logger.Trace("PeersFound " + manager.InfoHash.ToHex() + " " + e.GetType().Name + " " + e.NewPeers + " " + string.Join(", ", manager.GetPeersAsync().Result.Select(x => x.Uri)));
                 manager.PeerConnected += (obj, e) => _logger.Trace("PeerConnected " + manager.InfoHash.ToHex() + " " + e.Peer.Uri);
@@ -97,8 +97,16 @@ namespace Common
         {
             var data = await CreateTorrent(path).ConfigureAwait(false);
             var torrent = await Torrent.LoadAsync(data).ConfigureAwait(false);
-            var manager = await AddOrGetTorrent(torrent, File.Exists(path) ? Path.Combine(path, "..") : path).ConfigureAwait(false);
 
+            _logger.Info($"Added torrent for {(File.Exists(path) ? "file" : "directory")} {path}: {torrent.InfoHash.ToHex()}");
+
+            // i don't know why this behaves differently but it does
+            var target = path;
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                target = Path.Combine(path, "..");
+            else target = File.Exists(path) ? Path.Combine(path, "..") : path;
+
+            var manager = await AddOrGetTorrent(torrent, target).ConfigureAwait(false);
             return (data, manager);
         }
 
@@ -119,6 +127,8 @@ namespace Common
             AddLoggers(manager);
 
             await manager.HashCheckAsync(autoStart: true).ConfigureAwait(false);
+            _logger.Info($"{torrent.InfoHash.ToHex()} {manager.State}");
+
             return manager;
         }
 

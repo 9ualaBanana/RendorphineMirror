@@ -8,5 +8,7 @@ public enum WatchingTaskInputOutputType
 {
     Local,
     MPlus,
+    MPlusAllFiles,
     OtherNodeTorrent,
+    QSPreview,
 }

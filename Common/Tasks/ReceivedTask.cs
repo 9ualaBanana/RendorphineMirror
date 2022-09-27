@@ -1,4 +1,6 @@
-﻿namespace Common.Tasks;
+﻿using Newtonsoft.Json;
+
+namespace Common.Tasks;
 
 public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILoggable
 {
@@ -10,46 +12,40 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
     public double Progress = 0;
     public TaskState State = TaskState.Queued;
 
-    // input path override for local tasks
-    string? InputFile, InputDirectory;
+    public readonly List<FileWithFormat> InputFiles = new();
+    public readonly List<FileWithFormat> OutputFiles = new();
 
     public ITaskInputInfo Input => Info.Input;
     public ITaskOutputInfo Output => Info.Output;
-    public bool IsFromSameNode => ExecuteLocally || Info.LaunchPolicy == TaskPolicy.SameNode || Info.OriginGuid == Settings.Guid;
+    [JsonIgnore] public virtual bool IsFromSameNode => ExecuteLocally || Info.LaunchPolicy == TaskPolicy.SameNode;
 
     public static string GenerateLocalId() => "local_" + Guid.NewGuid();
 
 
-    public string FSDataDirectory() => FSDataDirectory(Id);
+    string FSDataDirectory() => FSDataDirectory(Id);
     public string FSOutputDirectory() => FSOutputDirectory(Id);
-    public string FSInputDirectory() => InputDirectory ?? FSInputDirectory(Id);
+    public string FSInputDirectory() => FSInputDirectory(Id);
 
-    public string FSPlacedDataDirectory() => FSPlacedDataDirectory(Id);
+    string FSPlacedDataDirectory() => FSPlacedDataDirectory(Id);
     public string FSPlacedResultsDirectory() => FSPlacedResultsDirectory(Id);
     public string FSPlacedSourcesDirectory() => FSPlacedSourcesDirectory(Id);
 
-    public static string FSDataDirectory(string id) => DirectoryCreated(Path.Combine(Init.TaskFilesDirectory, id));
+    static string FSDataDirectory(string id) => DirectoryCreated(Path.Combine(Init.TaskFilesDirectory, id));
     public static string FSOutputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "output"));
     public static string FSInputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "input"));
 
-    public static string FSPlacedDataDirectory(string id) => DirectoryCreated(Path.Combine(Path.Combine(Init.PlacedTaskFilesDirectory, id)));
+    static string FSPlacedDataDirectory(string id) => DirectoryCreated(Path.Combine(Path.Combine(Init.PlacedTaskFilesDirectory, id)));
     public static string FSPlacedResultsDirectory(string id) => DirectoryCreated(Path.Combine(Path.Combine(FSPlacedDataDirectory(id), "results")));
     public static string FSPlacedSourcesDirectory(string id) => DirectoryCreated(Path.Combine(Path.Combine(FSPlacedDataDirectory(id), "sources")));
 
-    string AddDotIfNeeded(string extension) => extension.StartsWith('.') ? extension : ("." + extension);
-    public string FSNewInputFile(string extension) => Path.Combine(FSInputDirectory(), "input" + AddDotIfNeeded(extension));
-    public string FSNewOutputFile(string extension) => Path.Combine(FSOutputDirectory(), "output" + AddDotIfNeeded(extension));
 
-    public string FSInputFile() => InputFile ?? Directory.GetFiles(FSInputDirectory()).Single();
+    public string FSInputFile() => InputFiles.Single().Path;
+    public string FSInputFile(FileFormat format) => InputFiles.First(x => x.Format == format).Path;
+    public string FSOutputFile(FileFormat format) => OutputFiles.First(x => x.Format == format).Path;
+    public string? TryFSOutputFile(FileFormat format) => OutputFiles.FirstOrDefault(x => x.Format == format)?.Path;
+
+    [Obsolete("Use FSOutputDirectory instead")]
     public string FSOutputFile() => Directory.GetFiles(FSOutputDirectory()).Single();
-
-    public void SetInputFile(string file) => InputFile = file;
-    public void SetInputDirectory(string dir) => InputDirectory = dir;
-    public void SetInput(string path)
-    {
-        if (Directory.Exists(path)) InputDirectory = path;
-        else InputFile = path;
-    }
 
     public string GetTempFileName(string extension)
     {

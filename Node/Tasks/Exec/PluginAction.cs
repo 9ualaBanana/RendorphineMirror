@@ -8,7 +8,8 @@ public interface IPluginAction
     Type DataType { get; }
     PluginType Type { get; }
     string Name { get; }
-    FileFormat InputFileFormat { get; }
+    TaskFileFormatRequirements InputRequirements { get; }
+    TaskFileFormatRequirements OutputRequirements { get; }
 
     Task Execute(ReceivedTask task);
 }
@@ -18,7 +19,8 @@ public abstract class PluginAction<T> : IPluginAction
 
     public abstract string Name { get; }
     public abstract PluginType Type { get; }
-    public abstract FileFormat InputFileFormat { get; }
+    public abstract TaskFileFormatRequirements InputRequirements { get; }
+    public abstract TaskFileFormatRequirements OutputRequirements { get; }
 
     public async Task Execute(ReceivedTask task)
     {

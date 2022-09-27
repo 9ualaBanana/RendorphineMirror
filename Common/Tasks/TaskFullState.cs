@@ -11,6 +11,7 @@ public record DbTaskFullState : ReceivedTask
     public string UserId { get; init; } = null!;
     public ulong Registered { get; init; }
     public TaskServer? Server;
+    [JsonIgnore] public override bool IsFromSameNode => base.IsFromSameNode || (Server?.Userid == Settings.UserId && Server?.Nickname == Settings.NodeName);
 
     [JsonConstructor]
     public DbTaskFullState(string id, string originGuid, TaskPolicy launchPolicy, TaskObject @object, JObject input, JObject output, JObject data)
