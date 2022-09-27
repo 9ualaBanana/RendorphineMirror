@@ -1,14 +1,15 @@
 ﻿using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Telegram.MessageChunker.Models;
 
-namespace Telegram.Telegram.Services.MessageChunker;
+namespace Telegram.Telegram.MessageChunker.Services;
 
 public static class InlineKeyboardExtensions
 {
     public static InlineKeyboardMarkup WithAddedButtonNext(this InlineKeyboardMarkup inlineKeyboardMarkup) => new(
         inlineKeyboardMarkup.InlineKeyboard.Append(new InlineKeyboardButton[]
-        { InlineKeyboardButton.WithCallbackData(">", ChunkedMessageCallbackQueryFlags.Next.ToString()) }));
+        { InlineKeyboardButton.WithCallbackData(">", MessageChunkerCallbackQueryFlags.Next.ToString()) }));
 
     public static InlineKeyboardMarkup WithAddedButtonPrevious(this InlineKeyboardMarkup inlineKeyboardMarkup) => new(
         inlineKeyboardMarkup.InlineKeyboard.Append(new InlineKeyboardButton[]
-        { InlineKeyboardButton.WithCallbackData("<", ChunkedMessageCallbackQueryFlags.Previous.ToString()) }));
+        { InlineKeyboardButton.WithCallbackData("<", MessageChunkerCallbackQueryFlags.Previous.ToString()) }));
 }

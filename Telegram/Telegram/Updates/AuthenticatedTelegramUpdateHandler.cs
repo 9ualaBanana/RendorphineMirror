@@ -9,11 +9,9 @@ public abstract class AuthenticatedTelegramUpdateHandler : TelegramUpdateHandler
     protected readonly ChatAuthenticator Authenticator;
 
 
-
     public AuthenticatedTelegramUpdateHandler(ILogger logger, TelegramBot bot, ChatAuthenticator authenticator)
         : base(logger, bot)
     { Authenticator = authenticator; }
-
 
 
     public override async Task HandleAsync(Update update)

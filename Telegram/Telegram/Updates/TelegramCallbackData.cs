@@ -24,7 +24,7 @@ public abstract record TelegramCallbackData<T> where T : struct, Enum
     protected static IEnumerable<T> ParseEnumValues(string callbackData) =>
         callbackData.Split().First().Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(Enum.Parse<T>);
 
-    public static string[] ParseArguments(string callbackData) =>
+    protected static string[] ParseArguments(string callbackData) =>
         callbackData.Split().Last().Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
     public string Serialize() => Serialize(Value, Arguments);
