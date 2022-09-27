@@ -1,9 +1,9 @@
 ﻿using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Telegram.MessageChunker.Models;
 
-namespace Telegram.Telegram.MessageChunker.Services;
+namespace Telegram.Telegram.MessageChunker;
 
-public static class InlineKeyboardExtensions
+public static class InlineKeyboardMarkupExtensions
 {
     public static InlineKeyboardMarkup WithAddedButtonNext(this InlineKeyboardMarkup inlineKeyboardMarkup) => new(
         inlineKeyboardMarkup.InlineKeyboard.Append(new InlineKeyboardButton[]

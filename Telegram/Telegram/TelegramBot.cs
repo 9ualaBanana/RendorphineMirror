@@ -5,12 +5,15 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Models;
+using Telegram.Telegram.MessageChunker.Services;
 
 namespace Telegram.Telegram;
 
 public class TelegramBot : TelegramBotClient
 {
     ILogger _logger = null!;
+    TelegramMessageChunker? _textChunker;
+
 
     public Subscriptions Subscriptions = new("subscriptions.txt");
     readonly public HttpClient HttpClient;
@@ -28,9 +31,16 @@ public class TelegramBot : TelegramBotClient
         return bot;
     }
 
-    internal void UseLoggerFrom(IServiceProvider serviceProvider)
+    internal TelegramBot UseLoggerFrom(IServiceProvider serviceProvider)
     {
         _logger = serviceProvider.GetRequiredService<ILogger<TelegramBot>>();
+        return this;
+    }
+
+    internal TelegramBot UseMessageChunkerFrom(IServiceProvider serviceProvider)
+    {
+        _textChunker = serviceProvider.GetRequiredService<TelegramMessageChunker>();
+        return this;
     }
 
     internal async Task TryNotifySubscribersAboutImageAsync(
@@ -113,6 +123,12 @@ public class TelegramBot : TelegramBotClient
     }
 
     internal async Task<Message?> TrySendMessageAsync(ChatId chatId, string text, IReplyMarkup? replyMarkup = null)
+    {
+        if (_textChunker is null) return await TrySendMessageAsync(chatId, text, replyMarkup);
+        else return await _textChunker.TrySendChunkedMessageAsync(this, chatId, text);
+    }
+
+    internal async Task<Message?> TrySendMessageAsyncCore(ChatId chatId, string text, IReplyMarkup? replyMarkup = null)
     {
         try
         {

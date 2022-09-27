@@ -12,7 +12,7 @@ public static class TelegramUpdateHandlersExtensions
         return serviceCollection
             .AddSingleton<TelegramUpdateTypeHandler>()
             .AddScoped<TelegramMessageHandler>()
-            .AddSingleton<TextChunker>()
+            .AddSingleton<TelegramMessageChunker>()
             .AddScoped<MessageChunkerCallbackQueryHandler>()
             .AddSingleton<ChunkedMessagesAutoStorage>()
             .AddTelegramBotCommands()

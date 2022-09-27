@@ -7,6 +7,7 @@ public class ChunkedText : IEquatable<ChunkedText>
     int _pointer;
 
 
+    public bool IsChunked => _content.Length <= _chunkSize;
     public bool IsAtMiddle => !IsAtFirstChunk && !IsAtLastChunk;
     public bool IsAtFirstChunk => _pointer == 0;
     public bool IsAtLastChunk =>

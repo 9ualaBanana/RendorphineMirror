@@ -28,6 +28,6 @@ public class MessageChunkerCallbackQueryHandler : TelegramCallbackQueryHandlerBa
 
         var newMessageContent = messageChunkerCallbackData.Value.HasFlag(MessageChunkerCallbackQueryFlags.Previous) ? messageToEdit.ChunkedText.PreviousChunk() : messageToEdit.ChunkedText.NextChunk();
         await Bot.EditMessageTextAsync(update.CallbackQuery.Message.Chat.Id, messageToEdit.Message.MessageId, newMessageContent, ParseMode.MarkdownV2);
-        await Bot.EditMessageReplyMarkupAsync(update.CallbackQuery.Message.Chat.Id, messageToEdit.Message.MessageId, TextChunker.ReplyMarkupFor(messageToEdit.ChunkedText));
+        await Bot.EditMessageReplyMarkupAsync(update.CallbackQuery.Message.Chat.Id, messageToEdit.Message.MessageId, TelegramMessageChunker.ReplyMarkupFor(messageToEdit.ChunkedText));
     }
 }
