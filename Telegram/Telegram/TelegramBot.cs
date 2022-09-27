@@ -112,22 +112,18 @@ public class TelegramBot : TelegramBotClient
         return false;
     }
 
-    internal async Task<bool> TrySendMessageAsync(ChatId chatId, string text, IReplyMarkup? replyMarkup = null)
+    internal async Task<Message?> TrySendMessageAsync(ChatId chatId, string text, IReplyMarkup? replyMarkup = null)
     {
         try
         {
-            await this.SendTextMessageAsync(
+            return await this.SendTextMessageAsync(
                 chatId,
                 text.Sanitize(),
                 replyMarkup: replyMarkup,
                 parseMode: ParseMode.MarkdownV2);
-            return true;
         }
         catch (Exception ex)
-        {
-            _logger.LogError(ex, "Following message couldn't be sent to {Chat}:\n\n{Message}", chatId, text);
-        }
-        return false;
+        { _logger.LogError(ex, "Following message couldn't be sent to {Chat}:\n\n{Message}", chatId, text); return null; }
     }
 }
 
