@@ -7,7 +7,7 @@ using Transport.Upload;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
-public abstract class MediaFileProcessingCallbackQueryHandler : AuthenticatedTelegramUpdateHandler
+public abstract class MediaFileProcessingCallbackQueryHandler : AuthenticatedTelegramCallbackQueryHandlerBase
 {
     readonly TelegramFileRegistry _fileRegistry;
     readonly HttpClient _httpClient;
@@ -23,15 +23,19 @@ public abstract class MediaFileProcessingCallbackQueryHandler : AuthenticatedTel
         _httpClient = httpClientFactory.CreateClient();
     }
 
-    public async Task HandleAsync<T>(Update update, ChatAuthenticationToken authenticationToken, MediaFileProcessingCallbackData<T> mediaFileProcessingCallbackData) where T : struct, Enum
-    {
-        var chatId = update.CallbackQuery!.Message!.Chat.Id;
 
+    protected async Task HandleAsync<T>(
+        Update update,
+        ChatAuthenticationToken authenticationToken,
+        MediaFileProcessingCallbackData<T> mediaFileProcessingCallbackData) where T : struct, Enum
+    {
         var mediaFile = _fileRegistry.TryGet(mediaFileProcessingCallbackData.FileRegistryKey);
         if (mediaFile is null)
-        { await Bot.TrySendMessageAsync(chatId, "Media file is expired. Try to send it again."); return; }
+        { await Bot.TrySendMessageAsync(ChatIdFrom(update), "Media file is expired. Try to send it again."); return; }
 
-        var mediaFilePath = Path.ChangeExtension(Path.Combine(_fileRegistry.Path, mediaFileProcessingCallbackData.FileRegistryKey), mediaFileProcessingCallbackData.ContentType.Extension);
+        var mediaFilePath = Path.ChangeExtension(
+            Path.Combine(_fileRegistry.Path, mediaFileProcessingCallbackData.FileRegistryKey),
+            mediaFileProcessingCallbackData.ContentType.Extension);
         await mediaFile.Download(mediaFilePath, Bot);
 
         await Process(update, authenticationToken, mediaFileProcessingCallbackData, mediaFilePath);

@@ -1,5 +1,4 @@
-﻿using Common;
-using System.Text;
+﻿using System.Text;
 using Telegram.Bot.Types;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
@@ -7,7 +6,7 @@ using Telegram.Telegram.Updates.Tasks.Models;
 
 namespace Telegram.Telegram.Updates.Tasks.Services;
 
-public class TaskCallbackQueryHandler : AuthenticatedTelegramUpdateHandler
+public class TaskCallbackQueryHandler : AuthenticatedTelegramCallbackQueryHandlerBase
 {
     public TaskCallbackQueryHandler(
         ILogger<TaskCallbackQueryHandler> logger,
@@ -19,11 +18,10 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramUpdateHandler
 
     protected async override Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken)
     {
-        var chatId = update.CallbackQuery!.Message!.Chat.Id;
-        var taskCallbackData = new TaskCallbackData(update.CallbackQuery!.Data!);
+        var taskCallbackData = new TaskCallbackData(CallbackDataFrom(update));
 
         if (taskCallbackData.Value.HasFlag(TaskQueryFlags.Details))
-            await ShowDetailsAsync(chatId, taskCallbackData, authenticationToken);
+            await ShowDetailsAsync(ChatIdFrom(update), taskCallbackData, authenticationToken);
     }
 
     async Task ShowDetailsAsync(ChatId chatId, TaskCallbackData taskCallbackData, ChatAuthenticationToken authenticationToken)
@@ -36,8 +34,10 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramUpdateHandler
                 .AppendLine($"State: *{taskState.Result.State}*")
                 .AppendLine($"Progress: *{taskState.Result.Progress}*");
             if (taskState.Result.Times.Exist)
+            {
                 messageBuilder.AppendLine($"Duration: *{taskState.Result.Times.Total}*");
-            messageBuilder.AppendLine($"Server: *{taskState.Result.Server}*");
+                messageBuilder.AppendLine($"Server: *{taskState.Result.Server}*");
+            }
 
             await Bot.TrySendMessageAsync(chatId, messageBuilder.ToString());
         }

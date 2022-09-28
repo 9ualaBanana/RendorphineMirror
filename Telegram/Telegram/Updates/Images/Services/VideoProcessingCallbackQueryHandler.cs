@@ -8,7 +8,6 @@ namespace Telegram.Telegram.Updates.Images.Services;
 
 public class VideoProcessingCallbackQueryHandler : MediaFileProcessingCallbackQueryHandler
 {
-
     public VideoProcessingCallbackQueryHandler(
         ILogger<VideoProcessingCallbackQueryHandler> logger,
         TelegramBot bot,
@@ -18,8 +17,9 @@ public class VideoProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
     {
     }
 
+
     protected async override Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken) =>
-        await HandleAsync(update, authenticationToken, new VideoProcessingCallbackData(update.CallbackQuery!.Data!));
+        await HandleAsync(update, authenticationToken, new VideoProcessingCallbackData(CallbackDataFrom(update)));
 
     protected override async Task Process<T>(
         Update update,
@@ -27,9 +27,7 @@ public class VideoProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
         MediaFileProcessingCallbackData<T> mediaFileProcessingCallbackData,
         string mediaFilePath)
     {
-        var chatId = update.CallbackQuery!.Message!.Chat.Id;
-
         if (mediaFileProcessingCallbackData.Value.HasFlag(VideoProcessingQueryFlags.UploadVideo))
-            await UploadToMPlusAsync(chatId, mediaFilePath, authenticationToken);
+            await UploadToMPlusAsync(ChatIdFrom(update), mediaFilePath, authenticationToken);
     }
 }

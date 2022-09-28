@@ -124,7 +124,7 @@ public class TelegramBot : TelegramBotClient
 
     internal async Task<Message?> TrySendMessageAsync(ChatId chatId, string text, IReplyMarkup? replyMarkup = null)
     {
-        if (_textChunker is null) return await TrySendMessageAsync(chatId, text, replyMarkup);
+        if (_textChunker is null) return await TrySendMessageAsyncCore(chatId, text, replyMarkup);
         else return await _textChunker.TrySendChunkedMessageAsync(this, chatId, text);
     }
 

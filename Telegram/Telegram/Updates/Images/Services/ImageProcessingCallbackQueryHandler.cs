@@ -31,7 +31,7 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
     }
 
     protected async override Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken) =>
-        await HandleAsync(update, authenticationToken, new ImageProcessingCallbackData(update.CallbackQuery!.Data!));
+        await HandleAsync(update, authenticationToken, new ImageProcessingCallbackData(CallbackDataFrom(update)));
 
     protected override async Task Process<T>(
         Update update,
@@ -39,12 +39,10 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
         MediaFileProcessingCallbackData<T> mediaFileProcessingCallbackData,
         string mediaFilePath)
     {
-        var chatId = update.CallbackQuery!.Message!.Chat.Id;
-
         if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UpscaleImage) && mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
-            await UpscaleAndUploadToMPlusAsync(chatId, (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!, authenticationToken);
+            await UpscaleAndUploadToMPlusAsync(ChatIdFrom(update), (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!, authenticationToken);
         else if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
-            await UploadToMPlusAsync(chatId, mediaFilePath, authenticationToken);
+            await UploadToMPlusAsync(ChatIdFrom(update), mediaFilePath, authenticationToken);
     }
 
 
