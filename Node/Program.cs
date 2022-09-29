@@ -10,6 +10,7 @@ global using Node.Tasks.Handlers;
 global using Node.Tasks.Watching;
 global using NodeToUI;
 using System.Diagnostics;
+using Common.Heartbeat;
 using Node;
 using Node.Listeners;
 using Node.Plugins;

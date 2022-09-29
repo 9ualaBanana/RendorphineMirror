@@ -1,6 +1,6 @@
-﻿namespace Node;
+﻿namespace Common.Heartbeat;
 
-internal interface IHeartbeatGenerator
+public interface IHeartbeatGenerator
 {
     HttpRequestMessage Request { get; }
     EventHandler<HttpResponseMessage>? ResponseHandler { get; }

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Common.Heartbeat;
+using Newtonsoft.Json;
 
 namespace Node.UserSettings;
 

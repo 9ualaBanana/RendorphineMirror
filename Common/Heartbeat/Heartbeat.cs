@@ -1,8 +1,8 @@
 ﻿using Timer = System.Timers.Timer;
 
-namespace Node;
+namespace Common.Heartbeat;
 
-internal class Heartbeat : IDisposable
+public class Heartbeat : IDisposable
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -26,7 +26,7 @@ internal class Heartbeat : IDisposable
         }
     }
 
-    internal Heartbeat(
+    public Heartbeat(
         IHeartbeatGenerator heartbeatGenerator,
         TimeSpan interval,
         HttpClient httpClient,
@@ -35,7 +35,7 @@ internal class Heartbeat : IDisposable
     {
     }
     
-    internal Heartbeat(
+    public Heartbeat(
         IHeartbeatGenerator heartbeatGenerator,
         double interval,
         HttpClient httpClient,
@@ -45,7 +45,7 @@ internal class Heartbeat : IDisposable
         ResponseReceived += heartbeatGenerator.ResponseHandler;
     }
 
-    internal Heartbeat(
+    public Heartbeat(
         HttpRequestMessage request,
         TimeSpan interval,
         HttpClient httpClient,
@@ -54,7 +54,7 @@ internal class Heartbeat : IDisposable
     {
     }
 
-    internal Heartbeat(
+    public Heartbeat(
         HttpRequestMessage request,
         double interval,
         HttpClient httpClient,
@@ -76,7 +76,7 @@ internal class Heartbeat : IDisposable
         return timer;
     }
 
-    internal async Task StartAsync()
+    public async Task StartAsync()
     {
         await TrySendHeartbeatAsync();
         _timer.Start();
@@ -104,8 +104,10 @@ internal class Heartbeat : IDisposable
 
     public void Dispose()
     {
-        _timer?.Close();
+        GC.SuppressFinalize(this);
 
+        _timer?.Close();
+        
         _logger.Debug("{Service} for {Url} is stopped", nameof(Heartbeat), _request.RequestUri);
     }
 }
