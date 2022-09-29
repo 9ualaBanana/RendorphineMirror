@@ -23,8 +23,10 @@ public static class ReceivedTaskExtensions
 
         return path;
     }
-    public static string FSNewInputFile(this ReceivedTask task, FileFormat format) => Added(task.InputFiles, format, Path.Combine(task.FSInputDirectory(), "input" + AsExtension(format)));
-    public static string FSNewOutputFile(this ReceivedTask task, FileFormat format) => Added(task.OutputFiles, format, Path.Combine(task.FSOutputDirectory(), "output" + AsExtension(format)));
+    public static string FSNewInputFile(this ReceivedTask task, FileFormat format, string? path = null) =>
+        Added(task.InputFiles, format, Path.Combine(task.FSInputDirectory(), path ?? ("input" + AsExtension(format))));
+    public static string FSNewOutputFile(this ReceivedTask task, FileFormat format, string? path = null) =>
+        Added(task.OutputFiles, format, Path.Combine(task.FSOutputDirectory(), path ?? ("output" + AsExtension(format))));
 
     public static void AddInputFromLocalPath(this ReceivedTask task, string path) => AddFromLocalPath(task.InputFiles, path);
     public static void AddOutputFromLocalPath(this ReceivedTask task, string path) => AddFromLocalPath(task.OutputFiles, path);
