@@ -1,4 +1,4 @@
-namespace Node.Plugins.Deployment;
+namespace Common.Plugins.Deployment;
 
 public abstract record DownloadablePluginDeploymentInfo(string? InstallationPath = null) : PluginDeploymentInfo(InstallationPath)
 {

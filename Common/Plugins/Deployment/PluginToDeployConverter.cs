@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Node.Plugins.Deployment;
+namespace Common.Plugins.Deployment;
 
 public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
 {
@@ -42,7 +42,7 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
             .Select(subPluginProperty => new PluginToDeploy()
             {
                 Type = Enum.Parse<PluginType>(subPluginProperty.Name, true),
-                Version = (string) ((JObject)subPluginProperty.Value).Property("version")!,
+                Version = (string)((JObject)subPluginProperty.Value).Property("version")!,
                 SubPlugins = ReadSubSubPluginsFrom(((JObject)subPluginProperty.Value).Property("subplugins")!)
             }).ToHashSet();
     }
@@ -64,7 +64,7 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
 
     public override void WriteJson(JsonWriter writer, PluginToDeploy? plugin, JsonSerializer serializer)
     {
-        if (plugin is not null) 
+        if (plugin is not null)
             WriteValue(writer, plugin);
     }
 
@@ -72,12 +72,12 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
     {
         writer.WritePropertyName(plugin.Version); writer.WriteStartObject();
 
-            writer.WritePropertyName("plugins"); writer.WriteStartObject();
+        writer.WritePropertyName("plugins"); writer.WriteStartObject();
 
-                if (plugin.SubPlugins.Any())
-                    WriteSubplugins(writer, plugin.SubPlugins);
+        if (plugin.SubPlugins.Any())
+            WriteSubplugins(writer, plugin.SubPlugins);
 
-            writer.WriteEndObject();
+        writer.WriteEndObject();
 
         writer.WriteEndObject();
     }
@@ -92,13 +92,13 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
     {
         writer.WritePropertyName(subPlugin.Type.ToString().ToLowerInvariant()); writer.WriteStartObject();
 
-            writer.WritePropertyName("version"); writer.WriteValue(subPlugin.Version);
-            writer.WritePropertyName("subplugins"); writer.WriteStartObject();
+        writer.WritePropertyName("version"); writer.WriteValue(subPlugin.Version);
+        writer.WritePropertyName("subplugins"); writer.WriteStartObject();
 
-                if (subPlugin.SubPlugins.Any())
-                    WriteSubSubPlugins(writer, subPlugin.SubPlugins);
+        if (subPlugin.SubPlugins.Any())
+            WriteSubSubPlugins(writer, subPlugin.SubPlugins);
 
-            writer.WriteEndObject();
+        writer.WriteEndObject();
 
         writer.WriteEndObject();
     }

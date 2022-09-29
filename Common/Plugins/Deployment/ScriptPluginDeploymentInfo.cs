@@ -1,4 +1,4 @@
-namespace Node.Plugins.Deployment;
+namespace Common.Plugins.Deployment;
 
 public record ScriptPluginDeploymentInfo(PluginToDeploy Plugin) : PluginDeploymentInfo
 {

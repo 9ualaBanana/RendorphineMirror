@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace Common.Tasks.Model;
+namespace Common.Tasks.Watching;
 
 [JsonConverter(typeof(StringEnumConverter))]
 public enum WatchingTaskInputOutputType

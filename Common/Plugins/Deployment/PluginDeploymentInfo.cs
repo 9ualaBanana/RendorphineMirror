@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Node.Plugins.Deployment;
+namespace Common.Plugins.Deployment;
 
 public abstract record PluginDeploymentInfo(string? InstallationPath = default)
 {

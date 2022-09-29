@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Node.Plugins.Deployment;
+namespace Common.Plugins.Deployment;
 
 [JsonConverter(typeof(PluginToDeployConverter))]
 public class PluginToDeploy : IEquatable<PluginToDeploy>, IEquatable<Plugin>

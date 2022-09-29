@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
 
-namespace Node.Plugins.Deployment;
+namespace Common.Plugins.Deployment;
 
 internal record BlenderDeploymentInfo : DownloadablePluginDeploymentInfo
 {

@@ -1,4 +1,4 @@
-﻿using Node.Plugins.Deployment;
+﻿using Common.Plugins.Deployment;
 using Node.Plugins.Discoverers;
 
 namespace Node.Plugins;
@@ -47,7 +47,7 @@ public static class PluginsManager
     {
         InstalledPlugins = _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover()).ToHashSet();
         _logger.Info("List of installed plugins is updated");
-        NodeToUI.NodeGlobalState.Instance.InstalledPlugins.SetRange(InstalledPlugins);
+        NodeGlobalState.Instance.InstalledPlugins.SetRange(InstalledPlugins);
         return InstalledPlugins;
     }
 

@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Node.Plugins.Deployment;
+namespace Common.Plugins.Deployment;
 
 public record PythonDeploymentInfo : DownloadablePluginDeploymentInfo
 {
