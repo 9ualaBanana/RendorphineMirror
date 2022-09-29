@@ -1,3 +1,5 @@
+using Common.Plugins;
+
 namespace Node.Tasks.Exec;
 
 public class UpscaleEsrganInfo { }

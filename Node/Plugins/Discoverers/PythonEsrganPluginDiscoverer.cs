@@ -1,4 +1,6 @@
-﻿namespace Node.Plugins.Discoverers;
+﻿using Common.Plugins;
+
+namespace Node.Plugins.Discoverers;
 
 public class PythonEsrganPluginDiscoverer : PluginDiscoverer
 {

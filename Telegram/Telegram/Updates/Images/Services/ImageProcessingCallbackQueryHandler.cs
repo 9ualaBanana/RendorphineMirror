@@ -8,6 +8,7 @@ using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates.Images.Models;
 using Telegram.Telegram.Updates.Tasks.Models;
 using Telegram.Telegram.Updates.Tasks.Services;
+using Common.Plugins;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 

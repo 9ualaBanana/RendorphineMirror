@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace Common;
+namespace Common.Plugins;
 
 [JsonConverter(typeof(StringEnumConverter))]
 public enum PluginType
