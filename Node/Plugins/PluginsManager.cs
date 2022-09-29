@@ -1,4 +1,5 @@
-﻿using Common.Plugins.Deployment;
+﻿using Common.NodeUserSettings;
+using Common.Plugins.Deployment;
 using Node.Plugins.Discoverers;
 
 namespace Node.Plugins;
@@ -23,13 +24,21 @@ public static class PluginsManager
 
 
     #region Deployment
-    public static async Task DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins)
+    internal static async Task TryDeployUninstalledPluginsAsync(UserSettings userSettings)
+    {
+        _logger.Trace("Trying to deploy uninstalled plugins from {List}", nameof(userSettings.NodeInstallSoftware));
+        await DeployUninstalledPluginsAsync(userSettings.ThisNodeInstallSoftware);
+        _logger.Trace("Trying to deploy uninstalled plugins from {List}", nameof(userSettings.InstallSoftware));
+        await DeployUninstalledPluginsAsync(userSettings.InstallSoftware);
+    }
+
+    static async Task DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins)
     {
         foreach (var plugin in LeaveOnlyUninstalled(plugins))
             await DeployUninstalledPluginAsync(plugin);
     }
 
-    public static async Task DeployUninstalledPluginAsync(PluginToDeploy plugin)
+    static async Task DeployUninstalledPluginAsync(PluginToDeploy plugin)
     {
         _logger.Info("Deploying {PluginType} plugin", plugin.Type);
         await new ScriptPluginDeploymentInfo(plugin).DeployAsync();

@@ -2,7 +2,7 @@
 using Newtonsoft.Json.Linq;
 using Common.Plugins.Deployment;
 
-namespace Node.UserSettings;
+namespace Common.NodeUserSettings;
 
 public class UserSettingsConverter : JsonConverter<UserSettings>
 {

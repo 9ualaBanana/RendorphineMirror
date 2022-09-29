@@ -1,9 +1,8 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Node.Plugins;
 using Common.Plugins.Deployment;
 
-namespace Node.UserSettings;
+namespace Common.NodeUserSettings;
 
 [JsonConverter(typeof(UserSettingsConverter))]
 public class UserSettings
@@ -21,16 +20,7 @@ public class UserSettings
 
     public UserSettings(string? guid = default) => Guid = guid ?? Settings.Guid!;
 
-
-    internal async Task TryDeployUninstalledPluginsAsync()
-    {
-        _logger.Trace("Trying to deploy uninstalled plugins from {List}", nameof(NodeInstallSoftware));
-        await PluginsManager.DeployUninstalledPluginsAsync(ThisNodeInstallSoftware);
-        _logger.Trace("Trying to deploy uninstalled plugins from {List}", nameof(InstallSoftware));
-        await PluginsManager.DeployUninstalledPluginsAsync(InstallSoftware);
-    }
-
-    internal static async Task<UserSettings> ReadOrThrowAsync(HttpResponseMessage response)
+    public static async Task<UserSettings> ReadOrThrowAsync(HttpResponseMessage response)
     {
         try
         {

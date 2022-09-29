@@ -11,13 +11,12 @@ global using Node.Tasks.Watching;
 global using NodeToUI;
 using System.Diagnostics;
 using Common.Heartbeat;
+using Common.NodeUserSettings;
 using Node;
 using Node.Listeners;
 using Node.Plugins;
 using Node.Plugins.Discoverers;
 using Node.Profiling;
-using Node.UserSettings;
-
 
 var halfrelease = args.Contains("release");
 Init.Initialize();
@@ -85,7 +84,7 @@ if (!Init.IsDebug || halfrelease)
 
     captured.Add(mPlusTaskManagerHeartbeat);
 
-    var userSettingsHeartbeat = new Heartbeat(new UserSettingsManager(Api.Client), TimeSpan.FromMinutes(1), Api.Client);
+    var userSettingsHeartbeat = new Heartbeat(new PluginsUpdater(), TimeSpan.FromMinutes(1), Api.Client);
     _ = userSettingsHeartbeat.StartAsync();
 
     captured.Add(userSettingsHeartbeat);

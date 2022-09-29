@@ -1,9 +1,9 @@
 ﻿using Common.Heartbeat;
 using Newtonsoft.Json;
 
-namespace Node.UserSettings;
+namespace Common.NodeUserSettings;
 
-public class UserSettingsManager : IHeartbeatGenerator
+public class UserSettingsManager
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -11,34 +11,6 @@ public class UserSettingsManager : IHeartbeatGenerator
     readonly CancellationToken _cancellationToken;
     readonly string _endpoint = $"{Api.TaskManagerEndpoint}/getmysettings";
     string BuildUrl(string? sessionId = default) => $"{_endpoint}?sessionid={sessionId ?? Settings.SessionId}";
-
-
-    #region IHeartbeatGenerator
-    public HttpRequestMessage Request => new(HttpMethod.Get, BuildUrl());
-    bool _deploymentInProcess = false;
-    public EventHandler<HttpResponseMessage> ResponseHandler => async (_, response) =>
-    {
-        _logger.Trace("{Service}'s plugins deployment callback is called", nameof(UserSettingsManager));
-
-        if (_deploymentInProcess) return;
-
-        _deploymentInProcess = true;
-        await TryDeployUninstalledPluginsAsync(response);
-        _deploymentInProcess = false;
-    };
-
-    async Task TryDeployUninstalledPluginsAsync(HttpResponseMessage response)
-    {
-        try { await DeployUninstalledPluginsAsync(response); }
-        catch (Exception ex) { _logger.Error(ex, "{Service} was unable to deploy uninstalled plugins", nameof(UserSettingsManager)); }
-    }
-
-    async Task DeployUninstalledPluginsAsync(HttpResponseMessage response)
-    {
-        var userSettings = await UserSettings.ReadOrThrowAsync(response);
-        await userSettings.TryDeployUninstalledPluginsAsync();
-    }
-    #endregion
 
 
     public UserSettingsManager(HttpClient httpClient, CancellationToken cancellationToken = default)
