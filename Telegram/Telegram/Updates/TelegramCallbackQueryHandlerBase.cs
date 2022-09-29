@@ -1,7 +1,6 @@
 ﻿using Telegram.Bot.Types;
-using Telegram.Telegram.Updates;
 
-namespace Telegram.Telegram;
+namespace Telegram.Telegram.Updates;
 
 public abstract class TelegramCallbackQueryHandlerBase : TelegramUpdateHandler
 {

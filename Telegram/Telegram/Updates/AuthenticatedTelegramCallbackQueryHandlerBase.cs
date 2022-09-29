@@ -2,7 +2,7 @@
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 
-namespace Telegram.Telegram;
+namespace Telegram.Telegram.Updates;
 
 public abstract class AuthenticatedTelegramCallbackQueryHandlerBase : TelegramCallbackQueryHandlerBase
 {
