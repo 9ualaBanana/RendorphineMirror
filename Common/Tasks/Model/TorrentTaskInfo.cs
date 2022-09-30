@@ -7,7 +7,7 @@ public class TorrentTaskInputInfo : ITaskInputInfo
     public TaskInputType Type => TaskInputType.Torrent;
 
     [Hidden] public string? Link;
-    [LocalFile] public readonly string Path;
+    [LocalFile, NonSerializableForTasks] public readonly string Path;
 
     public TorrentTaskInputInfo(string path, string? link = null)
     {

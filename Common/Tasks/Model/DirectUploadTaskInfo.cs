@@ -1,11 +1,11 @@
-﻿namespace Common.Tasks.Model;
+namespace Common.Tasks.Model;
 
 public class DirectDownloadTaskInputInfo : ITaskInputInfo
 {
     public TaskInputType Type => TaskInputType.DirectUpload;
 
-    [LocalFile] public readonly string Path;
-    [Hidden] public bool Downloaded = false;
+    [LocalFile, NonSerializableForTasks] public readonly string Path;
+    [Hidden, NonSerializableForTasks] public bool Downloaded = false;
 
     public DirectDownloadTaskInputInfo(string? path = null) => Path = path!;
 }

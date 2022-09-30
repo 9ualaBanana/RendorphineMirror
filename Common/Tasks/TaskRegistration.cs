@@ -22,8 +22,8 @@ public static class TaskRegistration
         {
             ("sessionid", sessionId ?? Settings.SessionId!),
             ("object", JsonConvert.SerializeObject(taskobj, JsonSettings.LowercaseIgnoreNull)),
-            ("input", JsonConvert.SerializeObject(input, JsonSettings.LowercaseIgnoreNull)),
-            ("output", JsonConvert.SerializeObject(output, JsonSettings.LowercaseIgnoreNull)),
+            ("input", JsonConvert.SerializeObject(input, JsonSettings.LowercaseIgnoreNullTaskInOut)),
+            ("output", JsonConvert.SerializeObject(output, JsonSettings.LowercaseIgnoreNullTaskInOut)),
             ("data", data.ToString(Formatting.None)),
             ("policy", info.Policy.ToString()),
             ("origin", string.Empty),
