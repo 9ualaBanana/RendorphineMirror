@@ -21,15 +21,17 @@ public class DirectUploadListener : MultipartListenerBase
         if (dinput.Downloaded)
             return await WriteErr(context.Response, "Input files were already uploaded");
 
-        var last = (await (sections.GetValueOrDefault("last")?.ReadAsStringAsync() ?? Task.FromResult("0"))) == "1";
-        if (last)
-        {
-            var check = task.GetAction().InputRequirements.Check(task);
-            if (!check) return await WriteJson(context.Response, check);
-        }
-
         var file = sections["file"];
         var format = FileFormatExtensions.FromMime(file.Headers["Content-Type"]);
+        var last = (await (sections.GetValueOrDefault("last")?.ReadAsStringAsync() ?? Task.FromResult("0"))) == "1";
+
+        // if there is only one input file, check length
+        if (task.InputFiles.Count == 0 && last)
+        {
+            var length = long.Parse(file.Headers["Content-Length"]);
+            if (Math.Abs(task.Info.Object.Size - length) > 1024 * 1024)
+                return await WriteErr(context.Response, "Invalid input file length");
+        }
 
         using var _ = file.Body;
 
@@ -37,7 +39,14 @@ public class DirectUploadListener : MultipartListenerBase
         using (var resultfile = File.OpenWrite(filename))
             await file.Body.CopyToAsync(resultfile);
 
-        if (last) dinput.Downloaded = true;
+        if (last)
+        {
+            var check = task.GetAction().InputRequirements.Check(task);
+            if (!check) return await WriteJson(context.Response, check);
+
+            dinput.Downloaded = true;
+        }
+
         return await WriteSuccess(context.Response);
     }
 }

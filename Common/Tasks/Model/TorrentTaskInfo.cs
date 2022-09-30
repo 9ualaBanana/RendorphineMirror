@@ -23,6 +23,15 @@ public class TorrentTaskInputInfo : ITaskInputInfo
         var magnet = new MagnetLink(torrent.InfoHash, torrent.Name, size: torrent.Size);
         Link = magnet.ToV1String();
     }
+
+    public ValueTask<TaskObject> GetFileInfo()
+    {
+        if (File.Exists(Path)) return get(Path).AsVTask();
+        return get(Directory.GetFiles(Path, "*", SearchOption.AllDirectories).First()).AsVTask();
+
+
+        TaskObject get(string file) => new TaskObject(System.IO.Path.GetFileName(file), new FileInfo(file).Length);
+    }
 }
 public class TorrentTaskOutputInfo : ITaskOutputInfo
 {

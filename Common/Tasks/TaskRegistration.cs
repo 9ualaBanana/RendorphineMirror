@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Common.Tasks;
 
@@ -11,9 +10,9 @@ public static class TaskRegistration
     public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, string? sessionId = default)
     {
         var data = info.Data;
-        var taskobj = new TaskObject("3_UGVlayAyMDIxLTA4LTA0IDEzLTI5", 12345678);
         var input = TaskModels.DeserializeInput(info.Input);
         var output = TaskModels.DeserializeOutput(info.Output);
+        var taskobj = info.TaskObject ?? (await input.GetFileInfo());
 
         await input.InitializeAsync();
         await output.InitializeAsync();

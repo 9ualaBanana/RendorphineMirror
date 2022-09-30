@@ -20,13 +20,14 @@ public static class WatchingTaskExtensions
 
         return new TaskCreationInfo(
             action.Type,
-            null, // TODO: get version somewhere
+            task.Version,
             action.Name,
             JObject.FromObject(input, JsonSettings.LowercaseIgnoreNullS).WithProperty("type", input.Type.ToString()),
             JObject.FromObject(output, JsonSettings.LowercaseIgnoreNullS).WithProperty("type", output.Type.ToString()),
             JObject.FromObject(task.TaskData, JsonSettings.LowercaseIgnoreNullS),
             task.Policy
-        );
+        )
+        { ExecuteLocally = task.ExecuteLocally };
     }
 
     public static ValueTask<string> RegisterTask(this WatchingTask task, string filename, ITaskInputInfo input) => task.RegisterTask(input, task.Output.CreateOutput(filename));

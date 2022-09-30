@@ -9,15 +9,10 @@ public class WatchingTaskInfo
     public readonly string TaskAction;
     public readonly JObject Source, Output, TaskData;
     public readonly TaskPolicy Policy;
+    public readonly bool ExecuteLocally;
 
-    public WatchingTaskInfo(string id, string? version, string taskaction, JObject source, JObject output, JObject taskdata, TaskPolicy policy = TaskPolicy.AllNodes)
-    {
-        Id = id;
-        Version = version;
-        TaskAction = taskaction;
-        Source = source;
-        Output = output;
-        TaskData = taskdata;
-        Policy = policy;
-    }
+
+#pragma warning disable CS8618 // field are not assigned
+    public WatchingTaskInfo() { }
+#pragma warning restore
 }

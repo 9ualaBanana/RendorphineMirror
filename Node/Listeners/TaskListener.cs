@@ -28,7 +28,7 @@ public class TaskListener : ExecutableListenerBase
             var input = TaskModels.DeserializeWatchingInput(task.Input);
             var output = TaskModels.DeserializeWatchingOutput(task.Output);
 
-            var wt = new WatchingTask(input, task.Action, task.Data, output, task.Policy);
+            var wt = new WatchingTask(input, task.Action, task.Data, output, task.Policy, task.Version, task.ExecuteLocally);
             wt.StartWatcher();
             NodeSettings.WatchingTasks.Bindable.Add(wt);
 

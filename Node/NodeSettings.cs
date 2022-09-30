@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using static Common.Settings;
 
 namespace Node;
@@ -16,7 +17,10 @@ public static class NodeSettings
         PlacedTasks = new("PlacedTasks2");
         CompletedTasks = new(nameof(CompletedTasks));
 
-        WatchingTasks.Bindable.SubscribeChanged(() => NodeGlobalState.Instance.WatchingTasks.SetRange(WatchingTasks.Bindable.Select(x => x.AsInfo())), true);
+        WatchingTasks.Bindable.SubscribeChanged(() =>
+            NodeGlobalState.Instance.WatchingTasks.SetRange(WatchingTasks.Bindable.Select(x => JsonConvert.DeserializeObject<WatchingTaskInfo>(JsonConvert.SerializeObject(x))!))
+        , true);
+
         NodeGlobalState.Instance.PlacedTasks.Bind(PlacedTasks.Bindable);
         NodeGlobalState.Instance.QueuedTasks.Bind(QueuedTasks.Bindable);
     }

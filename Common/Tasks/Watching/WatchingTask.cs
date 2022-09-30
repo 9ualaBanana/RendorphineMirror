@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Common.Tasks.Watching;
@@ -7,23 +8,30 @@ public class WatchingTask : ILoggable
     string ILoggable.LogName => $"Watching task {Id}";
 
     public readonly string Id;
+    public readonly string? Version;
     public readonly IWatchingTaskSource Source;
     public readonly string TaskAction;
     public readonly JObject TaskData;
     public readonly IWatchingTaskOutputInfo Output;
     public readonly TaskPolicy Policy;
+    public readonly bool ExecuteLocally;
 
     public readonly List<string> PlacedTasks = new();
 
-    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output, TaskPolicy policy = TaskPolicy.SameNode, string? id = null)
+#pragma warning disable CS8618 // field are not assigned
+    [JsonConstructor] private WatchingTask() { }
+#pragma warning restore
+
+    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output, TaskPolicy policy, string? version, bool executeLocally)
     {
-        Id = id ?? Guid.NewGuid().ToString();
+        Id = Guid.NewGuid().ToString();
 
         Source = source;
         TaskAction = taskaction;
         TaskData = taskData;
         Output = output;
         Policy = policy;
+        ExecuteLocally = executeLocally;
     }
 
 
@@ -33,8 +41,4 @@ public class WatchingTask : ILoggable
         Directory.CreateDirectory(dir);
         return dir;
     }
-
-
-    // TODO: version
-    public WatchingTaskInfo AsInfo() => new(Id, null, TaskAction, JObject.FromObject(Source), JObject.FromObject(Output), TaskData, Policy);
 }
