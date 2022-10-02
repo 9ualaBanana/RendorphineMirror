@@ -7,7 +7,7 @@ public class ChunkedText : IEquatable<ChunkedText>
     int _pointer;
 
 
-    public bool IsChunked => _content.Length <= _chunkSize;
+    public bool IsChunked => _content.Length > _chunkSize;
     public bool IsAtMiddle => !IsAtFirstChunk && !IsAtLastChunk;
     public bool IsAtFirstChunk => _pointer == 0;
     public bool IsAtLastChunk =>
@@ -25,22 +25,24 @@ public class ChunkedText : IEquatable<ChunkedText>
     }
 
 
-    public string PreviousChunk()
+    public void ToPreviousChunk()
     {
-        int chunkStart = _pointer - _chunkSize;
-        if (chunkStart < 0) chunkStart = 0;
-        _pointer -= chunkStart;
-
-        return NextChunk(movePointerToEnd: false);
+        _pointer -= _chunkSize * 2;
+        if (_pointer < 0) _pointer = 0;
     }
 
-    public string NextChunk(bool movePointerToEnd = true)
+    public string NextChunk
     {
-        int chunkEnd = _pointer + _chunkSize;
-        if (chunkEnd > _content.Length) chunkEnd = _content.Length;
-        if (movePointerToEnd) _pointer = chunkEnd;
+        get
+        {
+            int chunkEnd = _pointer + _chunkSize;
+            if (chunkEnd > _content.Length) chunkEnd = _content.Length;
 
-        return _content[_pointer..chunkEnd];
+            int pointerBeforeMove = _pointer;
+            _pointer = chunkEnd;
+
+            return _content[pointerBeforeMove..chunkEnd];
+        }
     }
 
     #region Equality

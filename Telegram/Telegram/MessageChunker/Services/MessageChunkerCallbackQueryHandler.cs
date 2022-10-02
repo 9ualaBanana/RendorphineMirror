@@ -26,8 +26,9 @@ public class MessageChunkerCallbackQueryHandler : TelegramCallbackQueryHandlerBa
         var messageToEdit = _chunkedMessagesAutoStorage[update.CallbackQuery!.Message!.MessageId];
         if (messageToEdit is null) return;
 
-        var newMessageContent = messageChunkerCallbackData.Value.HasFlag(MessageChunkerCallbackQueryFlags.Previous) ? messageToEdit.ChunkedText.PreviousChunk() : messageToEdit.ChunkedText.NextChunk();
-        await Bot.EditMessageTextAsync(update.CallbackQuery.Message.Chat.Id, messageToEdit.Message.MessageId, newMessageContent, ParseMode.MarkdownV2);
-        await Bot.EditMessageReplyMarkupAsync(update.CallbackQuery.Message.Chat.Id, messageToEdit.Message.MessageId, TelegramMessageChunker.ReplyMarkupFor(messageToEdit.ChunkedText));
+        if (messageChunkerCallbackData.Value.HasFlag(MessageChunkerCallbackQueryFlags.Previous)) messageToEdit.ChunkedText.ToPreviousChunk();
+        var replyMarkup = TelegramMessageChunker.ReplyMarkupFor(messageToEdit.ChunkedText);
+        await Bot.EditMessageTextAsync(update.CallbackQuery.Message.Chat.Id, messageToEdit.Message.MessageId, messageToEdit.ChunkedText.NextChunk.Sanitize(), ParseMode.MarkdownV2);
+        await Bot.EditMessageReplyMarkupAsync(update.CallbackQuery.Message.Chat.Id, messageToEdit.Message.MessageId, replyMarkup);
     }
 }
