@@ -1,6 +1,4 @@
-﻿using Common.Plugins;
-
-namespace Node.Plugins.Discoverers;
+﻿namespace Node.Plugins.Discoverers;
 
 public class PythonPluginDiscoverer : PluginDiscoverer
 {
