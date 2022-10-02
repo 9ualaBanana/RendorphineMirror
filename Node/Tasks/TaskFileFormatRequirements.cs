@@ -74,8 +74,8 @@ public class TaskFileFormatRequirements : IEnumerable<TaskFileFormatRequirements
         public OperationResult Check(ReceivedTask task)
         {
             var count = task.InputFiles.Count(x => x.Format == Format);
-            if (count < Minimum) return OperationResult.Err($"Not enough {Format} input files: {count}, should be {Minimum}");
-            if (count > Maximum) return OperationResult.Err($"Too many {Format} input files: {count}, should be {Maximum}");
+            if (count < Minimum) return OperationResult.Err($"Not enough {Format} input files: {count}, should be at least {Minimum}");
+            if (count > Maximum) return OperationResult.Err($"Too many {Format} input files: {count}, should be no more than {Maximum}");
 
             return true;
         }

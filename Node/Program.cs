@@ -1,5 +1,6 @@
 ﻿global using System.Collections.Immutable;
 global using Common;
+global using Common.Plugins;
 global using Common.Tasks;
 global using Common.Tasks.Model;
 global using Common.Tasks.Watching;
@@ -47,7 +48,8 @@ if (Settings.SessionId is not null)
     }
 
     if (Settings.SessionId is not null && !Debugger.IsAttached)
-        Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden"));
+        try { Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden")); }
+        catch { }
 }
 else
 {
@@ -205,8 +207,18 @@ async Task InitializePlugins()
 }
 async ValueTask AuthWithGui()
 {
-    Console.WriteLine(@$"You are not authenticated. Please use NodeUI app to authenticate");
+    logger.Warn(@$"You are not authenticated. Please use NodeUI app to authenticate");
     Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
+
+    if (File.Exists("login"))
+    {
+        var data = File.ReadAllText("login").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var login = data[0];
+        var password = data[1];
+
+        await SessionManager.AuthAsync(login, password).ThrowIfNull();
+        return;
+    }
 
     while (true)
     {

@@ -69,7 +69,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
                     using var content = new MultipartFormDataContent()
                     {
                         { new StringContent(task.Id), "taskid" },
-                        { new StreamContent(File.OpenRead(file)) { Headers = { ContentType = new(MimeTypes.GetMimeType(file)) } }, "file", Path.GetFileName(file) },
+                        { new StreamContent(File.OpenRead(file)) { Headers = { ContentType = new(MimeTypes.GetMimeType(file)), ContentLength = new FileInfo(file).Length } }, "file", Path.GetFileName(file) },
                         { new StringContent(file == files[^1] ? "1" : "0"), "last" },
                     };
 
@@ -107,8 +107,6 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         try { ZipFile.ExtractToDirectory(zipfile, task.FSPlacedResultsDirectory()); }
         catch
         {
-            task.LogInfo(string.Join(", ", result.Headers));
-            task.LogInfo(string.Join(", ", result.Content.Headers));
             var mime = result.Content.Headers.ContentType!.ToString();
             var file = Path.ChangeExtension(Path.GetFileName(zipfile), MimeTypes.GetMimeTypeExtensions(mime).FirstOrDefault());
             File.Move(zipfile, Path.Combine(task.FSPlacedResultsDirectory(), file));

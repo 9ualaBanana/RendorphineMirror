@@ -4,6 +4,8 @@ namespace Common.Tasks.Model;
 public class UserTaskInputInfo : ITaskInputInfo
 {
     public TaskInputType Type => TaskInputType.User;
+
+    public ValueTask<TaskObject> GetFileInfo() => throw new NotImplementedException();
 }
 public class UserTaskOutputInfo : ITaskOutputInfo
 {

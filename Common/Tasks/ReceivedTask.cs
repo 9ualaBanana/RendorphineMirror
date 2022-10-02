@@ -45,7 +45,7 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
     public string? TryFSOutputFile(FileFormat format) => OutputFiles.FirstOrDefault(x => x.Format == format)?.Path;
 
     [Obsolete("Use FSOutputDirectory instead")]
-    public string FSOutputFile() => Directory.GetFiles(FSOutputDirectory()).Single();
+    public string FSOutputFile() => Directory.GetFiles(FSOutputDirectory()).First();
 
     public string GetTempFileName(string extension)
     {

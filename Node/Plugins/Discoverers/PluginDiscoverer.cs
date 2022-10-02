@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Common.Plugins;
 
 namespace Node.Plugins.Discoverers;
 
@@ -40,7 +39,7 @@ public abstract class PluginDiscoverer
             );
 
         if (Environment.OSVersion.Platform == PlatformID.Unix)
-            directories = directories.Append("/bin");
+            directories = directories.Prepend("/bin");
 
 
         return directories;
@@ -56,6 +55,7 @@ public abstract class PluginDiscoverer
                 )
                 .Where(file => RegexExecutable?.IsMatch(Path.GetFileName(file)) ?? true)
             )
+            .Where(path => Environment.OSVersion.Platform == PlatformID.Win32NT ? true : !path.EndsWith(".exe"))
             .Select(GetDiscoveredPlugin)
             // skip same versions unless it's unknown
             .DistinctBy(plugin => plugin.Version == "Unknown" ? Guid.NewGuid().ToString() : plugin.Version);
