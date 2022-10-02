@@ -7,16 +7,11 @@ namespace Telegram.Telegram.MessageChunker.Services;
 
 public class TelegramMessageChunker
 {
-    readonly Microsoft.Extensions.Logging.ILogger _logger;
-
     readonly ChunkedMessagesAutoStorage _chunkedMessagesAutoStorage;
 
 
-    public TelegramMessageChunker(
-        ILogger<TelegramMessageChunker> logger,
-        ChunkedMessagesAutoStorage chunkedMessagesAutoStorage)
+    public TelegramMessageChunker(ChunkedMessagesAutoStorage chunkedMessagesAutoStorage)
     {
-        _logger = logger;
         _chunkedMessagesAutoStorage = chunkedMessagesAutoStorage;
     }
 
