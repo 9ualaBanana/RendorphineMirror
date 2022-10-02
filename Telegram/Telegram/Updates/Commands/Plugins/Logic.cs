@@ -11,8 +11,8 @@ internal static class Logic
     {
         var messageBuilder = new StringBuilder();
 
-        var nodesWhosePluginsToShow = nodeSupervisor.AllNodes
-            .Where(node => node.NameContainsAny(nodeNames));
+        var nodesWhosePluginsToShow = nodeNames.Any() ? nodeSupervisor.AllNodes
+            .Where(node => node.NameContainsAny(nodeNames)) : nodeSupervisor.AllNodes;
         foreach (var node in nodesWhosePluginsToShow)
         {
             messageBuilder.AppendLine(ListInstalledPluginsFor(node).ToString());
