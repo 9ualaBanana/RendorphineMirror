@@ -8,10 +8,10 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
     static readonly SemaphoreSlim TaskWaitHandle = new SemaphoreSlim(1);
     static readonly SemaphoreSlim OutputSemaphore = new SemaphoreSlim(5);
 
-    static async Task<FuncDispose> WaitDisposed(ReceivedTask task, SemaphoreSlim semaphore)
+    static async Task<FuncDispose> WaitDisposed(string info, ReceivedTask task, SemaphoreSlim semaphore)
     {
         if (semaphore.CurrentCount == 0)
-            task.LogInfo("Waiting for the handle");
+            task.LogInfo($"Waiting for the handle: {info}");
 
         await semaphore.WaitAsync();
         return FuncDispose.Create(semaphore.Release);
@@ -23,7 +23,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
         if (task.State <= TaskState.Input)
         {
-            using var _ = await WaitDisposed(task, InputSemaphore);
+            using var _ = await WaitDisposed("input", task, InputSemaphore);
 
             task.LogInfo($"Downloading input...");
             await task.GetInputHandler().Download(task).ConfigureAwait(false);
@@ -36,7 +36,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
         if (task.State <= TaskState.Active)
         {
-            using var _ = await WaitDisposed(task, TaskWaitHandle);
+            using var _ = await WaitDisposed("active", task, TaskWaitHandle);
 
             task.LogInfo($"Checking input files...");
             task.GetAction().InputRequirements.Check(task).ThrowIfError();
@@ -52,7 +52,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
         if (task.State <= TaskState.Output)
         {
-            using var _ = await WaitDisposed(task, OutputSemaphore);
+            using var _ = await WaitDisposed("output", task, OutputSemaphore);
 
             task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ...");
             await task.GetOutputHandler().UploadResult(task).ConfigureAwait(false);
