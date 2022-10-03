@@ -10,6 +10,7 @@ public class Heartbeat : IDisposable
     readonly Timer _timer;
     readonly HttpClient _httpClient;
     readonly CancellationToken _cancellationToken;
+    readonly bool _verboseLogging;
 
     event EventHandler<HttpResponseMessage>? _responseReceived;
     internal event EventHandler<HttpResponseMessage>? ResponseReceived
@@ -58,12 +59,14 @@ public class Heartbeat : IDisposable
         HttpRequestMessage request,
         double interval,
         HttpClient httpClient,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool logEachHeartbeatWithTraceLevel = true)
     {
         _request = request;
         _timer = ConfigureTimer(interval);
         _httpClient = httpClient;
         _cancellationToken = cancellationToken;
+        _verboseLogging = logEachHeartbeatWithTraceLevel;
 
         _logger.Debug("{Service} for {Url} is initialized with {Interval} ms interval", nameof(Heartbeat), _request.RequestUri, interval);
     }
@@ -88,10 +91,10 @@ public class Heartbeat : IDisposable
     {
         try
         {
-            var response = await SendHeartbeatAsync(); _logger.Debug("Heartbeat was sent to {Url}", _request.RequestUri);
+            var response = await SendHeartbeatAsync(); if (_verboseLogging) _logger.Trace("Heartbeat was sent to {Url}", _request.RequestUri);
             _responseReceived?.Invoke(this, response);
         }
-        catch (HttpRequestException ex) { _logger.Error(ex, "Heartbeat couldn't be sent to {Url}", _request.RequestUri); }
+        catch (HttpRequestException ex) { if (_verboseLogging) _logger.Trace(ex, "Heartbeat couldn't be sent to {Url}", _request.RequestUri); }
         catch (Exception ex) { _logger.Error(ex, "Heartbeat couldn't be sent to {Url} due to unexpected error", _request.RequestUri); }
     }
 

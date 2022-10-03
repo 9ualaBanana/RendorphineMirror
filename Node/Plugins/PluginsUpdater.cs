@@ -16,7 +16,8 @@ internal class PluginsUpdater : IHeartbeatGenerator
     bool _deploymentInProcess = false;
     public EventHandler<HttpResponseMessage> ResponseHandler => async (_, response) =>
     {
-        _logger.Trace("{Service}'s plugins deployment callback is called", nameof(UserSettingsManager));
+        _logger.Trace("{Service}'s (as {Interface}) plugins deployment callback is called",
+            nameof(UserSettingsManager), nameof(IHeartbeatGenerator));
 
         if (_deploymentInProcess) return;
 

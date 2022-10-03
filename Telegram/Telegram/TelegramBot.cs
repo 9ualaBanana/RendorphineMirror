@@ -116,7 +116,7 @@ public class TelegramBot : TelegramBotClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Following video couldn't be sent to {Chat}:\n\n{Video}\n{Thumbnail}",
+            _logger.LogError(ex, "Following video couldn't be sent to {Chat}:\n{Video}\n{Thumbnail}",
                 chatId, video, thumb);
         }
         return false;
@@ -139,7 +139,7 @@ public class TelegramBot : TelegramBotClient
                 parseMode: ParseMode.MarkdownV2);
         }
         catch (Exception ex)
-        { _logger.LogError(ex, "Following message couldn't be sent to {Chat}:\n\n{Message}", chatId, text); return null; }
+        { _logger.LogError(ex, "Following message couldn't be sent to {Chat}:\n{Message}", chatId, text); return null; }
     }
 }
 
