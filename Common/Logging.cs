@@ -44,7 +44,7 @@ internal static class Logging
         MaxArchiveDays = 7
     };
 
-    static string _LogDirFor(LogLevel logLevel) => $"{_logDir}{logLevel.Name}";
+    static string _LogDirFor(LogLevel logLevel) => $"{_logDir}{logLevel.Name}${{dir-separator}}";
     readonly static string _logDir = "logs${dir-separator}${processname}${dir-separator}";
     readonly static string _fileExtension = ".log";
 }
