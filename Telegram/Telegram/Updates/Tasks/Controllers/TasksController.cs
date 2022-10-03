@@ -12,10 +12,12 @@ public class TasksController : ControllerBase
 {
     readonly IWebHostEnvironment _appEnvironment;
 
+
     public TasksController(IWebHostEnvironment appEnvironment)
     {
         _appEnvironment = appEnvironment;
     }
+
 
     [HttpPost("result_preview")]
     public async Task<JsonContent> NotifySubscribersAboutResultPreview(
@@ -45,14 +47,14 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet("getinput/{id}")]
-    public ActionResult GetInput([FromRoute] string id, [FromServices] TelegramFileRegistry fileRegistry, ILogger<TasksController> logger)
+    public ActionResult GetInput([FromRoute] string id, [FromServices] TelegramFileRegistry fileRegistry)
     {
         var file = fileRegistry.TryGet(id);
         if (file is null) return NotFound();
 
         var fileName = Path.ChangeExtension(Path.Combine(_appEnvironment.ContentRootPath, fileRegistry.Path, id), file.Extension);
 
-        try { return PhysicalFile(fileName, MimeTypes.GetMimeType(fileName)); }
+        try { return PhysicalFile(fileName, MimeTypes.GetMimeType(file.Extension)); }
         catch { return NotFound(); }
     }
 }

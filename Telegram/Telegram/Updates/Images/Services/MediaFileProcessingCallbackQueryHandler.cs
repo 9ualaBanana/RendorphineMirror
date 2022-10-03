@@ -13,7 +13,8 @@ public abstract class MediaFileProcessingCallbackQueryHandler : AuthenticatedTel
     readonly HttpClient _httpClient;
 
 
-    protected MediaFileProcessingCallbackQueryHandler(ILogger logger,
+    protected MediaFileProcessingCallbackQueryHandler(
+        ILogger logger,
         TelegramBot bot,
         ChatAuthenticator authenticator,
         TelegramFileRegistry fileRegistry,

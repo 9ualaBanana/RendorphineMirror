@@ -2,7 +2,7 @@
 
 internal class ImageContentType : IContentType
 {
-    public string Extension => ".jpg";
+    public string Extension => ".jpeg";
 
     public string MimeType => "image/jpeg";
 }
