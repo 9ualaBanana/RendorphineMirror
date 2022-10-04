@@ -3,6 +3,7 @@ using Telegram.Services.Telegram.Updates.Commands.Online;
 using Telegram.Services.Telegram.Updates.Commands.Ping;
 using Telegram.Services.Telegram.Updates.Commands.Pinglist;
 using Telegram.Services.Telegram.Updates.Commands.Plugins;
+using Telegram.Telegram.Updates.Commands;
 
 namespace Telegram.Services.Telegram.Updates.Commands;
 
@@ -39,5 +40,6 @@ internal static class CommandsExtensions
             .AddScoped<Command, AdminPluginsCommand>()
             .AddScoped<Command, DeployCommand>()
             .AddScoped<Command, RemoveCommand>()
-            .AddScoped<Command, LogoutCommand>();
+            .AddScoped<Command, LogoutCommand>()
+            .AddScoped<Command, AdminChunkerCommand>();
 }
