@@ -263,18 +263,17 @@ public static class FFMpegTasks
         }
 
 
-        public enum FFProbeCodecType { Unknown, Video, Audio }
         public record FFProbeInfo(ImmutableArray<FFProbeStreamInfo> Streams, FFProbeFormatInfo Format)
         {
             // die if there are multiple video streams
-            public FFProbeStreamInfo VideoStream => Streams.Single(x => x.CodecType == FFProbeCodecType.Video);
+            public FFProbeStreamInfo VideoStream => Streams.Single(x => x.CodecType.Equals("video", StringComparison.OrdinalIgnoreCase));
         };
 
         public record FFProbeStreamInfo(
             int Width,
             int Height,
             [JsonProperty("codec_name")] string CodecName,
-            [JsonProperty("codec_type")] FFProbeCodecType CodecType,
+            [JsonProperty("codec_type")] string CodecType,
             [JsonProperty("r_frame_rate")] string FrameRateString
         )
         {
