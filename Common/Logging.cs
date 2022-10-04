@@ -12,8 +12,8 @@ internal static class Logging
         LogManager.AutoShutdown = true;
         LogManager.GlobalThreshold = LogLevel.Trace;
         LogManager.Setup().SetupLogFactory(config => config.SetTimeSourcAccurateUtc());
-        SetupRuleFor(LogLevel.Debug);
-        SetupRuleFor(LogLevel.Trace);
+        SetupFileRuleWith(LogLevel.Debug, maxArchiveDays: 3);
+        SetupFileRuleWith(LogLevel.Trace, maxArchiveDays: 1);
         LogManager.Setup().LoadConfiguration(rule => rule.ForLogger()
                 .FilterMinLevel(isDebug ? LogLevel.Trace : LogLevel.Info)
                 .WriteTo(_console));
@@ -28,12 +28,12 @@ internal static class Logging
         UseDefaultRowHighlightingRules = true
     };
 
-    static void SetupRuleFor(LogLevel logLevel) => LogManager.Setup()
+    static void SetupFileRuleWith(LogLevel logLevel, int maxArchiveDays) => LogManager.Setup()
         .LoadConfiguration(rule => rule.ForLogger()
         .FilterMinLevel(logLevel)
-        .WriteTo(FileTargetWith(logLevel)));
+        .WriteTo(FileTargetWith(logLevel, maxArchiveDays)));
 
-    static FileTarget FileTargetWith(LogLevel logLevel) => new()
+    static FileTarget FileTargetWith(LogLevel logLevel, int maxArchiveDays) => new()
     {
         FileName = $"{_LogDirFor(logLevel)}log{_fileExtension}",
         Layout = _layout,
@@ -41,7 +41,7 @@ internal static class Logging
         ArchiveDateFormat = "yyyyMMdd",
         ArchiveFileName = $"{_LogDirFor}log.{{#}}{_fileExtension}",
         ArchiveNumbering = ArchiveNumberingMode.Date,
-        MaxArchiveDays = 7
+        MaxArchiveDays = maxArchiveDays
     };
 
     static string _LogDirFor(LogLevel logLevel) => $"{_logDir}{logLevel.Name}${{dir-separator}}";
