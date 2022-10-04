@@ -52,6 +52,12 @@ namespace NodeUI.Controls
             });
         }
 
+        public Task TemporarySetTextIfErr<T>(OperationResult<T> opres, int duration = 2000) => TemporarySetTextIfErr(opres.GetResult(), duration);
+        public Task TemporarySetTextIfErr(OperationResult opres, int duration = 2000)
+        {
+            if (opres) return Task.CompletedTask;
+            return TemporarySetText(opres.Message!, duration);
+        }
         public async Task TemporarySetText(string text, int duration = 2000)
         {
             var prevtext = Text;

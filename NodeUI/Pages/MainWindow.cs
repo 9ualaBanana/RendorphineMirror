@@ -298,16 +298,22 @@ namespace NodeUI.Pages
                     var statusbtn = new MPButton()
                     {
                         Text = "Update status",
-                        OnClick = async () =>
+                        OnClickSelf = async self =>
                         {
                             var state = await task.GetTaskStateAsync();
-                            if (!state)
-                            {
-                                statustb.Text = "error " + state.AsString();
-                                return;
-                            }
+                            await self.TemporarySetTextIfErr(state);
 
-                            statustb.Text = JsonConvert.SerializeObject(state.Value, Formatting.None);
+                            if (state)
+                                statustb.Text = JsonConvert.SerializeObject(state.Value, Formatting.None);
+                        },
+                    };
+                    var cancelbtn = new MPButton()
+                    {
+                        Text = "Cancel task",
+                        OnClickSelf = async self =>
+                        {
+                            var state = await task.ChangeStateAsync(TaskState.Canceled);
+                            await self.TemporarySetTextIfErr(state);
                         },
                     };
 
@@ -323,7 +329,15 @@ namespace NodeUI.Pages
                                 new TextBlock() { Text = $"Input: {JsonConvert.SerializeObject(task.Info.Input, Formatting.None)}" },
                                 new TextBlock() { Text = $"Output: {JsonConvert.SerializeObject(task.Info.Output, Formatting.None)}" },
                                 statustb,
-                                statusbtn,
+                                new StackPanel()
+                                {
+                                    Orientation = Orientation.Horizontal,
+                                    Children =
+                                    {
+                                        statusbtn,
+                                        cancelbtn,
+                                    },
+                                },
                             },
                         },
                     };
