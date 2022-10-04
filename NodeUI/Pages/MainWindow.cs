@@ -678,7 +678,7 @@ namespace NodeUI.Pages
                 public LogViewer(string logName)
                 {
                     var flogname = logName;
-                    string getlogdir() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, "log.log").Replace("NodeUI", flogname);
+                    string getlogdir() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, "Debug", "log.log").Replace("NodeUI", flogname);
 
                     var dir = getlogdir();
                     if (!File.Exists(dir))
