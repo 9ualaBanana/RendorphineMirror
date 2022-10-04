@@ -144,13 +144,15 @@ public static class TaskHandler
                 NodeSettings.QueuedTasks.Bindable.Remove(task);
                 return;
             }
+            catch (NodeTaskFailedException ex)
+            {
+                await setState(NodeSettings.FailedTasks, TaskState.Failed, attempt + 1, ex.Message);
+                return;
+            }
             catch (NodeTaskCanceledException ex)
             {
-                task.LogInfo($"Task requested to be canceled on attempt ({attempt + 1}/{maxattempts}): {ex.Message}");
-
-                var set = await task.ChangeStateAsync(TaskState.Canceled);
-                if (set) task.LogInfo("Updated server task state");
-                else task.LogWarn("Could not update task state on the server though");
+                await setState(NodeSettings.CanceledTasks, TaskState.Canceled, attempt + 1, ex.Message);
+                return;
             }
             catch (Exception ex)
             {
@@ -159,11 +161,19 @@ public static class TaskHandler
             }
         }
 
-        task.LogErr($"Could not execute this task after {maxattempts} attempts");
-        if (task.ExecuteLocally)
+        await setState(NodeSettings.FailedTasks, TaskState.Failed, maxattempts, "Run out of attempts");
+
+
+        async ValueTask setState(Settings.DatabaseValueList<ReceivedTask> newlist, TaskState state, int attempt, string message)
         {
-            task.LogInfo("Since this task is local, removing it");
+            task.LogInfo($"Task requested to be {state} on attempt ({attempt + 1}/{maxattempts}): {message}");
+            newlist.Bindable.Add(task);
+            newlist.Save();
             NodeSettings.QueuedTasks.Bindable.Remove(task);
+
+            var set = await task.ChangeStateAsync(state);
+            if (set) task.LogInfo("Updated server task state");
+            else task.LogWarn("Could not update task state on the server though");
         }
     }
 

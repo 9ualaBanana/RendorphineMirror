@@ -16,7 +16,7 @@ public static class ReceivedTaskExtensions
     static string? AsExtension(FileFormat format) => AsExtension("." + format.ToString().ToLowerInvariant());
 
 
-    static string Added(List<FileWithFormat> dict, FileFormat format, string path)
+    static string Added(ICollection<FileWithFormat> dict, FileFormat format, string path)
     {
         dict.Add(new(format, path));
         NodeSettings.QueuedTasks.Save();
@@ -30,7 +30,7 @@ public static class ReceivedTaskExtensions
 
     public static void AddInputFromLocalPath(this ReceivedTask task, string path) => AddFromLocalPath(task.InputFiles, path);
     public static void AddOutputFromLocalPath(this ReceivedTask task, string path) => AddFromLocalPath(task.OutputFiles, path);
-    static void AddFromLocalPath(List<FileWithFormat> files, string path)
+    static void AddFromLocalPath(ICollection<FileWithFormat> files, string path)
     {
         if (Directory.Exists(path)) addDir(path);
         else addFile(path);

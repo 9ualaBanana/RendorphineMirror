@@ -12,8 +12,8 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
     public double Progress = 0;
     public TaskState State = TaskState.Queued;
 
-    public readonly List<FileWithFormat> InputFiles = new();
-    public readonly List<FileWithFormat> OutputFiles = new();
+    public readonly HashSet<FileWithFormat> InputFiles = new();
+    public readonly HashSet<FileWithFormat> OutputFiles = new();
 
     public ITaskInputInfo Input => Info.Input;
     public ITaskOutputInfo Output => Info.Output;

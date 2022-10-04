@@ -10,9 +10,14 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
         var mov = task.TryFSOutputFile(FileFormat.Mov);
 
         var res = await Api.ApiPost<InitOutputResult>($"{Api.TaskManagerEndpoint}/initqspreviewoutput", null, "Initializing qs preview result upload", ("sessionid", Settings.SessionId), ("taskid", task.Id));
+        if (!res && res.Message?.Contains("There is no such user", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            res.LogIfError();
+            task.ThrowFailed(res.Message);
+            return;
+        }
+
         var result = res.ThrowIfError();
-
-
         using var content = new MultipartFormDataContent() { { new StringContent(result.UploadId), "uploadid" }, };
 
         content.Add(new StreamContent(File.OpenRead(jpeg))
