@@ -40,7 +40,14 @@ public abstract class PluginAction<T> : IPluginAction
     {
         logobj?.LogInfo($"Starting {exepath} {args}{string.Join(' ', argsarr)}");
 
-        var startinfo = new ProcessStartInfo(exepath, args) { RedirectStandardOutput = true, RedirectStandardError = true };
+        var startinfo = new ProcessStartInfo(exepath, args)
+        {
+            WindowStyle = ProcessWindowStyle.Hidden,
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
         foreach (var arg in argsarr) startinfo.ArgumentList.Add(arg);
 
         var process = Process.Start(startinfo);

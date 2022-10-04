@@ -249,7 +249,13 @@ public static class FFMpegTasks
             logobj?.LogInfo($"Starting {ffprobe} {args}");
 
 
-            var proc = Process.Start(new ProcessStartInfo(ffprobe, args) { RedirectStandardOutput = true });
+            var proc = Process.Start(new ProcessStartInfo(ffprobe, args)
+            {
+                WindowStyle = ProcessWindowStyle.Hidden,
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+            });
             if (proc is null) throw new Exception("Could not start ffprobe");
 
             var str = await proc.StandardOutput.ReadToEndAsync();
