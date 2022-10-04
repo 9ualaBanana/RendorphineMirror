@@ -169,6 +169,13 @@ namespace Common
                     new SQLiteParameter("value", JsonConvert.SerializeObject(Value, LocalApi.JsonSettingsWithType))
                 );
             }
+
+            public void Delete()
+            {
+                ExecuteNonQuery(@$"delete from {ConfigTable} where key=@key;",
+                    new SQLiteParameter("key", Name)
+                );
+            }
         }
 
         public class DatabaseValue<T> : DatabaseValueBase<T, Bindable<T>>, IDatabaseValueBindable<T>
@@ -177,106 +184,85 @@ namespace Common
 
             public DatabaseValue(string name, T defaultValue) : base(name, new(defaultValue)) { }
         }
-        public class DatabaseValueList<T> : DatabaseValueBase<IReadOnlyList<T>, BindableList<T>>, IEnumerable<T>
+
+        public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnlyDictionary<TKey, TValue> where TKey : notnull
         {
-            public int Count => Bindable.Count;
-
-            public DatabaseValueList(string name, IEnumerable<T>? values = null) : base(name, new(values)) { }
-
-            public IEnumerator<T> GetEnumerator() => Bindable.GetEnumerator();
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-        }
-        public class DatabaseValueDictionary<TKey, TValue> : DatabaseValueBase<IReadOnlyDictionary<TKey, TValue>, BindableDictionary<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>> where TKey : notnull
-        {
-            public int Count => Bindable.Count;
-
-            public DatabaseValueDictionary(string name, IEnumerable<KeyValuePair<TKey, TValue>>? values = null) : base(name, new(values)) { }
-
-            public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => Bindable.GetEnumerator();
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-        }
-
-        public class DatabaseValueSplitList<T> : IDatabaseBindable, IReadOnlyList<T>
-        {
+            public IEnumerable<TKey> Keys => Items.Keys;
+            public IEnumerable<TValue> Values => Items.Values;
             public int Count => Items.Count;
-            readonly List<T> Items = new();
 
+            public BindableBase<IReadOnlyList<TValue>> Bindable => ItemsList;
+            readonly BindableList<TValue> ItemsList = new();
+            readonly Dictionary<TKey, TValue> Items = new();
+
+            readonly Func<TValue, TKey> KeyFunc;
             readonly string TableName;
 
-            public DatabaseValueSplitList(string table)
+            public DatabaseValueDictionary(string table, Func<TValue, TKey> keyFunc)
             {
                 TableName = table;
+                KeyFunc = keyFunc;
+
                 Reload();
             }
 
-            public T this[int index] => Items[index];
-            public void Add(T value)
-            {
-                Items.Add(value);
+            static SQLiteParameter Parameter<T>(string name, T value) => new SQLiteParameter(name, JsonConvert.SerializeObject(value, LocalApi.JsonSettingsWithType));
 
-                ExecuteNonQuery(@$"insert into {TableName}(value) values (@value)",
-                    new SQLiteParameter("value", JsonConvert.SerializeObject(value, LocalApi.JsonSettingsWithType))
+            public TValue this[TKey key] => Items[key];
+            public void Add(TValue value)
+            {
+                var key = KeyFunc(value);
+                ItemsList.Add(value);
+                Items.Add(key, value);
+
+                ExecuteNonQuery(@$"insert into {TableName}(key, value) values (@key, @value)",
+                    Parameter("key", key),
+                    Parameter("value", value)
                 );
+            }
+            public void AddRange(IEnumerable<TValue> values)
+            {
+                foreach (var value in values)
+                    Add(value);
+            }
+
+            public void Remove(TValue value) => Remove(KeyFunc(value));
+            public void Remove(TKey key)
+            {
+                if (Items.TryGetValue(key, out var value))
+                    ItemsList.Remove(value);
+                Items.Remove(key);
+
+                ExecuteNonQuery(@$"delete from {TableName} where key=@key", Parameter("key", key));
             }
 
             public void Reload()
             {
-                ExecuteNonQuery($"create table if not exists {TableName} (value text null);");
+                Items.Clear();
+                ItemsList.Clear();
+
+                ExecuteNonQuery($"create table if not exists {TableName} (key text primary key unique not null, value text null);");
                 var reader = ExecuteQuery($"select * from {TableName} order by rowid");
 
                 while (reader.Read())
                 {
                     var valuejson = reader.GetString(reader.GetOrdinal("value"));
-                    Items.Add(JToken.Parse(valuejson).ToObject<T>(LocalApi.JsonSerializerWithType)!);
+                    var item = JToken.Parse(valuejson).ToObject<TValue>(LocalApi.JsonSerializerWithType)!;
+
+                    Items.Add(KeyFunc(item), item);
+                    ItemsList.Add(item);
                 }
             }
-
-
-            public IEnumerator<T> GetEnumerator() => Items.GetEnumerator();
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-        }
-        public class DatabaseValueSplitDictionary<TKey, TValue> : IDatabaseBindable, IReadOnlyDictionary<TKey, TValue> where TKey : notnull
-        {
-            public IEnumerable<TKey> Keys => Items.Keys;
-            public IEnumerable<TValue> Values => Items.Values;
-
-            public int Count => Items.Count;
-            readonly Dictionary<TKey, TValue> Items = new();
-
-            readonly string TableName;
-
-            public DatabaseValueSplitDictionary(string table)
+            public void Save(TValue value)
             {
-                TableName = table;
-                Reload();
-            }
-
-            public TValue this[TKey key] => Items[key];
-            public bool ContainsKey(TKey key) => Items.ContainsKey(key);
-            public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => Items.TryGetValue(key, out value);
-
-            public void Add(TKey key, TValue value)
-            {
-                Items.Add(key, value);
-
-                ExecuteNonQuery(@$"insert into {TableName}(key, value) values (@key, @value)",
-                    new SQLiteParameter("key", JsonConvert.SerializeObject(key, LocalApi.JsonSettingsWithType)),
-                    new SQLiteParameter("value", JsonConvert.SerializeObject(value, LocalApi.JsonSettingsWithType))
+                ExecuteNonQuery($"insert into {TableName}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
+                    Parameter("key", KeyFunc(value)),
+                    Parameter("value", value)
                 );
             }
 
-            public void Reload()
-            {
-                ExecuteNonQuery($"create table if not exists {TableName} (key text primary key unique, value text null);");
-                var reader = ExecuteQuery($"select * from {TableName}");
-
-                while (reader.Read())
-                {
-                    var key = JToken.Parse(reader.GetString(reader.GetOrdinal("key"))).ToObject<TKey>(LocalApi.JsonSerializerWithType)!;
-                    var value = JToken.Parse(reader.GetString(reader.GetOrdinal("value"))).ToObject<TValue>(LocalApi.JsonSerializerWithType)!;
-                    Items.Add(key, value);
-                }
-            }
+            public bool ContainsKey(TKey key) => Items.ContainsKey(key);
+            public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => Items.TryGetValue(key, out value);
 
 
             public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => Items.GetEnumerator();

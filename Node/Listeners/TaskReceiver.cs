@@ -35,6 +35,6 @@ public class TaskReceiver : ListenerBase
         response.StatusCode = (int) await WriteText(response, "{\"ok\":1}");
         response.Close();
 
-        NodeSettings.QueuedTasks.Bindable.Add(new ReceivedTask(taskid, taskinfo, false));
+        NodeSettings.QueuedTasks.Add(new ReceivedTask(taskid, taskinfo, false));
     }
 }

@@ -30,7 +30,7 @@ public class TaskListener : ExecutableListenerBase
 
             var wt = new WatchingTask(input, task.Action, task.Data, output, task.Policy, task.Version, task.ExecuteLocally);
             wt.StartWatcher();
-            NodeSettings.WatchingTasks.Bindable.Add(wt);
+            NodeSettings.WatchingTasks.Add(wt);
 
             return await WriteJson(response, wt.Id.AsOpResult()).ConfigureAwait(false);
         }

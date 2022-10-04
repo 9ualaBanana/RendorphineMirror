@@ -126,7 +126,7 @@ logger.Info(@$"Tasks found
     {NodeSettings.WatchingTasks.Count} watching
     {NodeSettings.QueuedTasks.Count} queued
     {NodeSettings.PlacedTasks.Count} placed
-    {NodeSettings.PlacedTasks.Bindable.Count(x => !x.State.IsFinished())} non-finished placed
+    {NodeSettings.PlacedTasks.Values.Count(x => !x.State.IsFinished())} non-finished placed
 ".TrimLines().Replace("\n", "; "));
 
 
@@ -140,7 +140,7 @@ Task.WhenAll(Enum.GetValues<TaskState>().Select(s => Apis.GetMyTasksAsync(s).The
     .AsTask().Consume();
 
 
-TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Bindable.Add;
+TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;
 
 TaskHandler.InitializePlacedTasksAsync().Consume();
 TaskHandler.StartUpdatingTaskState();

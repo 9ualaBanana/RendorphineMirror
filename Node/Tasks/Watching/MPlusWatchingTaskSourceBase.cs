@@ -48,7 +48,7 @@ public abstract class MPlusWatchingTaskSourceBase : IWatchingTaskSource
             await task.RegisterTask(input, output);
 
             SinceIid = item.Iid;
-            NodeSettings.WatchingTasks.Save();
+            NodeSettings.WatchingTasks.Save(task);
 
 
             bool isWatermarked()

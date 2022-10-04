@@ -11,7 +11,7 @@ public static class TaskHandler
     public static async Task InitializePlacedTasksAsync()
     {
         TaskRegistration.TaskRegistered += task => InitializePlacedTaskAsync(task).Consume();
-        await Task.WhenAll(NodeSettings.PlacedTasks.ToArray().Select(InitializePlacedTaskAsync));
+        await Task.WhenAll(NodeSettings.PlacedTasks.Values.ToArray().Select(InitializePlacedTaskAsync));
     }
     public static async Task InitializePlacedTaskAsync(DbTaskFullState task)
     {
@@ -31,7 +31,7 @@ public static class TaskHandler
                 await Task.Delay(2_000);
                 if (NodeSettings.QueuedTasks.Count == 0) continue;
 
-                foreach (var task in NodeSettings.QueuedTasks.ToArray())
+                foreach (var task in NodeSettings.QueuedTasks.Values.ToArray())
                     HandleAsync(task).Consume();
             }
         })
@@ -44,13 +44,12 @@ public static class TaskHandler
         {
             while (true)
             {
-                foreach (var task in NodeSettings.PlacedTasks.Bindable.ToArray())
+                foreach (var task in NodeSettings.PlacedTasks.Bindable.Value.ToArray())
                 {
                     try { await check(task); }
                     catch (Exception ex) { task.LogErr(ex); }
                 }
 
-                NodeSettings.PlacedTasks.Save();
                 await Task.Delay(30_000);
             }
         })
@@ -71,24 +70,24 @@ public static class TaskHandler
 
                 await handler.OnPlacedTaskCompleted(task);
                 (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
-                NodeSettings.PlacedTasks.Bindable.Remove(task);
+                NodeSettings.PlacedTasks.Remove(task);
             }
             catch (Exception ex) when (ex.Message.Contains("no task with such ", StringComparison.OrdinalIgnoreCase))
             {
                 task.LogErr("Placed task does not exists on the server, removing");
-                NodeSettings.PlacedTasks.Bindable.Remove(task);
+                NodeSettings.PlacedTasks.Remove(task);
             }
             catch (Exception ex) when (ex.Message.Contains("Invalid old task state", StringComparison.OrdinalIgnoreCase))
             {
                 task.LogErr(ex.Message + ", removing");
-                NodeSettings.PlacedTasks.Bindable.Remove(task);
+                NodeSettings.PlacedTasks.Remove(task);
             }
         }
     }
 
     public static void StartWatchingTasks()
     {
-        foreach (var task in NodeSettings.WatchingTasks.Bindable)
+        foreach (var task in NodeSettings.WatchingTasks.Values)
             task.StartWatcher();
     }
 
@@ -103,7 +102,7 @@ public static class TaskHandler
 
             info.TaskObject ??= (await TaskModels.DeserializeInput(info.Input).GetFileInfo());
             var tk = new ReceivedTask(taskid.Value, new TaskInfo(info.TaskObject, info.Input, info.Output, info.Data, TaskPolicy.SameNode, Settings.Guid), true);
-            NodeSettings.QueuedTasks.Bindable.Add(tk);
+            NodeSettings.QueuedTasks.Add(tk);
         }
         else taskid = await TaskRegistration.RegisterAsync(info).ConfigureAwait(false);
 
@@ -138,10 +137,10 @@ public static class TaskHandler
 
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
-                NodeSettings.CompletedTasks.Add(task.Id, new CompletedTask(starttime, endtime, task) { Attempt = attempt });
+                NodeSettings.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt });
 
                 task.LogInfo($"Completed, removing");
-                NodeSettings.QueuedTasks.Bindable.Remove(task);
+                NodeSettings.QueuedTasks.Remove(task);
                 return;
             }
             catch (NodeTaskFailedException ex)
@@ -164,12 +163,11 @@ public static class TaskHandler
         await setState(NodeSettings.FailedTasks, TaskState.Failed, maxattempts, "Run out of attempts");
 
 
-        async ValueTask setState(Settings.DatabaseValueList<ReceivedTask> newlist, TaskState state, int attempt, string message)
+        async ValueTask setState(Settings.DatabaseValueDictionary<string, ReceivedTask> newlist, TaskState state, int attempt, string message)
         {
             task.LogInfo($"Task requested to be {state} on attempt ({attempt + 1}/{maxattempts}): {message}");
-            newlist.Bindable.Add(task);
-            newlist.Save();
-            NodeSettings.QueuedTasks.Bindable.Remove(task);
+            newlist.Add(task);
+            NodeSettings.QueuedTasks.Remove(task);
 
             var set = await task.ChangeStateAsync(state);
             if (set) task.LogInfo("Updated server task state");
@@ -185,9 +183,9 @@ public static class TaskHandler
         {
             task.LogInfo($"Removing");
 
-            NodeSettings.QueuedTasks.Bindable.Remove(task);
+            NodeSettings.QueuedTasks.Remove(task);
             if (task is DbTaskFullState dbtask)
-                NodeSettings.PlacedTasks.Bindable.Remove(dbtask);
+                NodeSettings.PlacedTasks.Remove(dbtask);
         }
 
         return finished;

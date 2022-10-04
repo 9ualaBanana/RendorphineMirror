@@ -42,7 +42,7 @@ public static class WatchingTaskExtensions
         task.LogInfo($"Created task {taskid}");
 
         task.PlacedTasks.Add(taskid);
-        NodeSettings.WatchingTasks.Save();
+        NodeSettings.WatchingTasks.Save(task);
 
         return taskid;
     }

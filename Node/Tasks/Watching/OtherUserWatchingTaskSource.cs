@@ -55,7 +55,7 @@ public class OtherUserWatchingTaskSource : IWatchingTaskSource
 
                         task.LogInfo($"Placed task {taskid} was {state.State}, removing");
                         task.PlacedTasks.Remove(taskid);
-                        NodeSettings.WatchingTasks.Save();
+                        NodeSettings.WatchingTasks.Save(task);
                     }
 
 
@@ -79,7 +79,7 @@ public class OtherUserWatchingTaskSource : IWatchingTaskSource
 
                     await task.RegisterTask(fsfile, new TorrentTaskInputInfo(fsfile));
                     LastCheck = file.ModifTime;
-                    NodeSettings.WatchingTasks.Save();
+                    NodeSettings.WatchingTasks.Save(task);
                 }
             }
             catch (Exception ex) { task.LogErr(ex); }

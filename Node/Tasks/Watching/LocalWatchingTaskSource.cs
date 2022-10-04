@@ -41,7 +41,7 @@ public class LocalWatchingTaskSource : IWatchingTaskSource
             await task.RegisterTask(filename, info);
 
             LastCheck = new DateTimeOffset(File.GetCreationTimeUtc(file)).ToUnixTimeMilliseconds();
-            NodeSettings.WatchingTasks.Save();
+            NodeSettings.WatchingTasks.Save(task);
         }
     }
 

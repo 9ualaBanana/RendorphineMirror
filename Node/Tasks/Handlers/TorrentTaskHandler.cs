@@ -47,7 +47,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
         post.ThrowIfError();
 
         info.Link = manager.MagnetLink.ToV1String();
-        NodeSettings.QueuedTasks.Save();
+        NodeSettings.QueuedTasks.Save(task);
 
         task.LogInfo($"Waiting for torrent result upload ({manager.InfoHash.ToHex()})");
         while (true)

@@ -16,26 +16,26 @@ public static class ReceivedTaskExtensions
     static string? AsExtension(FileFormat format) => AsExtension("." + format.ToString().ToLowerInvariant());
 
 
-    static string Added(ICollection<FileWithFormat> dict, FileFormat format, string path)
+    static string Added(this ReceivedTask task, ICollection<FileWithFormat> dict, FileFormat format, string path)
     {
         dict.Add(new(format, path));
-        NodeSettings.QueuedTasks.Save();
+        NodeSettings.QueuedTasks.Save(task);
 
         return path;
     }
     public static string FSNewInputFile(this ReceivedTask task, FileFormat format, string? path = null) =>
-        Added(task.InputFiles, format, Path.Combine(task.FSInputDirectory(), path ?? ("input" + AsExtension(format))));
+        task.Added(task.InputFiles, format, Path.Combine(task.FSInputDirectory(), path ?? ("input" + AsExtension(format))));
     public static string FSNewOutputFile(this ReceivedTask task, FileFormat format, string? path = null) =>
-        Added(task.OutputFiles, format, Path.Combine(task.FSOutputDirectory(), path ?? ("output" + AsExtension(format))));
+        task.Added(task.OutputFiles, format, Path.Combine(task.FSOutputDirectory(), path ?? ("output" + AsExtension(format))));
 
-    public static void AddInputFromLocalPath(this ReceivedTask task, string path) => AddFromLocalPath(task.InputFiles, path);
-    public static void AddOutputFromLocalPath(this ReceivedTask task, string path) => AddFromLocalPath(task.OutputFiles, path);
-    static void AddFromLocalPath(ICollection<FileWithFormat> files, string path)
+    public static void AddInputFromLocalPath(this ReceivedTask task, string path) => task.AddFromLocalPath(task.InputFiles, path);
+    public static void AddOutputFromLocalPath(this ReceivedTask task, string path) => task.AddFromLocalPath(task.OutputFiles, path);
+    static void AddFromLocalPath(this ReceivedTask task, ICollection<FileWithFormat> files, string path)
     {
         if (Directory.Exists(path)) addDir(path);
         else addFile(path);
 
-        NodeSettings.QueuedTasks.Save();
+        NodeSettings.QueuedTasks.Save(task);
 
 
         void addDir(string dir)
