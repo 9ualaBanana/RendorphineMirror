@@ -424,77 +424,110 @@ namespace NodeUI.Pages
 
             public TasksTab2()
             {
-                var data = (null as DataGrid)!;
+                var tabs = new TabbedControl();
+                tabs.Add("Local", new LocalTaskManager());
+                tabs.Add("Remote", new RemoteTaskManager());
 
-                var sidtextbox = new TextBox() { Watermark = "session id" };
-                var setsidbtn = new MPButton()
+                Children.Add(tabs);
+            }
+
+
+            abstract class TaskManager : Panel
+            {
+                protected string SessionId = Settings.SessionId;
+
+                protected DataGrid CreateDataGrid()
                 {
-                    Text = "Set sessionid",
-                    OnClickSelf = async self =>
+                    var data = (null as DataGrid)!;
+                    return data = new DataGrid()
                     {
-                        SessionId = string.IsNullOrWhiteSpace(sidtextbox.Text) ? Settings.SessionId : sidtextbox.Text.Trim();
-                        await load();
-                    },
-                };
-                var sidgrid = new Grid()
-                {
-                    ColumnDefinitions = ColumnDefinitions.Parse("* Auto"),
-                    Children =
-                    {
-                        sidtextbox.WithColumn(0),
-                        setsidbtn.WithColumn(1),
-                    },
-                };
-
-                data = new DataGrid()
-                {
-                    AutoGenerateColumns = false,
-                    Columns =
-                    {
-                        new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(ReceivedTask.Id)) },
-                        new DataGridTextColumn() { Header = "State", Binding = new Binding(nameof(ReceivedTask.State)) },
-                        new DataGridTextColumn() { Header = "Action", Binding = new Binding(nameof(ReceivedTask.Action)) },
-                        new DataGridTextColumn() { Header = "Input", Binding = new Binding("Input.Type") },
-                        new DataGridTextColumn() { Header = "Output", Binding = new Binding("Output.Type") },
-
-                        new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Host)}") },
-                        new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Userid)}") },
-                        new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") },
-
-                        new DataGridButtonColumn<DbTaskFullState>()
+                        AutoGenerateColumns = false,
+                        Columns =
                         {
-                            Header = "Cancel task",
-                            Text = "Cancel task",
-                            CreationRequirements = task => task.State < TaskState.Finished,
-                            SelfAction = async (task, self) =>
+                            new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(ReceivedTask.Id)) },
+                            new DataGridTextColumn() { Header = "State", Binding = new Binding(nameof(ReceivedTask.State)) },
+                            new DataGridTextColumn() { Header = "Action", Binding = new Binding(nameof(ReceivedTask.Action)) },
+                            new DataGridTextColumn() { Header = "Input", Binding = new Binding("Input.Type") },
+                            new DataGridTextColumn() { Header = "Output", Binding = new Binding("Output.Type") },
+
+                            new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Host)}") },
+                            new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Userid)}") },
+                            new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") },
+
+                            new DataGridButtonColumn<DbTaskFullState>()
                             {
-                                var change = await task.ChangeStateAsync(TaskState.Canceled, sessionId: SessionId);
-                                await self.TemporarySetTextIfErr(change);
+                                Header = "Cancel task",
+                                Text = "Cancel task",
+                                CreationRequirements = task => task.State < TaskState.Finished,
+                                SelfAction = async (task, self) =>
+                                {
+                                    var change = await task.ChangeStateAsync(TaskState.Canceled, sessionId: SessionId);
+                                    await self.TemporarySetTextIfErr(change);
 
-                                if (change) await load();
+                                    if (change) await LoadSetItems(data);
+                                },
                             },
-                        },
-                    }
-                };
+                        }
+                    };
+                }
 
-
-                var basec = new StackPanel()
+                protected async Task LoadSetItems(DataGrid grid) => grid.Items = await Load();
+                protected abstract Task<IReadOnlyCollection<ReceivedTask>> Load();
+            }
+            class LocalTaskManager : TaskManager
+            {
+                public LocalTaskManager()
                 {
-                    Orientation = Orientation.Vertical,
-                    Children =
+                    var data = CreateDataGrid();
+                    Children.Add(data);
+
+                    LoadSetItems(data).Consume();
+                }
+
+                protected override Task<IReadOnlyCollection<ReceivedTask>> Load() =>
+                    new IReadOnlyList<ReceivedTask>[] { NodeGlobalState.Instance.QueuedTasks, NodeGlobalState.Instance.PlacedTasks, NodeGlobalState.Instance.ExecutingTasks, }
+                        .SelectMany(x => x)
+                        .DistinctBy(x => x.Id)
+                        .ToArray()
+                        .AsTask<IReadOnlyCollection<ReceivedTask>>();
+            }
+            class RemoteTaskManager : TaskManager
+            {
+                public RemoteTaskManager()
+                {
+                    var data = (null as DataGrid)!;
+
+                    var sidtextbox = new TextBox() { Watermark = "session id" };
+                    var setsidbtn = new MPButton()
                     {
-                        sidgrid,
-                        data,
-                    },
-                };
-                Children.Add(basec);
+                        Text = "Set sessionid",
+                        OnClickSelf = async self =>
+                        {
+                            SessionId = string.IsNullOrWhiteSpace(sidtextbox.Text) ? Settings.SessionId : sidtextbox.Text.Trim();
+                            data.Items = await Load();
+                        },
+                    };
+                    var sidgrid = new Grid()
+                    {
+                        ColumnDefinitions = ColumnDefinitions.Parse("* Auto"),
+                        Children =
+                        {
+                            sidtextbox.WithColumn(0),
+                            setsidbtn.WithColumn(1),
+                        },
+                    };
 
-                _ = load();
+                    data = CreateDataGrid();
+                    Children.Add(data);
+
+                    LoadSetItems(data).Consume();
+                }
 
 
-                async Task load() => data.Items = (await Apis.GetMyTasksAsync(Enum.GetValues<TaskState>(), sessionId: SessionId)).ThrowIfError()
-                    .Append(new DbTaskFullState("asd", "asd", TaskPolicy.AllNodes, new("asd", 1423), new MPlusTaskInputInfo("asd"), new MPlusTaskOutputInfo("be.jpg", "dir"), new() { ["type"] = "EditVideo" }) { State = TaskState.Input })
-                    .ToArray();
+                protected override async Task<IReadOnlyCollection<ReceivedTask>> Load() =>
+                    (await Apis.GetMyTasksAsync(Enum.GetValues<TaskState>(), sessionId: SessionId)).ThrowIfError()
+                        .Append(new DbTaskFullState("asd", "asd", TaskPolicy.AllNodes, new("asd", 1423), new MPlusTaskInputInfo("asd"), new MPlusTaskOutputInfo("be.jpg", "dir"), new() { ["type"] = "EditVideo" }) { State = TaskState.Input })
+                        .ToArray();
             }
 
 
