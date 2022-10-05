@@ -28,7 +28,7 @@ public static class UICache
         return data.GetResult();
     }
 
-    public static bool IsConnectedToNode { get; private set; }
+    public static readonly Bindable<bool> IsConnectedToNode = new();
     public static async Task StartUpdatingState(CancellationToken token = default)
     {
         var cachefile = Path.Combine(Init.ConfigDirectory, "nodeinfocache");
@@ -48,7 +48,7 @@ public static class UICache
                 var stream = await LocalPipe.SendLocalAsync("getstate").ConfigureAwait(false);
                 var reader = LocalPipe.CreateReader(stream);
                 consecutive = 0;
-                IsConnectedToNode = true;
+                IsConnectedToNode.Value = true;
 
                 while (true)
                 {
@@ -65,7 +65,7 @@ public static class UICache
             }
             catch (Exception ex)
             {
-                IsConnectedToNode = false;
+                IsConnectedToNode.Value = false;
                 if (consecutive < 3) _logger.Error($"Could not read node state: {ex.Message}, reconnecting...");
                 else if (consecutive == 3) _logger.Error($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
 

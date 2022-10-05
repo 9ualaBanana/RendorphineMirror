@@ -138,7 +138,7 @@ namespace NodeUI
 
                 WindowIcon getIcon()
                 {
-                    if (!UICache.IsConnectedToNode)
+                    if (!UICache.IsConnectedToNode.Value)
                     {
                         icon.ToolTipText = LocalizedString.String("No connection to node");
                         return Red;

@@ -42,8 +42,32 @@ namespace NodeUI.Pages
             if (Init.IsDebug)
                 tabs.Add("registry", new RegistryTab());
 
-            Content = tabs;
+            var statustb = new TextBlock()
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                FontWeight = FontWeight.Bold,
+            };
 
+            Content = new Grid()
+            {
+                RowDefinitions = RowDefinitions.Parse("Auto *"),
+                Children =
+                {
+                    statustb.WithRow(0),
+                    tabs.WithRow(1),
+                },
+            };
+
+
+            UICache.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            {
+                if (UICache.IsConnectedToNode.Value) statustb.Text = null;
+                else
+                {
+                    statustb.Text = "!!! No connection to node !!!";
+                    statustb.Foreground = Brushes.Red;
+                }
+            }), true);
         }
 
         void SubscribeToStateChanges()
