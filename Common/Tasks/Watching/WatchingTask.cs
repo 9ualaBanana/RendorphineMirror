@@ -15,6 +15,7 @@ public class WatchingTask : ILoggable
     public readonly IWatchingTaskOutputInfo Output;
     public readonly TaskPolicy Policy;
     public readonly bool ExecuteLocally;
+    public bool IsPaused = false;
 
     public readonly List<string> PlacedTasks = new();
 

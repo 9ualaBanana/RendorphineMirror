@@ -10,6 +10,7 @@ public class WatchingTaskInfo
     public readonly JObject Source, Output, TaskData;
     public readonly TaskPolicy Policy;
     public readonly bool ExecuteLocally;
+    public readonly bool IsPaused;
 
 
 #pragma warning disable CS8618 // field are not assigned

@@ -426,64 +426,69 @@ namespace NodeUI.Pages
             {
                 var tabs = new TabbedControl();
                 tabs.Add("Local", new LocalTaskManager());
+                tabs.Add("Watching", new WatchingTaskManager());
                 tabs.Add("Remote", new RemoteTaskManager());
 
                 Children.Add(tabs);
             }
 
 
-            abstract class TaskManager : Panel
+            abstract class TaskManager<T> : Panel
             {
                 protected string SessionId = Settings.SessionId;
 
-                protected DataGrid CreateDataGrid()
-                {
-                    var data = (null as DataGrid)!;
-                    return data = new DataGrid()
-                    {
-                        AutoGenerateColumns = false,
-                        Columns =
-                        {
-                            new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(ReceivedTask.Id)) },
-                            new DataGridTextColumn() { Header = "State", Binding = new Binding(nameof(ReceivedTask.State)) },
-                            new DataGridTextColumn() { Header = "Action", Binding = new Binding(nameof(ReceivedTask.Action)) },
-                            new DataGridTextColumn() { Header = "Input", Binding = new Binding("Input.Type") },
-                            new DataGridTextColumn() { Header = "Output", Binding = new Binding("Output.Type") },
-
-                            new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Host)}") },
-                            new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Userid)}") },
-                            new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") },
-
-                            new DataGridButtonColumn<DbTaskFullState>()
-                            {
-                                Header = "Cancel task",
-                                Text = "Cancel task",
-                                CreationRequirements = task => task.State < TaskState.Finished,
-                                SelfAction = async (task, self) =>
-                                {
-                                    var change = await task.ChangeStateAsync(TaskState.Canceled, sessionId: SessionId);
-                                    await self.TemporarySetTextIfErr(change);
-
-                                    if (change) await LoadSetItems(data);
-                                },
-                            },
-                        }
-                    };
-                }
-
-                protected async Task LoadSetItems(DataGrid grid) => grid.Items = await Load();
-                protected abstract Task<IReadOnlyCollection<ReceivedTask>> Load();
-            }
-            class LocalTaskManager : TaskManager
-            {
-                public LocalTaskManager()
+                public TaskManager()
                 {
                     var data = CreateDataGrid();
-                    Children.Add(data);
+                    Children.Add(WrapGrid(data));
 
                     LoadSetItems(data).Consume();
                 }
 
+                protected DataGrid CreateDataGrid()
+                {
+                    var data = new DataGrid() { AutoGenerateColumns = false };
+                    CreateColumns(data);
+
+                    return data;
+                }
+                protected virtual Control WrapGrid(DataGrid grid) => grid;
+                protected abstract void CreateColumns(DataGrid data);
+
+                protected async Task LoadSetItems(DataGrid grid) => grid.Items = await Load();
+                protected abstract Task<IReadOnlyCollection<T>> Load();
+            }
+            abstract class NormalTaskManager : TaskManager<ReceivedTask>
+            {
+                protected override void CreateColumns(DataGrid data)
+                {
+                    data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(ReceivedTask.Id)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "State", Binding = new Binding(nameof(ReceivedTask.State)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Action", Binding = new Binding(nameof(ReceivedTask.Action)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding("Input.Type") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding("Output.Type") });
+
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Host)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Userid)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") });
+
+                    data.Columns.Add(new DataGridButtonColumn<DbTaskFullState>()
+                    {
+                        Header = "Cancel task",
+                        Text = "Cancel task",
+                        CreationRequirements = task => task.State < TaskState.Finished,
+                        SelfAction = async (task, self) =>
+                        {
+                            var change = await task.ChangeStateAsync(TaskState.Canceled, sessionId: SessionId);
+                            await self.TemporarySetTextIfErr(change);
+
+                            if (change) await LoadSetItems(data);
+                        },
+                    });
+                }
+            }
+            class LocalTaskManager : NormalTaskManager
+            {
                 protected override Task<IReadOnlyCollection<ReceivedTask>> Load() =>
                     new IReadOnlyList<ReceivedTask>[] { NodeGlobalState.Instance.QueuedTasks, NodeGlobalState.Instance.PlacedTasks, NodeGlobalState.Instance.ExecutingTasks, }
                         .SelectMany(x => x)
@@ -491,12 +496,10 @@ namespace NodeUI.Pages
                         .ToArray()
                         .AsTask<IReadOnlyCollection<ReceivedTask>>();
             }
-            class RemoteTaskManager : TaskManager
+            class RemoteTaskManager : NormalTaskManager
             {
-                public RemoteTaskManager()
+                protected override Control WrapGrid(DataGrid grid)
                 {
-                    var data = (null as DataGrid)!;
-
                     var sidtextbox = new TextBox() { Watermark = "session id" };
                     var setsidbtn = new MPButton()
                     {
@@ -504,7 +507,7 @@ namespace NodeUI.Pages
                         OnClickSelf = async self =>
                         {
                             SessionId = string.IsNullOrWhiteSpace(sidtextbox.Text) ? Settings.SessionId : sidtextbox.Text.Trim();
-                            data.Items = await Load();
+                            grid.Items = await Load();
                         },
                     };
                     var sidgrid = new Grid()
@@ -517,10 +520,15 @@ namespace NodeUI.Pages
                         },
                     };
 
-                    data = CreateDataGrid();
-                    Children.Add(data);
-
-                    LoadSetItems(data).Consume();
+                    return new Grid()
+                    {
+                        RowDefinitions = RowDefinitions.Parse("Auto *"),
+                        Children =
+                        {
+                            sidgrid.WithRow(0),
+                            base.WrapGrid(grid).WithRow(1),
+                        },
+                    };
                 }
 
 
@@ -528,6 +536,47 @@ namespace NodeUI.Pages
                     (await Apis.GetMyTasksAsync(Enum.GetValues<TaskState>(), sessionId: SessionId)).ThrowIfError()
                         .Append(new DbTaskFullState("asd", "asd", TaskPolicy.AllNodes, new("asd", 1423), new MPlusTaskInputInfo("asd"), new MPlusTaskOutputInfo("be.jpg", "dir"), new() { ["type"] = "EditVideo" }) { State = TaskState.Input })
                         .ToArray();
+            }
+            class WatchingTaskManager : TaskManager<WatchingTaskInfo>
+            {
+                protected override void CreateColumns(DataGrid data)
+                {
+                    data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(WatchingTaskInfo.Id)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Policy", Binding = new Binding(nameof(WatchingTaskInfo.Policy)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Action", Binding = new Binding(nameof(WatchingTaskInfo.TaskAction)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding($"{nameof(WatchingTaskInfo.Source)}.Type") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding($"{nameof(WatchingTaskInfo.Output)}.Type") });
+
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Paused", Binding = new Binding(nameof(WatchingTaskInfo.IsPaused)) });
+
+                    data.Columns.Add(new DataGridButtonColumn<WatchingTaskInfo>()
+                    {
+                        Header = "Delete",
+                        Text = "Delete",
+                        SelfAction = async (task, self) =>
+                        {
+                            var result = await LocalApi.Send($"tasks/delwatching?taskid={task.Id}");
+                            await self.TemporarySetTextIfErr(result);
+
+                            if (result) await LoadSetItems(data);
+                        },
+                    });
+                    data.Columns.Add(new DataGridButtonColumn<WatchingTaskInfo>()
+                    {
+                        Header = "Pause/Unpause",
+                        Text = "Pause/Unpause",
+                        SelfAction = async (task, self) =>
+                        {
+                            var result = await LocalApi.Send<WatchingTaskInfo>($"tasks/pausewatching?taskid={task.Id}");
+                            await self.TemporarySetTextIfErr(result);
+
+                            if (result) await LoadSetItems(data);
+                        },
+                    });
+                }
+
+                protected override Task<IReadOnlyCollection<WatchingTaskInfo>> Load() =>
+                    (NodeGlobalState.Instance.WatchingTasks as IReadOnlyCollection<WatchingTaskInfo>).AsTask();
             }
 
 
