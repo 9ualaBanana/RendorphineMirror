@@ -70,7 +70,7 @@ public abstract class MPlusWatchingTaskSourceBase : IWatchingTaskSource
                 {
                     if (TokenSource.IsCancellationRequested) return;
 
-                    await Tick(task);
+                    if (!task.IsPaused) await Tick(task);
                     await Task.Delay(60_000);
                 }
                 catch (Exception ex) { task.LogErr(ex); }

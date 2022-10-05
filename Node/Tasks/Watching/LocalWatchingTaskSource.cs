@@ -6,30 +6,37 @@ public class LocalWatchingTaskSource : IWatchingTaskSource
 {
     public WatchingTaskInputOutputType Type => WatchingTaskInputOutputType.Local;
 
+    [JsonIgnore] readonly CancellationTokenSource TokenSource = new();
+
     [LocalDirectory] public readonly string Directory;
-    [JsonIgnore] FileSystemWatcher? Watcher;
     long LastCheck = 0;
 
     public LocalWatchingTaskSource(string directory) => Directory = directory;
 
     public void StartListening(WatchingTask task)
     {
-        Watcher?.Dispose();
-
-        System.IO.Directory.CreateDirectory(Directory);
-        Watcher = new FileSystemWatcher(Directory) { IncludeSubdirectories = true };
-        Watcher.Created += async (obj, e) => await start(e.FullPath);
-
-        Watcher.EnableRaisingEvents = true;
-
-        Task.Run(async () =>
+        new Thread(async () =>
         {
-            var files = System.IO.Directory.GetFiles(Directory, "*", SearchOption.AllDirectories)
-                .Where(x => new DateTimeOffset(File.GetCreationTimeUtc(x)).ToUnixTimeMilliseconds() > LastCheck);
+            while (true)
+            {
+                try
+                {
+                    if (TokenSource.IsCancellationRequested) return;
 
-            foreach (var file in files)
-                await start(file);
-        }).Consume();
+                    await Task.Delay(60_000);
+                    if (task.IsPaused) continue;
+
+
+                    var files = System.IO.Directory.GetFiles(Directory, "*", SearchOption.AllDirectories)
+                        .Where(x => new DateTimeOffset(File.GetCreationTimeUtc(x)).ToUnixTimeMilliseconds() > LastCheck);
+
+                    foreach (var file in files)
+                        await start(file);
+                }
+                catch (Exception ex) { task.LogErr(ex); }
+            }
+        })
+        { IsBackground = true }.Start();
 
 
         async ValueTask start(string file)
@@ -45,5 +52,5 @@ public class LocalWatchingTaskSource : IWatchingTaskSource
         }
     }
 
-    public void Dispose() => Watcher?.Dispose();
+    public void Dispose() => TokenSource.Dispose();
 }
