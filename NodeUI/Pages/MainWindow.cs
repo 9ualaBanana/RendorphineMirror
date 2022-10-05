@@ -452,7 +452,22 @@ namespace NodeUI.Pages
 
                     return data;
                 }
-                protected virtual Control WrapGrid(DataGrid grid) => grid;
+                protected virtual Control WrapGrid(DataGrid grid)
+                {
+                    return new Grid()
+                    {
+                        RowDefinitions = RowDefinitions.Parse("Auto *"),
+                        Children =
+                        {
+                            new MPButton()
+                            {
+                                Text = "Reload",
+                                OnClick = () => { grid.Items = Array.Empty<T>(); LoadSetItems(grid).Consume(); },
+                            }.WithRow(0),
+                            grid.WithRow(1),
+                        },
+                    };
+                }
                 protected abstract void CreateColumns(DataGrid data);
 
                 protected async Task LoadSetItems(DataGrid grid) => grid.Items = await Load();
