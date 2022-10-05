@@ -19,11 +19,7 @@ public class WatchingTask : ILoggable
 
     public readonly List<string> PlacedTasks = new();
 
-#pragma warning disable CS8618 // field are not assigned
-    [JsonConstructor] private WatchingTask() { }
-#pragma warning restore
-
-    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output, TaskPolicy policy, string? version, bool executeLocally)
+    public WatchingTask(IWatchingTaskSource source, string taskaction, JObject taskData, IWatchingTaskOutputInfo output, TaskPolicy policy, string? version, bool executeLocally, string? id = null, bool isPaused = false)
     {
         Id = Guid.NewGuid().ToString();
 
