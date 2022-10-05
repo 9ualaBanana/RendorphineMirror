@@ -10,7 +10,7 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
 
     // 0-1
     public double Progress = 0;
-    public TaskState State = TaskState.Queued;
+    public TaskState State { get; set; } = TaskState.Queued;
 
     public readonly HashSet<FileWithFormat> InputFiles = new();
     public readonly HashSet<FileWithFormat> OutputFiles = new();

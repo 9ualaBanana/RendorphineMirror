@@ -99,6 +99,7 @@ namespace Common
         public static OperationResult<T> AsOpResult<T>(this T value) => OperationResult.Succ(value);
         public static ref readonly OperationResult GetResult<T>(in this OperationResult<T> estring) => ref estring.EString;
         public static ValueTask<T> AsVTask<T>(this T value) => ValueTask.FromResult(value);
+        public static Task<T> AsTask<T>(this T value) => Task.FromResult(value);
         public static ValueTask<OperationResult<T>> AsTaskResult<T>(this T value) => value.AsOpResult().AsVTask();
 
         public static OperationResult LogIfError(in this OperationResult opr, string? format = null)

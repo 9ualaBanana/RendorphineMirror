@@ -1,7 +1,12 @@
+using System.Globalization;
 using System.Net.Http.Headers;
-using System.Reflection;
 using System.Text;
 using System.Web;
+using Avalonia.Controls.Utils;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
+using Avalonia.Interactivity;
+using Common.Tasks.Model;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -26,6 +31,7 @@ namespace NodeUI.Pages
 
 
             var tabs = new TabbedControl();
+            tabs.Add("tasks2", new TasksTab2());
             tabs.Add("tab.dashboard", new DashboardTab());
             tabs.Add("tab.plugins", new PluginsTab());
             tabs.Add("tasks", new TasksTab());
@@ -37,6 +43,7 @@ namespace NodeUI.Pages
                 tabs.Add("registry", new RegistryTab());
 
             Content = tabs;
+
         }
 
         void SubscribeToStateChanges()
@@ -72,28 +79,45 @@ namespace NodeUI.Pages
         {
             public static NamedList<T> Create<T>(string title, IReadOnlyCollection<T> items, Func<T, IControl> templatefunc) => new(title, items, templatefunc);
         }
-        class NamedList<T> : Grid
+        class NamedControl : Panel
         {
-            // GC protected instance
-            readonly IReadOnlyCollection<T> Items;
+            protected readonly string TitleText;
+            protected readonly TextBlock Title;
+            public readonly Panel Control;
 
-            public NamedList(string title, IReadOnlyCollection<T> items, Func<T, IControl> templatefunc)
+            public NamedControl(string title)
             {
-                Items = items = (items as IReadOnlyBindableCollection<T>)?.GetBoundCopy() ?? items;
+                TitleText = title;
+                Title = new TextBlock();
+                Control = new Panel();
+
+                UpdateTitle();
+
 
                 Children.Add(new Grid()
                 {
                     RowDefinitions = RowDefinitions.Parse("Auto *"),
                     Children =
                     {
-                        new TextBlock()
-                            .With(tb => (items as IReadOnlyBindableCollection<T>)?.SubscribeChanged(() => Dispatcher.UIThread.Post(() => tb.Text = $"{title}\nLast update: {DateTimeOffset.Now}"), true))
-                            .WithRow(0),
-
-                        TypedItemsControl.Create(items, templatefunc)
-                            .WithRow(1),
+                        Title.WithRow(0),
+                        Control.WithRow(1),
                     },
                 });
+            }
+
+            public void UpdateTitle() => Dispatcher.UIThread.Post(() => Title.Text = $"{TitleText}\nLast update: {DateTimeOffset.Now}");
+        }
+        class NamedList<T> : NamedControl
+        {
+            // GC protected instance
+            readonly IReadOnlyCollection<T> Items;
+
+            public NamedList(string title, IReadOnlyCollection<T> items, Func<T, IControl> templatefunc) : base(title)
+            {
+                Items = items = (items as IReadOnlyBindableCollection<T>)?.GetBoundCopy() ?? items;
+
+                (items as IReadOnlyBindableCollection<T>)?.SubscribeChanged(UpdateTitle, true);
+                Control.Children.Add(TypedItemsControl.Create(items, templatefunc));
             }
         }
 
@@ -254,6 +278,32 @@ namespace NodeUI.Pages
         {
             public TasksTab()
             {
+                var allplaced = null as StackPanel;
+                allplaced = new StackPanel()
+                {
+                    Orientation = Orientation.Vertical,
+                    Children =
+                    {
+                        new MPButton()
+                        {
+                            Text = "Fetch all active placed tasks",
+                            OnClickSelf = async self =>
+                            {
+                                allplaced.ThrowIfNull();
+
+                                var tasks = await Apis.GetMyTasksAsync(new[] { TaskState.Queued, TaskState.Input, TaskState.Active, TaskState.Output, });
+                                await self.TemporarySetTextIfErr(tasks);
+                                if (!tasks) return;
+
+                                if (allplaced.Children.Count > 1)
+                                    allplaced.Children.RemoveAt(1);
+                                allplaced.Children.Add(NamedList.Create("ALL active placed tasks", tasks.ThrowIfError(), placedTasksCreate));
+                            },
+                        },
+                    },
+                };
+
+
                 var scroll = new ScrollViewer()
                 {
                     Content = new StackPanel()
@@ -265,6 +315,7 @@ namespace NodeUI.Pages
                             NamedList.Create("Executing tasks", NodeGlobalState.Instance.ExecutingTasks, execTasksCreate),
                             NamedList.Create("Watching tasks", NodeGlobalState.Instance.WatchingTasks, watchingTasksCreate),
                             NamedList.Create("Placed tasks", NodeGlobalState.Instance.PlacedTasks, placedTasksCreate),
+                            allplaced,
                         },
                     },
                 };
@@ -298,24 +349,29 @@ namespace NodeUI.Pages
                     var statusbtn = new MPButton()
                     {
                         Text = "Update status",
-                        OnClickSelf = async self =>
-                        {
-                            var state = await task.GetTaskStateAsync();
-                            await self.TemporarySetTextIfErr(state);
-
-                            if (state)
-                                statustb.Text = JsonConvert.SerializeObject(state.Value, Formatting.None);
-                        },
+                        OnClickSelf = async self => await updateState(self),
                     };
                     var cancelbtn = new MPButton()
                     {
                         Text = "Cancel task",
                         OnClickSelf = async self =>
                         {
-                            var state = await task.ChangeStateAsync(TaskState.Canceled);
-                            await self.TemporarySetTextIfErr(state);
+                            var cstate = await task.ChangeStateAsync(TaskState.Canceled);
+                            await self.TemporarySetTextIfErr(cstate);
+                            if (!cstate) return;
+
+                            await updateState(self);
                         },
                     };
+
+                    async Task updateState(MPButton button)
+                    {
+                        var state = await task.GetTaskStateAsync();
+                        await button.TemporarySetTextIfErr(state);
+                        if (!state) return;
+
+                        statustb.Text = JsonConvert.SerializeObject(state.Value, Formatting.None);
+                    }
 
                     return new Expander()
                     {
@@ -361,6 +417,216 @@ namespace NodeUI.Pages
                 }
             }
         }
+
+        class TasksTab2 : Panel
+        {
+            string SessionId = Settings.SessionId;
+
+            public TasksTab2()
+            {
+                var tabs = new TabbedControl();
+                tabs.Add("Local", new LocalTaskManager());
+                tabs.Add("Watching", new WatchingTaskManager());
+                tabs.Add("Remote", new RemoteTaskManager());
+
+                Children.Add(tabs);
+            }
+
+
+            abstract class TaskManager<T> : Panel
+            {
+                protected string SessionId = Settings.SessionId;
+
+                public TaskManager()
+                {
+                    var data = CreateDataGrid();
+                    Children.Add(WrapGrid(data));
+
+                    LoadSetItems(data).Consume();
+                }
+
+                protected DataGrid CreateDataGrid()
+                {
+                    var data = new DataGrid() { AutoGenerateColumns = false };
+                    CreateColumns(data);
+
+                    return data;
+                }
+                protected virtual Control WrapGrid(DataGrid grid)
+                {
+                    return new Grid()
+                    {
+                        RowDefinitions = RowDefinitions.Parse("Auto *"),
+                        Children =
+                        {
+                            new MPButton()
+                            {
+                                Text = "Reload",
+                                OnClick = () => { grid.Items = Array.Empty<T>(); LoadSetItems(grid).Consume(); },
+                            }.WithRow(0),
+                            grid.WithRow(1),
+                        },
+                    };
+                }
+                protected abstract void CreateColumns(DataGrid data);
+
+                protected async Task LoadSetItems(DataGrid grid) => grid.Items = await Load();
+                protected abstract Task<IReadOnlyCollection<T>> Load();
+            }
+            abstract class NormalTaskManager : TaskManager<ReceivedTask>
+            {
+                protected override void CreateColumns(DataGrid data)
+                {
+                    data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(ReceivedTask.Id)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "State", Binding = new Binding(nameof(ReceivedTask.State)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Action", Binding = new Binding(nameof(ReceivedTask.Action)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding("Input.Type") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding("Output.Type") });
+
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Host)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Userid)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") });
+
+                    data.Columns.Add(new DataGridButtonColumn<DbTaskFullState>()
+                    {
+                        Header = "Cancel task",
+                        Text = "Cancel task",
+                        CreationRequirements = task => task.State < TaskState.Finished,
+                        SelfAction = async (task, self) =>
+                        {
+                            var change = await task.ChangeStateAsync(TaskState.Canceled, sessionId: SessionId);
+                            await self.TemporarySetTextIfErr(change);
+
+                            if (change) await LoadSetItems(data);
+                        },
+                    });
+                }
+            }
+            class LocalTaskManager : NormalTaskManager
+            {
+                protected override Task<IReadOnlyCollection<ReceivedTask>> Load() =>
+                    new IReadOnlyList<ReceivedTask>[] { NodeGlobalState.Instance.QueuedTasks, NodeGlobalState.Instance.PlacedTasks, NodeGlobalState.Instance.ExecutingTasks, }
+                        .SelectMany(x => x)
+                        .DistinctBy(x => x.Id)
+                        .ToArray()
+                        .AsTask<IReadOnlyCollection<ReceivedTask>>();
+            }
+            class RemoteTaskManager : NormalTaskManager
+            {
+                protected override Control WrapGrid(DataGrid grid)
+                {
+                    var sidtextbox = new TextBox() { Watermark = "session id" };
+                    var setsidbtn = new MPButton()
+                    {
+                        Text = "Set sessionid",
+                        OnClickSelf = async self =>
+                        {
+                            SessionId = string.IsNullOrWhiteSpace(sidtextbox.Text) ? Settings.SessionId : sidtextbox.Text.Trim();
+                            grid.Items = await Load();
+                        },
+                    };
+                    var sidgrid = new Grid()
+                    {
+                        ColumnDefinitions = ColumnDefinitions.Parse("* Auto"),
+                        Children =
+                        {
+                            sidtextbox.WithColumn(0),
+                            setsidbtn.WithColumn(1),
+                        },
+                    };
+
+                    return new Grid()
+                    {
+                        RowDefinitions = RowDefinitions.Parse("Auto *"),
+                        Children =
+                        {
+                            sidgrid.WithRow(0),
+                            base.WrapGrid(grid).WithRow(1),
+                        },
+                    };
+                }
+
+
+                protected override async Task<IReadOnlyCollection<ReceivedTask>> Load() =>
+                    (await Apis.GetMyTasksAsync(Enum.GetValues<TaskState>(), sessionId: SessionId)).ThrowIfError()
+                        .Append(new DbTaskFullState("asd", "asd", TaskPolicy.AllNodes, new("asd", 1423), new MPlusTaskInputInfo("asd"), new MPlusTaskOutputInfo("be.jpg", "dir"), new() { ["type"] = "EditVideo" }) { State = TaskState.Input })
+                        .ToArray();
+            }
+            class WatchingTaskManager : TaskManager<WatchingTaskInfo>
+            {
+                protected override void CreateColumns(DataGrid data)
+                {
+                    data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(WatchingTaskInfo.Id)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Policy", Binding = new Binding(nameof(WatchingTaskInfo.Policy)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Action", Binding = new Binding(nameof(WatchingTaskInfo.TaskAction)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding($"{nameof(WatchingTaskInfo.Source)}.Type") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding($"{nameof(WatchingTaskInfo.Output)}.Type") });
+
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Paused", Binding = new Binding(nameof(WatchingTaskInfo.IsPaused)) });
+
+                    data.Columns.Add(new DataGridButtonColumn<WatchingTaskInfo>()
+                    {
+                        Header = "Delete",
+                        Text = "Delete",
+                        SelfAction = async (task, self) =>
+                        {
+                            var result = await LocalApi.Send($"tasks/delwatching?taskid={task.Id}");
+                            await self.TemporarySetTextIfErr(result);
+
+                            if (result) await LoadSetItems(data);
+                        },
+                    });
+                    data.Columns.Add(new DataGridButtonColumn<WatchingTaskInfo>()
+                    {
+                        Header = "Pause/Unpause",
+                        Text = "Pause/Unpause",
+                        SelfAction = async (task, self) =>
+                        {
+                            var result = await LocalApi.Send<WatchingTaskInfo>($"tasks/pausewatching?taskid={task.Id}");
+                            await self.TemporarySetTextIfErr(result);
+
+                            if (result) await LoadSetItems(data);
+                        },
+                    });
+                }
+
+                protected override Task<IReadOnlyCollection<WatchingTaskInfo>> Load() =>
+                    (NodeGlobalState.Instance.WatchingTasks as IReadOnlyCollection<WatchingTaskInfo>).AsTask();
+            }
+
+
+            class ObjectToJsonConverter : IValueConverter
+            {
+                public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => JsonConvert.SerializeObject(value);
+                public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => JsonConvert.DeserializeObject((string) value!, targetType);
+            }
+            class DataGridButtonColumn<T> : DataGridColumn
+            {
+                public string? Text;
+                public Action<T>? Action;
+                public Action<T, MPButton>? SelfAction;
+                public Func<T, bool>? CreationRequirements;
+
+                protected override IControl GenerateElement(DataGridCell cell, object dataItem)
+                {
+                    if (dataItem is not T item) return new Control();
+
+                    var btn = new MPButton()
+                    {
+                        Text = Text ?? string.Empty,
+                        OnClick = () => Action?.Invoke(item),
+                        OnClickSelf = self => SelfAction?.Invoke(item, self),
+                    };
+                    btn.Bind(MPButton.IsVisibleProperty, new Binding("") { Converter = new FuncValueConverter<T, bool>(t => t is null ? false : CreationRequirements?.Invoke(t) ?? true) });
+
+                    return btn;
+                }
+
+                protected override IControl GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
+                protected override object PrepareCellForEdit(IControl editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
+            }
+        }
+
         class BenchmarkTab : Panel
         {
             public BenchmarkTab()

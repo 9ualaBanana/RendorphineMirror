@@ -29,6 +29,7 @@ public class OtherUserWatchingTaskSource : IWatchingTaskSource
             try
             {
                 await Task.Delay(60_000);
+                if (task.IsPaused) continue;
 
                 if (task.PlacedTasks.Count != 0)
                     foreach (var taskid in task.PlacedTasks.ToArray())

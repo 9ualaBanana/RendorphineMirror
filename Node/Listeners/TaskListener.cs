@@ -10,6 +10,31 @@ public class TaskListener : ExecutableListenerBase
     protected override string? Prefix => "tasks";
 
 
+    protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
+    {
+        if (path == "pausewatching")
+        {
+            var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
+            if (!NodeSettings.WatchingTasks.TryGetValue(taskid, out var wtask))
+                return await WriteErr(context.Response, "No such task found");
+
+            wtask.IsPaused = !wtask.IsPaused;
+            NodeSettings.WatchingTasks.Save(wtask);
+            return await WriteJson(context.Response, wtask.AsOpResult());
+        }
+
+        if (path == "delwatching")
+        {
+            var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
+            if (!NodeSettings.WatchingTasks.ContainsKey(taskid))
+                return await WriteErr(context.Response, "No such task found");
+
+            NodeSettings.WatchingTasks.Remove(taskid);
+            return await WriteSuccess(context.Response);
+        }
+
+        return HttpStatusCode.NotFound;
+    }
     protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
     {
         var request = context.Request;

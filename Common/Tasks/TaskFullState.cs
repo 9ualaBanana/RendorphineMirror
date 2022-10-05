@@ -10,7 +10,7 @@ public record DbTaskFullState : ReceivedTask
 {
     public string UserId { get; init; } = null!;
     public ulong Registered { get; init; }
-    public TaskServer? Server;
+    public TaskServer? Server { get; set; }
     [JsonIgnore] public override bool IsFromSameNode => base.IsFromSameNode || (Server?.Userid == Settings.UserId && Server?.Nickname == Settings.NodeName);
 
     [JsonConstructor]
