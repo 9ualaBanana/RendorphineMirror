@@ -1,18 +1,22 @@
 namespace Common.Tasks.Watching;
 
-public interface IWatchingTaskInputOutputInfo
+public interface IWatchingTaskInputOutputInfo { }
+public interface IWatchingTaskInputInfo : IWatchingTaskInputOutputInfo
 {
-    WatchingTaskInputOutputType Type { get; }
+    WatchingTaskInputType Type { get; }
 }
-public interface IWatchingTaskSource : IWatchingTaskInputOutputInfo, IDisposable
+public interface IMPlusWatchingTaskInputInfo : IWatchingTaskInputInfo
 {
-    void StartListening(WatchingTask task);
+    string? SinceIid { get; set; }
 }
+
 public interface IWatchingTaskOutputInfo : IWatchingTaskInputOutputInfo
 {
-    ITaskOutputInfo CreateOutput(string file);
+    WatchingTaskOutputType Type { get; }
+
+    ITaskOutputInfo CreateOutput(WatchingTask task, string file);
 }
 public interface IMPlusWatchingTaskOutputInfo : IWatchingTaskOutputInfo
 {
-    ITaskOutputInfo CreateOutput(MPlusNewItem item, string file);
+    ITaskOutputInfo CreateOutput(WatchingTask task, MPlusNewItem item, string file);
 }

@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using static Common.Settings;
 
 namespace Node;
@@ -14,12 +14,30 @@ public static class NodeSettings
 
     static NodeSettings()
     {
+        if (true)
+        {
+            var watching = new DatabaseValueDictionary<string, JObject>(nameof(WatchingTasks), x => x["Id"]!.Value<string>()!);
+            foreach (var (key, value) in watching)
+            {
+                if (!value.ToString().Contains("WatchingTaskSource", StringComparison.Ordinal)) continue;
+
+                value["Source"]!["$type"] = $"Common.Tasks.Watching.{value["Source"]!["Type"]!.Value<string>()!}WatchingTaskInputInfo, Common";
+                value["Output"]!["$type"] = value["Output"]!["$type"]!.Value<string>()!.Replace("Node", "Common");
+                var ininfo = value.ToObject<WatchingTask>(LocalApi.JsonSerializerWithType);
+
+                watching.Save(value);
+            }
+        }
+
+
         QueuedTasks = new(nameof(QueuedTasks), t => t.Id);
         CanceledTasks = new(nameof(CanceledTasks), t => t.Id);
         FailedTasks = new(nameof(FailedTasks), t => t.Id);
         WatchingTasks = new(nameof(WatchingTasks), t => t.Id);
         PlacedTasks = new(nameof(PlacedTasks), t => t.Id);
         CompletedTasks = new(nameof(CompletedTasks), t => t.TaskInfo.Id);
+
+
 
         #region migration
         load(nameof(QueuedTasks), QueuedTasks);
@@ -44,10 +62,7 @@ public static class NodeSettings
         #endregion
 
 
-        WatchingTasks.Bindable.SubscribeChanged(() =>
-            NodeGlobalState.Instance.WatchingTasks.SetRange(WatchingTasks.Select(x => JsonConvert.DeserializeObject<WatchingTaskInfo>(JsonConvert.SerializeObject(x))!))
-        , true);
-
+        NodeGlobalState.Instance.WatchingTasks.Bind(WatchingTasks.Bindable);
         NodeGlobalState.Instance.PlacedTasks.Bind(PlacedTasks.Bindable);
         NodeGlobalState.Instance.QueuedTasks.Bind(QueuedTasks.Bindable);
     }

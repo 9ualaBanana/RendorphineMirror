@@ -4,91 +4,75 @@ using Node.Listeners;
 
 namespace Node.Tasks.Watching;
 
-public class OtherUserWatchingTaskSource : IWatchingTaskSource
+public class OtherUserWatchingTaskHandler : WatchingTaskHandler<OtherUserWatchingTaskInputInfo>
 {
-    public WatchingTaskInputOutputType Type => WatchingTaskInputOutputType.OtherNodeTorrent;
+    public override WatchingTaskInputType Type => WatchingTaskInputType.OtherNode;
 
-    public readonly string NodeId, Directory;
-    [DescriberIgnore] public long LastCheck = 0;
+    public OtherUserWatchingTaskHandler(WatchingTask task) : base(task) { }
 
-    public OtherUserWatchingTaskSource(string nodeid, string directory)
+    public override void StartListening() => Start().Consume();
+    async Task Start()
     {
-        NodeId = nodeid;
-        Directory = directory;
-    }
-
-    public void StartListening(WatchingTask task) => Start(task).Consume();
-    async Task Start(WatchingTask task)
-    {
-        var node = (await Apis.GetNodeAsync(NodeId)).ThrowIfError();
+        var node = (await Apis.GetNodeAsync(Input.NodeId)).ThrowIfError();
         var url = $"http://{node.Info.Ip}:{node.Info.Port}";
-        var path = $"dirdiff?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(Directory)}";
+        var path = $"dirdiff?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(Input.Directory)}";
 
-        while (true)
+        StartThreadRepeated(60_000, tick);
+
+
+        async ValueTask tick()
         {
-            try
-            {
-                await Task.Delay(60_000);
-                if (task.IsPaused) continue;
+            if (Task.PlacedTasks.Count != 0)
+                foreach (var taskid in Task.PlacedTasks.ToArray())
+                {
+                    var state = (await Apis.GetTaskStateAsync(taskid)).ThrowIfError();
+                    if (!state.State.IsFinished()) continue;
 
-                if (task.PlacedTasks.Count != 0)
-                    foreach (var taskid in task.PlacedTasks.ToArray())
+                    if (state.State == TaskState.Finished)
                     {
-                        var state = (await Apis.GetTaskStateAsync(taskid)).ThrowIfError();
-                        if (!state.State.IsFinished()) continue;
+                        var zipfile = Path.GetTempFileName();
 
-                        if (state.State == TaskState.Finished)
+                        try
                         {
-                            var zipfile = Path.GetTempFileName();
+                            var taskdir = ReceivedTask.FSPlacedResultsDirectory(taskid);
+                            ZipFile.CreateFromDirectory(taskdir, zipfile);
 
-                            try
-                            {
-                                var taskdir = ReceivedTask.FSPlacedResultsDirectory(taskid);
-                                ZipFile.CreateFromDirectory(taskdir, zipfile);
+                            using var stream = File.OpenRead(zipfile);
+                            using var content = new StreamContent(stream);
 
-                                using var stream = File.OpenRead(zipfile);
-                                using var content = new StreamContent(stream);
-
-                                (await Api.ApiPost($"{url}/download/uploadtask?sessionid={Settings.SessionId}&taskid={taskid}", "Uploading task result", content)).ThrowIfError();
-                            }
-                            finally { File.Delete(zipfile); }
+                            (await Api.ApiPost($"{url}/download/uploadtask?sessionid={Settings.SessionId}&taskid={taskid}", "Uploading task result", content)).ThrowIfError();
                         }
-
-                        task.LogInfo($"Placed task {taskid} was {state.State}, removing");
-                        task.PlacedTasks.Remove(taskid);
-                        NodeSettings.WatchingTasks.Save(task);
+                        finally { File.Delete(zipfile); }
                     }
 
-
-                var check = await LocalApi.Send<DirectoryDiffListener.DiffOutput>(url, path + $"&lastcheck={LastCheck}");
-                check.LogIfError();
-                if (!check) continue;
-
-                var files = check.Value.Files;
-                if (files.Length == 0) continue;
-                files = files.Where(x => x.ModifTime > LastCheck).OrderBy(x => x.ModifTime).ToImmutableArray();
-
-                task.LogInfo($"Found {files.Length} new files: {string.Join("; ", files)}");
-
-                foreach (var file in files)
-                {
-                    var download = await Api.Download($"{url}/download?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(file.Path)}");
-
-                    var fsfile = Path.Combine(task.FSDataDirectory(), Path.GetFileName(file.Path));
-                    using (var writer = File.OpenWrite(fsfile))
-                        await download.CopyToAsync(writer);
-
-                    await task.RegisterTask(fsfile, new TorrentTaskInputInfo(fsfile));
-                    LastCheck = file.ModifTime;
-                    NodeSettings.WatchingTasks.Save(task);
+                    Task.LogInfo($"Placed task {taskid} was {state.State}, removing");
+                    Task.PlacedTasks.Remove(taskid);
+                    SaveTask();
                 }
-            }
-            catch (Exception ex) { task.LogErr(ex); }
-        }
-    }
 
-    public void Dispose()
-    {
-        throw new NotImplementedException();
+
+            var check = await LocalApi.Send<DirectoryDiffListener.DiffOutput>(url, path + $"&lastcheck={Input.LastCheck}");
+            check.LogIfError();
+            if (!check) return;
+
+            var files = check.Value.Files;
+            if (files.Length == 0) return;
+            files = files.Where(x => x.ModifTime > Input.LastCheck).OrderBy(x => x.ModifTime).ToImmutableArray();
+
+            Task.LogInfo($"Found {files.Length} new files: {string.Join("; ", files)}");
+
+            foreach (var file in files)
+            {
+                var download = await Api.Download($"{url}/download?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(file.Path)}");
+
+                var fsfile = Path.Combine(Task.FSDataDirectory(), Path.GetFileName(file.Path));
+                using (var writer = File.OpenWrite(fsfile))
+                    await download.CopyToAsync(writer);
+
+                await Task.RegisterTask(fsfile, new TorrentTaskInputInfo(fsfile));
+                Input.LastCheck = file.ModifTime;
+                SaveTask();
+            }
+        }
     }
 }

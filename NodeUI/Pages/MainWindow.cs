@@ -6,7 +6,6 @@ using Avalonia.Controls.Utils;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia.Interactivity;
-using Common.Tasks.Model;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -422,7 +421,7 @@ namespace NodeUI.Pages
                         },
                     };
                 }
-                IControl watchingTasksCreate(WatchingTaskInfo task)
+                IControl watchingTasksCreate(WatchingTask task)
                 {
                     return new Expander()
                     {
@@ -433,8 +432,8 @@ namespace NodeUI.Pages
                             Children =
                             {
                                 new TextBlock() { Text = $"Data: {task.TaskData.ToString(Formatting.None)}" },
-                                new TextBlock() { Text = $"Source: {task.Source.ToString(Formatting.None)}" },
-                                new TextBlock() { Text = $"Output: {task.Output.ToString(Formatting.None)}" },
+                                new TextBlock() { Text = $"Source: {JsonConvert.SerializeObject(task.Source, Formatting.None)}" },
+                                new TextBlock() { Text = $"Output: {JsonConvert.SerializeObject(task.Output, Formatting.None)}" },
                             },
                         },
                     };
@@ -577,19 +576,19 @@ namespace NodeUI.Pages
                         .Append(new DbTaskFullState("asd", "asd", TaskPolicy.AllNodes, new("asd", 1423), new MPlusTaskInputInfo("asd"), new MPlusTaskOutputInfo("be.jpg", "dir"), new() { ["type"] = "EditVideo" }) { State = TaskState.Input })
                         .ToArray();
             }
-            class WatchingTaskManager : TaskManager<WatchingTaskInfo>
+            class WatchingTaskManager : TaskManager<WatchingTask>
             {
                 protected override void CreateColumns(DataGrid data)
                 {
-                    data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(WatchingTaskInfo.Id)) });
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Policy", Binding = new Binding(nameof(WatchingTaskInfo.Policy)) });
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Action", Binding = new Binding(nameof(WatchingTaskInfo.TaskAction)) });
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding($"{nameof(WatchingTaskInfo.Source)}.Type") });
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding($"{nameof(WatchingTaskInfo.Output)}.Type") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(WatchingTask.Id)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Policy", Binding = new Binding(nameof(WatchingTask.Policy)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Action", Binding = new Binding(nameof(WatchingTask.TaskAction)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding($"{nameof(WatchingTask.Source)}.Type") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding($"{nameof(WatchingTask.Output)}.Type") });
 
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Paused", Binding = new Binding(nameof(WatchingTaskInfo.IsPaused)) });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Paused", Binding = new Binding(nameof(WatchingTask.IsPaused)) });
 
-                    data.Columns.Add(new DataGridButtonColumn<WatchingTaskInfo>()
+                    data.Columns.Add(new DataGridButtonColumn<WatchingTask>()
                     {
                         Header = "Delete",
                         Text = "Delete",
@@ -601,13 +600,13 @@ namespace NodeUI.Pages
                             if (result) await LoadSetItems(data);
                         },
                     });
-                    data.Columns.Add(new DataGridButtonColumn<WatchingTaskInfo>()
+                    data.Columns.Add(new DataGridButtonColumn<WatchingTask>()
                     {
                         Header = "Pause/Unpause",
                         Text = "Pause/Unpause",
                         SelfAction = async (task, self) =>
                         {
-                            var result = await LocalApi.Send<WatchingTaskInfo>($"tasks/pausewatching?taskid={task.Id}");
+                            var result = await LocalApi.Send<WatchingTask>($"tasks/pausewatching?taskid={task.Id}");
                             await self.TemporarySetTextIfErr(result);
 
                             if (result) await LoadSetItems(data);
@@ -615,8 +614,8 @@ namespace NodeUI.Pages
                     });
                 }
 
-                protected override Task<IReadOnlyCollection<WatchingTaskInfo>> Load() =>
-                    (NodeGlobalState.Instance.WatchingTasks as IReadOnlyCollection<WatchingTaskInfo>).AsTask();
+                protected override Task<IReadOnlyCollection<WatchingTask>> Load() =>
+                    (NodeGlobalState.Instance.WatchingTasks as IReadOnlyCollection<WatchingTask>).AsTask();
             }
 
 

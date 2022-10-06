@@ -12,7 +12,6 @@ global using Node.Tasks.Watching;
 global using NodeToUI;
 using System.Diagnostics;
 using Common.Heartbeat;
-using Common.NodeUserSettings;
 using Node;
 using Node.Listeners;
 using Node.Plugins;
@@ -193,17 +192,10 @@ async Task InitializePlugins()
         new VeeeVectorizerPluginDiscoverer()
     );
 
-    TaskHandler.AddHandlers(
-        new MPlusTaskHandler(),
-        new DownloadLinkTaskHandler(),
-        new TorrentTaskHandler(),
-        new QSPreviewTaskHandler(),
-        new DirectUploadTaskHandler()
-    );
+    TaskHandler.AutoInitializeHandlers();
 
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
     Task.Run(() => logger.Info($"Found {{Plugins}} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {Path.GetFullPath(x.Path)}"))}", plugins.Count)).Consume();
-
 }
 async ValueTask AuthWithGui()
 {

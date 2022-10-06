@@ -11,7 +11,9 @@ public static class WatchingTaskExtensions
     public static void StartWatcher(this WatchingTask task)
     {
         task.LogInfo($"Watcher started; Data: {JsonConvert.SerializeObject(task, Init.IsDebug ? LocalApi.JsonSettingsWithType : new JsonSerializerSettings())}");
-        task.Source.StartListening(task);
+
+        var handler = task.CreateWatchingHandler();
+        handler.StartListening();
     }
 
     public static TaskCreationInfo CreateTaskInfo(this WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output)
@@ -30,7 +32,7 @@ public static class WatchingTaskExtensions
         { ExecuteLocally = task.ExecuteLocally };
     }
 
-    public static ValueTask<string> RegisterTask(this WatchingTask task, string filename, ITaskInputInfo input) => task.RegisterTask(input, task.Output.CreateOutput(filename));
+    public static ValueTask<string> RegisterTask(this WatchingTask task, string filename, ITaskInputInfo input) => task.RegisterTask(input, task.Output.CreateOutput(task, filename));
     public static async ValueTask<string> RegisterTask(this WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output)
     {
         static string Serialize<T>(T obj) => obj?.GetType().Name + " " + JsonConvert.SerializeObject(obj, ConsoleJsonSerializer);
