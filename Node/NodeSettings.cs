@@ -31,9 +31,15 @@ public static class NodeSettings
         void load<T>(string source, DatabaseValueDictionary<string, T> target)
         {
             var list = new DatabaseValueList<T>(source);
-            target.AddRange(list);
-            list.Bindable.Clear();
-            list.Delete();
+
+            try { target.AddRange(list); }
+            catch (Exception ex) { LogManager.GetCurrentClassLogger().Error(ex); }
+            finally
+            {
+                list.Bindable.Clear();
+                list.Save();
+                list.Delete();
+            }
         }
         #endregion
 
