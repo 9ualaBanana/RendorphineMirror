@@ -472,8 +472,9 @@ namespace NodeUI.Pages
                 protected DataGrid CreateDataGrid()
                 {
                     var data = new DataGrid() { AutoGenerateColumns = false };
-                    CreateColumns(data);
+                    data.BeginningEdit += (obj, e) => e.Cancel = true;
 
+                    CreateColumns(data);
                     return data;
                 }
                 protected virtual Control WrapGrid(DataGrid grid)
