@@ -17,7 +17,7 @@ public class NodeGlobalState
     public readonly BindableList<ReceivedTask> QueuedTasks = new();
     public readonly BindableList<ReceivedTask> ExecutingTasks = new();
     public readonly BindableList<DbTaskFullState> PlacedTasks = new();
-    public readonly BindableList<WatchingTaskInfo> WatchingTasks = new();
+    public readonly BindableList<WatchingTask> WatchingTasks = new();
 
 
     private NodeGlobalState()

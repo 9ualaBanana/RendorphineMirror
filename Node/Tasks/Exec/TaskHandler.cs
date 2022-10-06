@@ -1,11 +1,15 @@
+using System.Runtime.Serialization;
+
 namespace Node.Tasks.Exec;
 
 public static class TaskHandler
 {
-    public static IEnumerable<ITaskHandler> HandlerList => Handlers;
-    static readonly List<ITaskHandler> Handlers = new();
+    public static IEnumerable<ITaskInputHandler> InputHandlerList => InputHandlers.Values;
+    public static IEnumerable<ITaskOutputHandler> OutputHandlerList => OutputHandlers.Values;
+
     static readonly Dictionary<TaskInputType, ITaskInputHandler> InputHandlers = new();
     static readonly Dictionary<TaskOutputType, ITaskOutputHandler> OutputHandlers = new();
+    static readonly Dictionary<WatchingTaskInputType, Func<WatchingTask, IWatchingTaskInputHandler>> WatchingHandlers = new();
 
 
     public static async Task InitializePlacedTasksAsync()
@@ -257,22 +261,40 @@ public static class TaskHandler
         }
     }
 
-    public static void AddHandler(ITaskHandler handler)
+    public static void AutoInitializeHandlers()
     {
-        Handlers.Add(handler);
+        var types = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(ass => ass.GetTypes())
+            .Where(x => x.IsAssignableTo(typeof(ITaskHandler)))
+            .Where(x => x.IsClass && !x.IsAbstract);
 
-        if (handler is ITaskInputHandler inputh)
-            InputHandlers[inputh.Type] = inputh;
-        if (handler is ITaskOutputHandler outputh)
-            OutputHandlers[outputh.Type] = outputh;
+        foreach (var type in types)
+            AddHandler(type);
     }
-    public static void AddHandlers(params ITaskHandler[] handlers)
+    public static void AddHandler(Type type)
     {
-        foreach (var handler in handlers)
-            AddHandler(handler);
+        if (type.IsAssignableTo(typeof(ITaskInputHandler)))
+        {
+            var handler = (ITaskInputHandler) Activator.CreateInstance(type)!;
+            InputHandlers[handler.Type] = handler;
+        }
+        if (type.IsAssignableTo(typeof(ITaskOutputHandler)))
+        {
+            var handler = (ITaskOutputHandler) Activator.CreateInstance(type)!;
+            OutputHandlers[handler.Type] = handler;
+        }
+        if (type.IsAssignableTo(typeof(IWatchingTaskInputHandler)))
+        {
+            // FormatterServices.GetSafeUninitializedObject is being used to create valid object for getting only the .Type property
+            // since all IWatchingTaskInputHandler object implement Type property using `=>` and not `{ get; } =`
+
+            WatchingHandlers[((IWatchingTaskInputHandler) FormatterServices.GetSafeUninitializedObject(type)).Type] =
+                task => (IWatchingTaskInputHandler) Activator.CreateInstance(type, new object?[] { task })!;
+        }
     }
 
 
-    public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => (ITaskInputHandler) InputHandlers[task.Input.Type];
-    public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => (ITaskOutputHandler) OutputHandlers[task.Output.Type];
+    public static ITaskInputHandler GetInputHandler(this ReceivedTask task) => InputHandlers[task.Input.Type];
+    public static ITaskOutputHandler GetOutputHandler(this ReceivedTask task) => OutputHandlers[task.Output.Type];
+    public static IWatchingTaskInputHandler CreateWatchingHandler(this WatchingTask task) => WatchingHandlers[task.Source.Type](task);
 }

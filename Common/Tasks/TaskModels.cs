@@ -7,17 +7,18 @@ public static class TaskModels
 {
     public static ImmutableDictionary<TaskInputType, Type> Inputs;
     public static ImmutableDictionary<TaskOutputType, Type> Outputs;
-    public static ImmutableDictionary<WatchingTaskInputOutputType, Type> WatchingInputs, WatchingOutputs;
+    public static ImmutableDictionary<WatchingTaskInputType, Type> WatchingInputs;
+    public static ImmutableDictionary<WatchingTaskOutputType, Type> WatchingOutputs;
 
     static TaskModels()
     {
         var types = CreateUninitializedObjects<ITaskInputOutputInfo, ITaskInputInfo, ITaskOutputInfo>();
-        var wtypes = CreateUninitializedObjects<IWatchingTaskInputOutputInfo, IWatchingTaskSource, IWatchingTaskOutputInfo>();
+        var wtypes = CreateUninitializedObjects<IWatchingTaskInputOutputInfo, IWatchingTaskInputInfo, IWatchingTaskOutputInfo>();
 
         Inputs = types.OfType<ITaskInputInfo>().ToImmutableDictionary(x => x.Type, x => x.GetType());
         Outputs = types.OfType<ITaskOutputInfo>().ToImmutableDictionary(x => x.Type, x => x.GetType());
 
-        WatchingInputs = wtypes.OfType<IWatchingTaskSource>().ToImmutableDictionary(x => x.Type, x => x.GetType());
+        WatchingInputs = wtypes.OfType<IWatchingTaskInputInfo>().ToImmutableDictionary(x => x.Type, x => x.GetType());
         WatchingOutputs = wtypes.OfType<IWatchingTaskOutputInfo>().ToImmutableDictionary(x => x.Type, x => x.GetType());
 
 
@@ -37,8 +38,8 @@ public static class TaskModels
 
     public static ITaskInputInfo DeserializeInput(JObject input) => Deserialize<ITaskInputInfo, TaskInputType>(input, Inputs);
     public static ITaskOutputInfo DeserializeOutput(JObject output) => Deserialize<ITaskOutputInfo, TaskOutputType>(output, Outputs);
-    public static IWatchingTaskSource DeserializeWatchingInput(JObject input) => Deserialize<IWatchingTaskSource, WatchingTaskInputOutputType>(input, WatchingInputs);
-    public static IWatchingTaskOutputInfo DeserializeWatchingOutput(JObject output) => Deserialize<IWatchingTaskOutputInfo, WatchingTaskInputOutputType>(output, WatchingOutputs);
+    public static IWatchingTaskInputInfo DeserializeWatchingInput(JObject input) => Deserialize<IWatchingTaskInputInfo, WatchingTaskInputType>(input, WatchingInputs);
+    public static IWatchingTaskOutputInfo DeserializeWatchingOutput(JObject output) => Deserialize<IWatchingTaskOutputInfo, WatchingTaskOutputType>(output, WatchingOutputs);
 
     static T Deserialize<T, TType>(JObject jobject, ImmutableDictionary<TType, Type> dict) where TType : struct, Enum =>
         (T) jobject.ToObject(dict[jobject.GetValue("type", StringComparison.OrdinalIgnoreCase)!.ToObject<TType>()])!;

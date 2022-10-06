@@ -1,83 +1,32 @@
-using System.Text.Json.Serialization;
-
 namespace Node.Tasks.Watching;
 
-public abstract class MPlusWatchingTaskSourceBase : IWatchingTaskSource
+public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TData> where TData : IMPlusWatchingTaskInputInfo
 {
-    public abstract WatchingTaskInputOutputType Type { get; }
+    protected MPlusWatchingTaskHandler(WatchingTask task) : base(task) { }
 
-    [JsonIgnore] readonly CancellationTokenSource TokenSource = new();
-
-    [Default(false)] public readonly bool SkipWatermarked;
-    public string? SinceIid;
-
-    protected MPlusWatchingTaskSourceBase(string? sinceIid, bool skipWatermarked = false)
+    public override void StartListening() => StartThreadRepeated(60_000, Tick);
+    protected virtual async ValueTask Tick()
     {
-        SinceIid = sinceIid;
-        SkipWatermarked = skipWatermarked;
-    }
-
-    protected abstract ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync();
-
-    protected virtual async Task Tick(WatchingTask task)
-    {
-        var res = await FetchItemsAsync();
-        res.LogIfError();
-        if (!res) return;
-
-        var items = res.Value;
+        var items = (await FetchItemsAsync()).ThrowIfError();
         if (items.Length == 0) return;
 
         foreach (var item in items.OrderBy<MPlusNewItem, long>(x => x.Registered))
-        {
-            var fileName = item.Files.Jpeg.FileName;
-
-            if (SkipWatermarked && isWatermarked())
-            {
-                task.LogInfo($"File {item.Iid} {Path.ChangeExtension(fileName, null)} is already watermarked, skipping");
-                continue;
-            }
-
-            task.LogInfo($"Adding new file {item.Iid} {Path.ChangeExtension(fileName, null)}");
-
-            var output =
-                (task.Output as IMPlusWatchingTaskOutputInfo)?.CreateOutput(item, fileName)
-                ?? task.Output.CreateOutput(fileName);
-
-            var input = new MPlusTaskInputInfo(item.Iid, item.UserId);
-            await task.RegisterTask(input, output);
-
-            SinceIid = item.Iid;
-            NodeSettings.WatchingTasks.Save(task);
-
-
-            bool isWatermarked()
-            {
-                if (item.QSPreview is null) return false;
-                if (item.Files.Mov is not null && item.QSPreview.Mp4 is null) return false;
-
-                return true;
-            }
-        }
+            await TickItem(item);
     }
-    public void StartListening(WatchingTask task)
+    protected abstract ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync();
+    protected virtual async ValueTask TickItem(MPlusNewItem item)
     {
-        new Thread(async () =>
-        {
-            while (true)
-            {
-                try
-                {
-                    if (TokenSource.IsCancellationRequested) return;
+        var fileName = item.Files.Jpeg.FileName;
+        Task.LogInfo($"Adding new file {item.Iid} {Path.ChangeExtension(fileName, null)}");
 
-                    if (!task.IsPaused) await Tick(task);
-                    await Task.Delay(60_000);
-                }
-                catch (Exception ex) { task.LogErr(ex); }
-            }
-        })
-        { IsBackground = true }.Start();
+        var output =
+            (Task.Output as IMPlusWatchingTaskOutputInfo)?.CreateOutput(Task, item, fileName)
+            ?? Task.Output.CreateOutput(Task, fileName);
+
+        var newinput = new MPlusTaskInputInfo(item.Iid, item.UserId);
+        await Task.RegisterTask(newinput, output);
+
+        Input.SinceIid = item.Iid;
+        SaveTask();
     }
-
-    public void Dispose() => TokenSource.Cancel();
 }

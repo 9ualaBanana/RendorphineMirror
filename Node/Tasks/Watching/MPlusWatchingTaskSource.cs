@@ -1,13 +1,12 @@
 namespace Node.Tasks.Watching;
 
-public class MPlusWatchingTaskSource : MPlusWatchingTaskSourceBase
+public class MPlusWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusWatchingTaskInputInfo>
 {
-    public override WatchingTaskInputOutputType Type => WatchingTaskInputOutputType.MPlus;
+    public override WatchingTaskInputType Type => WatchingTaskInputType.MPlus;
 
-    [MPlusDirectory] public readonly string Directory;
-
-    public MPlusWatchingTaskSource(string directory, string? sinceIid) : base(sinceIid) => Directory = directory;
+    public MPlusWatchingTaskHandler(WatchingTask task) : base(task) { }
 
     protected override ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync() =>
-        Api.ApiGet<ImmutableArray<MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmynewitems", "items", "Getting new items", ("sessionid", Settings.SessionId!), ("sinceiid", SinceIid ?? string.Empty), ("directory", Directory));
+        Api.ApiGet<ImmutableArray<MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmynewitems", "items", "Getting new items",
+            ("sessionid", Settings.SessionId!), ("sinceiid", Input.SinceIid ?? string.Empty), ("directory", Input.Directory));
 }

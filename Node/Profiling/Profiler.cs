@@ -70,9 +70,9 @@ internal static class Profiler
             ["software"] = JsonSerializer.SerializeToNode(await BuildSoftwarePayloadAsync()),
         };
 
-        foreach (var handler in TaskHandler.HandlerList.OfType<ITaskInputHandler>())
+        foreach (var handler in TaskHandler.InputHandlerList)
             obj["allowedinputs"]![handler.Type.ToString()] = 1;
-        foreach (var handler in TaskHandler.HandlerList.OfType<ITaskOutputHandler>())
+        foreach (var handler in TaskHandler.OutputHandlerList)
             obj["allowedoutputs"]![handler.Type.ToString()] = 1;
 
         if (_benchmarkResults is not null)
