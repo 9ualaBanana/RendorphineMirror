@@ -29,10 +29,28 @@ public static class TaskHandler
             while (true)
             {
                 await Task.Delay(2_000);
-                if (NodeSettings.QueuedTasks.Count == 0) continue;
 
-                foreach (var task in NodeSettings.QueuedTasks.Values.ToArray())
-                    HandleAsync(task).Consume();
+                if (NodeSettings.QueuedTasks.Count != 0)
+                {
+                    foreach (var task in NodeSettings.QueuedTasks.Values.ToArray())
+                        HandleAsync(task).Consume();
+
+                    continue;
+                }
+                if (NodeSettings.FailedTasks.Count != 0)
+                {
+                    foreach (var task in NodeSettings.FailedTasks.Values.ToArray())
+                        HandleAsync(task).Consume();
+
+                    continue;
+                }
+                if (NodeSettings.CanceledTasks.Count != 0)
+                {
+                    foreach (var task in NodeSettings.CanceledTasks.Values.ToArray())
+                        HandleAsync(task).Consume();
+
+                    continue;
+                }
             }
         })
         { IsBackground = true }.Start();
