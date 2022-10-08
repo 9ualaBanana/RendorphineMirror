@@ -69,37 +69,39 @@ namespace Node.Listeners
             if (path == "logs")
             {
                 string logDir = Init.LogDirectory;
-                string[] folders = Directory.GetDirectories(logDir);
                 string? q = context.Request.QueryString["id"];
                 string info = "";
 
-                if (q == null || !int.TryParse(q, out _))
+                if (q == null)
                 {
-                    int i = 0;
-                    foreach (string folder in folders)
+                    addFolder(logDir);
+
+
+                    void addFolder(string folder)
                     {
                         string[] files = Directory.GetFiles(folder);
                         info += $"<b style='font-size: 32px'>{Path.GetFileName(folder)}</b></br>";
                         foreach (string file in files)
                         {
-                            info += $"<a href='/logs?id={i++}'>{Path.GetFileName(file)}</a></br>";
+                            info += $"<a href='/logs?id={Path.GetRelativePath(logDir, file)}'>{Path.GetFileName(file)}</a></br>";
                         }
+
+                        info += "<div style=\"margin-left:4px\">";
+                        foreach (string f in Directory.GetDirectories(folder))
+                            addFolder(f);
+                        info += "</div>";
                     }
                 }
                 else
                 {
-                    int i = 0;
-                    int id = int.Parse(q);
-                    foreach (string folder in folders)
-                    {
-                        string[] files = Directory.GetFiles(folder);
-                        if (i + files.Length - 1 >= id)
-                        {
-                            info = File.ReadAllText(files[id - i]);
-                            break;
-                        }
-                        i += files.Length;
-                    }
+                    string filepath = Path.Combine(logDir, q);
+                    if (!Path.GetFullPath(filepath).StartsWith(logDir, StringComparison.Ordinal))
+                        return HttpStatusCode.NotFound;
+
+                    using Stream file = File.OpenRead(filepath);
+                    await file.CopyToAsync(response.OutputStream);
+
+                    return HttpStatusCode.OK;
                 }
 
                 using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
