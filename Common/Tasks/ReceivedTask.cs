@@ -34,18 +34,15 @@ public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILog
     public static string FSOutputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "output"));
     public static string FSInputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "input"));
 
-    static string FSPlacedDataDirectory(string id) => DirectoryCreated(Path.Combine(Path.Combine(Init.PlacedTaskFilesDirectory, id)));
-    public static string FSPlacedResultsDirectory(string id) => DirectoryCreated(Path.Combine(Path.Combine(FSPlacedDataDirectory(id), "results")));
-    public static string FSPlacedSourcesDirectory(string id) => DirectoryCreated(Path.Combine(Path.Combine(FSPlacedDataDirectory(id), "sources")));
+    static string FSPlacedDataDirectory(string id) => DirectoryCreated(Path.Combine(Init.PlacedTaskFilesDirectory, id));
+    public static string FSPlacedResultsDirectory(string id) => DirectoryCreated(Path.Combine(FSPlacedDataDirectory(id), "results"));
+    public static string FSPlacedSourcesDirectory(string id) => DirectoryCreated(Path.Combine(FSPlacedDataDirectory(id), "sources"));
 
 
     public string FSInputFile() => InputFiles.Single().Path;
     public string FSInputFile(FileFormat format) => InputFiles.First(x => x.Format == format).Path;
     public string FSOutputFile(FileFormat format) => OutputFiles.First(x => x.Format == format).Path;
     public string? TryFSOutputFile(FileFormat format) => OutputFiles.FirstOrDefault(x => x.Format == format)?.Path;
-
-    [Obsolete("Use FSOutputDirectory instead")]
-    public string FSOutputFile() => Directory.GetFiles(FSOutputDirectory()).First();
 
     public string GetTempFileName(string extension)
     {

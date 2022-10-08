@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Web;
 
 namespace Node.Listeners
 {
@@ -28,13 +29,27 @@ namespace Node.Listeners
                 info += $"<b>Files for last {days} days</b><br>";
 
                 var filteredTasks = NodeSettings.CompletedTasks
-                    .Where(t => t.Value.StartTime >= DateTime.Now.AddDays(-1 * days)
-                        && imagesExtentions.Contains(Path.GetExtension(t.Value.TaskInfo.FSOutputFile())));
+                    .Where(t => t.Value.StartTime >= DateTime.Now.AddDays(-1 * days));
 
                 foreach (var task in filteredTasks)
                 {
-                    info += $"<img width='200px' src='./getfile/{task.Key}'>";
-                    info += $"<details><p>ID:{task.Value.TaskInfo.Id}<br>Start:{task.Value.StartTime.ToString()}<br>Finish:{task.Value.FinishTime}<p></details>";
+                    string[] resultfiles = Directory.GetFiles(task.Value.TaskInfo.FSOutputDirectory());
+                    if (resultfiles.Length == 0)
+                        info += $"[no files]";
+
+                    foreach (string taskfile in resultfiles.OrderBy(Path.GetExtension))
+                    {
+                        string taskfilerelative = Path.GetRelativePath(task.Value.TaskInfo.FSOutputDirectory(), taskfile);
+                        string mime = MimeTypes.GetMimeType(taskfile);
+
+                        if (mime.Contains("image", StringComparison.Ordinal))
+                            info += $"<img width='200px' src='./getfile/{task.Key}?name={HttpUtility.UrlEncode(taskfilerelative)}'>";
+                        else if (mime.Contains("video", StringComparison.Ordinal))
+                            info += $"<video width='200px' controls><source src='./getfile/{task.Key}?name={HttpUtility.UrlEncode(taskfilerelative)}' type='video/mp4'></video>";
+                        // eps?
+                    }
+
+                    info += $"<details><p>ID:{task.Value.TaskInfo.Id}<br>Start:{task.Value.StartTime.ToString()}<br>Finish:{task.Value.FinishTime}<p></details><br><br>";
                 }
 
                 info += "</body></html>";
@@ -49,13 +64,18 @@ namespace Node.Listeners
                 string taskId = Path.GetFileName(path);
                 var tasks = NodeSettings.CompletedTasks;
                 if (!tasks.ContainsKey(taskId)) return HttpStatusCode.NotFound;
-                string file = tasks[taskId].TaskInfo.FSOutputFile();
-                if (File.Exists(file))
-                {
-                    using var writer = new BinaryWriter(response.OutputStream, System.Text.Encoding.Default, leaveOpen: true);
-                    writer.Write(File.ReadAllBytes(file));
-                    return HttpStatusCode.OK;
-                }
+
+                string? filename = context.Request.QueryString["name"];
+                if (filename is null) return HttpStatusCode.NotFound;
+
+                string outputdir = tasks[taskId].TaskInfo.FSOutputDirectory();
+                filename = Path.Combine(outputdir, filename);
+                if (!filename.StartsWith(outputdir, StringComparison.Ordinal) || !File.Exists(filename))
+                    return HttpStatusCode.NotFound;
+
+                using var filestream = File.OpenRead(filename);
+                await filestream.CopyToAsync(response.OutputStream);
+                return HttpStatusCode.OK;
             }
 
             if (path == "helloworld")
