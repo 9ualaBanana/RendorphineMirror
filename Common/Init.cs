@@ -10,7 +10,7 @@ namespace Common
 {
     public static class Initializer
     {
-        public static string ConfigDirectory = "renderphine";
+        public static string ConfigDirectory = "renderfin";
     }
     public static class Init
     {
@@ -29,6 +29,21 @@ namespace Common
         public static void Initialize() { }
         static Init()
         {
+            static void MoveOldConfigDir()
+            {
+                var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), Initializer.ConfigDirectory.Replace("fin", "phine"));
+                if (!Directory.Exists(path))
+                {
+                    path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), Initializer.ConfigDirectory.Replace("fin", "phin"));
+                    if (!Directory.Exists(path)) return;
+                }
+
+                if (!Directory.Exists(ConfigDirectory))
+                    Directory.Move(path, ConfigDirectory);
+            }
+            MoveOldConfigDir();
+
+
             try
             {
                 DebugFileExists =

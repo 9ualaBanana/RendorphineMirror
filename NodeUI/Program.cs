@@ -77,11 +77,11 @@ static class Program
 
 
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-            write(Path.Combine(desktop, "Renderphin.url"), data);
+            write(Path.Combine(desktop, "Renderfin.url"), data);
 
             var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
             Directory.CreateDirectory(startmenu);
-            write(Path.Combine(startmenu, "Renderphin.url"), data);
+            write(Path.Combine(startmenu, "Renderfin.url"), data);
         }
         catch { }
         finally { UISettings.ShortcutsCreated = true; }
