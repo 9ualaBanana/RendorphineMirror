@@ -11,6 +11,9 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
 
     protected override ValueTask TickItem(MPlusNewItem item)
     {
+        // TODO: remove after fix; this user does not exists (?????)
+        if (item.UserId == "fgwz5wcsor") return ValueTask.CompletedTask;
+
         var fileName = item.Files.Jpeg.FileName;
         if (Input.SkipWatermarked && isWatermarked())
         {
@@ -31,16 +34,14 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
     }
     protected override async ValueTask Tick()
     {
-        async Task<DbTaskFullState[]> fetch(TaskState state) => (await Apis.GetMyTasksAsync(state)).ThrowIfError().Where(x => x.Action == Task.TaskAction).ToArray();
-
-        var fqueued = await fetch(TaskState.Queued);
-        var finput = await fetch(TaskState.Input);
-        var factive = await fetch(TaskState.Active);
-
-        if (fqueued.Length != 0 || finput.Length != 0 || factive.Length != 0)
+        foreach (var taskid in PlacedNonCompletedTasks.ToArray())
         {
-            Task.LogInfo($"Found {fqueued.Length}Q {finput.Length}I {factive.Length}A pending ptasks, skipping fetching from {GetType().Name}");
-            return;
+            var state = (await Apis.GetTaskStateAsync(taskid)).ThrowIfError();
+            if (!state.State.IsFinished()) return;
+
+            Task.LogInfo($"Placed task {taskid} was {state.State}, removing from list ({PlacedNonCompletedTasks.Count} left)");
+            PlacedNonCompletedTasks.Remove(taskid);
+            SaveTask();
         }
 
 

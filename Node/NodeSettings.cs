@@ -1,4 +1,3 @@
-using Newtonsoft.Json.Linq;
 using static Common.Settings;
 
 namespace Node;
@@ -14,22 +13,6 @@ public static class NodeSettings
 
     static NodeSettings()
     {
-        if (true)
-        {
-            var watching = new DatabaseValueDictionary<string, JObject>(nameof(WatchingTasks), x => x["Id"]!.Value<string>()!);
-            foreach (var (key, value) in watching)
-            {
-                if (!value.ToString().Contains("WatchingTaskSource", StringComparison.Ordinal)) continue;
-
-                value["Source"]!["$type"] = $"Common.Tasks.Watching.{value["Source"]!["Type"]!.Value<string>()!}WatchingTaskInputInfo, Common";
-                value["Output"]!["$type"] = value["Output"]!["$type"]!.Value<string>()!.Replace("Node", "Common");
-                var ininfo = value.ToObject<WatchingTask>(LocalApi.JsonSerializerWithType);
-
-                watching.Save(value);
-            }
-        }
-
-
         QueuedTasks = new(nameof(QueuedTasks), t => t.Id);
         CanceledTasks = new(nameof(CanceledTasks), t => t.Id);
         FailedTasks = new(nameof(FailedTasks), t => t.Id);

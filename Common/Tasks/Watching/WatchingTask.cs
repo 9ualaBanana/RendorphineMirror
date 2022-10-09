@@ -17,8 +17,7 @@ public class WatchingTask : ILoggable
     public bool ExecuteLocally { get; init; }
     public bool IsPaused = false;
 
-    [JsonIgnore] public object? Handler;
-    public readonly List<string> PlacedTasks = new();
+    [JsonIgnore] public IDisposable? Handler;
 
 #pragma warning disable CS8618 // field are not set
     [JsonConstructor] private WatchingTask() { }

@@ -13,6 +13,7 @@ public static class WatchingTaskExtensions
         task.LogInfo($"Watcher started; Data: {JsonConvert.SerializeObject(task, Init.IsDebug ? LocalApi.JsonSettingsWithType : new JsonSerializerSettings())}");
 
         var handler = task.CreateWatchingHandler();
+        task.Handler = handler;
         handler.StartListening();
     }
 
@@ -41,9 +42,6 @@ public static class WatchingTaskExtensions
         var taskinfo = task.CreateTaskInfo(input, output);
         var register = await TaskHandler.RegisterOrExecute(taskinfo).ConfigureAwait(false);
         var taskid = register.ThrowIfError();
-        task.LogInfo($"Created task {taskid}");
-
-        task.PlacedTasks.Add(taskid);
         NodeSettings.WatchingTasks.Save(task);
 
         return taskid;
