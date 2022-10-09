@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Avalonia.Controls.ApplicationLifetimes;
 
 namespace NodeUI.Pages
@@ -18,25 +19,39 @@ namespace NodeUI.Pages
             this.PreventClosing();
 
 
-            async Task<OperationResult> authenticate(string login, string password, bool slave)
+            async Task<OperationResult> authenticate(string? login, string? password, LoginType loginType)
             {
-                var authres = await auth(login, password, slave);
+                var authres = await auth(login, password, loginType);
                 if (!authres) Dispatcher.UIThread.Post(() => Login.ShowError(authres.AsString()));
 
                 return authres;
             }
-            async Task<OperationResult> auth(string login, string password, bool slave)
+            async Task<OperationResult> auth(string? login, string? password, LoginType loginType)
             {
-                if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err("login.empty_login");
-                if (!slave && string.IsNullOrEmpty(password)) return OperationResult.Err("login.empty_password");
-
                 Login.StartLoginAnimation("login.loading");
                 using var _ = new FuncDispose(() => Dispatcher.UIThread.Post(Login.StopLoginAnimation));
 
                 OperationResult auth;
+                if (loginType == LoginType.Normal)
+                {
+                    if (string.IsNullOrWhiteSpace(login))
+                        return OperationResult.Err("login.empty_login");
+                    if (string.IsNullOrEmpty(password))
+                        return OperationResult.Err("login.empty_password");
 
-                if (slave) auth = await SessionManager.AutoAuthAsync(login).ConfigureAwait(false);
-                else auth = await SessionManager.AuthAsync(login, password).ConfigureAwait(false);
+                    auth = await SessionManager.AuthAsync(login, password).ConfigureAwait(false);
+                }
+                else if (loginType == LoginType.Slave)
+                {
+                    if (string.IsNullOrWhiteSpace(login))
+                        return OperationResult.Err("login.empty_login");
+
+                    auth = await SessionManager.AutoAuthAsync(login).ConfigureAwait(false);
+                }
+                else if (loginType == LoginType.Web) auth = await SessionManager.WebAuthAsync().ConfigureAwait(false);
+                else throw new InvalidOperationException("Unknown value of LoginType: " + loginType);
+
+                // https://microstock.plus/oauth2/authorize?clientid=001&redirecturl=http://127.0.0.1:9999/
 
                 if (auth)
                 {
@@ -50,7 +65,8 @@ namespace NodeUI.Pages
             }
 
 
-            Login.OnPressLogin += (login, password, slave) => authenticate(login, password, slave).Consume();
+            Login.OnPressLogin += (login, password, slave) => authenticate(login, password, slave ? LoginType.Slave : LoginType.Normal).Consume();
+            Login.OnPressWebLogin += () => authenticate(null, null, LoginType.Web).Consume();
             Login.OnPressForgotPassword += () => Process.Start(new ProcessStartInfo("https://accounts.stocksubmitter.com/resetpasswordrequest") { UseShellExecute = true });
         }
 
@@ -66,6 +82,9 @@ namespace NodeUI.Pages
 
             Close();
         }
+
+
+        enum LoginType { Normal, Slave, Web }
     }
     public class LoginWindowUI : Window
     {
@@ -118,6 +137,7 @@ namespace NodeUI.Pages
         }
         protected class LoginControl : UserControl
         {
+            public event Action OnPressWebLogin = delegate { };
             public event Action<string, string, bool> OnPressLogin = delegate { };
             public event Action OnPressForgotPassword = delegate { };
 
@@ -198,6 +218,11 @@ namespace NodeUI.Pages
                         LoginStatus.WithRow(1),
                         LoginPasswordInput.WithRow(2),
                         buttonsAndRemember.WithRow(4),
+                        new MPButton()
+                        {
+                            Text = "Login via M+",
+                            OnClick = () => OnPressWebLogin(),
+                        }.WithRow(5),
                         LoginButton.WithRow(6),
                         new ForgotPasswordButtonUI()
                         {
