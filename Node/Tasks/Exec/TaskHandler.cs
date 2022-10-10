@@ -48,13 +48,6 @@ public static class TaskHandler
 
                     continue;
                 }
-                if (NodeSettings.CanceledTasks.Count != 0)
-                {
-                    foreach (var task in NodeSettings.CanceledTasks.Values.ToArray())
-                        HandleAsync(task).Consume();
-
-                    continue;
-                }
             }
         })
         { IsBackground = true }.Start();
