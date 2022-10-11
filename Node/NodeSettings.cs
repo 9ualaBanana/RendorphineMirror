@@ -20,45 +20,8 @@ public static class NodeSettings
         PlacedTasks = new(nameof(PlacedTasks), t => t.Id);
         CompletedTasks = new(nameof(CompletedTasks), t => t.TaskInfo.Id);
 
-
-
-        #region migration
-        load(nameof(QueuedTasks), QueuedTasks);
-        load(nameof(CanceledTasks), CanceledTasks);
-        load(nameof(FailedTasks), FailedTasks);
-        load(nameof(WatchingTasks), WatchingTasks);
-        load(nameof(PlacedTasks), PlacedTasks);
-        load("PlacedTasks2", PlacedTasks);
-        void load<T>(string source, DatabaseValueDictionary<string, T> target)
-        {
-            var list = new DatabaseValueList<T>(source);
-
-            try { target.AddRange(list); }
-            catch (Exception ex) { LogManager.GetCurrentClassLogger().Error(ex); }
-            finally
-            {
-                list.Bindable.Clear();
-                list.Save();
-                list.Delete();
-            }
-        }
-        #endregion
-
-
         NodeGlobalState.Instance.WatchingTasks.Bind(WatchingTasks.Bindable);
         NodeGlobalState.Instance.PlacedTasks.Bind(PlacedTasks.Bindable);
         NodeGlobalState.Instance.QueuedTasks.Bind(QueuedTasks.Bindable);
-    }
-
-
-    // TODO: remove after everyone migrates
-    class DatabaseValueList<T> : DatabaseValueBase<IReadOnlyList<T>, BindableList<T>>, IEnumerable<T>
-    {
-        public int Count => Bindable.Count;
-
-        public DatabaseValueList(string name, IEnumerable<T>? values = null) : base(name, new(values)) { }
-
-        public IEnumerator<T> GetEnumerator() => Bindable.GetEnumerator();
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }
