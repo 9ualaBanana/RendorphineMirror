@@ -6,6 +6,7 @@ public class QSPreviewOutputInfo : ITaskOutputInfo
 
     public readonly string Iid;
     public readonly string? TUid;
+    [Hidden] public string? IngesterHost;
 
     public QSPreviewOutputInfo(string iid, string? tuid = null)
     {

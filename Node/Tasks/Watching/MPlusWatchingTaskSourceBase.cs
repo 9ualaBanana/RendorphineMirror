@@ -2,8 +2,6 @@ namespace Node.Tasks.Watching;
 
 public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TData> where TData : IMPlusWatchingTaskInputInfo
 {
-    protected readonly List<string> PlacedNonCompletedTasks = new();
-
     protected MPlusWatchingTaskHandler(WatchingTask task) : base(task) { }
 
     public override void StartListening() => StartThreadRepeated(60_000, Tick);
@@ -18,7 +16,7 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
             Input.SinceIid = item.Iid;
         }
 
-        if (PlacedNonCompletedTasks.Count == 0) await Tick();
+        if (Task.PlacedNonCompletedTasks.Count == 0) await Tick();
     }
     protected abstract ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync();
     protected virtual async ValueTask TickItem(MPlusNewItem item)
@@ -32,7 +30,7 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
 
         var newinput = new MPlusTaskInputInfo(item.Iid, item.UserId);
         var taskid = await Task.RegisterTask(newinput, output);
-        PlacedNonCompletedTasks.Add(taskid);
+        Task.PlacedNonCompletedTasks.Add(taskid);
 
         SaveTask();
     }

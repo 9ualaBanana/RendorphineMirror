@@ -9,8 +9,10 @@ public record TaskServer(string Host, string Userid, string Nickname);
 public record DbTaskFullState : ReceivedTask
 {
     public string UserId { get; init; } = null!;
-    public ulong Registered { get; init; }
+    public long Registered { get; set; }
     public TaskServer? Server { get; set; }
+    public TaskTimes? Times { get; set; }
+
     [JsonIgnore] public override bool IsFromSameNode => base.IsFromSameNode || (Server?.Userid == Settings.UserId && Server?.Nickname == Settings.NodeName);
 
     [JsonConstructor]

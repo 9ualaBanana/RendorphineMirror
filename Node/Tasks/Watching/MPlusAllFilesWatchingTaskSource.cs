@@ -11,9 +11,6 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
 
     protected override ValueTask TickItem(MPlusNewItem item)
     {
-        // TODO: remove after fix; this user does not exists (?????)
-        if (item.UserId == "fgwz5wcsor") return ValueTask.CompletedTask;
-
         var fileName = item.Files.Jpeg.FileName;
         if (Input.SkipWatermarked && isWatermarked())
         {
@@ -34,18 +31,13 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
     }
     protected override async ValueTask Tick()
     {
-        foreach (var taskid in PlacedNonCompletedTasks.ToArray())
-        {
-            var state = (await Apis.GetTaskStateAsync(taskid)).ThrowIfError();
-            if (!state.State.IsFinished()) return;
+        // fetch new items only if there is less than N ptasks pending
+        const int taskFetchingThreshold = 1000 - 1;
 
-            Task.LogInfo($"Placed task {taskid} was {state.State}, removing from list ({PlacedNonCompletedTasks.Count} left)");
-            PlacedNonCompletedTasks.Remove(taskid);
-            SaveTask();
-        }
+        if (Task.PlacedNonCompletedTasks.Count > taskFetchingThreshold)
+            return;
 
-
-        Task.LogInfo($"No pending ptasks found, fetching new items since {Input.SinceIid ?? "<start>"}");
+        Task.LogInfo($"Found {Task.PlacedNonCompletedTasks.Count} unfinished ptasks found, fetching new items since {Input.SinceIid ?? "<start>"}");
         await base.Tick();
     }
 }

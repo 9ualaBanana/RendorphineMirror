@@ -102,12 +102,5 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
             await managerup.StopAsync(TimeSpan.FromSeconds(5));
     }
 
-    public async ValueTask<bool> CheckCompletion(DbTaskFullState task)
-    {
-        var output = (TorrentTaskOutputInfo) task.Output;
-        var state = (await Apis.GetTaskStateAsync(task, Settings.SessionId)).ThrowIfError();
-
-        JsonSettings.Default.Populate(state.Output.CreateReader(), output);
-        return output.Link is not null;
-    }
+    public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(((TorrentTaskOutputInfo) task.Output).Link is not null);
 }

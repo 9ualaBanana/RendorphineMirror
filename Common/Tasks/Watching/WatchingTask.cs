@@ -19,6 +19,8 @@ public class WatchingTask : ILoggable
 
     [JsonIgnore] public IDisposable? Handler;
 
+    public readonly List<string> PlacedNonCompletedTasks = new();
+
 #pragma warning disable CS8618 // field are not set
     [JsonConstructor] private WatchingTask() { }
 #pragma warning restore
