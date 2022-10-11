@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using System.Web;
 using Node.Listeners;
 
@@ -22,35 +21,6 @@ public class OtherUserWatchingTaskHandler : WatchingTaskHandler<OtherUserWatchin
 
         async ValueTask tick()
         {
-            if (Task.PlacedTasks.Count != 0)
-                foreach (var taskid in Task.PlacedTasks.ToArray())
-                {
-                    var state = (await Apis.GetTaskStateAsync(taskid)).ThrowIfError();
-                    if (!state.State.IsFinished()) continue;
-
-                    if (state.State == TaskState.Finished)
-                    {
-                        var zipfile = Path.GetTempFileName();
-
-                        try
-                        {
-                            var taskdir = ReceivedTask.FSPlacedResultsDirectory(taskid);
-                            ZipFile.CreateFromDirectory(taskdir, zipfile);
-
-                            using var stream = File.OpenRead(zipfile);
-                            using var content = new StreamContent(stream);
-
-                            (await Api.ApiPost($"{url}/download/uploadtask?sessionid={Settings.SessionId}&taskid={taskid}", "Uploading task result", content)).ThrowIfError();
-                        }
-                        finally { File.Delete(zipfile); }
-                    }
-
-                    Task.LogInfo($"Placed task {taskid} was {state.State}, removing");
-                    Task.PlacedTasks.Remove(taskid);
-                    SaveTask();
-                }
-
-
             var check = await LocalApi.Send<DirectoryDiffListener.DiffOutput>(url, path + $"&lastcheck={Input.LastCheck}");
             check.LogIfError();
             if (!check) return;

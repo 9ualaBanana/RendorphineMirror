@@ -3,7 +3,7 @@ using MonoTorrent.Tracker;
 using MonoTorrent.Tracker.Listeners;
 using NLog;
 
-Initializer.ConfigDirectory = "renderphin_tracker";
+Initializer.ConfigDirectory = "renderfin_tracker";
 Init.Initialize();
 
 var logger = LogManager.GetCurrentClassLogger();

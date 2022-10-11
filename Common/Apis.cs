@@ -26,22 +26,8 @@ public static class Apis
         .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
 
 
-    public static async ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this ReceivedTask task, string? sessionId = default)
-    {
-        var state = await GetTaskStateAsync(task.Id, sessionId);
-        if (state)
-        {
-            if (task.State != state.Result.State)
-                task.LogInfo($"Placed task state changed to {state.Result.State}");
+    public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this ReceivedTask task, string? sessionId = default) => GetTaskStateAsync(task.Id, sessionId);
 
-            task.State = state.Result.State;
-            task.Progress = state.Result.Progress;
-            if (task is DbTaskFullState dbtask)
-                dbtask.Server = state.Result.Server;
-        }
-
-        return state;
-    }
     public static async ValueTask<OperationResult> ChangeStateAsync(this ReceivedTask task, TaskState state, string? sessionId = default)
     {
         task.LogInfo($"Changing state to {state}");
@@ -51,7 +37,8 @@ public static class Apis
             ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id), ("newstate", state.ToString().ToLowerInvariant())).ConfigureAwait(false);
 
         result.LogIfError($"[{(task as ILoggable).LogName}] Error while changing task state: {{0}}");
-        if (result) task.State = state;
+        if (result && task is DbTaskFullState dbtask)
+            dbtask.State = state;
 
         return result;
     }

@@ -1,8 +1,8 @@
 namespace Common.Tasks.Watching;
 
-public class LocalWatchingTaskOutputInfo : IWatchingTaskOutputInfo
+public class TorrentWatchingTaskOutputInfo : IWatchingTaskOutputInfo
 {
-    public WatchingTaskOutputType Type => WatchingTaskOutputType.Local;
+    public WatchingTaskOutputType Type => WatchingTaskOutputType.Torrent;
 
     public ITaskOutputInfo CreateOutput(WatchingTask task, string file) => new TorrentTaskOutputInfo();
 }

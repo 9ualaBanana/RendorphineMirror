@@ -11,7 +11,7 @@ namespace NodeUI
         static App()
         {
             Version = Init.Version;
-            AppName = "Renderphin   v" + Version;
+            AppName = "Renderfin   v" + Version;
         }
         public override void Initialize() => AvaloniaXamlLoader.Load(this);
 

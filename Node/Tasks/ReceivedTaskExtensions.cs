@@ -48,4 +48,24 @@ public static class ReceivedTaskExtensions
         }
         void addFile(string file) => files.Add(new(FileFormatExtensions.FromFilename(file), file));
     }
+
+
+    public static async ValueTask<OperationResult> UpdateTaskStateAsync(this DbTaskFullState task, string? sessionId = default)
+    {
+        var stater = await task.GetTaskStateAsync(sessionId);
+        if (stater)
+        {
+            var state = stater.Value;
+            if (task.State != state.State)
+                task.LogInfo($"Placed task state changed to {state.State}");
+
+            task.State = state.State;
+            task.Progress = state.Progress;
+            task.Server = state.Server;
+            task.Times = state.Times;
+            JsonSettings.Default.Populate(state.Output.CreateReader(), task.Output);
+        }
+
+        return stater.GetResult();
+    }
 }

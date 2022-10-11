@@ -11,7 +11,7 @@ using Body = Microsoft.AspNetCore.Mvc.FromBodyAttribute;
 using Query = Microsoft.AspNetCore.Mvc.FromQueryAttribute;
 using Srv = Microsoft.AspNetCore.Mvc.FromServicesAttribute;
 
-Initializer.ConfigDirectory = "renderphin_registry";
+Initializer.ConfigDirectory = "renderfin_registry";
 Init.Initialize();
 
 var logger = LogManager.GetCurrentClassLogger();

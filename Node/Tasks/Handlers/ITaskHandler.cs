@@ -18,7 +18,7 @@ public interface ITaskOutputHandler : ITaskHandler
     ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default);
 
     /// <summary> Check tasks for completion and returns true if task needs to be set to Finished. <br/> By default returns true if the task state is <see cref="TaskState.Output"/> </summary>
-    async ValueTask<bool> CheckCompletion(DbTaskFullState task) => (await task.GetTaskStateAsync()).ThrowIfError().State == TaskState.Output;
+    ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Output);
 
 
     ValueTask OnPlacedTaskCompleted(DbTaskFullState task) => ValueTask.CompletedTask;

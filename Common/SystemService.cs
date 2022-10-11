@@ -69,7 +69,7 @@ namespace Common
             {
                 var service = $@"
                     [Unit]
-                    Description=Renderphin tracker
+                    Description=Renderfin tracker
 
                     [Service]
                     Type=oneshot
@@ -79,7 +79,7 @@ namespace Common
                 ";
                 var timer = $@"
                     [Unit]
-                    Description=Renderphin tracker
+                    Description=Renderfin tracker
 
                     [Timer]
                     OnActiveSec=1min

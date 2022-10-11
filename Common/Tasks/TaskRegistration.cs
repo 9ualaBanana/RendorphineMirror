@@ -41,7 +41,7 @@ public static class TaskRegistration
         var placed = new DbTaskFullState(id, Settings.Guid, info.Policy, taskobj, input, output, data)
         {
             UserId = Settings.UserId,
-            Registered = (ulong) DateTimeOffset.Now.ToUnixTimeSeconds(),
+            Registered = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
         };
         TaskRegistered(placed);
 

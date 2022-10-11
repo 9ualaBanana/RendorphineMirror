@@ -18,14 +18,14 @@ namespace NodeUI.Pages
             this.PreventClosing();
 
 
-            async ValueTask<OperationResult> authenticate(string login, string password, bool slave)
+            async Task<OperationResult> authenticate(string login, string password, bool slave)
             {
                 var authres = await auth(login, password, slave);
                 if (!authres) Dispatcher.UIThread.Post(() => Login.ShowError(authres.AsString()));
 
                 return authres;
             }
-            async ValueTask<OperationResult> auth(string login, string password, bool slave)
+            async Task<OperationResult> auth(string login, string password, bool slave)
             {
                 if (string.IsNullOrWhiteSpace(login)) return OperationResult.Err("login.empty_login");
                 if (!slave && string.IsNullOrEmpty(password)) return OperationResult.Err("login.empty_password");
@@ -48,7 +48,9 @@ namespace NodeUI.Pages
 
                 return auth;
             }
-            Login.OnPressLogin += (login, password, slave) => _ = authenticate(login, password, slave);
+
+
+            Login.OnPressLogin += (login, password, slave) => authenticate(login, password, slave).Consume();
             Login.OnPressForgotPassword += () => Process.Start(new ProcessStartInfo("https://accounts.stocksubmitter.com/resetpasswordrequest") { UseShellExecute = true });
         }
 
@@ -71,15 +73,21 @@ namespace NodeUI.Pages
 
         public LoginWindowUI()
         {
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition(.45, GridUnitType.Star));
-            grid.ColumnDefinitions.Add(new ColumnDefinition(.55, GridUnitType.Star));
+            Login = new LoginControl();
 
-            grid.Children.Add(new Border() { Child = new HelloImage(), BoxShadow = new BoxShadows(new BoxShadow { Blur = 14, Color = new Color(64, 0, 0, 0) }) });
-            grid.Children.Add(Login = new LoginControl());
-            Grid.SetColumn(Login, 1);
-
-            Content = grid;
+            Content = new Grid()
+            {
+                ColumnDefinitions = ColumnDefinitions.Parse("45* 55*"),
+                Children =
+                {
+                    new Border()
+                    {
+                        Child = new HelloImage(),
+                        BoxShadow = new BoxShadows(new BoxShadow { Blur = 14, Color = new Color(64, 0, 0, 0) })
+                    }.WithColumn(0),
+                    Login.WithColumn(1),
+                },
+            };
         }
 
 
@@ -87,28 +95,25 @@ namespace NodeUI.Pages
         {
             public HelloImage()
             {
-                var image = new Image
+                Content = new Panel()
                 {
-                    Stretch = Stretch.Fill,
-                    Source = new Bitmap(Resource.LoadStream(this, "img.login_image.jpg"))
+                    Children =
+                    {
+                        new Image()
+                        {
+                            Stretch = Stretch.Fill,
+                            Source = new Bitmap(Resource.LoadStream(this, "img.login_image.jpg")),
+                        },
+                        new TextBlock
+                        {
+                            TextWrapping = TextWrapping.Wrap,
+                            FontSize = 20,
+                            Foreground = Colors.From(38, 59, 71),
+                            MaxWidth = 200,
+                            Margin = new Thickness(111, 111, 0, 206),
+                        }.Bind("login.welcome"),
+                    }
                 };
-
-                var text = new TextBlock
-                {
-                    TextWrapping = TextWrapping.Wrap,
-                    FontSize = 20,
-                    Foreground = Colors.From(38, 59, 71),
-                    MaxWidth = 200,
-                    Margin = new Thickness(111, 111, 0, 206)
-                };
-                text.Bind(TextBlock.TextProperty, "login.welcome");
-
-
-                var grid = new Panel();
-                grid.Children.Add(image);
-                grid.Children.Add(text);
-
-                Content = grid;
             }
         }
         protected class LoginControl : UserControl
@@ -158,60 +163,59 @@ namespace NodeUI.Pages
                 };
 
 
-                var grid = new Grid();
-                grid.RowDefinitions.Add(new RowDefinition(40, GridUnitType.Star));
-                grid.RowDefinitions.Add(new RowDefinition(100 - grid.RowDefinitions.Sum(x => x.Height.Value), GridUnitType.Star));
-                grid.RowDefinitions.Add(new RowDefinition(210 - grid.RowDefinitions.Sum(x => x.Height.Value), GridUnitType.Star));
-                grid.RowDefinitions.Add(new RowDefinition(230 - grid.RowDefinitions.Sum(x => x.Height.Value), GridUnitType.Star));
-                grid.RowDefinitions.Add(new RowDefinition(260 - grid.RowDefinitions.Sum(x => x.Height.Value), GridUnitType.Star));
-                grid.RowDefinitions.Add(new RowDefinition(290 - grid.RowDefinitions.Sum(x => x.Height.Value), GridUnitType.Star));
-                grid.RowDefinitions.Add(new RowDefinition(330 - grid.RowDefinitions.Sum(x => x.Height.Value), GridUnitType.Star));
-                grid.RowDefinitions.Add(new RowDefinition(410 - grid.RowDefinitions.Sum(x => x.Height.Value), GridUnitType.Star));
 
-                grid.Children.Add(new LoginTopBarUI());
-                grid.Children.Add(LoginPasswordInput = new LoginPasswordInputUI());
-                grid.Children.Add(ErrorText);
-                grid.Children.Add(LoginStatus = new LoginStatusUI());
-                grid.Children.Add(buttonsAndRemember);
-                grid.Children.Add(LoginButton = new MPButton());
+                LoginPasswordInput = new LoginPasswordInputUI()
+                {
+                    Margin = new Thickness(30, 0),
+                };
 
-                var forgotPasswordButton = new ForgotPasswordButtonUI();
-                grid.Children.Add(forgotPasswordButton);
+                LoginStatus = new LoginStatusUI()
+                {
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
 
-                Grid.SetRow(ErrorText, 1);
-                Grid.SetRow(LoginStatus, 1);
-                Grid.SetRow(LoginPasswordInput, 2);
-                Grid.SetRow(buttonsAndRemember, 4);
-                Grid.SetRow(LoginButton, 6);
-                Grid.SetRow(forgotPasswordButton, 7);
+                LoginButton = new MPButton()
+                {
+                    Width = 157,
+                    Height = 38,
+                    Text = "login.button",
+                    FontWeight = (FontWeight) 700,
+                    MaxWidth = 157,
+                    Background = Colors.Accent,
+                    HoverBackground = Colors.DarkDarkGray,
+                    OnClick = () => OnPressLogin(LoginInput.Text, PasswordInput.Text, slavecheckbox.IsChecked == true),
+                };
+
+
+                Content = new Grid()
+                {
+                    RowDefinitions = RowDefinitions.Parse("40* 60* 110* 20* 30* 30* 40* 20*"),
+                    Children =
+                    {
+                        new LoginTopBarUI().WithRow(0),
+                        ErrorText.WithRow(1),
+                        LoginStatus.WithRow(1),
+                        LoginPasswordInput.WithRow(2),
+                        buttonsAndRemember.WithRow(4),
+                        LoginButton.WithRow(6),
+                        new ForgotPasswordButtonUI()
+                        {
+                            Margin = new Thickness(0, 0, 0, 50),
+                            OnClick = () => OnPressForgotPassword(),
+                            MaxWidth = LoginButton.MaxWidth,
+                        }.WithRow(7),
+                    }
+                };
 
 
                 HideError();
-
-                LoginStatus.HorizontalAlignment = HorizontalAlignment.Center;
-                LoginStatus.VerticalAlignment = VerticalAlignment.Center;
-
-                LoginPasswordInput.Margin = new Thickness(30, 0);
-                forgotPasswordButton.Margin = new Thickness(0, 0, 0, 50);
-
-                LoginButton.Width = 157;
-                LoginButton.Height = 38;
-                LoginButton.Text = "login.button";
-                LoginButton.FontWeight = (FontWeight) 700;
-                LoginButton.MaxWidth = forgotPasswordButton.MaxWidth = 157;
-                LoginButton.Background = Colors.Accent;
-                LoginButton.HoverBackground = Colors.DarkDarkGray;
 
                 {
                     PasswordInput.Transitions ??= new();
                     PasswordInput.Transitions.Add(new ThicknessTransition() { Property = Control.MarginProperty, Duration = TimeSpan.FromSeconds(1) });
                     slavecheckbox.Subscribe(CheckBox.IsCheckedProperty, c => PasswordInput.Margin = c != true ? new Thickness(0, 0, 0, 0) : new Thickness(0, -100, 0, 0));
                 }
-
-                LoginButton.OnClick += () => OnPressLogin(LoginInput.Text, PasswordInput.Text, slavecheckbox.IsChecked == true);
-                forgotPasswordButton.OnClick += () => OnPressForgotPassword();
-
-                Content = grid;
 
                 KeyDown += (_, e) =>
                 {
@@ -262,9 +266,8 @@ namespace NodeUI.Pages
                         Foreground = Colors.WhiteText,
                         FontSize = 17,
                         FontWeight = (FontWeight) 600
-                    };
+                    }.Bind("login.title");
 
-                    text.Bind(TextBlock.TextProperty, "login.title");
                     Background = Colors.DarkGray;
                     Content = text;
                 }
@@ -277,24 +280,25 @@ namespace NodeUI.Pages
 
                 public LoginStatusUI()
                 {
-                    var grid = new Grid();
-                    grid.ColumnDefinitions.Add(new ColumnDefinition(25, GridUnitType.Pixel));
-                    grid.ColumnDefinitions.Add(new ColumnDefinition());
-
-                    grid.Children.Add(new LoadCircle());
-                    grid.Children.Add(TextBlock = new TextBlock());
-
-                    Grid.SetColumn(TextBlock, 1);
-
-                    Content = grid;
-
-                    TextBlock.Bind(TextBlock.TextProperty, "login.loading");
-                    TextBlock.VerticalAlignment = VerticalAlignment.Center;
-                    TextBlock.Margin = new Thickness(10, 0);
-                    TextBlock.FontSize = 16;
-                    TextBlock.Foreground = Colors.DarkText;
-
                     IsVisible = false;
+
+                    TextBlock = new TextBlock()
+                    {
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(10, 0),
+                        FontSize = 16,
+                        Foreground = Colors.DarkText,
+                    }.Bind("login.loading");
+
+                    Content = new Grid()
+                    {
+                        ColumnDefinitions = ColumnDefinitions.Parse("25 *"),
+                        Children =
+                        {
+                            new LoadCircle().WithColumn(0),
+                            TextBlock.WithColumn(1),
+                        },
+                    };
                 }
             }
             class LoginPasswordInputUI : UserControl
@@ -306,42 +310,35 @@ namespace NodeUI.Pages
 
                 public LoginPasswordInputUI()
                 {
-                    LoginInput = new TextBox();
                     EyeTextBox = new EyeTextBoxUI();
 
-                    LoginInput.FontSize = PasswordInput.FontSize = 16;
-                    LoginInput.VerticalContentAlignment = PasswordInput.VerticalContentAlignment = VerticalAlignment.Center;
-                    LoginInput.Foreground = PasswordInput.Foreground = Colors.DarkText;
-                    LoginInput.BorderThickness = PasswordInput.BorderThickness = new Thickness(0);
-                    LoginInput.Background = PasswordInput.Background = Colors.Transparent;
-                    LoginInput.Padding = PasswordInput.Padding = new Thickness(20, 0, 0, 0);
-                    LoginInput.Cursor = PasswordInput.Cursor = new Cursor(StandardCursorType.Ibeam);
+                    LoginInput = new TextBox()
+                    {
+                        FontSize = PasswordInput.FontSize = 16,
+                        VerticalContentAlignment = PasswordInput.VerticalContentAlignment = VerticalAlignment.Center,
+                        Foreground = PasswordInput.Foreground = Colors.DarkText,
+                        BorderThickness = PasswordInput.BorderThickness = new Thickness(0),
+                        Background = PasswordInput.Background = Colors.Transparent,
+                        Padding = PasswordInput.Padding = new Thickness(20, 0, 0, 0),
+                        Cursor = PasswordInput.Cursor = new Cursor(StandardCursorType.Ibeam),
+                    }.Bind(TextBox.WatermarkProperty, "login.email");
 
-                    LoginInput.Bind(TextBox.WatermarkProperty, "login.email");
-
-                    var line = new Panel { Background = Colors.BorderColor };
-
-                    var grid = new Grid();
-                    grid.RowDefinitions.Add(new RowDefinition());
-                    grid.RowDefinitions.Add(new RowDefinition(2, GridUnitType.Pixel));
-                    grid.RowDefinitions.Add(new RowDefinition());
-
-                    grid.Children.Add(LoginInput);
-                    grid.Children.Add(line);
-                    grid.Children.Add(EyeTextBox);
-
-                    Grid.SetRow(line, 1);
-                    Grid.SetRow(EyeTextBox, 2);
-
-                    var border = new Border
+                    Content = new Border
                     {
                         BorderThickness = new Thickness(2),
                         CornerRadius = new CornerRadius(4),
                         BorderBrush = Colors.BorderColor,
-                        Child = grid
+                        Child = new Grid()
+                        {
+                            RowDefinitions = RowDefinitions.Parse("* 2 *"),
+                            Children =
+                            {
+                                LoginInput.WithRow(0),
+                                new Panel { Background = Colors.BorderColor }.WithRow(1),
+                                EyeTextBox.WithRow(2),
+                            },
+                        },
                     };
-
-                    Content = border;
                 }
 
 
@@ -351,23 +348,20 @@ namespace NodeUI.Pages
 
                     public EyeTextBoxUI()
                     {
-                        TextBox = new TextBox() { PasswordChar = '*' };
-                        TextBox.Bind(TextBox.WatermarkProperty, "login.password");
+                        TextBox = new TextBox() { PasswordChar = '*' }.Bind(TextBox.WatermarkProperty, "login.password");
 
                         var eye = new EyeUI();
                         eye.OnToggle += t => TextBox.PasswordChar = t ? default : '*';
 
-                        var grid = new Grid();
-                        grid.ColumnDefinitions.Add(new ColumnDefinition());
-                        grid.ColumnDefinitions.Add(new ColumnDefinition(56, GridUnitType.Pixel));
-
-                        grid.Children.Add(TextBox);
-                        grid.Children.Add(eye);
-
-                        Grid.SetColumnSpan(TextBox, 2);
-                        Grid.SetColumn(eye, 1);
-
-                        Content = grid;
+                        Content = new Grid()
+                        {
+                            ColumnDefinitions = ColumnDefinitions.Parse("* 56"),
+                            Children =
+                            {
+                                TextBox.WithColumn(0).WithColumnSpan(2),
+                                eye.WithColumn(1),
+                            },
+                        };
                     }
 
 
@@ -406,23 +400,26 @@ namespace NodeUI.Pages
 
                 public RememberMeSwitchUI()
                 {
-                    CheckBox = new SwitchUI();
-                    CheckBox.Width = CheckBox.Height = 13;
-                    CheckBox.VerticalAlignment = VerticalAlignment.Center;
+                    CheckBox = new SwitchUI()
+                    {
+                        Width = 13,
+                        Height = 13,
+                        VerticalAlignment = VerticalAlignment.Center,
+                    };
 
-                    var text = new TextBlock() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0), };
-                    text.Bind(TextBlock.TextProperty, "login.remember_me");
-
-                    var grid = new Grid();
-                    grid.ColumnDefinitions.Add(new ColumnDefinition());
-                    grid.ColumnDefinitions.Add(new ColumnDefinition());
-
-                    grid.Children.Add(CheckBox);
-                    grid.Children.Add(text);
-
-                    Grid.SetColumn(text, 1);
-
-                    Content = grid;
+                    Content = new Grid()
+                    {
+                        ColumnDefinitions = ColumnDefinitions.Parse("* *"),
+                        Children =
+                        {
+                            CheckBox.WithColumn(0),
+                            new TextBlock()
+                            {
+                                VerticalAlignment = VerticalAlignment.Center,
+                                Margin = new Thickness(10, 0, 0, 0),
+                            }.Bind("login.remember_me").WithColumn(1),
+                        },
+                    };
                 }
 
 
@@ -443,11 +440,12 @@ namespace NodeUI.Pages
 
                     public SwitchUI()
                     {
-                        BackgroundBorder = new Border();
-                        BackgroundBorder.Background = BackgroundBorder.BorderBrush = Colors.GrayButton;
-                        BackgroundBorder.CornerRadius = new CornerRadius(3);
-
-                        Content = BackgroundBorder;
+                        Content = BackgroundBorder = new Border()
+                        {
+                            Background = Colors.GrayButton,
+                            BorderBrush = Colors.GrayButton,
+                            CornerRadius = new CornerRadius(3),
+                        };
 
                         OnClick += () => IsToggled = !IsToggled;
                     }
@@ -466,7 +464,7 @@ namespace NodeUI.Pages
                         FontSize = 14,
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
-                    }.Bind(TextBlock.TextProperty, "login.forgot_password");
+                    }.Bind("login.forgot_password");
 
                     Content = text;
 
