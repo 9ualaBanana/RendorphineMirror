@@ -11,7 +11,12 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
         if (items.Length == 0) return;
 
         foreach (var item in items.OrderBy<MPlusNewItem, long>(x => x.Registered))
+        {
             await TickItem(item);
+            Input.SinceIid = item.Iid;
+        }
+
+        if (Task.PlacedNonCompletedTasks.Count == 0) await Tick();
     }
     protected abstract ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync();
     protected virtual async ValueTask TickItem(MPlusNewItem item)
@@ -24,9 +29,9 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
             ?? Task.Output.CreateOutput(Task, fileName);
 
         var newinput = new MPlusTaskInputInfo(item.Iid, item.UserId);
-        await Task.RegisterTask(newinput, output);
+        var taskid = await Task.RegisterTask(newinput, output);
+        Task.PlacedNonCompletedTasks.Add(taskid);
 
-        Input.SinceIid = item.Iid;
         SaveTask();
     }
 }

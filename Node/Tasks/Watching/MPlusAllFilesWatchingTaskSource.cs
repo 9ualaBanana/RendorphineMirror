@@ -31,20 +31,13 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
     }
     protected override async ValueTask Tick()
     {
-        async Task<DbTaskFullState[]> fetch(TaskState state) => (await Apis.GetMyTasksAsync(state)).ThrowIfError().Where(x => x.Action == Task.TaskAction).ToArray();
+        // fetch new items only if there is less than N ptasks pending
+        const int taskFetchingThreshold = 1000 - 1;
 
-        var fqueued = await fetch(TaskState.Queued);
-        var finput = await fetch(TaskState.Input);
-        var factive = await fetch(TaskState.Active);
-
-        if (fqueued.Length != 0 || finput.Length != 0 || factive.Length != 0)
-        {
-            Task.LogInfo($"Found {fqueued.Length}Q {finput.Length}I {factive.Length}A pending ptasks, skipping fetching from {GetType().Name}");
+        if (Task.PlacedNonCompletedTasks.Count > taskFetchingThreshold)
             return;
-        }
 
-
-        Task.LogInfo($"No pending ptasks found, fetching new items since {Input.SinceIid ?? "<start>"}");
+        Task.LogInfo($"Found {Task.PlacedNonCompletedTasks.Count} unfinished ptasks found, fetching new items since {Input.SinceIid ?? "<start>"}");
         await base.Tick();
     }
 }

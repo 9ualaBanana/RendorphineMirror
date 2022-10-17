@@ -14,8 +14,7 @@ public enum WatchingTaskInputType
 [JsonConverter(typeof(StringEnumConverter))]
 public enum WatchingTaskOutputType
 {
-    Local,
+    Torrent,
     MPlus,
-    OtherNodeTorrent,
     QSPreview,
 }

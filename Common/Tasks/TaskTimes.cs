@@ -2,23 +2,19 @@
 
 namespace Common.Tasks;
 
-public record TaskTimes(DateTimeOffset? Input = null, DateTimeOffset? Active = null, DateTimeOffset? Output = null)
+public record TaskTimes(long? Input = null, long? Active = null, long? Output = null, long? Finished = null, long? Canceled = null, long? Failed = null)
 {
+    [JsonIgnore] public DateTimeOffset? InputTime => FromLong(Input);
+    [JsonIgnore] public DateTimeOffset? ActiveTime => FromLong(Active);
+    [JsonIgnore] public DateTimeOffset? OutputTime => FromLong(Output);
+    [JsonIgnore] public DateTimeOffset? FinishedTime => FromLong(Finished);
+    [JsonIgnore] public DateTimeOffset? CanceledTime => FromLong(Canceled);
+    [JsonIgnore] public DateTimeOffset? FailedTime => FromLong(Failed);
 
-    [JsonConstructor]
-    public TaskTimes(long? input = null, long? active = null, long? output = null) : this(
-        input is null ? null : DateTimeOffset.FromUnixTimeMilliseconds((long)input),
-        active is null ? null : DateTimeOffset.FromUnixTimeMilliseconds((long)active),
-        output is null ? null : DateTimeOffset.FromUnixTimeMilliseconds((long)output))
-    {
-    }
+    static DateTimeOffset? FromLong(long? time) => time is null ? null : DateTimeOffset.FromUnixTimeMilliseconds(time.Value);
+
 
     public bool Exist => Input is not null;
 
-    public TimeSpan Total => Exist ?
-        Output is null ?
-        DateTimeOffset.UtcNow - Time(Input) : Time(Output!) - Time(Input) :
-        default;
-
-    static DateTimeOffset Time(DateTimeOffset? value) => ((DateTimeOffset)value!).UtcDateTime!;
+    public TimeSpan Total => Exist ? (OutputTime ?? DateTimeOffset.UtcNow) - InputTime!.Value : default;
 }

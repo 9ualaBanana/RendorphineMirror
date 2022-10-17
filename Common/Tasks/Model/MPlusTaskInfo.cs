@@ -32,6 +32,7 @@ public class MPlusTaskOutputInfo : ITaskOutputInfo
     public readonly string Directory;
 
     public readonly string? TUid;
+    [Hidden] public string? IngesterHost;
 
     public MPlusTaskOutputInfo(string name, string directory, string? tuid = null)
     {

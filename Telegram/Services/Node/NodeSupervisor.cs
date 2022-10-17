@@ -17,6 +17,7 @@ public class NodeSupervisor
     readonly TelegramBot _bot;
     readonly AuthenticatedUsersDbContext _authenticatedUsers;
 
+
     public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot, AuthenticatedUsersDbContext users)
     {
         AllNodes = new();
@@ -41,7 +42,8 @@ public class NodeSupervisor
     {
         // Using `nodeInfo` to look for `nodeOnline` is alright because MachineInfo's equality is based on its NodeName.
         // Also using `nodeInfo` allows adding `nodeInfo` if it's not online or update `nodeOnline's` version to the one of `nodeInfo` if it is.
-        var wasOnline = NodesOnline.TryGetValue(nodeInfo, out var nodeOnline);
+        bool wasOnline = NodesOnline.TryGetValue(nodeInfo, out var nodeOnline);
+        bool versionIsUpdated = nodeOnline?.Version != nodeInfo.Version;
 
         lock (_lock)
         {
@@ -50,13 +52,15 @@ public class NodeSupervisor
         }
 
         if (wasOnline)
-            if (nodeOnline!.Version != nodeInfo.Version)
+        {
+            if (versionIsUpdated)
             {
                 var userChatAuthenticationTokens = _authenticatedUsers.Users.Where(user => user.MPlus.UserId == nodeInfo.UserId);
                 if (userChatAuthenticationTokens.Any())
                     foreach (var chatAuthenticationToken in userChatAuthenticationTokens)
-                        await _bot.TrySendMessageAsync(chatAuthenticationToken.ChatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline.Version}* *=>* v.*{nodeInfo.Version}*.");
+                        await _bot.TrySendMessageAsync(chatAuthenticationToken.ChatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline!.Version}* *=>* v.*{nodeInfo.Version}*.");
             }
+        }
         else _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
     }
 

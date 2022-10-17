@@ -17,13 +17,8 @@ public static class TaskHandler
         TaskRegistration.TaskRegistered += task => InitializePlacedTaskAsync(task).Consume();
         await Task.WhenAll(NodeSettings.PlacedTasks.Values.ToArray().Select(InitializePlacedTaskAsync));
     }
-    public static async Task InitializePlacedTaskAsync(DbTaskFullState task)
-    {
-        if (await task.RemoveIfFinished())
-            return;
-
+    public static async Task InitializePlacedTaskAsync(DbTaskFullState task) =>
         await task.GetInputHandler().InitializePlacedTaskAsync(task);
-    }
 
     /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
     public static void StartListening()
@@ -33,28 +28,10 @@ public static class TaskHandler
             while (true)
             {
                 await Task.Delay(2_000);
+                if (NodeSettings.QueuedTasks.Count == 0) continue;
 
-                if (NodeSettings.QueuedTasks.Count != 0)
-                {
-                    foreach (var task in NodeSettings.QueuedTasks.Values.ToArray())
-                        HandleAsync(task).Consume();
-
-                    continue;
-                }
-                if (NodeSettings.FailedTasks.Count != 0)
-                {
-                    foreach (var task in NodeSettings.FailedTasks.Values.ToArray())
-                        HandleAsync(task).Consume();
-
-                    continue;
-                }
-                if (NodeSettings.CanceledTasks.Count != 0)
-                {
-                    foreach (var task in NodeSettings.CanceledTasks.Values.ToArray())
-                        HandleAsync(task).Consume();
-
-                    continue;
-                }
+                foreach (var task in NodeSettings.QueuedTasks.Values.ToArray())
+                    HandleAsync(task).Consume();
             }
         })
         { IsBackground = true }.Start();
@@ -78,31 +55,64 @@ public static class TaskHandler
         { IsBackground = true }.Start();
 
 
-        async ValueTask check(DbTaskFullState task)
+        async ValueTask<bool> check(DbTaskFullState task)
         {
-            if (task.State == TaskState.Finished) return;
+            if (task.State.IsFinished()) return remove();
+            const double daysUntilTaskFail = 2;
 
             try
             {
+                // convert unix time from sec to ms for old tasks
+                if (task.Registered < 1000000000000)
+                    task.Registered *= 1000;
+
+                // fix for old tasks without Registered field being set
+                if (task.Registered == 0)
+                    task.Registered = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+
+                await task.UpdateTaskStateAsync();
                 var handler = task.GetOutputHandler();
                 var completed = await handler.CheckCompletion(task);
-                if (!completed) return;
+                if (!completed)
+                {
+                    var latestupdate = task.Times?.OutputTime ?? task.Times?.ActiveTime ?? task.Times?.InputTime ?? DateTimeOffset.FromUnixTimeMilliseconds((long) task.Registered);
+                    if ((latestupdate - DateTimeOffset.UtcNow).TotalDays > daysUntilTaskFail)
+                        return await complete(TaskState.Failed, $"Failed due to inactivity over {daysUntilTaskFail} days");
 
-                task.LogInfo("Completed");
+                    return false;
+                }
 
-                await handler.OnPlacedTaskCompleted(task);
-                (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
-                NodeSettings.PlacedTasks.Remove(task);
+                return await complete(TaskState.Finished, "Completed");
+
+
+                async Task<bool> complete(TaskState state, string info)
+                {
+                    task.LogInfo(info);
+                    await handler.OnPlacedTaskCompleted(task);
+                    (await task.ChangeStateAsync(state)).ThrowIfError();
+
+                    return remove();
+                }
             }
-            catch (Exception ex) when (ex.Message.Contains("no task with such ", StringComparison.OrdinalIgnoreCase))
-            {
-                task.LogErr("Placed task does not exists on the server, removing");
-                NodeSettings.PlacedTasks.Remove(task);
-            }
-            catch (Exception ex) when (ex.Message.Contains("Invalid old task state", StringComparison.OrdinalIgnoreCase))
+            catch (Exception ex) when (
+                ex.Message.Contains("Invalid old task state", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("no task with such ", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 task.LogErr(ex.Message + ", removing");
+                return remove();
+            }
+
+
+            bool remove()
+            {
                 NodeSettings.PlacedTasks.Remove(task);
+                foreach (var wtask in NodeSettings.WatchingTasks.Values.ToArray())
+                    if (wtask.PlacedNonCompletedTasks.Remove(task.Id))
+                        NodeSettings.WatchingTasks.Save(wtask);
+
+                return true;
             }
         }
     }
@@ -135,7 +145,7 @@ public static class TaskHandler
         if (NodeGlobalState.Instance.ExecutingTasks.Contains(task))
             return;
 
-        if (await task.RemoveIfFinished())
+        if (await task.RemoveQueuedIfFinished())
             return;
 
         const int maxattempts = 3;
@@ -150,7 +160,8 @@ public static class TaskHandler
         using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
         task.LogInfo($"Started");
 
-        for (int attempt = 0; attempt < maxattempts; attempt++)
+        int attempt;
+        for (attempt = 0; attempt < maxattempts; attempt++)
         {
             try
             {
@@ -159,7 +170,11 @@ public static class TaskHandler
 
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
-                NodeSettings.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt });
+
+                var taskinfo = await task.GetTaskStateAsync();
+                var times = null as TaskTimes;
+                if (taskinfo) times = taskinfo.Value.Times;
+                NodeSettings.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt, TaskTimes = times });
 
                 task.LogInfo($"Completed, removing");
                 NodeSettings.QueuedTasks.Remove(task);
@@ -167,12 +182,7 @@ public static class TaskHandler
             }
             catch (NodeTaskFailedException ex)
             {
-                await setState(NodeSettings.FailedTasks, TaskState.Failed, attempt + 1, ex.Message);
-                return;
-            }
-            catch (NodeTaskCanceledException ex)
-            {
-                await setState(NodeSettings.CanceledTasks, TaskState.Canceled, attempt + 1, ex.Message);
+                await fail(ex.Message);
                 return;
             }
             catch (Exception ex)
@@ -182,32 +192,25 @@ public static class TaskHandler
             }
         }
 
-        await setState(NodeSettings.FailedTasks, TaskState.Failed, maxattempts, "Run out of attempts");
+        await fail("Run out of attempts");
 
 
-        async ValueTask setState(Settings.DatabaseValueDictionary<string, ReceivedTask> newlist, TaskState state, int attempt, string message)
+        async ValueTask fail(string message)
         {
-            task.LogInfo($"Task requested to be {state} on attempt ({attempt + 1}/{maxattempts}): {message}");
-            newlist.Add(task);
+            task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {message}");
             NodeSettings.QueuedTasks.Remove(task);
-
-            var set = await task.ChangeStateAsync(state);
-            if (set) task.LogInfo("Updated server task state");
-            else task.LogWarn("Could not update task state on the server though");
+            await task.ChangeStateAsync(TaskState.Failed).ThrowIfNull();
         }
     }
-
-
-    static async ValueTask<bool> RemoveIfFinished(this ReceivedTask task)
+    static async ValueTask<bool> RemoveQueuedIfFinished(this ReceivedTask task)
     {
+        if (task is DbTaskFullState) throw new InvalidOperationException("Placed tasks are not permitted");
+
         var finished = await test();
         if (finished)
         {
             task.LogInfo($"Removing");
-
             NodeSettings.QueuedTasks.Remove(task);
-            if (task is DbTaskFullState dbtask)
-                NodeSettings.PlacedTasks.Remove(dbtask);
         }
 
         return finished;
@@ -215,49 +218,37 @@ public static class TaskHandler
 
         async ValueTask<bool> test()
         {
-            if (task.ExecuteLocally) return task.State.IsFinished();
-
-            TaskState state;
-
             if (task.ExecuteLocally)
             {
-                state = task.State;
                 task.LogInfo($"Local/{task.State}");
+                return task.State.IsFinished();
             }
-            else
+
+            var stater = await task.GetTaskStateAsync();
+            if (!stater)
             {
-                var stater = await task.GetTaskStateAsync();
-                if (!stater)
+                if (stater.Message!.Contains("There is no task with such ID.", StringComparison.Ordinal))
                 {
                     stater.LogIfError();
-                    if (stater.Message!.Contains("There is no task with such ID.", StringComparison.Ordinal))
-                        state = TaskState.Failed;
-                    else
-                    {
-                        stater.ThrowIfError();
-                        return false;
-                    }
+                    task.State = TaskState.Failed;
+
+                    return true;
                 }
-                else
-                {
-                    state = stater.Value.State;
-                    task.LogInfo($"{stater.Value.State}/{task.State}");
-                }
+
+                stater.ThrowIfError();
+                return false;
             }
 
+            var state = stater.Value;
+            task.LogInfo($"{state.State}/{task.State}");
 
-            if (state.IsFinished())
+            if (state.State == TaskState.Finished && task.State == TaskState.Output)
             {
-                if (task.State == TaskState.Output && state is not (TaskState.Canceled or TaskState.Failed))
-                {
-                    task.LogInfo($"Server task state was set to finished, but the result hasn't been uploaded yet");
-                    return false;
-                }
-
-                return true;
+                task.LogInfo($"Server task state was set to finished, but the result hasn't been uploaded yet");
+                return false;
             }
 
-            return false;
+            return state.State.IsFinished();
         }
     }
 
