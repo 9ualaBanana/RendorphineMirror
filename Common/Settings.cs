@@ -9,10 +9,11 @@ namespace Common
 {
     public readonly struct AuthInfo
     {
-        public readonly string SessionId, Email, Guid, UserId;
+        public readonly string SessionId, Guid, UserId;
+        public readonly string? Email;
         public readonly bool Slave;
 
-        public AuthInfo(string sessionId, string email, string guid, string userid = null!, bool slave = false)
+        public AuthInfo(string sessionId, string? email, string guid, string userid = null!, bool slave = false)
         {
             SessionId = sessionId;
             Email = email;
@@ -31,7 +32,7 @@ namespace Common
         public static readonly string DbPath;
 
         public static string SessionId => AuthInfo?.SessionId!;
-        public static string Email => AuthInfo?.Email!;
+        public static string? Email => AuthInfo?.Email;
         public static string Guid => AuthInfo?.Guid!;
         public static string UserId => AuthInfo?.UserId!;
         public static bool? IsSlave => AuthInfo?.Slave;
