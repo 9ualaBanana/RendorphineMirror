@@ -1,10 +1,11 @@
-using System.Diagnostics.CodeAnalysis;
 using Avalonia.Controls.ApplicationLifetimes;
 
 namespace NodeUI.Pages
 {
     public class LoginWindow : LoginWindowUI
     {
+        CancellationTokenSource? WebAuthToken;
+
         public LoginWindow(LocalizedString error) : this() => Login.ShowError(error);
         public LoginWindow()
         {
@@ -48,7 +49,28 @@ namespace NodeUI.Pages
 
                     auth = await SessionManager.AutoAuthAsync(login).ConfigureAwait(false);
                 }
-                else if (loginType == LoginType.Web) auth = await SessionManager.WebAuthAsync().ConfigureAwait(false);
+                else if (loginType == LoginType.Web)
+                {
+                    if (WebAuthToken is null || WebAuthToken.IsCancellationRequested)
+                    {
+                        Task.Delay(5000).ContinueWith(_ => Dispatcher.UIThread.Post(() =>
+                        {
+                            Login.UnlockButtons();
+                            Login.SetMPlusLoginButtonText("Cancel web login");
+                        })).Consume();
+
+                        WebAuthToken = new();
+                        auth = await SessionManager.WebAuthAsync(WebAuthToken.Token);
+                        WebAuthToken = null;
+                        Login.SetMPlusLoginButtonText("Login via M+");
+                    }
+                    else
+                    {
+                        WebAuthToken.Cancel();
+                        WebAuthToken = null;
+                        return false;
+                    }
+                }
                 else throw new InvalidOperationException("Unknown value of LoginType: " + loginType);
 
                 // https://microstock.plus/oauth2/authorize?clientid=001&redirecturl=http://127.0.0.1:9999/
@@ -147,7 +169,7 @@ namespace NodeUI.Pages
             readonly LoginPasswordInputUI LoginPasswordInput;
             readonly TextBlock ErrorText;
             readonly LoginStatusUI LoginStatus;
-            readonly MPButton LoginButton;
+            readonly MPButton LoginButton, MPlusLoginButton;
 
             public LoginControl()
             {
@@ -207,6 +229,12 @@ namespace NodeUI.Pages
                     OnClick = () => OnPressLogin(LoginInput.Text, PasswordInput.Text, slavecheckbox.IsChecked == true),
                 };
 
+                MPlusLoginButton = new MPButton()
+                {
+                    Text = "Login via M+",
+                    OnClick = () => OnPressWebLogin(),
+                };
+
 
                 Content = new Grid()
                 {
@@ -218,11 +246,7 @@ namespace NodeUI.Pages
                         LoginStatus.WithRow(1),
                         LoginPasswordInput.WithRow(2),
                         buttonsAndRemember.WithRow(4),
-                        new MPButton()
-                        {
-                            Text = "Login via M+",
-                            OnClick = () => OnPressWebLogin(),
-                        }.WithRow(5),
+                        MPlusLoginButton.WithRow(5),
                         LoginButton.WithRow(6),
                         new ForgotPasswordButtonUI()
                         {
@@ -251,8 +275,9 @@ namespace NodeUI.Pages
                 };
             }
 
-            public void LockButtons() => LoginButton.IsEnabled = false;
-            public void UnlockButtons() => LoginButton.IsEnabled = true;
+            public void SetMPlusLoginButtonText(LocalizedString text) => MPlusLoginButton.Text = text;
+            public void LockButtons() => LoginButton.IsEnabled = MPlusLoginButton.IsEnabled = false;
+            public void UnlockButtons() => LoginButton.IsEnabled = MPlusLoginButton.IsEnabled = true;
             public void StartLoginAnimation(LocalizedString text)
             {
                 HideError();
