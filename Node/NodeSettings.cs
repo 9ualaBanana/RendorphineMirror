@@ -5,8 +5,6 @@ namespace Node;
 public static class NodeSettings
 {
     public static readonly DatabaseValueDictionary<string, ReceivedTask> QueuedTasks;
-    public static readonly DatabaseValueDictionary<string, ReceivedTask> CanceledTasks;
-    public static readonly DatabaseValueDictionary<string, ReceivedTask> FailedTasks;
     public static readonly DatabaseValueDictionary<string, WatchingTask> WatchingTasks;
     public static readonly DatabaseValueDictionary<string, DbTaskFullState> PlacedTasks;
     public static readonly DatabaseValueDictionary<string, CompletedTask> CompletedTasks;
@@ -14,8 +12,6 @@ public static class NodeSettings
     static NodeSettings()
     {
         QueuedTasks = new(nameof(QueuedTasks), t => t.Id);
-        CanceledTasks = new(nameof(CanceledTasks), t => t.Id);
-        FailedTasks = new(nameof(FailedTasks), t => t.Id);
         WatchingTasks = new(nameof(WatchingTasks), t => t.Id);
         PlacedTasks = new(nameof(PlacedTasks), t => t.Id);
         CompletedTasks = new(nameof(CompletedTasks), t => t.TaskInfo.Id);
