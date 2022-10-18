@@ -10,9 +10,9 @@ public abstract class UploadSessionData
     /// Persists the same GUID suffix over multiple uses of the file name.
     /// </summary>
     /// <remarks>
-    /// Without that GUID persistence, file name would differ for each property/method call where it's used (e.g. HttpContent).
+    /// Without that GUID persistence file name would differ for each property/method call where it's used (e.g. HttpContent).
     /// </remarks>
-    public string FileNameWithGuid => _fileNameWithGuid ??= File.Name.WithGuid();
+    internal string _FileNameWithGuid => _fileNameWithGuid ??= File.Name.WithGuid();
     string? _fileNameWithGuid;
     protected string MimeType => MimeTypes.GetMimeType(File.Name);
 
@@ -29,7 +29,7 @@ public abstract class UploadSessionData
     }
 
 
-    public abstract HttpContent HttpContent { get; }
+    internal abstract HttpContent HttpContent { get; }
 }
 
 public class UserUploadSessionData : UploadSessionData
@@ -39,16 +39,17 @@ public class UserUploadSessionData : UploadSessionData
     {
     }
 
-    public UserUploadSessionData(string url, FileInfo file) : base((url.EndsWith('/') ? url[..^1] : url) + "/initupload", file)
+    public UserUploadSessionData(string url, FileInfo file)
+        : base($"{Path.TrimEndingDirectorySeparator(url)}/initupload", file)
     {
     }
 
 
-    public override FormUrlEncodedContent HttpContent => new(
+    internal override FormUrlEncodedContent HttpContent => new(
         new Dictionary<string, string>()
         {
             ["sessionid"] = Settings.SessionId!,
-            ["name"] = FileNameWithGuid,
+            ["name"] = _FileNameWithGuid,
             ["size"] = File.Length.ToString(),
             ["extension"] = File.Extension,
         });
@@ -68,11 +69,12 @@ public class MPlusUploadSessionData : UploadSessionData
         _sessionId = sessionId;
     }
 
-    public override FormUrlEncodedContent HttpContent => new(new Dictionary<string, string>
+
+    internal override FormUrlEncodedContent HttpContent => new(new Dictionary<string, string>
     {
         ["sessionid"] = _sessionId ?? Settings.SessionId!,
         ["directory"] = "uploaded",
-        ["fname"] = FileNameWithGuid,
+        ["fname"] = _FileNameWithGuid,
         ["fsize"] = File.Length.ToString(),
         ["mimetype"] = MimeType,
         ["lastmodified"] = File.LastWriteTimeUtc.AsUnixTimestamp(),
@@ -91,14 +93,15 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
     {
     }
 
-    public MPlusTaskResultUploadSessionData(FileInfo file, string taskId, string? postfix) : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
+    public MPlusTaskResultUploadSessionData(FileInfo file, string taskId, string? postfix)
+        : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
     {
         TaskId = taskId;
         Postfix = postfix;
     }
 
 
-    public override FormUrlEncodedContent HttpContent
+    internal override FormUrlEncodedContent HttpContent
     {
         get
         {

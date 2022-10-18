@@ -21,9 +21,9 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
             var downloadLink = await Api.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskinputdownloadlink", "link", "get download link",
                 ("sessionid", Settings.SessionId!), ("taskid", task.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0")).ConfigureAwait(false);
 
-            using (var inputStream = await Api.Download(downloadLink.ThrowIfError()))
-            using (var file = File.Open(task.FSNewInputFile(format), FileMode.Create, FileAccess.Write))
-                await inputStream.CopyToAsync(file, cancellationToken);
+            using var inputStream = await Api.Download(downloadLink.ThrowIfError());
+            using var file = File.Open(task.FSNewInputFile(format), FileMode.Create, FileAccess.Write);
+            await inputStream.CopyToAsync(file, cancellationToken);
         }
     }
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
