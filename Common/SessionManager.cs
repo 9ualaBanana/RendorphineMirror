@@ -1,4 +1,8 @@
-﻿namespace Common;
+﻿using System.Diagnostics;
+using System.Net;
+using System.Text;
+
+namespace Common;
 
 public static class SessionManager
 {
@@ -26,7 +30,45 @@ public static class SessionManager
         LoginAsync(email, password, guid)
         .Next(res => LoginSuccess(res.SessionId, email, guid, res.UserId, false));
 
-    static async ValueTask<OperationResult> LoginSuccess(string sid, string email, string guid, string userid, bool slave)
+    public static async ValueTask<OperationResult> WebAuthAsync(CancellationToken token = default)
+    {
+        using var listener = new HttpListener();
+        listener.Prefixes.Add("http://127.0.0.1:3525/rphtaskexec/mpoauthresult/");
+        listener.Start();
+
+        token.Register(listener.Close);
+
+        var guid = Guid.NewGuid().ToString();
+        Process.Start(new ProcessStartInfo($"{Api.TaskManagerEndpoint}/mpoauthloginnode?guid={guid}") { UseShellExecute = true }).ThrowIfNull();
+
+        while (true)
+        {
+            try
+            {
+                if (token.IsCancellationRequested) return false;
+                var context = await listener.GetContextAsync().ConfigureAwait(false);
+                using var response = context.Response;
+
+                if (token.IsCancellationRequested) return false;
+
+                var request = context.Request;
+                var query = request.QueryString;
+                var sid = query["sessionid"].ThrowIfNull();
+                var uid = query["userid"].ThrowIfNull();
+
+                var login = await LoginSuccess(sid, null, guid, uid, false).ConfigureAwait(false);
+
+                response.StatusCode = (int) HttpStatusCode.OK;
+                await response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("<html><body>Authentication successful, you can now close this page</body></html>")).ConfigureAwait(false);
+
+                return login;
+            }
+            catch (OperationCanceledException) { return false; }
+            catch (Exception ex) { LogManager.GetCurrentClassLogger().Error(ex); }
+        }
+    }
+
+    static async ValueTask<OperationResult> LoginSuccess(string sid, string? email, string guid, string userid, bool slave)
     {
         Settings.AuthInfo = new AuthInfo(sid, email, guid, userid, slave);
         if (Settings.NodeName is null)

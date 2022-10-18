@@ -28,21 +28,10 @@ public static class TaskHandler
             while (true)
             {
                 await Task.Delay(2_000);
+                if (NodeSettings.QueuedTasks.Count == 0) continue;
 
-                if (NodeSettings.QueuedTasks.Count != 0)
-                {
-                    foreach (var task in NodeSettings.QueuedTasks.Values.ToArray())
-                        HandleAsync(task).Consume();
-
-                    continue;
-                }
-                if (NodeSettings.FailedTasks.Count != 0)
-                {
-                    foreach (var task in NodeSettings.FailedTasks.Values.ToArray())
-                        HandleAsync(task).Consume();
-
-                    continue;
-                }
+                foreach (var task in NodeSettings.QueuedTasks.Values.ToArray())
+                    HandleAsync(task).Consume();
             }
         })
         { IsBackground = true }.Start();
@@ -171,7 +160,8 @@ public static class TaskHandler
         using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
         task.LogInfo($"Started");
 
-        for (int attempt = 0; attempt < maxattempts; attempt++)
+        int attempt;
+        for (attempt = 0; attempt < maxattempts; attempt++)
         {
             try
             {
@@ -192,12 +182,7 @@ public static class TaskHandler
             }
             catch (NodeTaskFailedException ex)
             {
-                await setState(NodeSettings.FailedTasks, TaskState.Failed, attempt + 1, ex.Message);
-                return;
-            }
-            catch (NodeTaskCanceledException ex)
-            {
-                await setState(NodeSettings.CanceledTasks, TaskState.Canceled, attempt + 1, ex.Message);
+                await fail(ex.Message);
                 return;
             }
             catch (Exception ex)
@@ -207,18 +192,14 @@ public static class TaskHandler
             }
         }
 
-        await setState(NodeSettings.FailedTasks, TaskState.Failed, maxattempts, "Run out of attempts");
+        await fail("Run out of attempts");
 
 
-        async ValueTask setState(Settings.DatabaseValueDictionary<string, ReceivedTask> newlist, TaskState state, int attempt, string message)
+        async ValueTask fail(string message)
         {
-            task.LogInfo($"Task requested to be {state} on attempt ({attempt + 1}/{maxattempts}): {message}");
-            newlist.Add(task);
+            task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {message}");
             NodeSettings.QueuedTasks.Remove(task);
-
-            var set = await task.ChangeStateAsync(state);
-            if (set) task.LogInfo("Updated server task state");
-            else task.LogWarn("Could not update task state on the server though");
+            await task.ChangeStateAsync(TaskState.Failed).ThrowIfNull();
         }
     }
     static async ValueTask<bool> RemoveQueuedIfFinished(this ReceivedTask task)

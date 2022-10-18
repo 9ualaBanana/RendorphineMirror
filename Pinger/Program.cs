@@ -1,18 +1,23 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using Common;
 using NLog;
 
-ConsoleHide.Hide();
+try { ConsoleHide.Hide(); }
+catch { }
+
+try { Process.Start(new ProcessStartInfo(FileList.GetUpdaterExe()) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden })!.WaitForExit(); }
+catch (Exception ex)
+{
+    try { File.AppendAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "renderfinpinger", "exception"), ex.ToString()); }
+    catch { }
+}
+
 Init.Initialize();
 var _logger = LogManager.GetCurrentClassLogger();
 
 var nodeexe = GetPath(args, 0, "Node");
 var updaterexe = GetPath(args, 1, "Updater");
-Log(@$"Pinger v{Init.Version} started; Config directory: {Init.ConfigDirectory}; Node executable: {nodeexe}; Updater executable: {updaterexe}");
-
-Process.Start(new ProcessStartInfo(FileList.GetUpdaterExe()) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden })!.WaitForExit();
 
 await Ping(new HttpClient(), CancellationToken.None).ConfigureAwait(false);
 
@@ -30,15 +35,9 @@ static string GetPath(string[] args, int index, string info)
 
 void Log(string text) => _logger.Info(text);
 
-static string GetCurrentTimeStr() => DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
-void AppendStartSession() => AppendSession("+" + GetCurrentTimeStr());
-void AppendEndSession() => AppendSession("-" + GetCurrentTimeStr());
-void AppendSession(string text) => File.AppendAllText(Path.Combine(Init.ConfigDirectory, "sessions"), text + "\n");
-
 async Task<bool> Ping(HttpClient client, CancellationToken token)
 {
     var sw = Stopwatch.StartNew();
-    Log(@$"Sending ping...");
 
     HttpResponseMessage msg;
     try { msg = await client.GetAsync(@$"http://127.0.0.1:{Settings.LocalListenPort}/ping", token).ConfigureAwait(false); }
@@ -47,7 +46,6 @@ async Task<bool> Ping(HttpClient client, CancellationToken token)
     if (!msg.IsSuccessStatusCode)
         restart(@$"Ping bad, HTTP {msg.StatusCode}, restarting...");
 
-    Log(@$"Ping good ({sw.ElapsedMilliseconds}ms)...");
     return true;
 
 
@@ -63,9 +61,6 @@ async Task<bool> Ping(HttpClient client, CancellationToken token)
 }
 void RestartNode()
 {
-    AppendEndSession();
     FileList.KillProcesses();
-
     _ = Process.Start(new ProcessStartInfo(updaterexe) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden }) ?? throw new Exception("Could not start updater process");
-    AppendStartSession();
 }
