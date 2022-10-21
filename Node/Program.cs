@@ -1,11 +1,14 @@
 ﻿global using System.Collections.Immutable;
 global using Common;
 global using Common.Plugins;
+global using Common.Plugins.Deployment;
 global using Common.Tasks;
 global using Common.Tasks.Model;
 global using Common.Tasks.Watching;
 global using Machine;
 global using NLog;
+global using Node.Plugins.Deployment;
+global using Node.Registry;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Handlers;
 global using Node.Tasks.Watching;
