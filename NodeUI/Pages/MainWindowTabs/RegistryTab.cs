@@ -12,7 +12,7 @@ public class RegistryTab : Panel
 
         var softlist = (await Apis.GetSoftwareAsync()).ThrowIfError();
         var prop = new JProperty("_", JObject.FromObject(softlist, JsonSettings.LowercaseS));
-        var setting = TaskCreationWindow.Settings.Create(prop, FieldDescriber.Create(softlist.GetType()));
+        var setting = JsonUISetting.Create(prop, FieldDescriber.Create(softlist.GetType()));
         Children.Add(new ScrollViewer() { Content = setting });
     }
 }
