@@ -851,10 +851,14 @@ namespace NodeUI.Pages
                         list.Children.Clear();
 
                         var fielddescriber = FieldDescriber.Create(describer.ValueType, describer.Attributes);
-                        foreach (var property in jobj.Properties())
+                        foreach (var property in jobj.Properties().OrderBy(x => x.Name))
                         {
                             var key = property.Name;
                             var value = property.Value;
+
+                            var keyTextBox = new TextBox() { Text = key };
+
+                            var expander = (null as Expander)!;
 
                             var setting = Create(property, fielddescriber);
                             var set = new StackPanel()
@@ -872,11 +876,31 @@ namespace NodeUI.Pages
                                             recreate();
                                         },
                                     },
+                                    new StackPanel()
+                                    {
+                                        Orientation = Orientation.Horizontal,
+                                        Children =
+                                        {
+                                            keyTextBox,
+                                            new MPButton()
+                                            {
+                                                Text = "Change key",
+                                                OnClick = () =>
+                                                {
+                                                    var parent = (JObject) property.Parent!;
+                                                    parent.Remove(property.Name);
+                                                    parent.Add(keyTextBox.Text.Trim(), property.Value);
+
+                                                    recreate();
+                                                },
+                                            },
+                                        },
+                                    },
                                     setting,
                                 },
                             };
 
-                            list.Children.Add(new Expander() { Header = key, Content = set, });
+                            list.Children.Add(expander = new Expander() { Header = key, Content = set, });
                             Settings.Add(setting);
                         }
                     }
