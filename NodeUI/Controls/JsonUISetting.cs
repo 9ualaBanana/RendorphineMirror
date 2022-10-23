@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
@@ -16,13 +17,17 @@ public static class JsonUISetting
             NumberDescriber num => new NumberSetting(num, property),
             ObjectDescriber obj => new ObjectSetting(obj, property),
 
-            DictionaryDescriber dic => new DictionarySetting(dic, property),
+            DictionaryDescriber dic when dic.KeyType == typeof(string) => new DictionarySetting(dic, property),
             CollectionDescriber col => new CollectionSetting(col, property),
 
             _ => throw new InvalidOperationException($"Could not find setting type fot {describer.GetType().Name}"),
         };
 
 
+    public interface ISettingContainer : IEnumerable<Setting>
+    {
+        IEnumerable<Setting> GetTreeRecursive() => new[] { (Setting) this }.Concat(this.SelectMany(x => ((x as ISettingContainer) ?? Enumerable.Empty<Setting>()).Prepend(x)));
+    }
     public abstract class Setting : Panel
     {
         public JProperty Property { get; }
@@ -41,7 +46,7 @@ public static class JsonUISetting
         public Setting(T describer, JProperty property) : base(property) => Describer = describer;
     }
 
-    abstract class SettingContainer<T> : Setting<T> where T : FieldDescriber
+    abstract class SettingContainer<T> : Setting<T>, ISettingContainer where T : FieldDescriber
     {
         public new T Describer => base.Describer;
         readonly Setting<T> Setting;
@@ -50,6 +55,9 @@ public static class JsonUISetting
 
         protected abstract Setting<T> CreateSetting();
         public sealed override void UpdateValue() => Setting.UpdateValue();
+
+        public IEnumerator<Setting> GetEnumerator() => Enumerable.Repeat(Setting, 1).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
     abstract class SettingChild<T> : Setting<T> where T : FieldDescriber
     {
@@ -221,13 +229,15 @@ public static class JsonUISetting
             }
         }
     }
-    class DictionarySetting : Setting
+    class DictionarySetting : Setting, ISettingContainer
     {
         readonly List<Setting> Settings = new();
 
         public DictionarySetting(DictionaryDescriber describer, JObject jobj) : this(describer, new JProperty("____", jobj)) { }
         public DictionarySetting(DictionaryDescriber describer, JProperty property) : base(property)
         {
+            if (describer.KeyType != typeof(string)) throw new NotSupportedException("Non-string key dictionary describer is not supported");
+
             Background = new SolidColorBrush(new Color(20, 0, 0, 0));
             Margin = new Thickness(10, 0, 0, 0);
 
@@ -246,26 +256,48 @@ public static class JsonUISetting
                         Text = "+ add",
                         OnClick = () =>
                         {
-                            jobj.Add(JsonConvert.SerializeObject(JToken.FromObject(toobj(describer.KeyType)!)), JToken.FromObject(toobj(describer.ValueType)!));
-                            recreate();
-
-
-                            static object? toobj(Type type)
+                            var key = describer.DefaultKeyValue?.ToObject<string>() ?? "";
+                            var basekey = key;
+                            var value = describer.DefaultValueValue?.DeepClone();
+                            if (value is null)
                             {
-                                if (type == typeof(string)) return "";
-                                return new JObject().ToObject(type)!;
+                                if (describer.ValueType == typeof(string)) value = "";
+                                else value = new JObject();
                             }
+
+                            int i = 0;
+                            while (jobj.ContainsKey(key))
+                                key = basekey + ++i;
+
+                            jobj.Add(key, value);
+                            recreate();
                         },
                     },
                     list,
                 },
             };
             Children.Add(grid);
+
             recreate();
 
 
             void recreate()
             {
+                Transitions ??= new();
+                Transitions.Clear();
+                Background = new SolidColorBrush(new Color(40, 0, 255, 0));
+                Transitions.Add(new BrushTransition() { Property = BackgroundProperty, Duration = TimeSpan.FromSeconds(.5) });
+                Background = new SolidColorBrush(new Color(20, 0, 0, 0));
+
+                var openKeys = new List<string>();
+                foreach (var expander in list.Children.OfType<Expander>())
+                {
+                    if (!expander.IsExpanded) continue;
+
+                    var header = ((StackPanel) expander.Header!).Children.OfType<TextBox>().First().Text;
+                    openKeys.Add(header);
+                }
+
                 Settings.Clear();
                 list.Children.Clear();
 
@@ -274,10 +306,6 @@ public static class JsonUISetting
                 {
                     var key = property.Name;
                     var value = property.Value;
-
-                    var keyTextBox = new TextBox() { Text = key };
-
-                    var expander = (null as Expander)!;
 
                     var setting = Create(property, fielddescriber);
                     var set = new StackPanel()
@@ -295,33 +323,42 @@ public static class JsonUISetting
                                     recreate();
                                 },
                             },
-                            new StackPanel()
-                            {
-                                Orientation = Orientation.Horizontal,
-                                Children =
-                                {
-                                    keyTextBox,
-                                    new MPButton()
-                                    {
-                                        Text = "Change key",
-                                        OnClick = () =>
-                                        {
-                                            var parent = (JObject) property.Parent!;
-                                            parent.Remove(property.Name);
-                                            parent.Add(keyTextBox.Text.Trim(), property.Value);
-
-                                            recreate();
-                                        },
-                                    },
-                                },
-                            },
                             setting,
                         },
                     };
 
-                    list.Children.Add(expander = new Expander() { Header = key, Content = set, });
+                    var keyTextBox = new TextBox() { Text = key };
+                    var expander = (null as Expander)!;
+
+                    list.Children.Add(expander = new Expander()
+                    {
+                        IsExpanded = openKeys.Contains(key),
+                        Header = new StackPanel()
+                        {
+                            Orientation = Orientation.Horizontal,
+                            Children =
+                            {
+                                keyTextBox,
+                                new MPButton()
+                                {
+                                    Text = "Set key",
+                                    OnClick = () =>
+                                    {
+                                        var parent = (JObject) property.Parent!;
+                                        parent.Remove(property.Name);
+                                        parent.Add(keyTextBox.Text.Trim(), property.Value);
+
+                                        recreate();
+                                    },
+                                },
+                            },
+                        },
+                        Content = set,
+                    });
                     Settings.Add(setting);
                 }
+
+                openKeys.Clear();
             }
         }
 
@@ -330,8 +367,12 @@ public static class JsonUISetting
             foreach (var setting in Settings)
                 setting.UpdateValue();
         }
+
+
+        public IEnumerator<Setting> GetEnumerator() => Settings.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
-    class CollectionSetting : Setting
+    class CollectionSetting : Setting, ISettingContainer
     {
         readonly List<Setting> Settings = new();
 
@@ -421,9 +462,13 @@ public static class JsonUISetting
                 ((JArray) Property.Value)[index++] = setting.Property.Value;
             }
         }
+
+
+        public IEnumerator<Setting> GetEnumerator() => Settings.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    class ObjectSetting : Setting
+    class ObjectSetting : Setting, ISettingContainer
     {
         readonly List<Setting> Settings = new();
 
@@ -472,6 +517,10 @@ public static class JsonUISetting
             foreach (var setting in Settings)
                 setting.UpdateValue();
         }
+
+
+        public IEnumerator<Setting> GetEnumerator() => Settings.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
     class NullableSetting : Setting
     {

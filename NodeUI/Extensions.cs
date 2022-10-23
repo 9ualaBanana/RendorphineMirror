@@ -2,12 +2,6 @@ namespace NodeUI
 {
     public static class Extensions
     {
-        public static T With<T>(this T t, Action<T> action)
-        {
-            action(t);
-            return t;
-        }
-
         public static T WithRow<T>(this T obj, int value) where T : Control => obj.With(x => Grid.SetRow(x, value));
         public static T WithColumn<T>(this T obj, int value) where T : Control => obj.With(x => Grid.SetColumn(x, value));
         public static T WithRowSpan<T>(this T obj, int value) where T : Control => obj.With(x => Grid.SetRowSpan(x, value));

@@ -12,7 +12,38 @@ public class RegistryTab : Panel
 
         var softlist = (await Apis.GetSoftwareAsync()).ThrowIfError();
         var prop = new JProperty("_", JObject.FromObject(softlist, JsonSettings.LowercaseS));
-        var setting = JsonUISetting.Create(prop, FieldDescriber.Create(softlist.GetType()));
-        Children.Add(new ScrollViewer() { Content = setting });
+
+        var describer = new DictionaryDescriber(softlist.GetType())
+        {
+            DefaultKeyValue = JToken.FromObject("NewSoft"),
+            DefaultValueValue = JToken.FromObject(new SoftwareDefinition(
+                "New Mega Super Software",
+                new Dictionary<string, SoftwareVersionDefinition>() { ["0.1"] = new SoftwareVersionDefinition("") }.ToImmutableDictionary(),
+                null,
+                ImmutableArray<string>.Empty
+            ), JsonSettings.LowercaseS)
+        };
+        var setting = JsonUISetting.Create(prop, describer);
+
+
+        Children.Add(new StackPanel()
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 20,
+            Children =
+            {
+                new MPButton()
+                {
+                    Text = "SAVE",
+                    OnClickSelf = async self =>
+                    {
+
+
+                        await Reload();
+                    },
+                },
+                new ScrollViewer() { Content = setting }
+            },
+        });
     }
 }
