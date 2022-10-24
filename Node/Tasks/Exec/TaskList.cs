@@ -24,9 +24,9 @@ public static class TaskList
             );
 
 
-            static TaskActionDescriber serializeaction(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, (ObjectDescriber) FieldDescriber.Create(action.DataType));
+            static TaskActionDescriber serializeaction(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, new ObjectDescriber(action.DataType));
             static ImmutableArray<TaskInputOutputDescriber> serialize<T>(ImmutableDictionary<T, Type> dict) where T : struct, Enum =>
-                dict.Select(x => new TaskInputOutputDescriber(x.Key.ToString(), (ObjectDescriber) FieldDescriber.Create(x.Value))).ToImmutableArray();
+                dict.Select(x => new TaskInputOutputDescriber(x.Key.ToString(), new ObjectDescriber(x.Value))).ToImmutableArray();
         }
     }
 

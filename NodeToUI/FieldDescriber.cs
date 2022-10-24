@@ -1,50 +1,52 @@
 using System.Reflection;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace NodeToUI;
 
 public abstract class FieldDescriber
 {
-    public readonly string Name;
-    public readonly string JsonTypeName;
-    public readonly bool Nullable;
-    public object? DefaultValue { get; init; }
-    public ImmutableArray<Attribute> Attributes { get; init; }
+    public string Name { get; }
+    public string JsonTypeName { get; }
+    public ImmutableArray<Attribute> Attributes { get; init; } = ImmutableArray<Attribute>.Empty;
+    public bool Nullable { get; init; } = false;
+    public JToken? DefaultValue { get; init; }
 
-    public FieldDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes)
+    [JsonConstructor]
+    protected FieldDescriber(string name, string jsonTypeName)
     {
         Name = name.ToLowerInvariant();
         JsonTypeName = jsonTypeName;
-        Nullable = nullable;
-        Attributes = attributes;
+    }
+    protected FieldDescriber(PropInfo field)
+    {
+        Name = field.Name.ToLowerInvariant();
+        JsonTypeName = GetJsonTypeName(field.FieldType);
+        Nullable = field.IsNullable();
+        Attributes = field.GetAttributes<Attribute>().Where(x => x.GetType().Namespace?.StartsWith("System.") != true).ToImmutableArray();
+
+        var def = field.GetAttribute<DefaultAttribute>()?.Value;
+        if (def is not null) def = JToken.FromObject(def);
     }
 
 
-    public static FieldDescriber Create(Type type) => Create(type, ImmutableArray<Attribute>.Empty);
-    public static FieldDescriber Create(Type type, ImmutableArray<Attribute> attributes) => Create(type, type.Name, false, null, attributes);
-    public static FieldDescriber Create(PropInfo field, Type parent) => Create(field.FieldType, field.Name, field.IsNullable(), field.GetAttribute<DefaultAttribute>()?.Value,
-        field.GetAttributes<Attribute>().Where(x => x.GetType().Namespace?.StartsWith("System.") != true).ToImmutableArray());
-
-    static FieldDescriber Create(Type type, string name, bool nullable, object? defaultValue, ImmutableArray<Attribute> attributes)
+    public static FieldDescriber Create(Type type, ImmutableArray<Attribute> attributes) => Create(new PropInfo(type, attributes));
+    public static FieldDescriber Create(PropInfo prop)
     {
-        var jsonTypeName = (string)
-            typeof(Newtonsoft.Json.Formatting).Assembly.GetType("Newtonsoft.Json.Utilities.ReflectionUtils", true)!
-            .GetMethod("GetTypeName")!
-            .Invoke(null, new object?[] { type, TypeNameAssemblyFormatHandling.Simple, null })!;
+        var type = prop.FieldType;
 
-        if (istype<bool>()) return new BooleanDescriber(name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue };
-        if (istype<string>()) return new StringDescriber(name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue };
+        if (istype<bool>()) return new BooleanDescriber(prop);
+        if (istype<string>()) return new StringDescriber(prop);
 
         if (type.GetInterfaces().Any(x => x.Name.StartsWith("INumber", StringComparison.Ordinal)))
-            return new NumberDescriber(name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue, IsInteger = !type.GetInterfaces().Any(x => x.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal)) };
+            return new NumberDescriber(prop);
 
         if (assignableToGeneric(type, typeof(IReadOnlyDictionary<,>)))
-            return DictionaryDescriber.Create(type, name, jsonTypeName, nullable, attributes, defaultValue);
+            return new DictionaryDescriber(prop);
         if (assignableToGeneric(type, typeof(IReadOnlyCollection<>)))
-            return CollectionDescriber.Create(type, name, jsonTypeName, nullable, attributes, defaultValue);
+            return new CollectionDescriber(prop);
 
-        if (type.IsClass)
-            return new ObjectDescriber(name, jsonTypeName, nullable, PropInfo.CreateFromChildren(type).Select(x => Create(x, type)).ToImmutableArray(), attributes) { DefaultValue = defaultValue };
+        if (type.IsClass) return new ObjectDescriber(prop);
 
         throw new InvalidOperationException($"Could not find Describer for type {type}");
 
@@ -68,79 +70,93 @@ public abstract class FieldDescriber
         }
     }
 
+    static string GetJsonTypeName(Type type) =>
+        (string) typeof(Newtonsoft.Json.Formatting).Assembly.GetType("Newtonsoft.Json.Utilities.ReflectionUtils", true)!
+        .GetMethod("GetTypeName")!.Invoke(null, new object?[] { type, TypeNameAssemblyFormatHandling.Simple, null })!;
+
 
     public readonly struct PropInfo
     {
-        public Type DeclaringType => System.Nullable.GetUnderlyingType(_DeclaringType) ?? _DeclaringType;
-        Type _DeclaringType => Property?.DeclaringType ?? Field?.DeclaringType!;
-
         public Type FieldType => System.Nullable.GetUnderlyingType(_FieldType) ?? _FieldType;
-        Type _FieldType => Property?.PropertyType ?? Field?.FieldType!;
+        Type _FieldType => Type ?? Property?.PropertyType ?? Field!.FieldType;
 
-        public string Name => Property?.Name ?? Field?.Name!;
+        public string Name => Type?.Name ?? Property?.Name ?? Field!.Name;
 
         readonly PropertyInfo? Property;
         readonly FieldInfo? Field;
+        readonly Type? Type;
+        readonly ImmutableArray<Attribute>? Attributes;
 
         public PropInfo(FieldInfo field)
         {
             Field = field;
             Property = null;
+            Type = null;
+            Attributes = default;
         }
         public PropInfo(PropertyInfo property)
         {
             Property = property;
             Field = null;
+            Type = null;
+            Attributes = default;
         }
-
-        public void SetValue(object? obj, object? value)
+        public PropInfo(Type type, ImmutableArray<Attribute>? attributes = default)
         {
-            if (obj is null) return;
-
-            Property?.SetValue(obj, value);
-            Field?.SetValue(obj, value);
+            Field = null;
+            Property = null;
+            Type = type;
+            Attributes = attributes;
         }
-        public object? GetValue(object? obj) => obj is null ? null : Property?.GetValue(obj) ?? Field?.GetValue(obj)!;
 
-        public T? GetAttribute<T>() where T : Attribute => Property?.GetCustomAttribute<T>() ?? Field?.GetCustomAttribute<T>();
-        public IEnumerable<T> GetAttributes<T>() where T : Attribute => Property?.GetCustomAttributes<T>() ?? Field?.GetCustomAttributes<T>() ?? Enumerable.Empty<T>();
+        public T? GetAttribute<T>() where T : Attribute => Attributes?.OfType<T>().FirstOrDefault() ?? Property?.GetCustomAttribute<T>() ?? Field?.GetCustomAttribute<T>() ?? Type?.GetCustomAttribute<T>();
+        public IEnumerable<T> GetAttributes<T>() where T : Attribute => Attributes?.OfType<T>() ?? Property?.GetCustomAttributes<T>() ?? Field?.GetCustomAttributes<T>() ?? Type?.GetCustomAttributes<T>() ?? Enumerable.Empty<T>();
         public bool IsNullable() =>
             Property is not null ? new NullabilityInfoContext().Create(Property).WriteState is NullabilityState.Nullable
             : Field is not null ? new NullabilityInfoContext().Create(Field).WriteState is NullabilityState.Nullable
+            : Type is not null ? FieldType != Type
             : false;
 
         public static IEnumerable<PropInfo> CreateFromChildren(Type type) =>
             type.GetMembers()
-            .Where(x => x is FieldInfo || (x is PropertyInfo p && p.SetMethod is not null))
-            .Select(x => (PropInfo) x!);
+            .Where(x => x is (System.Type or FieldInfo or PropertyInfo { SetMethod: not null }))
+            .Select(x => (PropInfo) x);
 
-        public static implicit operator PropInfo?(MemberInfo member) =>
+        public static implicit operator PropInfo(MemberInfo member) =>
             member is PropertyInfo p ? new(p)
             : member is FieldInfo f ? new(f)
+            : member is Type t ? new(t)
             : throw new InvalidOperationException();
     }
 }
 
 public class BooleanDescriber : FieldDescriber
 {
-    public BooleanDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) { }
+    [JsonConstructor]
+    public BooleanDescriber(string name, string jsonTypeName) : base(name, jsonTypeName) { }
+    public BooleanDescriber(PropInfo prop) : base(prop) { }
 }
 public class StringDescriber : FieldDescriber
 {
-    public StringDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) { }
+    [JsonConstructor]
+    public StringDescriber(string name, string jsonTypeName) : base(name, jsonTypeName) { }
+    public StringDescriber(PropInfo prop) : base(prop) { }
 }
 public class NumberDescriber : FieldDescriber
 {
     public bool IsInteger { get; init; }
 
-    public NumberDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) { }
+    [JsonConstructor]
+    public NumberDescriber(string name, string jsonTypeName) : base(name, jsonTypeName) { }
+    public NumberDescriber(PropInfo prop) : base(prop) => IsInteger = !prop.FieldType.GetInterfaces().Any(x => x.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal));
 }
 public class ObjectDescriber : FieldDescriber
 {
-    public readonly ImmutableArray<FieldDescriber> Fields;
+    public ImmutableArray<FieldDescriber> Fields { get; init; }
 
-    public ObjectDescriber(string name, string jsonTypeName, bool nullable, ImmutableArray<FieldDescriber> fields, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) =>
-        Fields = fields;
+    [JsonConstructor]
+    public ObjectDescriber(string name, string jsonTypeName) : base(name, jsonTypeName) { }
+    public ObjectDescriber(PropInfo prop) : base(prop) => Fields = PropInfo.CreateFromChildren(prop.FieldType).Select(Create).ToImmutableArray();
 }
 
 public interface ICollectionDescriber
@@ -149,34 +165,40 @@ public interface ICollectionDescriber
 }
 public class DictionaryDescriber : FieldDescriber, ICollectionDescriber
 {
-    public readonly Type KeyType;
+    public Type KeyType { get; }
     public Type ValueType { get; }
+    public JToken? DefaultKeyValue { get; init; }
+    public JToken? DefaultValueValue { get; init; }
 
-    private DictionaryDescriber(Type keyType, Type valueType, string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes)
+    [JsonConstructor]
+    private DictionaryDescriber(Type keyType, Type valueType, string name, string jsonTypeName) : base(name, jsonTypeName)
     {
         KeyType = keyType;
         ValueType = valueType;
     }
-
-
-    public static DictionaryDescriber Create(Type type, string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes, object? defaultValue = null)
+    public DictionaryDescriber(PropInfo prop) : base(prop)
     {
-        type = type.GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>));
-        return new(type.GetGenericArguments()[0], type.GetGenericArguments()[1], name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue };
+        var type = prop.FieldType;
+        var interfacetype = type.GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>));
+
+        KeyType = type.GetGenericArguments()[0];
+        ValueType = type.GetGenericArguments()[1];
     }
 }
 public class CollectionDescriber : FieldDescriber, ICollectionDescriber
 {
     public Type ValueType { get; }
+    public JToken? DefaultValueValue { get; init; }
 
     [JsonConstructor]
-    private CollectionDescriber(Type valueType, string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes) : base(name, jsonTypeName, nullable, attributes) =>
+    private CollectionDescriber(Type valueType, string name, string jsonTypeName) : base(name, jsonTypeName) =>
         ValueType = valueType;
 
-
-    public static CollectionDescriber Create(Type type, string name, string jsonTypeName, bool nullable, ImmutableArray<Attribute> attributes, object? defaultValue = null)
+    public CollectionDescriber(PropInfo prop) : base(prop)
     {
-        type = type.GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IReadOnlyCollection<>));
-        return new(type.GetGenericArguments()[0], name, jsonTypeName, nullable, attributes) { DefaultValue = defaultValue };
+        var type = prop.FieldType;
+        var interfacetype = type.GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IReadOnlyCollection<>));
+
+        ValueType = type.GetGenericArguments()[0];
     }
 }

@@ -1,13 +1,65 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace SoftwareRegistry;
 
 public class SoftList
 {
-    readonly Settings.DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>> SoftwareBindable = new(nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
-    public ImmutableDictionary<string, SoftwareDefinition> Software => SoftwareBindable.Value;
+    readonly Settings.DatabaseValueKeyDictionary<string, SoftwareDefinition> SoftwareDictBindable = new(nameof(Software), StringComparer.OrdinalIgnoreCase);
+    public ImmutableDictionary<string, SoftwareDefinition> Software => SoftwareDictBindable.Values.ToImmutableDictionary();
 
-    public SoftList() => SoftwareBindable.Value = SoftwareBindable.Value.WithComparers(StringComparer.OrdinalIgnoreCase);
+    public SoftList()
+    {
+        var soft = new Settings.DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>>(nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
+        var softv = soft.Value.WithComparers(StringComparer.OrdinalIgnoreCase);
+        if (softv.Count != 0)
+        {
+            SoftwareDictBindable.AddRange(softv);
+            soft.Value = softv.Clear();
+        }
+    }
 
-    public void Add(string type, SoftwareDefinition soft) => SoftwareBindable.Value = Software.Add(type, soft);
-    public void Replace(string type, SoftwareDefinition newv, string? newtype = null) => SoftwareBindable.Value = Software.Remove(type).SetItem(newtype ?? type, newv);
-    public void Remove(string type) => SoftwareBindable.Value = Software.Remove(type);
+    public bool TryGetValue(string name, [NotNullWhen(true)] out SoftwareDefinition? soft)
+    {
+        if (SoftwareDictBindable.TryGetValue(name, out var kvp))
+        {
+            soft = kvp.Value;
+            return true;
+        }
+
+        soft = null;
+        return false;
+    }
+
+    void Backup()
+    {
+        var bkppath = Path.Combine(Init.ConfigDirectory, "bkp");
+        Directory.CreateDirectory(bkppath);
+
+        File.Copy(Settings.DbPath, Path.Combine(bkppath, DateTimeOffset.Now.ToUnixTimeSeconds().ToString() + ".db"), true);
+    }
+
+    public void Set(IEnumerable<KeyValuePair<string, SoftwareDefinition>> soft)
+    {
+        Backup();
+
+        SoftwareDictBindable.Clear();
+        SoftwareDictBindable.AddRange(soft);
+    }
+    public void Add(string type, SoftwareDefinition soft)
+    {
+        Backup();
+        SoftwareDictBindable.Add(type, soft);
+    }
+    public void Replace(string type, SoftwareDefinition newv, string? newtype = null)
+    {
+        Backup();
+
+        SoftwareDictBindable.Remove(type);
+        SoftwareDictBindable.Add(newtype ?? type, newv);
+    }
+    public void Remove(string type)
+    {
+        Backup();
+        SoftwareDictBindable.Remove(type);
+    }
 }

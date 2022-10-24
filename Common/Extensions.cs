@@ -7,6 +7,12 @@ namespace Common
     {
         readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
+        public static T With<T>(this T t, Action<T> action)
+        {
+            action(t);
+            return t;
+        }
+
         public static string TrimLines(this string str) => string.Join(Environment.NewLine, str.Split('\n', StringSplitOptions.TrimEntries)).Trim();
         public static string TrimVerbatim(this string str)
         {

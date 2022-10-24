@@ -1,3 +1,5 @@
+using Avalonia.Animation.Easings;
+
 namespace NodeUI.Controls
 {
     public class MPButton : ClickableControl<MPButton>
@@ -48,23 +50,34 @@ namespace NodeUI.Controls
             this.GetObservable(IsEnabledProperty).Subscribe(v =>
             {
                 Border.Background = v ? Background : HoverBackground;
-                TextBlock.Foreground = v ? Colors.White : Colors.GrayButton;
+                TextBlock.Foreground = v ? Colors.White : Colors.Black;
             });
         }
 
-        public Task TemporarySetTextIfErr<T>(OperationResult<T> opres, int duration = 2000) => TemporarySetTextIfErr(opres.GetResult(), duration);
-        public Task TemporarySetTextIfErr(OperationResult opres, int duration = 2000)
+
+        public Task<bool> FlashErrorIfErr<T>(OperationResult<T> opres, int duration = 2000) => FlashErrorIfErr(opres.GetResult(), duration);
+        public Task<bool> FlashErrorIfErr(OperationResult opres, int duration = 2000)
         {
-            if (opres) return Task.CompletedTask;
-            return TemporarySetText(opres.Message!, duration);
+            if (opres) return Task.FromResult(false);
+            return FlashError(opres.Message!, duration).ContinueWith(_ => true);
         }
-        public async Task TemporarySetText(string text, int duration = 2000)
+        public async Task FlashError(string text, int duration = 2000)
         {
+            using var _ = new FuncDispose(() => IsEnabled = true);
+            IsEnabled = false;
+
+            var prevbg = Background;
+            Background = Brushes.Red;
+            Border.Transitions ??= new();
+            Border.Transitions.Add(new BrushTransition() { Property = Border.BackgroundProperty, Duration = TimeSpan.FromMilliseconds(duration), Easing = new QuarticEaseIn() });
+            Background = prevbg;
+
             var prevtext = Text;
             Text = text;
 
             await Task.Delay(duration);
             Text = prevtext;
+            Border.Transitions.Clear();
         }
     }
 }
