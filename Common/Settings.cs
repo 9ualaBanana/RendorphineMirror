@@ -186,6 +186,13 @@ namespace Common
             public DatabaseValue(string name, T defaultValue) : base(name, new(defaultValue)) { }
         }
 
+        public class DatabaseValueKeyDictionary<TKey, TValue> : DatabaseValueDictionary<TKey, KeyValuePair<TKey, TValue>> where TKey : notnull
+        {
+            public DatabaseValueKeyDictionary(string table, IEqualityComparer<TKey>? comparer = null) : base(table, k => k.Key, comparer) { }
+
+            public void Add(TKey key, TValue value) => base.Add(KeyValuePair.Create(key, value));
+        }
+
         public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnlyDictionary<TKey, TValue> where TKey : notnull
         {
             public IEnumerable<TKey> Keys => Items.Keys;
@@ -194,13 +201,15 @@ namespace Common
 
             public BindableBase<IReadOnlyList<TValue>> Bindable => ItemsList;
             readonly BindableList<TValue> ItemsList = new();
-            readonly Dictionary<TKey, TValue> Items = new();
+            readonly Dictionary<TKey, TValue> Items;
 
             readonly Func<TValue, TKey> KeyFunc;
             readonly string TableName;
 
-            public DatabaseValueDictionary(string table, Func<TValue, TKey> keyFunc)
+            public DatabaseValueDictionary(string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null)
             {
+                Items = new(comparer);
+
                 TableName = table;
                 KeyFunc = keyFunc;
 
@@ -235,6 +244,13 @@ namespace Common
                 Items.Remove(key);
 
                 ExecuteNonQuery(@$"delete from {TableName} where key=@key", Parameter("key", key));
+            }
+
+            public void Clear()
+            {
+                ItemsList.Clear();
+                Items.Clear();
+                ExecuteNonQuery(@$"delete from {TableName}");
             }
 
             public void Reload()

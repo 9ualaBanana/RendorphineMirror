@@ -38,8 +38,7 @@ namespace NodeUI.Pages
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("torrent test", new TorrentTab());
             tabs.Add("logs", new LogsTab());
-            if (Init.IsDebug)
-                tabs.Add("registry", new RegistryTab());
+            tabs.Add("registry", new RegistryTab());
 
             var statustb = new TextBlock()
             {
@@ -238,7 +237,7 @@ namespace NodeUI.Pages
                         OnClickSelf = async self =>
                         {
                             var res = await LocalApi.Send($"deploy?type={HttpUtility.UrlEncode(pluginslist.SelectedItem)}&version={HttpUtility.UrlEncode(versionslist.SelectedItem)}");
-                            if (!res) await self.TemporarySetText("err " + res.AsString());
+                            await self.FlashErrorIfErr(res);
                         },
                     };
 
@@ -269,7 +268,7 @@ namespace NodeUI.Pages
                                 allplaced.ThrowIfNull();
 
                                 var tasks = await Apis.GetMyTasksAsync(new[] { TaskState.Queued, TaskState.Input, TaskState.Active, TaskState.Output, });
-                                await self.TemporarySetTextIfErr(tasks);
+                                await self.FlashErrorIfErr(tasks);
                                 if (!tasks) return;
 
                                 if (allplaced.Children.Count > 1)
@@ -334,7 +333,7 @@ namespace NodeUI.Pages
                         OnClickSelf = async self =>
                         {
                             var cstate = await task.ChangeStateAsync(TaskState.Canceled);
-                            await self.TemporarySetTextIfErr(cstate);
+                            await self.FlashErrorIfErr(cstate);
                             if (!cstate) return;
 
                             await updateState(self);
@@ -344,7 +343,7 @@ namespace NodeUI.Pages
                     async Task updateState(MPButton button)
                     {
                         var state = await task.GetTaskStateAsync();
-                        await button.TemporarySetTextIfErr(state);
+                        await button.FlashErrorIfErr(state);
                         if (!state) return;
 
                         statustb.Text = JsonConvert.SerializeObject(state.Value, Formatting.None);
@@ -473,7 +472,7 @@ namespace NodeUI.Pages
                         SelfAction = async (task, self) =>
                         {
                             var change = await task.ChangeStateAsync(TaskState.Canceled, sessionId: SessionId);
-                            await self.TemporarySetTextIfErr(change);
+                            await self.FlashErrorIfErr(change);
 
                             if (change) await LoadSetItems(data);
                         },
@@ -549,7 +548,7 @@ namespace NodeUI.Pages
                         SelfAction = async (task, self) =>
                         {
                             var result = await LocalApi.Send($"tasks/delwatching?taskid={task.Id}");
-                            await self.TemporarySetTextIfErr(result);
+                            await self.FlashErrorIfErr(result);
 
                             if (result) await LoadSetItems(data);
                         },
@@ -561,7 +560,7 @@ namespace NodeUI.Pages
                         SelfAction = async (task, self) =>
                         {
                             var result = await LocalApi.Send<WatchingTask>($"tasks/pausewatching?taskid={task.Id}");
-                            await self.TemporarySetTextIfErr(result);
+                            await self.FlashErrorIfErr(result);
 
                             if (result) await LoadSetItems(data);
                         },

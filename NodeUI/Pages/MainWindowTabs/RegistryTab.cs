@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NodeUI.Pages.MainWindowTabs;
@@ -37,7 +38,17 @@ public class RegistryTab : Panel
                     Text = "SAVE",
                     OnClickSelf = async self =>
                     {
+                        var stream = new MemoryStream();
+                        using (var writer = new JsonTextWriter(new StreamWriter(stream, leaveOpen: true)))
+                            await ((JObject) prop.Value).WriteToAsync(writer);
 
+                        stream.Position = 0;
+                        using var content = new StreamContent(stream) { Headers = { ContentType = new("application/json") } };
+
+                        var result = await LocalApi.Post<ImmutableDictionary<string, SoftwareDefinition>>(Settings.RegistryUrl, "editall", content)
+                            .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
+                        if (await self.FlashErrorIfErr(result))
+                            return;
 
                         await Reload();
                     },

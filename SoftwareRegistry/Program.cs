@@ -122,6 +122,14 @@ public class SoftwareController : ControllerBase
         return JsonApi.JsonFromOpResult(data);
     }
 
+    [HttpPost("editall")]
+    public JObject EditAll([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,
+        [Body] JObject soft)
+    {
+        softlist.Set(soft.ToObject<ImmutableDictionary<string, SoftwareDefinition>>() ?? throw new InvalidOperationException());
+        return GetSoftware(logger, softlist);
+    }
+
     [HttpPost("editsoft")]
     public JObject EditSoftware([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,
         [Query] string name, [Body] JObject soft, [Query] string? newname = null)
@@ -175,7 +183,7 @@ public class SoftwareController : ControllerBase
 
     OperationResult<SoftwareDefinition> GetSoft(SoftList softlist, string name)
     {
-        if (!softlist.Software.TryGetValue(name, out var soft))
+        if (!softlist.TryGetValue(name, out var soft))
             return OperationResult.Err("Software does not exists");
 
         return soft;
