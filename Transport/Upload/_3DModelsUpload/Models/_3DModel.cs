@@ -4,39 +4,33 @@ namespace Transport.Upload._3DModelsUpload.Models;
 
 internal class _3DModel
 {
-    internal IEnumerable<string> _AsModelParts
+    internal IEnumerable<string> _ToModelParts()
     {
-        get
-        {
-            if (_modelParts is not null) return _modelParts;
+        if (_modelParts is not null) return _modelParts;
 
-            ZipFile.ExtractToDirectory(_archive!, _modelPartsDirectory.FullName);
-            return Directory.EnumerateFiles(_modelPartsDirectory.FullName);
-        }
+        ZipFile.ExtractToDirectory(_archive!, _modelPartsDirectory.FullName);
+        return Directory.EnumerateFiles(_modelPartsDirectory.FullName);
     }
     readonly List<string>? _modelParts;
     DirectoryInfo _modelPartsDirectory = new(Path.Combine(
         Path.GetTempPath(), Path.GetRandomFileName()));
 
-    internal string _AsArchive
+    internal string _ToArchive()
     {
-        get
+        if (_archive is not null) return _archive;
+
+        var directory = new DirectoryInfo(Path.Combine(
+            Path.GetTempPath(), Path.GetRandomFileName()));
+        foreach (var modelPart in _modelParts!)
         {
-            if (_archive is not null) return _archive;
-
-            var directory = new DirectoryInfo(Path.Combine(
-                Path.GetTempPath(), Path.GetRandomFileName()));
-            foreach (var modelPart in _modelParts!)
-            {
-                string modelPartInDirectory = Path.Combine(directory.FullName, Path.GetFileName(modelPart));
-                File.Copy(modelPart, modelPartInDirectory);
-            }
-            string archiveName = Path.ChangeExtension(directory.FullName, ".zip");
-            directory.DeleteAfter(
-                () => ZipFile.CreateFromDirectory(directory.FullName, archiveName));
-
-            return _archive = archiveName;
+            string modelPartInDirectory = Path.Combine(directory.FullName, Path.GetFileName(modelPart));
+            File.Copy(modelPart, modelPartInDirectory);
         }
+        string archiveName = Path.ChangeExtension(directory.FullName, ".zip");
+        directory.DeleteAfter(
+            () => ZipFile.CreateFromDirectory(directory.FullName, archiveName));
+
+        return _archive = archiveName;
     }
     string? _archive;
 
@@ -61,11 +55,12 @@ internal class _3DModel
                 nameof(pathOrExtension));
     }
 
+    #endregion
+
     internal static bool HasValidExtension(string pathOrExtension) => _allowedExtensions.Contains(pathOrExtension);
 
     static readonly string[] _allowedExtensions = { ".zip", ".rar" };
 
-    #endregion
 
     public static implicit operator _3DModel(string archivedModel) => new(archivedModel);
 }
