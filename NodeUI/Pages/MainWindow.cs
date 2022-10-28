@@ -525,9 +525,7 @@ namespace NodeUI.Pages
 
 
                 protected override async Task<IReadOnlyCollection<ReceivedTask>> Load() =>
-                    (await Apis.GetMyTasksAsync(Enum.GetValues<TaskState>(), sessionId: SessionId)).ThrowIfError()
-                        .Append(new DbTaskFullState("asd", "asd", TaskPolicy.AllNodes, new("asd", 1423), new MPlusTaskInputInfo("asd"), new MPlusTaskOutputInfo("be.jpg", "dir"), new() { ["type"] = "EditVideo" }) { State = TaskState.Input })
-                        .ToArray();
+                    (await Apis.GetMyTasksAsync(Enum.GetValues<TaskState>(), sessionId: SessionId)).ThrowIfError();
             }
             class WatchingTaskManager : TaskManager<WatchingTask>
             {
