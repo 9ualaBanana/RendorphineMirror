@@ -177,6 +177,16 @@ public static class TaskHandler
                 NodeSettings.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt, TaskTimes = times });
 
                 task.LogInfo($"Completed, removing");
+
+                foreach (var file in task.OutputFiles)
+                {
+                    if (file.Format == FileFormat.Jpeg) continue;
+                    if (!File.Exists(file.Path)) continue;
+
+                    task.LogInfo($"Deleting {file.Path} ({new FileInfo(file.Path).Length / 1024f / 1024 / 1024}G)");
+                    File.Delete(file.Path);
+                }
+
                 NodeSettings.QueuedTasks.Remove(task);
                 return;
             }
