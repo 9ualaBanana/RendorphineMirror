@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
 
-namespace Transport.Upload._3DModel;
+namespace Transport.Upload._3DModelsUpload.Models;
 
 internal class _3DModel
 {

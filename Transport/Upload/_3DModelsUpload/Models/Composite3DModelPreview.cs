@@ -1,4 +1,4 @@
-﻿namespace Transport.Upload._3DModel;
+﻿namespace Transport.Upload._3DModelsUpload.Models;
 
 internal static class Composite3DModelPreview
 {
