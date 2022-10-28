@@ -9,6 +9,22 @@ public static class Apis
     public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(string taskid, string? sessionId = default) =>
         Api.ApiGet<TaskFullState>($"{Api.TaskManagerEndpoint}/getmytaskstate", null, "Getting task state", ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", taskid));
 
+    /// returns all tasks instead of just 500
+    public static async ValueTask<OperationResult<ImmutableArray<DbTaskFullState>>> GetAllMyTasksAsync(TaskState state, string? sessionId = default)
+    {
+        return await OperationResult.WrapException(async () => (await next(null)).ToImmutableArray().AsOpResult());
+
+
+        async ValueTask<IEnumerable<DbTaskFullState>> next(string? afterid)
+        {
+            var tasks = (await GetMyTasksAsync(state, afterid, sessionId)).ThrowIfError();
+            if (tasks.Length == 0) return tasks;
+
+            return tasks.Concat(await next(tasks.Max(x => x.Id)));
+        }
+    }
+
+    /// returns maximum of 500 tasks
     public static async ValueTask<OperationResult<ImmutableArray<DbTaskFullState>>> GetMyTasksAsync(TaskState[] states, string? afterId = null, string? sessionId = default) =>
         (await Task.WhenAll(states.Select(async s => await GetMyTasksAsync(s, afterId, sessionId)))).MergeResults().Next(x => x.SelectMany(x => x).ToImmutableArray().AsOpResult());
 

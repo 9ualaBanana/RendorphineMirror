@@ -181,8 +181,8 @@ public class DictionaryDescriber : FieldDescriber, ICollectionDescriber
         var type = prop.FieldType;
         var interfacetype = type.GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>));
 
-        KeyType = type.GetGenericArguments()[0];
-        ValueType = type.GetGenericArguments()[1];
+        KeyType = interfacetype.GetGenericArguments()[0];
+        ValueType = interfacetype.GetGenericArguments()[1];
     }
 }
 public class CollectionDescriber : FieldDescriber, ICollectionDescriber
@@ -199,6 +199,6 @@ public class CollectionDescriber : FieldDescriber, ICollectionDescriber
         var type = prop.FieldType;
         var interfacetype = type.GetInterfaces().First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IReadOnlyCollection<>));
 
-        ValueType = type.GetGenericArguments()[0];
+        ValueType = interfacetype.GetGenericArguments()[0];
     }
 }

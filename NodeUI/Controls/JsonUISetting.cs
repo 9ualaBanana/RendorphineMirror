@@ -495,7 +495,7 @@ public static class JsonUISetting
 
                 var jsonkey = field.Attributes.OfType<JsonPropertyAttribute>().FirstOrDefault()?.PropertyName ?? field.Name;
                 if (!jobj.ContainsKey(jsonkey))
-                    jobj[jsonkey] = new JValue(field.DefaultValue);
+                    jobj[jsonkey] = field.DefaultValue;
 
                 var setting = Create(jobj.Property(jsonkey)!, field);
                 list.Children.Add(new Grid()
