@@ -1,6 +1,8 @@
 ﻿using Transport.Upload._3DModelsUpload.CGTrader.Models;
 using Transport.Upload._3DModelsUpload.CGTrader.Services;
 using Transport.Upload._3DModelsUpload.Models;
+using Transport.Upload._3DModelsUpload.TurboSquid.Models;
+using Transport.Upload._3DModelsUpload.TurboSquid.Services;
 
 namespace Transport.Upload._3DModelsUpload.Services;
 
@@ -16,8 +18,12 @@ public static class _3DModelUploader
         {
             CGTrader3DModelMetadata cgTraderMetadata =>
                 new CGTrader3DModelUploader().UploadAsync(composite3DModel, cgTraderMetadata),
-
-
+            TurboSquid3DModelMetadata turboSquidMetadata =>
+                new TurboSquid3DModelUploader().UploadAsync(composite3DModel, turboSquidMetadata),
+            { } unsupportedType => throw new ArgumentOutOfRangeException(
+                nameof(unsupportedType),
+                unsupportedType.GetType(),
+                "Unsupported metadata type.")
         });
     }
 }
