@@ -39,11 +39,25 @@ public class _3DModel
 
     #region Initialization
 
-    public _3DModel(string _3DModelInContainer)
+    /// <summary>
+    /// Constructs <see cref="_3DModel"/> from directory or archive.
+    /// </summary>
+    /// <param name="container">The directory or archive containing 3D model.</param>
+    /// <returns>The 3D model constructed from the files contained inside the <paramref name="container"/>.</returns>
+    public static _3DModel FromContainer(string container) => Directory.Exists(container) ?
+        new(container, isArchive: false) : new(container, isArchive: true);
+
+    /// <summary>
+    /// Constructs <see cref="_3DModel"/> from directory or archive.
+    /// </summary>
+    /// <param name="container">The directory or archive containing 3D model.</param>
+    /// <param name="isArchive">The flag indicating whether the <paramref name="container"/> is archive or directory.</param>
+    /// <exception cref="DirectoryNotFoundException"></exception>
+    _3DModel(string container, bool isArchive)
     {
-        if (Directory.Exists(_3DModelInContainer))
-            _directory = _3DModelInContainer;
-        else _archive = _ValidateExtension(_3DModelInContainer);
+        if (isArchive) _archive = _ValidateExtension(container);
+        else if (!Directory.Exists(_directory = container))
+            throw new DirectoryNotFoundException("Directory containing 3D model doesn't exist.");
     }
 
     internal static IEnumerable<string> _ValidateExtensions(IEnumerable<string>? pathsOrExtensions)
