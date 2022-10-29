@@ -7,30 +7,28 @@ public record Composite3DModel
 
     #region Initialization
 
-    public Composite3DModel(string directoryPath)
+    /// <remarks>
+    /// Nested models inside <paramref name="composite3DModelInDirectory"/> must be contained inside directories (not archives).
+    /// </remarks>
+    public Composite3DModel(string composite3DModelInDirectory) : this(
+        Directory.EnumerateFiles(composite3DModelInDirectory).Where(Composite3DModelPreview._HasValidExtension),
+        Directory.EnumerateDirectories(composite3DModelInDirectory).ToArray())
     {
-        if (Directory.Exists(directoryPath))
-            throw new DirectoryNotFoundException($"The directory doesn't exist at {directoryPath}.");
-
-        Previews = Composite3DModelPreview._ValidateExtensions(
-            Directory.EnumerateFiles(directoryPath).Where(Composite3DModelPreview._HasValidExtension));
-        var _3DModelDirectories = Directory.EnumerateDirectories(directoryPath);
-        _3DModels = _3DModelDirectories.Select(Directory.EnumerateFiles).Select(_3DModelParts => new _3DModel(_3DModelParts));
     }
-    
+
     /// <remarks>
     /// <paramref name="_3DModelsInDirectories"/> must be the paths to directories (not archives) representing 3D models.
     /// </remarks>
     /// <param name="_3DModelsInDirectories">The directories representing 3D models.</param>
     public Composite3DModel(IEnumerable<string>? previews = null, params string[] _3DModelsInDirectories)
-        : this(previews, _3DModelsInDirectories.Select(Directory.EnumerateFiles).ToArray())
+        : this(previews, _3DModelsInDirectories.Select(_3DModelInDirectory => new _3DModel(_3DModelInDirectory)).ToArray())
     {
     }
-
-    public Composite3DModel(IEnumerable<string>? previews = null, params IEnumerable<string>[] _3DModelsAsParts)
+    
+    public Composite3DModel(IEnumerable<string>? previews = null, params _3DModel[] _3DModels)
     {
         Previews = Composite3DModelPreview._ValidateExtensions(previews);
-        _3DModels = _3DModelsAsParts.Select(_3DModelParts => new _3DModel(_3DModelParts));
+        this._3DModels = _3DModels;
     }
 
     #endregion

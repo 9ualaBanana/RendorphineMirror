@@ -4,6 +4,7 @@ namespace Transport.Upload._3DModelsUpload.Models;
 
 public class _3DModel
 {
+    // Either `_3DModeParts` or `_archive` is always not null.
     internal IEnumerable<string> _ToModelParts()
     {
         if (_3DModelParts is not null) return _3DModelParts;
@@ -12,46 +13,37 @@ public class _3DModel
         return Directory.EnumerateFiles(_3DModelPartsDirectory.FullName);
     }
     readonly List<string>? _3DModelParts;
-    DirectoryInfo _3DModelPartsDirectory = new(Path.Combine(
-        Path.GetTempPath(), Path.GetRandomFileName()));
+    // DirectoryInfo _3DModelPartsDirectory = _3DModelParts is not null && _3DModelParts.Any() ?
+    // new Path.GetDirectoryName(_3DModelParts.First()) : new(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
+    DirectoryInfo _3DModelPartsDirectory = new(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
 
     internal string _ToArchive()
     {
         if (_archive is not null) return _archive;
 
-        var directory = new DirectoryInfo(Path.Combine(
+        var temp3DModelsDirectoryToArchive = new DirectoryInfo(Path.Combine(
             Path.GetTempPath(), Path.GetRandomFileName()));
         foreach (var _3DModelPart in _3DModelParts!)
         {
-            string _3DModelPartInDirectory = Path.Combine(directory.FullName, Path.GetFileName(_3DModelPart));
+            string _3DModelPartInDirectory = Path.Combine(temp3DModelsDirectoryToArchive.FullName, Path.GetFileName(_3DModelPart));
             File.Copy(_3DModelPart, _3DModelPartInDirectory);
         }
-        string archiveName = Path.ChangeExtension(directory.FullName, ".zip");
-        directory.DeleteAfter(
-            () => ZipFile.CreateFromDirectory(directory.FullName, archiveName));
+        string archiveName = Path.ChangeExtension(temp3DModelsDirectoryToArchive.FullName, ".zip");
+        temp3DModelsDirectoryToArchive.DeleteAfter(
+            () => ZipFile.CreateFromDirectory(temp3DModelsDirectoryToArchive.FullName, archiveName));
 
         return _archive = archiveName;
     }
     string? _archive;
+    string? _directory;
 
     #region Initialization
 
     public _3DModel(string _3DModelInContainer)
     {
-        string archiveName;
         if (Directory.Exists(_3DModelInContainer))
-        {
-            archiveName = Path.ChangeExtension(_3DModelInContainer, ".zip");
-            ZipFile.CreateFromDirectory(_3DModelInContainer, archiveName);
-        }
-        else archiveName = _ValidateExtension(_3DModelInContainer);
-        
-        _archive = archiveName;
-    }
-
-    internal _3DModel(IEnumerable<string> _3DModelParts)
-    {
-        this._3DModelParts = _3DModelParts.ToList();
+            _directory = _3DModelInContainer;
+        else _archive = _ValidateExtension(_3DModelInContainer);
     }
 
     internal static IEnumerable<string> _ValidateExtensions(IEnumerable<string>? pathsOrExtensions)
