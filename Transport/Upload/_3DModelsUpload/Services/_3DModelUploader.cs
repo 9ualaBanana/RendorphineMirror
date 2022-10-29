@@ -1,5 +1,6 @@
-﻿using Transport.Upload._3DModelsUpload.Models;
-using Transport.Upload._3DModelsUpload.Models.CGTrader;
+﻿using Transport.Upload._3DModelsUpload.CGTrader.Models;
+using Transport.Upload._3DModelsUpload.CGTrader.Services;
+using Transport.Upload._3DModelsUpload.Models;
 
 namespace Transport.Upload._3DModelsUpload.Services;
 
@@ -13,7 +14,9 @@ public static class _3DModelUploader
         composite3DModel.Archive();
         await (metadata switch
         {
-            CGTrader3DModelMetadata cgTraderMetadata => new CGTrader3DModelUploader().UploadAsync(composite3DModel, cgTraderMetadata),
+            CGTrader3DModelMetadata cgTraderMetadata =>
+                new CGTrader3DModelUploader().UploadAsync(composite3DModel, cgTraderMetadata),
+
 
         });
     }

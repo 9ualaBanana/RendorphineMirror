@@ -1,4 +1,4 @@
-﻿namespace Transport.Upload._3DModelsUpload.Models.CGTrader;
+﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
 
 public record AdditionalInfo(
     int? Polygons = null,

@@ -1,4 +1,6 @@
-﻿namespace Transport.Upload._3DModelsUpload.Models.CGTrader;
+﻿using Transport.Upload._3DModelsUpload.Models;
+
+namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
 
 public class CGTrader3DModelMetadata : _3DModelMetadata
 {
