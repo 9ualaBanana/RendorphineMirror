@@ -2,96 +2,83 @@
 
 namespace Transport.Upload._3DModelsUpload.Models;
 
+/// <summary>
+/// Wraps either directory or archive in which 3D model parts are stored.
+/// </summary>
 public class _3DModel : IDisposable
 {
-    // Either `_3DModeParts` or `_archive` is always not null.
-    internal IEnumerable<string> _ToModelParts()
-    {
-        if (_3DModelParts is not null) return _3DModelParts;
-
-        if (_archive is not null)
-        { ZipFile.ExtractToDirectory(_archive!, _directory); _disposeDirectory = true; }
-
-        return _3DModelParts = Directory.EnumerateFiles(_directory).ToList();
-    }
-    List<string>? _3DModelParts;
-    string _directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-    bool _disposeDirectory;
-
-    internal string _ToArchive()
-    {
-        if (_archive is not null) return _archive;
-
-        var temp3DModelsDirectoryToArchive = new DirectoryInfo(Path.Combine(
-            Path.GetTempPath(), Path.GetRandomFileName()));
-        temp3DModelsDirectoryToArchive.Create();
-
-        foreach (var _3DModelPart in this._ToModelParts())
-        {
-            string _3DModelPartInDirectory = Path.Combine(temp3DModelsDirectoryToArchive.FullName, Path.GetFileName(_3DModelPart));
-            File.Copy(_3DModelPart, _3DModelPartInDirectory);
-        }
-        string archiveName = Path.ChangeExtension(temp3DModelsDirectoryToArchive.FullName, ".zip");
-        temp3DModelsDirectoryToArchive.DeleteAfter(
-            () => ZipFile.CreateFromDirectory(temp3DModelsDirectoryToArchive.FullName, archiveName));
-
-        _disposeArchive = true;
-        return _archive = archiveName;
-    }
-    string? _archive;
-    bool _disposeArchive;
+    public string OriginalPath => _directoryPath is not null ? _directoryPath : _archivePath!;
 
     #region Initialization
 
-    /// <summary>
-    /// Constructs <see cref="_3DModel"/> from directory or archive.
-    /// </summary>
-    /// <param name="container">The directory or archive containing 3D model.</param>
-    /// <returns>The 3D model constructed from the files contained inside the <paramref name="container"/>.</returns>
-    public static _3DModel FromContainer(string container) => Directory.Exists(container) ?
-        new(container, isArchive: false) : new(container, isArchive: true);
+    public static _3DModel FromContainer(string path, bool disposeTemps = true) => new(path, disposeTemps);
 
-    /// <summary>
-    /// Constructs <see cref="_3DModel"/> from directory or archive.
-    /// </summary>
-    /// <param name="container">The directory or archive containing 3D model.</param>
-    /// <param name="isArchive">The flag indicating whether the <paramref name="container"/> is archive or directory.</param>
-    /// <exception cref="DirectoryNotFoundException"></exception>
-    _3DModel(string container, bool isArchive)
+    _3DModel(string containerPath, bool disposeTemps = true)
     {
-        if (isArchive) _archive = _ValidateArchiveExtension(container);
-        else if (!Directory.Exists(_directory = container))
-            throw new DirectoryNotFoundException("Directory containing 3D model doesn't exist.");
+        if (Directory.Exists(containerPath)) _directoryPath = containerPath;
+        else if (_ArchiveExists(containerPath)) _archivePath = containerPath;
+        else throw new ArgumentException("Container must reference either directory or archive.", nameof(containerPath));
+
+        _disposeTemps = disposeTemps;
     }
 
-    internal static IEnumerable<string> _ValidateArchiveExtensions(IEnumerable<string>? pathsOrExtensions)
-    {
-        if (pathsOrExtensions is null) return Enumerable.Empty<string>();
+    static bool _ArchiveExists(string path) => File.Exists(path) && _HasValidArchiveExtension(path);
 
-        foreach (var pathOrExtension in pathsOrExtensions)
-            _ValidateArchiveExtension(pathOrExtension);
-        
-        return pathsOrExtensions; }
+    static bool _HasValidArchiveExtension(string pathOrExtension) =>
+        _allowedExtensions.Contains(Path.GetExtension(pathOrExtension));
 
-    internal static string _ValidateArchiveExtension(string pathOrExtension)
-    {
-        if (!_HasValidArchiveExtension(pathOrExtension))
-            throw new ArgumentException(
-                $"The path doesn't reference any of the supported archives: {string.Join(", ", _allowedExtensions)}.",
-                nameof(pathOrExtension));
-        else return pathOrExtension;
-    }
+    readonly static string[] _allowedExtensions = { ".zip", ".rar" };
 
     #endregion
 
-    internal static bool _HasValidArchiveExtension(string pathOrExtension) =>
-        _allowedExtensions.Contains(Path.GetExtension(pathOrExtension));
+    public string Archive()
+    {
+        if (_archivePath is not null) return _archivePath;
 
-    static readonly string[] _allowedExtensions = { ".zip", ".rar" };
+        DirectoryInfo temp3DModelDirectoryToArchive = new(Path.Combine(
+            Path.GetTempPath(), Path.GetRandomFileName()));
+        temp3DModelDirectoryToArchive.Create();
+
+        foreach (string _3DModelPart in Files())
+        {
+            string _3DModelPartInTempDirectoryToArchive = Path.Combine(
+                temp3DModelDirectoryToArchive.FullName, Path.GetFileName(_3DModelPart));
+            File.Copy(_3DModelPart, _3DModelPartInTempDirectoryToArchive);
+        }
+        _archivePath = Path.ChangeExtension(temp3DModelDirectoryToArchive.FullName, ".zip");
+        temp3DModelDirectoryToArchive.DeleteAfter(
+            () => ZipFile.CreateFromDirectory(temp3DModelDirectoryToArchive.FullName, _archivePath)
+            ); _archiveIsTemp = true;
+
+        return _archivePath;
+    }
+    string? _archivePath;
+
+    /// <remarks>
+    /// 
+    /// </remarks>
+    /// <returns>Paths to files that make up the model.</returns>
+    public IEnumerable<string> Files()
+    {
+        if (_directoryPath is null)
+        {
+            _directoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            ZipFile.ExtractToDirectory(_archivePath!, _directoryPath); _directoryIsTemp = true;
+        }
+        return Directory.EnumerateFiles(_directoryPath);
+    }
+    string? _directoryPath;
+
+    internal static IEnumerable<_3DModel> _EnumerateIn(string _3DModelDirectory, bool disposeTemps = true)
+    {
+        var _3DModelContainers = Directory.EnumerateDirectories(_3DModelDirectory).ToList();
+        _3DModelContainers.AddRange(Directory.EnumerateFiles(_3DModelDirectory).Where(_HasValidArchiveExtension));
+
+        return _3DModelContainers.Select(containerPath => new _3DModel(containerPath, disposeTemps));
+
+    }
 
     #region IDisposable
-
-    ~_3DModel() => Dispose(false);
 
     public void Dispose()
     { Dispose(true); GC.SuppressFinalize(this); }
@@ -100,14 +87,23 @@ public class _3DModel : IDisposable
     {
         if (_isDisposed) return;
 
-        if (_disposeArchive)
-        { try { File.Delete(_archive!); } catch { } }
-        if (_disposeDirectory)
-        { try { new DirectoryInfo(_directory).Delete(DeletionMode.Wipe); } catch { } }
+        if (_disposeTemps)
+        {
+            if (_directoryIsTemp)
+            { try { new DirectoryInfo(_directoryPath!).Delete(DeletionMode.Wipe); } catch { } }
+            if (_archiveIsTemp)
+            { try { File.Delete(_archivePath!); } catch { } }
+        }
 
         _isDisposed = true;
     }
     bool _isDisposed;
+    bool _disposeTemps;
+    bool _directoryIsTemp;
+    bool _archiveIsTemp;
 
     #endregion
+
+    public static implicit operator _3DModel(string containerPath) =>
+        new(containerPath);
 }

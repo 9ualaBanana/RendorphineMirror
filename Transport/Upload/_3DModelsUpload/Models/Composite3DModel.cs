@@ -7,30 +7,24 @@ public record Composite3DModel : IDisposable
 
     #region Initialization
 
-    public static Composite3DModel FromDirectory(string directory)
-    {
-        var previews = Directory.EnumerateFiles(directory).Where(Composite3DModelPreview._HasValidExtension);
-        var _3DModelsInContainers = Directory.EnumerateDirectories(directory).ToList();
-        _3DModelsInContainers.AddRange(Directory.EnumerateFiles(directory).Where(_3DModel._HasValidArchiveExtension));
+    public static Composite3DModel FromDirectory(string directory) => new(
+        Composite3DModelPreview._EnumerateIn(directory),
+        _3DModel._EnumerateIn(directory)
+            .Select(_3DModelContainer => _3DModel.FromContainer(_3DModelContainer.OriginalPath))
+            .ToArray());
 
-        return new(previews, _3DModelsInContainers.ToArray());
-    }
-
-    public Composite3DModel(IEnumerable<string>? previews = null, params string[] _3DModelsInContainers)
-        : this(previews, _3DModelsInContainers.Select(_3DModel.FromContainer).ToArray())
+    Composite3DModel(IEnumerable<string>? previews, params _3DModel[] _3DModels)
     {
-    }
-    
-    public Composite3DModel(IEnumerable<string>? previews = null, params _3DModel[] _3DModels)
-    {
-        Previews = Composite3DModelPreview._ValidateExtensions(previews);
+        Previews = previews ?? Enumerable.Empty<string>();
         this._3DModels = _3DModels;
     }
 
     #endregion
 
-    // Should only be called from _3DModelUploader as a preliminary to the actual upload.
-    internal void Archive() { foreach (var _3DModel in _3DModels) _3DModel._ToArchive(); }
+    /// <remarks>
+    /// Should only be called from _3DModelUploader as a preliminary to the actual upload.
+    /// </remarks>
+    internal void Archive() { foreach (var _3DModel in _3DModels) _3DModel.Archive(); }
 
     #region IDisposable
 
