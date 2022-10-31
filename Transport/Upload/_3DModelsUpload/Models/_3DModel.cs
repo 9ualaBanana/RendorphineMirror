@@ -2,20 +2,21 @@
 
 namespace Transport.Upload._3DModelsUpload.Models;
 
-public class _3DModel
+public class _3DModel : IDisposable
 {
     // Either `_3DModeParts` or `_archive` is always not null.
     internal IEnumerable<string> _ToModelParts()
     {
         if (_3DModelParts is not null) return _3DModelParts;
 
-        ZipFile.ExtractToDirectory(_archive!, _3DModelPartsDirectory.FullName);
-        return Directory.EnumerateFiles(_3DModelPartsDirectory.FullName);
+        if (_archive is not null)
+        { ZipFile.ExtractToDirectory(_archive!, _directory); _disposeDirectory = true; }
+
+        return _3DModelParts = Directory.EnumerateFiles(_directory).ToList();
     }
-    readonly List<string>? _3DModelParts;
-    // DirectoryInfo _3DModelPartsDirectory = _3DModelParts is not null && _3DModelParts.Any() ?
-    // new Path.GetDirectoryName(_3DModelParts.First()) : new(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
-    DirectoryInfo _3DModelPartsDirectory = new(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
+    List<string>? _3DModelParts;
+    string _directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    bool _disposeDirectory;
 
     internal string _ToArchive()
     {
@@ -23,7 +24,9 @@ public class _3DModel
 
         var temp3DModelsDirectoryToArchive = new DirectoryInfo(Path.Combine(
             Path.GetTempPath(), Path.GetRandomFileName()));
-        foreach (var _3DModelPart in _3DModelParts!)
+        temp3DModelsDirectoryToArchive.Create();
+
+        foreach (var _3DModelPart in this._ToModelParts())
         {
             string _3DModelPartInDirectory = Path.Combine(temp3DModelsDirectoryToArchive.FullName, Path.GetFileName(_3DModelPart));
             File.Copy(_3DModelPart, _3DModelPartInDirectory);
@@ -32,10 +35,11 @@ public class _3DModel
         temp3DModelsDirectoryToArchive.DeleteAfter(
             () => ZipFile.CreateFromDirectory(temp3DModelsDirectoryToArchive.FullName, archiveName));
 
+        _disposeArchive = true;
         return _archive = archiveName;
     }
     string? _archive;
-    string? _directory;
+    bool _disposeArchive;
 
     #region Initialization
 
@@ -55,23 +59,23 @@ public class _3DModel
     /// <exception cref="DirectoryNotFoundException"></exception>
     _3DModel(string container, bool isArchive)
     {
-        if (isArchive) _archive = _ValidateExtension(container);
+        if (isArchive) _archive = _ValidateArchiveExtension(container);
         else if (!Directory.Exists(_directory = container))
             throw new DirectoryNotFoundException("Directory containing 3D model doesn't exist.");
     }
 
-    internal static IEnumerable<string> _ValidateExtensions(IEnumerable<string>? pathsOrExtensions)
+    internal static IEnumerable<string> _ValidateArchiveExtensions(IEnumerable<string>? pathsOrExtensions)
     {
         if (pathsOrExtensions is null) return Enumerable.Empty<string>();
 
         foreach (var pathOrExtension in pathsOrExtensions)
-            _ValidateExtension(pathOrExtension);
+            _ValidateArchiveExtension(pathOrExtension);
         
         return pathsOrExtensions; }
 
-    internal static string _ValidateExtension(string pathOrExtension)
+    internal static string _ValidateArchiveExtension(string pathOrExtension)
     {
-        if (!HasValidExtension(pathOrExtension))
+        if (!_HasValidArchiveExtension(pathOrExtension))
             throw new ArgumentException(
                 $"The path doesn't reference any of the supported archives: {string.Join(", ", _allowedExtensions)}.",
                 nameof(pathOrExtension));
@@ -80,8 +84,30 @@ public class _3DModel
 
     #endregion
 
-    internal static bool HasValidExtension(string pathOrExtension) =>
+    internal static bool _HasValidArchiveExtension(string pathOrExtension) =>
         _allowedExtensions.Contains(Path.GetExtension(pathOrExtension));
 
     static readonly string[] _allowedExtensions = { ".zip", ".rar" };
+
+    #region IDisposable
+
+    ~_3DModel() => Dispose(false);
+
+    public void Dispose()
+    { Dispose(true); GC.SuppressFinalize(this); }
+
+    protected void Dispose(bool _)
+    {
+        if (_isDisposed) return;
+
+        if (_disposeArchive)
+        { try { File.Delete(_archive!); } catch { } }
+        if (_disposeDirectory)
+        { try { new DirectoryInfo(_directory).Delete(DeletionMode.Wipe); } catch { } }
+
+        _isDisposed = true;
+    }
+    bool _isDisposed;
+
+    #endregion
 }
