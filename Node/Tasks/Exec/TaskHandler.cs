@@ -71,29 +71,31 @@ public static class TaskHandler
                     task.Registered = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
 
-                await task.UpdateTaskStateAsync();
+                await task.UpdateTaskStateAsync().ThrowIfError();
+                if (task.State is TaskState.Failed or TaskState.Canceled)
+                    return remove();
+
                 var handler = task.GetOutputHandler();
                 var completed = await handler.CheckCompletion(task);
                 if (!completed)
                 {
                     var latestupdate = task.Times?.OutputTime ?? task.Times?.ActiveTime ?? task.Times?.InputTime ?? DateTimeOffset.FromUnixTimeMilliseconds((long) task.Registered);
                     if ((latestupdate - DateTimeOffset.UtcNow).TotalDays > daysUntilTaskFail)
-                        return await complete(TaskState.Failed, $"Failed due to inactivity over {daysUntilTaskFail} days");
+                    {
+                        task.LogInfo($"Canceled due to inactivity over {daysUntilTaskFail} days");
+                        (await task.ChangeStateAsync(TaskState.Canceled)).ThrowIfError();
+
+                        return remove();
+                    }
 
                     return false;
                 }
 
-                return await complete(TaskState.Finished, "Completed");
+                task.LogInfo(task.ToString());
+                await handler.OnPlacedTaskCompleted(task);
+                (await task.ChangeStateAsync(TaskState.Finished)).ThrowIfError();
 
-
-                async Task<bool> complete(TaskState state, string info)
-                {
-                    task.LogInfo(info);
-                    await handler.OnPlacedTaskCompleted(task);
-                    (await task.ChangeStateAsync(state)).ThrowIfError();
-
-                    return remove();
-                }
+                return remove();
             }
             catch (Exception ex) when (
                 ex.Message.Contains("Invalid old task state", StringComparison.OrdinalIgnoreCase)
@@ -107,6 +109,8 @@ public static class TaskHandler
 
             bool remove()
             {
+                task.LogInfo($"{task.State}, removing");
+
                 NodeSettings.PlacedTasks.Remove(task);
                 foreach (var wtask in NodeSettings.WatchingTasks.Values.ToArray())
                     if (wtask.PlacedNonCompletedTasks.Remove(task.Id))
