@@ -78,6 +78,27 @@ public class PublicListener : ExecutableListenerBase
 
             return await WriteJson(response, contents.AsOpResult());
         }
+        if (path == "getfile")
+        {
+            var authcheck = await CheckAuthentication(context).ConfigureAwait(false);
+            if (!authcheck) return await WriteErr(response, "F");
+
+            var dirpath = context.Request.QueryString["path"];
+            if (dirpath is null || dirpath == string.Empty) return await WriteErr(response, "No path");
+            else
+            {
+                if (!File.Exists(dirpath))
+                    return await WriteErr(response, "File does not exists");
+
+                var temp = Path.GetTempFileName();
+                using var _ = new FuncDispose(() => File.Delete(temp));
+
+                File.Copy(dirpath, temp, true);
+                using var reader = File.OpenRead(temp);
+                await reader.CopyToAsync(response.OutputStream);
+                return HttpStatusCode.OK;
+            }
+        }
 
         return HttpStatusCode.NotFound;
     }
