@@ -132,7 +132,7 @@ namespace Common
             return manager;
         }
 
-        public static async Task WaitForCompletion(TorrentManager manager, StuckCancellationToken token)
+        public static async Task WaitForCompletion(TorrentManager manager, TimeoutCancellationToken token)
         {
             _logger.Info($"Waiting for download of {manager.InfoHash.ToHex()}");
 
