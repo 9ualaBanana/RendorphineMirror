@@ -47,8 +47,3 @@ public class CGTraderNetworkCredential : NetworkCredential
     }
     MultipartFormDataContent? _asMultipartFormData;
 }
-
-public record SessionCredentials(string? CsrfToken, CGTraderCaptcha Captcha, string? VerifiedToken)
-{
-
-}

@@ -21,7 +21,7 @@ public static class _3DModelUploader
             CGTrader3DModelMetadata cgTraderMetadata =>
                 new CGTrader3DModelUploader(httpClient).UploadAsync(credential, composite3DModel, cgTraderMetadata, cancellationToken),
             TurboSquid3DModelMetadata turboSquidMetadata =>
-                new TurboSquid3DModelUploader(httpClient).UploadAsync(credential, composite3DModel, turboSquidMetadata),
+                new TurboSquid3DModelUploader(httpClient).UploadAsync(credential, composite3DModel, turboSquidMetadata, cancellationToken),
             { } unsupportedType => throw new ArgumentOutOfRangeException(
                 nameof(unsupportedType),
                 unsupportedType.GetType(),
