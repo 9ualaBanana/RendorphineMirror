@@ -34,7 +34,7 @@ internal class CGTrader3DModelUploader : _3DModelUploaderBase<CGTrader3DModelMet
     }
 }
 
-static class HttpExtensions
+static class HttpRequestHeadersExtensions
 {
     internal static void _AddOrReplaceCSRFToken(this HttpRequestHeaders headers, string csrfToken)
     {
@@ -43,22 +43,4 @@ static class HttpExtensions
         headers.Remove(Header);
         headers.Add(Header, csrfToken);
     }
-
-    internal static async Task _EnsureSuccessLoginAsync(this HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        response.EnsureSuccessStatusCode();
-
-        string responseText = await response.Content.ReadAsStringAsync(cancellationToken);
-        var responseJson = JObject.Parse(responseText);
-
-        if ((bool)responseJson["success"]! != true)
-            throw new HttpRequestException("The value of `success` field in the response is not `true`.");
-    }
-
-    internal static MultipartFormDataContent _ToModelFileMultipartFormDataContent(this FileStream fileStream) => new()
-    {
-        { new StringContent(Path.GetFileName(fileStream.Name)), "filename" },
-        //{ new StreamContent(fileStream), "filename", Path.GetFileName(fileStream.Name) },
-        { new StringContent("file"), "type" }
-    };
 }

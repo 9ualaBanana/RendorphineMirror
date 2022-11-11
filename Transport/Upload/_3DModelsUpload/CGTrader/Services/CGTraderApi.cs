@@ -29,7 +29,7 @@ internal class CGTraderApi
     }
 
     #region CSRFToken
-    async Task<string> _RequestCsrfTokenAsync(CancellationToken cancellationToken)
+    internal async Task<string> _RequestCsrfTokenAsync(CancellationToken cancellationToken)
     {
         string htmlWithSessionCredentials = await _httpClient.GetStringAsync(Endpoint("/load-services.js"), cancellationToken);
         return _ParseCsrfTokenFrom(htmlWithSessionCredentials);
@@ -151,4 +151,25 @@ internal class CGTraderApi
         
         return $"{CGTraderUri.Https}{endpointWithoutDomain}";
     }
+}
+
+static class Extensions
+{
+    internal static async Task _EnsureSuccessLoginAsync(this HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        response.EnsureSuccessStatusCode();
+
+        string responseText = await response.Content.ReadAsStringAsync(cancellationToken);
+        var responseJson = JObject.Parse(responseText);
+
+        if ((bool)responseJson["success"]! != true)
+            throw new HttpRequestException("The value of `success` field in the response is not `true`.");
+    }
+
+    internal static MultipartFormDataContent _ToModelFileMultipartFormDataContent(this FileStream fileStream) => new()
+    {
+        { new StringContent(Path.GetFileName(fileStream.Name)), "filename" },
+        //{ new StreamContent(fileStream), "filename", Path.GetFileName(fileStream.Name) },
+        { new StringContent("file"), "type" }
+    };
 }
