@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using Transport.Upload._3DModelsUpload.CGTrader.Models;
 using Transport.Upload._3DModelsUpload.Models;
 using Transport.Upload._3DModelsUpload.Services;
@@ -22,10 +21,10 @@ internal class CGTrader3DModelUploader : _3DModelUploaderBase<CGTrader3DModelMet
         CGTrader3DModelMetadata metadata,
         CancellationToken cancellationToken = default)
     {
-        if (credential.CSRFToken is null)
+        if (credential.CsrfToken is null)
         {
-            (credential.CSRFToken, credential.Captcha) = await _api._RequestSessionCredentialsAsync(cancellationToken);
-            HttpClient.DefaultRequestHeaders._AddOrReplaceCSRFToken(credential.CSRFToken);
+            (credential.CsrfToken, credential.Captcha) = await _api._RequestSessionCredentialsAsync(cancellationToken);
+            HttpClient.DefaultRequestHeaders._AddOrReplaceCSRFToken(credential.CsrfToken);
         }
 
         await _api._LoginAsync(credential, cancellationToken);

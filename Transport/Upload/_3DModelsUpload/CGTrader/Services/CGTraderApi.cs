@@ -21,7 +21,9 @@ internal class CGTraderApi
 
     internal async Task<(string CSRFToken, CGTraderCaptcha Captcha)> _RequestSessionCredentialsAsync(CancellationToken cancellationToken)
     {
-        string htmlWithSessionCredentials = await _httpClient.GetStringAsync(Endpoint("/load-services.js"), cancellationToken);
+        string htmlWithSessionCredentials = (await _httpClient.GetStringAsync(
+            _Endpoint("/load-services.js"), cancellationToken)
+            ).ReplaceLineEndings(string.Empty);
 
         string csrfToken = _ParseCsrfTokenFrom(htmlWithSessionCredentials);
         var captcha = await _captchaService._RequestCaptchaAsync(htmlWithSessionCredentials, cancellationToken);
@@ -31,7 +33,7 @@ internal class CGTraderApi
     #region CSRFToken
     internal async Task<string> _RequestCsrfTokenAsync(CancellationToken cancellationToken)
     {
-        string htmlWithSessionCredentials = await _httpClient.GetStringAsync(Endpoint("/load-services.js"), cancellationToken);
+        string htmlWithSessionCredentials = await _httpClient.GetStringAsync(_Endpoint("/load-services.js"), cancellationToken);
         return _ParseCsrfTokenFrom(htmlWithSessionCredentials);
     }
 
@@ -43,7 +45,6 @@ internal class CGTraderApi
         if (csrfTokenRegionContent.Contains("csrf-token"))
         {
             string? csrfToken = csrfTokenRegionContent
-                .ReplaceLineEndings(string.Empty)
                 .Split("'", 5, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ElementAt(3);
             if (csrfToken is not null) return csrfToken;
@@ -63,8 +64,11 @@ internal class CGTraderApi
 
     async Task _LoginAsyncCore(CGTraderNetworkCredential credential, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.PostAsync(Endpoint("/users/2fa-or-login.json"),
-            credential._AsMultipartFormDataContent, cancellationToken);
+        await credential.Captcha._SolveAsyncUsing(_captchaService, cancellationToken);
+        using var response = await _httpClient.PostAsync(_Endpoint("/users/2fa-or-login.json"),
+            await credential._ToMultipartFormDataContentAsyncUsing(_captchaService, cancellationToken),
+            cancellationToken
+            );
         await response._EnsureSuccessLoginAsync(cancellationToken);
     }
     #endregion
@@ -73,7 +77,7 @@ internal class CGTraderApi
     internal async Task<int> _CreateNewModelDraftAsync(CancellationToken cancellationToken)
     {
         string response = await _httpClient.GetStringAsync(
-            Endpoint($"/api/internal/items/current-draft/cg?nocache={CGTraderRequestArguments.rt}"), cancellationToken);
+            _Endpoint($"/api/internal/items/current-draft/cg?nocache={CaptchaRequestArguments.rt}"), cancellationToken);
         var responseJson = JObject.Parse(response);
 
         var modelDraftId = (int)responseJson["data"]!["id"]!;
@@ -100,13 +104,13 @@ internal class CGTraderApi
     async Task _UploadModelFileAsyncCore(string filePath, int modelDraftId, CancellationToken cancellationToken)
     {
         using var modelFileStream = File.OpenRead(filePath);
-        var response = await _httpClient.PostAsync(Endpoint($"/profile/items/{modelDraftId}/uploads"),
+        var response = await _httpClient.PostAsync(_Endpoint($"/profile/items/{modelDraftId}/uploads"),
             modelFileStream._ToModelFileMultipartFormDataContent(), cancellationToken);
         response.EnsureSuccessStatusCode();
         var responseJson = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
 
         string fileName = Path.GetFileName(filePath);
-        response = await _httpClient.PutAsJsonAsync(Endpoint($"/api/internal/items/{modelDraftId}/item_files/{(int)responseJson["id"]!}"), new
+        response = await _httpClient.PutAsJsonAsync(_Endpoint($"/api/internal/items/{modelDraftId}/item_files/{(int)responseJson["id"]!}"), new
         {
             key = $"uploads/files/{modelDraftId}/{fileName}",
             filename = fileName,
@@ -121,7 +125,7 @@ internal class CGTraderApi
         byte[] fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
         long fileLength; using (var fileStream = File.OpenRead(filePath)) { fileLength = fileStream.Length; }
 
-        var response = await _httpClient.PostAsJsonAsync(Endpoint("/api/internal/direct-uploads/item-images"), new
+        var response = await _httpClient.PostAsJsonAsync(_Endpoint("/api/internal/direct-uploads/item-images"), new
         {
             blob = new
             {
@@ -135,7 +139,7 @@ internal class CGTraderApi
         var responseJson = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
 
         int signedBlobId = (int)responseJson["data"]!["attributes"]!["signedBlobId"]!;
-        response = await _httpClient.PutAsJsonAsync(Endpoint($"/api/internal/direct-uploads/item-images/{signedBlobId}"), new
+        response = await _httpClient.PutAsJsonAsync(_Endpoint($"/api/internal/direct-uploads/item-images/{signedBlobId}"), new
         {
             key = $"uploads/files/{modelDraftId}/{fileName}",
             filename = fileName,
@@ -144,7 +148,7 @@ internal class CGTraderApi
         response.EnsureSuccessStatusCode();
     }
 
-    static string Endpoint(string endpointWithoutDomain)
+    static string _Endpoint(string endpointWithoutDomain)
     {
         if (!endpointWithoutDomain.StartsWith('/'))
             endpointWithoutDomain = '/' + endpointWithoutDomain;
