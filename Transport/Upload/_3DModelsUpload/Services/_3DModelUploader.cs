@@ -8,18 +8,20 @@ namespace Transport.Upload._3DModelsUpload.Services;
 
 public static class _3DModelUploader
 {
-    public static  async Task UploadAsync(_3DModel _3DModel, _3DModelMetadata metadata) =>
-        await UploadAsync(new Composite3DModel(previews: null, _3DModel), metadata);
-
-    public static async Task UploadAsync(Composite3DModel composite3DModel, _3DModelMetadata metadata)
-    {
+    public static async Task UploadAsync(
+        this HttpClient httpClient,
+        CGTraderNetworkCredential credential,
+        Composite3DModel composite3DModel,
+        _3DModelMetadata metadata,
+        CancellationToken cancellationToken = default)
+    {        
         composite3DModel.Archive();
         await (metadata switch
         {
             CGTrader3DModelMetadata cgTraderMetadata =>
-                new CGTrader3DModelUploader().UploadAsync(composite3DModel, cgTraderMetadata),
+                new CGTrader3DModelUploader(httpClient).UploadAsync(credential, composite3DModel, cgTraderMetadata, cancellationToken),
             TurboSquid3DModelMetadata turboSquidMetadata =>
-                new TurboSquid3DModelUploader().UploadAsync(composite3DModel, turboSquidMetadata),
+                new TurboSquid3DModelUploader(httpClient).UploadAsync(credential, composite3DModel, turboSquidMetadata),
             { } unsupportedType => throw new ArgumentOutOfRangeException(
                 nameof(unsupportedType),
                 unsupportedType.GetType(),
