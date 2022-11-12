@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NodeToUI.Requests;
 
 namespace NodeUI.Pages
 {
@@ -93,6 +94,38 @@ namespace NodeUI.Pages
                 {
                     benchmb?.Close();
                     benchmb = null;
+                }
+            });
+
+
+            var receivedrequests = new List<string>();
+            NodeGlobalState.Instance.Requests.Changed += () => Dispatcher.UIThread.Post(() =>
+            {
+                var requests = NodeGlobalState.Instance.Requests.Value;
+                foreach (var req in requests)
+                {
+                    if (receivedrequests.Contains(req.Key)) continue;
+
+                    receivedrequests.Add(req.Key);
+                    handle(req.Key, req.Value);
+                }
+
+
+                void handle(string reqid, GuiRequest request)
+                {
+                    if (request is CaptchaRequest captchareq)
+                        Dispatcher.UIThread.Post(() => new CaptchaWindow(captchareq.Base64Image, v => sendResponse(v)).Show());
+
+
+                    async Task sendResponse(JToken token)
+                    {
+                        token = new JObject() { ["value"] = token };
+
+                        using var content = new StringContent(token.ToString());
+                        (await LocalApi.Post(NodeGui.GuiRequestNames[request.GetType()] + "?reqid=" + HttpUtility.UrlEncode(reqid), content)).ThrowIfError();
+
+                        receivedrequests.Remove(reqid);
+                    }
                 }
             });
         }

@@ -1,5 +1,6 @@
 using System.Net;
 using Common.Plugins.Deployment;
+using Newtonsoft.Json.Linq;
 using Node.Profiling;
 
 namespace Node.Listeners;
@@ -61,6 +62,24 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
+
+        return HttpStatusCode.NotFound;
+    }
+    protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+
+        var query = request.QueryString;
+
+        if (NodeGui.GuiRequestTypes.ContainsKey(path) && query["reqid"] is { } reqid && NodeGlobalState.Instance.Requests.TryGetValue(reqid, out var guirequest))
+        {
+            using var reader = new StreamReader(request.InputStream);
+            var value = await reader.ReadToEndAsync();
+            guirequest.Task.SetResult(JToken.Parse(value)["value"]!);
+
+            return await WriteSuccess(response);
+        }
 
         return HttpStatusCode.NotFound;
     }

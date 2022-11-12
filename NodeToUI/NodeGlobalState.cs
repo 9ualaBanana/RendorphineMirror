@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NodeToUI.Requests;
 
 namespace NodeToUI;
 
@@ -19,6 +20,9 @@ public class NodeGlobalState
     public readonly BindableList<DbTaskFullState> PlacedTasks = new();
     public readonly BindableList<WatchingTask> WatchingTasks = new();
 
+    // string = request guid
+    public readonly BindableDictionary<string, GuiRequest> Requests = new();
+
 
     private NodeGlobalState()
     {
@@ -29,6 +33,8 @@ public class NodeGlobalState
         ExecutingTasks.Changed += () => AnyChanged.Invoke(nameof(ExecutingTasks));
         PlacedTasks.Changed += () => AnyChanged.Invoke(nameof(PlacedTasks));
         WatchingTasks.Changed += () => AnyChanged.Invoke(nameof(WatchingTasks));
+
+        Requests.Changed += () => AnyChanged.Invoke(nameof(Requests));
     }
 
 
