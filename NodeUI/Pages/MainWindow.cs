@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NodeToUI.Requests;
 
 namespace NodeUI.Pages
 {
@@ -93,6 +94,53 @@ namespace NodeUI.Pages
                 {
                     benchmb?.Close();
                     benchmb = null;
+                }
+            });
+
+
+            var receivedrequests = new Dictionary<string, GuiRequest>();
+            NodeGlobalState.Instance.Requests.Changed += () => Dispatcher.UIThread.Post(() =>
+            {
+                var requests = NodeGlobalState.Instance.Requests.Value;
+                foreach (var req in receivedrequests.ToArray())
+                {
+                    if (requests.ContainsKey(req.Key)) continue;
+
+                    receivedrequests.Remove(req.Key);
+                    req.Value.OnRemoved();
+                }
+                foreach (var req in requests)
+                {
+                    if (receivedrequests.ContainsKey(req.Key)) continue;
+
+                    // added
+                    receivedrequests.Add(req.Key, req.Value);
+                    handle(req.Key, req.Value);
+                }
+
+
+
+                void handle(string reqid, GuiRequest request)
+                {
+                    if (request is CaptchaRequest captchareq)
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            var window = new CaptchaWindow(captchareq.Base64Image, v => sendResponse(v));
+                            captchareq.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
+                            window.Show();
+                        });
+
+
+                    async Task sendResponse(JToken token)
+                    {
+                        token = new JObject() { ["value"] = token };
+
+                        using var content = new StringContent(token.ToString());
+                        var post = await LocalApi.Post(NodeGui.GuiRequestNames[request.GetType()] + "?reqid=" + HttpUtility.UrlEncode(reqid), content);
+                        post.LogIfError();
+
+                        receivedrequests.Remove(reqid);
+                    }
                 }
             });
         }
@@ -186,7 +234,7 @@ namespace NodeUI.Pages
 
                         LocalApi.Send("reloadcfg").AsTask().Consume();
                         new LoginWindow().Show();
-                        ((Window) VisualRoot!).Close();
+                        ((Window)VisualRoot!).Close();
                     },
                 };
                 Children.Add(unloginbtn);
@@ -246,7 +294,7 @@ namespace NodeUI.Pages
 
                     return new Expander()
                     {
-                        Header = $"{type} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long) x.Value.Total)} total installed versions)",
+                        Header = $"{type} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long)x.Value.Total)} total installed versions)",
                         Content = new ItemsControl()
                         {
                             Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
@@ -622,7 +670,7 @@ namespace NodeUI.Pages
             class ObjectToJsonConverter : IValueConverter
             {
                 public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => JsonConvert.SerializeObject(value);
-                public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => JsonConvert.DeserializeObject((string) value!, targetType);
+                public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => JsonConvert.DeserializeObject((string)value!, targetType);
             }
             class DataGridButtonColumn<T> : DataGridColumn
             {

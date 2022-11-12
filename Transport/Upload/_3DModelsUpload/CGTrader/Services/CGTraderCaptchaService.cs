@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
+﻿using Common;
+using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
+using NodeToUI;
 using System.Diagnostics;
 using System.Drawing;
 using Transport.Upload._3DModelsUpload.CGTrader.Models;
@@ -106,9 +108,7 @@ internal class CGTraderCaptchaService
 
     internal async Task<string> _SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
     {
-        string captchaFilePath = _SaveCaptchaImage(captcha);
-        _ShowCaptchaImage(captchaFilePath);
-        string? userCaptchaInput = Console.ReadLine();
+        var userCaptchaInput = await _ShowCaptchaImage((string) captcha);
         // TODO: Find out how `userCaptchaInput` should be passed to `_VerifyCaptchaAsync` method.
         await _VerifyCaptchaAsync(captcha, cancellationToken);
         return string.Empty;
@@ -126,8 +126,19 @@ internal class CGTraderCaptchaService
         return captchaFilePath;
     }
 
-    void _ShowCaptchaImage(string captchaFilePath) =>
-        Process.Start(new ProcessStartInfo($"\"{captchaFilePath}\"") { CreateNoWindow = true });
+    async Task<string> _ShowCaptchaImage(string base64Image)
+    {
+        var captcha = await NodeGui.RequestCaptchaInput(base64Image);
+        /*if (!captcha)
+        {
+            // maybe do this or smth idk
+
+            Process.Start(new ProcessStartInfo($"\"{captchaFilePath}\"") { CreateNoWindow = true });
+            return Console.ReadLine()
+        }*/
+
+        return captcha.ThrowIfError("Could not get captcha user input: {0}");
+    }
 
     async Task<string> _VerifyCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
     {
