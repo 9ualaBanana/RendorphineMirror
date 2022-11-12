@@ -22,7 +22,7 @@ var halfrelease = args.Contains("release");
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
 
-if (!Debugger.IsAttached)
+if (!Init.IsDebug)
     FileList.KillNodeUI();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
@@ -37,7 +37,7 @@ if (Settings.SessionId is not null)
 {
     logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
 
-    if (Settings.SessionId is not null && !Debugger.IsAttached)
+    if (Settings.SessionId is not null && !Init.IsDebug)
         try { Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden")); }
         catch { }
 }

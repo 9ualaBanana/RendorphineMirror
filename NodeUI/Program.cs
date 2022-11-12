@@ -39,14 +39,14 @@ static class Program
         Init.Initialize();
         ConsoleHide.Hide();
 
-        if (!Debugger.IsAttached)
+        if (!Init.IsDebug)
         {
             var updater = FileList.GetUpdaterExe();
             Process.Start(new ProcessStartInfo(updater) { WorkingDirectory = Path.GetDirectoryName(updater), CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden, UseShellExecute = true })!.WaitForExit();
         }
 
         Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
-        if (!Debugger.IsAttached)
+        if (!Init.IsDebug)
         {
             FileList.KillNodeUI();
             Task.Run(CreateShortcuts);

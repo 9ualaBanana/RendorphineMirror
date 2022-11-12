@@ -53,6 +53,10 @@ namespace Common
             catch { }
             IsDebug = Debugger.IsAttached || DebugFileExists;
 
+            #if DEBUG
+            IsDebug = true;
+            #endif
+
             Directory.CreateDirectory(ConfigDirectory);
             if (Directory.Exists(RuntimeCacheFilesDirectory))
                 Directory.Delete(RuntimeCacheFilesDirectory, true);
@@ -103,7 +107,7 @@ namespace Common
         {
             try
             {
-                if (Debugger.IsAttached) return "debug";
+                if (IsDebug) return "debug";
 
                 var assembly = typeof(Init).Assembly.Location ?? Environment.ProcessPath!;
                 if (FileVersionInfo.GetVersionInfo(assembly).ProductVersion is { } ver && ver != "1.0.0")
