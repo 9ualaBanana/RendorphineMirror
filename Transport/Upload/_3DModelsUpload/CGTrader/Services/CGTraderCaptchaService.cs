@@ -44,6 +44,8 @@ internal class CGTraderCaptchaService
 
     #region Captcha
 
+    #region Request
+
     async Task<CGTraderCaptcha> _RequestCaptchaAsyncCore(string siteKey, CancellationToken cancellationToken)
     {
         var (configurationToken, fSeed) = await _RequestCaptchaConfigurationsAsync(siteKey, cancellationToken);
@@ -99,6 +101,8 @@ internal class CGTraderCaptchaService
     }
 
     #endregion
+
+    #region Solve
 
     internal async Task<string> _SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
     {
@@ -163,6 +167,10 @@ internal class CGTraderCaptchaService
             );
         else return (string)verifiedToken["verifiedToken"]!["vt"]!;
     }
+
+    #endregion
+
+    #endregion
 
     static string _Endpoint(string endpointWithoutDomain)
     {
