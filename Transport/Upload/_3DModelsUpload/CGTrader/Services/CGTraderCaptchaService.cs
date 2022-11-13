@@ -2,15 +2,16 @@
 using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
 using NodeToUI;
-using System.Diagnostics;
-using System.Drawing;
+using Transport.Models;
 using Transport.Upload._3DModelsUpload.CGTrader.Models;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Services;
 
-internal class CGTraderCaptchaService
+internal class CGTraderCaptchaService : IBaseAddressProvider
 {
     readonly HttpClient _httpClient;
+
+    string IBaseAddressProvider.BaseAddress => "https://service.mtcaptcha.com/mtcv1/api/";
 
 
     internal CGTraderCaptchaService(HttpClient httpClient)
@@ -19,7 +20,9 @@ internal class CGTraderCaptchaService
     }
 
 
-    internal async Task<CGTraderCaptcha> _RequestCaptchaAsync(string htmlWithSessionCredentials, CancellationToken cancellationToken)
+    internal async Task<CGTraderCaptcha> _RequestCaptchaAsync(
+        string htmlWithSessionCredentials,
+        CancellationToken cancellationToken)
     {
         string siteKey = _ParseSiteKeyFrom(htmlWithSessionCredentials);
         return await _RequestCaptchaAsyncCore(siteKey, cancellationToken);
@@ -60,19 +63,20 @@ internal class CGTraderCaptchaService
         string siteKey,
         CancellationToken cancellationToken)
     {
-        string requestUri = QueryHelpers.AddQueryString(_Endpoint($"/getchallenge.json"), new Dictionary<string, string>()
-        {
-            { "sk", siteKey },
-            { "bd", CGTraderUri.WWW },
-            { "rt", CaptchaRequestArguments.rt },
-            { "tsh", CaptchaRequestArguments.tsh },
-            { "act", CaptchaRequestArguments.act },
-            { "ss", CaptchaRequestArguments.ss },
-            { "lf", CaptchaRequestArguments.lf },
-            { "tl", CaptchaRequestArguments.tl },
-            { "lg", CaptchaRequestArguments.lg },
-            { "tp", CaptchaRequestArguments.tp }
-        });
+        string requestUri = QueryHelpers.AddQueryString((this as IBaseAddressProvider).Endpoint($"/getchallenge.json"),
+            new Dictionary<string, string>()
+            {
+                { "sk", siteKey },
+                { "bd", CGTraderUri.WWW },
+                { "rt", CaptchaRequestArguments.rt },
+                { "tsh", CaptchaRequestArguments.tsh },
+                { "act", CaptchaRequestArguments.act },
+                { "ss", CaptchaRequestArguments.ss },
+                { "lf", CaptchaRequestArguments.lf },
+                { "tl", CaptchaRequestArguments.tl },
+                { "lg", CaptchaRequestArguments.lg },
+                { "tp", CaptchaRequestArguments.tp }
+            });
 
         var responseWithCaptchaConfiguration = JObject.Parse(
             await _httpClient.GetStringAsync(requestUri, cancellationToken)
@@ -86,15 +90,19 @@ internal class CGTraderCaptchaService
             );
     }
 
-    async Task<string> _RequestCaptchaImageAsBase64Async(string siteKey, string configurationToken, CancellationToken cancellationToken)
+    async Task<string> _RequestCaptchaImageAsBase64Async(
+        string siteKey,
+        string configurationToken,
+        CancellationToken cancellationToken)
     {
-        var requestUri = QueryHelpers.AddQueryString(_Endpoint("/getimage.json"), new Dictionary<string, string>()
-        {
-            { "sk", siteKey },
-            { "ct", configurationToken },
-            { "fa", CaptchaRequestArguments.fa },
-            { "ss", CaptchaRequestArguments.ss }
-        });
+        var requestUri = QueryHelpers.AddQueryString((this as IBaseAddressProvider).Endpoint("/getimage.json"),
+            new Dictionary<string, string>()
+            {
+                { "sk", siteKey },
+                { "ct", configurationToken },
+                { "fa", CaptchaRequestArguments.fa },
+                { "ss", CaptchaRequestArguments.ss }
+            });
 
         var responseWithImage = JObject.Parse(await _httpClient.GetStringAsync(requestUri, cancellationToken));
         responseWithImage._EnsureSuccessStatusCode();
@@ -104,68 +112,46 @@ internal class CGTraderCaptchaService
 
     #endregion
 
-    #region Solve
+    #region Solving
 
     internal async Task<string> _SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
     {
-        var userCaptchaInput = await _ShowCaptchaImage((string) captcha);
-        // TODO: Find out how `userCaptchaInput` should be passed to `_VerifyCaptchaAsync` method.
+        captcha.UserGuess = await _RequestCaptchaInputFromGuiAsync(captcha);
         await _VerifyCaptchaAsync(captcha, cancellationToken);
         return string.Empty;
     }
 
-    string _SaveCaptchaImage(CGTraderCaptcha captcha)
-    {
-        using var imageStream = new MemoryStream(Convert.FromBase64String(captcha));
-        string captchaFilePath = Path.ChangeExtension(
-            Path.Combine(Path.GetTempPath(), $"captcha_{Guid.NewGuid()}"),
-            ".jpg"
-            );
-        Image.FromStream(imageStream).Save(captchaFilePath);
-
-        return captchaFilePath;
-    }
-
-    async Task<string> _ShowCaptchaImage(string base64Image)
-    {
-        var captcha = await NodeGui.RequestCaptchaInput(base64Image);
-        /*if (!captcha)
-        {
-            // maybe do this or smth idk
-
-            Process.Start(new ProcessStartInfo($"\"{captchaFilePath}\"") { CreateNoWindow = true });
-            return Console.ReadLine()
-        }*/
-
-        return captcha.ThrowIfError("Could not get captcha user input: {0}");
-    }
+    static async Task<string> _RequestCaptchaInputFromGuiAsync(string base64Image) =>
+        (await NodeGui.RequestCaptchaInputAsync(base64Image))
+        .ThrowIfError("Could not get captcha user input: {0}");
 
     async Task<string> _VerifyCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
     {
-        if (captcha.ConfigurationToken is null) throw new InvalidOperationException(
-            $"The value of {nameof(captcha.ConfigurationToken)} can't be null when trying to solve {nameof(captcha)}."
+        if (captcha.UserGuess is null) throw new ArgumentNullException(
+            nameof(captcha.UserGuess),
+            $"{nameof(captcha)} must contain {nameof(captcha.UserGuess)} to try to solve it."
             );
 
-
-        string requestUri = QueryHelpers.AddQueryString("/solvechallenge.json", new Dictionary<string, string>()
-        {
-            { "ct", captcha.ConfigurationToken },
-            { "sk", captcha.SiteKey },
-            { "st", CaptchaRequestArguments.st },
-            { "lf", CaptchaRequestArguments.lf },
-            { "bd", CaptchaRequestArguments.bd },
-            { "rt", CaptchaRequestArguments.rt },
-            { "tsh", CaptchaRequestArguments.tsh },
-            { "fa", CaptchaRequestArguments.fa },
-            { "qh", CaptchaRequestArguments.qh },
-            { "act", CaptchaRequestArguments.act },
-            { "ss", CaptchaRequestArguments.ss },
-            { "tl", CaptchaRequestArguments.tl },
-            { "lg", CaptchaRequestArguments.lg },
-            { "tp", CaptchaRequestArguments.tp },
-            { "kt", CaptchaRequestArguments.kt },
-            { "fs", captcha.FSeed }
-        });
+        string requestUri = QueryHelpers.AddQueryString((this as IBaseAddressProvider).Endpoint("/solvechallenge.json"),
+            new Dictionary<string, string>()
+            {
+                { "ct", captcha.ConfigurationToken },
+                { "sk", captcha.SiteKey },
+                { "st", captcha.UserGuess },
+                { "lf", CaptchaRequestArguments.lf },
+                { "bd", CaptchaRequestArguments.bd },
+                { "rt", CaptchaRequestArguments.rt },
+                { "tsh", CaptchaRequestArguments.tsh },
+                { "fa", CaptchaRequestArguments.fa },
+                { "qh", CaptchaRequestArguments.qh },
+                { "act", CaptchaRequestArguments.act },
+                { "ss", CaptchaRequestArguments.ss },
+                { "tl", CaptchaRequestArguments.tl },
+                { "lg", CaptchaRequestArguments.lg },
+                { "tp", CaptchaRequestArguments.tp },
+                { "kt", CaptchaRequestArguments.kt },
+                { "fs", captcha.FSeed }
+            });
 
         var responseWithVerifiedToken = JObject.Parse(
             await _httpClient.GetStringAsync(requestUri, cancellationToken)
@@ -176,20 +162,11 @@ internal class CGTraderCaptchaService
         if (!(bool)verifiedToken["isVerified"]!) throw new UnauthorizedAccessException(
             $"The {nameof(captcha)} didn't pass verification."
             );
-        else return (string)verifiedToken["verifiedToken"]!["vt"]!;
+        else  return (string)verifiedToken["verifiedToken"]!["vt"]!;
     }
 
     #endregion
 
-    #endregion
-
-    static string _Endpoint(string endpointWithoutDomain)
-    {
-        if (!endpointWithoutDomain.StartsWith('/'))
-            endpointWithoutDomain = '/' + endpointWithoutDomain;
-
-        return $"https://service.mtcaptcha.com/mtcv1/api{endpointWithoutDomain}";
-    }
 }
 
 static class CaptchaJObjectExtensions

@@ -1,16 +1,18 @@
 ﻿using Common;
 using Newtonsoft.Json.Linq;
 using System.Net.Http.Json;
+using Transport.Models;
 using Transport.Upload._3DModelsUpload.CGTrader.Models;
 using Transport.Upload._3DModelsUpload.Models;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Services;
 
-internal class CGTraderApi
+internal class CGTraderApi : IBaseAddressProvider
 {
     readonly HttpClient _httpClient;
     readonly CGTraderCaptchaService _captchaService;
 
+    string IBaseAddressProvider.BaseAddress => CGTraderUri.Https;
 
     internal CGTraderApi(HttpClient httpClient)
     {
@@ -31,6 +33,7 @@ internal class CGTraderApi
     }
 
     #region CSRFToken
+
     internal async Task<string> _RequestCsrfTokenAsync(CancellationToken cancellationToken)
     {
         string htmlWithSessionCredentials = await _httpClient.GetStringAsync(_Endpoint("/load-services.js"), cancellationToken);
@@ -52,9 +55,11 @@ internal class CGTraderApi
 
         throw new MissingFieldException("Returned document doesn't contain CSRF token.");
     }
+
     #endregion
 
     #region Login
+
     internal async Task _LoginAsync(CGTraderNetworkCredential credential, CancellationToken cancellationToken)
     {
         try { await _LoginAsyncCore(credential, cancellationToken); }
@@ -64,6 +69,11 @@ internal class CGTraderApi
 
     async Task _LoginAsyncCore(CGTraderNetworkCredential credential, CancellationToken cancellationToken)
     {
+        if (credential.Captcha is null) throw new InvalidOperationException(
+            $"The value of {nameof(credential.Captcha)} can't be null when trying to login."
+            );
+
+        await _LoadMainPageAsync(cancellationToken);
         await credential.Captcha._SolveAsyncUsing(_captchaService, cancellationToken);
         using var response = await _httpClient.PostAsync(_Endpoint("/users/2fa-or-login.json"),
             await credential._ToMultipartFormDataContentAsyncUsing(_captchaService, cancellationToken),
@@ -71,6 +81,10 @@ internal class CGTraderApi
             );
         await response._EnsureSuccessLoginAsync(cancellationToken);
     }
+
+    async Task _LoadMainPageAsync(CancellationToken cancellationToken) =>
+        await _httpClient.GetAsync(_Endpoint(), cancellationToken);
+
     #endregion
 
     /// <returns>ID of the newly created model draft.</returns>
@@ -146,14 +160,6 @@ internal class CGTraderApi
             filesize = fileLength
         }, cancellationToken);
         response.EnsureSuccessStatusCode();
-    }
-
-    static string _Endpoint(string endpointWithoutDomain)
-    {
-        if (!endpointWithoutDomain.StartsWith('/'))
-            endpointWithoutDomain = '/' + endpointWithoutDomain;
-        
-        return $"{CGTraderUri.Https}{endpointWithoutDomain}";
     }
 }
 
