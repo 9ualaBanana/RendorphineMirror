@@ -27,6 +27,8 @@ global using NodeUI.Controls;
 global using NodeUI.Pages;
 global using APath = Avalonia.Controls.Shapes.Path;
 global using Path = System.IO.Path;
+using System.Runtime.InteropServices;
+using CefNet;
 
 namespace NodeUI;
 
@@ -34,10 +36,14 @@ static class Program
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
+    [STAThread]
     public static void Main(string[] args)
     {
         Init.Initialize();
         ConsoleHide.Hide();
+
+        if (args.Any(x => x.Contains("zygote", StringComparison.Ordinal) || x.Contains("sandbox", StringComparison.Ordinal) || x.StartsWith("--type", StringComparison.Ordinal)))
+            InitializeCef();
 
         if (!Init.IsDebug)
         {
@@ -57,6 +63,7 @@ static class Program
     static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
         .UsePlatformDetect()
+        .With(new AvaloniaNativePlatformOptions { UseGpu = false }) // workaround for https://github.com/AvaloniaUI/Avalonia/issues/3533
         .With(new X11PlatformOptions { UseDBusMenu = true })
         .LogToTrace();
 
@@ -91,6 +98,82 @@ static class Program
         {
             _logger.Info($"Creating shortcut {linkpath}");
             File.WriteAllText(linkpath, data);
+        }
+    }
+
+    static bool CefInitialized = false;
+    public static void InitializeCef()
+    {
+        if (CefInitialized) return;
+
+        CefInitialized = true;
+        var settings = new CefSettings()
+        {
+            NoSandbox = true,
+            MultiThreadedMessageLoop = true,
+            WindowlessRenderingEnabled = true,
+            LogFile = Path.Combine(Path.GetTempPath(), "renderfin", "ceflog.log"),
+            UserDataPath = "/temp/cef/data",
+        };
+
+        var app = new CefAppImpl();
+        try { app.Initialize("assets/cef/", settings); }
+        catch
+        {
+            try { app.Initialize("cef/", settings); }
+            catch
+            {
+                try { app.Initialize("../assets/cef/", settings); }
+                catch
+                {
+                    app.Initialize("../cef/", settings);
+
+                }
+            }
+        }
+    }
+
+
+    class CefAppImpl : CefNetApplication
+    {
+        protected override void OnBeforeCommandLineProcessing(string processType, CefCommandLine commandLine)
+        {
+            base.OnBeforeCommandLineProcessing(processType, commandLine);
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                commandLine.AppendSwitch("no-zygote");
+                commandLine.AppendSwitch("no-sandbox");
+            }
+
+            commandLine.Program = "/temp/q/bin/Debug/net6.0/q";
+            Console.WriteLine(commandLine.CommandLineString);
+
+            /*commandLine.AppendSwitch("enable-devtools-experiments");
+
+            commandLine.AppendSwitch("disable-gpu");
+            commandLine.AppendSwitch("disable-gpu-compositing");
+            commandLine.AppendSwitch("disable-gpu-vsync");
+
+            commandLine.AppendSwitch("enable-begin-frame-scheduling");
+            commandLine.AppendSwitch("enable-media-stream");
+            commandLine.AppendSwitchWithValue("enable-blink-features", "CSSPseudoHas");*/
+
+            /*Console.WriteLine("ChromiumWebBrowser_OnBeforeCommandLineProcessing");
+            Console.WriteLine(commandLine.CommandLineString);
+
+            //commandLine.AppendSwitchWithValue("proxy-server", "127.0.0.1:8888");
+
+            commandLine.AppendSwitch("ignore-certificate-errors");
+            commandLine.AppendSwitchWithValue("remote-debugging-port", "9222");
+
+            //enable-devtools-experiments
+
+            //e.CommandLine.AppendSwitchWithValue("user-agent", "Mozilla/5.0 (Windows 10.0) WebKa/" + DateTime.UtcNow.Ticks);
+
+            //("force-device-scale-factor", "1");
+
+            */
         }
     }
 }

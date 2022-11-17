@@ -39,6 +39,7 @@ namespace NodeUI.Pages
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("torrent test", new TorrentTab());
             tabs.Add("logs", new LogsTab());
+            tabs.Add("webview", new WebView() { View = { InitialUrl = "https://google.com" } });
             if (Init.IsDebug)
                 tabs.Add("registry", new RegistryTab());
 
@@ -234,7 +235,7 @@ namespace NodeUI.Pages
 
                         LocalApi.Send("reloadcfg").AsTask().Consume();
                         new LoginWindow().Show();
-                        ((Window)VisualRoot!).Close();
+                        ((Window) VisualRoot!).Close();
                     },
                 };
                 Children.Add(unloginbtn);
@@ -294,7 +295,7 @@ namespace NodeUI.Pages
 
                     return new Expander()
                     {
-                        Header = $"{type} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long)x.Value.Total)} total installed versions)",
+                        Header = $"{type} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long) x.Value.Total)} total installed versions)",
                         Content = new ItemsControl()
                         {
                             Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
@@ -670,7 +671,7 @@ namespace NodeUI.Pages
             class ObjectToJsonConverter : IValueConverter
             {
                 public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => JsonConvert.SerializeObject(value);
-                public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => JsonConvert.DeserializeObject((string)value!, targetType);
+                public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => JsonConvert.DeserializeObject((string) value!, targetType);
             }
             class DataGridButtonColumn<T> : DataGridColumn
             {

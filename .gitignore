@@ -9,8 +9,11 @@ nupkg/
 .directory
 cache/
 assets/*.version
+assets/cef/
 /plugins/
 /torrents/
+debug.log
+GPUCache/
 
 # Rider
 .idea
