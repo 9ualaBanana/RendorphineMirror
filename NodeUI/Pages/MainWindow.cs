@@ -123,14 +123,37 @@ namespace NodeUI.Pages
 
                 void handle(string reqid, GuiRequest request)
                 {
-                    if (request is CaptchaRequest captchareq)
+                    if (request is CaptchaRequest captchareq) handleCaptchaRequest(captchareq);
+                    else if (request is CefCaptchaRequest cefcaptchareq) handleCefCaptchaRequest(cefcaptchareq);
+
+
+                    void handleCaptchaRequest(CaptchaRequest captchareq)
+                    {
                         Dispatcher.UIThread.Post(() =>
                         {
                             var window = new CaptchaWindow(captchareq.Base64Image, v => sendResponse(v));
                             captchareq.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
                             window.Show();
                         });
+                    }
+                    void handleCefCaptchaRequest(CefCaptchaRequest captchareq)
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            var window = new WebWindow()
+                            {
+                                Title = "Captcha input",
+                                View = { InitialUrl = captchareq.Url },
+                            };
+                            captchareq.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.Close(); } catch { } });
+                            window.Show();
 
+                            // something something
+                            // window.View.SendMouseDownEvent(228, 1337, CefNet.CefMouseButtonType.Left, 1, CefNet.CefEventFlags.None);
+                            // window.View.Navigate("https://google.com");
+                            // window.View.OnSomeEvent += async () => { await sendResponse(JToken.FromObject("operation result")); };
+                        });
+                    }
 
                     async Task sendResponse(JToken token)
                     {
