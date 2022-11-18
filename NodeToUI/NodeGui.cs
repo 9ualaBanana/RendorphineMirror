@@ -46,5 +46,5 @@ public static class NodeGui
         return result.ThrowIfNull().ToObject<TResult>()!;
     }
 
-    public static ValueTask<OperationResult<string>> RequestCaptchaInput(string base64image, CancellationToken token = default) => Request<string>(new CaptchaRequest(base64image), token);
+    public static ValueTask<OperationResult<string>> RequestCaptchaInputAsync(string base64image, CancellationToken token = default) => Request<string>(new CaptchaRequest(base64image), token);
 }

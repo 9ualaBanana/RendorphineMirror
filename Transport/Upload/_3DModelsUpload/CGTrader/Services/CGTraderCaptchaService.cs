@@ -167,6 +167,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
 
     #endregion
 
+    #endregion
 }
 
 static class CaptchaJObjectExtensions

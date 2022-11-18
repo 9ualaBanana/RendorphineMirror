@@ -2,17 +2,24 @@
 
 internal static class CaptchaRequestArguments
 {
+    // Unknown stub value.
     internal const string act = "$";
     internal const string bd = CGTraderUri.WWW;
-    internal const string fa = "TgSlECMZdJiH8biyqbHkM25dZB5uOsyl7venyCoFqTkj1w9y3Tph8L794dMd";
-    internal const string kt = "a6HLIqylE6wiX_UC1xFbZ9jCJJfKV-1QyR9JslJSRyzWM1c3AEVYh9t2hqShuNSh";
-    internal const string lf = "1";
+    internal const string fa = "oyZkseZDqpALjhLLufd0z09AYN-5ZUZsJ2TZzKTK36qCBphMmKvdHtsBNXKn";
+    // Unknown stub value.
+    internal const string kt = "ApQXr3vpUvPSza6Qk3hJhsWpxZ8Y1n5Rg2_E7RJ2YHZakEYjREQVrCxCSKXdXZM6";
+    // Unknown stub value.
+    internal const string lf = "0";
     internal const string lg = "en";
+    // Unknown stub value.
     internal const string qh = "$";
     internal static string rt => DateTime.UtcNow.AsUnixTimestamp();
+    // Unknown stub value.
     internal const string ss = "S1e09c4e49-9c13-44b5-942e-a9485fdae783";
-    internal const string st = "sqiz";
+    // Unknown stub value.
     internal const string tl = "$";
+    // Unknown stub value.
     internal const string tp = "s";
+    // Unknown stub value.
     internal const string tsh = "TH[31e658709b71e41628a6dd03cbf73e1f]";
 }

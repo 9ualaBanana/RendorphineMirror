@@ -2,7 +2,7 @@
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
 
-public class CGTraderCaptcha
+public sealed class CGTraderCaptcha
 {
     readonly string _asBase64;
 
@@ -11,6 +11,8 @@ public class CGTraderCaptcha
     public readonly string FSeed;
     // make lateinit
     public string? VerfiedToken { get; internal set; }
+
+    public string? UserGuess;
 
     #region Initialization
 
