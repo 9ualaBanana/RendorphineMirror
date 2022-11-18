@@ -4,7 +4,7 @@ using Transport.Upload._3DModelsUpload.CGTrader.Services;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
 
-public class CGTraderNetworkCredential : NetworkCredential
+public sealed class CGTraderNetworkCredential : NetworkCredential
 {
     // make lateinit
     public string? CsrfToken { get; internal set; }

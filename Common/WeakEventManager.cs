@@ -15,7 +15,7 @@ namespace Common
 
         protected IEnumerable<T> GetCallbacks()
         {
-            foreach (var wr in Dictionary.Keys.ToArray())
+            foreach (var (wr, val) in Dictionary.ToArray())
             {
                 if (!wr.TryGetTarget(out _))
                 {
@@ -23,7 +23,7 @@ namespace Common
                     continue;
                 }
 
-                yield return Dictionary[wr];
+                yield return val;
             }
         }
 
