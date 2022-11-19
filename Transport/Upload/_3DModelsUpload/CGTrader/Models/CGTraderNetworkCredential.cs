@@ -27,22 +27,31 @@ public sealed class CGTraderNetworkCredential : NetworkCredential
     }
 
 
-    internal async Task<MultipartFormDataContent> _ToMultipartFormDataContentAsyncUsing(CGTraderCaptchaService captchaService, CancellationToken cancellationToken)
+    internal async ValueTask<MultipartFormDataContent> _AsMultipartFormDataContentAsyncUsing(
+        CGTraderCaptchaService captchaService,
+        CancellationToken cancellationToken)
     {
         if (CsrfToken is null)
-            throw new InvalidOperationException($"{nameof(CsrfToken)} can't be null when calling {nameof(_ToMultipartFormDataContentAsyncUsing)}.");
+            throw new InvalidOperationException($"{nameof(CsrfToken)} can't be null when calling {nameof(_AsMultipartFormDataContentAsyncUsing)}.");
         if (Captcha is null)
-            throw new InvalidOperationException($"{nameof(Captcha)} can't be null when caling {nameof(_ToMultipartFormDataContentAsyncUsing)}.");
+            throw new InvalidOperationException($"{nameof(Captcha)} can't be null when caling {nameof(_AsMultipartFormDataContentAsyncUsing)}.");
 
 
         return _asMultipartFormData ??= new()
         {
             { new StringContent(CsrfToken), "authenticity_token" },
-            { new StringContent(await Captcha._SolveAsyncUsing(captchaService, cancellationToken)), "user[MTCaptchaToken]" },
+            { new StringContent(
+                await Captcha._SolveAsyncUsing(captchaService, cancellationToken)),
+                "user[MTCaptchaToken]"
+            },
             { new StringContent("/"), "location" },
             { new StringContent(UserName), "user[login]" },
             { new StringContent(Password), "user[password]" },
-            { new StringContent(_RememberMe), "user[remember_me]" }
+            { new StringContent(_RememberMe), "user[remember_me]" },
+            { new StringContent(
+                await Captcha._SolveAsyncUsing(captchaService, cancellationToken)),
+                "mtcaptcha-verifiedtoken"
+            }
         };
     }
     MultipartFormDataContent? _asMultipartFormData;

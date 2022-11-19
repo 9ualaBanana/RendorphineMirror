@@ -7,8 +7,7 @@ public sealed class CGTraderCaptcha
     readonly string _asBase64;
 
     public readonly string SiteKey;
-    public readonly string ConfigurationToken;
-    public readonly string FSeed;
+    public readonly CGTraderCaptchaConfiguration Configuration;
     // make lateinit
     public string? VerfiedToken { get; internal set; }
 
@@ -16,21 +15,21 @@ public sealed class CGTraderCaptcha
 
     #region Initialization
 
-    internal static CGTraderCaptcha _FromBase64String(string? captcha, string siteKey, string configurationToken, string fSeed) =>
-        new(captcha ?? string.Empty, siteKey, configurationToken, fSeed);
+    internal static CGTraderCaptcha _FromBase64String(string? captcha, string siteKey, CGTraderCaptchaConfiguration configuration) =>
+        new(captcha ?? string.Empty, siteKey, configuration);
 
-    CGTraderCaptcha(string captchaAsBase64, string siteKey, string configurationToken, string fSeed)
+    CGTraderCaptcha(string captchaAsBase64, string siteKey, CGTraderCaptchaConfiguration configuration)
     {
         _asBase64 = captchaAsBase64;
         SiteKey = siteKey;
-        ConfigurationToken = configurationToken;
-        FSeed = fSeed;
+        Configuration = configuration;
     }
 
     #endregion
 
-    internal async Task<string> _SolveAsyncUsing(CGTraderCaptchaService captchaService, CancellationToken cancellationToken) =>
-        await captchaService._SolveCaptchaAsync(this, cancellationToken);
+    internal async ValueTask<string> _SolveAsyncUsing(
+        CGTraderCaptchaService captchaService,
+        CancellationToken cancellationToken) => await captchaService._SolveCaptchaAsync(this, cancellationToken);
 
     #region Casts
 

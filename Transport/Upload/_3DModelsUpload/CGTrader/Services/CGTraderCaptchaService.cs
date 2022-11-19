@@ -42,7 +42,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
     }
 
     static string _ParseSiteKeyCoreFrom(string siteKeyRegion) => siteKeyRegion
-        .Split('{', 30, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Split('{', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         .Last()[9..27];
 
     #endregion
@@ -53,13 +53,13 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
 
     async Task<CGTraderCaptcha> _RequestCaptchaAsyncCore(string siteKey, CancellationToken cancellationToken)
     {
-        var (configurationToken, fSeed) = await _RequestCaptchaConfigurationsAsync(siteKey, cancellationToken);
+        var configuration = await _RequestCaptchaConfigurationsAsync(siteKey, cancellationToken);
         return CGTraderCaptcha._FromBase64String(
-            await _RequestCaptchaImageAsBase64Async(siteKey, configurationToken, cancellationToken),
-            siteKey, configurationToken, fSeed);
+            await _RequestCaptchaImageAsBase64Async(siteKey, configuration, cancellationToken),
+            siteKey, configuration);
     }
 
-    async Task<(string ConfigurationToken, string FSeed)> _RequestCaptchaConfigurationsAsync(
+    async Task<CGTraderCaptchaConfiguration> _RequestCaptchaConfigurationsAsync(
         string siteKey,
         CancellationToken cancellationToken)
     {
@@ -83,24 +83,29 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
             );
         responseWithCaptchaConfiguration._EnsureSuccessStatusCode();
         var captchaConfiguration = responseWithCaptchaConfiguration._Result()["challenge"]!;
+        var foldChallengeConfiguration = captchaConfiguration["foldChlg"]!;
 
-        return (
+        return new CGTraderCaptchaConfiguration(
             (string)captchaConfiguration["ct"]!,
-            (string)captchaConfiguration["foldChlg"]!["fseed"]!
+            new CGTraderCaptchaFoldChallenge(
+                (string)foldChallengeConfiguration["fseed"]!,
+                (int)foldChallengeConfiguration["fslots"]!,
+                (int)foldChallengeConfiguration["fdepth"]!
+                )
             );
     }
 
     async Task<string> _RequestCaptchaImageAsBase64Async(
         string siteKey,
-        string configurationToken,
+        CGTraderCaptchaConfiguration configuration,
         CancellationToken cancellationToken)
     {
         var requestUri = QueryHelpers.AddQueryString((this as IBaseAddressProvider).Endpoint("/getimage.json"),
             new Dictionary<string, string>()
             {
                 { "sk", siteKey },
-                { "ct", configurationToken },
-                { "fa", CaptchaRequestArguments.fa },
+                { "ct", configuration.Token },
+                { "fa", configuration.FoldChallenge.Solve() },
                 { "ss", CaptchaRequestArguments.ss }
             });
 
@@ -114,17 +119,21 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
 
     #region Solving
 
-    internal async Task<string> _SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
+    internal async ValueTask<string> _SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
     {
-        captcha.UserGuess = await _RequestCaptchaInputFromGuiAsync(captcha);
-        await _VerifyCaptchaAsync(captcha, cancellationToken);
-        return string.Empty;
+        if (captcha.VerfiedToken is null)
+        {
+            captcha.UserGuess = await _RequestCaptchaInputFromGuiAsync(captcha);
+            captcha.VerfiedToken = await _VerifyCaptchaAsync(captcha, cancellationToken);
+        }
+        return captcha.VerfiedToken;
     }
 
     static async Task<string> _RequestCaptchaInputFromGuiAsync(string base64Image) =>
         (await NodeGui.RequestCaptchaInputAsync(base64Image))
         .ThrowIfError("Could not get captcha user input: {0}");
 
+    /// <returns>Verified token.</returns>
     async Task<string> _VerifyCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
     {
         if (captcha.UserGuess is null) throw new ArgumentNullException(
@@ -135,14 +144,14 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
         string requestUri = QueryHelpers.AddQueryString((this as IBaseAddressProvider).Endpoint("/solvechallenge.json"),
             new Dictionary<string, string>()
             {
-                { "ct", captcha.ConfigurationToken },
+                { "ct", captcha.Configuration.Token },
                 { "sk", captcha.SiteKey },
                 { "st", captcha.UserGuess },
                 { "lf", CaptchaRequestArguments.lf },
                 { "bd", CaptchaRequestArguments.bd },
                 { "rt", CaptchaRequestArguments.rt },
                 { "tsh", CaptchaRequestArguments.tsh },
-                { "fa", CaptchaRequestArguments.fa },
+                { "fa", captcha.Configuration.FoldChallenge.Solve() },
                 { "qh", CaptchaRequestArguments.qh },
                 { "act", CaptchaRequestArguments.act },
                 { "ss", CaptchaRequestArguments.ss },
@@ -150,7 +159,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
                 { "lg", CaptchaRequestArguments.lg },
                 { "tp", CaptchaRequestArguments.tp },
                 { "kt", CaptchaRequestArguments.kt },
-                { "fs", captcha.FSeed }
+                { "fs", captcha.Configuration.FoldChallenge.Seed }
             });
 
         var responseWithVerifiedToken = JObject.Parse(
