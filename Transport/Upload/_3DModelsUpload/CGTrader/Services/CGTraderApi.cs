@@ -1,5 +1,7 @@
 ﻿using Common;
 using Newtonsoft.Json.Linq;
+using NLog;
+using System.Net.Http;
 using System.Net.Http.Json;
 using Transport.Models;
 using Transport.Upload._3DModelsUpload.CGTrader.Models;
@@ -9,6 +11,8 @@ namespace Transport.Upload._3DModelsUpload.CGTrader.Services;
 
 internal class CGTraderApi : IBaseAddressProvider
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     readonly HttpClient _httpClient;
     readonly CGTraderCaptchaService _captchaService;
 
@@ -23,6 +27,16 @@ internal class CGTraderApi : IBaseAddressProvider
 
     internal async Task<(string CSRFToken, CGTraderCaptcha Captcha)> _RequestSessionCredentialsAsync(CancellationToken cancellationToken)
     {
+        try { return await _RequestSessionCredentialAsyncCore(cancellationToken); }
+        catch (Exception ex)
+        {
+            const string errorMessage = "Couldn't request session credentials.";
+            _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
+        }
+    }
+
+    async Task<(string CSRFToken, CGTraderCaptcha Captcha)> _RequestSessionCredentialAsyncCore(CancellationToken cancellationToken)
+    {
         string htmlWithSessionCredentials = (await _httpClient.GetStringAsync(
             (this as IBaseAddressProvider).Endpoint("/load-services.js"), cancellationToken)
             ).ReplaceLineEndings(string.Empty);
@@ -34,7 +48,19 @@ internal class CGTraderApi : IBaseAddressProvider
 
     #region CSRFToken
 
+
+
     internal async Task<string> _RequestCsrfTokenAsync(CancellationToken cancellationToken)
+    {
+        try { return await _RequestCsrfTokenAsyncCore(cancellationToken); }
+        catch (Exception ex)
+        {
+            const string errorMessage = "CSRF token request failed.";
+            _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
+        }
+    }
+
+    async Task<string> _RequestCsrfTokenAsyncCore(CancellationToken cancellationToken)
     {
         string htmlWithSessionCredentials = await _httpClient.GetStringAsync((this as IBaseAddressProvider).Endpoint("/load-services.js"), cancellationToken);
         return _ParseCsrfTokenFrom(htmlWithSessionCredentials);
@@ -64,7 +90,11 @@ internal class CGTraderApi : IBaseAddressProvider
     {
         try { await _LoginAsyncCore(credential, cancellationToken); }
         catch (HttpRequestException ex)
-        { /* Add logging. */ throw new HttpRequestException("Login attempt was unsuccessful.", ex, ex.StatusCode); }
+        {
+            const string errorMessage = "Login attempt was unsuccessful.";
+            _logger.Error(ex, errorMessage);
+            throw new HttpRequestException(errorMessage, ex, ex.StatusCode);
+        }
     }
 
     async Task _LoginAsyncCore(CGTraderNetworkCredential credential, CancellationToken cancellationToken)
@@ -73,22 +103,29 @@ internal class CGTraderApi : IBaseAddressProvider
             $"The value of {nameof(credential.Captcha)} can't be null when trying to login."
             );
 
-        await _LoadMainPageAsync(cancellationToken);
-        await credential.Captcha._SolveAsyncUsing(_captchaService, cancellationToken);
         using var response = await _httpClient.PostAsync((this as IBaseAddressProvider).Endpoint("/users/2fa-or-login.json"),
-            await credential._ToMultipartFormDataContentAsyncUsing(_captchaService, cancellationToken),
+            await credential._AsMultipartFormDataContentAsyncUsing(_captchaService, cancellationToken),
             cancellationToken
             );
         await response._EnsureSuccessLoginAsync(cancellationToken);
     }
 
-    async Task _LoadMainPageAsync(CancellationToken cancellationToken) =>
-        await _httpClient.GetAsync((this as IBaseAddressProvider).Endpoint(), cancellationToken);
-
     #endregion
+
+    #region ModelFilesUpload
 
     /// <returns>ID of the newly created model draft.</returns>
     internal async Task<int> _CreateNewModelDraftAsync(CancellationToken cancellationToken)
+    {
+        try { return await _CreateNewModelDraftAsyncCore(cancellationToken); }
+        catch (Exception ex)
+        {
+            const string errorMessage = "New model draft couldn't be created.";
+            _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
+        }
+    }
+
+    async Task<int> _CreateNewModelDraftAsyncCore(CancellationToken cancellationToken)
     {
         string response = await _httpClient.GetStringAsync(
             (this as IBaseAddressProvider).Endpoint($"/api/internal/items/current-draft/cg?nocache={CaptchaRequestArguments.rt}"), cancellationToken);
@@ -112,7 +149,9 @@ internal class CGTraderApi : IBaseAddressProvider
     {
         try { await _UploadModelFileAsyncCore(filePath, modelDraftId, cancellationToken); }
         catch (HttpRequestException ex)
-        { /* Add logging */ throw new HttpRequestException($"Model file couldn't be uploaded. ({filePath})", ex, ex.StatusCode); }
+        {
+            string errorMessage = $"Model file couldn't be uploaded. ({filePath})";
+            throw new HttpRequestException(errorMessage, ex, ex.StatusCode); }
     }
 
     async Task _UploadModelFileAsyncCore(string filePath, int modelDraftId, CancellationToken cancellationToken)
@@ -161,6 +200,8 @@ internal class CGTraderApi : IBaseAddressProvider
         }, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
+
+    #endregion
 }
 
 static class Extensions
