@@ -26,7 +26,7 @@ public static class TaskModels
         // since all TaskInOutputInfo object implement ITaskInOutputInfo.Type property using `=>` and not `{ get; } =`
         static T[] CreateUninitializedObjects<T, TInput, TOutput>() where TInput : T where TOutput : T =>
             AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(ass => ass.GetTypes())
+                .SelectMany(ass => { try { return ass.GetTypes(); } catch { return Array.Empty<Type>(); } })
                 .Where(x => x.IsAssignableTo(typeof(T)))
                 .Where(x => x.IsClass && !x.IsAbstract)
                 .Where(x => x.IsAssignableTo(typeof(TInput)) || x.IsAssignableTo(typeof(TOutput)))
