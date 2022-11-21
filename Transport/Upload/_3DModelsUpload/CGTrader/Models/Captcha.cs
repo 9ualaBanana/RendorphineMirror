@@ -2,12 +2,12 @@
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
 
-public sealed class CGTraderCaptcha
+public sealed class Captcha
 {
     readonly string _asBase64;
 
     public readonly string SiteKey;
-    public readonly CGTraderCaptchaConfiguration Configuration;
+    public readonly CaptchaConfiguration Configuration;
     // make lateinit
     public string? VerfiedToken { get; internal set; }
 
@@ -15,10 +15,10 @@ public sealed class CGTraderCaptcha
 
     #region Initialization
 
-    internal static CGTraderCaptcha _FromBase64String(string? captcha, string siteKey, CGTraderCaptchaConfiguration configuration) =>
+    internal static Captcha _FromBase64String(string? captcha, string siteKey, CaptchaConfiguration configuration) =>
         new(captcha ?? string.Empty, siteKey, configuration);
 
-    CGTraderCaptcha(string captchaAsBase64, string siteKey, CGTraderCaptchaConfiguration configuration)
+    Captcha(string captchaAsBase64, string siteKey, CaptchaConfiguration configuration)
     {
         _asBase64 = captchaAsBase64;
         SiteKey = siteKey;
@@ -33,7 +33,7 @@ public sealed class CGTraderCaptcha
 
     #region Casts
 
-    public static implicit operator string(CGTraderCaptcha captcha) => captcha._asBase64;
+    public static implicit operator string(Captcha captcha) => captcha._asBase64;
 
     #endregion
 }

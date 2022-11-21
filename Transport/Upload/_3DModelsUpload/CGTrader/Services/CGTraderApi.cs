@@ -1,7 +1,8 @@
 ﻿using Common;
+using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
 using NLog;
-using System.Net.Http;
+using System.Net;
 using System.Net.Http.Json;
 using Transport.Models;
 using Transport.Upload._3DModelsUpload.CGTrader.Models;
@@ -24,8 +25,9 @@ internal class CGTraderApi : IBaseAddressProvider
         _captchaService = new(httpClient);
     }
 
+    #region SessionCredentials
 
-    internal async Task<(string CSRFToken, CGTraderCaptcha Captcha)> _RequestSessionCredentialsAsync(CancellationToken cancellationToken)
+    internal async Task<(string CSRFToken, Captcha Captcha)> _RequestSessionCredentialsAsync(CancellationToken cancellationToken)
     {
         try { return await _RequestSessionCredentialAsyncCore(cancellationToken); }
         catch (Exception ex)
@@ -35,7 +37,7 @@ internal class CGTraderApi : IBaseAddressProvider
         }
     }
 
-    async Task<(string CSRFToken, CGTraderCaptcha Captcha)> _RequestSessionCredentialAsyncCore(CancellationToken cancellationToken)
+    async Task<(string CSRFToken, Captcha Captcha)> _RequestSessionCredentialAsyncCore(CancellationToken cancellationToken)
     {
         string htmlWithSessionCredentials = (await _httpClient.GetStringAsync(
             (this as IBaseAddressProvider).Endpoint("/load-services.js"), cancellationToken)
@@ -46,9 +48,9 @@ internal class CGTraderApi : IBaseAddressProvider
         return (csrfToken, captcha);
     }
 
+    #endregion
+
     #region CSRFToken
-
-
 
     internal async Task<string> _RequestCsrfTokenAsync(CancellationToken cancellationToken)
     {
@@ -62,7 +64,10 @@ internal class CGTraderApi : IBaseAddressProvider
 
     async Task<string> _RequestCsrfTokenAsyncCore(CancellationToken cancellationToken)
     {
-        string htmlWithSessionCredentials = await _httpClient.GetStringAsync((this as IBaseAddressProvider).Endpoint("/load-services.js"), cancellationToken);
+        string htmlWithSessionCredentials = await _httpClient.GetStringAsync(
+            (this as IBaseAddressProvider).Endpoint("/load-services.js"),
+            cancellationToken
+            );
         return _ParseCsrfTokenFrom(htmlWithSessionCredentials);
     }
 
@@ -103,21 +108,24 @@ internal class CGTraderApi : IBaseAddressProvider
             $"The value of {nameof(credential.Captcha)} can't be null when trying to login."
             );
 
-        using var response = await _httpClient.PostAsync((this as IBaseAddressProvider).Endpoint("/users/2fa-or-login.json"),
-            await credential._AsMultipartFormDataContentAsyncUsing(_captchaService, cancellationToken),
-            cancellationToken
-            );
-        await response._EnsureSuccessLoginAsync(cancellationToken);
+        using (var response = await _httpClient.PostAsync((this as IBaseAddressProvider).Endpoint("/users/2fa-or-login.json"),
+            await credential._AsMultipartFormDataContentAsyncUsing(_captchaService, cancellationToken), cancellationToken))
+        { await response._EnsureSuccessLoginAsync(cancellationToken); }
+
+        using (var response = await _httpClient.GetAsync((this as IBaseAddressProvider).Endpoint("/users/login"), cancellationToken))
+        { response.EnsureSuccessStatusCode(); }
     }
 
     #endregion
 
-    #region ModelFilesUpload
+    #region ModelAssetsUpload
 
-    /// <returns>ID of the newly created model draft.</returns>
-    internal async Task<int> _CreateNewModelDraftAsync(CancellationToken cancellationToken)
+    #region DraftCreation
+
+    /// <inheritdoc cref="__CreateNewModelDraftAsync(CancellationToken)"/>
+    internal async Task<string> _CreateNewModelDraftAsync(CancellationToken cancellationToken)
     {
-        try { return await _CreateNewModelDraftAsyncCore(cancellationToken); }
+        try { return await __CreateNewModelDraftAsync(cancellationToken); }
         catch (Exception ex)
         {
             const string errorMessage = "New model draft couldn't be created.";
@@ -125,53 +133,163 @@ internal class CGTraderApi : IBaseAddressProvider
         }
     }
 
-    async Task<int> _CreateNewModelDraftAsyncCore(CancellationToken cancellationToken)
+    /// <returns>ID of the newly created model draft.</returns>
+    async Task<string> __CreateNewModelDraftAsync(CancellationToken cancellationToken)
     {
-        string response = await _httpClient.GetStringAsync(
-            (this as IBaseAddressProvider).Endpoint($"/api/internal/items/current-draft/cg?nocache={CaptchaRequestArguments.rt}"), cancellationToken);
-        var responseJson = JObject.Parse(response);
+        await _InitializeUploadSessionAsync(cancellationToken);
+        //await _SwitchProtocolAsync(cancellationToken);
+        string modelDraftId = await _CreateNewModelDraftAsyncCore(cancellationToken);
+        await _IdentifyUserAsync(cancellationToken);
 
-        var modelDraftId = (int)responseJson["data"]!["id"]!;
         return modelDraftId;
     }
 
-    internal async Task _UploadModelFilesAsyncOf(Composite3DModel composite3DModel, int modelDraftId, CancellationToken cancellationToken)
+    async Task _InitializeUploadSessionAsync(CancellationToken cancellationToken) =>
+        (await _httpClient.GetAsync(
+            (this as IBaseAddressProvider).Endpoint("/profile/upload/model"), cancellationToken)
+        ).EnsureSuccessStatusCode();
+
+    async Task _SwitchProtocolAsync(CancellationToken cancellationToken) =>
+        (await _httpClient.GetAsync(
+            (this as IBaseAddressProvider).Endpoint("/cable"))
+        ).EnsureSuccessStatusCode();
+
+    async Task<string> _CreateNewModelDraftAsyncCore(CancellationToken cancellationToken)
+    {
+        string response = await _httpClient.GetStringAsync(
+            (this as IBaseAddressProvider).Endpoint($"/api/internal/items/current-draft/cg?nocache={CaptchaRequestArguments.rt}"),
+            cancellationToken
+            );
+        return (string)JObject.Parse(response)["data"]!["id"]!;
+    }
+
+    async Task _IdentifyUserAsync(CancellationToken cancellationToken)
+    {
+        string requestUri = QueryHelpers.AddQueryString("https://cgtrader.zendesk.com/embeddable_identify", new Dictionary<string, string>()
+        {
+            { "type", "user" },
+            { "data", Guid.NewGuid().ToString() }
+        });
+        (await _httpClient.GetAsync(requestUri)).EnsureSuccessStatusCode();
+    }
+
+    #endregion
+
+    #region Upload
+
+    internal async Task _UploadModelAssetsAsyncOf(Composite3DModel composite3DModel, string modelDraftId, CancellationToken cancellationToken)
     {
         foreach (var _3DModel in composite3DModel._3DModels)
             foreach (var modelPart in _3DModel.Files())
                 await _UploadModelFileAsync(modelPart, modelDraftId, cancellationToken);
 
         foreach (var preview in composite3DModel.Previews)
-            await _UploadModelPreviewImageAsyncCore(preview, modelDraftId, cancellationToken);
+            await _UploadModelPreviewImageAsync(preview, modelDraftId, cancellationToken);
     }
 
-    async Task _UploadModelFileAsync(string filePath, int modelDraftId, CancellationToken cancellationToken)
+    #region ModelFileUpload
+
+    async Task _UploadModelFileAsync(string filePath, string modelDraftId, CancellationToken cancellationToken)
     {
-        try { await _UploadModelFileAsyncCore(filePath, modelDraftId, cancellationToken); }
+        try { await __UploadModelFileAsync(filePath, modelDraftId, cancellationToken); }
         catch (HttpRequestException ex)
         {
             string errorMessage = $"Model file couldn't be uploaded. ({filePath})";
             throw new HttpRequestException(errorMessage, ex, ex.StatusCode); }
     }
 
-    async Task _UploadModelFileAsyncCore(string filePath, int modelDraftId, CancellationToken cancellationToken)
+    async Task __UploadModelFileAsync(string filePath, string modelDraftId, CancellationToken cancellationToken)
     {
-        using var modelFileStream = File.OpenRead(filePath);
-        var response = await _httpClient.PostAsync((this as IBaseAddressProvider).Endpoint($"/profile/items/{modelDraftId}/uploads"),
-            modelFileStream._ToModelFileMultipartFormDataContent(), cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var responseJson = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        var modelFileUploadSessionData = await _RequestModelFileUploadSessionDataAsyncFor(
+            File.OpenRead(filePath),
+            modelDraftId,
+            cancellationToken);
 
-        string fileName = Path.GetFileName(filePath);
-        response = await _httpClient.PutAsJsonAsync((this as IBaseAddressProvider).Endpoint($"/api/internal/items/{modelDraftId}/item_files/{(int)responseJson["id"]!}"), new
-        {
-            key = $"uploads/files/{modelDraftId}/{fileName}",
-            filename = fileName,
-            filesize = modelFileStream.Length
-        }, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await _UploadModelFileAsyncCore(modelFileUploadSessionData, cancellationToken);
+
+        //// edit file metadata.
+        //var response = await _httpClient.PutAsJsonAsync((this as IBaseAddressProvider).Endpoint($"/api/internal/items/{modelDraftId}/item_files/{(int)responseJson["id"]!}"), new
+        //{
+        //    key = $"uploads/files/{modelDraftId}/{fileName}",
+        //    filename = fileName,
+        //    filesize = modelFileStream.Length
+        //}, cancellationToken);
+        //response.EnsureSuccessStatusCode();
     }
 
+    async Task<ModelFileUploadSessionData> _RequestModelFileUploadSessionDataAsyncFor(
+        FileStream modelFileStream,
+        string modelDraftId,
+        CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.PostAsync((this as IBaseAddressProvider).Endpoint($"/profile/items/{modelDraftId}/uploads"),
+            modelFileStream._ToModelFileMultipartFormDataContent(), cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var fileUploadSessionDataJson = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        var fileUploadReceiverDataJson = fileUploadSessionDataJson["storage"]!;
+
+        return new ModelFileUploadSessionData(
+            modelFileStream, modelDraftId,
+            (string)fileUploadSessionDataJson["id"]!,
+            (string)fileUploadSessionDataJson["storageLocation"]!,
+            (string)fileUploadReceiverDataJson["key"]!,
+            (string)fileUploadReceiverDataJson["awsAccessKeyId"]!,
+            (string)fileUploadReceiverDataJson["acl"]!,
+            (string)fileUploadReceiverDataJson["policy"]!,
+            (string)fileUploadReceiverDataJson["signature"]!,
+            (HttpStatusCode)(int)fileUploadReceiverDataJson["success_action_status"]!);
+    }
+
+    async Task _UploadModelFileAsyncCore(ModelFileUploadSessionData fileUploadSessionData, CancellationToken cancellationToken) =>
+        (await _httpClient.PostAsync(
+            fileUploadSessionData.StorageHost,
+            fileUploadSessionData._AsMultipartFormDataContent,
+            cancellationToken)
+        ).EnsureSuccessStatusCode();
+
+    #endregion
+
+    #region ModelPreviewUpload
+
+    async Task _UploadModelPreviewImageAsync(
+        string filePath,
+        string modelDraftId,
+        CancellationToken cancellationToken) => await _UploadModelPreviewImageAsync(
+            new(File.OpenRead(filePath), modelDraftId), cancellationToken
+            );
+
+    async Task _UploadModelPreviewImageAsync(ModelPreview modelPreview, CancellationToken cancellationToken)
+    {
+        try { await _UploadModelPreviewImageAsyncCore(modelPreview, cancellationToken); }
+        catch (Exception ex)
+        {
+            const string errorMessage = "Model preview couldn't be uploaded.";
+            _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex); }
+    }
+
+    async Task _UploadModelPreviewImageAsyncCore(ModelPreview modelPreview, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.PostAsJsonAsync((this as IBaseAddressProvider).Endpoint("/api/internal/direct-uploads/item-images"), new
+        {
+            blob = new
+            {
+                checksum = await modelPreview.ChecksumAsync(cancellationToken),
+                filename = modelPreview.FileName,
+                content_type = modelPreview.MimeType.MediaType,
+                byte_size = modelPreview.FileStream.Length
+            }
+        }, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var uploadedPreviewImageAttributesJson = JObject.Parse(
+            await response.Content.ReadAsStringAsync(cancellationToken)
+            )["data"]!["attributes"]!;
+
+        modelPreview.SignedFileID = (string)uploadedPreviewImageAttributesJson["signedBlobId"]!;
+        modelPreview.LocationOnServer = (string)uploadedPreviewImageAttributesJson["url"]!;
+    }
+
+    // Deprecated but contains extra parameters in query string so maybe that's why I get 422 now when I don't pass it as the argument anymore,
     internal async Task _UploadModelPreviewImageAsyncCore(string filePath, int modelDraftId, CancellationToken cancellationToken)
     {
         string fileName = Path.GetFileName(filePath);
@@ -202,6 +320,10 @@ internal class CGTraderApi : IBaseAddressProvider
     }
 
     #endregion
+
+    #endregion
+
+    #endregion
 }
 
 static class Extensions
@@ -219,8 +341,7 @@ static class Extensions
 
     internal static MultipartFormDataContent _ToModelFileMultipartFormDataContent(this FileStream fileStream) => new()
     {
-        { new StringContent(Path.GetFileName(fileStream.Name)), "filename" },
-        //{ new StreamContent(fileStream), "filename", Path.GetFileName(fileStream.Name) },
-        { new StringContent("file"), "type" }
+        { new StringContent(Path.GetFileName(fileStream.Name), encoding: default ), "\"filename\"" },
+        { new StringContent("file"), "\"type\"" }
     };
 }

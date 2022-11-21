@@ -28,8 +28,8 @@ internal class CGTrader3DModelUploader : _3DModelUploaderBase<CGTrader3DModelMet
         }
 
         await _api._LoginAsync(credential, cancellationToken);
-        int modelDraftId = await _api._CreateNewModelDraftAsync(cancellationToken);
-        await _api._UploadModelFilesAsyncOf(composite3DModel, modelDraftId, cancellationToken);
+        string modelDraftId = await _api._CreateNewModelDraftAsync(cancellationToken);
+        await _api._UploadModelAssetsAsyncOf(composite3DModel, modelDraftId, cancellationToken);
     }
 }
 

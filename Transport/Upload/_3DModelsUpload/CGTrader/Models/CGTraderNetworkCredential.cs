@@ -9,7 +9,7 @@ public sealed class CGTraderNetworkCredential : NetworkCredential
     // make lateinit
     public string? CsrfToken { get; internal set; }
     // make lateinit
-    public CGTraderCaptcha? Captcha { get; internal set; }
+    public Captcha? Captcha { get; internal set; }
     string _RememberMe => _rememberMe ? "on" : "off";
     bool _rememberMe;
 

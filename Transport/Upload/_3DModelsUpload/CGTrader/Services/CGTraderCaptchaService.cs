@@ -20,7 +20,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
     }
 
 
-    internal async Task<CGTraderCaptcha> _RequestCaptchaAsync(
+    internal async Task<Captcha> _RequestCaptchaAsync(
         string htmlWithSessionCredentials,
         CancellationToken cancellationToken)
     {
@@ -51,15 +51,15 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
 
     #region Request
 
-    async Task<CGTraderCaptcha> _RequestCaptchaAsyncCore(string siteKey, CancellationToken cancellationToken)
+    async Task<Captcha> _RequestCaptchaAsyncCore(string siteKey, CancellationToken cancellationToken)
     {
         var configuration = await _RequestCaptchaConfigurationsAsync(siteKey, cancellationToken);
-        return CGTraderCaptcha._FromBase64String(
+        return Captcha._FromBase64String(
             await _RequestCaptchaImageAsBase64Async(siteKey, configuration, cancellationToken),
             siteKey, configuration);
     }
 
-    async Task<CGTraderCaptchaConfiguration> _RequestCaptchaConfigurationsAsync(
+    async Task<CaptchaConfiguration> _RequestCaptchaConfigurationsAsync(
         string siteKey,
         CancellationToken cancellationToken)
     {
@@ -85,9 +85,9 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
         var captchaConfiguration = responseWithCaptchaConfiguration._Result()["challenge"]!;
         var foldChallengeConfiguration = captchaConfiguration["foldChlg"]!;
 
-        return new CGTraderCaptchaConfiguration(
+        return new CaptchaConfiguration(
             (string)captchaConfiguration["ct"]!,
-            new CGTraderCaptchaFoldChallenge(
+            new CaptchaFoldChallenge(
                 (string)foldChallengeConfiguration["fseed"]!,
                 (int)foldChallengeConfiguration["fslots"]!,
                 (int)foldChallengeConfiguration["fdepth"]!
@@ -97,7 +97,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
 
     async Task<string> _RequestCaptchaImageAsBase64Async(
         string siteKey,
-        CGTraderCaptchaConfiguration configuration,
+        CaptchaConfiguration configuration,
         CancellationToken cancellationToken)
     {
         var requestUri = QueryHelpers.AddQueryString((this as IBaseAddressProvider).Endpoint("/getimage.json"),
@@ -119,7 +119,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
 
     #region Solving
 
-    internal async ValueTask<string> _SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
+    internal async ValueTask<string> _SolveCaptchaAsync(Captcha captcha, CancellationToken cancellationToken)
     {
         if (captcha.VerfiedToken is null)
         {
@@ -134,7 +134,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
         .ThrowIfError("Could not get captcha user input: {0}");
 
     /// <returns>Verified token.</returns>
-    async Task<string> _VerifyCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
+    async Task<string> _VerifyCaptchaAsync(Captcha captcha, CancellationToken cancellationToken)
     {
         if (captcha.UserGuess is null) throw new ArgumentNullException(
             nameof(captcha.UserGuess),

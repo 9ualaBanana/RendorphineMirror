@@ -1,6 +1,6 @@
 ﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
 
-public record CGTraderCaptchaFoldChallenge(string Seed, int Slots, int Depth)
+public record CaptchaFoldChallenge(string Seed, int Slots, int Depth)
 {
     readonly int[] URLSafeBase64CharCode2IntMap =
     {
