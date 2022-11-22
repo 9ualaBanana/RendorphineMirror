@@ -5,17 +5,17 @@ using NLog;
 using System.Net;
 using System.Net.Http.Json;
 using Transport.Models;
-using Transport.Upload._3DModelsUpload.CGTrader.Models;
-using Transport.Upload._3DModelsUpload.Models;
+using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
+using Transport.Upload._3DModelsUpload.CGTrader.Captcha;
 
-namespace Transport.Upload._3DModelsUpload.CGTrader.Services;
+namespace Transport.Upload._3DModelsUpload.CGTrader.Api;
 
 internal class CGTraderApi : IBaseAddressProvider
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
     readonly HttpClient _httpClient;
-    readonly CGTraderCaptchaService _captchaService;
+    readonly CGTraderCaptchaApi _captchaService;
 
     string IBaseAddressProvider.BaseAddress => CGTraderUri.Https;
 
@@ -27,7 +27,7 @@ internal class CGTraderApi : IBaseAddressProvider
 
     #region SessionCredentials
 
-    internal async Task<(string CSRFToken, Captcha Captcha)> _RequestSessionCredentialsAsync(CancellationToken cancellationToken)
+    internal async Task<(string CSRFToken, CGTraderCaptcha Captcha)> _RequestSessionCredentialsAsync(CancellationToken cancellationToken)
     {
         try { return await _RequestSessionCredentialAsyncCore(cancellationToken); }
         catch (Exception ex)
@@ -37,7 +37,7 @@ internal class CGTraderApi : IBaseAddressProvider
         }
     }
 
-    async Task<(string CSRFToken, Captcha Captcha)> _RequestSessionCredentialAsyncCore(CancellationToken cancellationToken)
+    async Task<(string CSRFToken, CGTraderCaptcha Captcha)> _RequestSessionCredentialAsyncCore(CancellationToken cancellationToken)
     {
         string htmlWithSessionCredentials = (await _httpClient.GetStringAsync(
             (this as IBaseAddressProvider).Endpoint("/load-services.js"), cancellationToken)
@@ -112,8 +112,8 @@ internal class CGTraderApi : IBaseAddressProvider
             await credential._AsMultipartFormDataContentAsyncUsing(_captchaService, cancellationToken), cancellationToken))
         { await response._EnsureSuccessLoginAsync(cancellationToken); }
 
-        using (var response = await _httpClient.GetAsync((this as IBaseAddressProvider).Endpoint("/users/login"), cancellationToken))
-        { response.EnsureSuccessStatusCode(); }
+        //using (var response = await _httpClient.GetAsync((this as IBaseAddressProvider).Endpoint("/users/login"), cancellationToken))
+        //{ response.EnsureSuccessStatusCode(); }
     }
 
     #endregion
@@ -136,7 +136,7 @@ internal class CGTraderApi : IBaseAddressProvider
     /// <returns>ID of the newly created model draft.</returns>
     async Task<string> __CreateNewModelDraftAsync(CancellationToken cancellationToken)
     {
-        await _InitializeUploadSessionAsync(cancellationToken);
+        //await _InitializeUploadSessionAsync(cancellationToken);
         //await _SwitchProtocolAsync(cancellationToken);
         string modelDraftId = await _CreateNewModelDraftAsyncCore(cancellationToken);
         await _IdentifyUserAsync(cancellationToken);
@@ -180,10 +180,10 @@ internal class CGTraderApi : IBaseAddressProvider
     internal async Task _UploadModelAssetsAsyncOf(Composite3DModel composite3DModel, string modelDraftId, CancellationToken cancellationToken)
     {
         foreach (var _3DModel in composite3DModel._3DModels)
-            foreach (var modelPart in _3DModel.Files())
+            foreach (var modelPart in _3DModel.Files)
                 await _UploadModelFileAsync(modelPart, modelDraftId, cancellationToken);
 
-        foreach (var preview in composite3DModel.Previews)
+        foreach (var preview in composite3DModel.PreviewImages)
             await _UploadModelPreviewImageAsync(preview, modelDraftId, cancellationToken);
     }
 
@@ -195,7 +195,8 @@ internal class CGTraderApi : IBaseAddressProvider
         catch (HttpRequestException ex)
         {
             string errorMessage = $"Model file couldn't be uploaded. ({filePath})";
-            throw new HttpRequestException(errorMessage, ex, ex.StatusCode); }
+            throw new HttpRequestException(errorMessage, ex, ex.StatusCode);
+        }
     }
 
     async Task __UploadModelFileAsync(string filePath, string modelDraftId, CancellationToken cancellationToken)
@@ -217,19 +218,21 @@ internal class CGTraderApi : IBaseAddressProvider
         //response.EnsureSuccessStatusCode();
     }
 
-    async Task<ModelFileUploadSessionData> _RequestModelFileUploadSessionDataAsyncFor(
+    async Task<CGTrader3DModelFileUploadSessionData> _RequestModelFileUploadSessionDataAsyncFor(
         FileStream modelFileStream,
         string modelDraftId,
         CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.PostAsync((this as IBaseAddressProvider).Endpoint($"/profile/items/{modelDraftId}/uploads"),
-            modelFileStream._ToModelFileMultipartFormDataContent(), cancellationToken);
+        using var response = await _httpClient.PostAsync(
+            (this as IBaseAddressProvider).Endpoint($"/profile/items/{modelDraftId}/uploads"),
+            modelFileStream._ToModelFileMultipartFormDataContent(),
+            cancellationToken);
         response.EnsureSuccessStatusCode();
 
         var fileUploadSessionDataJson = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         var fileUploadReceiverDataJson = fileUploadSessionDataJson["storage"]!;
 
-        return new ModelFileUploadSessionData(
+        return new CGTrader3DModelFileUploadSessionData(
             modelFileStream, modelDraftId,
             (string)fileUploadSessionDataJson["id"]!,
             (string)fileUploadSessionDataJson["storageLocation"]!,
@@ -241,7 +244,7 @@ internal class CGTraderApi : IBaseAddressProvider
             (HttpStatusCode)(int)fileUploadReceiverDataJson["success_action_status"]!);
     }
 
-    async Task _UploadModelFileAsyncCore(ModelFileUploadSessionData fileUploadSessionData, CancellationToken cancellationToken) =>
+    async Task _UploadModelFileAsyncCore(CGTrader3DModelFileUploadSessionData fileUploadSessionData, CancellationToken cancellationToken) =>
         (await _httpClient.PostAsync(
             fileUploadSessionData.StorageHost,
             fileUploadSessionData._AsMultipartFormDataContent,
@@ -259,16 +262,17 @@ internal class CGTraderApi : IBaseAddressProvider
             new(File.OpenRead(filePath), modelDraftId), cancellationToken
             );
 
-    async Task _UploadModelPreviewImageAsync(ModelPreview modelPreview, CancellationToken cancellationToken)
+    async Task _UploadModelPreviewImageAsync(CGTrader3DModelPreviewImage modelPreview, CancellationToken cancellationToken)
     {
         try { await _UploadModelPreviewImageAsyncCore(modelPreview, cancellationToken); }
         catch (Exception ex)
         {
             const string errorMessage = "Model preview couldn't be uploaded.";
-            _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex); }
+            _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
+        }
     }
 
-    async Task _UploadModelPreviewImageAsyncCore(ModelPreview modelPreview, CancellationToken cancellationToken)
+    async Task _UploadModelPreviewImageAsyncCore(CGTrader3DModelPreviewImage modelPreview, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.PostAsJsonAsync((this as IBaseAddressProvider).Endpoint("/api/internal/direct-uploads/item-images"), new
         {
@@ -339,9 +343,10 @@ static class Extensions
             throw new HttpRequestException("The value of `success` field in the response is not `true`.");
     }
 
-    internal static MultipartFormDataContent _ToModelFileMultipartFormDataContent(this FileStream fileStream) => new()
+    internal static MultipartFormDataContent _ToModelFileMultipartFormDataContent(this FileStream fileStream)
     {
-        { new StringContent(Path.GetFileName(fileStream.Name), encoding: default ), "\"filename\"" },
-        { new StringContent("file"), "\"type\"" }
-    };
+        var filename = new StringContent(Path.GetFileName(fileStream.Name)); filename.Headers.ContentType = null;
+        var type = new StringContent("file"); type.Headers.ContentType = null;
+        return new MultipartFormDataContent() { { filename, "\"filename\"" }, { type, "\"type\"" } };
+    }
 }

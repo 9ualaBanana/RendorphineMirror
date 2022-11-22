@@ -1,11 +1,10 @@
-﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
+﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Api;
 
 internal static class CaptchaRequestArguments
 {
     // Unknown stub value.
     internal const string act = "$";
-    internal const string bd = CGTraderUri.WWW;
-    internal const string fa = "oyZkseZDqpALjhLLufd0z09AYN-5ZUZsJ2TZzKTK36qCBphMmKvdHtsBNXKn";
+    internal const string bd = CGTraderUri.www;
     // Unknown stub value.
     internal const string kt = "ApQXr3vpUvPSza6Qk3hJhsWpxZ8Y1n5Rg2_E7RJ2YHZakEYjREQVrCxCSKXdXZM6";
     // Unknown stub value.

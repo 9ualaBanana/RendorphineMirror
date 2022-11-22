@@ -1,15 +1,16 @@
 ﻿using System.Net;
 using System.Security;
-using Transport.Upload._3DModelsUpload.CGTrader.Services;
+using Transport.Upload._3DModelsUpload.CGTrader.Api;
+using Transport.Upload._3DModelsUpload.CGTrader.Captcha;
 
-namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
+namespace Transport.Upload._3DModelsUpload.CGTrader;
 
 public sealed class CGTraderNetworkCredential : NetworkCredential
 {
     // make lateinit
     public string? CsrfToken { get; internal set; }
     // make lateinit
-    public Captcha? Captcha { get; internal set; }
+    public CGTraderCaptcha? Captcha { get; internal set; }
     string _RememberMe => _rememberMe ? "on" : "off";
     bool _rememberMe;
 
@@ -28,7 +29,7 @@ public sealed class CGTraderNetworkCredential : NetworkCredential
 
 
     internal async ValueTask<MultipartFormDataContent> _AsMultipartFormDataContentAsyncUsing(
-        CGTraderCaptchaService captchaService,
+        CGTraderCaptchaApi captchaService,
         CancellationToken cancellationToken)
     {
         if (CsrfToken is null)

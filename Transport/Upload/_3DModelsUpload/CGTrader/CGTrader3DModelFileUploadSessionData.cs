@@ -1,8 +1,8 @@
 ﻿using System.Net;
 
-namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
+namespace Transport.Upload._3DModelsUpload.CGTrader;
 
-internal record ModelFileUploadSessionData(
+internal record CGTrader3DModelFileUploadSessionData(
     FileStream FileStream,
     string ModelDraftID,
     string FileID,

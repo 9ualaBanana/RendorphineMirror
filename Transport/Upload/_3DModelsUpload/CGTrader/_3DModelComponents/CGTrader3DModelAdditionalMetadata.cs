@@ -1,6 +1,6 @@
-﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
+﻿namespace Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 
-public record AdditionalInfo(
+public record CGTrader3DModelAdditionalMetadata(
     int? Polygons = null,
     int? Vertices = null,
     GeometryType? GeometryType = null,

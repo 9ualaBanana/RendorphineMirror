@@ -3,24 +3,24 @@ using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
 using NodeToUI;
 using Transport.Models;
-using Transport.Upload._3DModelsUpload.CGTrader.Models;
+using Transport.Upload._3DModelsUpload.CGTrader.Captcha;
 
-namespace Transport.Upload._3DModelsUpload.CGTrader.Services;
+namespace Transport.Upload._3DModelsUpload.CGTrader.Api;
 
-internal class CGTraderCaptchaService : IBaseAddressProvider
+internal class CGTraderCaptchaApi : IBaseAddressProvider
 {
     readonly HttpClient _httpClient;
 
     string IBaseAddressProvider.BaseAddress => "https://service.mtcaptcha.com/mtcv1/api/";
 
 
-    internal CGTraderCaptchaService(HttpClient httpClient)
+    internal CGTraderCaptchaApi(HttpClient httpClient)
     {
         _httpClient = httpClient;
     }
 
 
-    internal async Task<Captcha> _RequestCaptchaAsync(
+    internal async Task<CGTraderCaptcha> _RequestCaptchaAsync(
         string htmlWithSessionCredentials,
         CancellationToken cancellationToken)
     {
@@ -51,15 +51,15 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
 
     #region Request
 
-    async Task<Captcha> _RequestCaptchaAsyncCore(string siteKey, CancellationToken cancellationToken)
+    async Task<CGTraderCaptcha> _RequestCaptchaAsyncCore(string siteKey, CancellationToken cancellationToken)
     {
         var configuration = await _RequestCaptchaConfigurationsAsync(siteKey, cancellationToken);
-        return Captcha._FromBase64String(
+        return CGTraderCaptcha._FromBase64String(
             await _RequestCaptchaImageAsBase64Async(siteKey, configuration, cancellationToken),
             siteKey, configuration);
     }
 
-    async Task<CaptchaConfiguration> _RequestCaptchaConfigurationsAsync(
+    async Task<CGTraderCaptchaConfiguration> _RequestCaptchaConfigurationsAsync(
         string siteKey,
         CancellationToken cancellationToken)
     {
@@ -85,9 +85,9 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
         var captchaConfiguration = responseWithCaptchaConfiguration._Result()["challenge"]!;
         var foldChallengeConfiguration = captchaConfiguration["foldChlg"]!;
 
-        return new CaptchaConfiguration(
+        return new CGTraderCaptchaConfiguration(
             (string)captchaConfiguration["ct"]!,
-            new CaptchaFoldChallenge(
+            new CGTraderCaptchaFoldChallenge(
                 (string)foldChallengeConfiguration["fseed"]!,
                 (int)foldChallengeConfiguration["fslots"]!,
                 (int)foldChallengeConfiguration["fdepth"]!
@@ -97,7 +97,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
 
     async Task<string> _RequestCaptchaImageAsBase64Async(
         string siteKey,
-        CaptchaConfiguration configuration,
+        CGTraderCaptchaConfiguration configuration,
         CancellationToken cancellationToken)
     {
         var requestUri = QueryHelpers.AddQueryString((this as IBaseAddressProvider).Endpoint("/getimage.json"),
@@ -119,7 +119,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
 
     #region Solving
 
-    internal async ValueTask<string> _SolveCaptchaAsync(Captcha captcha, CancellationToken cancellationToken)
+    internal async ValueTask<string> _SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
     {
         if (captcha.VerfiedToken is null)
         {
@@ -134,7 +134,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
         .ThrowIfError("Could not get captcha user input: {0}");
 
     /// <returns>Verified token.</returns>
-    async Task<string> _VerifyCaptchaAsync(Captcha captcha, CancellationToken cancellationToken)
+    async Task<string> _VerifyCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
     {
         if (captcha.UserGuess is null) throw new ArgumentNullException(
             nameof(captcha.UserGuess),
@@ -171,7 +171,7 @@ internal class CGTraderCaptchaService : IBaseAddressProvider
         if (!(bool)verifiedToken["isVerified"]!) throw new UnauthorizedAccessException(
             $"The {nameof(captcha)} didn't pass verification."
             );
-        else  return (string)verifiedToken["verifiedToken"]!["vt"]!;
+        else return (string)verifiedToken["verifiedToken"]!["vt"]!;
     }
 
     #endregion

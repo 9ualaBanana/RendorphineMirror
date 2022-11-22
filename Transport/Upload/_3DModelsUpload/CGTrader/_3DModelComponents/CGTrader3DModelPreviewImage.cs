@@ -2,9 +2,9 @@
 using System.Net.Mime;
 using System.Security.Cryptography;
 
-namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
+namespace Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 
-internal record ModelPreview
+internal record CGTrader3DModelPreviewImage
 {
     internal readonly FileStream FileStream;
     internal string FileName => Path.GetFileName(FileStream.Name);
@@ -62,7 +62,7 @@ internal record ModelPreview
     }
     string? _locationOnServer;
 
-    internal ModelPreview(
+    internal CGTrader3DModelPreviewImage(
         FileStream fileStream,
         string modelDraftId)
     {

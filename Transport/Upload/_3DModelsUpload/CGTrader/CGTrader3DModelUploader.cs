@@ -1,9 +1,8 @@
 ﻿using System.Net.Http.Headers;
-using Transport.Upload._3DModelsUpload.CGTrader.Models;
-using Transport.Upload._3DModelsUpload.Models;
-using Transport.Upload._3DModelsUpload.Services;
+using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
+using Transport.Upload._3DModelsUpload.CGTrader.Api;
 
-namespace Transport.Upload._3DModelsUpload.CGTrader.Services;
+namespace Transport.Upload._3DModelsUpload.CGTrader;
 
 internal class CGTrader3DModelUploader : _3DModelUploaderBase<CGTrader3DModelMetadata>
 {

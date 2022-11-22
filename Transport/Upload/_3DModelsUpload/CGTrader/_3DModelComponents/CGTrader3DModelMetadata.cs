@@ -1,6 +1,4 @@
-﻿using Transport.Upload._3DModelsUpload.Models;
-
-namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
+﻿namespace Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 
 public class CGTrader3DModelMetadata : _3DModelMetadata
 {
@@ -31,7 +29,7 @@ public class CGTrader3DModelMetadata : _3DModelMetadata
     public bool? GameReady { get; }
     public bool? Animated { get; }
     public bool? Rigged { get; }
-    public AdditionalInfo? Info { get; }
+    public CGTrader3DModelAdditionalMetadata? Info { get; }
 
     #region Initialization
 
@@ -46,7 +44,7 @@ public class CGTrader3DModelMetadata : _3DModelMetadata
      bool gameReady = false,
      bool animated = false,
      bool rigged = false,
-     AdditionalInfo? info = null) => new(
+     CGTrader3DModelAdditionalMetadata? info = null) => new(
          title,
          description,
          tags,
@@ -72,7 +70,7 @@ public class CGTrader3DModelMetadata : _3DModelMetadata
         bool gameReady = false,
         bool animated = false,
         bool rigged = false,
-        AdditionalInfo? info = null) => new(
+        CGTrader3DModelAdditionalMetadata? info = null) => new(
             title,
             description,
             tags,
@@ -136,7 +134,7 @@ public class CGTrader3DModelMetadata : _3DModelMetadata
         bool? gameReady = null,
         bool? animated = null,
         bool? rigged = null,
-        AdditionalInfo? info = null)
+        CGTrader3DModelAdditionalMetadata? info = null)
     {
         Title = title;
         Description = description;

@@ -1,7 +1,6 @@
-﻿using Transport.Upload._3DModelsUpload.CGTrader.Models;
-using Transport.Upload._3DModelsUpload.Models;
+﻿using Transport.Upload._3DModelsUpload.CGTrader;
 
-namespace Transport.Upload._3DModelsUpload.Services;
+namespace Transport.Upload._3DModelsUpload;
 
 internal abstract class _3DModelUploaderBase<TMetadata> where TMetadata : _3DModelMetadata
 {

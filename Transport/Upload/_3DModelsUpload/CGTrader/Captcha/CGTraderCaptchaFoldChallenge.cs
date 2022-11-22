@@ -1,6 +1,6 @@
-﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Models;
+﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Captcha;
 
-public record CaptchaFoldChallenge(string Seed, int Slots, int Depth)
+public record CGTraderCaptchaFoldChallenge(string Seed, int Slots, int Depth)
 {
     readonly int[] URLSafeBase64CharCode2IntMap =
     {
@@ -352,7 +352,7 @@ public record CaptchaFoldChallenge(string Seed, int Slots, int Depth)
         if (urlSafeBase4096Int < 0 || urlSafeBase4096Int >= 4096) throw new ArgumentOutOfRangeException(
             nameof(urlSafeBase4096Int), urlSafeBase4096Int, $"{nameof(urlSafeBase4096Int)} must be between 0 and 4095 inclusive."
             );
-        else return String.Concat(
+        else return string.Concat(
             URLSafeBase64IntToChar(urlSafeBase4096Int >> 6),
             URLSafeBase64IntToChar(urlSafeBase4096Int & 63)
             );

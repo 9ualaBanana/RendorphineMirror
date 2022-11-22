@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
 
-namespace Transport.Upload._3DModelsUpload.Models;
+namespace Transport.Upload._3DModelsUpload;
 
 /// <summary>
 /// Wraps either directory or archive in which 3D model parts are stored.
@@ -8,6 +8,52 @@ namespace Transport.Upload._3DModelsUpload.Models;
 public class _3DModel : IDisposable
 {
     public string OriginalPath => _directoryPath is not null ? _directoryPath : _archivePath!;
+
+    #region ContentManagement
+
+    /// <remarks>
+    /// Creates a temporary directory where the files are extracted
+    /// if the <see cref="_3DModel"/> is constructed from an archive.
+    /// </remarks>
+    /// <returns>Paths to files that make up the model.</returns>
+    public IEnumerable<string> Files
+    {
+        get
+        {
+            if (_directoryPath is null)
+            {
+                _directoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                ZipFile.ExtractToDirectory(_archivePath!, _directoryPath); _directoryIsTemp = true;
+            }
+            return Directory.EnumerateFiles(_directoryPath);
+        }
+    }
+    string? _directoryPath;
+
+    public string Archive()
+    {
+        if (_archivePath is not null) return _archivePath;
+
+        DirectoryInfo temp3DModelDirectoryToArchive = new(Path.Combine(
+            Path.GetTempPath(), Path.GetRandomFileName()));
+        temp3DModelDirectoryToArchive.Create();
+
+        foreach (string _3DModelPart in Files)
+        {
+            string _3DModelPartInTempDirectoryToArchive = Path.Combine(
+                temp3DModelDirectoryToArchive.FullName, Path.GetFileName(_3DModelPart));
+            File.Copy(_3DModelPart, _3DModelPartInTempDirectoryToArchive);
+        }
+        _archivePath = Path.ChangeExtension(temp3DModelDirectoryToArchive.FullName, ".zip");
+        temp3DModelDirectoryToArchive.DeleteAfter(
+            () => ZipFile.CreateFromDirectory(temp3DModelDirectoryToArchive.FullName, _archivePath)
+            ); _archiveIsTemp = true;
+
+        return _archivePath;
+    }
+    string? _archivePath;
+
+    #endregion
 
     #region Initialization
 
@@ -30,44 +76,6 @@ public class _3DModel : IDisposable
     readonly static string[] _allowedExtensions = { ".zip", ".rar" };
 
     #endregion
-
-    public string Archive()
-    {
-        if (_archivePath is not null) return _archivePath;
-
-        DirectoryInfo temp3DModelDirectoryToArchive = new(Path.Combine(
-            Path.GetTempPath(), Path.GetRandomFileName()));
-        temp3DModelDirectoryToArchive.Create();
-
-        foreach (string _3DModelPart in Files())
-        {
-            string _3DModelPartInTempDirectoryToArchive = Path.Combine(
-                temp3DModelDirectoryToArchive.FullName, Path.GetFileName(_3DModelPart));
-            File.Copy(_3DModelPart, _3DModelPartInTempDirectoryToArchive);
-        }
-        _archivePath = Path.ChangeExtension(temp3DModelDirectoryToArchive.FullName, ".zip");
-        temp3DModelDirectoryToArchive.DeleteAfter(
-            () => ZipFile.CreateFromDirectory(temp3DModelDirectoryToArchive.FullName, _archivePath)
-            ); _archiveIsTemp = true;
-
-        return _archivePath;
-    }
-    string? _archivePath;
-
-    /// <remarks>
-    /// 
-    /// </remarks>
-    /// <returns>Paths to files that make up the model.</returns>
-    public IEnumerable<string> Files()
-    {
-        if (_directoryPath is null)
-        {
-            _directoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            ZipFile.ExtractToDirectory(_archivePath!, _directoryPath); _directoryIsTemp = true;
-        }
-        return Directory.EnumerateFiles(_directoryPath);
-    }
-    string? _directoryPath;
 
     internal static IEnumerable<_3DModel> _EnumerateIn(string _3DModelDirectory, bool disposeTemps = true)
     {

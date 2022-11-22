@@ -1,21 +1,21 @@
-﻿namespace Transport.Upload._3DModelsUpload.Models;
+﻿namespace Transport.Upload._3DModelsUpload;
 
 public record Composite3DModel : IDisposable
 {
-    public IEnumerable<string> Previews { get; init; }
+    public IEnumerable<string> PreviewImages { get; init; }
     public IEnumerable<_3DModel> _3DModels { get; init; }
 
     #region Initialization
 
     public static Composite3DModel FromDirectory(string directory) => new(
-        Composite3DModelPreview._EnumerateIn(directory),
+        Composite3DModelPreviewImage._EnumerateIn(directory),
         _3DModel._EnumerateIn(directory)
             .Select(_3DModelContainer => _3DModel.FromContainer(_3DModelContainer.OriginalPath))
             .ToArray());
 
     Composite3DModel(IEnumerable<string>? previews, params _3DModel[] _3DModels)
     {
-        Previews = previews ?? Enumerable.Empty<string>();
+        PreviewImages = previews ?? Enumerable.Empty<string>();
         this._3DModels = _3DModels;
     }
 
