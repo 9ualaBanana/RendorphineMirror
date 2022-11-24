@@ -1,4 +1,4 @@
-using static Common.Settings;
+using static NodeCommon.Settings;
 
 namespace NodeUI;
 

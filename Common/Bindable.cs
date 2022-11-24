@@ -91,7 +91,7 @@ namespace Common
         {
             if (existingValue is null) throw new NotImplementedException("Non-populating deserializing IBindables is not supported yet");
 
-            existingValue.LoadFromJson(JToken.Load(reader), LocalApi.JsonSerializerWithType);
+            existingValue.LoadFromJson(JToken.Load(reader), JsonSettings.TypedS);
             return existingValue;
         }
 
@@ -173,7 +173,7 @@ namespace Common
         public void Remove(TKey key) => Execute(() => Value.Remove(key));
         public void Clear() => Execute(Value.Clear);
 
-        public override void LoadFromJson(JToken json, JsonSerializer? serializer) => SetRange(json.ToObject<Dictionary<TKey, TValue>>(LocalApi.JsonSerializerWithType)!);
+        public override void LoadFromJson(JToken json, JsonSerializer? serializer) => SetRange(json.ToObject<Dictionary<TKey, TValue>>(JsonSettings.TypedS)!);
         protected override void CopyValueFrom(BindableBase<IReadOnlyDictionary<TKey, TValue>> other) => SetRange(other.Value);
         IReadOnlyBindableCollection<KeyValuePair<TKey, TValue>> IReadOnlyBindableCollection<KeyValuePair<TKey, TValue>>.GetBoundCopy() => GetBoundCopy();
         public override BindableDictionary<TKey, TValue> GetBoundCopy() => (BindableDictionary<TKey, TValue>) base.GetBoundCopy();

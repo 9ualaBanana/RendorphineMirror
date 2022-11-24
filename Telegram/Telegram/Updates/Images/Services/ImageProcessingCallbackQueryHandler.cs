@@ -1,6 +1,4 @@
-﻿using Common.Tasks.Model;
-using Common.Tasks;
-using Telegram.Bot.Types;
+﻿using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Services.Telegram.FileRegistry;
 using Telegram.Telegram.Authentication.Models;
@@ -8,7 +6,6 @@ using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates.Images.Models;
 using Telegram.Telegram.Updates.Tasks.Models;
 using Telegram.Telegram.Updates.Tasks.Services;
-using Common.Plugins;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 

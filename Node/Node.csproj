@@ -17,8 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Benchmark\Benchmark.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
+    <ProjectReference Include="..\Benchmark\Benchmark.csproj" />
     <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
     <ProjectReference Include="..\Machine\Machine.csproj" />
     <ProjectReference Include="..\Transport\Transport.csproj" />

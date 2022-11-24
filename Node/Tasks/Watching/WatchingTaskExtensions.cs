@@ -10,7 +10,7 @@ public static class WatchingTaskExtensions
 
     public static void StartWatcher(this WatchingTask task)
     {
-        task.LogInfo($"Watcher started; Data: {JsonConvert.SerializeObject(task, Init.IsDebug ? LocalApi.JsonSettingsWithType : new JsonSerializerSettings())}");
+        task.LogInfo($"Watcher started; Data: {JsonConvert.SerializeObject(task, Init.IsDebug ? JsonSettings.Typed : new JsonSerializerSettings())}");
 
         var handler = task.CreateWatchingHandler();
         task.Handler = handler;

@@ -123,8 +123,8 @@ public abstract class ListenerBase
     }
 
 
-    protected static JsonSerializerSettings JsonSettingsWithTypes => LocalApi.JsonSettingsWithType;
-    protected static JsonSerializer JsonSerializerWithTypes => LocalApi.JsonSerializerWithType;
+    protected static JsonSerializerSettings JsonSettingsWithTypes => JsonSettings.Typed;
+    protected static JsonSerializer JsonSerializerWithTypes => JsonSettings.TypedS;
 
     protected void LogRequest(HttpListenerRequest request) => _logger.Trace(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
     protected static Task<HttpStatusCode> WriteSuccess(HttpListenerResponse response) => _Write(response, JsonApi.Success());

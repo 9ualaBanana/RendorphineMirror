@@ -1,14 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\Common\Common.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	<EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
 
 </Project>

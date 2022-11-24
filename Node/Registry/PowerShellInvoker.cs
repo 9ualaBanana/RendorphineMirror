@@ -1,7 +1,5 @@
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
-using System.Runtime.InteropServices;
-using Common.Plugins.Deployment;
 
 namespace Node.Registry;
 

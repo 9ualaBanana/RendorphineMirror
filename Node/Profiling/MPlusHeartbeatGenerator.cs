@@ -1,4 +1,4 @@
-using Common.Heartbeat;
+using Node.Heartbeat;
 
 namespace Node.Profiling;
 

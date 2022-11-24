@@ -1,5 +1,4 @@
-﻿using Common.NodeUserSettings;
-using Node.Plugins.Discoverers;
+﻿using Node.Plugins.Discoverers;
 
 namespace Node.Plugins;
 
