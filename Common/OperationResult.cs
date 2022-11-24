@@ -15,7 +15,7 @@ namespace Common
         }
 
         [MethodImpl(256)] public string AsString() => Message ?? string.Empty;
-        [MethodImpl(256)] public override string? ToString() => AsString();
+        [MethodImpl(256)] public override string? ToString() => $"{{ Success: {Success}{(Success ? null : $", Message: {Message}")} }}";
 
         public OperationResult<T> As<T>(T? value = default) => new OperationResult<T>(this, value);
 
@@ -82,7 +82,7 @@ namespace Common
         }
 
         [MethodImpl(256)] public string AsString() => EString.AsString();
-        [MethodImpl(256)] public override string? ToString() => AsString();
+        [MethodImpl(256)] public override string? ToString() => $"{{ Success: {Success}, {(Success ? $"Value: {Value}" : $"Message: {Message}")} }}";
 
         public OperationResult<T2> As<T2>(Func<T, T2> convert) => new OperationResult<T2>(EString, convert(Value));
 
