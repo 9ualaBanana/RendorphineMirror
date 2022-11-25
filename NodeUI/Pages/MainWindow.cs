@@ -8,7 +8,7 @@ using Avalonia.Interactivity;
 using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NodeUI.Pages.MainWindowTabs;
+using NodeToUI.Requests;
 
 namespace NodeUI.Pages
 {
@@ -38,7 +38,9 @@ namespace NodeUI.Pages
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("torrent test", new TorrentTab());
             tabs.Add("logs", new LogsTab());
-            tabs.Add("registry", new RegistryTab());
+            tabs.Add("webview", new WebView() { View = { InitialUrl = "https://google.com" } });
+            if (Init.IsDebug)
+                tabs.Add("registry", new RegistryTab());
 
             var statustb = new TextBlock()
             {
@@ -92,6 +94,76 @@ namespace NodeUI.Pages
                 {
                     benchmb?.Close();
                     benchmb = null;
+                }
+            });
+
+
+            var receivedrequests = new Dictionary<string, GuiRequest>();
+            NodeGlobalState.Instance.Requests.Changed += () => Dispatcher.UIThread.Post(() =>
+            {
+                var requests = NodeGlobalState.Instance.Requests.Value;
+                foreach (var req in receivedrequests.ToArray())
+                {
+                    if (requests.ContainsKey(req.Key)) continue;
+
+                    receivedrequests.Remove(req.Key);
+                    req.Value.OnRemoved();
+                }
+                foreach (var req in requests)
+                {
+                    if (receivedrequests.ContainsKey(req.Key)) continue;
+
+                    // added
+                    receivedrequests.Add(req.Key, req.Value);
+                    handle(req.Key, req.Value);
+                }
+
+
+
+                void handle(string reqid, GuiRequest request)
+                {
+                    if (request is CaptchaRequest captchareq) handleCaptchaRequest(captchareq);
+                    else if (request is CefCaptchaRequest cefcaptchareq) handleCefCaptchaRequest(cefcaptchareq);
+
+
+                    void handleCaptchaRequest(CaptchaRequest captchareq)
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            var window = new CaptchaWindow(captchareq.Base64Image, v => sendResponse(v));
+                            captchareq.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
+                            window.Show();
+                        });
+                    }
+                    void handleCefCaptchaRequest(CefCaptchaRequest captchareq)
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            var window = new WebWindow()
+                            {
+                                Title = "Captcha input",
+                                View = { InitialUrl = captchareq.Url },
+                            };
+                            captchareq.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.Close(); } catch { } });
+                            window.Show();
+
+                            // something something
+                            // window.View.SendMouseDownEvent(228, 1337, CefNet.CefMouseButtonType.Left, 1, CefNet.CefEventFlags.None);
+                            // window.View.Navigate("https://google.com");
+                            // window.View.OnSomeEvent += async () => { await sendResponse(JToken.FromObject("operation result")); };
+                        });
+                    }
+
+                    async Task sendResponse(JToken token)
+                    {
+                        token = new JObject() { ["value"] = token };
+
+                        using var content = new StringContent(token.ToString());
+                        var post = await LocalApi.Post(NodeGui.GuiRequestNames[request.GetType()] + "?reqid=" + HttpUtility.UrlEncode(reqid), content);
+                        post.LogIfError();
+
+                        receivedrequests.Remove(reqid);
+                    }
                 }
             });
         }

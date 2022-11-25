@@ -269,7 +269,7 @@ public static class TaskHandler
     public static void AutoInitializeHandlers()
     {
         var types = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(ass => ass.GetTypes())
+            .SelectMany(ass => { try { return ass.GetTypes(); } catch { return Array.Empty<Type>(); } })
             .Where(x => x.IsAssignableTo(typeof(ITaskHandler)))
             .Where(x => x.IsClass && !x.IsAbstract);
 

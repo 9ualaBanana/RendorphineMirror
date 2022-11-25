@@ -1,3 +1,5 @@
+using System.Management.Automation;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -38,6 +40,20 @@ public static class UICache
             NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>
                 File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, LocalApi.JsonSettingsWithType)));
         }
+
+        new Thread(async () =>
+        {
+            var stream1 = await LocalPipe.SendLocalAsync("getstate").ConfigureAwait(false);
+            var buffer = new byte[1024 * 1024];
+            while (true)
+            {
+                var read = stream1.Read(buffer);
+                if (read == 0) break;
+
+                _logger.Trace("[Received " + Encoding.UTF8.GetString(buffer.AsSpan(0, read)));
+            }
+        })
+        { IsBackground = true }.Start();
 
         var cacheloaded = !Init.IsDebug; // dont load from cache is not debug
         var consecutive = 0;
