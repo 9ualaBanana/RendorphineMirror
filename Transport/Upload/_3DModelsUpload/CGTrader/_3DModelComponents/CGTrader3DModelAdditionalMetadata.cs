@@ -3,13 +3,13 @@
 public record CGTrader3DModelAdditionalMetadata(
     int? Polygons = null,
     int? Vertices = null,
-    GeometryType? GeometryType = null,
+    GeometryType? GeometryType = null,  // sent as (null) in JSON
     bool? Collection = null,
-    bool? Textures = null,
-    bool? Materials = null,
-    bool? PluginsUsed = null,
-    bool? UVWMapping = null,
-    UnwrappedUVs? UnwrappedUVs = null)
+    bool? Textures = false,
+    bool Materials = true,
+    bool PluginsUsed = false,
+    bool UVWMapping = false,
+    UnwrappedUVs? UnwrappedUVs = null)  // sent as (null) in JSON
 {
 }
 
