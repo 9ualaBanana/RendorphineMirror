@@ -9,6 +9,7 @@ using MonoTorrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NodeToUI.Requests;
+using NodeUI.Pages.MainWindowTabs;
 
 namespace NodeUI.Pages
 {
