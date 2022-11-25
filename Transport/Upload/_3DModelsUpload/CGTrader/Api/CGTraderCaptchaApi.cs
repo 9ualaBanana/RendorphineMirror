@@ -9,6 +9,8 @@ namespace Transport.Upload._3DModelsUpload.CGTrader.Api;
 
 internal class CGTraderCaptchaApi : IBaseAddressProvider
 {
+    const string _SiteKeyJsonKey = "sitekey:\"";
+
     readonly HttpClient _httpClient;
 
     string IBaseAddressProvider.BaseAddress => "https://service.mtcaptcha.com/mtcv1/api/";
@@ -32,18 +34,16 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
 
     static string _ParseSiteKeyFrom(string htmlWithSessionCredentials)
     {
-        var siteKeyRegion = new Range(3220, 4430);
-        string siteKeyRegionContent = htmlWithSessionCredentials[siteKeyRegion];
-
-        if (siteKeyRegionContent.Contains("sitekey"))
-            return _ParseSiteKeyCoreFrom(siteKeyRegionContent);
+        if (htmlWithSessionCredentials.Contains(_SiteKeyJsonKey))
+            return _ParseSiteKeyCoreFrom(htmlWithSessionCredentials);
         else
             throw new MissingFieldException("Returned document doesn't contain sitekey.");
     }
 
-    static string _ParseSiteKeyCoreFrom(string siteKeyRegion) => siteKeyRegion
-        .Split('{', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .Last()[9..27];
+    static string _ParseSiteKeyCoreFrom(string siteKeyRegion) => string.Join(null,
+        siteKeyRegion[(siteKeyRegion.IndexOf(_SiteKeyJsonKey) + _SiteKeyJsonKey.Length)..]
+        .TakeWhile(c => c != '"')
+        );
 
     #endregion
 
@@ -63,11 +63,11 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
         string siteKey,
         CancellationToken cancellationToken)
     {
-        string requestUri = QueryHelpers.AddQueryString((this as IBaseAddressProvider).Endpoint($"/getchallenge.json"),
+        string requestUri = QueryHelpers.AddQueryString((this as IBaseAddressProvider).Endpoint("/getchallenge.json"),
             new Dictionary<string, string>()
             {
                 { "sk", siteKey },
-                { "bd", CGTraderUri.WWW },
+                { "bd", CGTraderUri.www },
                 { "rt", CaptchaRequestArguments.rt },
                 { "tsh", CaptchaRequestArguments.tsh },
                 { "act", CaptchaRequestArguments.act },
