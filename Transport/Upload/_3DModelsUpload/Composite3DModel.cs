@@ -2,21 +2,24 @@
 
 public record Composite3DModel : IDisposable
 {
-    public IEnumerable<string> PreviewImages { get; init; }
-    public IEnumerable<_3DModel> _3DModels { get; init; }
+    public IEnumerable<_3DModelPreviewImage> PreviewImages { get; internal set; }
+    public IEnumerable<_3DModel> _3DModels { get; }
+    public _3DModelMetadata Metadata { get; }
 
     #region Initialization
 
-    public static Composite3DModel FromDirectory(string directory) => new(
-        Composite3DModelPreviewImage._EnumerateIn(directory),
+    public static Composite3DModel FromDirectory(string directory, _3DModelMetadata metadata) => new(
+        _3DModelPreviewImage._EnumerateIn(directory),
         _3DModel._EnumerateIn(directory)
-            .Select(_3DModelContainer => _3DModel.FromContainer(_3DModelContainer.OriginalPath))
-            .ToArray());
+            .Select(_3DModelContainer => _3DModel.FromContainer(_3DModelContainer.OriginalPath)),
+        metadata
+        );
 
-    Composite3DModel(IEnumerable<string>? previews, params _3DModel[] _3DModels)
+    Composite3DModel(IEnumerable<_3DModelPreviewImage> previews, IEnumerable<_3DModel> _3DModels, _3DModelMetadata metadata)
     {
-        PreviewImages = previews ?? Enumerable.Empty<string>();
+        PreviewImages = previews;
         this._3DModels = _3DModels;
+        Metadata = metadata;
     }
 
     #endregion

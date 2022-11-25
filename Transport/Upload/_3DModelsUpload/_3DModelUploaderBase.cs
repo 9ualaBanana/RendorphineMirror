@@ -2,7 +2,7 @@
 
 namespace Transport.Upload._3DModelsUpload;
 
-internal abstract class _3DModelUploaderBase<TMetadata> where TMetadata : _3DModelMetadata
+internal abstract class _3DModelUploaderBase
 {
     protected HttpClient HttpClient;
 
@@ -13,6 +13,5 @@ internal abstract class _3DModelUploaderBase<TMetadata> where TMetadata : _3DMod
     internal abstract Task UploadAsync(
         CGTraderNetworkCredential credential,
         Composite3DModel composite3DModel,
-        TMetadata metadata,
         CancellationToken cancellationToken = default);
 }
