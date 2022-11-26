@@ -42,6 +42,7 @@ namespace NodeUI.Pages
             tabs.Add("webview", new WebView() { View = { InitialUrl = "https://google.com" } });
             if (Init.IsDebug)
                 tabs.Add("registry", new RegistryTab());
+            tabs.Add("cgtraderupload", new CGTraderUploadTab());
 
             var statustb = new TextBlock()
             {

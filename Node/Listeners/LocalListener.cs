@@ -1,12 +1,16 @@
 using System.Net;
-using Common.Plugins.Deployment;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Node.Profiling;
+using Transport.Upload._3DModelsUpload;
+using Transport.Upload._3DModelsUpload.CGTrader;
+using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 
 namespace Node.Listeners;
 
 public class LocalListener : ExecutableListenerBase
 {
+    readonly HttpClient Client = new();
     protected override ListenTypes ListenType => ListenTypes.Local;
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
@@ -58,6 +62,19 @@ public class LocalListener : ExecutableListenerBase
             return await Test(request, response, "type", "version", async (type, version) =>
             {
                 new ScriptPluginDeploymentInfo(new PluginToDeploy() { Type = Enum.Parse<PluginType>(type, true), Version = version }).DeployAsync().Consume();
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
+        if (path == "uploadcgtrader")
+        {
+            return await Test(request, response, "username", "password", "directory", "meta", async (username, password, dir, metastr) =>
+            {
+                var meta = JsonConvert.DeserializeObject<CGTrader3DModelMetadata>(metastr).ThrowIfNull();
+                var model = Composite3DModel.FromDirectory(dir, meta);
+                var cred = new CGTraderNetworkCredential(username, password, false);
+
+                await _3DModelUploader.UploadAsync(Client, cred, model);
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }

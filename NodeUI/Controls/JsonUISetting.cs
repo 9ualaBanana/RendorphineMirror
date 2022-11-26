@@ -16,6 +16,7 @@ public static class JsonUISetting
             StringDescriber txt => new TextSetting(txt, property),
             NumberDescriber num => new NumberSetting(num, property),
             ObjectDescriber obj => new ObjectSetting(obj, property),
+            EnumDescriber enm => new EnumSetting(enm, property),
 
             DictionaryDescriber dic when dic.KeyType == typeof(string) => new DictionarySetting(dic, property),
             CollectionDescriber col => new CollectionSetting(col, property),
@@ -466,6 +467,15 @@ public static class JsonUISetting
 
         public IEnumerator<Setting> GetEnumerator() => Settings.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+    class EnumSetting : Setting<EnumDescriber>
+    {
+        public EnumSetting(EnumDescriber describer, JProperty property) : base(describer, property)
+        {
+
+        }
+
+        public override void UpdateValue() { }
     }
 
     class ObjectSetting : Setting, ISettingContainer

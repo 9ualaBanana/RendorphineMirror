@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Json;
+using Newtonsoft.Json;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 
@@ -151,6 +152,41 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
         License = license;
         Price = price;
         CustomLicense = customLicenseText;
+        ProductType = productType;
+        GameReady = gameReady;
+        Animated = animated;
+        Rigged = rigged;
+        PhysicallyBasedRendering = physicallyBasedRendering;
+        AdultContent = adultContent;
+        Info = info;
+    }
+
+    [JsonConstructor]
+    [Obsolete("Only for json deserializing")]
+    CGTrader3DModelMetadata(string title,
+        string description,
+        string[] tags,
+        int category,
+        int subCategory,
+        CGTraderLicense license,
+        string? customLicense,
+        double price,
+        ProductType productType,
+        bool? gameReady = null,
+        bool? animated = null,
+        bool? rigged = null,
+        bool? physicallyBasedRendering = null,
+        bool? adultContent = null,
+        CGTrader3DModelAdditionalMetadata? info = null)
+    {
+        Title = title;
+        Description = description;
+        Tags = tags;
+        Category = category;
+        SubCategory = subCategory;
+        License = license;
+        CustomLicense = customLicense;
+        Price = price;
         ProductType = productType;
         GameReady = gameReady;
         Animated = animated;

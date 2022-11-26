@@ -37,6 +37,7 @@ public abstract class FieldDescriber
 
         if (istype<bool>()) return new BooleanDescriber(prop);
         if (istype<string>()) return new StringDescriber(prop);
+        if (type.IsEnum) return new EnumDescriber(prop);
 
         if (type.GetInterfaces().Any(x => x.Name.StartsWith("INumber", StringComparison.Ordinal)))
             return new NumberDescriber(prop);
@@ -119,7 +120,11 @@ public abstract class FieldDescriber
 
         public static IEnumerable<PropInfo> CreateFromChildren(Type type) =>
             type.GetMembers()
-            .Where(x => x is (System.Type or FieldInfo or PropertyInfo { SetMethod: not null }))
+            .Where(x => x is (System.Type or FieldInfo)
+                || (x is PropertyInfo prop
+                    && (prop.SetMethod is not null || type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).OrderBy(x => x.GetCustomAttribute<JsonConstructorAttribute>() is null)
+                        .Any(x => x.GetParameters()
+                            .Any(x => string.Equals(x.Name, prop.Name, StringComparison.OrdinalIgnoreCase))))))
             .Select(x => (PropInfo) x);
 
         public static implicit operator PropInfo(MemberInfo member) =>
@@ -157,6 +162,12 @@ public class ObjectDescriber : FieldDescriber
     [JsonConstructor]
     public ObjectDescriber(string name, string jsonTypeName) : base(name, jsonTypeName) { }
     public ObjectDescriber(PropInfo prop) : base(prop) => Fields = PropInfo.CreateFromChildren(prop.FieldType).Select(Create).ToImmutableArray();
+}
+public class EnumDescriber : FieldDescriber
+{
+    [JsonConstructor]
+    public EnumDescriber(string name, string jsonTypeName) : base(name, jsonTypeName) { }
+    public EnumDescriber(PropInfo prop) : base(prop) { }
 }
 
 public interface ICollectionDescriber
