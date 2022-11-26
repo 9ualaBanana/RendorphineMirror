@@ -50,6 +50,7 @@ else
     logger.Info("Authentication completed");
 }
 
+Directory.CreateDirectory(Init.TaskFilesDirectory);
 foreach (var file in Directory.GetFiles(Init.TaskFilesDirectory, "*", SearchOption.AllDirectories))
 {
     if (Path.GetExtension(file).ToLowerInvariant() is ".jpg" or ".jpeg") continue;
