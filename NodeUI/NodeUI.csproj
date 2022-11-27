@@ -39,6 +39,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
+    <ProjectReference Include="..\Transport\Transport.csproj" />
   </ItemGroup>
 
 </Project>

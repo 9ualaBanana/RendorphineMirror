@@ -6,8 +6,10 @@ namespace Common.Tasks;
 public record TaskFullState(TaskState State, double Progress, JObject Output, TaskTimes Times, TaskServer? Server = null);
 public record TaskServer(string Host, string Userid, string Nickname);
 
-public record DbTaskFullState : ReceivedTask
+public record DbTaskFullState : ReceivedTask, ILoggable
 {
+    string ILoggable.LogName => $"PTask {Id}";
+
     public string UserId { get; init; } = null!;
     public long Registered { get; set; }
     public TaskServer? Server { get; set; }

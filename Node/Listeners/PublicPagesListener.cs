@@ -118,7 +118,7 @@ namespace Node.Listeners
                     if (!Path.GetFullPath(filepath).StartsWith(logDir, StringComparison.Ordinal))
                         return HttpStatusCode.NotFound;
 
-                    using Stream file = File.OpenRead(filepath);
+                    using Stream file = File.Open(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
                     await file.CopyToAsync(response.OutputStream);
 
                     return HttpStatusCode.OK;

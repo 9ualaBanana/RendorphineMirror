@@ -1,15 +1,15 @@
 namespace Common;
 
 /// <summary> CancellationToken with a TimeSpan delay for when the operation is not progressing </summary>
-public struct StuckCancellationToken
+public struct TimeoutCancellationToken
 {
     public readonly CancellationToken Token;
     public readonly TimeSpan StuckTimeout;
-    DateTime LastStuckCheckTime = default;
+    DateTimeOffset LastStuckCheckTime = default;
 
-    public StuckCancellationToken(CancellationToken token) : this(token, TimeSpan.FromDays(365)) { }
-    public StuckCancellationToken(TimeSpan stuckTimeout) : this(default, stuckTimeout) { }
-    public StuckCancellationToken(CancellationToken token, TimeSpan stuckTimeout)
+    public TimeoutCancellationToken(CancellationToken token) : this(token, TimeSpan.FromDays(365)) { }
+    public TimeoutCancellationToken(TimeSpan stuckTimeout) : this(default, stuckTimeout) { }
+    public TimeoutCancellationToken(CancellationToken token, TimeSpan stuckTimeout)
     {
         Token = token;
         StuckTimeout = stuckTimeout;
@@ -32,16 +32,16 @@ public struct StuckCancellationToken
         CheckStuck(EqualityComparer<T>.Default.Equals(variable, check), text);
         variable = check;
     }
-    public void ResetStuck() => LastStuckCheckTime = DateTime.Now + StuckTimeout;
+    public void ResetStuck() => LastStuckCheckTime = DateTimeOffset.Now + StuckTimeout;
     public void ThrowIfStuck(string text)
     {
-        var now = DateTime.Now;
+        var now = DateTimeOffset.Now;
 
         if (now > LastStuckCheckTime)
             throw new Exception($"{text} for at least {StuckTimeout}");
     }
 
 
-    public static implicit operator StuckCancellationToken(CancellationToken token) => new(token);
-    public static implicit operator StuckCancellationToken(TimeSpan stuckDelay) => new(stuckDelay);
+    public static implicit operator TimeoutCancellationToken(CancellationToken token) => new(token);
+    public static implicit operator TimeoutCancellationToken(TimeSpan stuckDelay) => new(stuckDelay);
 }

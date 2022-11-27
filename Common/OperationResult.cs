@@ -15,7 +15,7 @@ namespace Common
         }
 
         [MethodImpl(256)] public string AsString() => Message ?? string.Empty;
-        [MethodImpl(256)] public override string? ToString() => AsString();
+        [MethodImpl(256)] public override string? ToString() => $"{{ Success: {Success}{(Success ? null : $", Message: {Message}")} }}";
 
         public OperationResult<T> As<T>(T? value = default) => new OperationResult<T>(this, value);
 
@@ -82,7 +82,7 @@ namespace Common
         }
 
         [MethodImpl(256)] public string AsString() => EString.AsString();
-        [MethodImpl(256)] public override string? ToString() => AsString();
+        [MethodImpl(256)] public override string? ToString() => $"{{ Success: {Success}, {(Success ? $"Value: {Value}" : $"Message: {Message}")} }}";
 
         public OperationResult<T2> As<T2>(Func<T, T2> convert) => new OperationResult<T2>(EString, convert(Value));
 
@@ -102,16 +102,6 @@ namespace Common
         public static Task<T> AsTask<T>(this T value) => Task.FromResult(value);
         public static ValueTask<OperationResult<T>> AsTaskResult<T>(this T value) => value.AsOpResult().AsVTask();
 
-        public static OperationResult LogIfError(in this OperationResult opr, string? format = null)
-        {
-            if (!opr)
-            {
-                if (format is not null) _logger.Error(string.Format(format, opr.AsString()));
-                else _logger.Error(opr.AsString());
-            }
-
-            return opr;
-        }
         public static OperationResult ThrowIfError(in this OperationResult opr, string? format = null)
         {
             if (!opr)
@@ -122,12 +112,25 @@ namespace Common
 
             return opr;
         }
-        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null) => opr.GetResult().LogIfError(format);
         public static T ThrowIfError<T>(in this OperationResult<T> opr, string? format = null)
         {
             opr.GetResult().ThrowIfError(format);
             return opr.Value;
         }
+        public static async ValueTask<OperationResult> ThrowIfError(this ValueTask<OperationResult> opr, string? format = null) => (await opr).ThrowIfError();
+        public static async ValueTask<T> ThrowIfError<T>(this ValueTask<OperationResult<T>> opr, string? format = null) => (await opr).ThrowIfError();
+
+        public static OperationResult LogIfError(in this OperationResult opr, string? format = null)
+        {
+            if (!opr)
+            {
+                if (format is not null) _logger.Error(string.Format(format, opr.AsString()));
+                else _logger.Error(opr.AsString());
+            }
+
+            return opr;
+        }
+        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null) => opr.GetResult().LogIfError(format);
 
 
         #region Next
@@ -222,7 +225,7 @@ namespace Common
         public static OperationResult NextOnError(in this OperationResult estring, Func<OperationResult> func) => estring ? estring : func();
         public static OperationResult<TOut> NextOnError<TOut>(in this OperationResult estring, Func<OperationResult<TOut>> func) => estring ? estring : func();
         public static OperationResult NextOnError<TIn>(in this OperationResult<TIn> estring, Func<OperationResult<TIn>, OperationResult> func) => estring ? estring.EString : func(estring);
-        public static OperationResult<TOut> NextOnError<TIn,TOut>(in this OperationResult<TIn> estring, Func<OperationResult<TIn>, OperationResult<TOut>> func) => estring ? estring.EString : func(estring);
+        public static OperationResult<TOut> NextOnError<TIn, TOut>(in this OperationResult<TIn> estring, Func<OperationResult<TIn>, OperationResult<TOut>> func) => estring ? estring.EString : func(estring);
 
         // opres => Task<opres>
         public static ValueTask<OperationResult> NextOnError(in this OperationResult estring, Func<ValueTask<OperationResult>> func) => estring ? estring.AsVTask() : func();

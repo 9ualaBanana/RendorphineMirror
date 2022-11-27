@@ -17,7 +17,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
             info.Downloaded = true;
         }
 
-        var token = new StuckCancellationToken(cancellationToken, TimeSpan.FromHours(1));
+        var token = new TimeoutCancellationToken(cancellationToken, TimeSpan.FromHours(1));
         while (!info.Downloaded)
         {
             token.ThrowIfCancellationRequested();

@@ -1,11 +1,14 @@
 ﻿global using System.Collections.Immutable;
 global using Common;
 global using Common.Plugins;
+global using Common.Plugins.Deployment;
 global using Common.Tasks;
 global using Common.Tasks.Model;
 global using Common.Tasks.Watching;
 global using Machine;
 global using NLog;
+global using Node.Plugins.Deployment;
+global using Node.Registry;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Handlers;
 global using Node.Tasks.Watching;
@@ -45,6 +48,16 @@ else
 {
     await AuthWithGui().ConfigureAwait(false);
     logger.Info("Authentication completed");
+}
+
+Directory.CreateDirectory(Init.TaskFilesDirectory);
+foreach (var file in Directory.GetFiles(Init.TaskFilesDirectory, "*", SearchOption.AllDirectories))
+{
+    if (Path.GetExtension(file).ToLowerInvariant() is ".jpg" or ".jpeg") continue;
+    if (MimeTypes.GetMimeType(file).ToLowerInvariant().Contains("image")) continue;
+
+    logger.Info($"Deleting old task result file {file} ({new FileInfo(file).Length / 1024f / 1024 / 1024}G)");
+    File.Delete(file);
 }
 
 

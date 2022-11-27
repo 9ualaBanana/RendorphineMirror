@@ -66,6 +66,16 @@ namespace Common
             _logger.Info($"Starting {Environment.ProcessId} {Process.GetCurrentProcess().ProcessName}, {Path.GetFileName(Environment.ProcessPath)} {Version}"
                 + $" on {GetOSInfo()} with UTC+{TimeZoneInfo.Local.BaseUtcOffset}, {(IsDebug ? "debug" : "non-debug")}");
 
+            try
+            {
+                const long gig = 1024 * 1024 * 1024;
+                var drive = DriveInfo.GetDrives().First(x => Init.ConfigDirectory.StartsWith(x.RootDirectory.FullName));
+                _logger.Info(@$"
+                    Config drive: {drive.Name}, Space: {drive.TotalFreeSpace / gig}G totalfree & {drive.AvailableFreeSpace / gig}G availfree out of {drive.TotalSize / gig}G total
+                ".TrimLines());
+            }
+            catch { }
+
             AppDomain.CurrentDomain.UnhandledException += (_, e) => LogException(e.ExceptionObject as Exception, "UnhandledException", "unhexp");
             TaskScheduler.UnobservedTaskException += (obj, e) => LogException(e.Exception, "UnobservedTaskException", "untexp");
 
