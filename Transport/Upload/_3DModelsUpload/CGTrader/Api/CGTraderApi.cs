@@ -4,7 +4,8 @@ using NLog;
 using System.Net.Http.Json;
 using Transport.Models;
 using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
-using Transport.Upload._3DModelsUpload.CGTrader.Captcha;
+using Transport.Upload._3DModelsUpload.CGTrader.Network;
+using Transport.Upload._3DModelsUpload.CGTrader.Network.Captcha;
 using Transport.Upload._3DModelsUpload.CGTrader.Upload;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Api;
@@ -12,8 +13,6 @@ namespace Transport.Upload._3DModelsUpload.CGTrader.Api;
 internal class CGTraderApi : IBaseAddressProvider
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
-    const string _CsrfTokenMeta = "<meta name=\"csrf-token\" content=\"";
 
     readonly HttpClient _httpClient;
     readonly CGTraderCaptchaApi _captchaService;
@@ -26,52 +25,51 @@ internal class CGTraderApi : IBaseAddressProvider
         _captchaService = new(httpClient);
     }
 
+    #region Login
+
     #region SessionCredentials
 
-    internal async Task<(string CSRFToken, CGTraderCaptcha Captcha)> _RequestSessionCredentialsAsync(CancellationToken cancellationToken)
+    internal async Task<CGTraderSessionContext> _RequestSessionContextAsync(
+        CGTraderNetworkCredential credential,
+        CancellationToken cancellationToken)
     {
-        try { return await _RequestSessionCredentialAsyncCore(cancellationToken); }
+        try
+        {
+            var sessionContext = await _RequestSessionContextAsyncCore(credential, cancellationToken);
+            _logger.Debug("Session context is received.");
+            return sessionContext;
+        }
         catch (Exception ex)
         {
-            const string errorMessage = "Couldn't request session credentials.";
+            const string errorMessage = "Session credentials request failed.";
             _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
         }
     }
 
-    async Task<(string CSRFToken, CGTraderCaptcha Captcha)> _RequestSessionCredentialAsyncCore(CancellationToken cancellationToken)
+    async Task<CGTraderSessionContext> _RequestSessionContextAsyncCore(
+        CGTraderNetworkCredential credential,
+        CancellationToken cancellationToken)
     {
         string htmlWithSessionCredentials = (await _httpClient.GetStringAsync(
             (this as IBaseAddressProvider).Endpoint("/load-services.js"), cancellationToken)
             ).ReplaceLineEndings(string.Empty);
 
-        string csrfToken = _ParseCsrfTokenFrom(htmlWithSessionCredentials);
-        var captcha = await _captchaService._RequestCaptchaAsync(htmlWithSessionCredentials, cancellationToken);
-        return (csrfToken, captcha);
-    }
+        string csrfToken = CGTraderCsrfToken._Parse(htmlWithSessionCredentials, CsrfTokenRequest.Initial);
+        string siteKey = CGTraderCaptchaSiteKey._Parse(htmlWithSessionCredentials);
+        var captcha = await _captchaService._RequestCaptchaAsync(siteKey, cancellationToken);
 
-    static string _ParseCsrfTokenFrom(string htmlWithSessionCredentials)
-    {
-        if (htmlWithSessionCredentials.Contains("csrf-token"))
-            return _ParseCsrfTokenCoreFrom(htmlWithSessionCredentials);
-        else throw new MissingFieldException("Returned document doesn't contain CSRF token.");
-    }
-
-    static string _ParseCsrfTokenCoreFrom(string htmlWithSessionCredentials)
-    {
-        const string csrfTokenMetaContentKey = "meta.content = '";
-        return string.Join(null,
-            htmlWithSessionCredentials[(htmlWithSessionCredentials.IndexOf(csrfTokenMetaContentKey) + csrfTokenMetaContentKey.Length)..]
-            .TakeWhile(c => c != '\'')
-            );
+        return new CGTraderSessionContext(credential, csrfToken, captcha);
     }
 
     #endregion
 
-    #region Login
-
-    internal async Task _LoginAsync(CGTraderNetworkCredential credential, CancellationToken cancellationToken)
+    internal async Task _LoginAsync(CGTraderSessionContext sessionContext, CancellationToken cancellationToken)
     {
-        try { await _LoginAsyncCore(credential, cancellationToken); }
+        try
+        {
+            await _LoginAsyncCore(sessionContext, cancellationToken);
+            _logger.Debug("{User} is successfully logged in.", sessionContext.Credential.UserName);
+        }
         catch (HttpRequestException ex)
         {
             const string errorMessage = "Login attempt was unsuccessful.";
@@ -80,15 +78,13 @@ internal class CGTraderApi : IBaseAddressProvider
         }
     }
 
-    async Task _LoginAsyncCore(CGTraderNetworkCredential credential, CancellationToken cancellationToken)
+    async Task _LoginAsyncCore(CGTraderSessionContext sessionContext, CancellationToken cancellationToken)
     {
-        if (credential.Captcha is null) throw new InvalidOperationException(
-            $"The value of {nameof(credential.Captcha)} can't be null when trying to login."
-            );
-
-        using (var response = await _httpClient.PostAsync((this as IBaseAddressProvider).Endpoint("/users/2fa-or-login.json"),
-            await credential._AsMultipartFormDataContentAsyncUsing(_captchaService, cancellationToken), cancellationToken))
-        { await response._EnsureSuccessStatusCodeAsync(cancellationToken); }
+        string captchaSolution = await _captchaService._SolveCaptchaAsync(sessionContext.Captcha, cancellationToken);
+        using var _ = (await _httpClient.PostAsync(
+            (this as IBaseAddressProvider).Endpoint("/users/2fa-or-login.json"),
+            sessionContext._LoginMultipartFormDataWith(captchaSolution), cancellationToken))
+            ._EnsureSuccessStatusCodeAsync(cancellationToken);
     }
 
     #endregion
@@ -98,9 +94,14 @@ internal class CGTraderApi : IBaseAddressProvider
     #region DraftCreation
 
     /// <inheritdoc cref="__CreateNewModelDraftAsync(CancellationToken)"/>
-    internal async Task<string> _CreateNewModelDraftAsync(CGTraderNetworkCredential credential, CancellationToken cancellationToken)
+    internal async Task<string> _CreateNewModelDraftAsync(CGTraderSessionContext sessionContext, CancellationToken cancellationToken)
     {
-        try { return await __CreateNewModelDraftAsync(credential, cancellationToken); }
+        try
+        {
+            string modelDraftId = await __CreateNewModelDraftAsync(sessionContext, cancellationToken);
+            _logger.Debug("New model draft with {ID} ID is created.", modelDraftId);
+            return modelDraftId;
+        }
         catch (Exception ex)
         {
             const string errorMessage = "New model draft couldn't be created.";
@@ -109,29 +110,23 @@ internal class CGTraderApi : IBaseAddressProvider
     }
 
     /// <returns>ID of the newly created model draft.</returns>
-    async Task<string> __CreateNewModelDraftAsync(CGTraderNetworkCredential credential, CancellationToken cancellationToken)
+    async Task<string> __CreateNewModelDraftAsync(CGTraderSessionContext sessionContext, CancellationToken cancellationToken)
     {
-        _httpClient.DefaultRequestHeaders._AddOrReplaceCSRFToken(
-            credential.CsrfToken = await _RequestUploadInitializingCsrfTokenAsync(cancellationToken)
+        string htmlWithUploadInitializingCsrfToken = await _RequestUploadInitializingCsrfTokenAsync(cancellationToken);
+
+        _httpClient.DefaultRequestHeaders._AddOrReplaceCsrfToken(
+            sessionContext.CsrfToken = CGTraderCsrfToken._Parse(htmlWithUploadInitializingCsrfToken, CsrfTokenRequest.UploadInitializing)
             );
         string modelDraftId = await _CreateNewModelDraftAsyncCore(cancellationToken);
         
         return modelDraftId;
     }
 
-    async Task<string> _RequestUploadInitializingCsrfTokenAsync(CancellationToken cancellationToken)
-    {
-        string uploadInitializingCsrfToken = await _httpClient.GetStringAsync(
+    async Task<string> _RequestUploadInitializingCsrfTokenAsync(CancellationToken cancellationToken) => 
+        await _httpClient.GetStringAsync(
             (this as IBaseAddressProvider).Endpoint("/profile/upload/model"),
             cancellationToken
             );
-        return _ParseUploadInititalizingCsrfTokenFrom(uploadInitializingCsrfToken);
-    }
-
-    static string _ParseUploadInititalizingCsrfTokenFrom(string uploadInitializingCsrfToken) => string.Join(null,
-        uploadInitializingCsrfToken.Skip(uploadInitializingCsrfToken.IndexOf(_CsrfTokenMeta) + _CsrfTokenMeta.Length)
-        .TakeWhile(c => c != '"')
-        );
 
     async Task<string> _CreateNewModelDraftAsyncCore(CancellationToken cancellationToken)
     {
@@ -293,7 +288,7 @@ internal class CGTraderApi : IBaseAddressProvider
     #region Publishing
 
     internal async Task _PublishModelAsync(Composite3DModel composite3DModel, string modelDraftId, CancellationToken cancellationToken) =>
-        (await _httpClient.PostAsJsonAsync(
+        await (await _httpClient.PostAsJsonAsync(
             (this as IBaseAddressProvider).Endpoint($"/profile/items/{modelDraftId}/publish"),
             new { item = new { tags = (composite3DModel.Metadata as CGTrader3DModelMetadata)!.Tags } },
             cancellationToken)

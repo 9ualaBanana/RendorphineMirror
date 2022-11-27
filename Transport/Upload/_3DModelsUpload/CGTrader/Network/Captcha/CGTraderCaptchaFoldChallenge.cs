@@ -1,4 +1,4 @@
-﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Captcha;
+﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Network.Captcha;
 
 public record CGTraderCaptchaFoldChallenge(string Seed, int Slots, int Depth)
 {

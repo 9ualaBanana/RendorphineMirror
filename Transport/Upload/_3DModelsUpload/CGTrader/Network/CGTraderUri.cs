@@ -1,4 +1,4 @@
-﻿namespace Transport.Upload._3DModelsUpload.CGTrader;
+﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Network;
 
 internal static class CGTraderUri
 {

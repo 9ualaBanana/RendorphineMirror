@@ -1,6 +1,6 @@
-﻿using System.Net.Http.Headers;
-using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
+﻿using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 using Transport.Upload._3DModelsUpload.CGTrader.Api;
+using Transport.Upload._3DModelsUpload.CGTrader.Network;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;
 
@@ -18,15 +18,12 @@ internal class CGTrader3DModelUploader : _3DModelUploaderBase
         Composite3DModel composite3DModel,
         CancellationToken cancellationToken = default)
     {
-        if (credential.CsrfToken is null)
-        {
-            // Define a helper for setting CsrfToken in CGTTraderNetowrkCredential and HttpClient.DefaultRequestHeaders
-            (credential.CsrfToken, credential.Captcha) = await _api._RequestSessionCredentialsAsync(cancellationToken);
-            HttpClient.DefaultRequestHeaders._AddOrReplaceCSRFToken(credential.CsrfToken);
-        }
+        var sessionContext = await CGTraderSessionContext.CreateAsyncUsing(_api, credential, cancellationToken);
 
-        await _api._LoginAsync(credential, cancellationToken);
-        string modelDraftId = await _api._CreateNewModelDraftAsync(credential, cancellationToken);
+        HttpClient.DefaultRequestHeaders._AddOrReplaceCsrfToken(sessionContext.CsrfToken);
+
+        await _api._LoginAsync(sessionContext, cancellationToken);
+        string modelDraftId = await _api._CreateNewModelDraftAsync(sessionContext, cancellationToken);
         _UpcastPreviewImagesOf(composite3DModel);
         await _api._UploadModelAssetsAsyncOf(composite3DModel, modelDraftId, cancellationToken);
         await _api._UploadModelMetadataAsync((composite3DModel.Metadata as CGTrader3DModelMetadata)!, modelDraftId, cancellationToken);
@@ -36,15 +33,4 @@ internal class CGTrader3DModelUploader : _3DModelUploaderBase
     static void _UpcastPreviewImagesOf(Composite3DModel composite3DModel) =>
         composite3DModel.PreviewImages = composite3DModel.PreviewImages
         .Select(previewImage => new CGTrader3DModelPreviewImage(previewImage.FilePath));
-}
-
-internal static class HttpRequestHeadersExtensions
-{
-    internal static void _AddOrReplaceCSRFToken(this HttpRequestHeaders headers, string csrfToken)
-    {
-        const string Header = "X-CSRF-Token";
-
-        headers.Remove(Header);
-        headers.Add(Header, csrfToken);
-    }
 }

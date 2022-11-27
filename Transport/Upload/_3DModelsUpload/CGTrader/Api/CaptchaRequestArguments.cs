@@ -1,4 +1,6 @@
-﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Api;
+﻿using Transport.Upload._3DModelsUpload.CGTrader.Network;
+
+namespace Transport.Upload._3DModelsUpload.CGTrader.Api;
 
 internal static class CaptchaRequestArguments
 {

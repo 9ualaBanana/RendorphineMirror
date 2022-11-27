@@ -1,6 +1,6 @@
 ﻿using Transport.Upload._3DModelsUpload.CGTrader.Api;
 
-namespace Transport.Upload._3DModelsUpload.CGTrader.Captcha;
+namespace Transport.Upload._3DModelsUpload.CGTrader.Network.Captcha;
 
 public sealed class CGTraderCaptcha
 {
@@ -8,10 +8,6 @@ public sealed class CGTraderCaptcha
 
     public readonly string SiteKey;
     public readonly CGTraderCaptchaConfiguration Configuration;
-    // make lateinit
-    public string? VerfiedToken { get; internal set; }
-
-    public string? UserGuess;
 
     #region Initialization
 

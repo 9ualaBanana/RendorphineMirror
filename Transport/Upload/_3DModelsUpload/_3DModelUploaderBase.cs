@@ -1,4 +1,4 @@
-﻿using Transport.Upload._3DModelsUpload.CGTrader;
+﻿using Transport.Upload._3DModelsUpload.CGTrader.Network;
 
 namespace Transport.Upload._3DModelsUpload;
 
