@@ -1,5 +1,4 @@
-﻿using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
-using Transport.Upload._3DModelsUpload.CGTrader.Api;
+﻿using Transport.Upload._3DModelsUpload.CGTrader.Api;
 using Transport.Upload._3DModelsUpload.CGTrader.Network;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;
@@ -23,9 +22,9 @@ internal class CGTrader3DModelUploader : _3DModelUploaderBase
         HttpClient.DefaultRequestHeaders._AddOrReplaceCsrfToken(sessionContext.CsrfToken);
 
         await _api._LoginAsync(sessionContext, cancellationToken);
-        string modelDraftId = await _api._CreateNewModelDraftAsync(sessionContext, cancellationToken);
-        await _api._UploadModelAssetsAsyncOf(composite3DModel, modelDraftId, cancellationToken);
-        await _api._UploadModelMetadataAsync((composite3DModel.Metadata as CGTrader3DModelMetadata)!, modelDraftId, cancellationToken);
-        await _api._PublishModelAsync(composite3DModel, modelDraftId, cancellationToken);
+        var modelDraft = await _api._CreateNewModelDraftAsyncFor(composite3DModel, sessionContext, cancellationToken);
+        await _api._UploadAssetsAsync(modelDraft, cancellationToken);
+        await _api._UploadMetadataAsync(modelDraft, cancellationToken);
+        await _api._PublishAsync(modelDraft, cancellationToken);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Common;
 using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
+using NLog;
 using NodeToUI;
 using Transport.Models;
 using Transport.Upload._3DModelsUpload.CGTrader.Network;
@@ -10,6 +11,8 @@ namespace Transport.Upload._3DModelsUpload.CGTrader.Api;
 
 internal class CGTraderCaptchaApi : IBaseAddressProvider
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     readonly HttpClient _httpClient;
 
     string IBaseAddressProvider.BaseAddress => "https://service.mtcaptcha.com/mtcv1/api/";
@@ -22,6 +25,20 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
     #region Request
 
     internal async Task<CGTraderCaptcha> _RequestCaptchaAsync(string siteKey, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var captcha = await _RequestCaptchaAsyncCore(siteKey, cancellationToken);
+            _logger.Debug("CAPTCHA is received."); return captcha;
+        }
+        catch (Exception ex)
+        {
+            string errorMessage = "CAPTCHA request failed.";
+            _logger.Error(errorMessage, ex); throw new Exception(errorMessage, ex);
+        }
+    }
+
+    async Task<CGTraderCaptcha> _RequestCaptchaAsyncCore(string siteKey, CancellationToken cancellationToken)
     {
         var configuration = await _RequestCaptchaConfigurationsAsync(siteKey, cancellationToken);
         string imageAsBase64 = await _RequestCaptchaImageAsBase64Async(siteKey, configuration, cancellationToken);
@@ -89,7 +106,21 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
 
     #region Solving
 
-    internal async Task<string> _SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken) =>
+    internal async Task<string> _SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken)
+    {
+        try
+        {
+            string verifiedToken = await __SolveCaptchaAsync(captcha, cancellationToken);
+            _logger.Debug("CAPTCHA was solved."); return verifiedToken;
+        }
+        catch (Exception ex)
+        {
+            string errorMessage = "CAPTCHA couldn't be solved.";
+            _logger.Error(errorMessage, ex); throw new Exception(errorMessage, ex);
+        }
+    }
+        
+    async Task<string> __SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken) =>
         await _SolveCaptchaAsyncCore(captcha, await _RequestCaptchaSolutionFromGuiAsync(captcha), cancellationToken);
 
     static async Task<string> _RequestCaptchaSolutionFromGuiAsync(string base64Image) =>
@@ -138,7 +169,7 @@ static class CaptchaJObjectExtensions
     internal static JObject _EnsureSuccessStatusCode(this JObject captchaServiceResponse)
     {
         if ((int)captchaServiceResponse["code"]! != 1200) throw new HttpRequestException(
-            $"Response code does not indicate success: {captchaServiceResponse["code"]}\n" +
+            $"CGTrader CAPTCHA service response code does not indicate success: {captchaServiceResponse["code"]}\n" +
             $"{captchaServiceResponse["msgs"]}.");
         else return captchaServiceResponse;
     }

@@ -72,7 +72,7 @@ internal record CGTrader3DModelPreviewImageUploadSessionData : CGTrader3DModelAs
     internal override async Task _UseToUploadWith(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken)
     {
         if (httpMethod == HttpMethod.Options) (await httpClient.SendAsync(
-            new HttpRequestMessage(httpMethod, _StorageLocation)._ConfigureAsModelPreviewImageUploadOptions(), cancellationToken))
+            new HttpRequestMessage(httpMethod, _StorageLocation)._ConfiguredAsModelPreviewImageUploadOptions(), cancellationToken))
             .EnsureSuccessStatusCode();
         else if (httpMethod == HttpMethod.Put)
         {
@@ -88,7 +88,7 @@ internal record CGTrader3DModelPreviewImageUploadSessionData : CGTrader3DModelAs
 
 static class Extensions
 {
-    internal static HttpRequestMessage _ConfigureAsModelPreviewImageUploadOptions(this HttpRequestMessage request)
+    internal static HttpRequestMessage _ConfiguredAsModelPreviewImageUploadOptions(this HttpRequestMessage request)
     {
         request.Headers.Add("Origin", CGTraderUri.Https);
         request.Headers.Host = "images-cgtrader-com.s3.amazonaws.com";

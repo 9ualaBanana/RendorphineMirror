@@ -11,7 +11,7 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
     public string Description { get; }
     public string[] Tags
     {
-        get => _tags!;
+        get => _tags;
         private init
         {
             if (value.Length < 5) throw new ArgumentOutOfRangeException(
@@ -22,7 +22,7 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
             _tags = value;
         }
     }
-    string[]? _tags;
+    string[] _tags = null!;
     public int Category { get; }
     public int SubCategory { get; }
     public CGTraderLicense License { get; }
