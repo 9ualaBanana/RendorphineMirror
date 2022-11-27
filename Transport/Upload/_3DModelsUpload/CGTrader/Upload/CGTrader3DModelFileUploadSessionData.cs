@@ -80,15 +80,15 @@ internal record CGTrader3DModelFileUploadSessionData : CGTrader3DModelAssetUploa
         modelFileStream.Close();
     }
 
-    internal override async Task _SendUploadRequestAsyncWtih(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken)
+    internal override async Task _UseToUploadWith(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken)
     {
         using var modelFileStream = File.OpenRead(_FilePath);
         (await httpClient.SendAsync(
-            new HttpRequestMessage(httpMethod, _StorageLocation) { Content = _HttpContentFor(modelFileStream) }, cancellationToken)
+            new HttpRequestMessage(httpMethod, _StorageLocation) { Content = _MultipartFormDataForUploadFor(modelFileStream) }, cancellationToken)
         ).EnsureSuccessStatusCode();
     }
 
-    internal HttpContent _HttpContentFor(FileStream modelFileStream) => _httpContent ??= new MultipartFormDataContent()
+    internal HttpContent _MultipartFormDataForUploadFor(FileStream modelFileStream) => _httpContent ??= new MultipartFormDataContent()
     {
         { new StringContent(_Key), "key" },
         { new StringContent(_AwsAccessKeyID), "awsAccessKeyId" },

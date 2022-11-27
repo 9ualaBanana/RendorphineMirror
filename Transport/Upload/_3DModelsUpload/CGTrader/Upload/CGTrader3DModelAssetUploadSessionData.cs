@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;
+﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;
 
 internal abstract record CGTrader3DModelAssetUploadSessionData
 {
@@ -29,5 +28,5 @@ internal abstract record CGTrader3DModelAssetUploadSessionData
         CancellationToken cancellationToken) =>
             await CGTrader3DModelPreviewImageUploadSessionData._AsyncFrom(response, modelPreviewImageFilePath, cancellationToken);
 
-    internal abstract Task _SendUploadRequestAsyncWtih(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken);
+    internal abstract Task _UseToUploadWith(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken);
 }

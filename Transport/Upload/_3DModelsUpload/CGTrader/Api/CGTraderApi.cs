@@ -36,7 +36,7 @@ internal class CGTraderApi : IBaseAddressProvider
         try
         {
             var sessionContext = await _RequestSessionContextAsyncCore(credential, cancellationToken);
-            _logger.Debug("Session context is received.");
+            _logger.Debug("Session context was received.");
             return sessionContext;
         }
         catch (Exception ex)
@@ -89,8 +89,6 @@ internal class CGTraderApi : IBaseAddressProvider
 
     #endregion
 
-    #region ModelAssetsUpload
-
     #region DraftCreation
 
     /// <inheritdoc cref="__CreateNewModelDraftAsync(CancellationToken)"/>
@@ -99,7 +97,7 @@ internal class CGTraderApi : IBaseAddressProvider
         try
         {
             string modelDraftId = await __CreateNewModelDraftAsync(sessionContext, cancellationToken);
-            _logger.Debug("New model draft with {ID} ID is created.", modelDraftId);
+            _logger.Debug("New model draft with {ID} ID was created.", modelDraftId);
             return modelDraftId;
         }
         catch (Exception ex)
@@ -118,11 +116,11 @@ internal class CGTraderApi : IBaseAddressProvider
             sessionContext.CsrfToken = CGTraderCsrfToken._Parse(htmlWithUploadInitializingCsrfToken, CsrfTokenRequest.UploadInitializing)
             );
         string modelDraftId = await _CreateNewModelDraftAsyncCore(cancellationToken);
-        
+
         return modelDraftId;
     }
 
-    async Task<string> _RequestUploadInitializingCsrfTokenAsync(CancellationToken cancellationToken) => 
+    async Task<string> _RequestUploadInitializingCsrfTokenAsync(CancellationToken cancellationToken) =>
         await _httpClient.GetStringAsync(
             (this as IBaseAddressProvider).Endpoint("/profile/upload/model"),
             cancellationToken
@@ -149,6 +147,7 @@ internal class CGTraderApi : IBaseAddressProvider
             foreach (var modelPart in _3DModel.Files)
                 await _UploadModelFileAsync(modelPart, modelDraftId, cancellationToken);
 
+        _UpcastPreviewImagesOf(composite3DModel);
         foreach (var preview in composite3DModel.PreviewImages.Select(preview => (preview as CGTrader3DModelPreviewImage)!))
         {
             string uploadedFileId = await _UploadModelPreviewImageAsync(preview, modelDraftId, cancellationToken);
@@ -160,30 +159,37 @@ internal class CGTraderApi : IBaseAddressProvider
 
     async Task _UploadModelFileAsync(string modelFilePath, string modelDraftId, CancellationToken cancellationToken)
     {
-        try { await __UploadModelFileAsync(modelFilePath, modelDraftId, cancellationToken); }
+        try
+        {
+            await __UploadModelFileAsync(modelFilePath, modelDraftId, cancellationToken);
+            _logger.Debug("3D model file at {Path} was uploaded to {ModelDraftID} model draft.", modelFilePath, modelDraftId);
+        }
         catch (HttpRequestException ex)
         {
-            string errorMessage = $"3D model file couldn't be uploaded. ({modelFilePath})";
+            string errorMessage = $"3D model file at {modelFilePath} couldn't be uploaded to {modelDraftId} model draft.";
             throw new HttpRequestException(errorMessage, ex, ex.StatusCode);
         }
     }
 
     async Task __UploadModelFileAsync(string modelFilePath, string modelDraftId, CancellationToken cancellationToken)
     {
-        var assetUploadSessionData = await _ReserveServerSpaceAsyncFor(modelFilePath, modelDraftId, cancellationToken);
-        await _UploadModelFileAsyncCore(assetUploadSessionData, cancellationToken);
+        var modelFileUploadSessionData = await _ReserveServerSpaceAsyncFor(modelFilePath, modelDraftId, cancellationToken);
+        await modelFileUploadSessionData._UseToUploadWith(_httpClient, HttpMethod.Post, cancellationToken);
     }
 
+    /// <returns><see cref="CGTrader3DModelFileUploadSessionData"/> for the file at <paramref name="modelFilePath"/>.</returns>
     async Task<CGTrader3DModelFileUploadSessionData> _ReserveServerSpaceAsyncFor(
         string modelFilePath,
         string modelDraftId,
         CancellationToken cancellationToken)
     {
         using var modelFileStream = File.OpenRead(modelFilePath);
-        using var request = new HttpRequestMessage(HttpMethod.Post,
-            (this as IBaseAddressProvider).Endpoint($"/profile/items/{modelDraftId}/uploads"))
-        { Content = modelFileStream._ToModelFileMultipartFormDataContent() };
-        
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            (this as IBaseAddressProvider).Endpoint($"/profile/items/{modelDraftId}/uploads")
+            )
+        { Content = modelFileStream._ToModelFileMultipartFormDataOptions() };
+
         using var response = (await _httpClient.SendAsync(request._WithHostHeader(), cancellationToken))
             .EnsureSuccessStatusCode();
 
@@ -191,21 +197,27 @@ internal class CGTraderApi : IBaseAddressProvider
             ._ForModelFileAsyncFrom(response, modelFilePath, cancellationToken);
     }
 
-    async Task _UploadModelFileAsyncCore(
-        CGTrader3DModelFileUploadSessionData modelFileUploadSessionData,
-        CancellationToken cancellationToken) => 
-            await modelFileUploadSessionData._SendUploadRequestAsyncWtih(_httpClient, HttpMethod.Post, cancellationToken);
-
     #endregion
 
     #region ModelPreviewUpload
 
+    static void _UpcastPreviewImagesOf(Composite3DModel composite3DModel) =>
+        composite3DModel.PreviewImages = composite3DModel.PreviewImages
+        .Select(previewImage => new CGTrader3DModelPreviewImage(previewImage.FilePath));
+
     async Task<string> _UploadModelPreviewImageAsync(CGTrader3DModelPreviewImage modelPreview, string modelDraftId, CancellationToken cancellationToken)
     {
-        try { return await __UploadModelPreviewImageAsync(modelPreview, modelDraftId, cancellationToken); }
+        try
+        {
+            string uploadedFileId = await __UploadModelPreviewImageAsync(modelPreview, modelDraftId, cancellationToken);
+            _logger.Debug("3D model preview image at {Path} was uploaded to {ModelDraft} model draft with {UploadedFileID} ID.",
+                modelPreview.FilePath, uploadedFileId
+                );
+            return uploadedFileId;
+        }
         catch (Exception ex)
         {
-            const string errorMessage = "3D model preview image couldn't be uploaded.";
+            string errorMessage = $"3D model preview image at {modelPreview.FilePath} couldn't be uploaded to {modelDraftId} model draft.";
             _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
         }
     }
@@ -218,6 +230,7 @@ internal class CGTraderApi : IBaseAddressProvider
         return await _RequestUploadedFileIDAsync(modelPreviewImageUploadSessionData, modelDraftId, cancellationToken);
     }
 
+    /// <returns><see cref="CGTrader3DModelPreviewImageUploadSessionData"/> for the <paramref name="modelPreviewImage"/>.</returns>
     async Task<CGTrader3DModelPreviewImageUploadSessionData> _ReserveServerSpaceAsyncFor(
         CGTrader3DModelPreviewImage modelPreviewImage,
         CancellationToken cancellationToken)
@@ -249,12 +262,12 @@ internal class CGTraderApi : IBaseAddressProvider
     async Task _SendModelPreviewImageUploadOptionsAsync(
         CGTrader3DModelPreviewImageUploadSessionData modelPreviewImageUploadSessionData,
         CancellationToken cancellationToken) =>
-            await modelPreviewImageUploadSessionData._SendUploadRequestAsyncWtih(_httpClient, HttpMethod.Options, cancellationToken);
+            await modelPreviewImageUploadSessionData._UseToUploadWith(_httpClient, HttpMethod.Options, cancellationToken);
 
     async Task _UploadModelPreviewImageAsyncCore(
         CGTrader3DModelPreviewImageUploadSessionData modelPreviewImageUploadSessionData,
         CancellationToken cancellationToken) =>
-            await modelPreviewImageUploadSessionData._SendUploadRequestAsyncWtih(_httpClient, HttpMethod.Put, cancellationToken);
+            await modelPreviewImageUploadSessionData._UseToUploadWith(_httpClient, HttpMethod.Put, cancellationToken);
 
     async Task<string> _RequestUploadedFileIDAsync(
         CGTrader3DModelPreviewImageUploadSessionData modelPreviewImageUploadSessionData,
@@ -276,7 +289,21 @@ internal class CGTraderApi : IBaseAddressProvider
 
     #region ModelMetadataUpload
 
-    internal async Task _UploadModelMetadataAsync(CGTrader3DModelMetadata metadata, string modelDraftId, CancellationToken cancellationToken) =>
+    internal async Task _UploadModelMetadataAsync(CGTrader3DModelMetadata metadata, string modelDraftId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _UploadModelMetadataAsyncCore(metadata, modelDraftId, cancellationToken);
+            _logger.Debug("Metadata was uploaded to {ModelDraftID} model draft.", modelDraftId);
+        }
+        catch (Exception ex)
+        {
+            string errorMessage = $"Metadata couldn't be uploaded to {modelDraftId} model draft.";
+            _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
+        }
+    }
+
+    async Task _UploadModelMetadataAsyncCore(CGTrader3DModelMetadata metadata, string modelDraftId, CancellationToken cancellationToken) =>
         await (await _httpClient.PatchAsync(
             (this as IBaseAddressProvider).Endpoint($"/profile/items/{modelDraftId}"),
             metadata._AsCGJsonContent,
@@ -287,14 +314,27 @@ internal class CGTraderApi : IBaseAddressProvider
 
     #region Publishing
 
-    internal async Task _PublishModelAsync(Composite3DModel composite3DModel, string modelDraftId, CancellationToken cancellationToken) =>
-        await (await _httpClient.PostAsJsonAsync(
+    internal async Task _PublishModelAsync(Composite3DModel composite3DModel, string modelDraftId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _PublishModelAsyncCore(composite3DModel, modelDraftId, cancellationToken);
+            _logger.Debug("Model with {ModelDraftID} ID was published.", modelDraftId);
+        }
+        catch (Exception ex)
+        {
+            string errorMessage = $"Model with {modelDraftId} ID couldn't be published.";
+            _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
+        }
+    }
+        
+
+    async Task _PublishModelAsyncCore(Composite3DModel composite3DModel, string modelDraftId, CancellationToken cancellationToken) =>
+        await(await _httpClient.PostAsJsonAsync(
             (this as IBaseAddressProvider).Endpoint($"/profile/items/{modelDraftId}/publish"),
             new { item = new { tags = (composite3DModel.Metadata as CGTrader3DModelMetadata)!.Tags } },
             cancellationToken)
         )._EnsureSuccessStatusCodeAsync(cancellationToken);
-
-    #endregion
 
     #endregion
 
@@ -314,7 +354,7 @@ static class Extensions
             throw new HttpRequestException("The value of `success` field in the response is not `true`.");
     }
 
-    internal static MultipartFormDataContent _ToModelFileMultipartFormDataContent(this FileStream fileStream)
+    internal static MultipartFormDataContent _ToModelFileMultipartFormDataOptions(this FileStream fileStream)
     {
         var filename = new StringContent(Path.GetFileName(fileStream.Name)); filename.Headers.ContentType = null;
         var type = new StringContent("file"); type.Headers.ContentType = null;

@@ -24,13 +24,8 @@ internal class CGTrader3DModelUploader : _3DModelUploaderBase
 
         await _api._LoginAsync(sessionContext, cancellationToken);
         string modelDraftId = await _api._CreateNewModelDraftAsync(sessionContext, cancellationToken);
-        _UpcastPreviewImagesOf(composite3DModel);
         await _api._UploadModelAssetsAsyncOf(composite3DModel, modelDraftId, cancellationToken);
         await _api._UploadModelMetadataAsync((composite3DModel.Metadata as CGTrader3DModelMetadata)!, modelDraftId, cancellationToken);
         await _api._PublishModelAsync(composite3DModel, modelDraftId, cancellationToken);
     }
-
-    static void _UpcastPreviewImagesOf(Composite3DModel composite3DModel) =>
-        composite3DModel.PreviewImages = composite3DModel.PreviewImages
-        .Select(previewImage => new CGTrader3DModelPreviewImage(previewImage.FilePath));
 }

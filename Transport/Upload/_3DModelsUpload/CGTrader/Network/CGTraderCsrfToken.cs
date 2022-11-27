@@ -21,8 +21,8 @@ internal static class CGTraderCsrfToken
 
     static string _ParseUploadInitializing(string uploadInitializingCsrfToken)
     {
-        const string _CsrfTokenMeta = "<meta name=\"csrf-token\" content=\"";
-        int csrfTokenStartIndex = uploadInitializingCsrfToken.IndexOf(_CsrfTokenMeta) + _CsrfTokenMeta.Length;
+        const string CsrfTokenMeta = "<meta name=\"csrf-token\" content=\"";
+        int csrfTokenStartIndex = uploadInitializingCsrfToken.IndexOf(CsrfTokenMeta) + CsrfTokenMeta.Length;
         int csrfTokenEndIndex = uploadInitializingCsrfToken.IndexOf('"', csrfTokenStartIndex);
         return uploadInitializingCsrfToken[csrfTokenStartIndex..csrfTokenEndIndex];
     }
@@ -38,9 +38,9 @@ internal static class CsrfTokenExtensions
 {
     internal static void _AddOrReplaceCsrfToken(this HttpRequestHeaders headers, string csrfToken)
     {
-        const string HeaderName = "X-CSRF-Token";
+        const string Header = "X-CSRF-Token";
 
-        headers.Remove(HeaderName);
-        headers.Add(HeaderName, csrfToken);
+        headers.Remove(Header);
+        headers.Add(Header, csrfToken);
     }
 }

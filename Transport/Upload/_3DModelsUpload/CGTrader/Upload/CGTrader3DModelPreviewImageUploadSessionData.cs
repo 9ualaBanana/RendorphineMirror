@@ -69,7 +69,7 @@ internal record CGTrader3DModelPreviewImageUploadSessionData : CGTrader3DModelAs
         _XAmzSignature = xAmzSignature;
     }
 
-    internal override async Task _SendUploadRequestAsyncWtih(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken)
+    internal override async Task _UseToUploadWith(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken)
     {
         if (httpMethod == HttpMethod.Options) (await httpClient.SendAsync(
             new HttpRequestMessage(httpMethod, _StorageLocation)._ConfigureAsModelPreviewImageUploadOptions(), cancellationToken))
