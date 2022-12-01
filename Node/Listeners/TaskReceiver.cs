@@ -23,10 +23,11 @@ public class TaskReceiver : ListenerBase
         var values = ReadQueryString(query, "taskid")
             .Next(taskid => ReadQueryString(query, "sign")
             .Next(sign => ReadQueryString(query, "task")
-            .Next(task => (taskid, sign, task).AsOpResult())));
+            .Next(task => ReadQueryString(query, "tlhost")
+            .Next(host => (taskid, sign, task, host).AsOpResult()))));
         if (!values) return;
 
-        var (taskid, sign, task) = values.Result;
+        var (taskid, sign, task, host) = values.Result;
         var json = JObject.Parse(task)!;
 
         var taskinfo = JsonConvert.DeserializeObject<TaskInfo>(task)!;
@@ -35,6 +36,6 @@ public class TaskReceiver : ListenerBase
         response.StatusCode = (int) await WriteText(response, "{\"ok\":1}");
         response.Close();
 
-        NodeSettings.QueuedTasks.Add(new ReceivedTask(taskid, taskinfo, false));
+        NodeSettings.QueuedTasks.Add(new ReceivedTask(taskid, taskinfo, false) { HostShard = host });
     }
 }

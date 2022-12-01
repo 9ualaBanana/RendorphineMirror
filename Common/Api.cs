@@ -35,12 +35,34 @@ namespace Common
         {
             return Execute(send);
 
-            async ValueTask<T> send()
+            async ValueTask<OperationResult<T>> send()
             {
                 var result = await func(url, values).ConfigureAwait(false);
 
-                var responseJson = await GetJsonFromResponseIfSuccessfulAsync(result, errorDetails).ConfigureAwait(false);
-                return (property is null ? responseJson : responseJson[property])!.ToObject<T>()!;
+                var responseJson = await readResponse(result, errorDetails).ConfigureAwait(false);
+                if (!responseJson) return responseJson.GetResult();
+
+                return (property is null ? responseJson.Value : responseJson.Value[property])!.ToObject<T>()!;
+            }
+            static async ValueTask<OperationResult<JToken>> readResponse(HttpResponseMessage response, string? errorDetails = null)
+            {
+                if (!response.IsSuccessStatusCode)
+                    return OperationResult.Err($"{errorDetails}: Server responded with HTTP {response.StatusCode}") with { HttpData = new(response.StatusCode, null) };
+
+                using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                using var reader = new JsonTextReader(new StreamReader(stream));
+                var responseJson = JToken.Load(reader);
+                var responseStatusCode = responseJson["ok"]?.Value<int>();
+                if (responseStatusCode != 1)
+                {
+                    var errmsg = responseJson["errormessage"]?.Value<string>();
+                    var errcode = responseJson["errorcode"]?.Value<int>();
+
+                    errmsg = $"{errorDetails}: Server responded with HTTP {response.StatusCode} & {errcode} error code: {errmsg ?? "<no message>"}";
+                    return OperationResult.Err(errmsg) with { HttpData = new(response.StatusCode, errcode) };
+                }
+
+                return responseJson;
             }
         }
 
@@ -63,7 +85,7 @@ namespace Common
         public static Task<HttpResponseMessage> Get(string url) => Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
 
-        static async ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<T>> func)
+        static async ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<OperationResult<T>>> func)
         {
             while (true)
             {
