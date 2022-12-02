@@ -345,7 +345,7 @@ internal class CGTraderApi : IBaseAddressProvider
     #endregion
 }
 
-static class Extensions
+static class CGTraderApiExtensions
 {
     internal static async Task _EnsureSuccessStatusCodeAsync(this HttpResponseMessage response, CancellationToken cancellationToken)
     {

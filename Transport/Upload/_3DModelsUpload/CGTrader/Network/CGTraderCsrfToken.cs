@@ -11,20 +11,20 @@ internal static class CGTraderCsrfToken
         _ => throw new NotImplementedException("Unknown token kind.")
     };
 
-    static string _ParseInitial(string htmlWithSessionCredentials)
+    static string _ParseInitial(string html)
     {
-        string _CsrfTokenMetaContentKey = $"meta.content = '";
-        int csrfTokenStartIndex = htmlWithSessionCredentials.IndexOf(_CsrfTokenMetaContentKey) + _CsrfTokenMetaContentKey.Length;
-        int csrfTokenEndIndex = htmlWithSessionCredentials.IndexOf('\'', csrfTokenStartIndex);
-        return htmlWithSessionCredentials[csrfTokenStartIndex..csrfTokenEndIndex];
+        string CsrfTokenMetaContentKey = $"meta.content = '";
+        int csrfTokenStartIndex = html.IndexOf(CsrfTokenMetaContentKey) + CsrfTokenMetaContentKey.Length;
+        int csrfTokenEndIndex = html.IndexOf('\'', csrfTokenStartIndex);
+        return html[csrfTokenStartIndex..csrfTokenEndIndex];
     }
 
-    static string _ParseUploadInitializing(string uploadInitializingCsrfToken)
+    static string _ParseUploadInitializing(string html)
     {
         const string CsrfTokenMeta = "<meta name=\"csrf-token\" content=\"";
-        int csrfTokenStartIndex = uploadInitializingCsrfToken.IndexOf(CsrfTokenMeta) + CsrfTokenMeta.Length;
-        int csrfTokenEndIndex = uploadInitializingCsrfToken.IndexOf('"', csrfTokenStartIndex);
-        return uploadInitializingCsrfToken[csrfTokenStartIndex..csrfTokenEndIndex];
+        int csrfTokenStartIndex = html.IndexOf(CsrfTokenMeta) + CsrfTokenMeta.Length;
+        int csrfTokenEndIndex = html.IndexOf('"', csrfTokenStartIndex);
+        return html[csrfTokenStartIndex..csrfTokenEndIndex];
     }
 }
 

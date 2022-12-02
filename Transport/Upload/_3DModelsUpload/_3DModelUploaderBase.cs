@@ -1,4 +1,4 @@
-﻿using Transport.Upload._3DModelsUpload.CGTrader.Network;
+﻿using System.Net;
 
 namespace Transport.Upload._3DModelsUpload;
 
@@ -11,7 +11,7 @@ internal abstract class _3DModelUploaderBase
 
 
     internal abstract Task UploadAsync(
-        CGTraderNetworkCredential credential,
+        NetworkCredential credential,
         Composite3DModel composite3DModel,
         CancellationToken cancellationToken = default);
 }

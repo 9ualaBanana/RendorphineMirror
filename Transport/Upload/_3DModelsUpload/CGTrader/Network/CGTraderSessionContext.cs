@@ -19,7 +19,7 @@ internal record CGTraderSessionContext
         Captcha = captcha;
     }
 
-    internal static async Task<CGTraderSessionContext> CreateAsyncUsing(
+    internal static async Task<CGTraderSessionContext> _CreateAsyncUsing(
         CGTraderApi api,
         CGTraderNetworkCredential credential,
         CancellationToken cancellationToken

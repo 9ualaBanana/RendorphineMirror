@@ -2,21 +2,18 @@
 
 internal static class CGTraderCaptchaSiteKey
 {
-    const char _ValueDelimiter = '"';
-    static string _SiteKeyJsonKey = $"sitekey:{_ValueDelimiter}";
-
-    internal static string _Parse(string htmlWithSessionCredentials)
+    internal static string _Parse(string html)
     {
-        if (htmlWithSessionCredentials.Contains(_SiteKeyJsonKey))
-            return _ParseCoreFrom(htmlWithSessionCredentials);
-        else
-            throw new MissingFieldException("Returned document doesn't contain site key.");
+        try { return _ParseCoreFrom(html); }
+        catch (Exception ex) { throw new MissingFieldException("Returned document doesn't contain site key.", ex); }
     }
 
-    static string _ParseCoreFrom(string htmlWithSessionCredentials)
+    static string _ParseCoreFrom(string html)
     {
-        int siteKeyStartIndex = htmlWithSessionCredentials.IndexOf(_SiteKeyJsonKey) + _SiteKeyJsonKey.Length;
-        int siteKeyEndIndex = htmlWithSessionCredentials.IndexOf(_ValueDelimiter, siteKeyStartIndex);
-        return htmlWithSessionCredentials[siteKeyStartIndex..siteKeyEndIndex];
+        const char _ValueDelimiter = '"';
+        string _SiteKeyJsonKey = $"sitekey:{_ValueDelimiter}";
+        int siteKeyStartIndex = html.IndexOf(_SiteKeyJsonKey) + _SiteKeyJsonKey.Length;
+        int siteKeyEndIndex = html.IndexOf(_ValueDelimiter, siteKeyStartIndex);
+        return html[siteKeyStartIndex..siteKeyEndIndex];
     }
 }

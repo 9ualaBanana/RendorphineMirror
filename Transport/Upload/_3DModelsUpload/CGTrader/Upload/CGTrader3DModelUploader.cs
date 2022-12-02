@@ -1,4 +1,5 @@
-﻿using Transport.Upload._3DModelsUpload.CGTrader.Api;
+﻿using System.Net;
+using Transport.Upload._3DModelsUpload.CGTrader.Api;
 using Transport.Upload._3DModelsUpload.CGTrader.Network;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;
@@ -13,11 +14,11 @@ internal class CGTrader3DModelUploader : _3DModelUploaderBase
     }
 
     internal override async Task UploadAsync(
-        CGTraderNetworkCredential credential,
+        NetworkCredential credential,
         Composite3DModel composite3DModel,
         CancellationToken cancellationToken = default)
     {
-        var sessionContext = await CGTraderSessionContext.CreateAsyncUsing(_api, credential, cancellationToken);
+        var sessionContext = await CGTraderSessionContext._CreateAsyncUsing(_api, (credential as CGTraderNetworkCredential)!, cancellationToken);
 
         HttpClient.DefaultRequestHeaders._AddOrReplaceCsrfToken(sessionContext.CsrfToken);
 
