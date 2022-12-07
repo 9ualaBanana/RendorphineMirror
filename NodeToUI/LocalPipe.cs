@@ -46,7 +46,7 @@ public static class LocalPipe
         public Writer(Stream stream)
         {
             Stream = stream;
-            JWriter = new JsonTextWriter(new StreamWriter(stream));
+            JWriter = new JsonTextWriter(new StreamWriter(stream) { AutoFlush = true });
         }
 
         public Task<bool> WriteAsync<T>(T value) where T : notnull => WriteAsync(JToken.FromObject(value, LocalApi.JsonSerializerWithType));

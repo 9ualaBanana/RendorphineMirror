@@ -21,9 +21,9 @@ public static class Apis
     public static ValueTask<OperationResult> ShardPost(this ITaskApi task, string url, string? errorDetails = null, params (string, string)[] values) =>
         task.ShardPost<JToken>(url, null, errorDetails, values).Next(j => true);
     public static ValueTask<OperationResult<T>> ShardGet<T>(this ITaskApi task, string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
-        task.ShardSend(() => Api.ApiGet<T>($"https://{task.HostShard}/{url}", property, errorDetails, AddSessionId(values)));
+        task.ShardSend(() => Api.ApiGet<T>($"https://{task.HostShard}/rphtasklauncher/{url}", property, errorDetails, AddSessionId(values)));
     public static ValueTask<OperationResult<T>> ShardPost<T>(this ITaskApi task, string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
-        task.ShardSend(() => Api.ApiPost<T>($"https://{task.HostShard}/{url}", property, errorDetails, AddSessionId(values)));
+        task.ShardSend(() => Api.ApiPost<T>($"https://{task.HostShard}/rphtasklauncher/{url}", property, errorDetails, AddSessionId(values)));
 
     static async ValueTask<OperationResult<T>> ShardSend<T>(this ITaskApi task, Func<ValueTask<OperationResult<T>>> func)
     {
