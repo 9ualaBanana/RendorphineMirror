@@ -43,7 +43,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
         await TorrentClient.AddTrackers(manager, true);
         task.LogInfo($"Result magnet uri: {manager.MagnetLink.ToV1String()}");
 
-        var post = await Api.ApiPost($"{Api.TaskManagerEndpoint}/inittorrenttaskoutput", "Updating output magnet uri", ("sessionid", Settings.SessionId), ("taskid", task.Id), ("link", manager.MagnetLink.ToV1String()));
+        var post = await task.ShardGet("inittorrenttaskoutput", "Updating output magnet uri", ("taskid", task.Id), ("link", manager.MagnetLink.ToV1String()));
         post.ThrowIfError();
 
         info.Link = manager.MagnetLink.ToV1String();
