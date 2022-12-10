@@ -1,5 +1,4 @@
-﻿using CefSharp.DevTools.WebAuthn;
-using Microsoft.AspNetCore.WebUtilities;
+﻿using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
 using NLog;
 using System.Net.Http.Json;
