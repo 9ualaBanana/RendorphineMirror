@@ -1,6 +1,4 @@
-﻿using Transport.Upload._3DModelsUpload.CGTrader.Api;
-
-namespace Transport.Upload._3DModelsUpload.CGTrader.Network.Captcha;
+﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Network.Captcha;
 
 public sealed class CGTraderCaptcha
 {
@@ -22,10 +20,6 @@ public sealed class CGTraderCaptcha
     }
 
     #endregion
-
-    internal async ValueTask<string> _SolveAsyncUsing(
-        CGTraderCaptchaApi captchaService,
-        CancellationToken cancellationToken) => await captchaService._SolveCaptchaAsync(this, cancellationToken);
 
     #region Casts
 

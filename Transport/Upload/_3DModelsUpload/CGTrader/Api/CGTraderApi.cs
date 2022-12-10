@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
+﻿using CefSharp.DevTools.WebAuthn;
+using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
 using NLog;
 using System.Net.Http.Json;
@@ -58,6 +59,8 @@ internal class CGTraderApi : IBaseAddressProvider
         string siteKey = CGTraderCaptchaSiteKey._Parse(htmlWithSessionCredentials);
         var captcha = await _captchaService._RequestCaptchaAsync(siteKey, cancellationToken);
 
+        _httpClient.DefaultRequestHeaders._AddOrReplaceCsrfToken(csrfToken);
+
         return new CGTraderSessionContext(credential, csrfToken, captcha);
     }
 
@@ -72,7 +75,7 @@ internal class CGTraderApi : IBaseAddressProvider
         }
         catch (HttpRequestException ex)
         {
-            const string errorMessage = "Login attempt was unsuccessful.";
+            string errorMessage = $"Login attempt for {sessionContext.Credential.UserName} was unsuccessful.";
             _logger.Error(ex, errorMessage);
             throw new HttpRequestException(errorMessage, ex, ex.StatusCode);
         }
