@@ -6,7 +6,6 @@ internal static class Logging
 {
     readonly static string _layout = $"${{time:universalTime=true}} ${{pad:padding=-7:inner=[${{level:uppercase=true}}]}} ${{message:withException=true:exceptionSeparator=\n\n}}";
 
-
     internal static void Configure(bool isDebug)
     {
         LogManager.AutoShutdown = true;
@@ -45,6 +44,6 @@ internal static class Logging
     };
 
     static string _LogDirFor(LogLevel logLevel) => $"{_logDir}{logLevel.Name}${{dir-separator}}";
-    readonly static string _logDir = "logs${dir-separator}${processname}${dir-separator}";
+    readonly static string _logDir = "logs${dir-separator}";
     readonly static string _fileExtension = ".log";
 }
