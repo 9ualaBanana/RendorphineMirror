@@ -94,7 +94,8 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
     {
         if (task.IsFromSameNode) return;
 
-        var server = (await task.GetTaskStateAsync()).ThrowIfError().Server.ThrowIfNull("Could not find server in /getmytaskstate request");
+        var server = (await task.GetTaskStateAsync()).ThrowIfError().Server;
+        if (server is null) task.ThrowFailed("Could not find server in /getmytaskstate request");
 
         var info = (DirectUploadTaskOutputInfo) task.Output;
         using var result = await Api.Get($"{server.Host}/rphtaskexec/downloadoutput?taskid={task.Id}");

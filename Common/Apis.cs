@@ -21,48 +21,61 @@ public static class Apis
     public static ValueTask<OperationResult> ShardPost(this ITaskApi task, string url, string? errorDetails = null, params (string, string)[] values) =>
         task.ShardPost<JToken>(url, null, errorDetails, values).Next(j => true);
     public static ValueTask<OperationResult<T>> ShardGet<T>(this ITaskApi task, string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
-        task.ShardSend(() => Api.ApiGet<T>($"https://{task.HostShard}/rphtasklauncher/{url}", property, errorDetails, AddSessionId(values)));
+        task.ShardSend(Api.ApiGet<T>, url, property, errorDetails, AddSessionId(values));
     public static ValueTask<OperationResult<T>> ShardPost<T>(this ITaskApi task, string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
-        task.ShardSend(() => Api.ApiPost<T>($"https://{task.HostShard}/rphtasklauncher/{url}", property, errorDetails, AddSessionId(values)));
+        task.ShardSend(Api.ApiPost<T>, url, property, errorDetails, AddSessionId(values));
 
-    static async ValueTask<OperationResult<T>> ShardSend<T>(this ITaskApi task, Func<ValueTask<OperationResult<T>>> func)
+    static async ValueTask<OperationResult<T>> ShardSend<T>(this ITaskApi task, Func<string, string?, string?, (string, string)[], ValueTask<OperationResult<T>>> func,
+        string url, string? property, string? errorDetails, (string, string)[] values)
     {
-        if (task.HostShard is null)
-        {
-            var host = await task.UpdateTaskShardAsync();
-            if (!host) return host;
-        }
+        (task as ILoggable)?.LogTrace($"Sending shard request {url}; Shard is {task.HostShard ?? "<null>"}");
+        return await ShardSend(task, () => func($"https://{task.HostShard}/rphtasklauncher/{url}", property, errorDetails, values));
 
-        var result = await OperationResult.WrapException(func);
-        if (result) return result;
 
-        // only if an API error
-        if (result.GetResult().HttpData is { } httpdata)
+        static async ValueTask<OperationResult<T>> ShardSend(ITaskApi task, Func<ValueTask<OperationResult<T>>> func)
         {
-            // if nonsuccess, refetch shard host, retry
-            if (!httpdata.IsSuccessStatusCode)
+            if (task.HostShard is null)
             {
-                await Task.Delay(30_000);
-                await task.UpdateTaskShardAsync();
-                return await ShardSend(task, func);
+                var host = await task.UpdateTaskShardAsync();
+                if (!host) return host;
             }
 
-            // "No shard is known for this task. The shard could be restarting, try again in 30 seconds"
-            if (httpdata.ErrorCode == ErrorCodes.NoKnownShard)
-            {
-                await Task.Delay(30_000);
-                return await ShardSend(task, func);
-            }
-        }
+            var result = await OperationResult.WrapException(func);
+            if (result) return result;
 
-        return result;
+            // only if an API error
+            if (result.GetResult().HttpData is { } httpdata)
+            {
+                // if nonsuccess, refetch shard host, retry
+                if (!httpdata.IsSuccessStatusCode)
+                {
+                    await Task.Delay(30_000);
+                    await task.UpdateTaskShardAsync();
+                    return await ShardSend(task, func);
+                }
+
+                // "No shard is known for this task. The shard could be restarting, try again in 30 seconds"
+                if (httpdata.ErrorCode == ErrorCodes.NoKnownShard)
+                {
+                    await Task.Delay(30_000);
+                    return await ShardSend(task, func);
+                }
+            }
+
+            return result;
+        }
     }
 
 
     /// <inheritdoc cref="GetTaskShardAsync"/>
     public static ValueTask<OperationResult> UpdateTaskShardAsync(this ITaskApi task, string? sessionId = default) =>
         GetTaskShardAsync(task.Id, sessionId)
-            .Next(s => { task.HostShard = s; return true; });
+            .Next(s =>
+            {
+                (task as ILoggable)?.LogTrace($"Shard was updated to {s}");
+                task.HostShard = s;
+                return true;
+            });
 
     /// <summary> Get shard host for a task. Might take a long time to process. Should never return an error, but who knows... </summary>
     public static async ValueTask<OperationResult<string>> GetTaskShardAsync(string taskid, string? sessionId = default)

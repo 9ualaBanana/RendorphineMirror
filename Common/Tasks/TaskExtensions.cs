@@ -8,4 +8,5 @@ public static class TaskExtensions
     public static void LogWarn(this ILoggable obj, string text) => _logger.Warn($"[{obj.LogName}] {text}");
     public static void LogErr(this ILoggable obj, string text) => _logger.Error($"[{obj.LogName}] {text}");
     public static void LogErr(this ILoggable obj, Exception ex) => obj.LogErr(ex.ToString());
+    public static void LogTrace(this ILoggable obj, string text) => _logger.Trace($"[{obj.LogName}] {text}");
 }

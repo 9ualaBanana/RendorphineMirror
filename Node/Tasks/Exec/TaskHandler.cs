@@ -98,11 +98,13 @@ public static class TaskHandler
                 return remove();
             }
             catch (Exception ex) when (
-                ex.Message.Contains("Invalid old task state", StringComparison.OrdinalIgnoreCase)
+                ex is NodeTaskFailedException
+                || ex.Message.Contains("Invalid old task state", StringComparison.OrdinalIgnoreCase)
                 || ex.Message.Contains("no task with such ", StringComparison.OrdinalIgnoreCase)
             )
             {
                 task.LogErr(ex.Message + ", removing");
+                (await task.ChangeStateAsync(TaskState.Canceled)).ThrowIfError();
                 return remove();
             }
 

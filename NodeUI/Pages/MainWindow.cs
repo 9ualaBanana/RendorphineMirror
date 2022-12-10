@@ -900,7 +900,7 @@ namespace NodeUI.Pages
                                     read = reader.Read(buffer);
                                 }
 
-                                var str = $"{Encoding.UTF8.GetString(buffer.AsSpan(0, read))}\n\n<read on {DateTime.Now}>";
+                                var str = $"{Encoding.UTF8.GetString(buffer.AsSpan(0, read))}\n\n<read on {DateTime.UtcNow}>";
                                 Dispatcher.UIThread.Post(() =>
                                 {
                                     tb.Text = str;
