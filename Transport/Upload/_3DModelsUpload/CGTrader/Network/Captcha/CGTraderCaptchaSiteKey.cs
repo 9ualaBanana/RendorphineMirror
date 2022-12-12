@@ -1,11 +1,25 @@
-﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Network.Captcha;
+﻿using NLog;
+
+namespace Transport.Upload._3DModelsUpload.CGTrader.Network.Captcha;
 
 internal static class CGTraderCaptchaSiteKey
 {
-    internal static string _Parse(string html)
+    readonly static ILogger _logger = LogManager.GetCurrentClassLogger();
+
+    internal static string _Parse(string document)
     {
-        try { return _ParseCoreFrom(html); }
-        catch (Exception ex) { throw new MissingFieldException("Returned document doesn't contain site key.", ex); }
+        try
+        {
+            var siteKey = _ParseCoreFrom(document);
+            _logger.Trace("Site key was successfully parsed from the document ({SiteKey}).", siteKey);
+            return siteKey;
+        }
+        catch (Exception ex)
+        {
+            string errorMessage = "The document doesn't contain site key.";
+            _logger.Error(ex, "{Message}\n{Document}", errorMessage, document);
+            throw new MissingFieldException(errorMessage, ex);
+        }
     }
 
     static string _ParseCoreFrom(string html)
