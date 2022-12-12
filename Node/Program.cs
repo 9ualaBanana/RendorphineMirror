@@ -23,6 +23,7 @@ using Node.Profiling;
 
 
 CefInitializer.StaticCtor();
+CefInitializer.Initialize();
 if (args.Any(x => x.Contains("zygote", StringComparison.Ordinal) || x.Contains("sandbox", StringComparison.Ordinal) || x.StartsWith("--type", StringComparison.Ordinal)))
     return;
 

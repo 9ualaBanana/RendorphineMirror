@@ -51,7 +51,6 @@ internal class TurboSquidApi : IBaseAddressProvider
         TurboSquidNetworkCredential credential_ = null!;
         var thread = new Thread(() =>
         {
-            CefInitializer.Initialize();
             using var browser = new ChromiumWebBrowser((this as IBaseAddressProvider).Endpoint("/auth/keymaster"));
             // Consider using ResourceRequestHandlerFactory.
             browser.RequestHandler = new TurboSquidRequestHandler();
