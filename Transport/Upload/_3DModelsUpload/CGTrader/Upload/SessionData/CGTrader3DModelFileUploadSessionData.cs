@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 
-namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;
+namespace Transport.Upload._3DModelsUpload.CGTrader.Upload.SessionData;
 
 internal record CGTrader3DModelFileUploadSessionData : CGTrader3DModelAssetUploadSessionData
 {

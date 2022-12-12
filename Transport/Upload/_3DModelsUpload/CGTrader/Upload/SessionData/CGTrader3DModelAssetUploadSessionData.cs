@@ -1,4 +1,4 @@
-﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;
+﻿namespace Transport.Upload._3DModelsUpload.CGTrader.Upload.SessionData;
 
 internal abstract record CGTrader3DModelAssetUploadSessionData
 {

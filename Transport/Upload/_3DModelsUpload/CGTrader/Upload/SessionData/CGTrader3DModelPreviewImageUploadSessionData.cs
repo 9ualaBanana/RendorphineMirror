@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Web;
 using Transport.Upload._3DModelsUpload.CGTrader.Network;
 
-namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;
+namespace Transport.Upload._3DModelsUpload.CGTrader.Upload.SessionData;
 
 internal record CGTrader3DModelPreviewImageUploadSessionData : CGTrader3DModelAssetUploadSessionData
 {
@@ -62,7 +62,7 @@ internal record CGTrader3DModelPreviewImageUploadSessionData : CGTrader3DModelAs
         _ContentMD5 = contentMd5;
         _XAmzAlgorithm = xAmzAlgorithm;
         _XAmzCredential = xAmzCredential;
-        _XAmzDate= xAmzDate;
+        _XAmzDate = xAmzDate;
         _XAmzExpires = xAmzExpires;
         _XAmzSignature = xAmzSignature;
         _XAmzSignedHeaders = xAmzSignedHeaders;
