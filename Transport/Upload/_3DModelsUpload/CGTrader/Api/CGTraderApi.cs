@@ -7,6 +7,7 @@ using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 using Transport.Upload._3DModelsUpload.CGTrader.Network;
 using Transport.Upload._3DModelsUpload.CGTrader.Network.Captcha;
 using Transport.Upload._3DModelsUpload.CGTrader.Upload;
+using Transport.Upload._3DModelsUpload.CGTrader.Upload.SessionData;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Api;
 
@@ -50,12 +51,12 @@ internal class CGTraderApi : IBaseAddressProvider
         CGTraderNetworkCredential credential,
         CancellationToken cancellationToken)
     {
-        string htmlWithSessionCredentials = (await _httpClient.GetStringAsync(
+        string documentWithSessionCredentials = (await _httpClient.GetStringAsync(
             (this as IBaseAddressProvider).Endpoint("/load-services.js"), cancellationToken)
             ).ReplaceLineEndings(string.Empty);
 
-        string csrfToken = CGTraderCsrfToken._Parse(htmlWithSessionCredentials, CsrfTokenRequest.Initial);
-        string siteKey = CGTraderCaptchaSiteKey._Parse(htmlWithSessionCredentials);
+        string csrfToken = CsrfToken._ParseFromJS(documentWithSessionCredentials);
+        string siteKey = CGTraderCaptchaSiteKey._Parse(documentWithSessionCredentials);
         var captcha = await _captchaService._RequestCaptchaAsync(siteKey, cancellationToken);
 
         _httpClient.DefaultRequestHeaders._AddOrReplaceCsrfToken(csrfToken);
@@ -115,10 +116,10 @@ internal class CGTraderApi : IBaseAddressProvider
     /// <returns>ID of the newly created model draft.</returns>
     async Task<string> __CreateNewModelDraftAsync(CGTraderSessionContext sessionContext, CancellationToken cancellationToken)
     {
-        string htmlWithUploadInitializingCsrfToken = await _RequestUploadInitializingCsrfTokenAsync(cancellationToken);
+        string documentWithUploadInitializingCsrfToken = await _RequestUploadInitializingCsrfTokenAsync(cancellationToken);
 
         _httpClient.DefaultRequestHeaders._AddOrReplaceCsrfToken(
-            sessionContext.CsrfToken = CGTraderCsrfToken._Parse(htmlWithUploadInitializingCsrfToken, CsrfTokenRequest.UploadInitializing)
+            sessionContext.CsrfToken = CsrfToken._ParseFromMetaTag(documentWithUploadInitializingCsrfToken)
             );
         string modelDraftId = await _CreateNewModelDraftAsyncCore(cancellationToken);
 
@@ -152,7 +153,7 @@ internal class CGTraderApi : IBaseAddressProvider
             foreach (var modelFilePath in _3DModel.Files)
                 await _UploadModelFileAsync(modelFilePath, modelDraft, cancellationToken);
 
-        foreach (var modelPreviewImage in modelDraft._UpcastPreviewImages)
+        foreach (var modelPreviewImage in modelDraft._UpcastPreviewImagesTo<CGTrader3DModelPreviewImage>())
         {
             string uploadedFileId = await _UploadModelPreviewImageAsync(modelPreviewImage, modelDraft, cancellationToken);
             (modelDraft._Model.Metadata as CGTrader3DModelMetadata)!.UploadedPreviewImagesIDs.Add(uploadedFileId);
