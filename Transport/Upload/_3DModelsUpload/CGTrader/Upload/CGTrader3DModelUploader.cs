@@ -14,8 +14,8 @@ internal class CGTrader3DModelUploader : I3DModelUploader
     }
 
     public async Task UploadAsync(
-        NetworkCredential credential,
         Composite3DModel composite3DModel,
+        NetworkCredential credential,
         CancellationToken cancellationToken)
     {
         var sessionContext = await CGTraderSessionContext._CreateAsyncUsing(_api, (credential as CGTraderNetworkCredential)!, cancellationToken);

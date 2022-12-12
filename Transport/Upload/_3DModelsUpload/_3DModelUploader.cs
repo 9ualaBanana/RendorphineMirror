@@ -13,11 +13,11 @@ public static class _3DModelUploader
         CancellationToken cancellationToken = default)
     {
         composite3DModel.Archive();
-        await new TurboSquid3DModelUploader().UploadAsync(credential, composite3DModel, cancellationToken);
+        await new TurboSquid3DModelUploader().UploadAsync(composite3DModel, credential, cancellationToken);
         await (composite3DModel.Metadata switch
         {
             CGTrader3DModelMetadata =>
-                new CGTrader3DModelUploader().UploadAsync(credential, composite3DModel, cancellationToken),
+                new CGTrader3DModelUploader().UploadAsync(composite3DModel, credential, cancellationToken),
             //TurboSquid3DModelMetadata =>
             //    new TurboSquid3DModelUploader(httpClient).UploadAsync(credential, composite3DModel, cancellationToken),
             { } unsupportedType => throw new ArgumentOutOfRangeException(
