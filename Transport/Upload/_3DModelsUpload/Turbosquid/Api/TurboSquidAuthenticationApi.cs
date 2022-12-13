@@ -1,4 +1,6 @@
 ﻿using NLog;
+using NodeToUI;
+using NodeToUI.Requests;
 using Transport.Models;
 using Transport.Upload._3DModelsUpload.Turbosquid.Network.Authenticity;
 
@@ -37,7 +39,7 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
         var loginResponse = await _LoginAsyncCore(credential, cancellationToken);
         if (loginResponse.RequestMessage!.RequestUri!.AbsoluteUri.StartsWith((this as IBaseAddressProvider).Endpoint("/users/two_factor_authentication")))
         {
-            // Prompt user for verification code sent to his email via GUI.
+            var input = await NodeGui.Request<string>(new InputRequest("TODO: we send you mesag to email please respond"), cancellationToken);
             // Submit the form received from _LoginAsyncCore call with that verification code by inserting it after <input type="text" name="code" id="code" value=".
         }
     }

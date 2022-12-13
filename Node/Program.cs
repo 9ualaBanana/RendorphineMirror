@@ -21,6 +21,11 @@ using Node.Plugins;
 using Node.Plugins.Discoverers;
 using Node.Profiling;
 
+
+CefInitializer.StaticCtor();
+if (args.Any(x => x.Contains("zygote", StringComparison.Ordinal) || x.Contains("sandbox", StringComparison.Ordinal) || x.StartsWith("--type", StringComparison.Ordinal)))
+    return;
+
 var halfrelease = args.Contains("release");
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();

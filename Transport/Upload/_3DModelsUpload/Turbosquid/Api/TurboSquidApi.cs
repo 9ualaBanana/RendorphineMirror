@@ -2,6 +2,7 @@
 using CefSharp.OffScreen;
 using Newtonsoft.Json.Linq;
 using NLog;
+using NodeToUI;
 using System.Net;
 using System.Net.Http.Json;
 using Transport.Models;
@@ -50,7 +51,7 @@ internal class TurboSquidApi : IBaseAddressProvider
         TurboSquidNetworkCredential credential_ = null!;
         var thread = new Thread(() =>
         {
-            //Cef.Initialize(new CefSettings());
+            CefInitializer.Initialize();
             using var browser = new ChromiumWebBrowser((this as IBaseAddressProvider).Endpoint("/auth/keymaster"));
             // Consider using ResourceRequestHandlerFactory.
             browser.RequestHandler = new TurboSquidRequestHandler();
@@ -63,7 +64,7 @@ internal class TurboSquidApi : IBaseAddressProvider
 
             browser.GetCookieManager().VisitAllCookies(new CookieCopyingVisitor(_socketsHttpHandler.CookieContainer));
 
-            Cef.Shutdown();
+            CefInitializer.Shutdown();
 
             credential_ = new(credential, csrfToken, applicationUserId, captchaVerifiedToken);
         });
