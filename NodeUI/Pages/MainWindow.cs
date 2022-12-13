@@ -39,7 +39,6 @@ namespace NodeUI.Pages
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("torrent test", new TorrentTab());
             tabs.Add("logs", new LogsTab());
-            tabs.Add("webview", new WebView() { View = { InitialUrl = "https://google.com" } });
             if (Init.IsDebug)
                 tabs.Add("registry", new RegistryTab());
             tabs.Add("cgtraderupload", new CGTraderUploadTab());
@@ -125,36 +124,28 @@ namespace NodeUI.Pages
                 void handle(string reqid, GuiRequest request)
                 {
                     if (request is CaptchaRequest captchareq) handleCaptchaRequest(captchareq);
-                    else if (request is CefCaptchaRequest cefcaptchareq) handleCefCaptchaRequest(cefcaptchareq);
+                    else if (request is InputRequest inputreq) handleInputRequest(inputreq);
 
 
-                    void handleCaptchaRequest(CaptchaRequest captchareq)
+                    void handleCaptchaRequest(CaptchaRequest req)
                     {
                         Dispatcher.UIThread.Post(() =>
                         {
-                            var window = new CaptchaWindow(captchareq.Base64Image, v => sendResponse(v));
-                            captchareq.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
+                            var window = new CaptchaWindow(req.Base64Image, v => sendResponse(v));
+                            req.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
                             window.Show();
                         });
                     }
-                    void handleCefCaptchaRequest(CefCaptchaRequest captchareq)
+                    void handleInputRequest(InputRequest req)
                     {
                         Dispatcher.UIThread.Post(() =>
                         {
-                            var window = new WebWindow()
-                            {
-                                Title = "Captcha input",
-                                View = { InitialUrl = captchareq.Url },
-                            };
-                            captchareq.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.Close(); } catch { } });
+                            var window = new InputWindow(req.Text, v => sendResponse(v));
+                            req.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
                             window.Show();
-
-                            // something something
-                            // window.View.SendMouseDownEvent(228, 1337, CefNet.CefMouseButtonType.Left, 1, CefNet.CefEventFlags.None);
-                            // window.View.Navigate("https://google.com");
-                            // window.View.OnSomeEvent += async () => { await sendResponse(JToken.FromObject("operation result")); };
                         });
                     }
+
 
                     async Task sendResponse(JToken token)
                     {
