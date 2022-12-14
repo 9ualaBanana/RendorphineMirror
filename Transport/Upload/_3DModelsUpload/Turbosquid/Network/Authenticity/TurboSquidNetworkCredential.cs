@@ -6,20 +6,9 @@ namespace Transport.Upload._3DModelsUpload.Turbosquid.Network.Authenticity;
 
 internal class TurboSquidNetworkCredential : NetworkCredential
 {
-    internal readonly string _CsrfToken;
+    internal string _CsrfToken;
     internal readonly string _CaptchaVerifiedToken;
     internal readonly string _ApplicationUserID;
-    internal MultipartFormDataContent _AsMultipartFormData => _asMultipartFormData ??= new()
-    {
-        { new StringContent("✓"), "utf8" },
-        { new StringContent(_CsrfToken), "authenticity_token" },
-        { new StringContent(_CaptchaVerifiedToken), "g-recaptcha-response-data[login]" },
-        { new StringContent(string.Empty), "g-recaptcha-response-data" },
-        { new StringContent(UserName), "user[email]" },
-        { new StringContent(_ApplicationUserID), "user[application_uid]" },
-        { new StringContent(Password), "user[password]" }
-    };
-    MultipartFormDataContent? _asMultipartFormData;
 
     internal static ForeignThreadValue<string> _ServerResponse = new(false);
 
@@ -60,4 +49,25 @@ internal class TurboSquidNetworkCredential : NetworkCredential
         TurboSquidApi api,
         NetworkCredential credential,
         CancellationToken cancellationToken) => await api._RequestTurboSquidNetworkCredentialAsync(credential, cancellationToken);
+
+    internal MultipartFormDataContent _ToLoginMultipartFormData() => new()
+    {
+        { new StringContent("✓"), "utf8" },
+        { new StringContent(_CsrfToken), "authenticity_token" },
+        { new StringContent(_CaptchaVerifiedToken), "g-recaptcha-response-data[login]" },
+        { new StringContent(string.Empty), "g-recaptcha-response-data" },
+        { new StringContent(UserName), "user[email]" },
+        { new StringContent(_ApplicationUserID), "user[application_uid]" },
+        { new StringContent(Password), "user[password]" }
+    };
+
+    internal MultipartFormDataContent _To2FAMultipartFormDataWith(string emailVerificationCode) => new()
+    {
+        { new StringContent("✓"), "utf8" },
+        { new StringContent("put"), "_method" },
+        { new StringContent(_CsrfToken), "authenticity_token" },
+        { new StringContent(emailVerificationCode), "code" },
+        { new StringContent(_ApplicationUserID), "application_uid" },
+        { new StringContent("Submit"), "commit" }
+    };
 }

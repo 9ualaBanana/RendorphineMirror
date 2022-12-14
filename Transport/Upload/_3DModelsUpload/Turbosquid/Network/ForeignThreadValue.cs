@@ -1,5 +1,6 @@
 ﻿namespace Transport.Upload._3DModelsUpload.Turbosquid.Network;
 
+// Used to receive responses from CEF browser.
 public class ForeignThreadValue<T>
 {
     readonly bool _autoReset;

@@ -37,18 +37,33 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
     async Task __LoginAsync(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
     {
         var loginResponse = await _LoginAsyncCore(credential, cancellationToken);
-        if (loginResponse.RequestMessage!.RequestUri!.AbsoluteUri.StartsWith((this as IBaseAddressProvider).Endpoint("/users/two_factor_authentication")))
+        if (_IsRedirectTo2FA(loginResponse))
         {
-            var input = await NodeGui.Request<string>(new InputRequest("TODO: we send you mesag to email please respond"), cancellationToken);
-            // Submit the form received from _LoginAsyncCore call with that verification code by inserting it after <input type="text" name="code" id="code" value=".
+            credential._CsrfToken = CsrfToken._ParseFromMetaTag(await loginResponse.Content.ReadAsStringAsync(cancellationToken));
+            string verificationCode = (await NodeGui.Request<string>(new InputRequest("TODO: we send you mesag to email please respond"), cancellationToken)).Result;
+            await _SendVerificationCodeFromEmailAsync(verificationCode, credential, cancellationToken);
         }
     }
 
-    // If this call redirects to https://auth.turbosquid.com/users/two_factor_authentication?locale=en prompt user for email verificatoin code.
     async Task<HttpResponseMessage> _LoginAsyncCore(TurboSquidNetworkCredential credential, CancellationToken cancellationToken) =>
         (await _httpClient.PostAsync(
             (this as IBaseAddressProvider).Endpoint("/users/sign_in?locale=en"),
-            credential._AsMultipartFormData,
+            credential._ToLoginMultipartFormData(),
             cancellationToken))
         .EnsureSuccessStatusCode();
+
+    async Task _SendVerificationCodeFromEmailAsync(string verificationCode, TurboSquidNetworkCredential credential, CancellationToken cancellationToken) =>
+        (await _httpClient.PostAsync(
+            (this as IBaseAddressProvider).Endpoint("/users/two_factor_authentication.user?locale=en"),
+            credential._To2FAMultipartFormDataWith(verificationCode),
+            cancellationToken))
+        .EnsureSuccessStatusCode();
+
+
+    #region Helpers
+
+    bool _IsRedirectTo2FA(HttpResponseMessage response) =>
+        response.RequestMessage!.RequestUri!.AbsoluteUri.StartsWith((this as IBaseAddressProvider).Endpoint("/users/two_factor_authentication"));
+
+    #endregion
 }

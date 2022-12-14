@@ -2,7 +2,6 @@
 using CefSharp.OffScreen;
 using Newtonsoft.Json.Linq;
 using NLog;
-using NodeToUI;
 using System.Net;
 using System.Net.Http.Json;
 using Transport.Models;
@@ -24,6 +23,7 @@ internal class TurboSquidApi : IBaseAddressProvider
 
     internal TurboSquidApi()
     {
+        // CookieContainer simply doesn't store any cookies set by any response, but sometimes it does. That's some stupid shit.
         _socketsHttpHandler = new();
         _httpClient = new(_socketsHttpHandler);
         _authenticationApi = new(_httpClient);
@@ -61,9 +61,11 @@ internal class TurboSquidApi : IBaseAddressProvider
             string captchaVerifiedTokenResponse = TurboSquidCaptchaVerifiedToken._ServerResponse.GetAsync(cancellationToken).Result;
             string captchaVerifiedToken = TurboSquidCaptchaVerifiedToken._Parse(captchaVerifiedTokenResponse);
 
+            // Cookie dumping takes place after the last redirect to https://auth.turbosquid.com/users/sign_in, i.e. clients are switched from CEF to HttpClient.
+            // e.g. Response from https://auth.turbosquid.com/users/sign_in?locale=en sets `_keymaster_session` cookie but it adds the new one instead of updating the same existing one
+            // (only seen with Fiddler, CookieContainer doesn't contain duplicates). The same goes for `_turbosquid_artist_session`.
+            // After that this cookie stops being updated and the new one is added and this is the one being updated from now on.
             browser.GetCookieManager().VisitAllCookies(new CookieCopyingVisitor(_socketsHttpHandler.CookieContainer));
-
-            CefInitializer.Shutdown();
 
             credential_ = new(credential, csrfToken, applicationUserId, captchaVerifiedToken);
         });
