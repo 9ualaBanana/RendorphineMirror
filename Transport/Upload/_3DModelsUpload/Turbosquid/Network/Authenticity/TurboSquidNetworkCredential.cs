@@ -6,11 +6,14 @@ namespace Transport.Upload._3DModelsUpload.Turbosquid.Network.Authenticity;
 
 internal class TurboSquidNetworkCredential : NetworkCredential
 {
-    internal string _CsrfToken;
+    internal readonly string _CsrfToken;
     internal readonly string _CaptchaVerifiedToken;
     internal readonly string _ApplicationUserID;
 
     internal static ForeignThreadValue<string> _ServerResponse = new(false);
+
+    internal TurboSquidNetworkCredential _WithUpdatedCsrfToken(string csrfToken) =>
+        new(UserName, Password, csrfToken, _ApplicationUserID, _CaptchaVerifiedToken);
 
     internal TurboSquidNetworkCredential(
         NetworkCredential credential,
