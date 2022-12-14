@@ -61,13 +61,13 @@ internal class TurboSquidNetworkCredential : NetworkCredential
         { new StringContent(Password), "user[password]" }
     };
 
-    internal MultipartFormDataContent _To2FAMultipartFormDataWith(string emailVerificationCode) => new()
+    internal FormUrlEncodedContent _To2FAFormUrlEncodedContentWith(string emailVerificationCode) => new(new Dictionary<string, string>()
     {
-        { new StringContent("✓"), "utf8" },
-        { new StringContent("put"), "_method" },
-        { new StringContent(_CsrfToken), "authenticity_token" },
-        { new StringContent(emailVerificationCode), "code" },
-        { new StringContent(_ApplicationUserID), "application_uid" },
-        { new StringContent("Submit"), "commit" }
-    };
+        { "utf8", "✓" },
+        { "_method", "put" },
+        { "authenticity_token" , _CsrfToken },
+        { "code", emailVerificationCode },
+        { "application_uid", _ApplicationUserID },
+        { "commit", "Submit" }
+    });
 }

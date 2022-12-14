@@ -26,7 +26,7 @@ internal class TurboSquidApi : IBaseAddressProvider
         // CookieContainer simply doesn't store any cookies set by any response, but sometimes it does. That's some stupid shit.
         _socketsHttpHandler = new();
         _httpClient = new(_socketsHttpHandler);
-        _authenticationApi = new(_httpClient);
+        _authenticationApi = new(_socketsHttpHandler);
     }
 
     #region Credential
