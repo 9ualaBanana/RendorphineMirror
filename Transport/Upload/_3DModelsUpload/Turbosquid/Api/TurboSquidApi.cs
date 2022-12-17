@@ -117,10 +117,10 @@ internal class TurboSquidApi : IBaseAddressProvider
             );
 
     #endregion
-}
 
-static class TurboSquidExtensions
-{
-    internal static HttpRequestMessage _WithHostHeader(this HttpRequestMessage request)
-    { request.Headers.Host = "www.squid.io"; return request; }
+    internal async Task _UploadAssetsAsync(TurboSquid3DModelUploadSessionContext uploadSessionContext, CancellationToken cancellationToken)
+    {
+        var uploadApi = new TurboSquidUploadApi(_httpClient, uploadSessionContext._Credentials);
+        await uploadApi._UploadAssetsAsync(uploadSessionContext._Draft, cancellationToken);
+    }
 }
