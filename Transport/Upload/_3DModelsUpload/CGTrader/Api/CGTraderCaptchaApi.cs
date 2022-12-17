@@ -15,7 +15,7 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
 
     readonly HttpClient _httpClient;
 
-    string IBaseAddressProvider.BaseAddress => "https://service.mtcaptcha.com/mtcv1/api/";
+    string IBaseAddressProvider.BaseAddress { get; init; } = "https://service.mtcaptcha.com/mtcv1/api/";
 
     internal CGTraderCaptchaApi(HttpClient httpClient)
     {

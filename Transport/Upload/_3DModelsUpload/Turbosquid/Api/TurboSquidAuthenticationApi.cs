@@ -15,7 +15,7 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
     readonly HttpClient _httpClient;
     readonly HttpClient _noAutoRedirectHttpClient;
 
-    public string BaseAddress => "https://auth.turbosquid.com/";
+    public string BaseAddress { get; init; } = "https://auth.turbosquid.com/";
 
     internal TurboSquidAuthenticationApi(SocketsHttpHandler socketsHttpHandler)
     {
@@ -28,11 +28,11 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
         });
     }
 
-    internal async Task _LoginAsync(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
+    internal async Task _LoginAsyncUsing(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
     {
         try
         {
-            await _LoginAsyncCore(credential, cancellationToken);
+            await _LoginAsyncCoreUsing(credential, cancellationToken);
             _logger.Debug("{User} is successfully logged in.", credential.UserName);
         }
         catch (Exception ex)
@@ -43,7 +43,7 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
         }
     }
 
-    async Task _LoginAsyncCore(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
+    async Task _LoginAsyncCoreUsing(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
     {
         var loginResponse = await _socketsHttpHandler.CookieContainer._RememberCookieAndRemoveAsyncAfter(
             async () => await _SignInAsync(credential, cancellationToken),

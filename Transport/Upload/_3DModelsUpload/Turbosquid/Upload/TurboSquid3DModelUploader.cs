@@ -19,7 +19,7 @@ internal class TurboSquid3DModelUploader : I3DModelUploader
         CancellationToken cancellationToken)
     {
         var credential_ = await TurboSquidNetworkCredential._RequestAsyncUsing(_api, credential, cancellationToken);
-        await _api._LoginAsync(credential_, cancellationToken);
-        var uploadSessionData = await _api._RequestModelUploadSessionDataAsyncFor(composite3DModel, cancellationToken);
+        await _api._LoginAsyncUsing(credential_, cancellationToken);
+        var uploadSessionContext = await _api._RequestModelUploadSessionContextAsyncFor(composite3DModel, cancellationToken);
     }
 }

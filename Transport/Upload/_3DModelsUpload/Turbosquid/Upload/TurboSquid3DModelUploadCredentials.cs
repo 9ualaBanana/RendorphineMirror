@@ -2,41 +2,44 @@
 
 namespace Transport.Upload._3DModelsUpload.Turbosquid.Upload;
 
-internal record TurboSquid3DModelUploadCredentials
+internal record TurboSquidAwsUploadCredentials
 {
     internal readonly string AccessKey;
-    internal readonly string SessionToken;
-    internal readonly string KeyPrefix;
     internal readonly string Bucket;
-    internal readonly string Region;
     internal readonly string CurrentServerTime;
+    internal readonly string KeyPrefix;
+    internal readonly string Region;
+    internal readonly string SecretKey;
+    internal readonly string SessionToken;
 
-    internal static async Task<TurboSquid3DModelUploadCredentials> _AsyncFrom(HttpResponseMessage response)
+    internal static async Task<TurboSquidAwsUploadCredentials> _AsyncFrom(HttpResponseMessage response)
     {
         var uploadCredentialsJson = JObject.Parse(await response.Content.ReadAsStringAsync());
         return new(
             (string)uploadCredentialsJson["access_key"]!,
-            (string)uploadCredentialsJson["session_token"]!,
-            (string)uploadCredentialsJson["key_prefix"]!,
             (string)uploadCredentialsJson["bucket"]!,
+            (string)uploadCredentialsJson["current_server_time"]!,
+            (string)uploadCredentialsJson["key_prefix"]!,
             (string)uploadCredentialsJson["region"]!,
-            // Consider using DateTimeOffset.
-            (string)uploadCredentialsJson["current_server_time"]!);
+            (string)uploadCredentialsJson["secret_key"]!,
+            (string)uploadCredentialsJson["session_token"]!);
     }
 
-    TurboSquid3DModelUploadCredentials(
+    TurboSquidAwsUploadCredentials(
         string accessKey,
-        string sessionToken,
-        string keyPrefix,
         string bucket,
+        string currentServerTime,
+        string keyPrefix,
         string region,
-        string currentServerTime)
+        string secretKey,
+        string sessionToken)
     {
         AccessKey = accessKey;
-        SessionToken = sessionToken;
-        KeyPrefix = keyPrefix;
         Bucket = bucket;
-        Region = region;
         CurrentServerTime = currentServerTime;
+        KeyPrefix = keyPrefix;
+        Region = region;
+        SecretKey = secretKey;
+        SessionToken = sessionToken;
     }
 }

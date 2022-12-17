@@ -1,5 +1,5 @@
-﻿using CefSharp;
-using CefSharp.OffScreen;
+﻿using CefSharp.OffScreen;
+using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
 using NLog;
 using System.Net;
@@ -19,7 +19,7 @@ internal class TurboSquidApi : IBaseAddressProvider
     readonly HttpClient _httpClient;
     readonly TurboSquidAuthenticationApi _authenticationApi;
 
-    string IBaseAddressProvider.BaseAddress => "https://www.squid.io/";
+    string IBaseAddressProvider.BaseAddress { get; init; } = "https://www.squid.io/";
 
     internal TurboSquidApi()
     {
@@ -74,22 +74,22 @@ internal class TurboSquidApi : IBaseAddressProvider
 
     #region Login
 
-    internal async Task _LoginAsync(TurboSquidNetworkCredential credential, CancellationToken cancellationToken) =>
-        await _authenticationApi._LoginAsync(credential, cancellationToken);
+    internal async Task _LoginAsyncUsing(TurboSquidNetworkCredential credential, CancellationToken cancellationToken) =>
+        await _authenticationApi._LoginAsyncUsing(credential, cancellationToken);
 
     #endregion
 
     #region DraftCreation
 
-    internal async Task<TurboSquid3DModelUploadSessionContext> _RequestModelUploadSessionDataAsyncFor(
+    internal async Task<TurboSquid3DModelUploadSessionContext> _RequestModelUploadSessionContextAsyncFor(
         Composite3DModel composite3DModel,
         CancellationToken cancellationToken)
     {
         string csrfToken = await _RequestUploadInitializingCsrfTokenAsync(cancellationToken);
         string modelDraftId = await _CreateNewModelDraftAsync(cancellationToken);
-        var modelUploadCredentials = await _RequestModelUploadCredentialsAsync(csrfToken, cancellationToken);
+        var awsUploadCredentials = await _RequestAwsUploadCredentialsAsync(csrfToken, cancellationToken);
 
-        return new(new(composite3DModel, modelDraftId), modelUploadCredentials);
+        return new(new(composite3DModel, modelDraftId), awsUploadCredentials);
     }
 
     async Task<string> _RequestUploadInitializingCsrfTokenAsync(CancellationToken cancellationToken) =>
@@ -99,6 +99,7 @@ internal class TurboSquidApi : IBaseAddressProvider
                 cancellationToken)
             );
 
+    /// <returns>The ID of newly created model draft.</returns>
     async Task<string> _CreateNewModelDraftAsync(CancellationToken cancellationToken) =>
         (string)JObject.Parse(
             await _httpClient.GetStringAsync(
@@ -106,9 +107,9 @@ internal class TurboSquidApi : IBaseAddressProvider
                 cancellationToken)
             )["id"]!;
 
-    async Task<TurboSquid3DModelUploadCredentials> _RequestModelUploadCredentialsAsync(
+    async Task<TurboSquidAwsUploadCredentials> _RequestAwsUploadCredentialsAsync(
         string csrfToken,
-        CancellationToken cancellationToken) => await TurboSquid3DModelUploadCredentials._AsyncFrom(
+        CancellationToken cancellationToken) => await TurboSquidAwsUploadCredentials._AsyncFrom(
             await _httpClient.PostAsJsonAsync(
                 (this as IBaseAddressProvider).Endpoint("/turbosquid/uploads//credentials"),
                 new { authenticity_token = csrfToken },
