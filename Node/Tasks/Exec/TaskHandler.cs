@@ -257,6 +257,8 @@ public static class TaskHandler
 
             var state = stater.Value;
             task.LogInfo($"{state.State}/{task.State}");
+            if (task.State == TaskState.Queued)
+                task.State = state.State;
 
             if (state.State == TaskState.Finished && task.State == TaskState.Output)
             {

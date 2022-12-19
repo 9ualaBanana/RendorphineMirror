@@ -2,5 +2,6 @@ namespace Common;
 
 public static class ErrorCodes
 {
-    public const int NoKnownShard = -72;
+    public const int InvalidOldTaskState = -51;
+    public const int Error = -72;
 }

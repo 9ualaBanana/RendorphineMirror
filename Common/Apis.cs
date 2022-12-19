@@ -1,3 +1,4 @@
+using System.Web;
 using Newtonsoft.Json.Linq;
 
 namespace Common;
@@ -29,10 +30,10 @@ public static class Apis
         string url, string? property, string? errorDetails, (string, string)[] values)
     {
         (task as ILoggable)?.LogTrace($"Sending shard request {url}; Shard is {task.HostShard ?? "<null>"}");
-        return await ShardSend(task, () => func($"https://{task.HostShard}/rphtasklauncher/{url}", property, errorDetails, values));
+        return await ShardSend(task, errorDetails, () => func($"https://{task.HostShard}/rphtasklauncher/{url}", property, errorDetails, values));
 
 
-        static async ValueTask<OperationResult<T>> ShardSend(ITaskApi task, Func<ValueTask<OperationResult<T>>> func)
+        static async ValueTask<OperationResult<T>> ShardSend(ITaskApi task, string? errorDetails, Func<ValueTask<OperationResult<T>>> func)
         {
             if (task.HostShard is null)
             {
@@ -46,19 +47,24 @@ public static class Apis
             // only if an API error
             if (result.GetResult().HttpData is { } httpdata)
             {
+                (task as ILoggable)?.LogErr($"Got error {httpdata} in {errorDetails} ({result.Message})");
+
                 // if nonsuccess, refetch shard host, retry
                 if (!httpdata.IsSuccessStatusCode)
                 {
                     await Task.Delay(30_000);
                     await task.UpdateTaskShardAsync();
-                    return await ShardSend(task, func);
+                    return await ShardSend(task, errorDetails, func);
                 }
 
                 // "No shard is known for this task. The shard could be restarting, try again in 30 seconds"
-                if (httpdata.ErrorCode == ErrorCodes.NoKnownShard)
+                if (httpdata.ErrorCode == ErrorCodes.Error && result.Message!.Contains("shard", StringComparison.OrdinalIgnoreCase))
                 {
+                    var host = await task.UpdateTaskShardAsync();
+                    if (!host) return host;
+
                     await Task.Delay(30_000);
-                    return await ShardSend(task, func);
+                    return await ShardSend(task, errorDetails, func);
                 }
             }
 
@@ -121,7 +127,7 @@ public static class Apis
     */
 
     public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this ITaskApi task, string? sessionId = default) =>
-        task.ShardGet<TaskFullState>("getmytaskstate", null, "Getting task state", ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id));
+        task.ShardGet<TaskFullState>("getmytaskstate", null, $"Getting {task.Id} task state", ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id));
 
     public static async ValueTask<OperationResult> ChangeStateAsync(this ITaskApi task, TaskState state, string? sessionId = default)
     {
@@ -131,9 +137,19 @@ public static class Apis
         var result = await task.ShardGet("mytaskstatechanged", "Changing task state",
             ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id), ("newstate", state.ToString().ToLowerInvariant())).ConfigureAwait(false);
 
+
+        // TODO: remove tempfix
+        {
+            if (!result && result.HttpData!.Value.ErrorCode == ErrorCodes.InvalidOldTaskState)
+                for (var s = TaskState.Input; s <= state; s++)
+                    await task.ShardGet("mytaskstatechanged", "Changing task state",
+                        ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id), ("newstate", s.ToString().ToLowerInvariant())).ConfigureAwait(false);
+        }
+
+
         result.LogIfError($"[{(task as ILoggable)?.LogName ?? task.Id}] Error while changing task state: {{0}}");
-        if (result && task is DbTaskFullState dbtask)
-            dbtask.State = state;
+        if (result && task is ReceivedTask rtask)
+            rtask.State = state;
 
         return result;
     }
