@@ -1,5 +1,4 @@
 ﻿using CefSharp.OffScreen;
-using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
 using NLog;
 using System.Net;
