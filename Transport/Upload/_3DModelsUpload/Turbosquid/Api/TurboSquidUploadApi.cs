@@ -11,13 +11,14 @@ internal class TurboSquidUploadApi : IBaseAddressProvider
     readonly HttpClient _httpClient;
     readonly TurboSquidAwsUploadCredentials _awsCredentials;
 
-    public string BaseAddress { get; init; }
+    public string BaseAddress => _baseAddress;
+    readonly string _baseAddress;
 
     internal TurboSquidUploadApi(HttpClient httpClient, TurboSquidAwsUploadCredentials awsCredentials)
     {
         _httpClient = httpClient;
         _awsCredentials = awsCredentials;
-        BaseAddress = $"https://{awsCredentials.Bucket}.s3.amazonaws.com/{awsCredentials.KeyPrefix}{DateTime.UtcNow.AsUnixTimestamp()}/";
+        _baseAddress = $"https://{_awsCredentials.Bucket}.s3.amazonaws.com/{_awsCredentials.KeyPrefix}{DateTime.UtcNow.AsUnixTimestamp()}/";
     }
 
     internal async Task _UploadAssetsAsync(Composite3DModelDraft modelDraft, CancellationToken cancellationToken)

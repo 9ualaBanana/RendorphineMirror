@@ -19,7 +19,7 @@ internal class TurboSquidApi : IBaseAddressProvider
     readonly HttpClient _httpClient;
     readonly TurboSquidAuthenticationApi _authenticationApi;
 
-    string IBaseAddressProvider.BaseAddress { get; init; } = "https://www.squid.io/";
+    string IBaseAddressProvider.BaseAddress => "https://www.squid.io/";
 
     internal TurboSquidApi()
     {

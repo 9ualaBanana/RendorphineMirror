@@ -18,7 +18,7 @@ internal class CGTraderApi : IBaseAddressProvider
     readonly HttpClient _httpClient;
     readonly CGTraderCaptchaApi _captchaService;
 
-    string IBaseAddressProvider.BaseAddress { get; init; } = CGTraderUri.Https;
+    string IBaseAddressProvider.BaseAddress => CGTraderUri.Https;
 
     internal CGTraderApi(HttpClient httpClient)
     {

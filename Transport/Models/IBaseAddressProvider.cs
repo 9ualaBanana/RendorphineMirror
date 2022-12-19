@@ -10,5 +10,5 @@ internal interface IBaseAddressProvider
         return $"{Path.TrimEndingDirectorySeparator(BaseAddress)}/{path}";
     }
 
-    string BaseAddress { get; init; }
+    string BaseAddress { get; }
 }
