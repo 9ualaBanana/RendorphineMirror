@@ -3,6 +3,7 @@ using System.Xml;
 using Transport.Models;
 using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 using Transport.Upload._3DModelsUpload.CGTrader.Upload;
+using Transport.Upload._3DModelsUpload.Turbosquid._3DModelComponents;
 using Transport.Upload._3DModelsUpload.Turbosquid.Upload;
 
 namespace Transport.Upload._3DModelsUpload.Turbosquid.Api;
@@ -30,11 +31,11 @@ internal class TurboSquidUploadApi : IBaseAddressProvider
             foreach (var modelFilePath in _3DModel.Files)
                 await _UploadAssetAsync(modelFilePath, modelDraft._DraftID, cancellationToken);
 
-        //foreach (var modelPreviewImage in modelDraft._UpcastPreviewImagesTo<CGTrader3DModelPreviewImage>())
-        //{
-        //    string uploadedFileId = await _UploadAssetAsync(modelPreviewImage, modelDraft, cancellationToken);
-        //    (modelDraft._Model.Metadata as TurboSquid3DModelPreviewImage)!.UploadedPreviewImagesIDs.Add(uploadedFileId);
-        //}
+        foreach (var modelPreviewImage in modelDraft._UpcastPreviewImagesTo<TurboSquid3DModelPreviewImage>())
+        {
+            await _UploadAssetAsync(modelPreviewImage.FilePath, modelDraft._DraftID, cancellationToken);
+            //(modelDraft._Model.Metadata as TurboSquid3DModelPreviewImage)!.UploadedPreviewImagesIDs.Add(uploadedFileId);
+        }
     }
 
     async Task _UploadAssetAsync(string assetPath, string productDraftId, CancellationToken cancellationToken)
