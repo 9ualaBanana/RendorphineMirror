@@ -184,6 +184,9 @@ public static class TaskHandler
 
                 task.LogInfo($"Completed, removing");
 
+                task.LogInfo($"Deleting {task.FSInputDirectory()}");
+                Directory.Delete(task.FSInputDirectory(), true);
+
                 foreach (var file in task.OutputFiles)
                 {
                     if (file.Format == FileFormat.Jpeg) continue;
