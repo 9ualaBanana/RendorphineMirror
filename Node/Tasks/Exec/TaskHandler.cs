@@ -218,7 +218,7 @@ public static class TaskHandler
         {
             task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {message}");
             NodeSettings.QueuedTasks.Remove(task);
-            await task.ChangeStateAsync(TaskState.Failed).ThrowIfNull();
+            await task.ChangeStateAsync(TaskState.Failed).ThrowIfError();
         }
     }
     static async ValueTask<bool> RemoveQueuedIfFinished(this ReceivedTask task)

@@ -138,15 +138,6 @@ public static class Apis
             ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id), ("newstate", state.ToString().ToLowerInvariant())).ConfigureAwait(false);
 
 
-        // TODO: remove tempfix
-        {
-            if (!result && result.HttpData!.Value.ErrorCode == ErrorCodes.InvalidOldTaskState)
-                for (var s = TaskState.Input; s <= state; s++)
-                    await task.ShardGet("mytaskstatechanged", "Changing task state",
-                        ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id), ("newstate", s.ToString().ToLowerInvariant())).ConfigureAwait(false);
-        }
-
-
         result.LogIfError($"[{(task as ILoggable)?.LogName ?? task.Id}] Error while changing task state: {{0}}");
         if (result && task is ReceivedTask rtask)
             rtask.State = state;
