@@ -1,6 +1,6 @@
 ﻿using System.Xml.Linq;
 
-namespace Transport.Upload._3DModelsUpload.Turbosquid.Upload;
+namespace Transport.Upload._3DModelsUpload.Turbosquid.Upload.Requests;
 
 internal record struct AssetPartUploadResult(int PartNumber, string ETag)
 {
