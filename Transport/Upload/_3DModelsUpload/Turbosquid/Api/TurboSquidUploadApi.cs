@@ -48,18 +48,20 @@ internal class TurboSquidUploadApi : IBaseAddressProvider
         using var asset = File.OpenRead(assetPath);
         int partsCount = (int)Math.Ceiling(asset.Length / (double)_MaxPartSize);
 
-        if (partsCount == 1) await _UploadAssetAsOnePartAsync(asset, cancellationToken);
+        if (partsCount == 1) await _UploadAssetAsSinglepartAsync(asset, cancellationToken);
         else await _UploadAssetAsMultipartAsync(asset, partsCount, cancellationToken);
     }
 
-    async Task _UploadAssetAsOnePartAsync(FileStream asset, CancellationToken cancellationToken)
+    async Task _UploadAssetAsSinglepartAsync(FileStream asset, CancellationToken cancellationToken)
     {
-        (await _httpClient.SendAsync(_OptionsRequest(asset.Name, HttpMethod.Put), cancellationToken))
-            .EnsureSuccessStatusCode();
+        var assetUploadRequest = await new HttpRequestMessage(HttpMethod.Put, _UploadUriWithoutQueryFor(asset.Name))
+        { Content = new StreamContent(asset) }
+        ._SignAsyncWith(_awsCredentials, includeAcl: true);
 
-        var uploadRequest = await new HttpRequestMessage(HttpMethod.Put, _UploadUriWithoutQueryFor(asset.Name))
-            ._SignAsyncWith(_awsCredentials, includeAcl: true);
-        (await _httpClient.SendAsync(uploadRequest, cancellationToken)).EnsureSuccessStatusCode();
+        (await _httpClient.SendAsync(_OptionsRequestFor(assetUploadRequest), cancellationToken))
+            .EnsureSuccessStatusCode();
+        (await _httpClient.SendAsync(assetUploadRequest, cancellationToken))
+            .EnsureSuccessStatusCode();
     }
 
     async Task _UploadAssetAsMultipartAsync(FileStream asset, int partsCount, CancellationToken cancellationToken)
@@ -80,11 +82,11 @@ internal class TurboSquidUploadApi : IBaseAddressProvider
 
     async Task<string> _RequestUploadIDAsyncFor(string assetPath, CancellationToken cancellationToken)
     {
-        var optionsRequest = _OptionsRequest(assetPath, HttpMethod.Post, "uploads");
-        (await _httpClient.SendAsync(optionsRequest, cancellationToken)).EnsureSuccessStatusCode();
-
         var uploadIdRequest = await new HttpRequestMessage(HttpMethod.Post, $"{_UploadUriWithoutQueryFor(assetPath)}?uploads")
             ._SignAsyncWith(_awsCredentials, includeAcl: true);
+
+        (await _httpClient.SendAsync(_OptionsRequestFor(uploadIdRequest), cancellationToken)).EnsureSuccessStatusCode();
+        
         var response = await
             (await _httpClient.SendAsync(uploadIdRequest, cancellationToken))
             .Content.ReadAsStreamAsync(cancellationToken);
@@ -113,12 +115,13 @@ internal class TurboSquidUploadApi : IBaseAddressProvider
 
     async Task _CompleteMultipartUploadAsyncFor(string assetPath, string uploadId, AssetMultipartUploadResult assetMultipartUploadResult, CancellationToken cancellationToken)
     {
-        (await _httpClient.SendAsync(_OptionsRequest(assetPath, HttpMethod.Post, $"uploadId={uploadId}"), cancellationToken))
+        var multipartUploadCompletionRequest = await new HttpRequestMessage(HttpMethod.Post, $"{_UploadUriWithoutQueryFor(assetPath)}?uploadId={uploadId}")
+        { Content = new StringContent(assetMultipartUploadResult._ToXML()) }
+        ._SignAsyncWith(_awsCredentials);
+
+        (await _httpClient.SendAsync(_OptionsRequestFor(multipartUploadCompletionRequest), cancellationToken))
             .EnsureSuccessStatusCode();
-        (await _httpClient.SendAsync(
-            await new HttpRequestMessage(HttpMethod.Post, $"{_UploadUriWithoutQueryFor(assetPath)}?uploadId={uploadId}")
-            { Content = new StringContent(assetMultipartUploadResult._ToXML()) }
-            ._SignAsyncWith(_awsCredentials), cancellationToken))
+        (await _httpClient.SendAsync(multipartUploadCompletionRequest, cancellationToken))
             .EnsureSuccessStatusCode();
     }
 
@@ -132,6 +135,23 @@ internal class TurboSquidUploadApi : IBaseAddressProvider
             HeaderNames.ContentType.ToLower()
         }.OrderBy(h => h)));
         request.Headers.Add("Access-Control-Request-Method", accessControlRequestMethod.Method);
+        request.Headers.Add("Origin", "https://www.squid.io");
+
+        return request;
+    }
+
+    HttpRequestMessage _OptionsRequestFor(HttpRequestMessage requestToPrecedeWithOptions)
+    {
+        string assetName = Path.GetFileName(requestToPrecedeWithOptions.RequestUri!.AbsolutePath);
+        var requestUri = new UriBuilder(_UploadUriWithoutQueryFor(assetName)) { Query = requestToPrecedeWithOptions.RequestUri.Query }.Uri;
+
+        var request = new HttpRequestMessage(HttpMethod.Options, requestUri);
+        request.Headers.Add("Access-Control-Request-Headers", string.Join(',', new List<string>(_awsCredentials._XAmzHeadersWith(default).Select(header => header.Key))
+        {
+            HeaderNames.Authorization.ToLower(),
+            HeaderNames.ContentType.ToLower()
+        }.OrderBy(h => h)));
+        request.Headers.Add("Access-Control-Request-Method", requestToPrecedeWithOptions.Method.Method);
         request.Headers.Add("Origin", "https://www.squid.io");
 
         return request;
