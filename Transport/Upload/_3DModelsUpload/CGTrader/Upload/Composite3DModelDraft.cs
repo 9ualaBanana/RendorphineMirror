@@ -6,18 +6,18 @@ namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;
 
 internal record Composite3DModelDraft(Composite3DModel _Model, string _DraftID)
 {
-    internal IEnumerable<T> _UpcastPreviewImagesTo<T>() where T : _3DModelPreviewImage
+    internal IEnumerable<T> _UpcastThumnailsTo<T>() where T : _3DModelThumbnail
     {
-        Func<_3DModelPreviewImage, T> upcaster = typeof(T) switch
+        Func<_3DModelThumbnail, T> upcaster = typeof(T) switch
         {
             Type type
-            when type == typeof(CGTrader3DModelPreviewImage) =>
-                previewImage => (new CGTrader3DModelPreviewImage(previewImage.FilePath) as T)!,
+            when type == typeof(CGTrader3DModelThumbnail) =>
+                thumbnail => (new CGTrader3DModelThumbnail(thumbnail.FilePath) as T)!,
             Type type
-            when type == typeof(TurboSquid3DModelPreviewImage) =>
-                previewImage => (new TurboSquid3DModelPreviewImage(previewImage.FilePath) as T)!,
-            { } => previewImage => (previewImage as T)!
+            when type == typeof(TurboSquid3DModelThumbnail) =>
+                thumbnail => (new TurboSquid3DModelThumbnail(thumbnail.FilePath) as T)!,
+            { } => thumbnail => (thumbnail as T)!
         };
-        return _Model.PreviewImages.Select(upcaster);
+        return _Model.Thumbnails.Select(upcaster);
     }
 }

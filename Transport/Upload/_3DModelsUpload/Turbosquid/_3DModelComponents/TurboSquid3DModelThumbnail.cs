@@ -2,9 +2,9 @@
 
 namespace Transport.Upload._3DModelsUpload.Turbosquid._3DModelComponents;
 
-internal record TurboSquid3DModelPreviewImage : _3DModelPreviewImage
+internal record TurboSquid3DModelThumbnail : _3DModelThumbnail
 {
-    internal TurboSquid3DModelPreviewImage(string path) : base(path)
+    internal TurboSquid3DModelThumbnail(string path) : base(path)
     {
     }
 }

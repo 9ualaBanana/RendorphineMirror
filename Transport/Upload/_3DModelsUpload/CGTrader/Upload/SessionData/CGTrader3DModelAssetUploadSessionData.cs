@@ -22,7 +22,7 @@ internal abstract record CGTrader3DModelAssetUploadSessionData
         CancellationToken cancellationToken) =>
             await CGTrader3DModelFileUploadSessionData._AsyncFrom(response, modelFilePath, cancellationToken);
 
-    internal static async Task<CGTrader3DModelPreviewImageUploadSessionData> _ForModelPreviewImageAsyncFrom(
+    internal static async Task<CGTrader3DModelPreviewImageUploadSessionData> _ForModelThumbnailAsyncFrom(
         HttpResponseMessage response,
         string modelPreviewImageFilePath,
         CancellationToken cancellationToken) =>

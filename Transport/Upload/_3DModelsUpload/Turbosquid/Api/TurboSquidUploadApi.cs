@@ -30,9 +30,9 @@ internal class TurboSquidUploadApi : IBaseAddressProvider
         foreach (var _3DModel in modelDraft._Model._3DModels)
             await _UploadAssetAsync(await _3DModel.ArchiveAsync(cancellationToken), modelDraft._DraftID, cancellationToken);
 
-        foreach (var modelPreviewImage in modelDraft._UpcastPreviewImagesTo<TurboSquid3DModelPreviewImage>())
+        foreach (var modelThumbnail in modelDraft._UpcastThumnailsTo<TurboSquid3DModelThumbnail>())
         {
-            await _UploadAssetAsync(modelPreviewImage.FilePath, modelDraft._DraftID, cancellationToken);
+            await _UploadAssetAsync(modelThumbnail.FilePath, modelDraft._DraftID, cancellationToken);
             //(modelDraft._Model.Metadata as TurboSquid3DModelPreviewImage)!.UploadedPreviewImagesIDs.Add(uploadedFileId);
         }
     }
