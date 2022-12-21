@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using NLog;
 using System.Net.Http.Json;
 using Transport.Models;
+using Transport.Upload._3DModelsUpload._3DModelDS;
 using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 using Transport.Upload._3DModelsUpload.CGTrader.Network;
 using Transport.Upload._3DModelsUpload.CGTrader.Network.Captcha;

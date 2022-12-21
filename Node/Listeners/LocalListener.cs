@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Node.Profiling;
 using Transport.Upload._3DModelsUpload;
+using Transport.Upload._3DModelsUpload._3DModelDS;
 using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 using Transport.Upload._3DModelsUpload.CGTrader.Network;
 

@@ -1,4 +1,5 @@
-﻿using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
+﻿using Transport.Upload._3DModelsUpload._3DModelDS;
+using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 using Transport.Upload._3DModelsUpload.Turbosquid._3DModelComponents;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;

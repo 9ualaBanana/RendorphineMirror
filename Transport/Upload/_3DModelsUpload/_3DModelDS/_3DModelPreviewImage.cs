@@ -1,7 +1,7 @@
 ﻿using Common;
 using System.Net.Mime;
 
-namespace Transport.Upload._3DModelsUpload;
+namespace Transport.Upload._3DModelsUpload._3DModelDS;
 
 public record _3DModelPreviewImage
 {

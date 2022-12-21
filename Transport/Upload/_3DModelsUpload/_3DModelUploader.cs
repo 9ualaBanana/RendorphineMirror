@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Transport.Upload._3DModelsUpload._3DModelDS;
 using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 using Transport.Upload._3DModelsUpload.CGTrader.Upload;
 using Transport.Upload._3DModelsUpload.Turbosquid.Upload;
@@ -12,7 +13,6 @@ public static class _3DModelUploader
         NetworkCredential credential,
         CancellationToken cancellationToken = default)
     {
-        composite3DModel.Archive();
         await new TurboSquid3DModelUploader().UploadAsync(composite3DModel, credential, cancellationToken);
         await (composite3DModel.Metadata switch
         {

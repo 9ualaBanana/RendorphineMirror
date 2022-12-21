@@ -4,6 +4,7 @@ using NLog;
 using System.Net;
 using System.Net.Http.Json;
 using Transport.Models;
+using Transport.Upload._3DModelsUpload._3DModelDS;
 using Transport.Upload._3DModelsUpload.Turbosquid.Network;
 using Transport.Upload._3DModelsUpload.Turbosquid.Network.Authenticity;
 using Transport.Upload._3DModelsUpload.Turbosquid.Upload;
