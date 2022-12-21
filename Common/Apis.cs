@@ -129,13 +129,30 @@ public static class Apis
     public static ValueTask<OperationResult<TaskFullState>> GetTaskStateAsync(this ITaskApi task, string? sessionId = default) =>
         task.ShardGet<TaskFullState>("getmytaskstate", null, $"Getting {task.Id} task state", ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id));
 
-    public static async ValueTask<OperationResult> ChangeStateAsync(this ITaskApi task, TaskState state, string? sessionId = default)
+    public static ValueTask<OperationResult> FailTaskAsync(this ITaskApi task, string errorMessage, string? sessionId = default) => ChangeStateAsync(task, TaskState.Failed, errorMessage, sessionId);
+    public static ValueTask<OperationResult> ChangeStateAsync(this ITaskApi task, TaskState state, string? sessionId = default) => ChangeStateAsync(task, state, null, sessionId);
+    static async ValueTask<OperationResult> ChangeStateAsync(this ITaskApi task, TaskState state, string? errorMessage, string? sessionId = default)
     {
         (task as ILoggable)?.LogInfo($"Changing state to {state}");
         if ((task as ReceivedTask)?.ExecuteLocally == true) return true;
 
-        var result = await task.ShardGet("mytaskstatechanged", "Changing task state",
-            ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id), ("newstate", state.ToString().ToLowerInvariant())).ConfigureAwait(false);
+
+        var data = new[]
+        {
+            ("sessionid", sessionId ?? Settings.SessionId!),
+            ("taskid", task.Id),
+            ("newstate", state.ToString().ToLowerInvariant()),
+        };
+
+        if (errorMessage is not null)
+        {
+            if (state != TaskState.Failed)
+                throw new ArgumentException($"Could not provide {nameof(errorMessage)} for task state {state}");
+
+            data = data.Append(("errorMessage", errorMessage)).ToArray();
+        }
+
+        var result = await task.ShardGet("mytaskstatechanged", "Changing task state", data).ConfigureAwait(false);
 
 
         result.LogIfError($"[{(task as ILoggable)?.LogName ?? task.Id}] Error while changing task state: {{0}}");

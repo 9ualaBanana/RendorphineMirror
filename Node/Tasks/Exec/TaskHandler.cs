@@ -211,14 +211,14 @@ public static class TaskHandler
             }
         }
 
-        await fail("Run out of attempts");
+        await fail("Ran out of attempts");
 
 
         async ValueTask fail(string message)
         {
             task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {message}");
             NodeSettings.QueuedTasks.Remove(task);
-            await task.ChangeStateAsync(TaskState.Failed).ThrowIfError();
+            await task.FailTaskAsync(message).ThrowIfError();
         }
     }
     static async ValueTask<bool> RemoveQueuedIfFinished(this ReceivedTask task)
