@@ -28,8 +28,7 @@ internal class TurboSquidUploadApi : IBaseAddressProvider
     internal async Task _UploadAssetsAsync(Composite3DModelDraft modelDraft, CancellationToken cancellationToken)
     {
         foreach (var _3DModel in modelDraft._Model._3DModels)
-            foreach (var modelFilePath in _3DModel.Files)
-                await _UploadAssetAsync(modelFilePath, modelDraft._DraftID, cancellationToken);
+            await _UploadAssetAsync(await _3DModel.ArchiveAsync(cancellationToken), modelDraft._DraftID, cancellationToken);
 
         foreach (var modelPreviewImage in modelDraft._UpcastPreviewImagesTo<TurboSquid3DModelPreviewImage>())
         {

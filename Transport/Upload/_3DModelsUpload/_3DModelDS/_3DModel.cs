@@ -21,11 +21,11 @@ public class _3DModel : IDisposable
     /// is initialized from a directory (i.e. <see cref="OriginalPath"/> referes to a directory).
     /// </summary>
     /// <returns>Path to the archive where this <see cref="_3DModel"/> is stored.</returns>
-    public string Archive()
+    public async ValueTask<string> ArchiveAsync(CancellationToken cancellationToken)
     {
         if (_archivePath is null)
         {
-            _archivePath = _3DModelArchiver._Archive(this);
+            _archivePath = await _3DModelArchiver._ArchiveAsync(this, cancellationToken);
             _archiveIsTemp = true;
         }
 

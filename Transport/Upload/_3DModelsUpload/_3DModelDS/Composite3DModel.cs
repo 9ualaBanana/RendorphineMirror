@@ -23,11 +23,6 @@ public record Composite3DModel : IDisposable
 
     #endregion
 
-    /// <summary>
-    /// Recursively archives each <see cref="_3DModel"/> that is a part of this <see cref="Composite3DModel"/>.
-    /// </summary>
-    internal void Archive() { foreach (var _3DModel in _3DModels) _3DModel.Archive(); }
-
     #region IDisposable
 
     public void Dispose()

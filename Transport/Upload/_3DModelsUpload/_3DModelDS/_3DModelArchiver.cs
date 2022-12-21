@@ -4,6 +4,9 @@ namespace Transport.Upload._3DModelsUpload._3DModelDS;
 
 internal static class _3DModelArchiver
 {
+    internal static async Task<string> _ArchiveAsync(_3DModel _3DModel, CancellationToken cancellationToken) =>
+        await Task.Run(() => _Archive(_3DModel), cancellationToken);
+
     internal static string _Archive(_3DModel _3DModel)
     {
         DirectoryInfo tempDirectoryToArchive = _CreateTempDirectoryThatWillBeArchived();
