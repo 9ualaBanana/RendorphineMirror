@@ -149,7 +149,7 @@ public static class Apis
             if (state != TaskState.Failed)
                 throw new ArgumentException($"Could not provide {nameof(errorMessage)} for task state {state}");
 
-            data = data.Append(("errorMessage", errorMessage)).ToArray();
+            data = data.Append(("errormessage", errorMessage)).ToArray();
         }
 
         var result = await task.ShardGet("mytaskstatechanged", "Changing task state", data).ConfigureAwait(false);

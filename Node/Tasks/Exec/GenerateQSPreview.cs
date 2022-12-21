@@ -51,7 +51,7 @@ public static class GenerateQSPreviewTasks
                 argholder.Filtergraph.Add(graph);
 
                 var ffargs = GetFFMpegArgs(watermarkFile, repeatedWatermarkFile, task, data, argholder);
-                await ExecuteProcess(task.GetPlugin().GetInstance().Path, ffargs, true, delegate { }, task);
+                await ExecuteProcess(task.GetPlugin().GetInstance().Path, ffargs, delegate { }, task, stderr: LogLevel.Trace);
 
                 return repeatedWatermarkFile;
             }
