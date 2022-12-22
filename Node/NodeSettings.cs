@@ -1,3 +1,4 @@
+using Node.Profiling;
 using static Common.Settings;
 
 namespace Node;
@@ -8,6 +9,7 @@ public static class NodeSettings
     public static readonly DatabaseValueDictionary<string, WatchingTask> WatchingTasks;
     public static readonly DatabaseValueDictionary<string, DbTaskFullState> PlacedTasks;
     public static readonly DatabaseValueDictionary<string, CompletedTask> CompletedTasks;
+    public static readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
 
     static NodeSettings()
     {
@@ -16,8 +18,18 @@ public static class NodeSettings
         PlacedTasks = new(nameof(PlacedTasks), t => t.Id);
         CompletedTasks = new(nameof(CompletedTasks), t => t.TaskInfo.Id);
 
+        try { BenchmarkResult = new(nameof(BenchmarkResult), default); }
+        catch
+        {
+            new DatabaseValue<object?>(nameof(BenchmarkResult), default).Delete();
+            BenchmarkResult = new(nameof(BenchmarkResult), default);
+        }
+
         NodeGlobalState.Instance.WatchingTasks.Bind(WatchingTasks.Bindable);
         NodeGlobalState.Instance.PlacedTasks.Bind(PlacedTasks.Bindable);
         NodeGlobalState.Instance.QueuedTasks.Bind(QueuedTasks.Bindable);
     }
+
+
+    public readonly record struct BenchmarkInfo(Version Version, BenchmarkData Data);
 }

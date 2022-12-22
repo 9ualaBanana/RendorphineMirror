@@ -10,7 +10,8 @@ internal static class Benchmark
 
     readonly static string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
     readonly static string _sampleVideoPath = Path.Combine(_assetsPath, "4k_sample.mp4");
-    readonly static FileBackedVersion LatestExecutedVersion = new(_assetsPath);
+
+    static readonly Dictionary<uint, DriveBenchmarkResult> _driveBenchmarkCache = new();
 
     /// <summary>
     /// true if <see cref="Benchmark"/> wasn't run yet after it had been updated; false, otherwise.
@@ -20,42 +21,62 @@ internal static class Benchmark
     /// <remarks>
     /// Evaluated once upon node start.
     /// </remarks>
-    static bool IsUpdated => !LatestExecutedVersion.Exists || LatestExecutedVersion < BenchmarkMetadata.Version;
+    static bool IsUpdated
+    {
+        get
+        {
+            try { return NodeSettings.BenchmarkResult.Value?.Version?.Equals(BenchmarkMetadata.Version) != true; }
+            catch
+            {
+                NodeSettings.BenchmarkResult.Delete();
+                return true;
+            }
+        }
+    }
 
-    internal static async Task<object> RunAsync(int testDataSize)
+    internal static async Task<BenchmarkData> RunAsync(int testDataSize)
     {
         var result = await RunAsyncCore(testDataSize);
+        NodeSettings.BenchmarkResult.Value = new(BenchmarkMetadata.Version, result);
+        UpdateValues(result);
 
         isCompleted = true;
-        LatestExecutedVersion.Update(BenchmarkMetadata.Version);
-
         _logger.Info("Benchmark completed:\n{BenchmarkResults}", JsonConvert.SerializeObject(result, Formatting.None));
 
         return result;
     }
+    internal static void UpdateValues(BenchmarkData result)
+    {
+        // need to update these values every hearbeat
+        // later benchmark will be decoupled from this
 
-    static async Task<object> RunAsyncCore(int testDataSize)
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+        {
+            result.CPU.Load = CPU.Info.First().LoadPercentage / 100d;
+            result.GPU.Load = GPU.Info.First().LoadPercentage / 100d;
+            result.RAM.Free = RAM.Info.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory);
+
+
+            var drives = Drive.Info
+                .Select(d => _driveBenchmarkCache.TryGetValue(d.Id, out var info) ? info with { FreeSpace = d.FreeSpace } : null)
+                .Where(d => d is not null);
+
+            result.Disks.Clear();
+            result.Disks.AddRange(drives!);
+        }
+    }
+
+    static async Task<BenchmarkData> RunAsyncCore(int testDataSize)
     {
         // todo remove when linux benchmark fixed
         if (Environment.OSVersion.Platform == PlatformID.Unix)
         {
-            return new
-            {
-                cpu = new
-                {
-                    rating = 10000000,
-                    pratings = new { ffmpeg = 100 },
-                    load = 0.0001,
-                },
-                gpu = new
-                {
-                    rating = 10000000,
-                    pratings = new { ffmpeg = 100 },
-                    load = 0.0001,
-                },
-                ram = new { total = 32678000000, free = 16678000000, },
-                disks = new[] { new { freespace = 326780000000, writespeed = 32677000000 } },
-            };
+            return new(
+                new(10000000, new(100)) { Load = 0.0001 },
+                new(10000000, new(100)) { Load = 0.0001 },
+                new(32678000000) { Free = 16678000000 },
+                new[] { new DriveBenchmarkResult(32677000000) { FreeSpace = 326780000000 } }.ToList()
+            );
         }
 
 
@@ -72,53 +93,37 @@ internal static class Benchmark
         var disks = await GetDrivesBenchmarkResultsAsObjectAsync(testDataSize);
         benchs["disks"] = JToken.FromObject(disks);
 
-        return new
-        {
+        return new(
             cpu,
             gpu,
             ram,
-            disks,
-        };
+            disks
+        );
     }
 
-    static async Task<object> GetCpuBenchmarkResultsAsObjectAsync(int testDataSize)
+    static async Task<CPUBenchmarkResult> GetCpuBenchmarkResultsAsObjectAsync(int testDataSize)
     {
         double ffmpegRating = default;
-        uint load = default;
         try
         {
             ffmpegRating = (await new FFmpegBenchmark(_sampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnCpuAsync()).Bps;
-            load = CPU.Info.First().LoadPercentage;
         }
         catch (Exception) { }
-        return new
-        {
-            rating = (await new ZipBenchmark(testDataSize).RunAsync()).Bps,
-            pratings = new { ffmpeg = ffmpegRating },
-            load
-        };
+        return new((await new ZipBenchmark(testDataSize).RunAsync()).Bps, new(ffmpegRating));
     }
 
-    static async Task<object> GetGpuBenchmarkResultsAsObjectAsync()
-
+    static async Task<GPUBenchmarkResult> GetGpuBenchmarkResultsAsObjectAsync()
     {
         double ffmpegRating = default;
-        uint load = default;
         try
         {
             ffmpegRating = (await new FFmpegBenchmark(_sampleVideoPath, $"{Path.Combine(_assetsPath, "ffmpeg")}").RunOnGpuAsync()).Bps;
-            load = GPU.Info.First().LoadPercentage;
         }
         catch (Exception) { }
-        return new
-        {
-            rating = ffmpegRating,
-            pratings = new { ffmpeg = ffmpegRating },
-            load,
-        };
+        return new GPUBenchmarkResult(ffmpegRating, new(ffmpegRating));
     }
 
-    static async Task<IEnumerable<object>> GetDrivesBenchmarkResultsAsObjectAsync(int testDataSize)
+    static async Task<List<DriveBenchmarkResult>> GetDrivesBenchmarkResultsAsObjectAsync(int testDataSize)
     {
         var drivesBenchmarkResults = new List<(BenchmarkResult Read, BenchmarkResult Write)>();
         var readWriteBenchmark = new ReadWriteBenchmark(testDataSize);
@@ -126,20 +131,18 @@ internal static class Benchmark
         foreach (var logicalDiskName in Drive.LogicalDisksNamesFromDistinctDrives)
             drivesBenchmarkResults.Add(await readWriteBenchmark.RunAsync(logicalDiskName));
 
-        IEnumerable<object> result = Enumerable.Empty<object>();
-        try 
-        { 
+        IEnumerable<DriveBenchmarkResult>? result = null;
+        try
+        {
+            _driveBenchmarkCache.Clear();
             result = Drive.Info.Zip(drivesBenchmarkResults)
-                .Select(zip => new
-                {
-                    freespace = zip.First.FreeSpace,
-                    writespeed = zip.Second.Write.Bps
-                });
-        } catch { }
-        return result;
+                .Select(zip => _driveBenchmarkCache[zip.First.Id] = new DriveBenchmarkResult(zip.Second.Write.Bps) { FreeSpace = zip.First.FreeSpace });
+        }
+        catch { }
+        return result?.ToList() ?? new();
     }
 
-    static object GetRamAsObject()
+    static RAMInfo GetRamAsObject()
     {
         var ramInfo = RAM.Info;
 
@@ -151,6 +154,6 @@ internal static class Benchmark
             free = ramInfo.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory);
         }
         catch { }
-        return new { total, free };
+        return new(total) { Free = free };
     }
 }
