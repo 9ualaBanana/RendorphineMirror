@@ -30,11 +30,17 @@ public static class Apis
         string url, string? property, string? errorDetails, (string, string)[] values)
     {
         (task as ILoggable)?.LogTrace($"Sending shard request {url}; Shard is {task.HostShard ?? "<null>"}");
-        return await ShardSend(task, errorDetails, () => func($"https://{task.HostShard}/rphtasklauncher/{url}", property, errorDetails, values));
+        return await ShardSend(task, errorDetails, () => func($"https://{task.HostShard}/rphtasklauncher/{url}", property, errorDetails, values), true);
 
 
-        static async ValueTask<OperationResult<T>> ShardSend(ITaskApi task, string? errorDetails, Func<ValueTask<OperationResult<T>>> func)
+        static async ValueTask<OperationResult<T>> ShardSend(ITaskApi task, string? errorDetails, Func<ValueTask<OperationResult<T>>> func, bool tryDefaultShard)
         {
+            if (tryDefaultShard)
+            {
+                task.HostShard ??= "tasks.microstock.plus";
+                tryDefaultShard = false;
+            }
+
             if (task.HostShard is null)
             {
                 var host = await task.UpdateTaskShardAsync();
@@ -54,7 +60,7 @@ public static class Apis
                 {
                     await Task.Delay(30_000);
                     await task.UpdateTaskShardAsync();
-                    return await ShardSend(task, errorDetails, func);
+                    return await ShardSend(task, errorDetails, func, tryDefaultShard);
                 }
 
                 // "No shard is known for this task. The shard could be restarting, try again in 30 seconds"
@@ -64,7 +70,7 @@ public static class Apis
                     if (!host) return host;
 
                     await Task.Delay(30_000);
-                    return await ShardSend(task, errorDetails, func);
+                    return await ShardSend(task, errorDetails, func, tryDefaultShard);
                 }
             }
 
