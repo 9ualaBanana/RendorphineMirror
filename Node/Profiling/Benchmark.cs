@@ -11,8 +11,6 @@ internal static class Benchmark
     readonly static string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
     readonly static string _sampleVideoPath = Path.Combine(_assetsPath, "4k_sample.mp4");
 
-    static readonly Dictionary<uint, DriveBenchmarkResult> _driveBenchmarkCache = new();
-
     /// <summary>
     /// true if <see cref="Benchmark"/> wasn't run yet after it had been updated; false, otherwise.
     /// </summary>
@@ -56,14 +54,12 @@ internal static class Benchmark
             result.GPU.Load = GPU.Info.First().LoadPercentage / 100d;
             result.RAM.Free = RAM.Info.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory);
 
-
-            var drives = Drive.Info
-                .Select(d => _driveBenchmarkCache.TryGetValue(d.Id, out var info) ? info with { FreeSpace = d.FreeSpace } : null)
-                .Where(d => d is not null);
-
-            result.Disks.Clear();
-            result.Disks.AddRange(drives!);
+            var drives = Drive.Info;
+            foreach (var disk in result.Disks)
+                disk.FreeSpace = drives.Find(x => x.Id == disk.Id)?.FreeSpace ?? disk.FreeSpace;
         }
+
+        _logger.Trace($"Updated hardware values: cpu load {result.CPU.Load}; gpu load {result.GPU.Load}; ram free {result.RAM.Free}; disks free {string.Join(", ", result.Disks.Select(x => x.FreeSpace))};");
     }
 
     static async Task<BenchmarkData> RunAsyncCore(int testDataSize)
@@ -75,7 +71,7 @@ internal static class Benchmark
                 new(10000000, new(100)) { Load = 0.0001 },
                 new(10000000, new(100)) { Load = 0.0001 },
                 new(32678000000) { Free = 16678000000 },
-                new[] { new DriveBenchmarkResult(32677000000) { FreeSpace = 326780000000 } }.ToList()
+                new[] { new DriveBenchmarkResult(0, 32677000000) { FreeSpace = 326780000000 } }.ToList()
             );
         }
 
@@ -134,9 +130,8 @@ internal static class Benchmark
         IEnumerable<DriveBenchmarkResult>? result = null;
         try
         {
-            _driveBenchmarkCache.Clear();
             result = Drive.Info.Zip(drivesBenchmarkResults)
-                .Select(zip => _driveBenchmarkCache[zip.First.Id] = new DriveBenchmarkResult(zip.Second.Write.Bps) { FreeSpace = zip.First.FreeSpace });
+                .Select(zip => new DriveBenchmarkResult(zip.First.Id, zip.Second.Write.Bps) { FreeSpace = zip.First.FreeSpace });
         }
         catch { }
         return result?.ToList() ?? new();
