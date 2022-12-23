@@ -89,7 +89,17 @@ namespace Common
         {
             while (true)
             {
-                try { return await func().ConfigureAwait(false); }
+                try
+                {
+                    var result = await func().ConfigureAwait(false);
+                    if (result.EString.HttpData is { } httperr && !httperr.IsSuccessStatusCode)
+                    {
+                        await Task.Delay(1000).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    return result;
+                }
                 catch (SocketException)
                 {
                     await Task.Delay(1000).ConfigureAwait(false);
