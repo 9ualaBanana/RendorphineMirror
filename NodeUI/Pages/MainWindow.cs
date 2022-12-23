@@ -847,18 +847,20 @@ namespace NodeUI.Pages
                 var tab = new TabbedControl();
                 Children.Add(tab);
 
-                tab.Add("node", new LogViewer("Node"));
-                tab.Add("nodeui", new LogViewer("NodeUI"));
+                tab.Add("node", new LogViewer("Node", LogLevel.Debug));
+                tab.Add("nodeui", new LogViewer("NodeUI", LogLevel.Debug));
+                tab.Add("node-trace", new LogViewer("Node", LogLevel.Trace));
+                tab.Add("nodeui-trace", new LogViewer("NodeUI", LogLevel.Trace));
                 tab.Add("ONLY WORKS WHEN TEXTBOX IS FOCUSED", new Panel());
             }
 
 
             class LogViewer : Panel
             {
-                public LogViewer(string logName)
+                public LogViewer(string logName, LogLevel level)
                 {
                     var flogname = logName;
-                    string getlogdir() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, "Debug", "log.log").Replace("NodeUI", flogname);
+                    string getlogdir() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, level.Name, "log.log").Replace("NodeUI", flogname);
 
                     var dir = getlogdir();
                     if (!File.Exists(dir))
