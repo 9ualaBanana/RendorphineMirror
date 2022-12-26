@@ -1,20 +1,20 @@
 ﻿namespace Transport.Upload._3DModelsUpload._3DModelDS;
 
-public record Composite3DModel : IDisposable
+public record _3DProduct : IDisposable
 {
     public IEnumerable<_3DModel> _3DModels { get; }
-    public IEnumerable<_3DModelThumbnail> Thumbnails { get; }
+    public IEnumerable<_3DProductThumbnail> Thumbnails { get; }
     public _3DModelMetadata Metadata { get; }
 
     #region Initialization
 
-    public static Composite3DModel FromDirectory(string directory, _3DModelMetadata metadata) => new(
+    public static _3DProduct FromDirectory(string directory, _3DModelMetadata metadata) => new(
         _3DModel._EnumerateIn(directory)
             .Select(_3DModelContainer => _3DModel.FromContainer(_3DModelContainer.OriginalPath)),
-        _3DModelThumbnail._EnumerateIn(directory),
+        _3DProductThumbnail._EnumerateIn(directory),
         metadata);
 
-    Composite3DModel(IEnumerable<_3DModel> _3DModels, IEnumerable<_3DModelThumbnail> thumbnails, _3DModelMetadata metadata)
+    _3DProduct(IEnumerable<_3DModel> _3DModels, IEnumerable<_3DProductThumbnail> thumbnails, _3DModelMetadata metadata)
     {
         this._3DModels = _3DModels;
         Thumbnails = thumbnails;

@@ -4,7 +4,7 @@ using Transport.Upload._3DModelsUpload._3DModelDS;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 
-public record CGTrader3DModelMetadata : _3DModelMetadata
+public record CGTrader3DProductMetadata : _3DModelMetadata
 {
     const double DefaultPrice = 2.0;
 
@@ -18,7 +18,7 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
             if (value.Length < 5) throw new ArgumentOutOfRangeException(
                 nameof(value.Length),
                 value.Length,
-                $"{nameof(CGTrader3DModelMetadata)} requires at least 5 tags.");
+                $"{nameof(CGTrader3DProductMetadata)} requires at least 5 tags.");
 
             _tags = value;
         }
@@ -41,11 +41,11 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
 
     #region Initialization
 
-    public static CGTrader3DModelMetadata ForCG(
+    public static CGTrader3DProductMetadata ForCG(
      string title,
      string description,
      string[] tags,
-     CGTrader3DModelCategory category,
+     CGTrader3DProductCategory category,
      NonCustomCGTraderLicense license,
      double price = DefaultPrice,
      bool gameReady = false,
@@ -69,11 +69,11 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
          adultContent,
          info);
 
-    public static CGTrader3DModelMetadata ForCG(
+    public static CGTrader3DProductMetadata ForCG(
         string title,
         string description,
         string[] tags,
-        CGTrader3DModelCategory category,
+        CGTrader3DProductCategory category,
         string customLicenseText,
         double price = DefaultPrice,
         bool gameReady = false,
@@ -97,11 +97,11 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
             physicallyBasedRendering,
             info);
 
-    public static CGTrader3DModelMetadata ForPrintable(
+    public static CGTrader3DProductMetadata ForPrintable(
         string title,
         string description,
         string[] tags,
-        CGTrader3DModelCategory category,
+        CGTrader3DProductCategory category,
         NonCustomCGTraderLicense license,
         double price = DefaultPrice) => new(
             title,
@@ -113,11 +113,11 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
             customLicenseText: null,
             ProductType.printable);
 
-    public static CGTrader3DModelMetadata ForPrintable(
+    public static CGTrader3DProductMetadata ForPrintable(
         string title,
         string description,
         string[] tags,
-        CGTrader3DModelCategory category,
+        CGTrader3DProductCategory category,
         string customLicenseText,
         double price = DefaultPrice) => new(
             title,
@@ -129,11 +129,11 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
             customLicenseText,
             ProductType.printable);
 
-    CGTrader3DModelMetadata(
+    CGTrader3DProductMetadata(
         string title,
         string description,
         string[] tags,
-        CGTrader3DModelCategory category,
+        CGTrader3DProductCategory category,
         CGTraderLicense license,
         double price = DefaultPrice,
         string? customLicenseText = null,
@@ -164,7 +164,7 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
 
     [JsonConstructor]
     [Obsolete("Only for json deserializing")]
-    CGTrader3DModelMetadata(string title,
+    CGTrader3DProductMetadata(string title,
         string description,
         string[] tags,
         int category,
@@ -200,14 +200,14 @@ public record CGTrader3DModelMetadata : _3DModelMetadata
     #endregion
 
     /// <exception cref="InvalidOperationException">
-    /// <see cref="CGTrader3DModelMetadata"/> doesn't describe a product  with <see cref="ProductType.cg"/> <see cref="ProductType"/>.
+    /// <see cref="CGTrader3DProductMetadata"/> doesn't describe a product  with <see cref="ProductType.cg"/> <see cref="ProductType"/>.
     /// </exception>
     internal JsonContent _AsCGJsonContent
     {
         get
         {
             if (ProductType is not ProductType.cg) throw new InvalidOperationException(
-                $"{nameof(CGTrader3DModelMetadata)} must describe a product with {nameof(ProductType.cg)} {nameof(ProductType)}"
+                $"{nameof(CGTrader3DProductMetadata)} must describe a product with {nameof(ProductType.cg)} {nameof(ProductType)}"
                 );
 
             return JsonContent.Create(new

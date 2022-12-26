@@ -17,9 +17,9 @@ internal class TurboSquidResourceRequestHandler : ResourceRequestHandler
     protected override void OnResourceLoadComplete(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, IResponse response, UrlRequestStatus status, long receivedContentLength)
     {
         if (TurboSquidResponse.HasNetworkCredential(request))
-            TurboSquidNetworkCredential._ServerResponse.SetAsync(_Response).Wait();
+            TurboSquidNetworkCredential._CapturedCefResponse.SetAsync(_Response).Wait();
         else if (TurboSquidResponse.HasCaptchaSolution(request))
-            TurboSquidCaptchaVerifiedToken._ServerResponse.SetAsync(_Response).Wait();
+            TurboSquidCaptchaVerifiedToken._CapturedCefResponse.SetAsync(_Response).Wait();
     }
 
     protected override IResponseFilter GetResourceResponseFilter(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, IResponse response) =>

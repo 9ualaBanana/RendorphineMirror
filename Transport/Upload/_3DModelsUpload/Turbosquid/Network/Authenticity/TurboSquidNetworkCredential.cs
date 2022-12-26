@@ -10,7 +10,15 @@ internal class TurboSquidNetworkCredential : NetworkCredential
     internal readonly string _CaptchaVerifiedToken;
     internal readonly string _ApplicationUserID;
 
-    internal static ForeignThreadValue<string> _ServerResponse = new(false);
+    #region Initialization
+
+    internal static ForeignThreadValue<string> _CapturedCefResponse = new(false);
+
+    internal static async Task<TurboSquidNetworkCredential> _RequestAsyncUsing(
+        TurboSquidApi api,
+        NetworkCredential credential,
+        CancellationToken cancellationToken) =>
+            await api._RequestTurboSquidNetworkCredentialAsync(credential, cancellationToken);
 
     internal TurboSquidNetworkCredential _WithUpdatedCsrfToken(string csrfToken) =>
         new(UserName, Password, csrfToken, _ApplicationUserID, _CaptchaVerifiedToken);
@@ -48,10 +56,7 @@ internal class TurboSquidNetworkCredential : NetworkCredential
         _ApplicationUserID = applicationUserId;
     }
 
-    internal static async Task<TurboSquidNetworkCredential> _RequestAsyncUsing(
-        TurboSquidApi api,
-        NetworkCredential credential,
-        CancellationToken cancellationToken) => await api._RequestTurboSquidNetworkCredentialAsync(credential, cancellationToken);
+    #endregion
 
     internal MultipartFormDataContent _ToLoginMultipartFormData() => new()
     {

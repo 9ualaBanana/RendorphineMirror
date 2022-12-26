@@ -1,37 +1,37 @@
 ﻿namespace Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 
-public record CGTrader3DModelCategory
+public record CGTrader3DProductCategory
 {
     public readonly int CategoryID;
     public readonly int SubCategoryID;
 
-    CGTrader3DModelCategory(int categoryId, int subCategoryId) =>
+    CGTrader3DProductCategory(int categoryId, int subCategoryId) =>
         (CategoryID, SubCategoryID) = (categoryId, subCategoryId);
 
-    public static CGTrader3DModelCategory Aircraft(AircraftSubCategory subCategory) => new(1, (int)subCategory);
-    public static CGTrader3DModelCategory Animals(AnimalsSubCategory subCategory) => new(10, (int)subCategory);
-    public static CGTrader3DModelCategory Architectural(ArchitecturalSubCategory subCategory) => new(18, (int)subCategory);
-    public static CGTrader3DModelCategory Exterior(ExteriorSubCategory subCategory) => new(27, (int)subCategory);
-    public static CGTrader3DModelCategory Interior(InteriorSubCategory subCategory) => new(40, (int)subCategory);
-    public static CGTrader3DModelCategory Car(CarSubCategory subCategory) => new(50, (int)subCategory);
-    public static CGTrader3DModelCategory Character(CharacterSubCategory subCategory) => new(58, (int)subCategory);
-    public static CGTrader3DModelCategory Electoronics(ElectronicsSubCategory subCategory) => new(67, (int)subCategory);
-    public static CGTrader3DModelCategory Food(FoodSubCategory subCategory) => new(73, (int)subCategory);
-    public static CGTrader3DModelCategory Furniture(FurnitureSubCategory subCategory) => new(78, (int)subCategory);
-    public static CGTrader3DModelCategory Household(HouseholdSubCategory subCategory) => new(98, (int)subCategory);
-    public static CGTrader3DModelCategory Industrial(IndustrialSubCategory subCategory) => new(102, (int)subCategory);
-    public static CGTrader3DModelCategory Plant(PlantSubCategory subCategory) => new(107, (int)subCategory);
-    public static CGTrader3DModelCategory Science(ScienceSubCategory subCategory) => new(115, (int)subCategory);
-    public static CGTrader3DModelCategory Space(SpaceSubCategory subCategory) => new(119, (int)subCategory);
-    public static CGTrader3DModelCategory Sports(SportsSubCategory subCategory) => new(124, (int)subCategory);
-    public static CGTrader3DModelCategory Vehicle(VehicleSubCategory subCategory) => new(130, (int)subCategory);
-    public static CGTrader3DModelCategory Watercraft(WatercraftSubCategory subCategory) => new(141, (int)subCategory);
-    public static CGTrader3DModelCategory Military(MilitarySubCategory subCategory) => new(147, (int)subCategory);
-    public static CGTrader3DModelCategory Scanned3DModels(Scanned3DModelsSubCategory subCategory) => new(147, (int)subCategory);
-    public static CGTrader3DModelCategory ScriptsAndPlugins(ScriptsAndPluginsSubCategory subCategory) => new(230, (int)subCategory);
-    public static CGTrader3DModelCategory EngineeringParts(EngineeringPartsSubCategory subCategory) => new(237, (int)subCategory);
-    public static CGTrader3DModelCategory Various(VariousSubCategory subCategory) => new(315, (int)subCategory);
-    public static CGTrader3DModelCategory Textures(TexturesSubCategory subCategory) => new(849, (int)subCategory);
+    public static CGTrader3DProductCategory Aircraft(AircraftSubCategory subCategory) => new(1, (int)subCategory);
+    public static CGTrader3DProductCategory Animals(AnimalsSubCategory subCategory) => new(10, (int)subCategory);
+    public static CGTrader3DProductCategory Architectural(ArchitecturalSubCategory subCategory) => new(18, (int)subCategory);
+    public static CGTrader3DProductCategory Exterior(ExteriorSubCategory subCategory) => new(27, (int)subCategory);
+    public static CGTrader3DProductCategory Interior(InteriorSubCategory subCategory) => new(40, (int)subCategory);
+    public static CGTrader3DProductCategory Car(CarSubCategory subCategory) => new(50, (int)subCategory);
+    public static CGTrader3DProductCategory Character(CharacterSubCategory subCategory) => new(58, (int)subCategory);
+    public static CGTrader3DProductCategory Electoronics(ElectronicsSubCategory subCategory) => new(67, (int)subCategory);
+    public static CGTrader3DProductCategory Food(FoodSubCategory subCategory) => new(73, (int)subCategory);
+    public static CGTrader3DProductCategory Furniture(FurnitureSubCategory subCategory) => new(78, (int)subCategory);
+    public static CGTrader3DProductCategory Household(HouseholdSubCategory subCategory) => new(98, (int)subCategory);
+    public static CGTrader3DProductCategory Industrial(IndustrialSubCategory subCategory) => new(102, (int)subCategory);
+    public static CGTrader3DProductCategory Plant(PlantSubCategory subCategory) => new(107, (int)subCategory);
+    public static CGTrader3DProductCategory Science(ScienceSubCategory subCategory) => new(115, (int)subCategory);
+    public static CGTrader3DProductCategory Space(SpaceSubCategory subCategory) => new(119, (int)subCategory);
+    public static CGTrader3DProductCategory Sports(SportsSubCategory subCategory) => new(124, (int)subCategory);
+    public static CGTrader3DProductCategory Vehicle(VehicleSubCategory subCategory) => new(130, (int)subCategory);
+    public static CGTrader3DProductCategory Watercraft(WatercraftSubCategory subCategory) => new(141, (int)subCategory);
+    public static CGTrader3DProductCategory Military(MilitarySubCategory subCategory) => new(147, (int)subCategory);
+    public static CGTrader3DProductCategory Scanned3DModels(Scanned3DModelsSubCategory subCategory) => new(147, (int)subCategory);
+    public static CGTrader3DProductCategory ScriptsAndPlugins(ScriptsAndPluginsSubCategory subCategory) => new(230, (int)subCategory);
+    public static CGTrader3DProductCategory EngineeringParts(EngineeringPartsSubCategory subCategory) => new(237, (int)subCategory);
+    public static CGTrader3DProductCategory Various(VariousSubCategory subCategory) => new(315, (int)subCategory);
+    public static CGTrader3DProductCategory Textures(TexturesSubCategory subCategory) => new(849, (int)subCategory);
 }
 
 public enum AircraftSubCategory

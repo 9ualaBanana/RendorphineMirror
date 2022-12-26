@@ -6,8 +6,14 @@ namespace Transport.Upload._3DModelsUpload.Turbosquid.Upload;
 internal record TurboSquidAwsUploadCredentials
 {
     internal readonly string AccessKey;
+    /// <summary>
+    /// Container for objects stored in Amazon S3 and is the subdomain of that storage URL.
+    /// </summary>
     internal readonly string Bucket;
     internal readonly string CurrentServerTime;
+    /// <remarks>
+    /// Ends with a path separator '/'.
+    /// </remarks>
     internal readonly string KeyPrefix;
     internal readonly string Region;
     internal readonly string SecretKey;

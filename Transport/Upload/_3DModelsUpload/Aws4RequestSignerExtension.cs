@@ -8,7 +8,7 @@ internal static class Aws4RequestSignerExtension
     const string _ServiceName = "s3";
 
     // TODO: refactor `includeAcl`.
-    internal static async Task<HttpRequestMessage> _SignAsyncWith(this HttpRequestMessage request, TurboSquidAwsUploadCredentials awsCredentials, bool includeAcl = false)
+    internal static async Task<HttpRequestMessage> SignAsyncWith(this HttpRequestMessage request, TurboSquidAwsUploadCredentials awsCredentials, bool includeAcl = false)
     {
         // Date is taken from `awsCredentials` but if the date in the request and current date on the server differ in 1.5 minutes, then the server responds with 403.
         // Also that hack with adding 4 hours to it is not a good idea.

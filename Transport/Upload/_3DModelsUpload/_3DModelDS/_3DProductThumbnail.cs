@@ -3,27 +3,41 @@ using System.Net.Mime;
 
 namespace Transport.Upload._3DModelsUpload._3DModelDS;
 
-public record _3DModelThumbnail
+public record _3DProductThumbnail
 {
     public readonly string FilePath;
-    public readonly string Name;
+    public readonly string FileName;
     internal ContentType MimeType;
+    public long Size
+    {
+        get
+        {
+            if (_size is null)
+            {
+                using var fileStream = File.OpenRead(FilePath);
+                _size = fileStream.Length;
+            }
+
+            return _size.Value;
+        }
+    }
+    long? _size;
     public FileStream AsFileStream => File.OpenRead(FilePath);
 
-    internal static IEnumerable<_3DModelThumbnail> _EnumerateIn(string _3DModelDirectory) =>
+    internal static IEnumerable<_3DProductThumbnail> _EnumerateIn(string _3DModelDirectory) =>
         Directory.EnumerateFiles(_3DModelDirectory)
         .Where(_HasValidExtension)
-        .Select(previewPath => new _3DModelThumbnail(previewPath));
+        .Select(previewPath => new _3DProductThumbnail(previewPath));
 
     static bool _HasValidExtension(string pathOrExtension) =>
         _validExtensions.Contains(Path.GetExtension(pathOrExtension));
 
     readonly static string[] _validExtensions = { ".jpeg", ".jpg", ".png" };
 
-    protected _3DModelThumbnail(string path)
+    protected _3DProductThumbnail(string path)
     {
         FilePath = path;
-        Name = Path.GetFileName(path);
+        FileName = Path.GetFileName(path);
         MimeType = new(MimeTypes.GetMimeType(path));
     }
 }

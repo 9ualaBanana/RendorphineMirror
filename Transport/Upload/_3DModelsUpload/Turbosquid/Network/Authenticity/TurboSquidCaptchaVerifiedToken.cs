@@ -2,7 +2,7 @@
 
 internal static class TurboSquidCaptchaVerifiedToken
 {
-    internal static ForeignThreadValue<string> _ServerResponse = new(false);
+    internal static ForeignThreadValue<string> _CapturedCefResponse = new(false);
 
     internal static string _Parse(string html)
     {

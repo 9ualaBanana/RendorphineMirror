@@ -3,7 +3,7 @@ using Transport.Upload._3DModelsUpload._3DModelDS;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 
-internal record CGTrader3DModelThumbnail : _3DModelThumbnail
+internal record CGTrader3DModelThumbnail : _3DProductThumbnail
 {
     internal async ValueTask<string> ChecksumAsync(CancellationToken cancellationToken)
     {

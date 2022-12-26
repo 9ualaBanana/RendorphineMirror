@@ -1,4 +1,5 @@
-﻿using NLog;
+﻿using Microsoft.Net.Http.Headers;
+using NLog;
 using NodeToUI;
 using NodeToUI.Requests;
 using System.Net;
@@ -26,6 +27,9 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
             AllowAutoRedirect = false,
             CookieContainer = socketsHttpHandler.CookieContainer
         });
+
+        _httpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
+        _noAutoRedirectHttpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
     }
 
     internal async Task _LoginAsyncUsing(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)

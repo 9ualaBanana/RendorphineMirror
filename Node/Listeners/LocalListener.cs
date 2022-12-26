@@ -71,11 +71,11 @@ public class LocalListener : ExecutableListenerBase
         {
             return await Test(request, response, "username", "password", "directory", "meta", async (username, password, dir, metastr) =>
             {
-                var meta = JsonConvert.DeserializeObject<CGTrader3DModelMetadata>(metastr).ThrowIfNull();
-                var model = Composite3DModel.FromDirectory(dir, meta);
+                var meta = JsonConvert.DeserializeObject<CGTrader3DProductMetadata>(metastr).ThrowIfNull();
+                var model = _3DProduct.FromDirectory(dir, meta);
                 var cred = new CGTraderNetworkCredential(username, password, false);
 
-                await _3DModelUploader.UploadAsync(model, cred);
+                await _3DProductUploader.UploadAsync(model, cred);
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }

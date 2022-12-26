@@ -4,20 +4,20 @@ using Transport.Upload._3DModelsUpload.Turbosquid._3DModelComponents;
 
 namespace Transport.Upload._3DModelsUpload.CGTrader.Upload;
 
-internal record Composite3DModelDraft(Composite3DModel _Model, string _DraftID)
+internal record _3DProductDraft(_3DProduct _Product, string _ID)
 {
-    internal IEnumerable<T> _UpcastThumnailsTo<T>() where T : _3DModelThumbnail
+    internal IEnumerable<T> _UpcastThumbnailsTo<T>() where T : _3DProductThumbnail
     {
-        Func<_3DModelThumbnail, T> upcaster = typeof(T) switch
+        Func<_3DProductThumbnail, T> upcaster = typeof(T) switch
         {
             Type type
             when type == typeof(CGTrader3DModelThumbnail) =>
                 thumbnail => (new CGTrader3DModelThumbnail(thumbnail.FilePath) as T)!,
             Type type
-            when type == typeof(TurboSquid3DModelThumbnail) =>
-                thumbnail => (new TurboSquid3DModelThumbnail(thumbnail.FilePath) as T)!,
+            when type == typeof(TurboSquid3DProductThumbnail) =>
+                thumbnail => (new TurboSquid3DProductThumbnail(thumbnail.FilePath) as T)!,
             { } => thumbnail => (thumbnail as T)!
         };
-        return _Model.Thumbnails.Select(upcaster);
+        return _Product.Thumbnails.Select(upcaster);
     }
 }

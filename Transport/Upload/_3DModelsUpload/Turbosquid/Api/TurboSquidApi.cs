@@ -1,9 +1,9 @@
 ﻿using CefSharp.OffScreen;
+using Microsoft.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
 using NLog;
 using System.Net;
 using System.Net.Http.Json;
-using Transport.Models;
 using Transport.Upload._3DModelsUpload._3DModelDS;
 using Transport.Upload._3DModelsUpload.Turbosquid.Network;
 using Transport.Upload._3DModelsUpload.Turbosquid.Network.Authenticity;
@@ -11,7 +11,7 @@ using Transport.Upload._3DModelsUpload.Turbosquid.Upload;
 
 namespace Transport.Upload._3DModelsUpload.Turbosquid.Api;
 
-internal class TurboSquidApi : IBaseAddressProvider
+internal class TurboSquidApi
 {
     readonly static ILogger _logger = LogManager.GetCurrentClassLogger();
 
@@ -19,13 +19,15 @@ internal class TurboSquidApi : IBaseAddressProvider
     readonly HttpClient _httpClient;
     readonly TurboSquidAuthenticationApi _authenticationApi;
 
-    string IBaseAddressProvider.BaseAddress => "https://www.squid.io/";
+    internal static readonly Uri _BaseUri = new("https://www.squid.io");
 
     internal TurboSquidApi()
     {
         _socketsHttpHandler = new();
         _httpClient = new(_socketsHttpHandler);
         _authenticationApi = new(_socketsHttpHandler);
+
+        _httpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
     }
 
     #region Credential
@@ -50,14 +52,14 @@ internal class TurboSquidApi : IBaseAddressProvider
         TurboSquidNetworkCredential credential_ = null!;
         var thread = new Thread(() =>
         {
-            using var browser = new ChromiumWebBrowser((this as IBaseAddressProvider).Endpoint("/auth/keymaster"));
+            using var browser = new ChromiumWebBrowser(new Uri(_BaseUri, "auth/keymaster").AbsoluteUri);
             // Consider using ResourceRequestHandlerFactory.
             browser.RequestHandler = new TurboSquidRequestHandler();
 
-            string credentialResponse = TurboSquidNetworkCredential._ServerResponse.GetAsync(cancellationToken).Result;
+            string credentialResponse = TurboSquidNetworkCredential._CapturedCefResponse.GetAsync(cancellationToken).Result;
             string csrfToken = CsrfToken._ParseFromMetaTag(credentialResponse);
             string applicationUserId = TurboSquidApplicationUserID._Parse(credentialResponse);
-            string captchaVerifiedTokenResponse = TurboSquidCaptchaVerifiedToken._ServerResponse.GetAsync(cancellationToken).Result;
+            string captchaVerifiedTokenResponse = TurboSquidCaptchaVerifiedToken._CapturedCefResponse.GetAsync(cancellationToken).Result;
             string captchaVerifiedToken = TurboSquidCaptchaVerifiedToken._Parse(captchaVerifiedTokenResponse);
 
             browser._DumpCookiesTo(_socketsHttpHandler.CookieContainer);
@@ -81,29 +83,30 @@ internal class TurboSquidApi : IBaseAddressProvider
 
     #region DraftCreation
 
-    internal async Task<TurboSquid3DModelUploadSessionContext> _RequestModelUploadSessionContextAsyncFor(
-        Composite3DModel composite3DModel,
+    internal async Task<TurboSquid3DProductUploadSessionContext> _RequestProductUploadSessionContextAsyncFor(
+        _3DProduct _3DProduct,
+        TurboSquidNetworkCredential credential,
         CancellationToken cancellationToken)
     {
         string csrfToken = await _RequestUploadInitializingCsrfTokenAsync(cancellationToken);
-        string modelDraftId = await _CreateNewModelDraftAsync(cancellationToken);
+        string productDraftId = await _CreateNewProductDraftAsync(cancellationToken);
         var awsUploadCredentials = await _RequestAwsUploadCredentialsAsync(csrfToken, cancellationToken);
 
-        return new(new(composite3DModel, modelDraftId), awsUploadCredentials);
+        return new(new(_3DProduct, productDraftId), credential, awsUploadCredentials);
     }
 
     async Task<string> _RequestUploadInitializingCsrfTokenAsync(CancellationToken cancellationToken) =>
         CsrfToken._ParseFromMetaTag(
             await _httpClient.GetStringAsync(
-                (this as IBaseAddressProvider).Endpoint("/turbosquid/products/new"),
+                new Uri(_BaseUri, "turbosquid/products/new"),
                 cancellationToken)
             );
 
     /// <returns>The ID of newly created model draft.</returns>
-    async Task<string> _CreateNewModelDraftAsync(CancellationToken cancellationToken) =>
+    async Task<string> _CreateNewProductDraftAsync(CancellationToken cancellationToken) =>
         (string)JObject.Parse(
             await _httpClient.GetStringAsync(
-                (this as IBaseAddressProvider).Endpoint("/turbosquid/products/0/create_draft"),
+                new Uri(_BaseUri, "turbosquid/products/0/create_draft"),
                 cancellationToken)
             )["id"]!;
 
@@ -111,16 +114,18 @@ internal class TurboSquidApi : IBaseAddressProvider
         string csrfToken,
         CancellationToken cancellationToken) => await TurboSquidAwsUploadCredentials._AsyncFrom(
             await _httpClient.PostAsJsonAsync(
-                (this as IBaseAddressProvider).Endpoint("/turbosquid/uploads//credentials"),
+                new Uri(_BaseUri, "turbosquid/uploads//credentials"),
                 new { authenticity_token = csrfToken },
                 cancellationToken)
             );
 
     #endregion
 
-    internal async Task _UploadAssetsAsync(TurboSquid3DModelUploadSessionContext uploadSessionContext, CancellationToken cancellationToken)
+    internal async Task _UploadAssetsAsyncUsing(
+        TurboSquid3DProductUploadSessionContext productUploadSessionContext,
+        CancellationToken cancellationToken)
     {
-        var uploadApi = new TurboSquidUploadApi(_httpClient, uploadSessionContext._Credentials);
-        await uploadApi._UploadAssetsAsync(uploadSessionContext._Draft, cancellationToken);
+        var uploadApi = new TurboSquidUploadApi(_httpClient, productUploadSessionContext);
+        await uploadApi._UploadAssetsAsync(cancellationToken);
     }
 }

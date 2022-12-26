@@ -12,11 +12,11 @@ public class CGTraderUploadTab : Panel
         var username = new TextBox() { Text = "username" };
         var password = new TextBox() { Text = "password" };
         var meta = JObject.FromObject(
-            CGTrader3DModelMetadata.ForCG(
+            CGTrader3DProductMetadata.ForCG(
                 "titel",
                 "decrepten",
                 new[] { "tag1", "teg2", "tag3", "tag4", "tag5" },
-                CGTrader3DModelCategory.Car(CarSubCategory.SUV),
+                CGTrader3DProductCategory.Car(CarSubCategory.SUV),
                 NonCustomCGTraderLicense.royalty_free
             ), JsonSettings.LowercaseS);
 
@@ -47,7 +47,7 @@ public class CGTraderUploadTab : Panel
                 dirpicker.WithRow(1),
                 username.WithRow(2),
                 password.WithRow(3),
-                JsonUISetting.Create(new JProperty("__", meta), FieldDescriber.Create(typeof(CGTrader3DModelMetadata))).WithRow(4),
+                JsonUISetting.Create(new JProperty("__", meta), FieldDescriber.Create(typeof(CGTrader3DProductMetadata))).WithRow(4),
             },
         };
 
