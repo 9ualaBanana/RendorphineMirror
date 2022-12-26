@@ -35,8 +35,7 @@ public class TasksController : ControllerBase
 
         if (taskRegistry.Remove(taskId, out var authenticationToken))
         {
-            await httpClientFactory.CreateClient()
-                .GetAsync($"{Api.TaskManagerEndpoint}/mytaskstatechanged?sessionid={authenticationToken.MPlus.SessionId}&taskid={taskId}&newstate={TaskState.Finished.ToString().ToLowerInvariant()}");
+            await new ApiTask(taskId).ChangeStateAsync(TaskState.Finished, authenticationToken.MPlus.SessionId).ThrowIfError();
 
             if (mpItem is not null) await mpItem.SendWith(bot, authenticationToken.ChatId);
             else await bot.TrySendMessageAsync(authenticationToken.ChatId, $"Couldn't retrieve the resulting M+ item for ({taskId}).");
