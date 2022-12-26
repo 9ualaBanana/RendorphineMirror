@@ -1,11 +1,12 @@
 ﻿using Common;
+using Common.Tasks;
 
 namespace Transport.Upload;
 
 public abstract class UploadSessionData
 {
-    public readonly string Endpoint;
-    public readonly FileInfo File;
+    public abstract string Endpoint { get; }
+    public abstract FileInfo File { get; }
     /// <summary>
     /// Persists the same GUID suffix over multiple uses of the file name.
     /// </summary>
@@ -17,16 +18,7 @@ public abstract class UploadSessionData
     protected string MimeType => MimeTypes.GetMimeType(File.Name);
 
 
-    protected UploadSessionData(string url, string filePath)
-        : this(url, new FileInfo(filePath))
-    {
-    }
-
-    protected UploadSessionData(string url, FileInfo file)
-    {
-        Endpoint = url;
-        File = file;
-    }
+    protected UploadSessionData() { }
 
 
     internal abstract HttpContent HttpContent { get; }
@@ -34,14 +26,18 @@ public abstract class UploadSessionData
 
 public class UserUploadSessionData : UploadSessionData
 {
+    public override string Endpoint { get; }
+    public override FileInfo File { get; }
+
     public UserUploadSessionData(string url, string filePath)
     : this(url, new FileInfo(filePath))
     {
     }
 
     public UserUploadSessionData(string url, FileInfo file)
-        : base($"{Path.TrimEndingDirectorySeparator(url)}/initupload", file)
     {
+        Endpoint = $"{Path.TrimEndingDirectorySeparator(url)}/initupload";
+        File = file;
     }
 
 
@@ -57,6 +53,8 @@ public class UserUploadSessionData : UploadSessionData
 
 public class MPlusUploadSessionData : UploadSessionData
 {
+    public override string Endpoint { get; }
+    public override FileInfo File { get; }
     readonly string? _sessionId;
 
 
@@ -64,9 +62,11 @@ public class MPlusUploadSessionData : UploadSessionData
     {
     }
 
-    public MPlusUploadSessionData(FileInfo file, string? sessionId = default) : base($"{Api.TaskManagerEndpoint}/initselfmpoutput", file)
+    public MPlusUploadSessionData(FileInfo file, string? sessionId = default)
     {
         _sessionId = sessionId;
+        Endpoint = $"{Api.TaskManagerEndpoint}/initselfmpoutput";
+        File = file;
     }
 
 
@@ -84,20 +84,24 @@ public class MPlusUploadSessionData : UploadSessionData
 
 public class MPlusTaskResultUploadSessionData : UploadSessionData
 {
-    public readonly string TaskId;
+    public override string Endpoint => $"https://{Task.HostShard}/rphtasklauncher/initmptaskoutput";
+    public override FileInfo File { get; }
+
+    public readonly ReceivedTask Task;
     public readonly string? Postfix;
 
 
-    public MPlusTaskResultUploadSessionData(string filePath, string taskId, string? postfix)
-        : this(new FileInfo(filePath), taskId, postfix)
+    public MPlusTaskResultUploadSessionData(string filePath, ReceivedTask task, string? postfix)
+        : this(new FileInfo(filePath), task, postfix)
     {
     }
 
-    public MPlusTaskResultUploadSessionData(FileInfo file, string taskId, string? postfix)
-        : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
+    public MPlusTaskResultUploadSessionData(FileInfo file, ReceivedTask task, string? postfix)
     {
-        TaskId = taskId;
+        Task = task;
         Postfix = postfix;
+
+        File = file;
     }
 
 
@@ -108,7 +112,7 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
             var dict = new Dictionary<string, string>()
             {
                 ["sessionid"] = Settings.SessionId!,
-                ["taskid"] = TaskId,
+                ["taskid"] = Task.Id,
                 ["fsize"] = File.Length.ToString(),
                 ["mimetype"] = MimeType,
                 ["lastmodified"] = File.LastWriteTimeUtc.AsUnixTimestamp(),
