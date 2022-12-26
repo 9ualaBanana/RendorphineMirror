@@ -154,7 +154,7 @@ internal class CGTraderApi : IBaseAddressProvider
             foreach (var modelFilePath in _3DModel.Files)
                 await _UploadModelFileAsync(modelFilePath, _3DProductDraft, cancellationToken);
 
-        foreach (var modelPreviewImage in _3DProductDraft._UpcastThumbnailsTo<CGTrader3DModelThumbnail>())
+        foreach (var modelPreviewImage in _3DProductDraft.UpcastThumbnailsTo<CGTrader3DModelThumbnail>())
         {
             string uploadedFileId = await _UploadModelThumbnailAsync(modelPreviewImage, _3DProductDraft, cancellationToken);
             (_3DProductDraft._Product.Metadata as CGTrader3DProductMetadata)!.UploadedPreviewImagesIDs.Add(uploadedFileId);

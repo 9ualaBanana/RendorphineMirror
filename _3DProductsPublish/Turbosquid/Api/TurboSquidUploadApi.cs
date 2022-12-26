@@ -20,14 +20,14 @@ internal class TurboSquidUploadApi
         _uploadSessionContext = uploadSessionContext;
     }
 
-    internal async Task _UploadAssetsAsync(CancellationToken cancellationToken)
+    internal async Task UploadAssetsAsync(CancellationToken cancellationToken)
     {
         foreach (var _3DModel in _uploadSessionContext.ProductDraft._Product._3DModels)
             await _UploadModelAsync(_3DModel, cancellationToken);
 
-        foreach (var thumbnail in _uploadSessionContext.ProductDraft._UpcastThumbnailsTo<TurboSquid3DProductThumbnail>())
+        foreach (var thumbnail in _uploadSessionContext.ProductDraft.UpcastThumbnailsTo<TurboSquid3DProductThumbnail>())
         {
-            await _UploadThumbnailAsync(thumbnail, cancellationToken);
+            await UploadThumbnailAsync(thumbnail, cancellationToken);
             //(modelDraft._Model.Metadata as TurboSquid3DModelPreviewImage)!.UploadedPreviewImagesIDs.Add(uploadedFileId);
         }
     }
@@ -35,32 +35,28 @@ internal class TurboSquidUploadApi
     async Task _UploadModelAsync(_3DModel _3DModel, CancellationToken cancellationToken)
     {
         var archived3DModel = await _3DModel.ArchiveAsync(cancellationToken);
-        string uploadKey = await _UploadAssetAsync(archived3DModel, cancellationToken);
-
+        string uploadKey = await UploadAssetAsync(archived3DModel, cancellationToken);
+        await ProcessAssetAsync(_3DModel.ToProcessJsonContentUsing(_uploadSessionContext, uploadKey), cancellationToken);
     }
 
-    async Task _UploadThumbnailAsync(TurboSquid3DProductThumbnail thumbnail, CancellationToken cancellationToken)
+    // Should return `file_id` from https://www.squid.io/turbosquid/uploads/bulk_poll response or
+    // return `id` from https://www.squid.io/turbosquid/uploads//process and then bulk poll `ids` for https://www.squid.io/turbosquid/products/0 request
+    // (which is the one that uploads 3D product metadata) either from `UploadAssetsAsync`, or propagate response with ALL `ids` right to `TurboSquid3DProductUploader`
+    // and bulk poll `file_ids` there and pass them to the method that uploads the metadata.
+    async Task UploadThumbnailAsync(TurboSquid3DProductThumbnail thumbnail, CancellationToken cancellationToken)
     {
-        string uploadKey = await _UploadAssetAsync(thumbnail.FilePath, cancellationToken);
-        await _ProcessAssetAsync(thumbnail._ToProcessJsonContentUsing(_uploadSessionContext, uploadKey), cancellationToken);
+        string uploadKey = await UploadAssetAsync(thumbnail.FilePath, cancellationToken);
+        await ProcessAssetAsync(thumbnail.ToProcessJsonContentUsing(_uploadSessionContext, uploadKey), cancellationToken);
     }
 
-    async Task _ProcessAssetAsync(HttpContent processHttpContent, CancellationToken cancellationToken)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Post, new Uri(TurboSquidApi._BaseUri, "turbosquid/uploads//process"))
-        { Content = processHttpContent };
-        request.Headers.Referrer = new(TurboSquidApi._BaseUri, $"turbosquid/drafts/{_uploadSessionContext.ProductDraft._ID}/edit");
-        request.Headers.Add("Origin", TurboSquidApi._BaseUri.ToString().TrimEnd('/'));
-        (await _httpClient.SendAsync(request, cancellationToken))
+    async Task ProcessAssetAsync(HttpContent processHttpContent, CancellationToken cancellationToken) => 
+        (await _httpClient.PostAsync(
+            new Uri(TurboSquidApi._BaseUri, "turbosquid/uploads//process"),
+            processHttpContent,
+            cancellationToken))
             .EnsureSuccessStatusCode();
-    }
-    //(await _httpClient.PostAsync(
-    //    new Uri(TurboSquidApi._BaseUri, "turbosquid/uploads//process"),
-    //    processHttpContent,
-    //    cancellationToken))
-    //    .EnsureSuccessStatusCode();
 
-    async Task<string> _UploadAssetAsync(string assetPath, CancellationToken cancellationToken)
+    async Task<string> UploadAssetAsync(string assetPath, CancellationToken cancellationToken)
     {
         using var asset = File.OpenRead(assetPath);
         int partsCount = (int)Math.Ceiling(asset.Length / (double)_MaxPartSize);
@@ -83,7 +79,7 @@ internal class TurboSquidUploadApi
 
 static class _TurboSquid3DModelExtensions
 {
-    internal static JsonContent _ToProcessJsonContentUsing(this _3DModel _3DModel, TurboSquid3DProductUploadSessionContext uploadSessionContext, string uploadKey)
+    internal static JsonContent ToProcessJsonContentUsing(this _3DModel _3DModel, TurboSquid3DProductUploadSessionContext uploadSessionContext, string uploadKey)
     {
         using var modelArchiveStream = File.OpenRead(_3DModel.ArchiveAsync().Result);
         return JsonContent.Create(new
@@ -95,7 +91,6 @@ static class _TurboSquid3DModelExtensions
                 draft_id = uploadSessionContext.ProductDraft._ID,
                 name = Path.GetFileName(modelArchiveStream.Name),
                 size = modelArchiveStream.Length,
-                //file_format = null// Get file_format string based on the file extension,
                 format_version = string.Empty,
                 renderer = string.Empty,
                 renderer_version = string.Empty,

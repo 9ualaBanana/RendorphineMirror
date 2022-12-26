@@ -1,5 +1,4 @@
 ﻿using Microsoft.Net.Http.Headers;
-using System.Web;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Requests;
 
@@ -32,10 +31,8 @@ internal abstract class AssetUploadRequest
 
         var optionsRequest = new HttpRequestMessage(HttpMethod.Options, requestUri);
         optionsRequest.Headers.Add("Access-Control-Request-Headers", string.Join(',', new List<string>(AwsUploadCredentials._XAmzHeadersWith(default).Select(header => header.Key))
-        {
-            HeaderNames.Authorization.ToLower(),
-            //HeaderNames.ContentType.ToLower()
-        }.OrderBy(h => h)));
+        { HeaderNames.Authorization.ToLower() }
+        .OrderBy(h => h)));
         optionsRequest.Headers.Add("Access-Control-Request-Method", request.Method.Method);
         optionsRequest.Headers.Add("Origin", "https://www.squid.io");
 

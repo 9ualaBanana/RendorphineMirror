@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish.Turbosquid.Api;
-using _3DProductsPublish.Turbosquid.Network.Authenticity;
+﻿using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using Microsoft.Net.Http.Headers;
 using NLog;
 using NodeToUI;

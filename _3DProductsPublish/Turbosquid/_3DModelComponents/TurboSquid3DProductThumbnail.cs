@@ -13,7 +13,7 @@ internal record TurboSquid3DProductThumbnail : _3DProductThumbnail
     {
     }
 
-    internal JsonContent _ToProcessJsonContentUsing(TurboSquid3DProductUploadSessionContext uploadSessionContext, string uploadKey) =>
+    internal JsonContent ToProcessJsonContentUsing(TurboSquid3DProductUploadSessionContext uploadSessionContext, string uploadKey) =>
         JsonContent.Create(new
         {
             upload_key = uploadKey,

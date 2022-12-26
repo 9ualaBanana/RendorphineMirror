@@ -92,7 +92,7 @@ internal class TurboSquidApi
         string productDraftId = await _CreateNewProductDraftAsync(cancellationToken);
         var awsUploadCredentials = await _RequestAwsUploadCredentialsAsync(csrfToken, cancellationToken);
 
-        return new(new(_3DProduct, productDraftId), credential, awsUploadCredentials);
+        return new(new(_3DProduct, productDraftId), credential._WithUpdatedCsrfToken(csrfToken), awsUploadCredentials);
     }
 
     async Task<string> _RequestUploadInitializingCsrfTokenAsync(CancellationToken cancellationToken) =>
@@ -126,6 +126,6 @@ internal class TurboSquidApi
         CancellationToken cancellationToken)
     {
         var uploadApi = new TurboSquidUploadApi(_httpClient, productUploadSessionContext);
-        await uploadApi._UploadAssetsAsync(cancellationToken);
+        await uploadApi.UploadAssetsAsync(cancellationToken);
     }
 }

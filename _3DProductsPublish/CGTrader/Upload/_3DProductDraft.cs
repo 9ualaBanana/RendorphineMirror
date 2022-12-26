@@ -6,7 +6,7 @@ namespace _3DProductsPublish.CGTrader.Upload;
 
 internal record _3DProductDraft(_3DProduct _Product, string _ID)
 {
-    internal IEnumerable<T> _UpcastThumbnailsTo<T>() where T : _3DProductThumbnail
+    internal IEnumerable<T> UpcastThumbnailsTo<T>() where T : _3DProductThumbnail
     {
         Func<_3DProductThumbnail, T> upcaster = typeof(T) switch
         {
