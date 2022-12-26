@@ -1,0 +1,39 @@
+{
+  "name": "signature-version-4-infrastructure",
+  "version": "1.0.0",
+  "license": "Apache-2.0",
+  "bin": {
+    "infrastructure": "bin/infrastructure.js"
+  },
+  "scripts": {
+    "clean": "rimraf \"./cdk.out\" \"./+(bin|lib)/**/*.+(d.ts|js|js.map)\"",
+    "build": "yarn clean && tsc",
+    "deploy": "yarn build && cdk deploy --app ./bin/infrastructure.js --all",
+    "destroy": "yarn build && cdk destroy",
+    "lint": "eslint --ext .ts --max-warnings=0 . && prettier --check .",
+    "lint:fix": "eslint --ext .ts --fix . && prettier --write ."
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.53.0",
+    "constructs": "10.1.175",
+    "source-map-support": "0.5.21"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "8.10.109",
+    "@types/node": "18.11.12",
+    "@typescript-eslint/eslint-plugin": "5.46.0",
+    "@typescript-eslint/parser": "5.46.0",
+    "eslint": "8.29.0",
+    "prettier": "2.8.1",
+    "rimraf": "3.0.2",
+    "typescript": "4.9.4"
+  },
+  "resolutions": {
+    "ansi-regex": ">=5.0.1",
+    "bl": ">=4.0.3",
+    "lodash": ">=4.17.13",
+    "netmask": ">=2.0.1",
+    "pac-resolver": ">=5.0.0",
+    "vm2": ">=3.9.4"
+  }
+}
