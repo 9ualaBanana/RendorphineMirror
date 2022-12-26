@@ -42,7 +42,7 @@ public static class VectorizerTasks
             Directory.CreateDirectory(veeeoutdir);
             File.WriteAllText(Path.Combine(plugindir, "config.xml"), GetConfig(data.Lods));
 
-            await ExecuteProcess(exepath, args, false, delegate { }, task);
+            await ExecuteProcess(exepath, args, delegate { }, task);
 
             Directory.Delete(outputdir, true);
             Directory.Move(veeeoutdir, outputdir);

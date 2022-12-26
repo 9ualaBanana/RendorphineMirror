@@ -63,11 +63,11 @@ public abstract class PluginAction<T> : IPluginAction
         if (process.ExitCode != 0)
             throw new Exception($"Task process ended with exit code {process.ExitCode}");
     }
-    protected static Task StartReadingProcessOutput(Process process, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj)
+    protected static Task StartReadingProcessOutput(Process process, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout, LogLevel? stderr)
     {
         return Task.WhenAll(
             startReading(process.StandardOutput, false),
-            startReading(process.StandardError, !stderrToStdout)
+            startReading(process.StandardError, true)
         );
 
 
@@ -79,28 +79,28 @@ public abstract class PluginAction<T> : IPluginAction
                 if (str is null) return;
 
                 var logstr = $"[Process {process.Id}] {str}";
-                if (err) logobj?.LogErr(logstr);
-                else logobj?.LogInfo(logstr);
+                if (err) logobj?.Log(stderr ?? LogLevel.Error, logstr);
+                else logobj?.Log(stdout ?? LogLevel.Info, logstr);
 
                 onRead?.Invoke(err, str);
             }
         }
     }
 
-    static async Task ExecuteProcess(string exepath, string args, IEnumerable<string> argsarr, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj)
+    static async Task ExecuteProcess(string exepath, string args, IEnumerable<string> argsarr, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout, LogLevel? stderr)
     {
         using var process = StartProcess(exepath, args, argsarr, logobj);
-        var reading = StartReadingProcessOutput(process, stderrToStdout, onRead, logobj);
+        var reading = StartReadingProcessOutput(process, onRead, logobj, stdout, stderr);
 
         await process.WaitForExitAsync();
         await reading;
 
         EnsureZeroStatusCode(process);
     }
-    protected static Task ExecuteProcess(string exepath, IEnumerable<string> args, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj) =>
-        ExecuteProcess(exepath, "", args, stderrToStdout, onRead, logobj);
-    protected static Task ExecuteProcess(string exepath, string args, bool stderrToStdout, Action<bool, string>? onRead, ILoggable? logobj) =>
-        ExecuteProcess(exepath, args, Enumerable.Empty<string>(), stderrToStdout, onRead, logobj);
+    protected static Task ExecuteProcess(string exepath, IEnumerable<string> args, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null) =>
+        ExecuteProcess(exepath, "", args, onRead, logobj, stdout, stderr);
+    protected static Task ExecuteProcess(string exepath, string args, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null) =>
+        ExecuteProcess(exepath, args, Enumerable.Empty<string>(), onRead, logobj, stdout, stderr);
 
 
     protected static void ExecutePowerShell(string script, bool stderrToStdout, Action<bool, object>? onRead, ILoggable? logobj)

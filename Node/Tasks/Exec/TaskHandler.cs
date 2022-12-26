@@ -98,11 +98,13 @@ public static class TaskHandler
                 return remove();
             }
             catch (Exception ex) when (
-                ex.Message.Contains("Invalid old task state", StringComparison.OrdinalIgnoreCase)
+                ex is NodeTaskFailedException
+                || ex.Message.Contains("Invalid old task state", StringComparison.OrdinalIgnoreCase)
                 || ex.Message.Contains("no task with such ", StringComparison.OrdinalIgnoreCase)
             )
             {
                 task.LogErr(ex.Message + ", removing");
+                (await task.ChangeStateAsync(TaskState.Canceled)).ThrowIfError();
                 return remove();
             }
 
@@ -182,6 +184,9 @@ public static class TaskHandler
 
                 task.LogInfo($"Completed, removing");
 
+                task.LogInfo($"Deleting {task.FSInputDirectory()}");
+                Directory.Delete(task.FSInputDirectory(), true);
+
                 foreach (var file in task.OutputFiles)
                 {
                     if (file.Format == FileFormat.Jpeg) continue;
@@ -206,14 +211,14 @@ public static class TaskHandler
             }
         }
 
-        await fail("Run out of attempts");
+        await fail("Ran out of attempts");
 
 
         async ValueTask fail(string message)
         {
             task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {message}");
             NodeSettings.QueuedTasks.Remove(task);
-            await task.ChangeStateAsync(TaskState.Failed).ThrowIfNull();
+            await task.FailTaskAsync(message).ThrowIfError();
         }
     }
     static async ValueTask<bool> RemoveQueuedIfFinished(this ReceivedTask task)
@@ -255,6 +260,8 @@ public static class TaskHandler
 
             var state = stater.Value;
             task.LogInfo($"{state.State}/{task.State}");
+            if (task.State == TaskState.Queued)
+                task.State = state.State;
 
             if (state.State == TaskState.Finished && task.State == TaskState.Output)
             {
@@ -269,7 +276,7 @@ public static class TaskHandler
     public static void AutoInitializeHandlers()
     {
         var types = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(ass => { try { return ass.GetTypes(); } catch { return Array.Empty<Type>(); } })
+            .SelectMany(ass => ass.GetTypes())
             .Where(x => x.IsAssignableTo(typeof(ITaskHandler)))
             .Where(x => x.IsClass && !x.IsAbstract);
 

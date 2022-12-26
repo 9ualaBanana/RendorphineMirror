@@ -51,15 +51,6 @@ else
 }
 
 Directory.CreateDirectory(Init.TaskFilesDirectory);
-foreach (var file in Directory.GetFiles(Init.TaskFilesDirectory, "*", SearchOption.AllDirectories))
-{
-    if (Path.GetExtension(file).ToLowerInvariant() is ".jpg" or ".jpeg") continue;
-    if (MimeTypes.GetMimeType(file).ToLowerInvariant().Contains("image")) continue;
-
-    logger.Info($"Deleting old task result file {file} ({new FileInfo(file).Length / 1024f / 1024 / 1024}G)");
-    File.Delete(file);
-}
-
 
 if (!Init.IsDebug || halfrelease)
     PortForwarder.Initialize();
@@ -82,9 +73,7 @@ if (!Init.IsDebug || halfrelease)
         //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
     }
 
-    var mPlusTaskManagerHeartbeat = new Heartbeat(
-        new HttpRequestMessage(HttpMethod.Post, $"{Api.TaskManagerEndpoint}/pheartbeat") { Content = await Profiler.RunAsync() },
-        TimeSpan.FromMinutes(1), Api.Client);
+    var mPlusTaskManagerHeartbeat = new Heartbeat(new MPlusHeartbeatGenerator(), TimeSpan.FromMinutes(1), Api.Client);
     _ = mPlusTaskManagerHeartbeat.StartAsync();
 
     captured.Add(mPlusTaskManagerHeartbeat);
@@ -151,6 +140,7 @@ TaskHandler.StartWatchingTasks();
 TaskHandler.StartListening();
 
 Thread.Sleep(-1);
+GC.KeepAlive(captured);
 
 
 /// <summary> Check settings-saved public ports and change them if someone is already listening </summary>

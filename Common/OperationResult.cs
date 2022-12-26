@@ -1,17 +1,25 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Runtime.CompilerServices;
 
 namespace Common
 {
+    public readonly record struct HttpOperationResult(HttpStatusCode StatusCode, int? ErrorCode)
+    {
+        public bool IsSuccessStatusCode => (int) StatusCode >= 200 && (int) StatusCode < 300;
+    }
+
     public readonly struct OperationResult
     {
         public readonly bool Success;
         public readonly string? Message;
+        public readonly HttpOperationResult? HttpData { get; init; }
 
         public OperationResult(bool success, string? message)
         {
             Success = success;
             Message = message;
+            HttpData = null;
         }
 
         [MethodImpl(256)] public string AsString() => Message ?? string.Empty;

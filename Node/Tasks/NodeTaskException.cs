@@ -10,7 +10,7 @@ public class NodeTaskFailedException : Exception
     public NodeTaskFailedException(string message) => Message = message;
 }
 
-public static class NodeTaskCanceledExceptionExtensions
+public static class NodeTaskExtensions
 {
     [DoesNotReturn]
     public static void ThrowFailed(this ReceivedTask task, string message) => throw new NodeTaskFailedException(message);
