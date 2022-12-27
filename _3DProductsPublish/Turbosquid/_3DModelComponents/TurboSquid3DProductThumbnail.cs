@@ -6,7 +6,7 @@ namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
 internal record TurboSquid3DProductThumbnail : _3DProductThumbnail
 {
-    ThumbnailType _Type => Path.GetFileNameWithoutExtension(FilePath).StartsWith("wire") ?
+    internal ThumbnailType Type => Path.GetFileNameWithoutExtension(FilePath).StartsWith("wire") ?
         ThumbnailType.wireframe : ThumbnailType.regular;
 
     internal TurboSquid3DProductThumbnail(string path) : base(path)
@@ -23,7 +23,7 @@ internal record TurboSquid3DProductThumbnail : _3DProductThumbnail
                 draft_id = uploadSessionContext.ProductDraft._ID,
                 name = FileName,
                 size = Size,
-                thumbnail_type = _Type.ToString(),
+                thumbnail_type = Type.ToString(),
                 watermarked = false,
             },
             authenticity_token = uploadSessionContext.Credential._CsrfToken
