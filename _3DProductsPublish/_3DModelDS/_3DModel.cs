@@ -25,7 +25,7 @@ public class _3DModel : IDisposable
     {
         if (_archivePath is null)
         {
-            _archivePath = await _3DModelArchiver._ArchiveAsync(this, cancellationToken);
+            _archivePath = await _3DModelArchiver.ArchiveAsync(this, cancellationToken);
             _archiveIsTemp = true;
         }
 
@@ -71,10 +71,10 @@ public class _3DModel : IDisposable
 
     #endregion
 
-    internal static IEnumerable<_3DModel> _EnumerateIn(string directoryPath, bool disposeTemps = true)
+    internal static IEnumerable<_3DModel> EnumerateIn(string directoryPath, bool disposeTemps = true)
     {
         var _3DModelContainers = Directory.EnumerateDirectories(directoryPath).ToList();
-        _3DModelContainers.AddRange(_3DModelArchive._EnumerateIn(directoryPath));
+        _3DModelContainers.AddRange(_3DModelArchive.EnumerateIn(directoryPath));
 
         return _3DModelContainers.Select(containerPath => new _3DModel(containerPath, disposeTemps));
     }
@@ -86,20 +86,21 @@ public class _3DModel : IDisposable
 
     protected void Dispose(bool managed)
     {
-        if (_isDisposed) return;
-
         if (managed)
         {
             if (_disposeTemps)
             {
-                if (_directoryIsTemp)
-                { try { new DirectoryInfo(_directoryPath!).Delete(DeletionMode.Wipe); } catch { } }
-                if (_archiveIsTemp)
-                { try { File.Delete(_archivePath!); } catch { } }
+                if (!_isDisposed)
+                {
+                    if (_directoryIsTemp)
+                    { try { new DirectoryInfo(_directoryPath!).Delete(DeletionMode.Wipe); } catch { } }
+                    if (_archiveIsTemp)
+                    { try { File.Delete(_archivePath!); } catch { } }
+
+                    _isDisposed = true;
+                }
             }
         }
-
-        _isDisposed = true;
     }
     bool _isDisposed;
     readonly bool _disposeTemps;

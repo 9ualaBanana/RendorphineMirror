@@ -24,12 +24,12 @@ public record _3DProductThumbnail
     long? _size;
     public FileStream AsFileStream => File.OpenRead(FilePath);
 
-    internal static IEnumerable<_3DProductThumbnail> _EnumerateIn(string _3DModelDirectory) =>
+    internal static IEnumerable<_3DProductThumbnail> EnumerateIn(string _3DModelDirectory) =>
         Directory.EnumerateFiles(_3DModelDirectory)
-        .Where(_HasValidExtension)
-        .Select(previewPath => new _3DProductThumbnail(previewPath));
+        .Where(HasValidExtension)
+        .Select(thumbnailPath => new _3DProductThumbnail(thumbnailPath));
 
-    static bool _HasValidExtension(string pathOrExtension) =>
+    static bool HasValidExtension(string pathOrExtension) =>
         _validExtensions.Contains(Path.GetExtension(pathOrExtension));
 
     readonly static string[] _validExtensions = { ".jpeg", ".jpg", ".png" };

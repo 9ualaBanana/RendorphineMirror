@@ -24,7 +24,7 @@ internal class TurboSquidUploadApi
     internal async Task UploadAssetsAsync(CancellationToken cancellationToken)
     {
         foreach (var _3DModel in _uploadSessionContext.ProductDraft._Product._3DModels)
-            await _UploadModelAsync(_3DModel, cancellationToken);
+            await UploadModelAsync(_3DModel, cancellationToken);
 
         var processingThumbnails = new List<TurboSquidProcessing3DProductThumbnail>();
         foreach (var thumbnail in _uploadSessionContext.ProductDraft.UpcastThumbnailsTo<TurboSquid3DProductThumbnail>())
@@ -34,7 +34,7 @@ internal class TurboSquidUploadApi
             .AddRange(await RequestUploadedThumbnailsAsyncFor(processingThumbnails, cancellationToken));
     }
 
-    async Task _UploadModelAsync(_3DModel _3DModel, CancellationToken cancellationToken)
+    async Task UploadModelAsync(_3DModel _3DModel, CancellationToken cancellationToken)
     {
         var archived3DModel = await _3DModel.ArchiveAsync(cancellationToken);
         string uploadKey = await UploadAssetAsync(archived3DModel, cancellationToken);
@@ -83,18 +83,18 @@ internal class TurboSquidUploadApi
         (await MultipartAssetUploadRequest.CreateAsyncFor(asset, _uploadSessionContext, partsCount))
         .SendAsyncUsing(_httpClient, cancellationToken);
 
-    async Task<List<TurboSquidUploaded3DProductThumbnail>> RequestUploadedThumbnailsAsyncFor(List<TurboSquidProcessing3DProductThumbnail> processingThumbnails, CancellationToken cancellationToken)
+    async Task<List<TurboSquidUploaded3DProductThumbnail>> RequestUploadedThumbnailsAsyncFor(List<TurboSquidProcessing3DProductThumbnail> filesBeingProcessed, CancellationToken cancellationToken)
     {
-        var uploadedFileIds = new List<TurboSquidUploaded3DProductThumbnail>(processingThumbnails.Count);
-        while (processingThumbnails.Any())
+        var uploadedFileIds = new List<TurboSquidUploaded3DProductThumbnail>(filesBeingProcessed.Count);
+        while (filesBeingProcessed.Any())
         {
-            foreach (var fileUploadStatus in await PollProcessingStatusAsyncForFilesWith(processingThumbnails.Select(file => file.ProcessingID), cancellationToken))
+            foreach (var fileUploadStatus in await PollProcessingStatusAsyncForFilesWith(filesBeingProcessed.Select(file => file.ProcessingID), cancellationToken))
             {
                 if ((string)fileUploadStatus["status"]! == "success")
                 {
-                    var processedThumbnail = processingThumbnails.Single(file => file.ProcessingID == (string)fileUploadStatus["id"]!);
+                    var processedThumbnail = filesBeingProcessed.Single(file => file.ProcessingID == (string)fileUploadStatus["id"]!);
                     uploadedFileIds.Add(new(processedThumbnail.Thumbnail, (int)fileUploadStatus["file_id"]!));
-                    processingThumbnails.Remove(processedThumbnail);
+                    filesBeingProcessed.Remove(processedThumbnail);
                 }
             }
         }
@@ -116,7 +116,7 @@ internal class TurboSquidUploadApi
     }
 }
 
-static class _TurboSquid3DModelExtensions
+static class TurboSquid3DModelExtensions
 {
     internal static JsonContent ToProcessJsonContentUsing(this _3DModel _3DModel, TurboSquid3DProductUploadSessionContext uploadSessionContext, string uploadKey)
     {

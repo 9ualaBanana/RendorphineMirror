@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish.Turbosquid.Upload;
-using AwsSignatureVersion4.Private;
+﻿using AwsSignatureVersion4.Private;
 using Newtonsoft.Json.Linq;
 
 namespace _3DProductsPublish.Turbosquid.Upload;

@@ -4,13 +4,13 @@ namespace _3DProductsPublish._3DModelDS;
 
 internal static class _3DModelArchiver
 {
-    internal static async Task<string> _ArchiveAsync(_3DModel _3DModel, CancellationToken cancellationToken) =>
-        await Task.Run(() => _Archive(_3DModel), cancellationToken);
+    internal static async Task<string> ArchiveAsync(_3DModel _3DModel, CancellationToken cancellationToken) =>
+        await Task.Run(() => Archive(_3DModel), cancellationToken);
 
-    internal static string _Archive(_3DModel _3DModel)
+    internal static string Archive(_3DModel _3DModel)
     {
-        DirectoryInfo tempDirectoryToArchive = _CreateTempDirectoryThatWillBeArchived();
-        _3DModel.Files._CopyTo(tempDirectoryToArchive);
+        DirectoryInfo tempDirectoryToArchive = CreateTempDirectoryThatWillBeArchived();
+        _3DModel.Files.CopyTo(tempDirectoryToArchive);
         var archivePath = Path.ChangeExtension(tempDirectoryToArchive.FullName, ".zip");
         tempDirectoryToArchive.DeleteAfter(
             () => ZipFile.CreateFromDirectory(tempDirectoryToArchive.FullName, archivePath)
@@ -19,7 +19,7 @@ internal static class _3DModelArchiver
         return archivePath;
     }
 
-    static DirectoryInfo _CreateTempDirectoryThatWillBeArchived()
+    static DirectoryInfo CreateTempDirectoryThatWillBeArchived()
     {
         string tempDirectoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         var tempDirectory = new DirectoryInfo(tempDirectoryPath);
@@ -30,7 +30,7 @@ internal static class _3DModelArchiver
 
 static class _3DModelFilesExtensions
 {
-    internal static void _CopyTo(this IEnumerable<string> files, DirectoryInfo directory)
+    internal static void CopyTo(this IEnumerable<string> files, DirectoryInfo directory)
     {
         foreach (string filePath in files)
         {
