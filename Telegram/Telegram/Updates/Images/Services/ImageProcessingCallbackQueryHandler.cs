@@ -9,6 +9,8 @@ using Telegram.Telegram.Updates.Images.Models;
 using Telegram.Telegram.Updates.Tasks.Models;
 using Telegram.Telegram.Updates.Tasks.Services;
 using Common.Plugins;
+using Common.Tasks.Info;
+using Newtonsoft.Json.Linq;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
@@ -44,6 +46,8 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
             await UpscaleAndUploadToMPlusAsync(ChatIdFrom(update), (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!, authenticationToken);
         else if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
             await UploadToMPlusAsync(ChatIdFrom(update), mediaFilePath, authenticationToken);
+        else if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.VectorizeImage) && mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
+            await VectorizeAdnUploadToMPlusAsync(ChatIdFrom(update), (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!, authenticationToken);
     }
 
 
@@ -55,9 +59,30 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
                 "EsrganUpscale",
                 null,
                 new DownloadLinkTaskInputInfo($"{_hostUrl}/tasks/getinput/{imageCallbackData.FileRegistryKey}"),
-                new MPlusTaskOutputInfo($"{imageCallbackData.FileRegistryKey}.jpg", "upscaled"), new()
-                ), authenticationToken.MPlus.SessionId)).Result;
-                _taskRegistry[taskId] = authenticationToken;
+                new MPlusTaskOutputInfo($"{imageCallbackData.FileRegistryKey}.jpg", "upscaled"),
+                new()),
+            authenticationToken.MPlus.SessionId))
+            .Result;
+        _taskRegistry[taskId] = authenticationToken;
+
+        await Bot.TrySendMessageAsync(chatId, "Resulting media file will be sent back to you as soon as it's ready.",
+            new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
+            );
+    }
+
+    async Task VectorizeAdnUploadToMPlusAsync(ChatId chatId, ImageProcessingCallbackData imageCallbackData, ChatAuthenticationToken authenticationToken)
+    {
+        var taskId = (await TaskRegistration.RegisterAsync(
+            new TaskCreationInfo(
+                PluginType.VeeeVectorizer,
+                "VeeeVectorize",
+                default,
+                new DownloadLinkTaskInputInfo($"{_hostUrl}/tasks/getinput/{imageCallbackData.FileRegistryKey}"),
+                new MPlusTaskOutputInfo($"{imageCallbackData.FileRegistryKey}", "vectorized"),
+                JObject.FromObject(new VeeeVectorizeInfo() { Lods = new int[] { 1750 } })),
+            authenticationToken.MPlus.SessionId))
+            .Result;
+        _taskRegistry[taskId] = authenticationToken;
 
         await Bot.TrySendMessageAsync(chatId, "Resulting media file will be sent back to you as soon as it's ready.",
             new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))

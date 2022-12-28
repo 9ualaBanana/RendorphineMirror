@@ -1,5 +1,4 @@
-﻿using Common;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
 using Telegram.Telegram.Updates.Tasks.Services;
 
@@ -37,7 +36,7 @@ public class TaskResultsPreviewer
 
             mpItem = mpItem["item"]!;
             if ((string)mpItem["state"]! == "received")
-            { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new(mpItem, executorNodeName); }
+            { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new MpItem(mpItem, executorNodeName); }
             else Thread.Sleep(2000);
         }
     }

@@ -1,14 +1,6 @@
-using Newtonsoft.Json;
+using Common.Tasks.Info;
 
 namespace Node.Tasks.Exec;
-
-public class VeeeVectorizeInfo
-{
-    [JsonProperty("lod")]
-    [ArrayRanged(min: 1), Ranged(1, 10_000)]
-    public int[] Lods = null!;
-}
-
 
 public static class VectorizerTasks
 {
