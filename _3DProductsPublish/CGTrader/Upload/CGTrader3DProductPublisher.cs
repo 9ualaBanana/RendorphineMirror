@@ -1,21 +1,20 @@
-﻿using _3DProductsPublish;
-using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DModelDS;
 using _3DProductsPublish.CGTrader.Api;
 using _3DProductsPublish.CGTrader.Network;
 using System.Net;
 
 namespace _3DProductsPublish.CGTrader.Upload;
 
-internal class CGTrader3DModelUploader : I3DProductUploader
+internal class CGTrader3DProductPublisher : I3DProductPublisher
 {
     readonly CGTraderApi _api;
 
-    internal CGTrader3DModelUploader()
+    internal CGTrader3DProductPublisher()
     {
         _api = new(new HttpClient());
     }
 
-    public async Task UploadAsync(
+    public async Task PublishAsync(
         _3DProduct _3DModel,
         NetworkCredential credential,
         CancellationToken cancellationToken)

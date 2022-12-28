@@ -6,16 +6,16 @@ using System.Net;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
-internal class TurboSquid3DProductUploader : I3DProductUploader
+internal class TurboSquid3DProductPublisher : I3DProductPublisher
 {
     readonly TurboSquidApi _api;
 
-    internal TurboSquid3DProductUploader()
+    internal TurboSquid3DProductPublisher()
     {
         _api = new();
     }
 
-    public async Task UploadAsync(
+    public async Task PublishAsync(
         _3DProduct _3DProduct,
         NetworkCredential credential,
         CancellationToken cancellationToken)

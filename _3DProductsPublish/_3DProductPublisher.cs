@@ -6,18 +6,18 @@ using System.Net;
 
 namespace _3DProductsPublish;
 
-public static class _3DProductUploader
+public static class _3DProductPublisher
 {
-    public static async Task UploadAsync(
+    public static async Task PublishAsync(
         _3DProduct _3DProduct,
         NetworkCredential credential,
         CancellationToken cancellationToken = default)
     {
-        await new TurboSquid3DProductUploader().UploadAsync(_3DProduct, credential, cancellationToken);
+        await new TurboSquid3DProductPublisher().PublishAsync(_3DProduct, credential, cancellationToken);
         await (_3DProduct.Metadata switch
         {
             CGTrader3DProductMetadata =>
-                new CGTrader3DModelUploader().UploadAsync(_3DProduct, credential, cancellationToken),
+                new CGTrader3DProductPublisher().PublishAsync(_3DProduct, credential, cancellationToken),
             //TurboSquid3DModelMetadata =>
             //    new TurboSquid3DModelUploader(httpClient).UploadAsync(credential, composite3DModel, cancellationToken),
             { } unsupportedType => throw new ArgumentOutOfRangeException(

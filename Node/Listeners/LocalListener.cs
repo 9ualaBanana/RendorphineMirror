@@ -75,7 +75,7 @@ public class LocalListener : ExecutableListenerBase
                 var model = _3DProduct.FromDirectory(dir, meta);
                 var cred = new CGTraderNetworkCredential(username, password, false);
 
-                await _3DProductUploader.UploadAsync(model, cred);
+                await _3DProductPublisher.PublishAsync(model, cred);
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
