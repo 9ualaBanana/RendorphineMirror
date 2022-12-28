@@ -1,4 +1,3 @@
-using System.Net.NetworkInformation;
 using Newtonsoft.Json;
 
 namespace Node.Tasks.Exec;
@@ -59,7 +58,7 @@ public static class VectorizerTasks
             async Task convertPngToJpeg(string path)
             {
                 var args = FFMpegExec.GetFFMpegArgs(path, Path.ChangeExtension(path, ".jpg"), task, false, new FFMpegArgsHolder(null));
-                await ExecuteProcess(task.GetPlugin().GetInstance().Path, args, null, task, stderr: LogLevel.Trace);
+                await ExecuteProcess(PluginType.FFmpeg.GetInstance().Path, args, null, task, stderr: LogLevel.Trace);
             }
         }
 

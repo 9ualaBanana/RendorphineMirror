@@ -1,4 +1,6 @@
 using System.IO.Compression;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Handlers;
 
@@ -29,7 +31,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
     {
         // TODO: maybe move instead of copy? but the gallery..
         if (task.IsFromSameNode)
-            Extensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
+            Common.Extensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
 
         return ValueTask.CompletedTask;
     }
@@ -104,6 +106,15 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         using var _ = new FuncDispose(() => File.Delete(zipfile));
         using (var zipstream = File.OpenWrite(zipfile))
             await result.Content.CopyToAsync(zipstream);
+
+        try
+        {
+            using var read = new JsonTextReader(new StreamReader(File.OpenRead(zipfile)));
+            var json = JToken.Load(read);
+            if (json["ok"]?.Value<bool>() != true)
+                throw new Exception(json["errmsg"]!.Value<string>());
+        }
+        catch { }
 
         try { ZipFile.ExtractToDirectory(zipfile, task.FSPlacedResultsDirectory()); }
         catch
