@@ -81,6 +81,7 @@ internal record UploadSession(
     static async Task<UploadSession> InitializeAsyncCore(
         UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken)
     {
+        await sessionData.UseToRequestUploadSessionInfoAsyncUsing(httpClient, cancellationToken);
         var httpResponse = await httpClient.PostAsync(sessionData.Endpoint, sessionData.HttpContent, cancellationToken).ConfigureAwait(false);
         var response = await Api.GetJsonFromResponseIfSuccessfulAsync(httpResponse);
         return new(

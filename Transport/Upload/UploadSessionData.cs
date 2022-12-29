@@ -1,10 +1,11 @@
 ﻿using Common;
+using Common.Tasks;
 
 namespace Transport.Upload;
 
 public abstract class UploadSessionData
 {
-    public readonly string Endpoint;
+    public readonly Uri Endpoint;
     public readonly FileInfo File;
     /// <summary>
     /// Persists the same GUID suffix over multiple uses of the file name.
@@ -17,35 +18,39 @@ public abstract class UploadSessionData
     protected string MimeType => MimeTypes.GetMimeType(File.Name);
 
 
-    protected UploadSessionData(string url, string filePath)
-        : this(url, new FileInfo(filePath))
+    protected UploadSessionData(Uri uri, string filePath)
+        : this(uri, new FileInfo(filePath))
     {
     }
 
-    protected UploadSessionData(string url, FileInfo file)
+    protected UploadSessionData(Uri uri, FileInfo file)
     {
-        Endpoint = url;
+        Endpoint = uri;
         File = file;
     }
 
+    internal virtual async Task<HttpResponseMessage> UseToRequestUploadSessionInfoAsyncUsing(
+        HttpClient httpClient,
+        CancellationToken cancellationToken) =>
+            await httpClient.PostAsync(Endpoint, HttpContent, cancellationToken).ConfigureAwait(false);
 
-    internal abstract HttpContent HttpContent { get; }
+    protected abstract HttpContent HttpContent { get; }
 }
 
 public class UserUploadSessionData : UploadSessionData
 {
-    public UserUploadSessionData(string url, string filePath)
-    : this(url, new FileInfo(filePath))
+    public UserUploadSessionData(Uri baseUri, string filePath)
+    : this(baseUri, new FileInfo(filePath))
     {
     }
 
-    public UserUploadSessionData(string url, FileInfo file)
-        : base($"{Path.TrimEndingDirectorySeparator(url)}/initupload", file)
+    public UserUploadSessionData(Uri baseUri, FileInfo file)
+        : base(new Uri(baseUri, "initupload"), file)
     {
     }
 
 
-    internal override FormUrlEncodedContent HttpContent => new(
+    protected override FormUrlEncodedContent HttpContent => new(
         new Dictionary<string, string>()
         {
             ["sessionid"] = Settings.SessionId!,
@@ -60,17 +65,19 @@ public class MPlusUploadSessionData : UploadSessionData
     readonly string? _sessionId;
 
 
-    public MPlusUploadSessionData(string filePath, string? sessionId = default) : this(new FileInfo(filePath), sessionId)
+    public MPlusUploadSessionData(string filePath, string? sessionId = default)
+        : this(new FileInfo(filePath), sessionId)
     {
     }
 
-    public MPlusUploadSessionData(FileInfo file, string? sessionId = default) : base($"{Api.TaskManagerEndpoint}/initselfmpoutput", file)
+    public MPlusUploadSessionData(FileInfo file, string? sessionId = default)
+        : base(new Uri(new Uri(Api.TaskManagerEndpoint), "initselfmpoutput"), file)
     {
         _sessionId = sessionId;
     }
 
 
-    internal override FormUrlEncodedContent HttpContent => new(new Dictionary<string, string>
+    protected override FormUrlEncodedContent HttpContent => new(new Dictionary<string, string>
     {
         ["sessionid"] = _sessionId ?? Settings.SessionId!,
         ["directory"] = "uploaded",
@@ -84,38 +91,44 @@ public class MPlusUploadSessionData : UploadSessionData
 
 public class MPlusTaskResultUploadSessionData : UploadSessionData
 {
-    public readonly string TaskId;
-    public readonly string? Postfix;
+    readonly ITaskApi _taskApi;
+    readonly string? _postfix;
 
 
-    public MPlusTaskResultUploadSessionData(string filePath, string taskId, string? postfix)
-        : this(new FileInfo(filePath), taskId, postfix)
+    public MPlusTaskResultUploadSessionData(string filePath, ITaskApi taskApi, string? postfix)
+        : this(new FileInfo(filePath), taskApi, postfix)
     {
     }
 
-    public MPlusTaskResultUploadSessionData(FileInfo file, string taskId, string? postfix)
-        : base($"{Api.TaskManagerEndpoint}/initmptaskoutput", file)
+    public MPlusTaskResultUploadSessionData(FileInfo file, ITaskApi taskApi, string? postfix)
+        : base(new Uri(new Uri($"https://{taskApi.HostShard}"), "rphtasklauncher/initmptaskoutput"), file)
     {
-        TaskId = taskId;
-        Postfix = postfix;
+        _taskApi = taskApi;
+        _postfix = postfix;
     }
 
+    internal override Task<HttpResponseMessage> UseToRequestUploadSessionInfoAsyncUsing(
+        HttpClient httpClient,
+        CancellationToken cancellationToken)
+    {
+        return base.UseToRequestUploadSessionInfoAsyncUsing(httpClient, cancellationToken);
+    }
 
-    internal override FormUrlEncodedContent HttpContent
+    protected override FormUrlEncodedContent HttpContent
     {
         get
         {
             var dict = new Dictionary<string, string>()
             {
                 ["sessionid"] = Settings.SessionId!,
-                ["taskid"] = TaskId,
+                ["taskid"] = _taskApi.Id,
                 ["fsize"] = File.Length.ToString(),
                 ["mimetype"] = MimeType,
                 ["lastmodified"] = File.LastWriteTimeUtc.AsUnixTimestamp(),
                 ["origin"] = string.Empty,
             };
 
-            if (Postfix is not null) dict["postfix"] = Postfix;
+            if (_postfix is not null) dict["postfix"] = _postfix;
             return new(dict);
         }
     }

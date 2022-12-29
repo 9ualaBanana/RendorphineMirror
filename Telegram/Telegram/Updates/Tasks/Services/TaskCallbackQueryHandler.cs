@@ -27,7 +27,8 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramCallbackQueryHandle
 
     async Task ShowDetailsAsync(ChatId chatId, TaskCallbackData taskCallbackData, ChatAuthenticationToken authenticationToken)
     {
-        var taskState = await new ApiTask(taskCallbackData.TaskId).GetTaskStateAsync(authenticationToken.MPlus.SessionId);
+        // Call /gettaskshard here (i.e. Apis.GetTaskShardAsync(string taskid, string? sessionId = default)) but better get it from some ShardRegistry to which that shard is added when its corresponding task is registered.
+        var taskState = await Apis.GetTaskStateAsync(taskCallbackData.TaskId, authenticationToken.MPlus.SessionId);
         if (taskState)
         {
             var messageBuilder = new StringBuilder()
