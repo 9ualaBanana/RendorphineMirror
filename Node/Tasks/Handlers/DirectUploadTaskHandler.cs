@@ -14,6 +14,13 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         var info = (DirectDownloadTaskInputInfo) task.Input;
         var token = new TimeoutCancellationToken(cancellationToken, TimeSpan.FromHours(1));
 
+        if (task.ExecuteLocally)
+        {
+            task.AddInputFromLocalPath(info.Path);
+            info.Downloaded = true;
+            return;
+        }
+
         while (!info.Downloaded)
         {
             token.ThrowIfCancellationRequested();
@@ -36,6 +43,8 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public async ValueTask InitializePlacedTaskAsync(DbTaskFullState task)
     {
         if (task.State > TaskState.Input) return;
+        if (task.ExecuteLocally) return;
+
         var info = (DirectDownloadTaskInputInfo) task.Input;
 
         int tries = 0;
