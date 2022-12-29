@@ -235,7 +235,7 @@ namespace NodeUI.Pages
                 {
                     Dispatcher.UIThread.Post(() => infotb.Text =
                         @$"
-                        Auth: {JsonConvert.SerializeObject(Settings.AuthInfo!.Value, Formatting.None)}
+                        Auth: {JsonConvert.SerializeObject(Settings.AuthInfo ?? default, Formatting.None)}
                         Ports: [ LocalListen: {Settings.LocalListenPort}; UPnp: {Settings.UPnpPort}; UPnpServer: {Settings.UPnpServerPort}; Dht: {Settings.DhtPort}; Torrent: {Settings.TorrentPort} ]
 
                         Ui start time: {starttime}
@@ -771,8 +771,10 @@ namespace NodeUI.Pages
                 Children.Add(torrentgrid);
 
                 PortForwarding.GetPublicIPAsync().ContinueWith(t => Dispatcher.UIThread.Post(() =>
-                    info.Text = $"this pc:  pub ip: {t.Result}  pub port: {PortForwarding.Port}  torrent port: {TorrentClient.ListenPort}"
-                ));
+                {
+                    if (t.Status == TaskStatus.RanToCompletion)
+                        info.Text = $"this pc:  pub ip: {t.Result}  pub port: {PortForwarding.Port}  torrent port: {TorrentClient.ListenPort}";
+                }));
 
 
                 async void click()

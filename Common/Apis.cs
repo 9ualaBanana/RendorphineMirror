@@ -1,4 +1,3 @@
-using System.Web;
 using Newtonsoft.Json.Linq;
 
 namespace Common;
@@ -17,23 +16,36 @@ public static class Apis
         return values.Append(("sessionid", Settings.SessionId)).ToArray();
     }
 
-    public static ValueTask<OperationResult> ShardGet(this ITaskApi task, string url, string? errorDetails = null, params (string, string)[] values) =>
-        task.ShardGet<JToken>(url, null, errorDetails, values).Next(j => true);
-    public static ValueTask<OperationResult> ShardPost(this ITaskApi task, string url, string? errorDetails = null, params (string, string)[] values) =>
-        task.ShardPost<JToken>(url, null, errorDetails, values).Next(j => true);
-    public static ValueTask<OperationResult<T>> ShardGet<T>(this ITaskApi task, string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
-        task.ShardSend(Api.ApiGet<T>, url, property, errorDetails, AddSessionId(values));
-    public static ValueTask<OperationResult<T>> ShardPost<T>(this ITaskApi task, string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
-        task.ShardSend(Api.ApiPost<T>, url, property, errorDetails, AddSessionId(values));
+    public static ValueTask<OperationResult> ShardGet(this HttpClient client, ITaskApi task, string url, string errorDetails, params (string, string)[] values) =>
+        client.ShardGet<JToken>(task, url, null, errorDetails, values).Next(j => true);
+    public static ValueTask<OperationResult> ShardPost(this HttpClient client, ITaskApi task, string url, string errorDetails, params (string, string)[] values) =>
+        client.ShardPost<JToken>(task, url, null, errorDetails, values).Next(j => true);
+    public static ValueTask<OperationResult<T>> ShardGet<T>(this HttpClient client, ITaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
+        task.ShardSend(url, url => client.ApiGet<T>(url, property, errorDetails, AddSessionId(values)));
+    public static ValueTask<OperationResult<T>> ShardPost<T>(this HttpClient client, ITaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
+        task.ShardSend(url, url => client.ApiPost<T>(url, property, errorDetails, Api.ToContent(AddSessionId(values))));
 
-    static async ValueTask<OperationResult<T>> ShardSend<T>(this ITaskApi task, Func<string, string?, string?, (string, string)[], ValueTask<OperationResult<T>>> func,
-        string url, string? property, string? errorDetails, (string, string)[] values)
+    public static ValueTask<OperationResult> ShardPost(this HttpClient client, ITaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
+        client.ShardPost<JToken>(task, url, property, errorDetails, content).Next(j => true);
+    public static ValueTask<OperationResult<T>> ShardPost<T>(this HttpClient client, ITaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
+        task.ShardSend(url, url => client.ApiPost<T>(url, property, errorDetails, content));
+
+    public static ValueTask<OperationResult> ShardGet(this ITaskApi task, string url, string errorDetails, params (string, string)[] values) =>
+        Api.Client.ShardGet(task, url, errorDetails, values);
+    public static ValueTask<OperationResult> ShardPost(this ITaskApi task, string url, string errorDetails, params (string, string)[] values) =>
+        Api.Client.ShardPost(task, url, errorDetails, values);
+    public static ValueTask<OperationResult<T>> ShardGet<T>(this ITaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
+        Api.Client.ShardGet<T>(task, url, property, errorDetails, values);
+    public static ValueTask<OperationResult<T>> ShardPost<T>(this ITaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
+        Api.Client.ShardPost<T>(task, url, property, errorDetails, values);
+
+    static async ValueTask<OperationResult<T>> ShardSend<T>(this ITaskApi task, string url, Func<string, ValueTask<OperationResult<T>>> func)
     {
         (task as ILoggable)?.LogTrace($"Sending shard request {url}; Shard is {task.HostShard ?? "<null>"}");
-        return await ShardSend(task, errorDetails, () => func($"https://{task.HostShard}/rphtasklauncher/{url}", property, errorDetails, values), true);
+        return await ShardSend(task, () => func($"https://{task.HostShard}/rphtasklauncher/{url}"), true);
 
 
-        static async ValueTask<OperationResult<T>> ShardSend(ITaskApi task, string? errorDetails, Func<ValueTask<OperationResult<T>>> func, bool tryDefaultShard)
+        static async ValueTask<OperationResult<T>> ShardSend(ITaskApi task, Func<ValueTask<OperationResult<T>>> func, bool tryDefaultShard)
         {
             if (tryDefaultShard)
             {
@@ -53,14 +65,14 @@ public static class Apis
             // only if an API error
             if (result.GetResult().HttpData is { } httpdata)
             {
-                (task as ILoggable)?.LogErr($"Got error {httpdata} in {errorDetails} ({result.Message})");
+                (task as ILoggable)?.LogErr($"Got error {httpdata} in ({result.Message})");
 
                 // if nonsuccess, refetch shard host, retry
                 if (!httpdata.IsSuccessStatusCode)
                 {
                     await Task.Delay(30_000);
                     await task.UpdateTaskShardAsync();
-                    return await ShardSend(task, errorDetails, func, tryDefaultShard);
+                    return await ShardSend(task, func, tryDefaultShard);
                 }
 
                 // "No shard is known for this task. The shard could be restarting, try again in 30 seconds"
@@ -70,7 +82,7 @@ public static class Apis
                     if (!host) return host;
 
                     await Task.Delay(30_000);
-                    return await ShardSend(task, errorDetails, func, tryDefaultShard);
+                    return await ShardSend(task, func, tryDefaultShard);
                 }
             }
 

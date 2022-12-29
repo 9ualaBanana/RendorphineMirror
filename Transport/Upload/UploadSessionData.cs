@@ -62,6 +62,8 @@ public class UserUploadSessionData : UploadSessionData
 
 public class MPlusUploadSessionData : UploadSessionData
 {
+    public override string Endpoint { get; }
+    public override FileInfo File { get; }
     readonly string? _sessionId;
 
 
@@ -74,6 +76,8 @@ public class MPlusUploadSessionData : UploadSessionData
         : base(new Uri(new Uri(Api.TaskManagerEndpoint), "initselfmpoutput"), file)
     {
         _sessionId = sessionId;
+        Endpoint = $"{Api.TaskManagerEndpoint}/initselfmpoutput";
+        File = file;
     }
 
 
