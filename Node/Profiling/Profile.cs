@@ -30,7 +30,7 @@ internal class Profile
         {
             Ip = (await ip).ToString(),
             Software = (await software),
-            AllowedTypes = (await plugins).SelectMany(x => TaskList.Get(x.Type)).ToDictionary(x => x.Name.ToString(), _ => 1),
+            AllowedTypes = (await plugins).SelectMany(x => TaskList.Get(x.Type)).DistinctBy(x => x.Name).ToDictionary(x => x.Name.ToString(), _ => 1),
             AllowedInputs = TaskHandler.InputHandlerList.ToDictionary(x => x.Type, _ => 1),
             AllowedOutputs = TaskHandler.OutputHandlerList.ToDictionary(x => x.Type, _ => 1),
             Pricing = new

@@ -13,19 +13,35 @@ namespace Common
         public static readonly HttpClient Client = new();
 
 
-        public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
-            Send<T>(JustGet, url, property, values, errorDetails);
-        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string? errorDetails = null, params (string, string)[] values) =>
-            Send<T>(JustPost, url, property, values, errorDetails);
-        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string? errorDetails, HttpContent content) =>
-            Send<T, HttpContent>(JustPost, url, property, content, errorDetails);
+        public static ValueTask<OperationResult<T>> ApiGet<T>(this HttpClient client, string url, string? property, string errorDetails, params (string, string)[] values) =>
+            Send<T>(client.JustGet, url, property, values, errorDetails);
+        public static ValueTask<OperationResult<T>> ApiPost<T>(this HttpClient client, string url, string? property, string errorDetails, params (string, string)[] values) =>
+            Send<T>(client.JustPost, url, property, values, errorDetails);
+        public static ValueTask<OperationResult<T>> ApiPost<T>(this HttpClient client, string url, string? property, string errorDetails, HttpContent content) =>
+            Send<T, HttpContent>(client.JustPost, url, property, content, errorDetails);
 
-        public static ValueTask<OperationResult> ApiGet(string url, string? errorDetails = null, params (string, string)[] values) =>
-            SendOk(JustGet, url, values, errorDetails);
-        public static ValueTask<OperationResult> ApiPost(string url, string? errorDetails = null, params (string, string)[] values) =>
-            SendOk(JustPost, url, values, errorDetails);
-        public static ValueTask<OperationResult> ApiPost(string url, string? errorDetails, HttpContent content) =>
-            SendOk(JustPost, url, content, errorDetails);
+        public static ValueTask<OperationResult> ApiGet(this HttpClient client, string url, string errorDetails, params (string, string)[] values) =>
+            SendOk(client.JustGet, url, values, errorDetails);
+        public static ValueTask<OperationResult> ApiPost(this HttpClient client, string url, string errorDetails, params (string, string)[] values) =>
+            SendOk(client.JustPost, url, values, errorDetails);
+        public static ValueTask<OperationResult> ApiPost(this HttpClient client, string url, string errorDetails, HttpContent content) =>
+            SendOk(client.JustPost, url, content, errorDetails);
+
+
+        public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string? property, string errorDetails, params (string, string)[] values) =>
+            Client.ApiGet<T>(url, property, errorDetails, values);
+        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string errorDetails, params (string, string)[] values) =>
+            Client.ApiPost<T>(url, property, errorDetails, values);
+        public static ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string errorDetails, HttpContent content) =>
+            Client.ApiPost<T>(url, property, errorDetails, content);
+
+        public static ValueTask<OperationResult> ApiGet(string url, string errorDetails, params (string, string)[] values) =>
+            Client.ApiGet(url, errorDetails, values);
+        public static ValueTask<OperationResult> ApiPost(string url, string errorDetails, params (string, string)[] values) =>
+            Client.ApiPost(url, errorDetails, values);
+        public static ValueTask<OperationResult> ApiPost(string url, string errorDetails, HttpContent content) =>
+            Client.ApiPost(url, errorDetails, content);
+
 
         static ValueTask<OperationResult> SendOk<TValues>(Func<string, TValues, Task<HttpResponseMessage>> func, string url, TValues values, string? errorDetails) =>
             Send<bool, TValues>(func, url, "ok", values, errorDetails).Next(v => new OperationResult(v, null));
@@ -66,23 +82,27 @@ namespace Common
             }
         }
 
-        public static async Task<HttpResponseMessage> JustPost(string url, (string, string)[] values)
+        public static HttpContent ToContent((string, string)[] values) => new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
+        public static async Task<HttpResponseMessage> JustPost(this HttpClient client, string url, (string, string)[] values)
         {
-            using var content = new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
-            return await JustPost(url, content).ConfigureAwait(false);
+            using var content = ToContent(values);
+            return await client.JustPost(url, content).ConfigureAwait(false);
         }
-        public static Task<HttpResponseMessage> JustGet(string url, (string, string)[] values)
+        public static Task<HttpResponseMessage> JustGet(this HttpClient client, string url, (string, string)[] values)
         {
             var str = string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
             if (str.Length != 0) str = "?" + str;
 
-            return JustGet(url + str);
+            return client.JustGet(url + str);
         }
-        public static Task<HttpResponseMessage> JustPost(string url, HttpContent content) => Client.PostAsync(url, content);
-        public static Task<HttpResponseMessage> JustGet(string url) => Client.GetAsync(url);
+        public static Task<HttpResponseMessage> JustPost(this HttpClient client, string url, HttpContent content) => client.PostAsync(url, content);
+        public static Task<HttpResponseMessage> JustGet(this HttpClient client, string url) => client.GetAsync(url);
 
-        public static Task<Stream> Download(string url) => Client.GetStreamAsync(url);
-        public static Task<HttpResponseMessage> Get(string url) => Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        public static Task<Stream> Download(string url) => Client.Download(url);
+        public static Task<Stream> Download(this HttpClient client, string url) => client.GetStreamAsync(url);
+
+        public static Task<HttpResponseMessage> Get(string url) => Client.Get(url);
+        public static Task<HttpResponseMessage> Get(this HttpClient client, string url) => client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
 
         static async ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<OperationResult<T>>> func)

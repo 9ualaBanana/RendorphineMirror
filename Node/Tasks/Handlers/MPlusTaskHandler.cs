@@ -28,8 +28,12 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     }
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {
-        foreach (var file in Directory.GetFiles(task.FSOutputDirectory()))
-            await PacketsTransporter.UploadAsync(new MPlusTaskResultUploadSessionData(file, task.Id, postfix: Path.GetFileNameWithoutExtension(file)), cancellationToken: cancellationToken);
+        var files = Directory.GetFiles(task.FSOutputDirectory()).AsEnumerable();
+        if (task.OutputFiles.Count != 0)
+            files = task.OutputFiles.OrderByDescending(x => x.Format).Select(x => x.Path);
+
+        foreach (var file in files)
+            await PacketsTransporter.UploadAsync(new MPlusTaskResultUploadSessionData(file, task, postfix: Path.GetFileNameWithoutExtension(file)), cancellationToken: cancellationToken);
     }
 
     public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Output && ((MPlusTaskOutputInfo) task.Output).IngesterHost is not null);

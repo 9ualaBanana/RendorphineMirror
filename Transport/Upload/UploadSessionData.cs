@@ -29,10 +29,10 @@ public abstract class UploadSessionData
         File = file;
     }
 
-
     internal virtual async Task<HttpResponseMessage> UseToRequestUploadSessionInfoAsyncUsing(
         HttpClient httpClient,
-        CancellationToken cancellationToken) => await httpClient.PostAsync(Endpoint, HttpContent, cancellationToken);
+        CancellationToken cancellationToken) =>
+            await httpClient.PostAsync(Endpoint, HttpContent, cancellationToken).ConfigureAwait(false);
 
     protected abstract HttpContent HttpContent { get; }
 }
@@ -120,6 +120,7 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
             {
                 ["sessionid"] = Settings.SessionId!,
                 ["taskid"] = _taskApi.Id,
+                ["fsize"] = File.Length.ToString(),
                 ["mimetype"] = MimeType,
                 ["lastmodified"] = File.LastWriteTimeUtc.AsUnixTimestamp(),
                 ["origin"] = string.Empty,
