@@ -12,20 +12,17 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (DirectDownloadTaskInputInfo) task.Input;
-
-        if (task.IsFromSameNode)
-        {
-            task.AddInputFromLocalPath(info.Path);
-            info.Downloaded = true;
-        }
-
         var token = new TimeoutCancellationToken(cancellationToken, TimeSpan.FromHours(1));
+
         while (!info.Downloaded)
         {
             token.ThrowIfCancellationRequested();
             token.ThrowIfStuck($"Did not receive input files");
             await Task.Delay(2000);
         }
+
+        if (task.IsFromSameNode)
+            task.AddInputFromLocalPath(info.Path);
     }
     public ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default)
     {
@@ -39,8 +36,6 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public async ValueTask InitializePlacedTaskAsync(DbTaskFullState task)
     {
         if (task.State > TaskState.Input) return;
-        if (task.IsFromSameNode) return;
-
         var info = (DirectDownloadTaskInputInfo) task.Input;
 
         int tries = 0;
@@ -68,15 +63,23 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
                 var files = File.Exists(info.Path) ? new[] { info.Path } : Directory.GetFiles(info.Path);
                 foreach (var file in files)
                 {
-                    using var content = new MultipartFormDataContent()
+                    if (task.IsFromSameNode && NodeSettings.QueuedTasks.TryGetValue(task.Id, out var queued))
                     {
-                        { new StringContent(task.Id), "taskid" },
-                        { new StreamContent(File.OpenRead(file)) { Headers = { ContentType = new(MimeTypes.GetMimeType(file)), ContentLength = new FileInfo(file).Length } }, "file", Path.GetFileName(file) },
-                        { new StringContent(file == files[^1] ? "1" : "0"), "last" },
-                    };
+                        ((DirectDownloadTaskInputInfo) queued.Input).Path = file;
+                        ((DirectDownloadTaskInputInfo) queued.Input).Downloaded = true;
+                    }
+                    else
+                    {
+                        using var content = new MultipartFormDataContent()
+                        {
+                            { new StringContent(task.Id), "taskid" },
+                            { new StreamContent(File.OpenRead(file)) { Headers = { ContentType = new(MimeTypes.GetMimeType(file)), ContentLength = new FileInfo(file).Length } }, "file", Path.GetFileName(file) },
+                            { new StringContent(file == files[^1] ? "1" : "0"), "last" },
+                        };
 
-                    var post = await Api.ApiPost($"{server.Host}/rphtaskexec/uploadinput", $"Uploading input files for task {task.Id}", content);
-                    post.ThrowIfError();
+                        var post = await Api.ApiPost($"{server.Host}/rphtaskexec/uploadinput", $"Uploading input files for task {task.Id}", content);
+                        post.ThrowIfError();
+                    }
 
                     break;
                 }

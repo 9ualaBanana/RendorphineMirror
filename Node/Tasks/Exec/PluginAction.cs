@@ -102,6 +102,17 @@ public abstract class PluginAction<T> : IPluginAction
     protected static Task ExecuteProcess(string exepath, string args, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null) =>
         ExecuteProcess(exepath, args, Enumerable.Empty<string>(), onRead, logobj, stdout, stderr);
 
+    protected static Task ExecuteProcessWithWineSupport(string exepath, string args, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null)
+    {
+        if (Environment.OSVersion.Platform == PlatformID.Unix && exepath.EndsWith(".exe", StringComparison.Ordinal))
+        {
+            args = $"\"{exepath}\" {args}";
+            exepath = "/bin/wine";
+        }
+
+        return ExecuteProcess(exepath, args, Enumerable.Empty<string>(), onRead, logobj, stdout, stderr);
+    }
+
 
     protected static void ExecutePowerShell(string script, bool stderrToStdout, Action<bool, object>? onRead, ILoggable? logobj)
     {

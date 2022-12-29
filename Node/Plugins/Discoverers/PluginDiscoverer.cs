@@ -17,6 +17,8 @@ public abstract class PluginDiscoverer
     protected virtual string? ExecutableRegex => null;
     readonly Regex? RegexParentDirectory, RegexExecutable;
 
+    protected virtual bool AllowExeOnLinux => false;
+
     public PluginDiscoverer()
     {
         RegexParentDirectory = ParentDirectoryRegex is null ? null : new Regex(ParentDirectoryRegex, RegexOptions.Compiled);
@@ -55,7 +57,7 @@ public abstract class PluginDiscoverer
                 )
                 .Where(file => RegexExecutable?.IsMatch(Path.GetFileName(file)) ?? true)
             )
-            .Where(path => Environment.OSVersion.Platform == PlatformID.Win32NT ? true : !path.EndsWith(".exe"))
+            .Where(path => Environment.OSVersion.Platform == PlatformID.Win32NT ? true : AllowExeOnLinux || !path.EndsWith(".exe"))
             .Select(GetDiscoveredPlugin)
             // skip same versions unless it's unknown
             .DistinctBy(plugin => plugin.Version == "Unknown" ? Guid.NewGuid().ToString() : plugin.Version);

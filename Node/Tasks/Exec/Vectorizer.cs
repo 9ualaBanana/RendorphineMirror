@@ -42,30 +42,18 @@ public static class VectorizerTasks
             Directory.CreateDirectory(veeeoutdir);
             File.WriteAllText(Path.Combine(plugindir, "config.xml"), GetConfig(data.Lods));
 
-            await ExecuteProcess(exepath, args, delegate { }, task);
+            await ExecuteProcessWithWineSupport(exepath, args, delegate { }, task);
 
             Directory.Delete(outputdir, true);
             Directory.Move(veeeoutdir, outputdir);
-            foreach (var png in Directory.GetFiles(outputdir, "*.png"))
-            {
-                await convertPngToJpeg(png);
-                File.Delete(png);
-            }
 
             task.AddOutputFromLocalPath(outputdir);
-
-
-            async Task convertPngToJpeg(string path)
-            {
-                var args = FFMpegExec.GetFFMpegArgs(path, Path.ChangeExtension(path, ".jpg"), task, false, new FFMpegArgsHolder(null));
-                await ExecuteProcess(PluginType.FFmpeg.GetInstance().Path, args, null, task, stderr: LogLevel.Trace);
-            }
         }
 
 
         static string GetConfig(IEnumerable<int> lods) =>
             $@"
-                <CONFIG Version=""1"" ProfilesDir=""Veee"" Lang=""Data\lang_en.xml"" W=""1920"" H=""1080"" ShowFps=""1"" LastUser=""no"" outdir = ""out"">
+                <CONFIG Version=""1"" ProfilesDir=""Veee"" Lang=""Data\lang_en.xml"" W=""1920"" H=""1080"" ShowFps=""1"" LastUser=""no"" outdir=""out"" outsize=""1024"">
                 {string.Join(Environment.NewLine, lods.Select(lod => @$"<EXPORT mode=""0"" lod=""{lod}""/>"))}
                 </CONFIG>
             ";
