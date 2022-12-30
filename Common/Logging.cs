@@ -44,6 +44,6 @@ internal static class Logging
     };
 
     static string _LogDirFor(LogLevel logLevel) => $"{_logDir}{logLevel.Name}${{dir-separator}}";
-    readonly static string _logDir = "logs${dir-separator}";
+    readonly static string _logDir = "logs${dir-separator}${processname}${dir-separator}";
     readonly static string _fileExtension = ".log";
 }
