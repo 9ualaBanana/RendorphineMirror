@@ -92,8 +92,12 @@ public static class Apis
 
 
     /// <inheritdoc cref="GetTaskShardAsync"/>
-    public static ValueTask<OperationResult> UpdateTaskShardAsync(this ITaskApi task, string? sessionId = default) =>
-        GetTaskShardAsync(task.Id, sessionId)
+    public static async ValueTask<OperationResult> UpdateTaskShardAsync(this ITaskApi task, string? sessionId = default) =>
+        await Api.Client.UpdateTaskShardAsync(task, sessionId);
+
+    /// <inheritdoc cref="GetTaskShardAsync"/>
+    public static ValueTask<OperationResult> UpdateTaskShardAsync(this HttpClient httpClient, ITaskApi task, string? sessionId = default) =>
+        httpClient.GetTaskShardAsync(task.Id, sessionId)
             .Next(s =>
             {
                 (task as ILoggable)?.LogTrace($"Shard was updated to {s}");
@@ -102,9 +106,12 @@ public static class Apis
             });
 
     /// <summary> Get shard host for a task. Might take a long time to process. Should never return an error, but who knows... </summary>
-    public static async ValueTask<OperationResult<string>> GetTaskShardAsync(string taskid, string? sessionId = default)
+    public static async ValueTask<OperationResult<string>> GetTaskShardAsync(string taskid, string? sessionId = default) =>
+        await Api.Client.GetTaskShardAsync(taskid, sessionId);
+
+    public static async ValueTask<OperationResult<string>> GetTaskShardAsync(this HttpClient httpClient, string taskid, string? sessionId = default)
     {
-        var shard = await Api.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskshard", "host", "Getting task shard", ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", taskid));
+        var shard = await httpClient.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskshard", "host", "Getting task shard", ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", taskid));
 
         if (!shard)
         {
@@ -114,7 +121,7 @@ public static class Apis
             if (!httpdata.Value.IsSuccessStatusCode)
             {
                 await Task.Delay(30_000);
-                return await GetTaskShardAsync(taskid, sessionId);
+                return await httpClient.GetTaskShardAsync(taskid, sessionId);
             }
         }
 
@@ -122,7 +129,7 @@ public static class Apis
         if (!shard && shard.Message!.Contains("-72 error code", StringComparison.Ordinal))
         {
             await Task.Delay(30_000);
-            return await GetTaskShardAsync(taskid, sessionId);
+            return await httpClient.GetTaskShardAsync(taskid, sessionId);
         }
 
         return shard;
