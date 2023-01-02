@@ -19,7 +19,7 @@ public class MpItem
     public string Type => (string)_jsonElement["type"]!;
 
     public bool IsVideo => Type == "video";
-    public bool IsImage => Type == "raster";
+    public bool IsImage => Type == "raster" || Type == "vector";
 
     public async Task SendWith(TelegramBot bot, ChatId chatId)
     {

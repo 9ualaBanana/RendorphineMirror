@@ -44,10 +44,10 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
     {
         if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UpscaleImage) && mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
             await UpscaleAndUploadToMPlusAsync(ChatIdFrom(update), (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!, authenticationToken);
-        else if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
-            await UploadToMPlusAsync(ChatIdFrom(update), mediaFilePath, authenticationToken);
         else if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.VectorizeImage) && mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
-            await VectorizeAdnUploadToMPlusAsync(ChatIdFrom(update), (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!, authenticationToken);
+            await VectorizeAndUploadToMPlusAsync(ChatIdFrom(update), (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!, authenticationToken);
+        else if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))  // Must be last conditional as it's the least specific.
+            await UploadToMPlusAsync(ChatIdFrom(update), mediaFilePath, authenticationToken);
     }
 
 
@@ -70,7 +70,7 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
             );
     }
 
-    async Task VectorizeAdnUploadToMPlusAsync(ChatId chatId, ImageProcessingCallbackData imageCallbackData, ChatAuthenticationToken authenticationToken)
+    async Task VectorizeAndUploadToMPlusAsync(ChatId chatId, ImageProcessingCallbackData imageCallbackData, ChatAuthenticationToken authenticationToken)
     {
         var taskId = (await TaskRegistration.RegisterAsync(
             new TaskCreationInfo(
