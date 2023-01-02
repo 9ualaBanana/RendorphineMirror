@@ -32,7 +32,7 @@ public static class VectorizerTasks
             var exepath = task.GetPlugin().GetInstance().Path;
 
             // quotes are important here, ddo not remove
-            var args = "\"" + inputfile + "\"";
+            var args = "\"" + await GetWinPath(inputfile) + "\"";
 
             var plugindir = Path.GetDirectoryName(exepath)!;
             var veeeoutdir = Path.Combine(plugindir, "out");
