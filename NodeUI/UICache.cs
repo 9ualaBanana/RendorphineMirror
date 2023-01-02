@@ -22,7 +22,7 @@ public static class UICache
     }
     static async Task<OperationResult> UpdateStatsAsync()
     {
-        var data = await Api.ApiGet<ImmutableDictionary<PluginType, SoftwareStats>>($"{Api.TaskManagerEndpoint}/getsoftwarestats", "stats").ConfigureAwait(false);
+        var data = await Api.ApiGet<ImmutableDictionary<PluginType, SoftwareStats>>($"{Api.TaskManagerEndpoint}/getsoftwarestats", "stats", "Getting software stats").ConfigureAwait(false);
         if (data) SoftwareStats.SetRange(data.Value);
 
         return data.GetResult();
@@ -57,7 +57,7 @@ public static class UICache
                     if (token.IsCancellationRequested) return;
 
                     var jtoken = JToken.Load(reader);
-                    _logger.Debug($"Node state updated: {string.Join(", ", (jtoken as JObject)?.Properties().Select(x => x.Name) ?? new[] { jtoken.ToString(Formatting.None) })}");
+                    _logger.Trace($"Node state updated: {string.Join(", ", (jtoken as JObject)?.Properties().Select(x => x.Name) ?? new[] { jtoken.ToString(Formatting.None) })}");
 
                     using var tokenreader = jtoken.CreateReader();
                     LocalApi.JsonSerializerWithType.Populate(tokenreader, NodeGlobalState.Instance);

@@ -27,7 +27,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transport", "Transport\Tran
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AwsSignatureVersion4", "aws-signature-version-4\src\AwsSignatureVersion4.csproj", "{97504EEF-0406-4765-8610-5BB43E10ED98}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "_3DProductsPublish", "_3DProductsPublish\_3DProductsPublish.csproj", "{C67520F4-235F-473F-9A99-C188BFB1ECCD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_3DProductsPublish", "_3DProductsPublish\_3DProductsPublish.csproj", "{C67520F4-235F-473F-9A99-C188BFB1ECCD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

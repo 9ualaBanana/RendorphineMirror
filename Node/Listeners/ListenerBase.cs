@@ -273,12 +273,12 @@ public abstract class ListenerBase
 
         public void Dispose()
         {
-            if (File.Exists(TempFileName))
-                File.Delete(TempFileName);
-
             foreach (var disposables in ToDispose)
                 try { disposables.Dispose(); }
                 catch { }
+
+            if (File.Exists(TempFileName))
+                File.Delete(TempFileName);
         }
     }
 }

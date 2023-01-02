@@ -226,7 +226,7 @@ namespace NodeUI.Pages
                 {
                     Dispatcher.UIThread.Post(() => infotb.Text =
                         @$"
-                        Auth: {JsonConvert.SerializeObject(Settings.AuthInfo!.Value, Formatting.None)}
+                        Auth: {JsonConvert.SerializeObject(Settings.AuthInfo ?? default, Formatting.None)}
                         Ports: [ LocalListen: {Settings.LocalListenPort}; UPnp: {Settings.UPnpPort}; UPnpServer: {Settings.UPnpServerPort}; Dht: {Settings.DhtPort}; Torrent: {Settings.TorrentPort} ]
 
                         Ui start time: {starttime}
@@ -762,8 +762,10 @@ namespace NodeUI.Pages
                 Children.Add(torrentgrid);
 
                 PortForwarding.GetPublicIPAsync().ContinueWith(t => Dispatcher.UIThread.Post(() =>
-                    info.Text = $"this pc:  pub ip: {t.Result}  pub port: {PortForwarding.Port}  torrent port: {TorrentClient.ListenPort}"
-                ));
+                {
+                    if (t.Status == TaskStatus.RanToCompletion)
+                        info.Text = $"this pc:  pub ip: {t.Result}  pub port: {PortForwarding.Port}  torrent port: {TorrentClient.ListenPort}";
+                }));
 
 
                 async void click()
@@ -838,18 +840,20 @@ namespace NodeUI.Pages
                 var tab = new TabbedControl();
                 Children.Add(tab);
 
-                tab.Add("node", new LogViewer("Node"));
-                tab.Add("nodeui", new LogViewer("NodeUI"));
+                tab.Add("node", new LogViewer("Node", LogLevel.Debug));
+                tab.Add("nodeui", new LogViewer("NodeUI", LogLevel.Debug));
+                tab.Add("node-trace", new LogViewer("Node", LogLevel.Trace));
+                tab.Add("nodeui-trace", new LogViewer("NodeUI", LogLevel.Trace));
                 tab.Add("ONLY WORKS WHEN TEXTBOX IS FOCUSED", new Panel());
             }
 
 
             class LogViewer : Panel
             {
-                public LogViewer(string logName)
+                public LogViewer(string logName, LogLevel level)
                 {
                     var flogname = logName;
-                    string getlogdir() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, "Debug", "log.log").Replace("NodeUI", flogname);
+                    string getlogdir() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, level.Name, "log.log").Replace("NodeUI", flogname);
 
                     var dir = getlogdir();
                     if (!File.Exists(dir))
@@ -891,7 +895,7 @@ namespace NodeUI.Pages
                                     read = reader.Read(buffer);
                                 }
 
-                                var str = $"{Encoding.UTF8.GetString(buffer.AsSpan(0, read))}\n\n<read on {DateTime.Now}>";
+                                var str = $"{Encoding.UTF8.GetString(buffer.AsSpan(0, read))}\n\n<read on {DateTime.UtcNow}>";
                                 Dispatcher.UIThread.Post(() =>
                                 {
                                     tb.Text = str;

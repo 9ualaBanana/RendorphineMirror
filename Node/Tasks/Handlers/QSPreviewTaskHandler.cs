@@ -9,7 +9,7 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
         var jpeg = task.FSOutputFile(FileFormat.Jpeg);
         var mov = task.TryFSOutputFile(FileFormat.Mov);
 
-        var res = await Api.ApiPost<InitOutputResult>($"{Api.TaskManagerEndpoint}/initqspreviewoutput", null, "Initializing qs preview result upload", ("sessionid", Settings.SessionId), ("taskid", task.Id));
+        var res = await task.ShardPost<InitOutputResult>("initqspreviewoutput", null, "Initializing qs preview result upload", ("taskid", task.Id));
         if (!res && res.Message?.Contains("There is no such user", StringComparison.OrdinalIgnoreCase) == true)
         {
             res.LogIfError();

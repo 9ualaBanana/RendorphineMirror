@@ -1,5 +1,4 @@
 ﻿using Common;
-using Newtonsoft.Json.Linq;
 using NLog;
 using Transport.Models;
 
@@ -79,19 +78,8 @@ internal record UploadSession(
     }
 
     static async Task<UploadSession> InitializeAsyncCore(
-        UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken)
-    {
-        var httpResponse = await httpClient.PostAsync(sessionData.Endpoint, sessionData.HttpContent, cancellationToken).ConfigureAwait(false);
-        var response = await Api.GetJsonFromResponseIfSuccessfulAsync(httpResponse);
-        return new(
-            sessionData,
-            (string)response["fileid"]!,
-            (string)response["host"]!,
-            (long)response["uploadedbytes"]!,
-            response["uploadedchunks"]!.ToObject<UploadedPacket[]>()!,
-            httpClient,
-            cancellationToken);
-    }
+        UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken) =>
+            await sessionData.UseToRequestUploadSessionAsyncUsing(httpClient, cancellationToken);
 
     public async ValueTask DisposeAsync()
     {

@@ -8,7 +8,7 @@ public static class FileFormatExtensions
     {
         if (mime.Contains("image", StringComparison.Ordinal)) return FileFormat.Jpeg;
         if (mime.Contains("video", StringComparison.Ordinal)) return FileFormat.Mov;
-        if (mime.Contains("eps", StringComparison.Ordinal)) return FileFormat.Eps;
+        if (mime.Contains("postscript", StringComparison.Ordinal)) return FileFormat.Eps;
         if (mime.Contains("vector", StringComparison.Ordinal)) return FileFormat.Eps;
 
         throw new Exception($"Could not find {nameof(FileFormat)} for mime {mime}");

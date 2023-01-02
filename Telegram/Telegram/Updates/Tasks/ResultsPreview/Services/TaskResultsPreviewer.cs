@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+using Common.Tasks;
+using Newtonsoft.Json.Linq;
 using Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
 using Telegram.Telegram.Updates.Tasks.Services;
 
@@ -17,12 +18,12 @@ public class TaskResultsPreviewer
         _taskRegistry = taskRegistry;
     }
 
-    public async Task<MpItem?> GetMyMPItemAsync(string taskId, string executorNodeName)
+    public async Task<MpItem?> GetMyMPItemAsync(ITaskApi taskApi, string executorNodeName)
     {
-        _taskRegistry.TryGetValue(taskId, out var authenticationToken);
+        _taskRegistry.TryGetValue(taskApi.Id, out var authenticationToken);
         if (authenticationToken is null) return null;
 
-        string iid = (await GetTaskOutputIidAsync(taskId, authenticationToken.MPlus.SessionId)).Result;
+        string iid = (await GetTaskOutputIidAsync(taskApi, authenticationToken.MPlus.SessionId)).Result;
         JToken mpItem;
         int retryAttempts = 3;
         while (true)
@@ -41,11 +42,11 @@ public class TaskResultsPreviewer
         }
     }
 
-    static async Task<OperationResult<string>> GetTaskOutputIidAsync(string taskId, string sessionId)
+    static async Task<OperationResult<string>> GetTaskOutputIidAsync(ITaskApi taskApi, string sessionId)
     {
-        return await Apis.GetTaskStateAsync(taskId, sessionId)
+        return await Apis.GetTaskStateAsync(taskApi, sessionId)
             .Next(taskinfo => taskinfo.Output["ingesterhost"]?.Value<string>().AsOpResult() ?? OperationResult.Err("Could not find ingester host"))
-            .Next(ingester => Api.ApiGet<string>($"https://{ingester}/content/vcupload/getiid", "iid", "Getting output iid", ("extid", taskId)))
+            .Next(ingester => Api.ApiGet<string>($"https://{ingester}/content/vcupload/getiid", "iid", "Getting output iid", ("extid", taskApi.Id)))
             .ConfigureAwait(false);
     }
 }

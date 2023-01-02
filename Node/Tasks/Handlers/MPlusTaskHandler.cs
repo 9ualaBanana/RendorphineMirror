@@ -18,8 +18,8 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
         async Task download(FileFormat format)
         {
-            var downloadLink = await Api.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskinputdownloadlink", "link", "get download link",
-                ("sessionid", Settings.SessionId!), ("taskid", task.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0")).ConfigureAwait(false);
+            var downloadLink = await task.ShardGet<string>("gettaskinputdownloadlink", "link", "Getting m+ input download link",
+                ("taskid", task.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"));
 
             using var inputStream = await Api.Download(downloadLink.ThrowIfError());
             using var file = File.Open(task.FSNewInputFile(format), FileMode.Create, FileAccess.Write);
@@ -28,8 +28,12 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     }
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {
-        foreach (var file in Directory.GetFiles(task.FSOutputDirectory()))
-            await PacketsTransporter.UploadAsync(new MPlusTaskResultUploadSessionData(file, task.Id, postfix: Path.GetFileNameWithoutExtension(file)), cancellationToken: cancellationToken);
+        var files = Directory.GetFiles(task.FSOutputDirectory()).AsEnumerable();
+        if (task.OutputFiles.Count != 0)
+            files = task.OutputFiles.OrderByDescending(x => x.Format).Select(x => x.Path);
+
+        foreach (var file in files)
+            await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: Path.GetFileNameWithoutExtension(file), task, Api.Client), cancellationToken: cancellationToken);
     }
 
     public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Output && ((MPlusTaskOutputInfo) task.Output).IngesterHost is not null);

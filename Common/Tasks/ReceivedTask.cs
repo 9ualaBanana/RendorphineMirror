@@ -2,11 +2,23 @@
 
 namespace Common.Tasks;
 
-public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ILoggable
+public interface ITaskApi
+{
+    string Id { get; }
+    string? HostShard { get; set; }
+}
+// for use in Telegram or something
+public record ApiTask(string Id) : ITaskApi
+{
+    public string? HostShard { get; set; }
+}
+
+public record ReceivedTask(string Id, TaskInfo Info, bool ExecuteLocally) : ITaskApi, ILoggable
 {
     string ILoggable.LogName => $"Task {Id}";
 
     public string Action => Info.TaskType;
+    public string? HostShard { get; set; }
 
     // 0-1
     public double Progress = 0;

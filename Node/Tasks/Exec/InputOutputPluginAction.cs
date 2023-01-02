@@ -11,7 +11,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
     static async Task<FuncDispose> WaitDisposed(string info, ReceivedTask task, SemaphoreSlim semaphore)
     {
         if (semaphore.CurrentCount == 0)
-            task.LogInfo($"Waiting for the handle: {info}");
+            task.LogInfo($"Waiting for the {info} handle: {semaphore.CurrentCount}");
 
         await semaphore.WaitAsync();
         return FuncDispose.Create(semaphore.Release);
@@ -19,7 +19,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
     protected sealed override async Task Execute(ReceivedTask task, T data)
     {
-        task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.Indented)}");
+        task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.None)}");
 
         if (task.State <= TaskState.Input)
         {
@@ -70,7 +70,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
     {
         if (task.ExecuteLocally) return;
 
-        var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
+        var queryString = $"taskid={task.Id}&shardHost={task.HostShard}&nodename={Settings.NodeName}";
         try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to reepo: " + ex); }
     }

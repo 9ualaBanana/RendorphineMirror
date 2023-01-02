@@ -22,6 +22,7 @@ public class TasksController : ControllerBase
     [HttpPost("result_preview")]
     public async Task<JsonContent> NotifySubscribersAboutResultPreview(
     [FromQuery] string taskId,
+    [FromQuery] string shardHost,
     [FromQuery] string nodeName,
     [FromServices] TelegramBot bot,
     [FromServices] TaskResultsPreviewer taskResultsPreviewer,
@@ -30,13 +31,13 @@ public class TasksController : ControllerBase
     [FromServices] IHttpClientFactory httpClientFactory)
     {
         logger.LogDebug("Received task result preview");
+        var taskApi = new ApiTask(taskId) { HostShard = shardHost };
 
-        var mpItem = await taskResultsPreviewer.GetMyMPItemAsync(taskId, nodeName);
+        var mpItem = await taskResultsPreviewer.GetMyMPItemAsync(taskApi, nodeName);
 
         if (taskRegistry.Remove(taskId, out var authenticationToken))
         {
-            await httpClientFactory.CreateClient()
-                .GetAsync($"{Api.TaskManagerEndpoint}/mytaskstatechanged?sessionid={authenticationToken.MPlus.SessionId}&taskid={taskId}&newstate={TaskState.Finished.ToString().ToLowerInvariant()}");
+            await taskApi.ChangeStateAsync(TaskState.Finished, authenticationToken.MPlus.SessionId).ThrowIfError();
 
             if (mpItem is not null) await mpItem.SendWith(bot, authenticationToken.ChatId);
             else await bot.TrySendMessageAsync(authenticationToken.ChatId, $"Couldn't retrieve the resulting M+ item for ({taskId}).");

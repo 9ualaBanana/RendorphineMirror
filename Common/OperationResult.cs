@@ -1,17 +1,26 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Runtime.CompilerServices;
 
 namespace Common
 {
+    public readonly record struct HttpOperationResult(HttpResponseMessage Response, int? ErrorCode)
+    {
+        public HttpStatusCode StatusCode => Response.StatusCode;
+        public bool IsSuccessStatusCode => (int) StatusCode >= 200 && (int) StatusCode < 300;
+    }
+
     public readonly struct OperationResult
     {
         public readonly bool Success;
         public readonly string? Message;
+        public readonly HttpOperationResult? HttpData { get; init; }
 
         public OperationResult(bool success, string? message)
         {
             Success = success;
             Message = message;
+            HttpData = null;
         }
 
         [MethodImpl(256)] public string AsString() => Message ?? string.Empty;
@@ -24,6 +33,7 @@ namespace Common
         public static OperationResult Err<T>(T obj) where T : notnull => Err(obj.ToString());
         public static OperationResult Err(Exception ex) => new OperationResult(false, ex.Message);
         public static OperationResult<T> Err<T>(string? msg = null) => Err(msg);
+        public static OperationResult Succ() => new OperationResult(true, null);
         public static OperationResult<T> Succ<T>(T value) => new OperationResult<T>(value);
 
         public static OperationResult WrapException(Action func, string? info = null) => WrapException(() => { func(); return true; }, info);
@@ -62,6 +72,7 @@ namespace Common
         public bool Success => EString.Success;
         public string? Message => EString.Message;
         public T Result => Value;
+        public readonly HttpOperationResult? HttpData => EString.HttpData;
 
         public readonly OperationResult EString;
         [AllowNull] public readonly T Value;

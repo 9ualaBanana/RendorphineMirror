@@ -50,8 +50,8 @@ public static class GenerateQSPreviewTasks
                 var argholder = new FFMpegArgsHolder(null);
                 argholder.Filtergraph.Add(graph);
 
-                var ffargs = GetFFMpegArgs(watermarkFile, repeatedWatermarkFile, task, data, argholder);
-                await ExecuteProcess(task.GetPlugin().GetInstance().Path, ffargs, true, delegate { }, task);
+                var ffargs = FFMpegExec.GetFFMpegArgs(watermarkFile, repeatedWatermarkFile, task, false, argholder);
+                await ExecuteProcess(task.GetPlugin().GetInstance().Path, ffargs, delegate { }, task, stderr: LogLevel.Trace);
 
                 return repeatedWatermarkFile;
             }
