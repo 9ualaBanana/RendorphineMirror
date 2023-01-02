@@ -246,7 +246,7 @@ public static class TaskHandler
             var stater = await task.GetTaskStateAsync();
             if (!stater)
             {
-                if (stater.Message!.Contains("There is no task with such ID.", StringComparison.Ordinal))
+                if (stater.Message!.Contains("There is no task with such ID", StringComparison.Ordinal))
                 {
                     stater.LogIfError();
                     task.State = TaskState.Failed;
