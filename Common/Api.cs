@@ -11,6 +11,7 @@ namespace Common
         public const string TaskManagerEndpoint = $"{ServerUri}/rphtaskmgr";
 
         public static readonly HttpClient Client = new();
+        static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
 
         public static ValueTask<OperationResult<T>> ApiGet<T>(this HttpClient client, string url, string? property, string errorDetails, params (string, string)[] values) =>
@@ -60,25 +61,42 @@ namespace Common
 
                 return (property is null ? responseJson.Value : responseJson.Value[property])!.ToObject<T>()!;
             }
-            static async ValueTask<OperationResult<JToken>> readResponse(HttpResponseMessage response, string? errorDetails = null)
+            async ValueTask<OperationResult<JToken>> readResponse(HttpResponseMessage response, string? errorDetails = null)
             {
                 if (!response.IsSuccessStatusCode)
-                    return OperationResult.Err($"{errorDetails}: Server responded with HTTP {response.StatusCode}") with { HttpData = new(response.StatusCode, null) };
+                    return asOpResult(null);
 
                 using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 using var reader = new JsonTextReader(new StreamReader(stream));
-                var responseJson = JToken.Load(reader);
-                var responseStatusCode = responseJson["ok"]?.Value<int>();
-                if (responseStatusCode != 1)
+                return asOpResult(JToken.Load(reader));
+
+
+                OperationResult<JToken> asOpResult(JToken? responseJson)
                 {
-                    var errmsg = responseJson["errormessage"]?.Value<string>();
-                    var errcode = responseJson["errorcode"]?.Value<int>();
+                    var logmsg = $"{(errorDetails is null ? $"{errorDetails} " : string.Empty)}[{url}]";
+                    var retmsg = errorDetails ?? string.Empty;
 
-                    errmsg = $"{errorDetails}: Server responded with HTTP {response.StatusCode} & {errcode} error code: {errmsg ?? "<no message>"}";
-                    return OperationResult.Err(errmsg) with { HttpData = new(response.StatusCode, errcode) };
+                    var ok = responseJson?["ok"]?.Value<int>() == 1;
+                    var errcode = responseJson?["errorcode"]?.Value<int>();
+                    var errmsg = responseJson?["errormessage"]?.Value<string>();
+
+                    if (response.IsSuccessStatusCode && ok)
+                        return new OperationResult<JToken>(OperationResult.Succ() with { HttpData = new(response, null) }, responseJson);
+
+                    if (!response.IsSuccessStatusCode || responseJson is null)
+                    {
+                        logmsg += $": HTTP {response.StatusCode}";
+                        retmsg += $": HTTP {response.StatusCode}";
+                    }
+                    else if (responseJson is not null && errcode != 1)
+                    {
+                        logmsg += $": {responseJson.ToString(Formatting.None)}";
+                        retmsg += $": error {errcode}: {errmsg ?? "<no message>"}";
+                    }
+
+                    Logger.Trace(logmsg);
+                    return OperationResult.Err(retmsg) with { HttpData = new(response, errcode) };
                 }
-
-                return responseJson;
             }
         }
 
