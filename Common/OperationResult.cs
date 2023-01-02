@@ -4,8 +4,9 @@ using System.Runtime.CompilerServices;
 
 namespace Common
 {
-    public readonly record struct HttpOperationResult(HttpStatusCode StatusCode, int? ErrorCode)
+    public readonly record struct HttpOperationResult(HttpResponseMessage Response, int? ErrorCode)
     {
+        public HttpStatusCode StatusCode => Response.StatusCode;
         public bool IsSuccessStatusCode => (int) StatusCode >= 200 && (int) StatusCode < 300;
     }
 
@@ -32,6 +33,7 @@ namespace Common
         public static OperationResult Err<T>(T obj) where T : notnull => Err(obj.ToString());
         public static OperationResult Err(Exception ex) => new OperationResult(false, ex.Message);
         public static OperationResult<T> Err<T>(string? msg = null) => Err(msg);
+        public static OperationResult Succ() => new OperationResult(true, null);
         public static OperationResult<T> Succ<T>(T value) => new OperationResult<T>(value);
 
         public static OperationResult WrapException(Action func, string? info = null) => WrapException(() => { func(); return true; }, info);
@@ -70,6 +72,7 @@ namespace Common
         public bool Success => EString.Success;
         public string? Message => EString.Message;
         public T Result => Value;
+        public readonly HttpOperationResult? HttpData => EString.HttpData;
 
         public readonly OperationResult EString;
         [AllowNull] public readonly T Value;
@@ -138,7 +141,11 @@ namespace Common
 
             return opr;
         }
-        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null) => opr.GetResult().LogIfError(format);
+        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null)
+        {
+            opr.EString.LogIfError();
+            return opr;
+        }
 
 
         #region Next

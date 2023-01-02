@@ -70,7 +70,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
     {
         if (task.ExecuteLocally) return;
 
-        var queryString = $"taskid={task.Id}&nodename={Settings.NodeName}";
+        var queryString = $"taskid={task.Id}&shardHost={task.HostShard}&nodename={Settings.NodeName}";
         try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to reepo: " + ex); }
     }

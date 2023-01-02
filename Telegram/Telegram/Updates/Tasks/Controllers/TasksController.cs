@@ -22,6 +22,7 @@ public class TasksController : ControllerBase
     [HttpPost("result_preview")]
     public async Task<JsonContent> NotifySubscribersAboutResultPreview(
     [FromQuery] string taskId,
+    [FromQuery] string shardHost,
     [FromQuery] string nodeName,
     [FromServices] TelegramBot bot,
     [FromServices] TaskResultsPreviewer taskResultsPreviewer,
@@ -30,8 +31,9 @@ public class TasksController : ControllerBase
     [FromServices] IHttpClientFactory httpClientFactory)
     {
         logger.LogDebug("Received task result preview");
+        var taskApi = new ApiTask(taskId) { HostShard = shardHost };
 
-        var mpItem = await taskResultsPreviewer.GetMyMPItemAsync(taskId, nodeName);
+        var mpItem = await taskResultsPreviewer.GetMyMPItemAsync(taskApi, nodeName);
 
         if (taskRegistry.Remove(taskId, out var authenticationToken))
         {

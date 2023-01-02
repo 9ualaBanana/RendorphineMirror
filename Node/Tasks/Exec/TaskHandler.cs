@@ -104,7 +104,7 @@ public static class TaskHandler
             )
             {
                 task.LogErr(ex.Message + ", removing");
-                (await task.ChangeStateAsync(TaskState.Canceled)).ThrowIfError();
+                (await task.ChangeStateAsync(TaskState.Canceled)).LogIfError();
                 return remove();
             }
 

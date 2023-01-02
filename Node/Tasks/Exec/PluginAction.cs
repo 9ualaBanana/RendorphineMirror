@@ -98,10 +98,29 @@ public abstract class PluginAction<T> : IPluginAction
         EnsureZeroStatusCode(process);
     }
     protected static Task ExecuteProcess(string exepath, IEnumerable<string> args, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null) =>
-        ExecuteProcess(exepath, "", args, onRead, logobj, stdout, stderr);
+        ExecuteProcess(exepath, string.Empty, args, onRead, logobj, stdout, stderr);
     protected static Task ExecuteProcess(string exepath, string args, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null) =>
         ExecuteProcess(exepath, args, Enumerable.Empty<string>(), onRead, logobj, stdout, stderr);
 
+    /// <summary>
+    /// For windows, just returns provided path parameter.
+    /// For unix, returns path for use in wine: /home/user/test -> Z:\home\user\test
+    /// </summary>
+    protected static async ValueTask<string> GetWinPath(string path)
+    {
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT) return path;
+
+        var winpath = string.Empty;
+        await ExecuteProcess("/bin/winepath", string.Empty, new[] { "-w", path }, onread, null, LogLevel.Info, LogLevel.Error);
+        return winpath;
+
+
+        void onread(bool err, string str)
+        {
+            if (!err)
+                winpath += str;
+        }
+    }
     protected static Task ExecuteProcessWithWineSupport(string exepath, string args, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null)
     {
         if (Environment.OSVersion.Platform == PlatformID.Unix && exepath.EndsWith(".exe", StringComparison.Ordinal))
