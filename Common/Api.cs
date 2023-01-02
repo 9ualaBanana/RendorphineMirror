@@ -15,18 +15,18 @@ namespace Common
 
 
         public static ValueTask<OperationResult<T>> ApiGet<T>(this HttpClient client, string url, string? property, string errorDetails, params (string, string)[] values) =>
-            Send<T>(client.JustGet, url, property, values, errorDetails);
+            Send<T>(HttpMethod.Get, client.JustGet, url, property, values, errorDetails);
         public static ValueTask<OperationResult<T>> ApiPost<T>(this HttpClient client, string url, string? property, string errorDetails, params (string, string)[] values) =>
-            Send<T>(client.JustPost, url, property, values, errorDetails);
+            Send<T>(HttpMethod.Post, client.JustPost, url, property, values, errorDetails);
         public static ValueTask<OperationResult<T>> ApiPost<T>(this HttpClient client, string url, string? property, string errorDetails, HttpContent content) =>
-            Send<T, HttpContent>(client.JustPost, url, property, content, errorDetails);
+            Send<T, HttpContent>(HttpMethod.Post, client.JustPost, url, property, content, errorDetails);
 
         public static ValueTask<OperationResult> ApiGet(this HttpClient client, string url, string errorDetails, params (string, string)[] values) =>
-            SendOk(client.JustGet, url, values, errorDetails);
+            SendOk(HttpMethod.Get, client.JustGet, url, values, errorDetails);
         public static ValueTask<OperationResult> ApiPost(this HttpClient client, string url, string errorDetails, params (string, string)[] values) =>
-            SendOk(client.JustPost, url, values, errorDetails);
+            SendOk(HttpMethod.Post, client.JustPost, url, values, errorDetails);
         public static ValueTask<OperationResult> ApiPost(this HttpClient client, string url, string errorDetails, HttpContent content) =>
-            SendOk(client.JustPost, url, content, errorDetails);
+            SendOk(HttpMethod.Post, client.JustPost, url, content, errorDetails);
 
 
         public static ValueTask<OperationResult<T>> ApiGet<T>(string url, string? property, string errorDetails, params (string, string)[] values) =>
@@ -44,11 +44,11 @@ namespace Common
             Client.ApiPost(url, errorDetails, content);
 
 
-        static ValueTask<OperationResult> SendOk<TValues>(Func<string, TValues, Task<HttpResponseMessage>> func, string url, TValues values, string? errorDetails) =>
-            Send<bool, TValues>(func, url, "ok", values, errorDetails).Next(v => new OperationResult(v, null));
-        static ValueTask<OperationResult<T>> Send<T>(Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, string? property, (string, string)[] values, string? errorDetails) =>
-            Send<T, (string, string)[]>(func, url, property, values, errorDetails);
-        static ValueTask<OperationResult<T>> Send<T, TValues>(Func<string, TValues, Task<HttpResponseMessage>> func, string url, string? property, TValues values, string? errorDetails)
+        static ValueTask<OperationResult> SendOk<TValues>(HttpMethod method, Func<string, TValues, Task<HttpResponseMessage>> func, string url, TValues values, string? errorDetails) =>
+            Send<bool, TValues>(method, func, url, "ok", values, errorDetails).Next(v => new OperationResult(v, null));
+        static ValueTask<OperationResult<T>> Send<T>(HttpMethod method, Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, string? property, (string, string)[] values, string? errorDetails) =>
+            Send<T, (string, string)[]>(method, func, url, property, values, errorDetails);
+        static ValueTask<OperationResult<T>> Send<T, TValues>(HttpMethod method, Func<string, TValues, Task<HttpResponseMessage>> func, string url, string? property, TValues values, string? errorDetails)
         {
             return Execute(send);
 
@@ -64,37 +64,49 @@ namespace Common
             async ValueTask<OperationResult<JToken>> readResponse(HttpResponseMessage response, string? errorDetails = null)
             {
                 if (!response.IsSuccessStatusCode)
-                    return asOpResult(null);
+                    return await asOpResult(null);
 
                 using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 using var reader = new JsonTextReader(new StreamReader(stream));
-                return asOpResult(JToken.Load(reader));
+                return await asOpResult(JToken.Load(reader));
 
 
-                OperationResult<JToken> asOpResult(JToken? responseJson)
+                async ValueTask<OperationResult<JToken>> asOpResult(JToken? responseJson)
                 {
-                    var logmsg = $"{(errorDetails is null ? $"{errorDetails} " : string.Empty)}[{url}]";
+                    var logmsg = $"{(errorDetails is null ? $"{errorDetails} " : string.Empty)}[{method.Method} {url} ";
+
+                    logmsg += values switch
+                    {
+                        (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + x.Item2)),
+                        FormUrlEncodedContent fcontent => await fcontent.ReadAsStringAsync(),
+                        _ => null,
+                    };
+                    logmsg += "]";
+
                     var retmsg = errorDetails ?? string.Empty;
 
                     var ok = responseJson?["ok"]?.Value<int>() == 1;
                     var errcode = responseJson?["errorcode"]?.Value<int>();
                     var errmsg = responseJson?["errormessage"]?.Value<string>();
 
-                    if (response.IsSuccessStatusCode && ok)
-                        return new OperationResult<JToken>(OperationResult.Succ() with { HttpData = new(response, null) }, responseJson);
 
                     if (!response.IsSuccessStatusCode || responseJson is null)
                     {
                         logmsg += $": HTTP {response.StatusCode}";
                         retmsg += $": HTTP {response.StatusCode}";
                     }
-                    else if (responseJson is not null && errcode != 1)
+                    else if (!ok)
                     {
                         logmsg += $": {responseJson.ToString(Formatting.None)}";
                         retmsg += $": error {errcode}: {errmsg ?? "<no message>"}";
                     }
 
                     Logger.Trace(logmsg);
+
+
+                    if (response.IsSuccessStatusCode && ok)
+                        return new OperationResult<JToken>(OperationResult.Succ() with { HttpData = new(response, null) }, responseJson);
+
                     return OperationResult.Err(retmsg) with { HttpData = new(response, errcode) };
                 }
             }
