@@ -80,8 +80,8 @@ namespace Common
                     var errcode = responseJson?["errorcode"]?.Value<int>();
                     var errmsg = responseJson?["errormessage"]?.Value<string>();
 
-                    //if (response.IsSuccessStatusCode && ok)
-                    //    return new OperationResult<JToken>(OperationResult.Succ() with { HttpData = new(response, null) }, responseJson);
+                    if (response.IsSuccessStatusCode && ok)
+                        return new OperationResult<JToken>(OperationResult.Succ() with { HttpData = new(response, null) }, responseJson);
 
                     if (!response.IsSuccessStatusCode || responseJson is null)
                     {
@@ -91,7 +91,7 @@ namespace Common
                     else if (responseJson is not null && errcode != 1)
                     {
                         logmsg += $": {responseJson.ToString(Formatting.None)}";
-                        retmsg += $": error {errcode ?? 0}: {errmsg ?? "<no message>"}";
+                        retmsg += $": error {errcode}: {errmsg ?? "<no message>"}";
                     }
 
                     Logger.Trace(logmsg);
