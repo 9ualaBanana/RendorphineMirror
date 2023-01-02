@@ -6,6 +6,7 @@ internal static class Logging
 {
     readonly static string _layout = $"${{time:universalTime=true}} ${{pad:padding=-7:inner=[${{level:uppercase=true}}]}} ${{message:withException=true:exceptionSeparator=\n\n}}";
 
+
     internal static void Configure(bool isDebug)
     {
         LogManager.AutoShutdown = true;
