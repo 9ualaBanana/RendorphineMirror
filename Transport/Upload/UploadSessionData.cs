@@ -152,8 +152,7 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
             Endpoint.Segments.Last(),
             property: null,
             string.Empty,
-            HttpContent))
-        .Result;
+            HttpContent)).ThrowIfError();
 
         return new(
             this,
