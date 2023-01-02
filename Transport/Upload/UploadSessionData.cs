@@ -83,7 +83,7 @@ public class MPlusUploadSessionData : UploadSessionData
     }
 
     public MPlusUploadSessionData(FileInfo file, string? sessionId = default)
-        : base(new Uri(new Uri(Api.TaskManagerEndpoint), "initselfmpoutput"), file)
+        : base(new Uri(new Uri(Api.TaskManagerEndpoint+'/'), "initselfmpoutput"), file)
     {
         _sessionId = sessionId;
     }
