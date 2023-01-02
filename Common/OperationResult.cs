@@ -141,7 +141,11 @@ namespace Common
 
             return opr;
         }
-        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null) => opr.GetResult().LogIfError(format);
+        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null)
+        {
+            opr.EString.LogIfError();
+            return opr;
+        }
 
 
         #region Next
