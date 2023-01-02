@@ -4,5 +4,6 @@
 public enum ImageProcessingQueryFlags
 {
     UploadImage = 1,
-    UpscaleImage
+    UpscaleImage = 2,
+    VectorizeImage = 4,
 }

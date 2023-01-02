@@ -1,10 +1,11 @@
 using System.Net;
+using _3DProductsPublish;
+using _3DProductsPublish._3DModelDS;
+using _3DProductsPublish.CGTrader._3DModelComponents;
+using _3DProductsPublish.CGTrader.Network;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Node.Profiling;
-using Transport.Upload._3DModelsUpload;
-using Transport.Upload._3DModelsUpload.CGTrader;
-using Transport.Upload._3DModelsUpload.CGTrader._3DModelComponents;
 
 namespace Node.Listeners;
 
@@ -70,11 +71,11 @@ public class LocalListener : ExecutableListenerBase
         {
             return await Test(request, response, "username", "password", "directory", "meta", async (username, password, dir, metastr) =>
             {
-                var meta = JsonConvert.DeserializeObject<CGTrader3DModelMetadata>(metastr).ThrowIfNull();
-                var model = Composite3DModel.FromDirectory(dir, meta);
+                var meta = JsonConvert.DeserializeObject<CGTrader3DProductMetadata>(metastr).ThrowIfNull();
+                var model = _3DProduct.FromDirectory(dir, meta);
                 var cred = new CGTraderNetworkCredential(username, password, false);
 
-                await _3DModelUploader.UploadAsync(Client, cred, model);
+                await _3DProductPublisher.PublishAsync(model, cred);
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }

@@ -47,6 +47,12 @@ public class TelegramImageHandler : TelegramUpdateHandler
                 InlineKeyboardButton.WithCallbackData(
                     "Upscale and upload to M+",
                     ImageProcessingCallbackData.Serialize(ImageProcessingQueryFlags.UpscaleImage | ImageProcessingQueryFlags.UploadImage, key))
+            },
+            new InlineKeyboardButton[]
+            {
+                InlineKeyboardButton.WithCallbackData(
+                    "Vectorize and upload to M+",
+                    ImageProcessingCallbackData.Serialize(ImageProcessingQueryFlags.VectorizeImage | ImageProcessingQueryFlags.UploadImage, key))
             }
         });
     }

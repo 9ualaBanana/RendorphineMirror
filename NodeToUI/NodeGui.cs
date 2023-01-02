@@ -13,6 +13,7 @@ public static class NodeGui
         GuiRequestTypes = new Dictionary<string, Type>()
         {
             ["captcharesponse"] = typeof(CaptchaRequest),
+            ["inputresponse"] = typeof(InputRequest),
         }.ToImmutableDictionary();
 
         GuiRequestNames = GuiRequestTypes.ToImmutableDictionary(x => x.Value, x => x.Key);
