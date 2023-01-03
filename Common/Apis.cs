@@ -189,7 +189,7 @@ public static class Apis
 
     /// <summary> Send current task progress to the server </summary>
     public static ValueTask<OperationResult> SendTaskProgressAsync(this ReceivedTask task, string? sessionId = default) =>
-        task.ShardGet($"{Api.TaskManagerEndpoint}/mytaskprogress", "Sending task progress",
+        task.ShardGet("mytaskprogress", "Sending task progress",
             ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", task.Id), ("curstate", task.State.ToString().ToLowerInvariant()), ("progress", task.Progress.ToString()));
 
 
