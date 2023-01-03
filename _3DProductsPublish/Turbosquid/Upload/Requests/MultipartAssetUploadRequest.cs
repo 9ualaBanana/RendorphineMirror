@@ -6,6 +6,8 @@ namespace _3DProductsPublish.Turbosquid.Upload.Requests;
 
 internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
 {
+    internal const int MaxPartSize = 5242880;
+
     readonly FileStream _asset;
     readonly HttpRequestMessage _initializingUploadIdRequest;
     readonly int _partsCount;
@@ -129,8 +131,6 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
 
     class AssetPartUploadRequest : HttpRequestMessage
     {
-        const int _MaxPartSize = 5242880;
-
         readonly MemoryStream _content;
 
         internal static async Task<AssetPartUploadRequest> CreateAsyncFor(
@@ -141,8 +141,8 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
             string uploadId,
             CancellationToken cancellationToken)
         {
-            var content = new MemoryStream(_MaxPartSize);
-            await asset.CopyAtMostAsync(content, _MaxPartSize, cancellationToken: cancellationToken);
+            var content = new MemoryStream(MaxPartSize);
+            await asset.CopyAtMostAsync(content, MaxPartSize, cancellationToken: cancellationToken);
             content.Position = 0;
             var requestUri = new UriBuilder(uploadEndpoint) { Query = $"partNumber={partNumber}&uploadId={uploadId}" }.Uri;
 
