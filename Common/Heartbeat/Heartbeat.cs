@@ -6,6 +6,7 @@ public class Heartbeat : IDisposable
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
+    readonly IHeartbeatGenerator? _generator;
     readonly HttpRequestMessage _request;
     readonly Timer _timer;
     readonly HttpClient _httpClient;
@@ -35,7 +36,7 @@ public class Heartbeat : IDisposable
         : this(heartbeatGenerator, interval.TotalMilliseconds, httpClient, cancellationToken)
     {
     }
-    
+
     public Heartbeat(
         IHeartbeatGenerator heartbeatGenerator,
         double interval,
@@ -43,6 +44,7 @@ public class Heartbeat : IDisposable
         CancellationToken cancellationToken = default)
         : this(heartbeatGenerator.Request, interval, httpClient, cancellationToken)
     {
+        _generator = heartbeatGenerator;
         ResponseReceived += heartbeatGenerator.ResponseHandler;
     }
 
@@ -100,7 +102,7 @@ public class Heartbeat : IDisposable
 
     async Task<HttpResponseMessage> SendHeartbeatAsync()
     {
-        var response = await _httpClient.SendAsync(new(_request.Method, _request.RequestUri) { Content = _request.Content }, _cancellationToken);
+        var response = await _httpClient.SendAsync(new(_request.Method, _request.RequestUri) { Content = _generator?.Content ?? _request.Content }, _cancellationToken);
         response.EnsureSuccessStatusCode();
         return response;
     }
@@ -110,7 +112,7 @@ public class Heartbeat : IDisposable
         GC.SuppressFinalize(this);
 
         _timer?.Close();
-        
+
         _logger.Debug("{Service} for {Url} is stopped", nameof(Heartbeat), _request.RequestUri);
     }
 }

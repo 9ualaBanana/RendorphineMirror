@@ -13,6 +13,7 @@ internal class PluginsUpdater : IHeartbeatGenerator
 
     #region IHeartbeatGenerator
     public HttpRequestMessage Request => new(HttpMethod.Get, BuildUrl());
+    public HttpContent? Content => null;
     bool _deploymentInProcess = false;
     public EventHandler<HttpResponseMessage> ResponseHandler => async (_, response) =>
     {

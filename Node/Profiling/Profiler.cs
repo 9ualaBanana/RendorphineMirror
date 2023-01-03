@@ -14,7 +14,7 @@ internal static class Profiler
         return new FuncDispose(() => HeartbeatLocked = false);
     }
 
-    internal static async Task<HttpContent> RunAsync()
+    internal static async Task<HttpContent> GetAsync()
     {
         if (Benchmark.ShouldBeRun)
             await Benchmark.RunAsync(1 * 1024 * 1024 * 1024).ConfigureAwait(false);
