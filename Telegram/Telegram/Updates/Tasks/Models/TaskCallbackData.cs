@@ -1,6 +1,4 @@
-﻿using Telegram.Telegram.Updates;
-
-namespace Telegram.Telegram.Updates.Tasks.Models;
+﻿namespace Telegram.Telegram.Updates.Tasks.Models;
 
 public record TaskCallbackData : TelegramCallbackData<TaskQueryFlags>
 {

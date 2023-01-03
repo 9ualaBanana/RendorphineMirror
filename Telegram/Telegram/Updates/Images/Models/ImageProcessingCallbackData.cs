@@ -2,7 +2,7 @@
 
 public record ImageProcessingCallbackData : MediaFileProcessingCallbackData<ImageProcessingQueryFlags>
 {
-    internal override IContentType ContentType => new ImageContentType();
+    internal override IContentType ContentType => IContentType.Image;
 
 
     public ImageProcessingCallbackData(string callbackData)

@@ -2,7 +2,7 @@
 
 public record VideoProcessingCallbackData : MediaFileProcessingCallbackData<VideoProcessingQueryFlags>
 {
-    internal override IContentType ContentType => new VideoContentType();
+    internal override IContentType ContentType => IContentType.Video;
 
 
     public VideoProcessingCallbackData(string callbackData)

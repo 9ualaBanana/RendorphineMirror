@@ -11,6 +11,7 @@ public static class MediaFileProcessingExtensions
             .AddScoped<TelegramImageHandler>()
             .AddScoped<TelegramVideoHandler>()
             .AddScoped<ImageProcessingCallbackQueryHandler>()
+            .AddScoped<VectorizerCallbackQueryHandler>()
             .AddScoped<VideoProcessingCallbackQueryHandler>()
             .AddSingleton<TaskRegistry>()
             .AddSingleton<TelegramFileRegistry>()

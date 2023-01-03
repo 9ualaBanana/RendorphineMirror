@@ -13,6 +13,7 @@ public class TelegramCallbackQueryHandler : TelegramUpdateHandler
 {
     readonly MessageChunkerCallbackQueryHandler _messageChunkerHandler;
     readonly ImageProcessingCallbackQueryHandler _imageProcessingHandler;
+    readonly VectorizerCallbackQueryHandler _vectorizerHandler;
     readonly VideoProcessingCallbackQueryHandler _videoProcessingHandler;
     readonly TaskCallbackQueryHandler _taskHandler;
 
@@ -22,11 +23,13 @@ public class TelegramCallbackQueryHandler : TelegramUpdateHandler
         TelegramBot bot,
         MessageChunkerCallbackQueryHandler messageChunkerHandler,
         ImageProcessingCallbackQueryHandler imageProcessingHandler,
+        VectorizerCallbackQueryHandler vectorizerHandler,
         VideoProcessingCallbackQueryHandler videoProcessingHandler,
         TaskCallbackQueryHandler taskHandler) : base(logger, bot)
     {
         _messageChunkerHandler = messageChunkerHandler;
         _imageProcessingHandler = imageProcessingHandler;
+        _vectorizerHandler = vectorizerHandler;
         _videoProcessingHandler = videoProcessingHandler;
         _taskHandler = taskHandler;
     }
@@ -42,6 +45,8 @@ public class TelegramCallbackQueryHandler : TelegramUpdateHandler
         { await _messageChunkerHandler.HandleAsync(update); return; }
         if (ImageProcessingCallbackData.Matches(callbackQuery.Data!))
         { await _imageProcessingHandler.HandleAsync(update); return; }
+        if (VectorizerCallbackData.Matches(callbackQuery.Data!))
+        { await _vectorizerHandler.HandleAsync(update); return; }
         if (VideoProcessingCallbackData.Matches(callbackQuery.Data!))
         { await _videoProcessingHandler.HandleAsync(update); return; }
         if (TaskCallbackData.Matches(callbackQuery.Data!))
