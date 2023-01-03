@@ -32,7 +32,7 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
     protected override async ValueTask Tick()
     {
         // fetch new items only if there is less than N ptasks pending
-        const int taskFetchingThreshold = 50 - 1;
+        const int taskFetchingThreshold = 100 - 1;
 
         if (Task.PlacedNonCompletedTasks.Count > taskFetchingThreshold)
             return;
