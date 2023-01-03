@@ -14,6 +14,7 @@ public class TaskCreationInfo
     public TaskPolicy Policy = TaskPolicy.AllNodes;
     public bool ExecuteLocally = false;
     public TaskObject? TaskObject = null;
+    public double PriceMultiplication = 1;
 
     [JsonConstructor]
     public TaskCreationInfo() { }

@@ -9,6 +9,8 @@ public static class TaskRegistration
 
     public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, string? sessionId = default)
     {
+        if (info.PriceMultiplication < 1) return OperationResult.Err("Could not create task with price multiplication being less than 1");
+
         var data = info.Data;
         var input = TaskModels.DeserializeInput(info.Input);
         var output = TaskModels.DeserializeOutput(info.Output);
@@ -26,6 +28,7 @@ public static class TaskRegistration
             ("data", data.ToString(Formatting.None)),
             ("policy", info.Policy.ToString()),
             ("origin", string.Empty),
+            ("pricemul", (info.PriceMultiplication - (info.PriceMultiplication % .1)).ToString()),
         };
         if (info.Version is not null)
         {
