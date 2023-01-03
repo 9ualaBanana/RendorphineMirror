@@ -12,6 +12,7 @@ public class TaskReceiver : ListenerBase
 
     protected override async ValueTask Execute(HttpListenerContext context)
     {
+        if (!NodeSettings.AcceptTasks.Value) return;
         if (context.Request.HttpMethod != "POST") return;
 
         using var response = context.Response;

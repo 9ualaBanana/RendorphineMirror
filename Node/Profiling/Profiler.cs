@@ -30,6 +30,17 @@ internal static class Profiler
         _cachedProfile ??= await Profile.CreateDefault();
         Benchmark.UpdateValues(_cachedProfile.Hardware);
 
+        if (NodeSettings.AcceptTasks.Value)
+        {
+            if (_cachedProfile.AllowedTypes.Count == 0)
+                _cachedProfile.AllowedTypes = await Profile.BuildDefaultAllowedTypes();
+        }
+        else
+        {
+            if (_cachedProfile.AllowedTypes.Count != 0)
+                _cachedProfile.AllowedTypes.Clear();
+        }
+
         var payloadContent = new Dictionary<string, string>()
         {
             ["sessionid"] = Settings.SessionId!,

@@ -10,6 +10,7 @@ public static class NodeSettings
     public static readonly DatabaseValueDictionary<string, DbTaskFullState> PlacedTasks;
     public static readonly DatabaseValueDictionary<string, CompletedTask> CompletedTasks;
     public static readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
+    public static readonly DatabaseValue<bool> AcceptTasks;
 
     static NodeSettings()
     {
@@ -17,6 +18,7 @@ public static class NodeSettings
         WatchingTasks = new(nameof(WatchingTasks), t => t.Id);
         PlacedTasks = new(nameof(PlacedTasks), t => t.Id);
         CompletedTasks = new(nameof(CompletedTasks), t => t.TaskInfo.Id);
+        AcceptTasks = new(nameof(AcceptTasks), true);
 
         try { BenchmarkResult = new(nameof(BenchmarkResult), default); }
         catch
