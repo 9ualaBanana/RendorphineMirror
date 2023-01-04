@@ -7,12 +7,14 @@ public class MpItem
 {
     readonly JToken _jsonElement;
     readonly string _executorNodeName;
+    readonly string _downloadUri;
 
 
-    internal MpItem(JToken mpItem, string executorNodeName)
+    internal MpItem(JToken mpItem, string executorNodeName, string downloadUri)
     {
         _jsonElement = mpItem;
         _executorNodeName = executorNodeName;
+        _downloadUri = downloadUri;
     }
 
 
@@ -31,6 +33,6 @@ public class MpItem
         await taskResultPreview.SendWith(bot, chatId);
     }
 
-    internal VideoPreview AsVideoPreview => new(_jsonElement, _executorNodeName);
-    internal ImagePreview AsImagePreview => new(_jsonElement, _executorNodeName);
+    internal VideoPreview AsVideoPreview => new(_jsonElement, _executorNodeName, _downloadUri);
+    internal ImagePreview AsImagePreview => new(_jsonElement, _executorNodeName, _downloadUri);
 }

@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
 using Telegram.Bot.Types;
-using Telegram.Telegram;
 
 namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
 
@@ -17,8 +16,10 @@ internal abstract class TaskResultPreview
 
     public string ExecutorNodeName;
 
+    protected string Caption;
 
-    internal TaskResultPreview(JToken mpItem, string executorNodeName)
+
+    internal TaskResultPreview(JToken mpItem, string executorNodeName, string downloadUri)
     {
         var basicMetadata = mpItem["metadata"]!["basic"]!;
         Title = (string)basicMetadata["title"]!;
@@ -31,9 +32,9 @@ internal abstract class TaskResultPreview
         ThumbnailBigUrl = (string)mpItem["nowmpreviewurl"]!;
 
         ExecutorNodeName = executorNodeName;
+
+        Caption = $"{Title}\n\nDownload link: {downloadUri}\n\nNode: *{ExecutorNodeName}*\nTask ID: *{TaskId}*\nM+ IID: *{MpIid}*";
     }
 
-
-    protected string Caption => $"{Title}\n\nNode: {ExecutorNodeName}\nTask ID: *{TaskId}*\nM+ IID: *{MpIid}*";
     internal abstract Task SendWith(TelegramBot bot, ChatId chatId);
 }

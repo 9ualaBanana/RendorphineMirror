@@ -37,7 +37,13 @@ public class TaskResultsPreviewer
 
             mpItem = mpItem["item"]!;
             if ((string)mpItem["state"]! == "received")
-            { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new MpItem(mpItem, executorNodeName); }
+            {
+                _logger.LogDebug("mympitem is received:\n{Json}", mpItem);
+                string downloadUri;
+                try { downloadUri = (await taskApi.GetMPlusItemDownloadLinkAsync(iid, authenticationToken.MPlus.SessionId)).ThrowIfError(); }
+                catch { return null; }
+                return new MpItem(mpItem, executorNodeName, downloadUri);
+            }
             else Thread.Sleep(2000);
         }
     }

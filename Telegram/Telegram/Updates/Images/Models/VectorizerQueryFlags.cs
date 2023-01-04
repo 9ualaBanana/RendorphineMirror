@@ -3,5 +3,5 @@
 [Flags]
 public enum VectorizerQueryFlags
 {
-    Vectorize = 1,
+    V = 1,
 }

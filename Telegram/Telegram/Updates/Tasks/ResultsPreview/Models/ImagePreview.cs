@@ -9,7 +9,8 @@ internal class ImagePreview : TaskResultPreview
     public int Height;
 
 
-    public ImagePreview(JToken mpItem, string executorNodeName) : base(mpItem, executorNodeName)
+    public ImagePreview(JToken mpItem, string executorNodeName, string downloadUri)
+        : base(mpItem, executorNodeName, downloadUri)
     {
         var imageDimensions = mpItem["media"]!["jpeg"]!;
         Width = (int)imageDimensions["width"]!;

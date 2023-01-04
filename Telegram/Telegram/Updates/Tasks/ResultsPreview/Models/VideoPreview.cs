@@ -17,7 +17,8 @@ internal class VideoPreview : TaskResultPreview
     public string WebmUrl;
 
 
-    public VideoPreview(JToken mpItem, string executorNodeName) : base(mpItem, executorNodeName)
+    public VideoPreview(JToken mpItem, string executorNodeName, string downloadUri)
+        : base(mpItem, executorNodeName, downloadUri)
     {
         var videoPreview = mpItem["videopreview"]!;
         Width = (int)videoPreview["width"]!;

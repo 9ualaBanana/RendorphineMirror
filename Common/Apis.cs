@@ -227,4 +227,8 @@ public static class Apis
     public static ValueTask<OperationResult<ImmutableDictionary<string, SoftwareDefinition>>> GetSoftwareAsync() =>
         LocalApi.Send<ImmutableDictionary<string, SoftwareDefinition>>(Settings.RegistryUrl, "getsoft")
             .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
+
+    public static async Task<OperationResult<string>> GetMPlusItemDownloadLinkAsync(this ITaskApi taskApi, string iid, string? sessionId = default) =>
+        await taskApi.ShardGet<string>("getmplusitemdownloadlink", "link", "Getting M+ item download link", new (string, string)[]
+        { ("sessionid", sessionId ?? Settings.SessionId!), ("iid", iid), ("format", "jpeg"), ("original", "1") });
 }

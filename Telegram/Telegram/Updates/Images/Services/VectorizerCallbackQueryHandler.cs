@@ -42,7 +42,7 @@ public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHa
         MediaFileProcessingCallbackData<T> mediaFileProcessingCallbackData,
         string mediaFilePath)
     {
-        if (mediaFileProcessingCallbackData.Value.HasFlag(VectorizerQueryFlags.Vectorize))
+        if (mediaFileProcessingCallbackData.Value.HasFlag(VectorizerQueryFlags.V))
             await VectorizeAndUploadToMPlusAsync(ChatIdFrom(update), (mediaFileProcessingCallbackData as VectorizerCallbackData)!, authenticationToken);
     }
 

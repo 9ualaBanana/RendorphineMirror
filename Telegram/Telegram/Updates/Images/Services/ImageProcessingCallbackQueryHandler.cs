@@ -9,8 +9,6 @@ using Telegram.Telegram.Updates.Images.Models;
 using Telegram.Telegram.Updates.Tasks.Models;
 using Telegram.Telegram.Updates.Tasks.Services;
 using Common.Plugins;
-using Common.Tasks.Info;
-using Newtonsoft.Json.Linq;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
@@ -72,38 +70,23 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
 
     async Task VectorizeAndUploadToMPlusAsync(ChatId chatId, ImageProcessingCallbackData imageCallbackData)
     {
-        await Bot.TrySendMessageAsync(chatId, "Please, choose a polygonality of the resulting image.",
+        await Bot.TrySendMessageAsync(chatId, "Choose preferred level of details for the resulting image.",
             new InlineKeyboardMarkup(new InlineKeyboardButton[][]
             {
                 new InlineKeyboardButton[]
                 {
-                    InlineKeyboardButton.WithCallbackData("500", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 500)),
-                    InlineKeyboardButton.WithCallbackData("750", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 750))
+                    InlineKeyboardButton.WithCallbackData("◭10000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 10000)),
+                    InlineKeyboardButton.WithCallbackData("◮8500", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 8500))
                 },
                 new InlineKeyboardButton[]
                 {
-                    InlineKeyboardButton.WithCallbackData("1000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 1000)),
-                    InlineKeyboardButton.WithCallbackData("1250", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 1250))
+                    InlineKeyboardButton.WithCallbackData("◭7000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 7000)),
+                    InlineKeyboardButton.WithCallbackData("◮4000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 4000))
                 },
                 new InlineKeyboardButton[]
                 {
-                    InlineKeyboardButton.WithCallbackData("1500", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 1500)),
-                    InlineKeyboardButton.WithCallbackData("1750", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 1750))
-                },
-                new InlineKeyboardButton[]
-                {
-                    InlineKeyboardButton.WithCallbackData("2000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 2000)),
-                    InlineKeyboardButton.WithCallbackData("2250", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 2250))
-                },
-                new InlineKeyboardButton[]
-                {
-                    InlineKeyboardButton.WithCallbackData("2500", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 2500)),
-                    InlineKeyboardButton.WithCallbackData("3000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 3000))
-                },
-                new InlineKeyboardButton[]
-                {
-                    InlineKeyboardButton.WithCallbackData("5000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 5000)),
-                    InlineKeyboardButton.WithCallbackData("7000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.Vectorize, imageCallbackData.FileRegistryKey, 7000))
+                    InlineKeyboardButton.WithCallbackData("◭2000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 2000)),
+                    InlineKeyboardButton.WithCallbackData("◮500", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 500))
                 }
             }));
     }
