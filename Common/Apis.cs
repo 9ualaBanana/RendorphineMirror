@@ -136,6 +136,10 @@ public static class Apis
     }
 
 
+    public static async ValueTask<OperationResult<ImmutableArray<string>>> GetShardListAsync(string? sessionId = default) =>
+        await Api.ApiGet<ImmutableArray<string>>($"{Api.TaskManagerEndpoint}/getshardlist", "list", "Getting shards list", ("sessionid", sessionId ?? Settings.SessionId!));
+
+
     /*
     TODO: change to shards:
 
@@ -195,29 +199,42 @@ public static class Apis
 
 
 
-    /// <returns> ALL user tasks by state, might take a while </returns>
-    public static async ValueTask<OperationResult<ImmutableArray<DbTaskFullState>>> GetAllMyTasksAsync(TaskState state, string? sessionId = default)
+    /// <returns> ALL user tasks by states, might take a while </returns>
+    public static ValueTask<OperationResult<Dictionary<TaskState, List<DbTaskFullState>>>> GetAllMyTasksAsync(TaskState[] states, string? sessionId = default)
     {
-        return await OperationResult.WrapException(async () => (await next(null)).ToImmutableArray().AsOpResult());
+        return GetShardListAsync(sessionId)
+            .Next(shards => OperationResult.WrapException(() => states.Select(async state => (state, (await next(shards,state, null)).ToList()).AsOpResult()).MergeDictResults()));
 
 
-        async ValueTask<IEnumerable<DbTaskFullState>> next(string? afterid)
+        async ValueTask<IEnumerable<DbTaskFullState>> next(ImmutableArray<string> shards, TaskState state, string? afterId)
         {
-            var tasks = (await GetMyTasksAsync(state, afterid, sessionId)).ThrowIfError();
-            if (tasks.Length == 0) return tasks;
+            var tasks = await GetMyTasksAsync(shards, state, afterId, sessionId).ThrowIfError();
+            if (tasks.Count <= 1) return tasks;
 
-            return tasks.Concat(await next(tasks.Max(x => x.Id)));
+            return tasks.Concat(await next(shards, state, tasks.Max(x => x.Id)));
         }
     }
 
-    /// <inheritdoc cref="GetMyTasksAsync(TaskState, string?, string?)"/>
-    public static async ValueTask<OperationResult<ImmutableArray<DbTaskFullState>>> GetMyTasksAsync(TaskState[] states, string? afterId = null, string? sessionId = default) =>
-        (await Task.WhenAll(states.Select(async s => await GetMyTasksAsync(s, afterId, sessionId)))).MergeResults().Next(x => x.SelectMany(x => x).ToImmutableArray().AsOpResult());
+    /// <returns> User tasks by state, up to 500 per state </returns>
+    public static ValueTask<OperationResult<List<DbTaskFullState>>> GetMyTasksAsync(TaskState[] states, string? afterId = null, string? sessionId = default) =>
+        GetShardListAsync(sessionId)
+            .Next(shards => states.Select(async state => await GetMyTasksAsync(shards, state, afterId, sessionId)).MergeArrResults());
 
     /// <returns> User tasks by state, up to 500 </returns>
-    public static ValueTask<OperationResult<ImmutableArray<DbTaskFullState>>> GetMyTasksAsync(TaskState state, string? afterId = null, string? sessionId = default) =>
-        Api.ApiGet<ImmutableArray<DbTaskFullState>>($"{Api.TaskManagerEndpoint}/gettasklist", "list", "Getting task list",
-            ("sessionid", sessionId ?? Settings.SessionId!), ("state", state.ToString().ToLowerInvariant()), ("afterid", afterId ?? string.Empty), ("alltasks", "0"));
+    static ValueTask<OperationResult<List<DbTaskFullState>>> GetMyTasksAsync(TaskState state, string? afterId = null, string? sessionId = default) =>
+        GetShardListAsync(sessionId)
+            .Next(shards => GetMyTasksAsync(shards, state, afterId, sessionId));
+
+    /// <inheritdoc cref="GetMyTasksAsync(TaskState, string?, string?)"/>
+    static async ValueTask<OperationResult<List<DbTaskFullState>>> GetMyTasksAsync(IReadOnlyCollection<string> shards, TaskState state, string? afterId = null, string? sessionId = default)
+    {
+        var getfunc = (string shard) => Api.ApiGet<List<DbTaskFullState>>($"https://{shard}/rphtasklauncher/gettasklist", "list", "Getting task list",
+            ("sessionid", sessionId ?? Settings.SessionId!), ("state", state.ToString().ToLowerInvariant()), ("afterid", afterId ?? string.Empty));
+
+        return await shards.Select(async shard => await getfunc(shard)).MergeArrResults();
+    }
+
+
 
     public static ValueTask<OperationResult<ImmutableArray<NodeInfo>>> GetMyNodesAsync(string? sessionid = null) =>
         Api.ApiGet<ImmutableArray<NodeInfo>>($"{TaskManagerEndpoint}/getmynodes", "nodes", "Getting my nodes", ("sessionid", sessionid ?? Settings.SessionId!));

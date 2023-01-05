@@ -119,17 +119,7 @@ logger.Info(@$"Tasks found
     {NodeSettings.QueuedTasks.Count} queued
     {NodeSettings.PlacedTasks.Count} placed
     {NodeSettings.PlacedTasks.Values.Count(x => !x.State.IsFinished())} non-finished placed
-".TrimLines().Replace("\n", "; "));
-
-
-
-Task.WhenAll(Enum.GetValues<TaskState>().Select(s => Apis.GetMyTasksAsync(s).Then(x => (s, x).AsOpResult()).AsTask()))
-    .Then(items =>
-    {
-        logger.Info($"Server tasks: {string.Join(", ", items.Select(oplistr => $"{oplistr.ThrowIfError().s}: {oplistr.ThrowIfError().x.ThrowIfError().Length}"))}");
-        return true;
-    })
-    .AsTask().Consume();
+".TrimLines().Replace("\n", "; ").Replace("\r", string.Empty));
 
 
 TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;

@@ -300,20 +300,45 @@ namespace Common
 
             return true;
         }
-        public static OperationResult<T[]> MergeResults<T>(this IEnumerable<OperationResult<T>> results)
-        {
-            List<T> output;
-            if (results.TryGetNonEnumeratedCount(out var count)) output = new(count);
-            else output = new();
 
+        static OperationResult MergeResults<TIn>(this IEnumerable<OperationResult<TIn>> results, Action<TIn> func)
+        {
             foreach (var result in results)
             {
                 if (!result) return result.EString;
-                output.Add(result.Value);
+                func(result.Value);
             }
 
-            return output.ToArray();
+            return true;
         }
+        static OperationResult<List<TOut>> MergeResults<TOut, TIn>(this IEnumerable<OperationResult<TIn>> results, Action<List<TOut>, TIn> func)
+        {
+            List<TOut> output;
+            if (results.TryGetNonEnumeratedCount(out var count)) output = new(count);
+            else output = new();
+
+            return results
+                .MergeResults(result => func(output, result))
+                .Next(() => output.AsOpResult());
+        }
+        public static OperationResult<List<T>> MergeResults<T>(this IEnumerable<OperationResult<T>> results) =>
+            results.MergeResults<T, T>((output, value) => output.Add(value));
+        public static OperationResult<List<T>> MergeArrResults<T>(this IEnumerable<OperationResult<List<T>>> results) =>
+            results.MergeResults<T, List<T>>((output, value) => output.AddRange(value));
+        public static OperationResult<Dictionary<TKey, TVal>> MergeDictResults<TKey, TVal>(this IEnumerable<OperationResult<(TKey key, TVal value)>> results) where TKey : notnull
+        {
+            var dict = new Dictionary<TKey, TVal>();
+            return results
+                .MergeResults(value => dict[value.key] = value.value)
+                .Next(() => dict.AsOpResult());
+        }
+
+        public static async ValueTask<OperationResult<List<T>>> MergeResults<T>(this IEnumerable<Task<OperationResult<T>>> results) =>
+            (await Task.WhenAll(results)).MergeResults();
+        public static async ValueTask<OperationResult<List<T>>> MergeArrResults<T>(this IEnumerable<Task<OperationResult<List<T>>>> results) =>
+            (await Task.WhenAll(results)).MergeArrResults();
+        public static async ValueTask<OperationResult<Dictionary<TKey, TVal>>> MergeDictResults<TKey, TVal>(this IEnumerable<Task<OperationResult<(TKey key, TVal value)>>> results) where TKey : notnull =>
+            (await Task.WhenAll(results)).MergeDictResults();
 
         #endregion
     }
