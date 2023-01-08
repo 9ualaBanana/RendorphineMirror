@@ -1,9 +1,12 @@
-﻿using Newtonsoft.Json;
+﻿using Benchmark;
+using Newtonsoft.Json;
 
 namespace Node.Profiling;
 
 internal static class Profiler
 {
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
     static bool HeartbeatLocked = false;
     static Profile? _cachedProfile;
 
@@ -17,7 +20,10 @@ internal static class Profiler
     internal static async Task<HttpContent> GetAsync()
     {
         if (Benchmark.ShouldBeRun)
+        {
+            _logger.Info("Benchmark version: {Version}", BenchmarkMetadata.Version);
             await Benchmark.RunAsync(1 * 1024 * 1024 * 1024).ConfigureAwait(false);
+        }
 
         while (HeartbeatLocked)
             await Task.Delay(100);
