@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Newtonsoft.Json.Linq;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Telegram;
 
 namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
@@ -33,5 +34,5 @@ internal class VideoPreview : TaskResultPreview
 
 
     internal override async Task SendWith(TelegramBot bot, ChatId chatId) =>
-        await bot.TrySendVideoAsync(chatId, Mp4Url, ThumbnailMediumUrl, Caption, Width, Height);
+        await bot.TrySendVideoAsync(chatId, Mp4Url, ThumbnailMediumUrl, Caption, Width, Height, DownloadButton);
 }

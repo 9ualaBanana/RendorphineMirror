@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
 

@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
 
@@ -18,6 +19,8 @@ internal abstract class TaskResultPreview
 
     protected string Caption;
 
+    protected InlineKeyboardMarkup DownloadButton;
+
 
     internal TaskResultPreview(JToken mpItem, string executorNodeName, string downloadUri)
     {
@@ -33,7 +36,8 @@ internal abstract class TaskResultPreview
 
         ExecutorNodeName = executorNodeName;
 
-        Caption = $"{Title}\n\nDownload link: {downloadUri}\n\nNode: *{ExecutorNodeName}*\nTask ID: *{TaskId}*\nM+ IID: *{MpIid}*";
+        Caption = $"{Title}\n\nNode: *{ExecutorNodeName}*\nTask ID: *{TaskId}*\nM+ IID: *{MpIid}*";
+        DownloadButton = new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("Download", downloadUri));
     }
 
     internal abstract Task SendWith(TelegramBot bot, ChatId chatId);

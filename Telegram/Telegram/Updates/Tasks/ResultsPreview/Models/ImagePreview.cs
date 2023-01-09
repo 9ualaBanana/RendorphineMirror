@@ -19,5 +19,5 @@ internal class ImagePreview : TaskResultPreview
 
 
     internal override async Task SendWith(TelegramBot bot, ChatId chatId) =>
-        await bot.TrySendImageAsync(chatId, ThumbnailMediumUrl, Caption);
+        await bot.TrySendImageAsync(chatId, ThumbnailMediumUrl, Caption, DownloadButton);
 }
