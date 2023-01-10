@@ -100,7 +100,6 @@ public static class TaskHandler
             catch (Exception ex) when (
                 ex is NodeTaskFailedException
                 || ex.Message.Contains("Invalid old task state", StringComparison.OrdinalIgnoreCase)
-                || ex.Message.Contains("no task with such ", StringComparison.OrdinalIgnoreCase)
             )
             {
                 task.LogErr(ex.Message + ", removing");
@@ -250,15 +249,7 @@ public static class TaskHandler
             var stater = await task.GetTaskStateAsync();
             if (!stater)
             {
-                if (stater.Message!.Contains("There is no task with such ID", StringComparison.Ordinal))
-                {
-                    stater.LogIfError();
-                    task.State = TaskState.Failed;
-
-                    return true;
-                }
-
-                stater.ThrowIfError();
+                stater.LogIfError();
                 return false;
             }
 
