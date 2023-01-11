@@ -332,12 +332,25 @@ namespace Common
                 .MergeResults(value => dict[value.key] = value.value)
                 .Next(() => dict.AsOpResult());
         }
+        public static OperationResult<Dictionary<TKey, TVal>> MergeDictResults<TKey, TVal>(this IEnumerable<OperationResult<Dictionary<TKey, TVal>>> results) where TKey : notnull
+        {
+            var dict = new Dictionary<TKey, TVal>();
+            return results
+                .MergeResults(dic =>
+                {
+                    foreach (var (key, value) in dic)
+                        dict[key] = value;
+                })
+                .Next(() => dict.AsOpResult());
+        }
 
         public static async ValueTask<OperationResult<List<T>>> MergeResults<T>(this IEnumerable<Task<OperationResult<T>>> results) =>
             (await Task.WhenAll(results)).MergeResults();
         public static async ValueTask<OperationResult<List<T>>> MergeArrResults<T>(this IEnumerable<Task<OperationResult<List<T>>>> results) =>
             (await Task.WhenAll(results)).MergeArrResults();
         public static async ValueTask<OperationResult<Dictionary<TKey, TVal>>> MergeDictResults<TKey, TVal>(this IEnumerable<Task<OperationResult<(TKey key, TVal value)>>> results) where TKey : notnull =>
+            (await Task.WhenAll(results)).MergeDictResults();
+        public static async ValueTask<OperationResult<Dictionary<TKey, TVal>>> MergeDictResults<TKey, TVal>(this IEnumerable<Task<OperationResult<Dictionary<TKey, TVal>>>> results) where TKey : notnull =>
             (await Task.WhenAll(results)).MergeDictResults();
 
         #endregion

@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Web;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NodeCommon;
@@ -94,7 +97,6 @@ public static class Apis
     /// <inheritdoc cref="GetTaskShardAsync"/>
     public static async ValueTask<OperationResult> UpdateTaskShardAsync(this ITaskApi task, string? sessionId = default) =>
         await Api.Client.UpdateTaskShardAsync(task, sessionId);
-
     /// <inheritdoc cref="GetTaskShardAsync"/>
     public static ValueTask<OperationResult> UpdateTaskShardAsync(this HttpClient httpClient, ITaskApi task, string? sessionId = default) =>
         httpClient.GetTaskShardAsync(task.Id, sessionId)
@@ -108,7 +110,7 @@ public static class Apis
     /// <summary> Get shard host for a task. Might take a long time to process. Should never return an error, but who knows... </summary>
     public static async ValueTask<OperationResult<string>> GetTaskShardAsync(string taskid, string? sessionId = default) =>
         await Api.Client.GetTaskShardAsync(taskid, sessionId);
-
+    /// <inheritdoc cref="GetTaskShardAsync"/>
     public static async ValueTask<OperationResult<string>> GetTaskShardAsync(this HttpClient httpClient, string taskid, string? sessionId = default)
     {
         var shard = await httpClient.ApiGet<string>($"{Api.TaskManagerEndpoint}/gettaskshard", "host", "Getting task shard", ("sessionid", sessionId ?? Settings.SessionId!), ("taskid", taskid));
@@ -138,6 +140,76 @@ public static class Apis
 
     public static async ValueTask<OperationResult<ImmutableArray<string>>> GetShardListAsync(string? sessionId = default) =>
         await Api.ApiGet<ImmutableArray<string>>($"{Api.TaskManagerEndpoint}/getshardlist", "list", "Getting shards list", ("sessionid", sessionId ?? Settings.SessionId!));
+
+    public static async ValueTask<OperationResult<Dictionary<string, string>>> GetTaskShardsAsync(IEnumerable<string> taskids, string? sessionId = default) =>
+        await Api.Client.GetTaskShardsAsync(taskids, sessionId);
+    public static async ValueTask<OperationResult<Dictionary<string, string>>> GetTaskShardsAsync(this HttpClient httpClient, IEnumerable<string> taskids, string? sessionId = default)
+    {
+        var idstojson = (IEnumerable<string> ids) => HttpUtility.UrlEncode(JsonConvert.SerializeObject(ids));
+        var sel = async (IEnumerable<string> ids) => await httpClient.ApiGet<Dictionary<string, string>>($"{Api.TaskManagerEndpoint}/gettaskshards", "hosts", "Getting tasks shards",
+            ("sessionid", sessionId ?? Settings.SessionId!), ("taskids", idstojson(ids)));
+
+        return await taskids.Chunk(100)
+            .Select(sel)
+            .MergeDictResults();
+    }
+
+    public static async ValueTask<OperationResult> UpdateTaskShardsAsync(IEnumerable<DbTaskFullState> tasks, string? sessionId = default) =>
+        await Api.Client.UpdateTaskShardsAsync(tasks, sessionId);
+    public static async ValueTask<OperationResult> UpdateTaskShardsAsync(this HttpClient httpClient, IEnumerable<DbTaskFullState> tasks, string? sessionId = default)
+    {
+        const int maxmin = 5;
+
+        var tasksdict = tasks.ToDictionary(x => x.Id);
+        tasks = null!;
+
+        var start = true;
+        var sw = Stopwatch.StartNew();
+        while (true)
+        {
+            if (start) start = false;
+            else await Task.Delay(10_000);
+
+            if (tasksdict.Count == 0) return true;
+            if (sw.Elapsed.TotalMinutes > maxmin)
+                return OperationResult.Err("Could not get all tasks shards");
+
+            var shards = await httpClient.GetTaskShardsAsync(tasksdict.Keys, sessionId);
+            shards.LogIfError();
+            if (!shards) continue;
+
+            foreach (var (id, shard) in shards.Value)
+            {
+                tasksdict[id].HostShard = shard;
+                tasksdict.Remove(id);
+            }
+        }
+    }
+
+    /// <returns> Input and Active tasks on a shard </returns>
+    public static async ValueTask<OperationResult<TMTasksStateInfo>> GetTasksOnShardAsync(string shardhost, string? sessionId = default) =>
+        await Api.Client.GetTasksOnShardAsync(shardhost, sessionId);
+    /// <inheritdoc cref="GetTasksOnShardAsync(string, string)"/>
+    public static async ValueTask<OperationResult<TMTasksStateInfo>> GetTasksOnShardAsync(this HttpClient httpClient, string shardhost, string? sessionId = default) =>
+        await httpClient.ApiGet<TMTasksStateInfo>($"https://{shardhost}/rphtasklauncher/getmytasksinfo", null, "Getting shard tasks", ("sessionid", sessionId ?? Settings.SessionId!));
+    public record TMTasksStateInfo(ImmutableArray<TMTaskStateInfo> Input, ImmutableArray<TMTaskStateInfo> Active, ImmutableArray<TMTaskStateInfo> Output,
+        int QueueSize, double AvgWaitTime, string ScGuid);
+    public record TMTaskStateInfo(string Id, double Progress);
+
+    /// <returns> Output, Finished, Failed and Canceled tasks </returns>
+    public static async ValueTask<OperationResult<Dictionary<string, TMOldTaskStateInfo>>> GetFinishedTasksStatesAsync(IEnumerable<string> taskids, string? sessionId = default) =>
+        await Api.Client.GetFinishedTasksStatesAsync(taskids, sessionId);
+    /// <inheritdoc cref="GetFinishedTasksStatesAsync"/>
+    public static async ValueTask<OperationResult<Dictionary<string, TMOldTaskStateInfo>>> GetFinishedTasksStatesAsync(this HttpClient httpClient, IEnumerable<string> taskids, string? sessionId = default)
+    {
+        var sel = async (IEnumerable<string> ids) => await httpClient.ApiPost<Dictionary<string, TMOldTaskStateInfo>>($"{Api.TaskManagerEndpoint}/gettasksstate", "tasks", "Getting finished tasks states",
+            ("sessionid", sessionId ?? Settings.SessionId!), ("taskids", JsonConvert.SerializeObject(ids)));
+
+        return await taskids.Chunk(100)
+            .Select(sel)
+            .MergeDictResults();
+    }
+    public record TMOldTaskStateInfo(string Id, TaskState State, [property: JsonConverter(typeof(TaskOutputJsonConverter))] ITaskOutputInfo? Output, string? ErrMsg);
 
 
     /*
