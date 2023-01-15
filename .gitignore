@@ -1,3 +1,6 @@
+*subscriptions.*
+*appsettings*.json
+*botsettings*.json
 *.pfx
 *.swp
 *.*~

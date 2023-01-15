@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using Microsoft.Extensions.Options;
+using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -11,30 +12,29 @@ namespace Telegram.Telegram;
 
 public class TelegramBot : TelegramBotClient
 {
-    ILogger _logger = null!;
+    ILogger _logger;
+
     TelegramMessageChunker? _textChunker;
+
+    readonly TelegramBotOptions _options;
 
 
     public Subscriptions Subscriptions = new("subscriptions.txt");
     readonly public HttpClient HttpClient;
 
-    public TelegramBot(string token, HttpClient? httpClient = null)
-        : base(token, httpClient)
+    public TelegramBot(IOptions<TelegramBotOptions> options, ILogger<TelegramBot> logger) : base(options.Value.Token)
     {
-        HttpClient = httpClient ?? new HttpClient();
+        _options = options.Value;
+        _logger = logger;
     }
 
-    internal static async Task<TelegramBot> Initialize(string token, string webhookHost)
+    /// <summary>
+    /// Must be called before <see cref="WebApplication.Run(string?)"/>.
+    /// </summary>
+    internal async Task InitializeAsync()
     {
-        var bot = new TelegramBot(token);
-        await bot.SetWebhookAsync($"{webhookHost}/telegram");
-        return bot;
-    }
-
-    internal TelegramBot UseLoggerFrom(IServiceProvider serviceProvider)
-    {
-        _logger = serviceProvider.GetRequiredService<ILogger<TelegramBot>>();
-        return this;
+        await this.SetWebhookAsync($"{_options.Host}/telegram");
+        _logger.LogDebug("Webhook for {Url} is set.", _options.Host);
     }
 
     internal TelegramBot UseMessageChunkerFrom(IServiceProvider serviceProvider)
