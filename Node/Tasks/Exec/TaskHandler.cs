@@ -217,12 +217,13 @@ public static class TaskHandler
         async ValueTask fail(string message)
         {
             task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {message}");
+            await task.FailTaskAsync(message).ThrowIfError();
+
             task.LogInfo($"Deleting {task.FSInputDirectory()} {task.FSOutputDirectory()}");
             Directory.Delete(task.FSInputDirectory(), true);
             Directory.Delete(task.FSOutputDirectory(), true);
 
             NodeSettings.QueuedTasks.Remove(task);
-            await task.FailTaskAsync(message).ThrowIfError();
         }
     }
     static async ValueTask<bool> RemoveQueuedIfFinished(this ReceivedTask task)
