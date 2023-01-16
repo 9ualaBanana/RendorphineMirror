@@ -1,5 +1,4 @@
 using System.Runtime.Serialization;
-using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Exec;
 
@@ -28,7 +27,7 @@ public static class TaskHandler
                 var timeout = DateTime.Now.AddMinutes(5);
                 while (timeout > DateTime.Now)
                 {
-                    var state = await task.GetTaskStateAsync();
+                    var state = await ApisInstance.Default.NoErrors().GetTaskStateAsync(task);
                     if (state && state.Value is not null)
                     {
                         task.State = state.Value.State;
@@ -38,6 +37,7 @@ public static class TaskHandler
                     await Task.Delay(2_000);
                 }
 
+                if (timeout > DateTime.Now) task.ThrowFailed("Could not get shard info for 5 min");
                 if (task.State > TaskState.Input) return;
 
                 try
@@ -86,36 +86,22 @@ public static class TaskHandler
         { IsBackground = true }.Start();
 
 
-        void populatestate(DbTaskFullState task, Apis.TMTaskStateInfo info)
-        {
-            task.Progress = info.Progress;
-        }
-        void populateoldstate(DbTaskFullState task, Apis.TMOldTaskStateInfo info)
-        {
-            task.State = info.State;
-            if (info.Output is not null)
-                JsonSettings.Default.Populate(JObject.FromObject(info.Output).CreateReader(), task.Output);
-        }
-        void populateserver(DbTaskFullState task, Apis.ServerTaskState info)
-        {
-            task.State = info.State;
-            task.Progress = info.Progress;
-            task.Times = info.Times;
-            // task.Server = info.Server;
-
-            if (info.Output is not null)
-                JsonSettings.Default.Populate(JObject.FromObject(info.Output).CreateReader(), task.Output);
-        }
-
         async ValueTask checkAll()
         {
             if (NodeSettings.PlacedTasks.Count == 0) return;
 
             var copy = NodeSettings.PlacedTasks.Values.ToArray();
             await Apis.UpdateTaskShardsAsync(copy.Where(x => x.HostShard is null)).ThrowIfError();
-            copy = copy.Where(x => x.HostShard is not null).ToArray();// TODO: what if shard config changed HM??????
+            copy = copy.Where(x => x.HostShard is not null).ToArray(); // TODO: what if shard config changed HM??????
 
+            // TODO: too many copying
             var active = await Apis.GetTasksOnShardsAsync(copy.Select(x => x.HostShard!).Distinct()).ThrowIfError();
+            foreach (var tasks in active.GroupBy(x => x.state))
+            {
+                var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.info.Id, out var task) && x.state != task.State);
+                Logger.Info($"Tasks changed to {tasks.Key}: {string.Join(", ", changed.Select(x => x.info.Id))}");
+            }
+
             foreach (var (key, state) in active)
             {
                 if (!NodeSettings.PlacedTasks.TryGetValue(state.Id, out var task)) continue;
@@ -124,12 +110,9 @@ public static class TaskHandler
                     task.LogInfo($"Placed task state changed to {key}");
 
                 task.State = key;
-                populatestate(task, state);
+                task.Populate(state);
                 if (task.State == TaskState.Output)
-                {
-                    var tstate = await task.GetTaskStateAsyncOrThrow().ThrowIfError();
-                    populateserver(task, tstate);
-                }
+                    task.Populate(await task.GetTaskStateAsyncOrThrow().ThrowIfError());
 
                 try { await check(task, null); }
                 catch (NodeTaskFailedException ex)
@@ -140,14 +123,20 @@ public static class TaskHandler
                 catch (Exception ex) { task.LogErr(ex); }
             }
 
-            var finished = await Apis.GetFinishedTasksStatesAsync(copy.Select(x => x.Id).Except(active.Select(x => x.Value.Id))).ThrowIfError();
+            var finished = await Apis.GetFinishedTasksStatesAsync(copy.Select(x => x.Id).Except(active.Select(x => x.info.Id))).ThrowIfError();
+            foreach (var tasks in finished.GroupBy(x => x.Key))
+            {
+                var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.Key, out var task) && x.Value.State != task.State);
+                Logger.Info($"Tasks changed to {tasks.Key}: {string.Join(", ", changed.Select(x => x.Value.Id))}");
+            }
+
             foreach (var (id, state) in finished)
             {
                 var task = NodeSettings.PlacedTasks[id];
                 if (task.State != state.State)
                     task.LogInfo($"Placed task state changed to {state.State}");
 
-                populateoldstate(task, state);
+                task.Populate(state);
                 try { await check(task, state.ErrMsg); }
                 catch (NodeTaskFailedException ex)
                 {
@@ -267,12 +256,13 @@ public static class TaskHandler
         async ValueTask fail(string message)
         {
             task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {message}");
+            await task.FailTaskAsync(message).ThrowIfError();
+
             task.LogInfo($"Deleting {task.FSInputDirectory()} {task.FSOutputDirectory()}");
             Directory.Delete(task.FSInputDirectory(), true);
             Directory.Delete(task.FSOutputDirectory(), true);
 
             NodeSettings.QueuedTasks.Remove(task);
-            await task.FailTaskAsync(message).ThrowIfError();
         }
         async ValueTask<bool> isFinishedOnServer()
         {

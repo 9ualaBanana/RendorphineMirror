@@ -52,4 +52,21 @@ public static class ReceivedTaskExtensions
 
 
     public static bool IsFromSameNode(this TaskBase task) => NodeSettings.QueuedTasks.ContainsKey(task.Id) && NodeSettings.PlacedTasks.ContainsKey(task.Id);
+    public static void Populate(this DbTaskFullState task, Apis.TMTaskStateInfo info) => task.Progress = info.Progress;
+    public static void Populate(this DbTaskFullState task, Apis.TMOldTaskStateInfo info)
+    {
+        task.State = info.State;
+        if (info.Output is not null)
+            JsonSettings.Default.Populate(JObject.FromObject(info.Output).CreateReader(), task.Output);
+    }
+    public static void Populate(this DbTaskFullState task, Apis.ServerTaskState info)
+    {
+        task.State = info.State;
+        task.Progress = info.Progress;
+        task.Times = info.Times;
+        // task.Server = info.Server;
+
+        if (info.Output is not null)
+            JsonSettings.Default.Populate(JObject.FromObject(info.Output).CreateReader(), task.Output);
+    }
 }

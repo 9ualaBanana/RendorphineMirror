@@ -7,6 +7,7 @@ namespace NodeCommon;
 
 public static class Apis
 {
+    public static ApisInstance Default => ApisInstance.Default;
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
     const string TaskManagerEndpoint = Api.TaskManagerEndpoint;
@@ -224,17 +225,17 @@ public static class Apis
     public static async ValueTask<OperationResult<TMTasksStateInfo>> GetTasksOnShardAsync(this HttpClient httpClient, string shardhost, string? sessionId = default) =>
         await httpClient.ApiGet<TMTasksStateInfo>($"https://{shardhost}/rphtasklauncher/getmytasksinfo", null, "Getting shard tasks", ("sessionid", sessionId ?? Settings.SessionId!));
 
-    public static async ValueTask<OperationResult<ImmutableDictionary<TaskState, TMTaskStateInfo>>> GetTasksOnShardsAsync(IEnumerable<string> shards, string? sessionId = default) =>
+    public static async ValueTask<OperationResult<(TaskState state, TMTaskStateInfo info)[]>> GetTasksOnShardsAsync(IEnumerable<string> shards, string? sessionId = default) =>
         await Api.Client.GetTasksOnShardsAsync(shards, sessionId);
-    public static async ValueTask<OperationResult<ImmutableDictionary<TaskState, TMTaskStateInfo>>> GetTasksOnShardsAsync(this HttpClient httpClient, IEnumerable<string> shards, string? sessionId = default)
+    public static async ValueTask<OperationResult<(TaskState state, TMTaskStateInfo info)[]>> GetTasksOnShardsAsync(this HttpClient httpClient, IEnumerable<string> shards, string? sessionId = default)
     {
         var result = await shards.Select(async shard => await httpClient.GetTasksOnShardAsync(shard, sessionId)).MergeResults();
         if (!result) return result.GetResult();
 
-        var itasks = result.Value.SelectMany(x => x.Input).Select(x => KeyValuePair.Create(TaskState.Input, x));
-        var atasks = result.Value.SelectMany(x => x.Active).Select(x => KeyValuePair.Create(TaskState.Active, x));
-        var otasks = result.Value.SelectMany(x => x.Output).Select(x => KeyValuePair.Create(TaskState.Output, x));
-        return itasks.Concat(atasks).Concat(otasks).ToImmutableDictionary();
+        var itasks = result.Value.SelectMany(x => x.Input).Select(x => (TaskState.Input, x));
+        var atasks = result.Value.SelectMany(x => x.Active).Select(x => (TaskState.Active, x));
+        var otasks = result.Value.SelectMany(x => x.Output).Select(x => (TaskState.Output, x));
+        return itasks.Concat(atasks).Concat(otasks).ToArray();
     }
     public record TMTasksStateInfo(ImmutableArray<TMTaskStateInfo> Input, ImmutableArray<TMTaskStateInfo> Active, ImmutableArray<TMTaskStateInfo> Output, int QueueSize, double AvgWaitTime, string ScGuid);
     public record TMTaskStateInfo(string Id, double Progress);
