@@ -6,7 +6,7 @@ public record ScriptPluginDeploymentInfo(PluginToDeploy Plugin) : PluginDeployme
 
     public override async Task DeployAsync(bool deleteInstaller = true)
     {
-        var software = (await Apis.GetSoftwareAsync()).ThrowIfError();
+        var software = await Apis.Default.GetSoftwareAsync().ThrowIfError();
 
         foreach (var plugin in Plugin.SelfAndSubPlugins)
         {

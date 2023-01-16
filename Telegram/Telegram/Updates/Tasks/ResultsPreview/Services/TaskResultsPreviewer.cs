@@ -43,9 +43,9 @@ public class TaskResultsPreviewer
 
     static async Task<OperationResult<string>> GetTaskOutputIidAsync(ITaskApi taskApi, string sessionId)
     {
-        return await Apis.GetTaskStateAsyncOrThrow(taskApi, sessionId)
+        return await Apis.Default.WithSessionId(sessionId).GetTaskStateAsyncOrThrow(taskApi)
             .Next(taskinfo => ((MPlusTaskOutputInfo) taskinfo.Output).IngesterHost?.AsOpResult() ?? OperationResult.Err("Could not find ingester host"))
-            .Next(ingester => Api.ApiGet<string>($"https://{ingester}/content/vcupload/getiid", "iid", "Getting output iid", ("extid", taskApi.Id)))
+            .Next(ingester => Api.Default.ApiGet<string>($"https://{ingester}/content/vcupload/getiid", "iid", "Getting output iid", ("extid", taskApi.Id)))
             .ConfigureAwait(false);
     }
 }

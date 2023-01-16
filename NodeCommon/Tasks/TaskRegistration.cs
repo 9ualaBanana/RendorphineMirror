@@ -50,7 +50,7 @@ public static class TaskRegistration
         }
 
         _logger.Info("Registering task: {Task}", string.Join("; ", values.Skip(1).Select(x => x.Item1 + ": " + x.Item2)));
-        var idr = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
+        var idr = await Api.Default.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
         if (!idr) return idr.GetResult();
 
         _logger.Info("Task registered with ID {Id}", idr.Value);

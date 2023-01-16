@@ -27,7 +27,7 @@ public static class TaskHandler
                 var timeout = DateTime.Now.AddMinutes(5);
                 while (timeout > DateTime.Now)
                 {
-                    var state = await ApisInstance.Default.NoErrors().GetTaskStateAsync(task);
+                    var state = await Apis.Default.WithNoErrorLog().GetTaskStateAsync(task);
                     if (state && state.Value is not null)
                     {
                         task.State = state.Value.State;
@@ -37,7 +37,7 @@ public static class TaskHandler
                     await Task.Delay(2_000);
                 }
 
-                if (timeout > DateTime.Now) task.ThrowFailed("Could not get shard info for 5 min");
+                if (timeout < DateTime.Now) task.ThrowFailed("Could not get shard info for 5 min");
                 if (task.State > TaskState.Input) return;
 
                 try
@@ -91,15 +91,15 @@ public static class TaskHandler
             if (NodeSettings.PlacedTasks.Count == 0) return;
 
             var copy = NodeSettings.PlacedTasks.Values.ToArray();
-            await Apis.UpdateTaskShardsAsync(copy.Where(x => x.HostShard is null)).ThrowIfError();
+            await Apis.Default.UpdateTaskShardsAsync(copy.Where(x => x.HostShard is null)).ThrowIfError();
             copy = copy.Where(x => x.HostShard is not null).ToArray(); // TODO: what if shard config changed HM??????
 
             // TODO: too many copying
-            var active = await Apis.GetTasksOnShardsAsync(copy.Select(x => x.HostShard!).Distinct()).ThrowIfError();
+            var active = await Apis.Default.GetTasksOnShardsAsync(copy.Select(x => x.HostShard!).Distinct()).ThrowIfError();
             foreach (var tasks in active.GroupBy(x => x.state))
             {
-                var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.info.Id, out var task) && x.state != task.State);
-                Logger.Info($"Tasks changed to {tasks.Key}: {string.Join(", ", changed.Select(x => x.info.Id))}");
+                var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.info.Id, out var task) && x.state != task.State).ToArray();
+                if (changed.Length != 0) Logger.Info($"Tasks changed to {tasks.Key}: {string.Join(", ", changed.Select(x => x.info.Id))}");
             }
 
             foreach (var (key, state) in active)
@@ -123,11 +123,11 @@ public static class TaskHandler
                 catch (Exception ex) { task.LogErr(ex); }
             }
 
-            var finished = await Apis.GetFinishedTasksStatesAsync(copy.Select(x => x.Id).Except(active.Select(x => x.info.Id))).ThrowIfError();
+            var finished = await Apis.Default.GetFinishedTasksStatesAsync(copy.Select(x => x.Id).Except(active.Select(x => x.info.Id))).ThrowIfError();
             foreach (var tasks in finished.GroupBy(x => x.Key))
             {
-                var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.Key, out var task) && x.Value.State != task.State);
-                Logger.Info($"Tasks changed to {tasks.Key}: {string.Join(", ", changed.Select(x => x.Value.Id))}");
+                var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.Key, out var task) && x.Value.State != task.State).ToArray();
+                if (changed.Length != 0) Logger.Info($"Tasks changed to {tasks.Key}: {string.Join(", ", changed.Select(x => x.Value.Id))}");
             }
 
             foreach (var (id, state) in finished)
@@ -219,6 +219,7 @@ public static class TaskHandler
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
 
+                NodeSettings.CompletedTasks.Remove(task.Id);
                 NodeSettings.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt });
 
                 task.LogInfo($"Completed, removing");

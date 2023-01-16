@@ -21,7 +21,7 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
             var downloadLink = await task.ShardGet<string>("gettaskinputdownloadlink", "link", "Getting m+ input download link",
                 ("taskid", task.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"));
 
-            using var inputStream = await Api.Download(downloadLink.ThrowIfError());
+            using var inputStream = await Api.Default.Download(downloadLink.ThrowIfError());
             using var file = File.Open(task.FSNewInputFile(format), FileMode.Create, FileAccess.Write);
             await inputStream.CopyToAsync(file, cancellationToken);
         }

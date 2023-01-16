@@ -10,7 +10,7 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
     {
         var info = (DownloadLinkTaskInputInfo) task.Input;
 
-        using var data = await Api.Get(info.Url);
+        using var data = await Api.Default.Get(info.Url);
         if (info.Url.Contains("t.microstock.plus") && data.StatusCode == HttpStatusCode.NotFound)
             task.ThrowFailed("Got 404 when trying to get image from the reepo");
 

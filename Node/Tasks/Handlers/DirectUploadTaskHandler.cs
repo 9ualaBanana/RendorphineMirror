@@ -79,7 +79,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
                             { new StringContent(file == files[^1] ? "1" : "0"), "last" },
                         };
 
-                        var post = await Api.ApiPost($"{server.Host}/rphtaskexec/uploadinput", $"Uploading input files for task {task.Id}", content);
+                        var post = await Api.Default.ApiPost($"{server.Host}/rphtaskexec/uploadinput", $"Uploading input files for task {task.Id}", content);
                         post.ThrowIfError();
                         task.LogInfo($"Task files uploaded");
                     }
@@ -107,7 +107,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         if (task.IsFromSameNode()) return;
 
         var info = (DirectUploadTaskOutputInfo) task.Output;
-        using var result = await Api.Get($"{server.Host}/rphtaskexec/downloadoutput?taskid={task.Id}");
+        using var result = await Api.Default.Get($"{server.Host}/rphtaskexec/downloadoutput?taskid={task.Id}");
 
         var zipfile = task.GetTempFileName("zip");
         using var _ = new FuncDispose(() => File.Delete(zipfile));

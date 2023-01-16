@@ -15,7 +15,7 @@ public class MPlusTaskInputInfo : ITaskInputInfo
 
     public async ValueTask<TaskObject> GetFileInfo()
     {
-        var datar = await Api.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info", ("sessionid", Settings.SessionId), ("userid", TUid ?? Settings.UserId), ("iids", $"[\"{Iid}\"]"));
+        var datar = await Api.Default.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info", ("sessionid", Settings.SessionId), ("userid", TUid ?? Settings.UserId), ("iids", $"[\"{Iid}\"]"));
         var data = datar.ThrowIfError()[Iid];
 
         return new TaskObject(data.Files.File.FileName, data.Files.File.Size);

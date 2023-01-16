@@ -12,7 +12,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskHandler<OtherUserWatchin
     public override void StartListening() => Start().Consume();
     async Task Start()
     {
-        var node = (await Apis.GetNodeAsync(Input.NodeId)).ThrowIfError();
+        var node = await Apis.Default.GetNodeAsync(Input.NodeId).ThrowIfError();
         var url = $"http://{node.Info.Ip}:{node.Info.Port}";
         var path = $"dirdiff?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(Input.Directory)}";
 
@@ -33,7 +33,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskHandler<OtherUserWatchin
 
             foreach (var file in files)
             {
-                var download = await Api.Download($"{url}/download?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(file.Path)}");
+                var download = await Api.Default.Download($"{url}/download?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(file.Path)}");
 
                 var fsfile = Path.Combine(Task.FSDataDirectory(), Path.GetFileName(file.Path));
                 using (var writer = File.OpenWrite(fsfile))

@@ -97,7 +97,7 @@ public abstract class ListenerBase
             if (CachedAuthentications.TryGetValue(sid, out var cached))
                 return cached;
 
-            var nodes = await Apis.GetMyNodesAsync(sid).ConfigureAwait(false);
+            var nodes = await Apis.Default.WithSessionId(sid).GetMyNodesAsync().ConfigureAwait(false);
             if (!nodes) return false;
 
             var theiruserid = nodes.Result.Select(x => x.UserId).FirstOrDefault();
