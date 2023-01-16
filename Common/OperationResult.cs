@@ -113,22 +113,19 @@ namespace Common
         public static Task<T> AsTask<T>(this T value) => Task.FromResult(value);
         public static ValueTask<OperationResult<T>> AsTaskResult<T>(this T value) => value.AsOpResult().AsVTask();
 
-        public static OperationResult ThrowIfError(in this OperationResult opr, string? format = null)
+        public static void ThrowIfError(in this OperationResult opr, string? format = null)
         {
-            if (!opr)
-            {
-                if (format is not null) throw new Exception(string.Format(format, opr.AsString()));
-                else throw new Exception(opr.AsString());
-            }
+            if (opr) return;
 
-            return opr;
+            if (format is not null) throw new Exception(string.Format(format, opr.AsString()));
+            else throw new Exception(opr.AsString());
         }
         public static T ThrowIfError<T>(in this OperationResult<T> opr, string? format = null)
         {
             opr.GetResult().ThrowIfError(format);
             return opr.Value;
         }
-        public static async ValueTask<OperationResult> ThrowIfError(this ValueTask<OperationResult> opr, string? format = null) => (await opr).ThrowIfError();
+        public static async ValueTask ThrowIfError(this ValueTask<OperationResult> opr, string? format = null) => (await opr).ThrowIfError();
         public static async ValueTask<T> ThrowIfError<T>(this ValueTask<OperationResult<T>> opr, string? format = null) => (await opr).ThrowIfError();
 
         public static OperationResult LogIfError(in this OperationResult opr, string? format = null)

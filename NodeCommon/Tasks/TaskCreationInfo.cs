@@ -12,7 +12,6 @@ public class TaskCreationInfo
     public JObject Output = default!;
     public JObject Data = default!;
     public TaskPolicy Policy = TaskPolicy.AllNodes;
-    public bool ExecuteLocally = false;
     public TaskObject? TaskObject = null;
     public double PriceMultiplication = 1;
 

@@ -29,7 +29,6 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
             await task.GetInputHandler().Download(task).ConfigureAwait(false);
             task.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}");
 
-            await task.ChangeStateAsync(TaskState.Active);
             NodeSettings.QueuedTasks.Save(task);
         }
         else task.LogInfo($"Input seems to be already downloaded");
@@ -68,8 +67,6 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
     static async Task NotifyReepoOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        if (task.ExecuteLocally) return;
-
         var queryString = $"taskid={task.Id}&shardHost={task.HostShard}&nodename={Settings.NodeName}";
         try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to reepo: " + ex); }

@@ -43,7 +43,7 @@ public class TaskListener : ExecutableListenerBase
         if (path == "start")
         {
             var task = new JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-            var taskid = await TaskHandler.RegisterOrExecute(task);
+            var taskid = await TaskRegistration.RegisterAsync(task);
 
             return await WriteJson(response, taskid).ConfigureAwait(false);
         }
@@ -53,7 +53,7 @@ public class TaskListener : ExecutableListenerBase
             var input = TaskModels.DeserializeWatchingInput(task.Input);
             var output = TaskModels.DeserializeWatchingOutput(task.Output);
 
-            var wt = new WatchingTask(task.Action, task.Data, input, output, task.Policy, task.Version, task.ExecuteLocally);
+            var wt = new WatchingTask(task.Action, task.Data, input, output, task.Policy, task.Version);
             wt.StartWatcher();
             NodeSettings.WatchingTasks.Add(wt);
 

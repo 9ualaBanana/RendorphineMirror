@@ -161,13 +161,17 @@ namespace NodeCommon
                 using var query = ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", Name));
                 if (!query.Read()) return;
 
-                Bindable.LoadFromJson(JToken.Parse(query.GetString(0)), JsonSettings.TypedS);
+                JToken jt;
+                try { jt = JToken.Parse(query.GetString(0)); }
+                catch { jt = JValue.FromObject(query.GetString(0)); }
+
+                Bindable.LoadFromJson(jt, null);
             }
             public void Save()
             {
                 ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
                     new SQLiteParameter("key", Name),
-                    new SQLiteParameter("value", JsonConvert.SerializeObject(Value, JsonSettings.Typed))
+                    new SQLiteParameter("value", (Value is null ? JValue.CreateNull() : JToken.FromObject(Value)).ToString())
                 );
             }
 
@@ -206,8 +210,9 @@ namespace NodeCommon
             readonly Func<TValue, TKey> KeyFunc;
             readonly string TableName;
 
-            public DatabaseValueDictionary(string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null)
+            public DatabaseValueDictionary(string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null, JsonSerializer? serializer = null)
             {
+                if (serializer is not null) ItemsList.JsonSerializer = serializer;
                 Items = new(comparer);
 
                 TableName = table;
@@ -216,7 +221,12 @@ namespace NodeCommon
                 Reload();
             }
 
-            static SQLiteParameter Parameter<T>(string name, T value) => new SQLiteParameter(name, JsonConvert.SerializeObject(value, JsonSettings.Typed));
+            SQLiteParameter Parameter<T>(string name, T value) =>
+                new SQLiteParameter(name,
+                    value is string str ? "\"" + str + "\""
+                    : value is null ? JValue.CreateNull().ToString()
+                    : JToken.FromObject(value, Bindable.JsonSerializer).ToString()
+                );
 
             public TValue this[TKey key] => Items[key];
             public void Add(TValue value)
@@ -264,7 +274,7 @@ namespace NodeCommon
                 while (reader.Read())
                 {
                     var valuejson = reader.GetString(reader.GetOrdinal("value"));
-                    var item = JToken.Parse(valuejson).ToObject<TValue>(JsonSettings.TypedS)!;
+                    var item = JToken.Parse(valuejson).ToObject<TValue>(Bindable.JsonSerializer)!;
 
                     Items.Add(KeyFunc(item), item);
                     ItemsList.Add(item);

@@ -35,7 +35,7 @@ public class TaskResultsPreviewer
             catch { if (retryAttempts-- == 0) return null; else continue; }
 
             mpItem = mpItem["item"]!;
-            if ((string)mpItem["state"]! == "received")
+            if ((string) mpItem["state"]! == "received")
             { _logger.LogDebug("mympitem is received:\n{Json}", mpItem); return new(mpItem, executorNodeName); }
             else Thread.Sleep(2000);
         }
@@ -43,8 +43,8 @@ public class TaskResultsPreviewer
 
     static async Task<OperationResult<string>> GetTaskOutputIidAsync(ITaskApi taskApi, string sessionId)
     {
-        return await Apis.GetTaskStateAsync(taskApi, sessionId)
-            .Next(taskinfo => taskinfo.Output["ingesterhost"]?.Value<string>().AsOpResult() ?? OperationResult.Err("Could not find ingester host"))
+        return await Apis.GetTaskStateAsyncOrThrow(taskApi, sessionId)
+            .Next(taskinfo => ((MPlusTaskOutputInfo) taskinfo.Output).IngesterHost?.AsOpResult() ?? OperationResult.Err("Could not find ingester host"))
             .Next(ingester => Api.ApiGet<string>($"https://{ingester}/content/vcupload/getiid", "iid", "Getting output iid", ("extid", taskApi.Id)))
             .ConfigureAwait(false);
     }

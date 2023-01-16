@@ -416,7 +416,7 @@ namespace NodeUI.Pages
 
                     async Task updateState(MPButton button)
                     {
-                        var state = await task.GetTaskStateAsync();
+                        var state = await task.GetTaskStateAsyncOrThrow();
                         await button.FlashErrorIfErr(state);
                         if (!state) return;
 
@@ -524,7 +524,7 @@ namespace NodeUI.Pages
                 protected async Task LoadSetItems(DataGrid grid) => grid.Items = await Load();
                 protected abstract Task<IReadOnlyCollection<T>> Load();
             }
-            abstract class NormalTaskManager : TaskManager<ReceivedTask>
+            abstract class NormalTaskManager : TaskManager<TaskBase>
             {
                 protected override void CreateColumns(DataGrid data)
                 {
@@ -534,9 +534,9 @@ namespace NodeUI.Pages
                     data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding("Input.Type") });
                     data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding("Output.Type") });
 
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Host)}") });
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Userid)}") });
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(Apis.ServerTaskFullState.Server)}.{nameof(TaskServer.Host)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(Apis.ServerTaskFullState.Server)}.{nameof(TaskServer.Userid)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(Apis.ServerTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") });
 
                     data.Columns.Add(new DataGridButtonColumn<DbTaskFullState>()
                     {
@@ -555,12 +555,12 @@ namespace NodeUI.Pages
             }
             class LocalTaskManager : NormalTaskManager
             {
-                protected override Task<IReadOnlyCollection<ReceivedTask>> Load() =>
-                    new IReadOnlyList<ReceivedTask>[] { NodeGlobalState.Instance.QueuedTasks, NodeGlobalState.Instance.PlacedTasks, NodeGlobalState.Instance.ExecutingTasks, }
+                protected override Task<IReadOnlyCollection<TaskBase>> Load() =>
+                    new IReadOnlyList<TaskBase>[] { NodeGlobalState.Instance.QueuedTasks, NodeGlobalState.Instance.PlacedTasks, NodeGlobalState.Instance.ExecutingTasks, }
                         .SelectMany(x => x)
                         .DistinctBy(x => x.Id)
                         .ToArray()
-                        .AsTask<IReadOnlyCollection<ReceivedTask>>();
+                        .AsTask<IReadOnlyCollection<TaskBase>>();
             }
             class RemoteTaskManager : NormalTaskManager
             {
@@ -598,7 +598,7 @@ namespace NodeUI.Pages
                 }
 
 
-                protected override async Task<IReadOnlyCollection<ReceivedTask>> Load() =>
+                protected override async Task<IReadOnlyCollection<TaskBase>> Load() =>
                     (await Apis.GetMyTasksAsync(Enum.GetValues<TaskState>(), sessionId: SessionId)).ThrowIfError();
             }
             class WatchingTaskManager : TaskManager<WatchingTask>

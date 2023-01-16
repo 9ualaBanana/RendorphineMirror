@@ -17,7 +17,10 @@ public static class TaskRegistration
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
     public static event Action<DbTaskFullState> TaskRegistered = delegate { };
 
-    public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, string? sessionId = default)
+
+    public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, string? sessionId = default) =>
+        await TaskRegisterAsync(info, sessionId).Next(task => task.Id.AsOpResult());
+    public static async ValueTask<OperationResult<DbTaskFullState>> TaskRegisterAsync(TaskCreationInfo info, string? sessionId = default)
     {
         if (info.PriceMultiplication < 1) return OperationResult.Err("Could not create task with price multiplication being less than 1");
 
@@ -48,17 +51,13 @@ public static class TaskRegistration
 
         _logger.Info("Registering task: {Task}", string.Join("; ", values.Skip(1).Select(x => x.Item1 + ": " + x.Item2)));
         var idr = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
-        var id = idr.ThrowIfError();
+        if (!idr) return idr.GetResult();
 
-        _logger.Info("Task registered with ID {Id}", id);
-        var placed = new DbTaskFullState(id, Settings.Guid, info.Policy, taskobj, input, output, data)
-        {
-            UserId = Settings.UserId,
-            Registered = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
-        };
-        TaskRegistered(placed);
+        _logger.Info("Task registered with ID {Id}", idr.Value);
+        var task = new DbTaskFullState(idr.Value, new TaskInfo(taskobj, input, output, data, info.Policy, Settings.Guid));
+        TaskRegistered(task);
 
-        return id;
+        return task;
     }
 
 

@@ -8,6 +8,8 @@ namespace Common
 {
     public interface IBindable
     {
+        JsonSerializer JsonSerializer { get; set; }
+
         JToken AsJson(JsonSerializer? serializer);
         void LoadFromJson(JToken json, JsonSerializer? serializer);
 
@@ -30,6 +32,7 @@ namespace Common
     {
         public event Action? Changed;
         readonly List<WeakReference<BindableBase<T>>> References = new();
+        public JsonSerializer JsonSerializer { get; set; } = JsonSettings.TypedS;
 
         public T Value { get => _Value; protected set => InternalSet(value, this); }
         T _Value;
@@ -81,8 +84,8 @@ namespace Common
         }
 
         [OnDeserialized] void OnDeserializing(StreamingContext _) => TriggerValueChanged();
-        public virtual JToken AsJson(JsonSerializer? serializer) => Value is null ? JValue.CreateNull() : JToken.FromObject(Value!, serializer ?? JsonSettings.Default);
-        public virtual void LoadFromJson(JToken json, JsonSerializer? serializer) => Value = json.ToObject<T>(serializer ?? JsonSettings.Default)!;
+        public virtual JToken AsJson(JsonSerializer? serializer) => Value is null ? JValue.CreateNull() : JToken.FromObject(Value!, serializer ?? JsonSerializer);
+        public virtual void LoadFromJson(JToken json, JsonSerializer? serializer) => Value = json.ToObject<T>(serializer ?? JsonSerializer)!;
         protected virtual void CopyValueFrom(BindableBase<T> other) => Value = other.Value;
     }
     class BindableJsonConverter : JsonConverter<IBindable>
@@ -91,7 +94,7 @@ namespace Common
         {
             if (existingValue is null) throw new NotImplementedException("Non-populating deserializing IBindables is not supported yet");
 
-            existingValue.LoadFromJson(JToken.Load(reader), JsonSettings.TypedS);
+            existingValue.LoadFromJson(JToken.Load(reader), existingValue.JsonSerializer);
             return existingValue;
         }
 
@@ -131,8 +134,8 @@ namespace Common
         public void Remove(T value) => Execute(() => Value.Remove(value));
         public void Clear() => Execute(Value.Clear);
 
-        public override JToken AsJson(JsonSerializer? serializer) => JToken.FromObject(Value.ToArray(), serializer ?? JsonSettings.Default);
-        public override void LoadFromJson(JToken json, JsonSerializer? serializer) => SetRange(json.ToObject<T[]>(serializer ?? JsonSettings.Default)!);
+        public override JToken AsJson(JsonSerializer? serializer) => JToken.FromObject(Value.ToArray(), serializer ?? JsonSerializer);
+        public override void LoadFromJson(JToken json, JsonSerializer? serializer) => SetRange(json.ToObject<T[]>(serializer ?? JsonSerializer)!);
         protected override void CopyValueFrom(BindableBase<IReadOnlyList<T>> other) => SetRange(other.Value);
         public override BindableList<T> GetBoundCopy() => (BindableList<T>) base.GetBoundCopy();
 
@@ -173,7 +176,7 @@ namespace Common
         public void Remove(TKey key) => Execute(() => Value.Remove(key));
         public void Clear() => Execute(Value.Clear);
 
-        public override void LoadFromJson(JToken json, JsonSerializer? serializer) => SetRange(json.ToObject<Dictionary<TKey, TValue>>(JsonSettings.TypedS)!);
+        public override void LoadFromJson(JToken json, JsonSerializer? serializer) => SetRange(json.ToObject<Dictionary<TKey, TValue>>(serializer ?? JsonSerializer)!);
         protected override void CopyValueFrom(BindableBase<IReadOnlyDictionary<TKey, TValue>> other) => SetRange(other.Value);
         IReadOnlyBindableCollection<KeyValuePair<TKey, TValue>> IReadOnlyBindableCollection<KeyValuePair<TKey, TValue>>.GetBoundCopy() => GetBoundCopy();
         public override BindableDictionary<TKey, TValue> GetBoundCopy() => (BindableDictionary<TKey, TValue>) base.GetBoundCopy();

@@ -22,4 +22,6 @@ public class DirectDownloadTaskInputInfo : ITaskInputInfo
 public class DirectUploadTaskOutputInfo : ITaskOutputInfo
 {
     public TaskOutputType Type => TaskOutputType.DirectDownload;
+
+    [Hidden, NonSerializableForTasks] public bool Uploaded = false;
 }

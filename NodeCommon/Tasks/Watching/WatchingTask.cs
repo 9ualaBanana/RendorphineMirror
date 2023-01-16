@@ -5,7 +5,7 @@ namespace NodeCommon.Tasks.Watching;
 
 public class WatchingTask : ILoggable
 {
-    string ILoggable.LogName => $"Watching task {Id}";
+    string ILoggable.LogName => $"WTask {Id}";
 
     public string Id { get; init; }
     public string? Version { get; init; }
@@ -14,7 +14,6 @@ public class WatchingTask : ILoggable
     public string TaskAction { get; init; }
     public JObject TaskData { get; init; }
     public TaskPolicy Policy { get; init; }
-    public bool ExecuteLocally { get; init; }
     public bool IsPaused = false;
 
     [JsonIgnore] public IDisposable? Handler;
@@ -25,7 +24,7 @@ public class WatchingTask : ILoggable
     [JsonConstructor] private WatchingTask() { }
 #pragma warning restore
 
-    public WatchingTask(string taskaction, JObject taskData, IWatchingTaskInputInfo source, IWatchingTaskOutputInfo output, TaskPolicy policy, string? version, bool executeLocally)
+    public WatchingTask(string taskaction, JObject taskData, IWatchingTaskInputInfo source, IWatchingTaskOutputInfo output, TaskPolicy policy, string? version)
     {
         Id = Guid.NewGuid().ToString();
 
@@ -34,7 +33,6 @@ public class WatchingTask : ILoggable
         TaskData = taskData;
         Output = output;
         Policy = policy;
-        ExecuteLocally = executeLocally;
     }
 
 

@@ -1,4 +1,5 @@
 using System.Runtime.Serialization;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NodeCommon.Tasks;
@@ -36,11 +37,11 @@ public static class TaskModels
     }
 
 
-    public static ITaskInputInfo DeserializeInput(JObject input) => Deserialize<ITaskInputInfo, TaskInputType>(input, Inputs);
-    public static ITaskOutputInfo DeserializeOutput(JObject output) => Deserialize<ITaskOutputInfo, TaskOutputType>(output, Outputs);
-    public static IWatchingTaskInputInfo DeserializeWatchingInput(JObject input) => Deserialize<IWatchingTaskInputInfo, WatchingTaskInputType>(input, WatchingInputs);
-    public static IWatchingTaskOutputInfo DeserializeWatchingOutput(JObject output) => Deserialize<IWatchingTaskOutputInfo, WatchingTaskOutputType>(output, WatchingOutputs);
+    public static ITaskInputInfo DeserializeInput(JObject input, JsonSerializer? serializer = null) => Deserialize<ITaskInputInfo, TaskInputType>(input, Inputs, serializer);
+    public static ITaskOutputInfo DeserializeOutput(JObject output, JsonSerializer? serializer = null) => Deserialize<ITaskOutputInfo, TaskOutputType>(output, Outputs, serializer);
+    public static IWatchingTaskInputInfo DeserializeWatchingInput(JObject input, JsonSerializer? serializer = null) => Deserialize<IWatchingTaskInputInfo, WatchingTaskInputType>(input, WatchingInputs, serializer);
+    public static IWatchingTaskOutputInfo DeserializeWatchingOutput(JObject output, JsonSerializer? serializer = null) => Deserialize<IWatchingTaskOutputInfo, WatchingTaskOutputType>(output, WatchingOutputs, serializer);
 
-    static T Deserialize<T, TType>(JObject jobject, ImmutableDictionary<TType, Type> dict) where TType : struct, Enum =>
-        (T) jobject.ToObject(dict[jobject.GetValue("type", StringComparison.OrdinalIgnoreCase)!.ToObject<TType>()])!;
+    static T Deserialize<T, TType>(JObject jobject, ImmutableDictionary<TType, Type> dict, JsonSerializer? serializer) where TType : struct, Enum =>
+        (T) jobject.ToObject(dict[jobject.GetValue("type", StringComparison.OrdinalIgnoreCase)!.ToObject<TType>()], serializer ?? JsonSettings.Default)!;
 }

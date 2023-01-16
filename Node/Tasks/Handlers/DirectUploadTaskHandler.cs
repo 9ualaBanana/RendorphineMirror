@@ -14,13 +14,6 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         var info = (DirectDownloadTaskInputInfo) task.Input;
         var token = new TimeoutCancellationToken(cancellationToken, TimeSpan.FromHours(1));
 
-        if (task.ExecuteLocally)
-        {
-            task.AddInputFromLocalPath(info.Path);
-            info.Downloaded = true;
-            return;
-        }
-
         while (!info.Downloaded)
         {
             token.ThrowIfCancellationRequested();
@@ -28,30 +21,28 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
             await Task.Delay(2000);
         }
 
-        if (task.IsFromSameNode)
+        if (task.IsFromSameNode())
             task.AddInputFromLocalPath(info.Path);
     }
-    public ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default)
+    public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         // TODO: maybe move instead of copy? but the gallery..
-        if (task.IsFromSameNode)
+        if (task.IsFromSameNode())
+        {
             Common.Extensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
+            return;
+        }
 
-        return ValueTask.CompletedTask;
+        var dout = (DirectUploadTaskOutputInfo) task.Output;
+        while (!dout.Uploaded)
+            await Task.Delay(2_000);
     }
 
-    public async ValueTask InitializePlacedTaskAsync(DbTaskFullState task)
+    public async ValueTask UploadInputFiles(DbTaskFullState task)
     {
-        if (task.State > TaskState.Input) return;
-        if (task.ExecuteLocally) return;
-
         var info = (DirectDownloadTaskInputInfo) task.Input;
-
-        int tries = 0;
         while (true)
         {
-            task.LogInfo($"Uploading input files ({tries})...");
-
             try
             {
                 var serverr = await task.GetTaskStateAsync();
@@ -60,6 +51,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
                     await Task.Delay(10_000);
                     continue;
                 }
+                if (serverr.Value is null) return;
 
                 var server = serverr.Value.Server;
                 if (server is null)
@@ -69,10 +61,11 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
                 }
 
 
+                task.LogInfo($"Uploading input files...");
                 var files = File.Exists(info.Path) ? new[] { info.Path } : Directory.GetFiles(info.Path);
                 foreach (var file in files)
                 {
-                    if (task.IsFromSameNode && NodeSettings.QueuedTasks.TryGetValue(task.Id, out var queued))
+                    if (task.IsFromSameNode() && NodeSettings.QueuedTasks.TryGetValue(task.Id, out var queued))
                     {
                         ((DirectDownloadTaskInputInfo) queued.Input).Path = file;
                         ((DirectDownloadTaskInputInfo) queued.Input).Downloaded = true;
@@ -88,6 +81,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
                         var post = await Api.ApiPost($"{server.Host}/rphtaskexec/uploadinput", $"Uploading input files for task {task.Id}", content);
                         post.ThrowIfError();
+                        task.LogInfo($"Task files uploaded");
                     }
 
                     break;
@@ -97,7 +91,6 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
             }
             catch (Exception ex)
             {
-                tries++;
                 task.LogErr("Could not upload task input files: " + ex);
                 await Task.Delay(10_000);
             }
@@ -106,10 +99,12 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
     public async ValueTask OnPlacedTaskCompleted(DbTaskFullState task)
     {
-        if (task.IsFromSameNode) return;
+        var state = await task.GetTaskStateAsync().ThrowIfError();
+        if (state is null) return;
 
-        var server = (await task.GetTaskStateAsync()).ThrowIfError().Server;
+        var server = state.Server;
         if (server is null) task.ThrowFailed("Could not find server in /getmytaskstate request");
+        if (task.IsFromSameNode()) return;
 
         var info = (DirectUploadTaskOutputInfo) task.Output;
         using var result = await Api.Get($"{server.Host}/rphtaskexec/downloadoutput?taskid={task.Id}");
@@ -119,14 +114,16 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         using (var zipstream = File.OpenWrite(zipfile))
             await result.Content.CopyToAsync(zipstream);
 
+
+        JToken? json = null;
         try
         {
             using var read = new JsonTextReader(new StreamReader(File.OpenRead(zipfile)));
-            var json = JToken.Load(read);
-            if (json["ok"]?.Value<bool>() != true)
-                throw new Exception(json["errmsg"]!.Value<string>());
+            json = JToken.Load(read);
         }
         catch { }
+        if (json is not null && json["ok"]?.Value<bool>() != true)
+            throw new Exception(json["errmsg"]!.Value<string>());
 
         try { ZipFile.ExtractToDirectory(zipfile, task.FSPlacedResultsDirectory()); }
         catch

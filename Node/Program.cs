@@ -127,7 +127,7 @@ logger.Info(@$"Tasks found
 TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;
 
 TaskHandler.InitializePlacedTasksAsync().Consume();
-TaskHandler.StartUpdatingTaskState();
+TaskHandler.StartUpdatingPlacedTasks();
 TaskHandler.StartWatchingTasks();
 TaskHandler.StartListening();
 

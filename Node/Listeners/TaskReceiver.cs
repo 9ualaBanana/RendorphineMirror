@@ -37,6 +37,6 @@ public class TaskReceiver : ListenerBase
         response.StatusCode = (int) await WriteText(response, "{\"ok\":1}");
         response.Close();
 
-        NodeSettings.QueuedTasks.Add(new ReceivedTask(taskid, taskinfo, false) { HostShard = host });
+        NodeSettings.QueuedTasks.Add(new ReceivedTask(taskid, taskinfo) { HostShard = host });
     }
 }
