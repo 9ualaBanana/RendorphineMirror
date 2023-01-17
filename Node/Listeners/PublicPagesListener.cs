@@ -119,6 +119,7 @@ namespace Node.Listeners
                         return HttpStatusCode.NotFound;
 
                     using Stream file = File.Open(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                    response.ContentLength64 = file.Length;
                     await file.CopyToAsync(response.OutputStream);
 
                     return HttpStatusCode.OK;

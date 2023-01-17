@@ -16,9 +16,7 @@ public class PublicListener : ExecutableListenerBase
         var response = context.Response;
 
         if (path == "ping")
-            return await WriteJToken(response, $"ok from {MachineInfo.PCName} {MachineInfo.UserName} v{MachineInfo.Version}").ConfigureAwait(false);
-        if (path == "pingname")
-            return await WriteJToken(response, Settings.NodeName).ConfigureAwait(false);
+            return await WriteJToken(response, $"ok from {MachineInfo.PCName} {MachineInfo.UserName} {Settings.NodeName} v{MachineInfo.Version} web{Settings.UPnpServerPort}").ConfigureAwait(false);
 
         if (path == "torrentinfo")
         {

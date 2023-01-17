@@ -98,7 +98,7 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
     /// <summary> Get shard host for a task. Might take a long time to process. Should never return an error, but who knows... </summary>
     public async ValueTask<OperationResult<string>> GetTaskShardAsync(string taskid)
     {
-        var shard = await Api.ApiGet<string>($"{TaskManagerEndpoint}/gettaskshard", "host", "Getting task shard", AddSessionId(("taskid", taskid)));
+        var shard = await Api.ApiGet<string>($"{TaskManagerEndpoint}/gettaskshard", "host", $"Getting {taskid} task shard", AddSessionId(("taskid", taskid)));
         if (!shard)
         {
             var httpdata = shard.GetResult().HttpData;
