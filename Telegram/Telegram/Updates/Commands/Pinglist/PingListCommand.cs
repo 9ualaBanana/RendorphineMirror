@@ -1,11 +1,12 @@
 ﻿using System.Text;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Services.Node;
-using Telegram.Telegram;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
+using Telegram.Telegram.Updates.Commands;
 
-namespace Telegram.Services.Telegram.Updates.Commands.Pinglist;
+namespace Telegram.Telegram.Updates.Commands.Pinglist;
 
 public class PingListCommand : AuthenticatedCommand
 {

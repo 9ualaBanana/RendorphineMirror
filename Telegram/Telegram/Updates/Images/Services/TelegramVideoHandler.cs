@@ -1,6 +1,7 @@
-﻿using Telegram.Bot.Types;
+﻿using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Services.Telegram.FileRegistry;
+using Telegram.Telegram.FileRegistry;
 using Telegram.Telegram.Updates.Images.Models;
 
 namespace Telegram.Telegram.Updates.Images.Services;

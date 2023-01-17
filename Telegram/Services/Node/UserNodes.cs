@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Telegram;
 using Telegram.Telegram.Authentication.Models;
 
 namespace Telegram.Services.Node;

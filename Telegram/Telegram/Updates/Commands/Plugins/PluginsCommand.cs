@@ -1,12 +1,12 @@
 ﻿using System.Text;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Models;
 using Telegram.Services.Node;
-using Telegram.Telegram;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 
-namespace Telegram.Services.Telegram.Updates.Commands.Plugins;
+namespace Telegram.Telegram.Updates.Commands.Plugins;
 
 public class PluginsCommand : AuthenticatedCommand
 {

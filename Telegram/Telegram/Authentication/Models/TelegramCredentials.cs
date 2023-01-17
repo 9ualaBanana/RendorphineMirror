@@ -1,5 +1,5 @@
 ﻿using Telegram.Bot.Types;
-using Telegram.Services.Telegram.Updates.Commands;
+using Telegram.Telegram.Updates.Commands;
 
 namespace Telegram.Telegram.Authentication.Models;
 

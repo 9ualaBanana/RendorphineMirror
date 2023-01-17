@@ -1,7 +1,6 @@
 ﻿using Telegram.Bot;
+using Telegram.Bot.MessagePagination.CallbackQuery;
 using Telegram.Bot.Types;
-using Telegram.Telegram.MessageChunker.Models;
-using Telegram.Telegram.MessageChunker.Services;
 using Telegram.Telegram.Updates.Images.Models;
 using Telegram.Telegram.Updates.Images.Services;
 using Telegram.Telegram.Updates.Tasks.Models;
@@ -11,7 +10,7 @@ namespace Telegram.Telegram.Updates;
 
 public class TelegramCallbackQueryHandler : TelegramUpdateHandler
 {
-    readonly MessageChunkerCallbackQueryHandler _messageChunkerHandler;
+    readonly MessagePaginatorCallbackQueryHandler _messageChunkerHandler;
     readonly ImageProcessingCallbackQueryHandler _imageProcessingHandler;
     readonly VectorizerCallbackQueryHandler _vectorizerHandler;
     readonly VideoProcessingCallbackQueryHandler _videoProcessingHandler;
@@ -21,7 +20,7 @@ public class TelegramCallbackQueryHandler : TelegramUpdateHandler
     public TelegramCallbackQueryHandler(
         ILogger<TelegramCallbackQueryHandler> logger,
         TelegramBot bot,
-        MessageChunkerCallbackQueryHandler messageChunkerHandler,
+        MessagePaginatorCallbackQueryHandler messageChunkerHandler,
         ImageProcessingCallbackQueryHandler imageProcessingHandler,
         VectorizerCallbackQueryHandler vectorizerHandler,
         VideoProcessingCallbackQueryHandler videoProcessingHandler,
@@ -41,7 +40,7 @@ public class TelegramCallbackQueryHandler : TelegramUpdateHandler
         var callbackQuery = update.CallbackQuery!;
         await AnswerCallbackQueryAsync(callbackQuery);
 
-        if (MessageChunkerCallbackData.Matches(callbackQuery.Data!))
+        if (MessagePaginatorCallbackData.Matches(callbackQuery.Data!))
         { await _messageChunkerHandler.HandleAsync(update); return; }
         if (ImageProcessingCallbackData.Matches(callbackQuery.Data!))
         { await _imageProcessingHandler.HandleAsync(update); return; }

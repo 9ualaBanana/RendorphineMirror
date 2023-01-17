@@ -1,9 +1,9 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Telegram;
+﻿using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 
-namespace Telegram.Services.Telegram.Updates.Commands;
+namespace Telegram.Telegram.Updates.Commands;
 
 public abstract class AdminAuthenticatedCommand : AuthenticatedCommand
 {

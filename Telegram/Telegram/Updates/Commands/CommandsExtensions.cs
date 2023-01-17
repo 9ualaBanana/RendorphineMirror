@@ -1,11 +1,10 @@
-﻿using Telegram.Services.Telegram.Updates.Commands.Offline;
-using Telegram.Services.Telegram.Updates.Commands.Online;
-using Telegram.Services.Telegram.Updates.Commands.Ping;
-using Telegram.Services.Telegram.Updates.Commands.Pinglist;
-using Telegram.Services.Telegram.Updates.Commands.Plugins;
-using Telegram.Telegram.Updates.Commands;
+﻿using Telegram.Telegram.Updates.Commands.Offline;
+using Telegram.Telegram.Updates.Commands.Online;
+using Telegram.Telegram.Updates.Commands.Ping;
+using Telegram.Telegram.Updates.Commands.Pinglist;
+using Telegram.Telegram.Updates.Commands.Plugins;
 
-namespace Telegram.Services.Telegram.Updates.Commands;
+namespace Telegram.Telegram.Updates.Commands;
 
 internal static class CommandsExtensions
 {
@@ -43,5 +42,5 @@ internal static class CommandsExtensions
             .AddScoped<Command, DeployCommand>()
             .AddScoped<Command, RemoveCommand>()
             .AddScoped<Command, LogoutCommand>()
-            .AddScoped<Command, AdminChunkerCommand>();
+            .AddScoped<Command, AdminPaginatorCommand>();
 }

@@ -2,7 +2,6 @@ global using Common;
 using NLog.Web;
 using Telegram.Bot;
 using Telegram.Services.GitHub;
-using Telegram.Telegram;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates;
 using Telegram.Telegram.Updates.Tasks.ResultsPreview.Services;
@@ -29,7 +28,6 @@ builder.Services.AddScoped<GitHubEventForwarder>();
 var app = builder.Build();
 
 await app.Services.GetRequiredService<TelegramBot>().InitializeAsync();
-    //.UseMessageChunkerFrom(app.Services);
 
 if (app.Environment.IsDevelopment())
 {

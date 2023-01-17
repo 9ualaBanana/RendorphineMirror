@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using Telegram.Services.Node;
 
-namespace Telegram.Services.Telegram.Updates.Commands.Offline;
+namespace Telegram.Telegram.Updates.Commands.Offline;
 
 internal static class Logic
 {

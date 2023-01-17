@@ -1,4 +1,6 @@
-﻿namespace Telegram.Bot;
+﻿using Telegram.Bot.MessagePagination;
+
+namespace Telegram.Bot;
 
 internal static class TelegramBotServiceCollectionExtension
 {
@@ -10,6 +12,7 @@ internal static class TelegramBotServiceCollectionExtension
 
         return services
             .ConfigureTelegramBotOptionsUsing(configuration)
-            .AddSingleton<TelegramBot>();
+            .AddSingleton<TelegramBot>()
+                .AddMessagePagination();
     }
 }

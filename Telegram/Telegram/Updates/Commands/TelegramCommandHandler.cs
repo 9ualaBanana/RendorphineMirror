@@ -1,8 +1,8 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Telegram;
+﻿using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Telegram.Updates;
 
-namespace Telegram.Services.Telegram.Updates.Commands;
+namespace Telegram.Telegram.Updates.Commands;
 
 public class TelegramCommandHandler : TelegramUpdateHandler
 {
@@ -11,7 +11,7 @@ public class TelegramCommandHandler : TelegramUpdateHandler
 
 
     public TelegramCommandHandler(ILogger<TelegramMessageHandler> logger, TelegramBot bot, IEnumerable<Command> commands)
-        :base(logger, bot)
+        : base(logger, bot)
     {
         _commands = commands;
     }

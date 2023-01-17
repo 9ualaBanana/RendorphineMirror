@@ -1,7 +1,7 @@
-﻿using Telegram.Telegram;
+﻿using Telegram.Bot;
 using Telegram.Telegram.Updates;
 
-namespace Telegram.Services.Telegram.Updates.Commands;
+namespace Telegram.Telegram.Updates.Commands;
 
 public abstract class Command : TelegramUpdateHandler
 {

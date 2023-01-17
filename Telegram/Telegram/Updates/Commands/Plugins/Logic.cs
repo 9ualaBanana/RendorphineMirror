@@ -1,9 +1,9 @@
 ﻿using System.Text;
+using Telegram.Bot;
 using Telegram.Models;
 using Telegram.Services.Node;
-using Telegram.Telegram;
 
-namespace Telegram.Services.Telegram.Updates.Commands.Plugins;
+namespace Telegram.Telegram.Updates.Commands.Plugins;
 
 internal static class Logic
 {

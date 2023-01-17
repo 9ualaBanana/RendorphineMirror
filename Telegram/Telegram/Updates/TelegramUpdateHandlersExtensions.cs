@@ -1,6 +1,7 @@
-﻿using Telegram.Services.Node;
-using Telegram.Services.Telegram.Updates.Commands;
-using Telegram.Telegram.MessageChunker.Services;
+﻿using Telegram.Bot.MessagePagination;
+using Telegram.Bot.MessagePagination.CallbackQuery;
+using Telegram.Services.Node;
+using Telegram.Telegram.Updates.Commands;
 using Telegram.Telegram.Updates.Images;
 
 namespace Telegram.Telegram.Updates;
@@ -12,8 +13,8 @@ public static class TelegramUpdateHandlersExtensions
         return serviceCollection
             .AddSingleton<TelegramUpdateTypeHandler>()
             .AddScoped<TelegramMessageHandler>()
-            .AddSingleton<TelegramMessageChunker>()
-            .AddScoped<MessageChunkerCallbackQueryHandler>()
+            .AddSingleton<MessagePaginator>()
+            .AddScoped<MessagePaginatorCallbackQueryHandler>()
             .AddSingleton<ChunkedMessagesAutoStorage>()
             .AddTelegramBotCommands()
             .AddTelegramImageProcessing()

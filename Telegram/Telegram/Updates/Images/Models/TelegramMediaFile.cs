@@ -20,13 +20,13 @@ public record TelegramMediaFile(int? Size, string Extension, string MimeType, st
     static TelegramMediaFile From(string imageUri) => new(null, IContentType.Image.Extension, IContentType.Image.MimeType, Url: imageUri);
 
 
-    public async Task Download(string path, TelegramBot bot)
+    public async Task Download(string path, HttpClient httpClient, TelegramBot bot)
     {
         using var downloadedImage = System.IO.File.Create(path);
 
         if (FileId is not null)
             await bot.GetInfoAndDownloadFileAsync(FileId, downloadedImage);
         else
-            await (await bot.HttpClient.GetStreamAsync(Url)).CopyToAsync(downloadedImage);
+            await (await httpClient.GetStreamAsync(Url)).CopyToAsync(downloadedImage);
     }
 }

@@ -1,30 +1,28 @@
 ﻿using Microsoft.Extensions.Options;
 using System.Text;
-using Telegram.Bot;
+using Telegram.Bot.MessagePagination;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Models;
-using Telegram.Telegram.MessageChunker.Services;
 
-namespace Telegram.Telegram;
+namespace Telegram.Bot;
 
 public class TelegramBot : TelegramBotClient
 {
-    ILogger _logger;
-
-    TelegramMessageChunker? _textChunker;
+    readonly ILogger _logger;
 
     readonly TelegramBotOptions _options;
-
+    readonly MessagePaginator _messagePaginator;
 
     public Subscriptions Subscriptions = new("subscriptions.txt");
-    readonly public HttpClient HttpClient;
 
-    public TelegramBot(IOptions<TelegramBotOptions> options, ILogger<TelegramBot> logger) : base(options.Value.Token)
+    public TelegramBot(IOptions<TelegramBotOptions> options, MessagePaginator messagePaginator, ILogger<TelegramBot> logger)
+        : base(options.Value.Token)
     {
         _options = options.Value;
+        _messagePaginator = messagePaginator;
         _logger = logger;
     }
 
@@ -33,14 +31,8 @@ public class TelegramBot : TelegramBotClient
     /// </summary>
     internal async Task InitializeAsync()
     {
-        await this.SetWebhookAsync($"{_options.Host}/telegram");
-        _logger.LogDebug("Webhook for {Url} is set.", _options.Host);
-    }
-
-    internal TelegramBot UseMessageChunkerFrom(IServiceProvider serviceProvider)
-    {
-        _textChunker = serviceProvider.GetRequiredService<TelegramMessageChunker>();
-        return this;
+        await this.SetWebhookAsync($"{_options.Host}/telegram", dropPendingUpdates: true);
+        _logger.LogDebug("Webhook for {Url} is set", _options.Host);
     }
 
     internal async Task TryNotifySubscribersAboutImageAsync(
@@ -122,11 +114,10 @@ public class TelegramBot : TelegramBotClient
         return false;
     }
 
-    internal async Task<Message?> TrySendMessageAsync(ChatId chatId, string text, IReplyMarkup? replyMarkup = null)
-    {
-        if (_textChunker is null || replyMarkup is not null) return await TrySendMessageAsyncCore(chatId, text, replyMarkup);
-        else return await _textChunker.TrySendChunkedMessageAsync(this, chatId, text);
-    }
+    internal async Task<Message?> TrySendMessageAsync(ChatId chatId, string text, IReplyMarkup? replyMarkup = null) => await
+        (MessagePaginator.MustBeUsedToSend(text) && replyMarkup is null ?
+        _messagePaginator.TrySendPaginatedMessageAsync(this, chatId, text) :
+        TrySendMessageAsyncCore(chatId, text, replyMarkup));
 
     internal async Task<Message?> TrySendMessageAsyncCore(ChatId chatId, string text, IReplyMarkup? replyMarkup = null)
     {

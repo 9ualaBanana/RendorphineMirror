@@ -1,6 +1,6 @@
 ﻿using Telegram.Telegram.Updates.Images.Models;
 
-namespace Telegram.Services.Telegram.FileRegistry;
+namespace Telegram.Telegram.FileRegistry;
 
 // Delete all already downloaded files from their folder upon initialization.
 // Also delete file from server when it expires.

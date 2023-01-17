@@ -2,7 +2,7 @@
 using Telegram.Models;
 using Telegram.Services.Node;
 
-namespace Telegram.Services.Telegram.Updates.Commands.Ping;
+namespace Telegram.Telegram.Updates.Commands.Ping;
 
 internal static class Logic
 {

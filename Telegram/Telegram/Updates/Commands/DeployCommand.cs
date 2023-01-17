@@ -1,13 +1,13 @@
 ﻿using Common.NodeUserSettings;
 using Common.Plugins;
 using Common.Plugins.Deployment;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Services.Node;
-using Telegram.Telegram;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 
-namespace Telegram.Services.Telegram.Updates.Commands;
+namespace Telegram.Telegram.Updates.Commands;
 
 public class DeployCommand : AuthenticatedCommand
 {

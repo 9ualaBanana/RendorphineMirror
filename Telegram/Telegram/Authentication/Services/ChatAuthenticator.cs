@@ -1,4 +1,5 @@
 ﻿using System.Data.Entity;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Telegram.Authentication.Models;
 

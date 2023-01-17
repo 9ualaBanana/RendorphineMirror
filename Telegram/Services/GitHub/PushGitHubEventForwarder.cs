@@ -1,8 +1,8 @@
 ﻿using Newtonsoft.Json.Linq;
 using System.Text;
+using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Models;
-using Telegram.Telegram;
 
 namespace Telegram.Services.GitHub;
 

@@ -1,17 +1,17 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Services.Telegram.Updates.Commands;
+﻿using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 
 namespace Telegram.Telegram.Updates.Commands;
 
-public class AdminChunkerCommand : AdminAuthenticatedCommand
+public class AdminPaginatorCommand : AdminAuthenticatedCommand
 {
-    public AdminChunkerCommand(ILogger<AuthenticatedCommand> logger, TelegramBot bot, ChatAuthenticator authenticator) : base(logger, bot, authenticator)
+    public AdminPaginatorCommand(ILogger<AuthenticatedCommand> logger, TelegramBot bot, ChatAuthenticator authenticator) : base(logger, bot, authenticator)
     {
     }
 
-    public override string Value => "adminchunker";
+    public override string Value => "adminpaginator";
 
     protected override async Task HandleAsyncCore(Update update, ChatAuthenticationToken authenticationToken)
     {

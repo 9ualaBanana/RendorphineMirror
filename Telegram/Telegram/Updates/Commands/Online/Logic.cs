@@ -1,4 +1,4 @@
-﻿namespace Telegram.Services.Telegram.Updates.Commands.Online;
+﻿namespace Telegram.Telegram.Updates.Commands.Online;
 
 internal static class Logic
 {

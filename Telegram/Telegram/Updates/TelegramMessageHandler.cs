@@ -1,5 +1,6 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Services.Telegram.Updates.Commands;
+﻿using Telegram.Bot;
+using Telegram.Bot.Types;
+using Telegram.Telegram.Updates.Commands;
 using Telegram.Telegram.Updates.Images.Services;
 
 namespace Telegram.Telegram.Updates;

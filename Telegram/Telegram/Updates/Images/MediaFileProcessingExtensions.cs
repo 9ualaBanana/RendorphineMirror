@@ -1,4 +1,4 @@
-﻿using Telegram.Services.Telegram.FileRegistry;
+﻿using Telegram.Telegram.FileRegistry;
 using Telegram.Telegram.Updates.Images.Services;
 using Telegram.Telegram.Updates.Tasks.Services;
 
