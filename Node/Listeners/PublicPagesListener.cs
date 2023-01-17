@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.IO.Compression;
+using System.Net;
 using System.Web;
 
 namespace Node.Listeners
@@ -118,9 +119,11 @@ namespace Node.Listeners
                     if (!Path.GetFullPath(filepath).StartsWith(logDir, StringComparison.Ordinal))
                         return HttpStatusCode.NotFound;
 
+                    response.Headers["Content-Encoding"] = "gzip";
+
                     using Stream file = File.Open(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                    response.ContentLength64 = file.Length;
-                    await file.CopyToAsync(response.OutputStream);
+                    using var gzip = new GZipStream(response.OutputStream, CompressionLevel.Fastest);
+                    await file.CopyToAsync(gzip);
 
                     return HttpStatusCode.OK;
                 }
