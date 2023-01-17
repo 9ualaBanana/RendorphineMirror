@@ -29,6 +29,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
             await task.GetInputHandler().Download(task).ConfigureAwait(false);
             task.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}");
 
+            await task.ChangeStateAsync(TaskState.Active);
             NodeSettings.QueuedTasks.Save(task);
         }
         else task.LogInfo($"Input seems to be already downloaded");
