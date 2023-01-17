@@ -35,11 +35,8 @@ public static class WatchingTaskExtensions
     public static ValueTask<DbTaskFullState> RegisterTask(this WatchingTask task, string filename, ITaskInputInfo input) => task.RegisterTask(input, task.Output.CreateOutput(task, filename));
     public static async ValueTask<DbTaskFullState> RegisterTask(this WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output)
     {
-        static string Serialize<T>(T obj) => obj?.GetType().Name + " " + JsonConvert.SerializeObject(obj, ConsoleJsonSerializer);
-        task.LogInfo($"Registering a task: input {Serialize(input)}; output {Serialize(output)}");
-
         var taskinfo = task.CreateTaskInfo(input, output);
-        var register = await TaskRegistration.TaskRegisterAsync(taskinfo).ConfigureAwait(false);
+        var register = await TaskRegistration.TaskRegisterAsync(taskinfo, log: task).ConfigureAwait(false);
         var newtask = register.ThrowIfError();
         NodeSettings.WatchingTasks.Save(task);
 

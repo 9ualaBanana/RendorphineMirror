@@ -20,7 +20,7 @@ public static class TaskRegistration
 
     public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, string? sessionId = default) =>
         await TaskRegisterAsync(info, sessionId).Next(task => task.Id.AsOpResult());
-    public static async ValueTask<OperationResult<DbTaskFullState>> TaskRegisterAsync(TaskCreationInfo info, string? sessionId = default)
+    public static async ValueTask<OperationResult<DbTaskFullState>> TaskRegisterAsync(TaskCreationInfo info, string? sessionId = default, ILoggable? log = null)
     {
         if (info.PriceMultiplication < 1) return OperationResult.Err("Could not create task with price multiplication being less than 1");
 
@@ -34,7 +34,7 @@ public static class TaskRegistration
 
         var values = new List<(string, string)>()
         {
-            ("sessionid", sessionId ?? Settings.SessionId!),
+            ("sessionid", sessionId ?? Apis.Default.SessionId),
             ("object", JsonConvert.SerializeObject(taskobj, JsonSettings.LowercaseIgnoreNull)),
             ("input", JsonConvert.SerializeObject(input, LowercaseIgnoreNullTaskInOut)),
             ("output", JsonConvert.SerializeObject(output, LowercaseIgnoreNullTaskInOut)),
@@ -49,7 +49,10 @@ public static class TaskRegistration
             values.Add(("software", JsonConvert.SerializeObject(soft, JsonSettings.LowercaseIgnoreNull)));
         }
 
-        _logger.Info("Registering task: {Task}", string.Join("; ", values.Skip(1).Select(x => x.Item1 + ": " + x.Item2)));
+        var logtext = $"Registering task: {string.Join("; ", values.Skip(1).Select(x => x.Item1 + ": " + x.Item2))}";
+        if (log is not null) log.LogInfo(logtext);
+        else _logger.Info(logtext);
+
         var idr = await Api.Default.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
         if (!idr) return idr.GetResult();
 
