@@ -1,9 +1,10 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 namespace Common
 {
-    public static class Extensions
+    public static class CommonExtensions
     {
         readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -51,13 +52,34 @@ namespace Common
         }
 
 
-        public static void CopyDirectory(string source, string destination)
+        static void ForEachFile(string source, string destination, Action<string, string> func)
         {
             source = Path.GetFullPath(source);
             destination = Path.GetFullPath(destination);
 
             Directory.GetDirectories(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => Directory.CreateDirectory(x.Replace(source, destination)));
-            Directory.GetFiles(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => File.Copy(x, x.Replace(source, destination)));
+            Directory.GetFiles(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => func(x, x.Replace(source, destination)));
+        }
+        public static void CopyDirectory(string source, string destination) => ForEachFile(source, destination, (s, d) => File.Copy(s, d, true));
+        public static void MergeDirectories(string source, string destination)
+        {
+            ForEachFile(source, destination, (s, d) => File.Move(s, d, true));
+            Directory.Delete(source, true);
+        }
+
+        public static void MakeExecutable(params string[] paths)
+        {
+            if (Environment.OSVersion.Platform != PlatformID.Unix) return;
+
+            var p = new ProcessStartInfo("/usr/bin/chmod")
+            {
+                ArgumentList = { "+x", "-R" },
+                UseShellExecute = true,
+            };
+            foreach (var path in paths)
+                p.ArgumentList.Add(path);
+
+            Process.Start(p)!.WaitForExit();
         }
     }
 }

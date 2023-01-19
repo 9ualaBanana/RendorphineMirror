@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 
-namespace Common;
+namespace NodeCommon;
 
 public static class JsonApi
 {

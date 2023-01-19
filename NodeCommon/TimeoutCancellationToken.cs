@@ -1,4 +1,4 @@
-namespace Common;
+namespace NodeCommon;
 
 /// <summary> CancellationToken with a TimeSpan delay for when the operation is not progressing </summary>
 public struct TimeoutCancellationToken

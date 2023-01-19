@@ -47,11 +47,11 @@ public abstract record TaskBase(string Id, TaskInfo Info) : ITaskApi, ILoggable
     public string FSPlacedResultsDirectory() => FSPlacedResultsDirectory(Id);
     public string FSPlacedSourcesDirectory() => FSPlacedSourcesDirectory(Id);
 
-    static string FSDataDirectory(string id) => DirectoryCreated(Path.Combine(Init.TaskFilesDirectory, id));
+    static string FSDataDirectory(string id) => DirectoryCreated(Path.Combine(Init.ConfigDirectory, "tasks", id));
     public static string FSOutputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "output"));
     public static string FSInputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "input"));
 
-    static string FSPlacedDataDirectory(string id) => DirectoryCreated(Path.Combine(Init.PlacedTaskFilesDirectory, id));
+    static string FSPlacedDataDirectory(string id) => DirectoryCreated(Path.Combine(Init.ConfigDirectory, "ptasks", id));
     public static string FSPlacedResultsDirectory(string id) => DirectoryCreated(Path.Combine(FSPlacedDataDirectory(id), "results"));
     public static string FSPlacedSourcesDirectory(string id) => DirectoryCreated(Path.Combine(FSPlacedDataDirectory(id), "sources"));
 
