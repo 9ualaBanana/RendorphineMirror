@@ -73,6 +73,8 @@ public static class TaskHandler
     /// <summary> Polls all non-finished placed tasks, sets their state to Finished, Canceled, Failed if needed </summary>
     public static void StartUpdatingPlacedTasks()
     {
+        var scguid = null as string;
+
         new Thread(async () =>
         {
             while (true)
@@ -92,52 +94,53 @@ public static class TaskHandler
 
             var copy = NodeSettings.PlacedTasks.Values.ToArray();
             await Apis.Default.UpdateTaskShardsAsync(copy.Where(x => x.HostShard is null)).ThrowIfError();
-            copy = copy.Where(x => x.HostShard is not null).ToArray(); // TODO: what if shard config changed HM??????
+            copy = copy.Where(x => x.HostShard is not null).ToArray();
 
-            // TODO: too many copying
-            var active = await Apis.Default.GetTasksOnShardsAsync(copy.Select(x => x.HostShard!).Distinct()).ThrowIfError();
-            foreach (var tasks in active.GroupBy(x => x.state))
+            var checkedtasks = new List<string>();
+            foreach (var group in copy.GroupBy(x => x.HostShard))
             {
-                var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.info.Id, out var task) && x.state != task.State).ToArray();
-                if (changed.Length != 0) Logger.Info($"Tasks changed to {tasks.Key}: {string.Join(", ", changed.Select(x => x.info.Id))}");
+                var act = await Apis.Default.GetTasksOnShardAsync(group.Key!).ThrowIfError();
+                if (scguid is null) scguid = act.ScGuid;
+                else if (scguid != act.ScGuid)
+                {
+                    scguid = act.ScGuid;
+                    Logger.Info($"!! Task configuration changed ({act.ScGuid}), resetting all task shards...");
+                    foreach (var task in NodeSettings.PlacedTasks)
+                        task.Value.HostShard = null;
+
+                    return;
+                }
+
+                await process(TaskState.Input, act.Input);
+                await process(TaskState.Active, act.Active);
+                await process(TaskState.Output, act.Output);
+                async ValueTask process(TaskState state, ImmutableArray<Apis.TMTaskStateInfo> tasks)
+                {
+                    var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.Id, out var task) && task.State != state).Select(x => x.Id).ToArray();
+                    if (changed.Length != 0)
+                        Logger.Info($"Tasks changed to {state}: {string.Join(", ", changed)}");
+
+                    foreach (var task in tasks)
+                        await processTask(task.Id, task, state);
+                    checkedtasks.AddRange(tasks.Select(x => x.Id));
+                }
             }
 
-            foreach (var (key, state) in active)
+            var finished = await Apis.Default.GetFinishedTasksStatesAsync(copy.Select(x => x.Id).Except(checkedtasks)).ThrowIfError();
+            foreach (var (id, state) in finished)
+                await processTask(id, state, null);
+
+
+            async ValueTask processTask(string taskid, Apis.ITaskStateInfo state, TaskState? newstate)
             {
-                if (!NodeSettings.PlacedTasks.TryGetValue(state.Id, out var task)) continue;
+                if (!NodeSettings.PlacedTasks.TryGetValue(taskid, out var task)) return;
 
-                if (task.State != key)
-                    task.LogInfo($"Placed task state changed to {key}");
-
-                task.State = key;
+                task.State = newstate ?? task.State;
                 task.Populate(state);
                 if (task.State == TaskState.Output)
                     task.Populate(await task.GetTaskStateAsyncOrThrow().ThrowIfError());
 
                 try { await check(task, null); }
-                catch (NodeTaskFailedException ex)
-                {
-                    await task.ChangeStateAsync(TaskState.Canceled).ThrowIfError();
-                    remove(task, ex.Message);
-                }
-                catch (Exception ex) { task.LogErr(ex); }
-            }
-
-            var finished = await Apis.Default.GetFinishedTasksStatesAsync(copy.Select(x => x.Id).Except(active.Select(x => x.info.Id))).ThrowIfError();
-            foreach (var tasks in finished.GroupBy(x => x.Key))
-            {
-                var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.Key, out var task) && x.Value.State != task.State).ToArray();
-                if (changed.Length != 0) Logger.Info($"Tasks changed to {tasks.Key}: {string.Join(", ", changed.Select(x => x.Value.Id))}");
-            }
-
-            foreach (var (id, state) in finished)
-            {
-                var task = NodeSettings.PlacedTasks[id];
-                if (task.State != state.State)
-                    task.LogInfo($"Placed task state changed to {state.State}");
-
-                task.Populate(state);
-                try { await check(task, state.ErrMsg); }
                 catch (NodeTaskFailedException ex)
                 {
                     await task.ChangeStateAsync(TaskState.Canceled).ThrowIfError();

@@ -52,6 +52,12 @@ public static class ReceivedTaskExtensions
 
 
     public static bool IsFromSameNode(this TaskBase task) => NodeSettings.QueuedTasks.ContainsKey(task.Id) && NodeSettings.PlacedTasks.ContainsKey(task.Id);
+    public static void Populate(this DbTaskFullState task, Apis.ITaskStateInfo info)
+    {
+        if (info is Apis.TMTaskStateInfo tsi) task.Populate(tsi);
+        if (info is Apis.TMOldTaskStateInfo osi) task.Populate(osi);
+        if (info is Apis.ServerTaskState sts) task.Populate(sts);
+    }
     public static void Populate(this DbTaskFullState task, Apis.TMTaskStateInfo info) => task.Progress = info.Progress;
     public static void Populate(this DbTaskFullState task, Apis.TMOldTaskStateInfo info)
     {

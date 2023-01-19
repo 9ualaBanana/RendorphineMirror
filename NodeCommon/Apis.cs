@@ -189,6 +189,8 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
     }
 
 
+    public interface ITaskStateInfo { }
+
     /// <returns> Input, Active, Output tasks on a shard </returns>
     public async ValueTask<OperationResult<TMTasksStateInfo>> GetTasksOnShardAsync(string shardhost) =>
         await Api.ApiGet<TMTasksStateInfo>($"https://{shardhost}/rphtasklauncher/getmytasksinfo", null, "Getting shard tasks", AddSessionId());
@@ -204,7 +206,7 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
         return itasks.Concat(atasks).Concat(otasks).ToArray();
     }
     public record TMTasksStateInfo(ImmutableArray<TMTaskStateInfo> Input, ImmutableArray<TMTaskStateInfo> Active, ImmutableArray<TMTaskStateInfo> Output, int QueueSize, double AvgWaitTime, string ScGuid);
-    public record TMTaskStateInfo(string Id, double Progress);
+    public record TMTaskStateInfo(string Id, double Progress) : ITaskStateInfo;
 
     /// <returns> Finished, Failed and Canceled tasks </returns>
     public async ValueTask<OperationResult<Dictionary<string, TMOldTaskStateInfo>>> GetFinishedTasksStatesAsync(IEnumerable<string> taskids)
@@ -216,7 +218,7 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
             .Select(sel)
             .MergeDictResults();
     }
-    public record TMOldTaskStateInfo(string Id, TaskState State, ITaskOutputInfo? Output, string? ErrMsg);
+    public record TMOldTaskStateInfo(string Id, TaskState State, ITaskOutputInfo? Output, string? ErrMsg) : ITaskStateInfo;
 
 
     /// <returns> Task state or null if the task is Finished/Canceled/Failed </returns>
@@ -250,7 +252,7 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
     public async ValueTask<OperationResult<ServerTaskState>> GetTaskStateAsyncOrThrow(ITaskApi task) =>
         await GetTaskStateAsync(task)
             .Next(state => state.ThrowIfNull($"Task {task.Id} is already completed").AsOpResult());
-    public record ServerTaskState(TaskState State, double Progress, ITaskOutputInfo Output, TaskTimes Times, TaskServer? Server = null);
+    public record ServerTaskState(TaskState State, double Progress, ITaskOutputInfo Output, TaskTimes Times, TaskServer? Server = null) : ITaskStateInfo;
 
 
     public ValueTask<OperationResult> FailTaskAsync(ITaskApi task, string errorMessage) => ChangeStateAsync(task, TaskState.Failed, errorMessage);
