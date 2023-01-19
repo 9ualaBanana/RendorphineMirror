@@ -11,7 +11,7 @@ namespace Telegram.Bot;
 
 public class TelegramBot : TelegramBotClient
 {
-    readonly ILogger _logger;
+    internal readonly ILogger Logger;
 
     readonly TelegramBotOptions _options;
     readonly MessagePaginator _messagePaginator;
@@ -23,7 +23,7 @@ public class TelegramBot : TelegramBotClient
     {
         _options = options.Value;
         _messagePaginator = messagePaginator;
-        _logger = logger;
+        Logger = logger;
     }
 
     /// <summary>
@@ -31,8 +31,10 @@ public class TelegramBot : TelegramBotClient
     /// </summary>
     internal async Task InitializeAsync()
     {
-        await this.SetWebhookAsync($"{_options.Host}/telegram", dropPendingUpdates: true);
-        _logger.LogDebug("Webhook for {Url} is set", _options.Host);
+        await this.SetWebhookAsync($"{_options.Host}/telegram",
+            allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery, UpdateType.ChatMember },
+            dropPendingUpdates: true);
+        Logger.LogDebug("Webhook for {Url} is set", _options.Host);
     }
 
     internal async Task TryNotifySubscribersAboutImageAsync(
@@ -79,7 +81,7 @@ public class TelegramBot : TelegramBotClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Following image couldn't be sent to {Chat}:\n\n{Image}", chatId, image);
+            Logger.LogError(ex, "Following image couldn't be sent to {Chat}:\n\n{Image}", chatId, image);
         }
         return false;
     }
@@ -108,7 +110,7 @@ public class TelegramBot : TelegramBotClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Following video couldn't be sent to {Chat}:\n{Video}\n{Thumbnail}",
+            Logger.LogError(ex, "Following video couldn't be sent to {Chat}:\n{Video}\n{Thumbnail}",
                 chatId, video, thumb);
         }
         return false;
@@ -130,7 +132,7 @@ public class TelegramBot : TelegramBotClient
                 parseMode: ParseMode.MarkdownV2);
         }
         catch (Exception ex)
-        { _logger.LogError(ex, "Following message couldn't be sent to {Chat}:\n{Message}", chatId, text); return null; }
+        { Logger.LogError(ex, "Following message couldn't be sent to {Chat}:\n{Message}", chatId, text); return null; }
     }
 }
 

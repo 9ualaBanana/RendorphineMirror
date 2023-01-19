@@ -1,6 +1,8 @@
 global using Common;
 using NLog.Web;
 using Telegram.Bot;
+using Telegram.Middleware.UpdateRouting;
+using Telegram.Middleware.UpdateRouting.UpdateTypeRouting;
 using Telegram.Services.GitHub;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates;
@@ -13,6 +15,8 @@ builder.Logging.ClearProviders();
 builder.Host.UseNLog();
 
 builder.Services.AddTelegramBotUsing(builder.Configuration);
+
+builder.Services.AddUpdateRouting();
 
 // Telegram.Bot works only with Newtonsoft.
 builder.Services.AddControllers().AddNewtonsoftJson();
@@ -34,7 +38,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
 app.MapControllers();
+
+app.UseUpdateRouting();
+app.UseRouting();
 
 app.Run();
