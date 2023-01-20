@@ -11,12 +11,14 @@ public class CommandController : ControllerBase
 
     public async Task Handle(
         [FromServices] IEnumerable<Command> commands,
+        [FromServices] UpdateContextCache updateContextCache,
         [FromServices] ILogger<CommandController> logger)
     {
-        string commandText = UpdateContext.RetrieveFromCacheOf(HttpContext).Update.Message!.Text!;
+        var updateContext = updateContextCache.Retrieve();
+        string commandText = updateContext.Update.Message!.Text!;
 
         if (commands.Switch(commandText) is Command command)
-            await command.HandleAsync(HttpContext.RequestAborted);
+            await command.HandleAsync(updateContext, HttpContext.RequestAborted);
         else logger.LogTrace("{Command} command is unknown", commandText);
     }
 }

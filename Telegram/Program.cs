@@ -2,7 +2,6 @@ global using Common;
 using NLog.Web;
 using Telegram.Bot;
 using Telegram.Middleware.UpdateRouting;
-using Telegram.Middleware.UpdateRouting.UpdateTypeRouting;
 using Telegram.Services.GitHub;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates;

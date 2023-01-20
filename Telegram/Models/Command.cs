@@ -8,7 +8,7 @@ public abstract class Command : IUpdateHandler, ISwitchableService<Command, stri
 
     public bool Matches(string commandText) => commandText == CommandText;
     
-    public abstract Task HandleAsync(CancellationToken cancellationToken);
+    public abstract Task HandleAsync(UpdateContext updateContext, CancellationToken cancellationToken);
 
     #region Equality
 

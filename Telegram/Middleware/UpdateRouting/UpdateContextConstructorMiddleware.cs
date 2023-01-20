@@ -9,8 +9,13 @@ public class UpdateContextConstructorMiddleware : IMiddleware
 {
     readonly ILogger _logger;
 
-    public UpdateContextConstructorMiddleware(ILogger<UpdateContextConstructorMiddleware> logger)
+    readonly UpdateContextCache _updateContextCache;
+
+    public UpdateContextConstructorMiddleware(
+        UpdateContextCache updateContextCache,
+        ILogger<UpdateContextConstructorMiddleware> logger)
     {
+        _updateContextCache = updateContextCache;
         _logger = logger;
     }
 
@@ -19,7 +24,7 @@ public class UpdateContextConstructorMiddleware : IMiddleware
         var update = await DeserializeUpdateAsyncFrom(context);
         EnsureUpdateIsSuccessfullyDeserialized(update);
 
-        new UpdateContext(update).CacheInside(context);
+        _updateContextCache.Cache(new UpdateContext(update));
         _logger.LogTrace($"{nameof(UpdateContext)} is constructed");
 
         await next(context);

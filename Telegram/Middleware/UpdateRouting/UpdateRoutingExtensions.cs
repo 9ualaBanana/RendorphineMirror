@@ -1,4 +1,5 @@
 ﻿using Telegram.Middleware.UpdateRouting.UpdateTypeRouting;
+using Telegram.Models;
 
 namespace Telegram.Middleware.UpdateRouting;
 
@@ -6,6 +7,7 @@ internal static class UpdateRoutingExtensions
 {
     internal static IServiceCollection AddUpdateRouting(this IServiceCollection services)
         => services
+        .AddScoped<UpdateContextCache>()
         .AddScoped<UpdateContextConstructorMiddleware>()
         .AddUpdateTypeRouting();
 

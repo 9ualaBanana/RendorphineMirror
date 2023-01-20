@@ -2,5 +2,5 @@
 
 internal interface IUpdateHandler
 {
-    Task HandleAsync(CancellationToken cancellationToken);
+    Task HandleAsync(UpdateContext updateContext, CancellationToken cancellationToken);
 }

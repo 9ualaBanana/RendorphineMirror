@@ -12,10 +12,15 @@ public class MyChatMemberRouterMiddleware : IUpdateTypeRouter
     readonly ILogger _logger;
 
     readonly TelegramBot _bot;
+    readonly UpdateContextCache _updateContextCache;
 
-    public MyChatMemberRouterMiddleware(TelegramBot bot, ILogger<MyChatMemberRouterMiddleware> logger)
+    public MyChatMemberRouterMiddleware(
+        TelegramBot bot,
+        UpdateContextCache updateContextCache,
+        ILogger<MyChatMemberRouterMiddleware> logger)
     {
         _bot = bot;
+        _updateContextCache = updateContextCache;
         _logger = logger;
     }
 
@@ -25,7 +30,7 @@ public class MyChatMemberRouterMiddleware : IUpdateTypeRouter
     {
         var relativePath = new StringBuilder($"/{MyChatMemberController.PathFragment}");
 
-        var chatMemberUpdate = UpdateContext.RetrieveFromCacheOf(context).Update.MyChatMember!;
+        var chatMemberUpdate = _updateContextCache.Retrieve().Update.MyChatMember!;
 
         if (BotIsRemovedFromChat(chatMemberUpdate))
             relativePath.Append("/removed");

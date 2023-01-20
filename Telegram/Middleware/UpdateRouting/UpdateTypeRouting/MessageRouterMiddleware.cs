@@ -12,10 +12,15 @@ public class MessageRouterMiddleware : IUpdateTypeRouter
     readonly ILogger _logger;
 
     readonly TelegramBot _bot;
+    readonly UpdateContextCache _updateContextCache;
 
-    public MessageRouterMiddleware(TelegramBot bot, ILogger<MessageRouterMiddleware> logger)
+    public MessageRouterMiddleware(
+        TelegramBot bot,
+        UpdateContextCache updateContextCache,
+        ILogger<MessageRouterMiddleware> logger)
     {
         _bot = bot;
+        _updateContextCache = updateContextCache;
         _logger = logger;
     }
 
@@ -23,11 +28,11 @@ public class MessageRouterMiddleware : IUpdateTypeRouter
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
-        var message = UpdateContext.RetrieveFromCacheOf(context).Update.Message!;
+        var message = _updateContextCache.Retrieve().Update.Message!;
 
         if (message.IsCommand())
             context.Request.Path += $"/{CommandController.PathFragment}";
-        else if (message.IsVideo())  // Check for video must precede the one for image because Photo is not null for videos too.
+        else if (message.IsVideo()) // Check for video must precede the one for image because Photo is not null for videos too.
             context.Request.Path += $"/{ImageController.PathFragment}";
         else if (message.IsImage())
             context.Request.Path += $"/{ImageController.PathFragment}";
