@@ -6,16 +6,14 @@ namespace Telegram.Controllers;
 
 [ApiController]
 [Route($"telegram/{PathFragment}")]
-public class MyChatMemberController : ControllerBase
+public class MyChatMemberController : UpdateControllerBase
 {
     internal const string PathFragment = "my_chat_member";
 
     [HttpPost("removed")]
-    public void Removed(
-        [FromServices] TelegramBot bot,
-        [FromServices] UpdateContextCache updateContextCache)
+    public void Removed([FromServices] TelegramBot bot)
     {
-        var subscriber = updateContextCache.Retrieve().Update.MyChatMember!.Chat.Id;
+        var subscriber = UpdateContext.Update.MyChatMember!.Chat.Id;
 
         if (bot.Subscriptions.Remove(subscriber))
             bot.Logger.LogInformation("Subscriber was removed: {Subscriber}", subscriber);

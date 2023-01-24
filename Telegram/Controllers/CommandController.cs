@@ -5,20 +5,18 @@ namespace Telegram.Controllers;
 
 [ApiController]
 [Route($"telegram/{PathFragment}")]
-public class CommandController : ControllerBase
+public class CommandController : UpdateControllerBase
 {
     internal const string PathFragment = "command";
 
     public async Task Handle(
         [FromServices] IEnumerable<Command> commands,
-        [FromServices] UpdateContextCache updateContextCache,
         [FromServices] ILogger<CommandController> logger)
     {
-        var updateContext = updateContextCache.Retrieve();
-        string commandText = updateContext.Update.Message!.Text!;
+        string commandText = UpdateContext.Update.Message!.Text!;
 
         if (commands.Switch(commandText) is Command command)
-            await command.HandleAsync(updateContext, HttpContext.RequestAborted);
+            await command.HandleAsync(UpdateContext, HttpContext.RequestAborted);
         else logger.LogTrace("{Command} command is unknown", commandText);
     }
 }
