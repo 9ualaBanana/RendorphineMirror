@@ -354,6 +354,13 @@ public static class ApisExtensions
     public static ValueTask<OperationResult<Apis.ServerTaskState>> GetTaskStateAsyncOrThrow(this ITaskApi task) => Apis.Default.GetTaskStateAsyncOrThrow(task);
     public static ValueTask<OperationResult<Apis.ServerTaskState?>> GetTaskStateAsync(this ITaskApi task) => Apis.Default.GetTaskStateAsync(task);
 
-    public static ValueTask<OperationResult> FailTaskAsync(this ITaskApi task, string errorMessage) => Apis.Default.FailTaskAsync(task, errorMessage);
+    public static async ValueTask<OperationResult> FailTaskAsync(this ITaskApi task, string errorMessage)
+    {
+        var fail = await Apis.Default.FailTaskAsync(task, errorMessage);
+        if (!fail && fail.Message?.Contains("invalid old task state", StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return fail;
+    }
     public static ValueTask<OperationResult> ChangeStateAsync(this ITaskApi task, TaskState state) => Apis.Default.ChangeStateAsync(task, state);
 }
