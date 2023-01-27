@@ -61,13 +61,21 @@ namespace NodeUI.Controls
             if (opres) return Task.FromResult(false);
             return FlashError(opres.Message!, duration).ContinueWith(_ => true);
         }
-        public async Task FlashError(string text, int duration = 2000)
+        public Task<bool> Flash(OperationResult opres, int duration = 2000)
+        {
+            if (opres) return FlashOk("ok", duration).ContinueWith(_ => false);
+            return FlashError(opres.Message!, duration).ContinueWith(_ => true);
+        }
+
+        public Task FlashError(string text, int duration = 2000) => Flash(Brushes.Red, text, duration);
+        public Task FlashOk(string text, int duration = 2000) => Flash(Brushes.Green, text, duration);
+        public async Task Flash(IBrush color, string text, int duration = 2000)
         {
             using var _ = new FuncDispose(() => IsEnabled = true);
             IsEnabled = false;
 
             var prevbg = Background;
-            Background = Brushes.Red;
+            Background = color;
             Border.Transitions ??= new();
             Border.Transitions.Add(new BrushTransition() { Property = Border.BackgroundProperty, Duration = TimeSpan.FromMilliseconds(duration), Easing = new QuarticEaseIn() });
             Background = prevbg;

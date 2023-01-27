@@ -693,18 +693,25 @@ namespace NodeUI.Pages
         {
             public SettingsTab()
             {
-                var nick = CreateNick();
-                nick.MaxWidth = 400;
-                nick.MaxHeight = 200;
-                Children.Add(nick);
+                var scroll = new ScrollViewer()
+                {
+                    Content = new StackPanel()
+                    {
+                        Orientation = Orientation.Vertical,
+                        Spacing = 40,
+                        Children =
+                        {
+                            CreateNick(),
+                            CreatePorts(),
+                        },
+                    },
+                };
+                Children.Add(scroll);
             }
 
-            Grid CreateNick()
+            Control CreateNick()
             {
-                var nicktb = new TextBox()
-                {
-
-                };
+                var nicktb = new TextBox();
                 Settings.BNodeName.Bindable.SubscribeChanged(() => Dispatcher.UIThread.Post(() => nicktb.Text = Settings.NodeName), true);
 
                 var nicksbtn = new MPButton()
@@ -719,7 +726,7 @@ namespace NodeUI.Pages
                     var nick = nicktb.Text.Trim();
                     if (Settings.NodeName == nick)
                     {
-                        Dispatcher.UIThread.Post(() => nicksbtn.Text = new($"cant change nick to the same nick nick name nick nick name\nnick"));
+                        Dispatcher.UIThread.Post(() => nicksbtn.Text = new($"cant change nickname to the same one"));
                         return;
                     }
 
@@ -738,6 +745,51 @@ namespace NodeUI.Pages
                         nicktb.WithRow(0),
                         nicksbtn.WithRow(1),
                     }
+                };
+            }
+            Control CreatePorts()
+            {
+                var jsonpanel = new Panel();
+                var setting = null as JsonUISetting.Setting;
+
+                var json = new JObject();
+                Settings.AnyChanged += () => Dispatcher.UIThread.Post(updatecontrol);
+                updatecontrol();
+                void updatecontrol()
+                {
+                    var obj = new
+                    {
+                        port = Settings.UPnpPort,
+                        webport = Settings.UPnpServerPort,
+                        torrentport = Settings.TorrentPort,
+                        dhtport = Settings.DhtPort,
+                    };
+
+                    json = JObject.FromObject(obj);
+                    jsonpanel.Children.Clear();
+                    jsonpanel.Children.Add(setting = JsonUISetting.Create(new JProperty("ae", json), FieldDescriber.Create(obj.GetType())));
+                }
+
+
+                return new StackPanel()
+                {
+                    Orientation = Orientation.Vertical,
+                    Children =
+                    {
+                        jsonpanel,
+                        new MPButton()
+                        {
+                            Text = new("Save ports"),
+                            OnClickSelf = async self =>
+                            {
+                                setting!.UpdateValue();
+
+                                var data = new[] { "port", "webport", "torrentport", "dhtport" }.Select(x => (x, json[x]!.Value<ushort>().ToString())).ToArray();
+                                var update = await LocalApi.Default.Get("updateports", "Updating ports config", data);
+                                await self.Flash(update);
+                            },
+                        },
+                    },
                 };
             }
         }

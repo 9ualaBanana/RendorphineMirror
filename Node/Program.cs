@@ -194,7 +194,7 @@ async ValueTask AuthWithGui()
         var login = data[0];
         var password = data[1];
 
-        await SessionManager.AuthAsync(login, password).ThrowIfNull();
+        await SessionManager.AuthAsync(login, password).ThrowIfError();
         return;
     }
 
