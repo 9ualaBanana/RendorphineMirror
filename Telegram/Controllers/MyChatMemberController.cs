@@ -5,7 +5,7 @@ using Telegram.Models;
 namespace Telegram.Controllers;
 
 [ApiController]
-[Route($"telegram/{PathFragment}")]
+[Route($"telegram/{{token}}/{PathFragment}")]
 public class MyChatMemberController : UpdateControllerBase
 {
     internal const string PathFragment = "my_chat_member";

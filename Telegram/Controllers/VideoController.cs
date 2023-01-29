@@ -3,7 +3,7 @@
 namespace Telegram.Controllers;
 
 [ApiController]
-[Route($"telegram/{PathFragment}")]
+[Route($"telegram/{{token}}/{PathFragment}")]
 public class VideoController : ControllerBase
 {
     internal const string PathFragment = "video";

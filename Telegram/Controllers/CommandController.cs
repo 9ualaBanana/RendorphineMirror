@@ -4,11 +4,12 @@ using Telegram.Models;
 namespace Telegram.Controllers;
 
 [ApiController]
-[Route($"telegram/{PathFragment}")]
+[Route($"telegram/{{token}}/{PathFragment}")]
 public class CommandController : UpdateControllerBase
 {
     internal const string PathFragment = "command";
 
+    [HttpPost]
     public async Task Handle(
         [FromServices] IEnumerable<Command> commands,
         [FromServices] ILogger<CommandController> logger)

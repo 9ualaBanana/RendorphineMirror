@@ -7,7 +7,4 @@ internal static class UpdateTypeRoutingExtensions
         .AddScoped<IUpdateTypeRouter, MessageRouterMiddleware>()
         .AddScoped<IUpdateTypeRouter, CallbackQueryRouterMiddleware>()
         .AddScoped<IUpdateTypeRouter, MyChatMemberRouterMiddleware>();
-
-    internal static IApplicationBuilder UseUpdateTypeRouting(this IApplicationBuilder app)
-        => app.UseMiddleware<UpdateTypeRouterMiddleware>();
 }

@@ -31,10 +31,11 @@ public class TelegramBot : TelegramBotClient
     /// </summary>
     internal async Task InitializeAsync()
     {
-        await this.SetWebhookAsync($"{_options.Host}/telegram",
+        string webhookUrl = $"{_options.Host}/telegram/{_options.Token}";
+        await this.SetWebhookAsync(webhookUrl,
             allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery, UpdateType.ChatMember },
             dropPendingUpdates: true);
-        Logger.LogDebug("Webhook for {Url} is set", _options.Host);
+        Logger.LogDebug("Webhook for {Url} is set", webhookUrl);
     }
 
     internal async Task TryNotifySubscribersAboutImageAsync(

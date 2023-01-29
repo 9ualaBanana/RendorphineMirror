@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot.Types;
+using Telegram.Middleware.UpdateRouting.UpdateTypeRouting;
 using Telegram.Models;
 
 namespace Telegram.Middleware.UpdateRouting;
@@ -9,12 +10,15 @@ public class UpdateContextConstructorMiddleware : IMiddleware
 {
     readonly ILogger _logger;
 
+    readonly UpdateTypeRouterMiddleware _updateTypeRouterMiddleware;
     readonly UpdateContextCache _updateContextCache;
 
     public UpdateContextConstructorMiddleware(
+        UpdateTypeRouterMiddleware updateTypeRouterMiddleware,
         UpdateContextCache updateContextCache,
         ILogger<UpdateContextConstructorMiddleware> logger)
     {
+        _updateTypeRouterMiddleware = updateTypeRouterMiddleware;
         _updateContextCache = updateContextCache;
         _logger = logger;
     }
@@ -27,7 +31,7 @@ public class UpdateContextConstructorMiddleware : IMiddleware
         _updateContextCache.Cache(new UpdateContext(update));
         _logger.LogTrace($"{nameof(UpdateContext)} is constructed");
 
-        await next(context);
+        await _updateTypeRouterMiddleware.InvokeAsync(context, next);
     }
 
     static async Task<Update?> DeserializeUpdateAsyncFrom(HttpContext context)
@@ -52,7 +56,7 @@ public class UpdateContextConstructorMiddleware : IMiddleware
         {
             string errorMessage = $"Request body didn't contain JSON representing {nameof(Update)}";
             _logger.LogCritical(errorMessage);
-            throw new InvalidDataException(errorMessage);
+            throw new InvalidDataException($"{errorMessage}.");
         }
     }
 }

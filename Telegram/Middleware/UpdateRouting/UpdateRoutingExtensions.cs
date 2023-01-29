@@ -7,16 +7,11 @@ internal static class UpdateRoutingExtensions
 {
     internal static IServiceCollection AddUpdateRouting(this IServiceCollection services)
         => services
+        .AddScoped<UpdateRoutingBranchingMiddleware>()
         .AddScoped<UpdateContextCache>()
         .AddScoped<UpdateContextConstructorMiddleware>()
         .AddUpdateTypeRouting();
 
     internal static IApplicationBuilder UseUpdateRouting(this IApplicationBuilder app)
-        => app
-        //.UseWhen(context => context.Request.Host == new HostString("api.telegram.org"), app =>
-        //{
-        //    Move statements from below here when 
-        //});
-        .UseMiddleware<UpdateContextConstructorMiddleware>()
-        .UseUpdateTypeRouting();
+        => app.UseMiddleware<UpdateRoutingBranchingMiddleware>();
 }
