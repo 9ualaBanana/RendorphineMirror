@@ -51,7 +51,7 @@ public class MessageRouterMiddleware : IUpdateTypeRouter
 static class MessageRouterMiddlewareHelpers
 {
     internal static bool IsCommand(this Message message)
-        => message.Text is not null && message.Text.StartsWith('/') && message.Text.Length > 1;
+        => message.Text is not null && message.Text.StartsWith(Command.Prefix) && message.Text.Length > 1;
 
     internal static bool IsImage(this Message message)
         => message.Document.IsImage() || message.Photo is not null || Uri.IsWellFormedUriString(message.Text, UriKind.Absolute);

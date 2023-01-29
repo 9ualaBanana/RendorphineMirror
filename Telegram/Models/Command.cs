@@ -2,11 +2,13 @@
 
 public abstract class Command : IUpdateHandler, ISwitchableService<Command, string>, IEquatable<Command>, IEquatable<string>
 {
-    public readonly string CommandText;
+    internal const char Prefix = '/';
 
-	protected Command(string commandText) => CommandText = commandText;
+    protected readonly string PrefixedCommandText;
 
-    public bool Matches(string commandText) => commandText == CommandText;
+	protected Command(string commandText) => PrefixedCommandText = Prefix + commandText;
+
+    public bool Matches(string prefixedCommandText) => prefixedCommandText.StartsWith(this.PrefixedCommandText);
     
     public abstract Task HandleAsync(UpdateContext updateContext, CancellationToken cancellationToken);
 
@@ -14,16 +16,16 @@ public abstract class Command : IUpdateHandler, ISwitchableService<Command, stri
 
     public static bool operator ==(Command left, Command right) => left.Equals(right);
     public static bool operator !=(Command left, Command right) => !left.Equals(right);
-    bool IEquatable<Command>.Equals(Command? otherCommand) => CommandText == otherCommand?.CommandText;
+    bool IEquatable<Command>.Equals(Command? otherCommand) => PrefixedCommandText == otherCommand?.PrefixedCommandText;
 
     public static bool operator ==(Command left, string rightCommandText) => left.Equals(rightCommandText);
     public static bool operator !=(Command left, string rightCommandText) => !left.Equals(rightCommandText);
-    bool IEquatable<string>.Equals(string? otherCommandText) => CommandText == otherCommandText;
+    bool IEquatable<string>.Equals(string? otherCommandText) => PrefixedCommandText == otherCommandText;
     
-    public static implicit operator string(Command command) => command.CommandText;
+    public static implicit operator string(Command command) => command.PrefixedCommandText;
 
     public override bool Equals(object? obj) => ((IEquatable<Command>)this).Equals(obj as Command);
-    public override int GetHashCode() => CommandText.GetHashCode();
+    public override int GetHashCode() => PrefixedCommandText.GetHashCode();
 
     #endregion
 }
