@@ -36,9 +36,20 @@ public class UpdateContextCache
     /// Retrieves <see cref="UpdateContext"/> instance that is cached inside <see cref="HttpContext.Items"/>.
     /// </summary>
     /// <remarks>
-    /// Trying to <see cref="Retrieve"/> <see cref="UpdateContext"/> before it was cached by <see cref="Cache"/> results in an exception.
+    /// Attempting to <see cref="Retrieve"/> <see cref="UpdateContext"/> before it was cached by <see cref="Cache"/> results in an exception.
     /// </remarks>
-    internal UpdateContext Retrieve() => (HttpContext.Items[CacheKey] as UpdateContext)!;
+    /// <exception cref="InvalidOperationException"/>
+    internal UpdateContext Retrieve()
+    {
+        if (HttpContext.Items[CacheKey] is UpdateContext updateContext)
+            return updateContext;
+        else
+        {
+            const string errorMessage = $"{nameof(Cache)} {nameof(UpdateContext)} before attempting to {nameof(Retrieve)} it";
+            _logger.LogCritical(errorMessage);
+            throw new InvalidOperationException($"{errorMessage}.");
+        }
+    }
 
     static readonly object CacheKey = new();
 
