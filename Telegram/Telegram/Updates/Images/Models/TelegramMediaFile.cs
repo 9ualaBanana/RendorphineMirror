@@ -4,7 +4,7 @@ using Telegram.Bot.Types.InputFiles;
 
 namespace Telegram.Telegram.Updates.Images.Models;
 
-public record TelegramMediaFile(int? Size, string Extension, string MimeType, string? FileId = null, string? Url = null) : IContentType
+public record TelegramMediaFile(long? Size, string Extension, string MimeType, string? FileId = null, string? Url = null) : IContentType
 {
     public InputOnlineFile InputOnlineFile => Url is not null ? Url : FileId!;
 
