@@ -1,4 +1,4 @@
-﻿using NLog.Targets;
+using NLog.Targets;
 
 namespace Common;
 
@@ -39,7 +39,7 @@ internal static class Logging
         Layout = _layout,
         ArchiveEvery = FileArchivePeriod.Day,
         ArchiveDateFormat = "yyyyMMdd",
-        ArchiveFileName = $"{_LogDirFor}log.{{#}}{_fileExtension}",
+        ArchiveFileName = $"{_LogDirFor(logLevel)}log.{{#}}{_fileExtension}",
         ArchiveNumbering = ArchiveNumberingMode.Date,
         MaxArchiveDays = maxArchiveDays
     };
