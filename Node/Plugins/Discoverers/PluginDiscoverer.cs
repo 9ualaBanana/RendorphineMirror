@@ -69,7 +69,7 @@ public abstract class PluginDiscoverer
 
     protected static string StartProcess(string path, string args)
     {
-        var proc = Process.Start(new ProcessStartInfo(path, args) { RedirectStandardOutput = true })!;
+        var proc = Process.Start(new ProcessStartInfo(path, args) { RedirectStandardOutput = true, CreateNoWindow = true })!;
         proc.WaitForExit();
 
         using var reader = proc.StandardOutput;
