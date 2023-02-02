@@ -75,6 +75,9 @@ public class LocalListener : ExecutableListenerBase
                 Settings.TorrentPort = ushort.Parse(torrentport);
                 Settings.DhtPort = ushort.Parse(dhtport);
 
+                var changed = new { port = Settings.UPnpPort, webport = Settings.UPnpServerPort, torrentport = Settings.TorrentPort, dhtport = Settings.DhtPort };
+                _logger.Info($"Settings changed: {JsonConvert.SerializeObject(changed)}");
+
                 _ = Task.Delay(500).ContinueWith(_ => ListenerBase.RestartAll());
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);

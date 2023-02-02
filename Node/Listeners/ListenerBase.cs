@@ -21,6 +21,7 @@ public abstract class ListenerBase
     protected abstract ListenTypes ListenType { get; }
     protected virtual bool RequiresAuthentication => false;
 
+    int StartIndex = 0;
     HttpListener? Listener;
 
     public void Start() => _Start(true);
@@ -63,10 +64,14 @@ public abstract class ListenerBase
 
         new Thread(() =>
         {
+            var idx = ++StartIndex;
+
             while (true)
             {
                 try
                 {
+                    if (StartIndex != idx) return;
+
                     var context = Listener.GetContext();
                     LogRequest(context.Request);
 
