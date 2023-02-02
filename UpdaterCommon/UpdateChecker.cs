@@ -133,7 +133,7 @@ public partial class UpdateChecker
         _logger.Info("Checking files to update...");
         var files = await GetAllFiles().Next(x => FilterNewFiles(x).AsOpResult()).ConfigureAwait(false);
         if (!files) return files.GetResult();
-        if (false&&files.Value.Length == 0)
+        if (files.Value.Length == 0)
         {
             if (Directory.Exists(TempDirectory))
                 Directory.Delete(TempDirectory, true);
