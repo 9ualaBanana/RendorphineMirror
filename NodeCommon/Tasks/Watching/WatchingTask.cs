@@ -36,7 +36,7 @@ public class WatchingTask : ILoggable
     }
 
 
-    public string FSDataDirectory() => DirectoryCreated(Path.Combine(Init.WatchingTaskFilesDirectory, Id));
+    public string FSDataDirectory() => DirectoryCreated(Path.Combine(Init.ConfigDirectory, "watchingtasks", Id));
     static string DirectoryCreated(string dir)
     {
         Directory.CreateDirectory(dir);

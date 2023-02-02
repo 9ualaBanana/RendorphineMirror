@@ -350,6 +350,39 @@ namespace Common
         public static async ValueTask<OperationResult<Dictionary<TKey, TVal>>> MergeDictResults<TKey, TVal>(this IEnumerable<Task<OperationResult<Dictionary<TKey, TVal>>>> results) where TKey : notnull =>
             (await Task.WhenAll(results)).MergeDictResults();
 
+        public static async ValueTask<OperationResult> MergeParallel(this IEnumerable<ValueTask<OperationResult>> tasks, int limit)
+        {
+            var result = await MergeParallel(tasks.Select(async x => (await x).As(0)).Select(x => new ValueTask<OperationResult<int>>(x)), limit);
+            return result.GetResult();
+        }
+        public static async ValueTask<OperationResult<T[]>> MergeParallel<T>(this IEnumerable<ValueTask<OperationResult<T>>> tasks, int limit)
+        {
+            using var throttler = new SemaphoreSlim(Math.Max(1, limit));
+            var cancel = false;
+
+            var newtasks = tasks.Select(async task =>
+            {
+                await throttler.WaitAsync();
+                if (cancel) return OperationResult.Err<T>();
+
+                try
+                {
+                    var result = await task;
+                    if (!result) cancel = true;
+
+                    return result;
+                }
+                catch (Exception ex) { return OperationResult.Err(ex); }
+                finally { throttler.Release(); }
+            }).ToArray();
+
+
+            var results = await Task.WhenAll(newtasks);
+            if (cancel) return results.First(x => !x.Success).GetResult();
+
+            return results.Select(x => x.Value).ToArray();
+        }
+
         #endregion
     }
 }

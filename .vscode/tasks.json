@@ -55,6 +55,82 @@
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ]
+        },
+        {
+            "label": "buildupdater",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/Updater/Updater.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ]
+        },
+        {
+            "label": "buildupdateserver",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/UpdateServer/UpdateServer.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ]
+        },
+        {
+            "label": "builduploader",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/Uploader/Uploader.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ]
+        },
+
+        {
+            "label": "Upload node",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "run",
+                "--project", "${workspaceFolder}/Uploader/Uploader.csproj"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "Upload node-dbg",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "run",
+                "--project", "${workspaceFolder}/Uploader/Uploader.csproj",
+                "{ \"ProjectType\": \"NodeProject\", \"Type\": \"Release\", \"AppType\": \"renderfin-win\", \"Identifier\": \"win7-x64\", \"Dest\": \"debian@t.microstock.plus:/home/debian/updater3/files/renderfin-win-dbg\", \"Args\": [\"/p:DefineConstants=DBG\"] }",
+                "{ \"ProjectType\": \"NodeProject\", \"Type\": \"Release\", \"AppType\": \"renderfin-lin\", \"Identifier\": \"linux-x64\", \"Dest\": \"debian@t.microstock.plus:/home/debian/updater3/files/renderfin-lin-dbg\", \"Args\": [\"/p:DefineConstants=DBG\"] }"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "Upload update server",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "run",
+                "--project", "${workspaceFolder}/Uploader/Uploader.csproj",
+                "{ \"Type\": \"Release\", \"Name\": \"UpdateServer\", \"Identifier\": \"linux-x64\", \"Dest\": \"debian@t.microstock.plus:/home/debian/updater3\" }"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+            }
         }
     ]
 }

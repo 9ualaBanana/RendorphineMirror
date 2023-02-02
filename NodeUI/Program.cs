@@ -29,6 +29,7 @@ global using NodeUI.Pages;
 global using APath = Avalonia.Controls.Shapes.Path;
 global using Path = System.IO.Path;
 using System.Runtime.InteropServices;
+using Avalonia.Controls.ApplicationLifetimes;
 using CefNet;
 
 namespace NodeUI;
@@ -40,24 +41,18 @@ static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        Init.Initialize();
-        ConsoleHide.Hide();
+        if (!Init.IsDebug && !Process.GetCurrentProcess().ProcessName.Contains("dotnet", StringComparison.Ordinal))
+        {
+            SendShowRequest();
+            ListenForShowRequests();
+        }
 
+        Init.Initialize();
         if (args.Any(x => x.Contains("zygote", StringComparison.Ordinal) || x.Contains("sandbox", StringComparison.Ordinal) || x.StartsWith("--type", StringComparison.Ordinal)))
             InitializeCef();
 
-        if (!Init.IsDebug)
-        {
-            var updater = FileList.GetUpdaterExe();
-            Process.Start(new ProcessStartInfo(updater) { WorkingDirectory = Path.GetDirectoryName(updater), CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden, UseShellExecute = true })!.WaitForExit();
-        }
-
         Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
-        if (!Init.IsDebug)
-        {
-            FileList.KillNodeUI();
-            Task.Run(CreateShortcuts);
-        }
+        if (!Init.IsDebug) Task.Run(CreateShortcuts);
 
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
@@ -69,8 +64,62 @@ static class Program
         .LogToTrace();
 
 
+    /// <summary> Check if another instance is already running, send show request to it and quit </summary>
+    static void SendShowRequest()
+    {
+        if (!FileList.GetAnotherInstances().Any()) return;
+
+        var dir = Path.Combine(Path.GetTempPath(), "renderfinuireq");
+        if (!Directory.Exists(dir)) return;
+
+        File.Create(Path.Combine(dir, "show")).Dispose();
+        Environment.Exit(0);
+    }
+    /// <summary> Start listening for outside requests to show the window </summary>
+    static void ListenForShowRequests()
+    {
+        new Thread(() =>
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "renderfinuireq");
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            Directory.CreateDirectory(dir);
+
+            using var watcher = new FileSystemWatcher(dir);
+            watcher.Created += (obj, e) =>
+            {
+                var action = Path.GetFileName(e.FullPath);
+                if (action == "show")
+                    (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow?.Show();
+
+                File.Delete(e.FullPath);
+            };
+
+            watcher.EnableRaisingEvents = true;
+            Thread.Sleep(-1);
+        })
+        { IsBackground = true }.Start();
+    }
+
     static void CreateShortcuts()
     {
+        if (Environment.OSVersion.Platform != PlatformID.Win32NT) return;
+
+        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+        try
+        {
+            File.Delete(Path.Combine(desktop, "Renderphine.url"));
+            UISettings.ShortcutsCreated = false;
+        }
+        catch { }
+        try
+        {
+            File.Delete(Path.Combine(startmenu, "Renderphine.url"));
+            UISettings.ShortcutsCreated = false;
+        }
+        catch { }
+
+
         if (UISettings.ShortcutsCreated) return;
 
         try
@@ -84,10 +133,8 @@ static class Program
             ".TrimLines();
 
 
-            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             write(Path.Combine(desktop, "Renderfin.url"), data);
 
-            var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
             Directory.CreateDirectory(startmenu);
             write(Path.Combine(startmenu, "Renderfin.url"), data);
         }

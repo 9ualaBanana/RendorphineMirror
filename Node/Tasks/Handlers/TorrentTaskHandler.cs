@@ -33,7 +33,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     {
         if (task.IsFromSameNode())
         {
-            Extensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
+            CommonExtensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
             return;
         }
 

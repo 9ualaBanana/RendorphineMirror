@@ -1,5 +1,8 @@
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Net;
+using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
@@ -18,16 +21,15 @@ public abstract class ListenerBase
     protected abstract ListenTypes ListenType { get; }
     protected virtual bool RequiresAuthentication => false;
 
-    HttpListener? CurrentListener;
+    HttpListener? Listener;
 
-    public void Start()
+    public void Start() => _Start(true);
+    void _Start(bool firsttime)
     {
         if (!Listeners.Contains(this))
             Listeners.Add(this);
 
-        CurrentListener?.Stop();
-        CurrentListener?.Close();
-        CurrentListener = new();
+        var prefixes = new List<string>();
         if (ListenType.HasFlag(ListenTypes.Local)) addprefix($"127.0.0.1:{Settings.LocalListenPort}");
         if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{PortForwarding.Port}");
         if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{PortForwarding.ServerPort}");
@@ -36,11 +38,28 @@ public abstract class ListenerBase
             prefix = $"http://{prefix}/{Prefix}";
             if (!prefix.EndsWith("/")) prefix += "/";
 
-            CurrentListener.Prefixes.Add(prefix);
+            prefixes.Add(prefix);
         }
 
-        _logger.Info($"Starting HTTP {GetType().Name} on {string.Join(", ", CurrentListener.Prefixes)}");
-        CurrentListener.Start();
+        Listener?.Stop();
+        Listener?.Close();
+        Listener = new();
+        foreach (var prefix in prefixes)
+            Listener.Prefixes.Add(prefix);
+        _logger.Info($"{(firsttime ? null : "(re)")}Starting HTTP {GetType().Name} on {string.Join(", ", prefixes)}");
+
+        try { Listener.Start(); }
+        catch (Exception ex) when (firsttime && Initializer.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            _logger.Error($"Could not start HttpListener: {ex.Message}, bypassing...");
+
+            var args = string.Join(';', prefixes.Select(p => $"netsh http add urlacl url={p} user={WindowsIdentity.GetCurrent().Name}"));
+            using (var proc = Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{args}\"") { UseShellExecute = true, Verb = "runas", }).ThrowIfNull("Could not bypass httplistener rights: {0}"))
+                proc.WaitForExit();
+
+            _Start(false);
+            return;
+        }
 
         new Thread(() =>
         {
@@ -48,7 +67,7 @@ public abstract class ListenerBase
             {
                 try
                 {
-                    var context = CurrentListener.GetContext();
+                    var context = Listener.GetContext();
                     LogRequest(context.Request);
 
                     _ = Task.Run(async () =>

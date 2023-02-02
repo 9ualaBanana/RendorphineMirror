@@ -39,7 +39,7 @@ public static class UICache
                 File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, JsonSettings.Typed)));
         }
 
-        var cacheloaded = !Init.IsDebug; // dont load from cache is not debug
+        var cacheloaded = !Init.IsDebug; // dont load from cache if not debug
         var consecutive = 0;
         while (true)
         {

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using Microsoft.Win32.TaskScheduler;
 
 namespace NodeCommon
@@ -8,23 +9,21 @@ namespace NodeCommon
     {
         const string SystemctlExe = "/usr/bin/systemctl"; // TODO: what if no systemd
         const string LaunchctlExe = "/usr/bin/launchctl";
+        const string ServiceName = "renderfin_pinger";
 
-        const string ServiceName = "renderphinepinger";
-
-
-        static void Initialize()
+        static void Initialize(string? servicename = null)
         {
-            try { Stop(); }
+            servicename ??= ServiceName;
+
+            try { Stop(servicename); }
             catch { }
 
             var nodeexe = FileList.GetNodeExe();
             var nodeuiexe = FileList.GetNodeUIExe();
             var pingerexe = FileList.GetPingerExe();
+            var updaterexe = FileList.GetUpdaterExe();
 
-            var updaterexe = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault();
-            if (updaterexe is null || !File.Exists(updaterexe)) updaterexe = FileList.GetUpdaterExe();
-
-            MakeExecutable(pingerexe, updaterexe, nodeexe, nodeuiexe);
+            CommonExtensions.MakeExecutable(pingerexe, updaterexe, nodeexe, nodeuiexe);
             ExecuteForOs(Windows, Linux, Mac);
 
 
@@ -34,8 +33,8 @@ namespace NodeCommon
 
                 var task = ts.NewTask();
                 task.RegistrationInfo.Description = " pinger";
-                task.Actions.Add(new ExecAction(pingerexe, @$"""{nodeexe}"" ""{updaterexe}""", Directory.GetCurrentDirectory()));
-                task.Principal.RunLevel = TaskRunLevel.Highest;
+                task.Actions.Add(new ExecAction(pingerexe, workingDirectory: Directory.GetCurrentDirectory()));
+                if (Initializer.UseAdminRights) task.Principal.RunLevel = TaskRunLevel.Highest;
                 task.Settings.DisallowStartIfOnBatteries = false;
                 task.Settings.StopIfGoingOnBatteries = false;
                 task.Settings.Enabled = true;
@@ -45,8 +44,11 @@ namespace NodeCommon
 
                 // trigger immediately & then every minute forever
                 task.Triggers.Add(repeated(new RegistrationTrigger()));
-                task.Triggers.Add(repeated(new BootTrigger()));
-                task.Triggers.Add(repeated(new LogonTrigger()));
+                if (Initializer.UseAdminRights) task.Triggers.Add(repeated(new BootTrigger()));
+
+                var logon = new LogonTrigger();
+                if (!Initializer.UseAdminRights) logon.UserId = WindowsIdentity.GetCurrent().Name;
+                task.Triggers.Add(repeated(logon));
 
                 // trigger on unhibernation
                 //try { task.Triggers.Add(repeated(new EventTrigger("Microsoft-Windows-Diagnostics-Performance/Operational", "PowerTroubleshooter", 1))); }
@@ -54,7 +56,7 @@ namespace NodeCommon
                 try { task.Triggers.Add(repeated(new EventTrigger("System", "PowerTroubleshooter", 1))); }
                 catch { }
 
-                ts.RootFolder.RegisterTask(ServiceName, task.XmlText, createType: TaskCreation.CreateOrUpdate, logonType: TaskLogonType.InteractiveToken);
+                ts.RootFolder.RegisterTask(servicename, task.XmlText, createType: TaskCreation.CreateOrUpdate, logonType: TaskLogonType.InteractiveToken);
 
 
                 static T repeated<T>(T trigger) where T : Trigger, ITriggerDelay
@@ -75,8 +77,8 @@ namespace NodeCommon
                     Type=oneshot
                     KillMode=process
                     WorkingDirectory={Path.GetDirectoryName(updaterexe)}
-                    ExecStart=""{pingerexe}"" ""{nodeexe}""  ""{updaterexe}""
-                ";
+                    ExecStart=""{pingerexe}""
+                ".TrimLines();
                 var timer = $@"
                     [Unit]
                     Description=Renderfin tracker
@@ -84,12 +86,12 @@ namespace NodeCommon
                     [Timer]
                     OnActiveSec=1min
                     OnUnitActiveSec=1min
-                ";
+                ".TrimLines();
 
                 var configdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "systemd/user/");
                 Directory.CreateDirectory(configdir);
-                File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.service"), service);
-                File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.timer"), timer);
+                File.WriteAllText(Path.Combine(configdir, @$"{servicename}.service"), service);
+                File.WriteAllText(Path.Combine(configdir, @$"{servicename}.timer"), timer);
 
                 Launch(SystemctlExe, @$"--user daemon-reload");
             }
@@ -105,8 +107,6 @@ namespace NodeCommon
                         <key>ProgramArguments</key>
                         <array>
                             <string>{pingerexe}</string>
-                            <string>{nodeexe}</string>
-                            <string>{updaterexe}</string>
                         </array>
                         <key>RunAtLoad</key>
                         <true/>
@@ -117,11 +117,12 @@ namespace NodeCommon
                 ";
 
                 var configdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library/LaunchAgents");
-                File.WriteAllText(Path.Combine(configdir, @$"{ServiceName}.plist"), service);
+                File.WriteAllText(Path.Combine(configdir, @$"{servicename}.plist"), service);
             }
         }
-        public static void Start()
+        public static void Start(string? servicename = null)
         {
+            servicename ??= ServiceName;
             Initialize();
             ExecuteForOs(Windows, Linux, Mac);
 
@@ -129,40 +130,27 @@ namespace NodeCommon
             void Windows()
             {
                 using var ts = new TaskService();
-                ts.Execute(ServiceName);
+                ts.Execute(servicename);
             }
-            void Linux() => Launch(SystemctlExe, @$"--user enable --now {ServiceName}.timer");
-            void Mac() => Launch(LaunchctlExe, @$"start {ServiceName}");
+            void Linux() => Launch(SystemctlExe, @$"--user enable --now {servicename}.timer");
+            void Mac() => Launch(LaunchctlExe, @$"start {servicename}");
         }
-        public static void Stop()
+        public static void Stop(string? servicename = null)
         {
+            servicename ??= ServiceName;
             ExecuteForOs(Windows, Linux, Mac);
 
 
             void Windows()
             {
                 using var ts = new TaskService();
-                ts.RootFolder.DeleteTask(ServiceName);
+                ts.RootFolder.DeleteTask(servicename);
             }
-            void Linux() => Launch(SystemctlExe, @$"--user stop {ServiceName}.timer");
-            void Mac() => Launch(LaunchctlExe, @$"stop {ServiceName}");
+            void Linux() => Launch(SystemctlExe, @$"--user disable --now {servicename}.timer");
+            void Mac() => Launch(LaunchctlExe, @$"stop {servicename}");
         }
 
 
-        static void MakeExecutable(params string[] paths)
-        {
-            if (Environment.OSVersion.Platform != PlatformID.Unix) return;
-
-            var p = new ProcessStartInfo("/usr/bin/chmod")
-            {
-                ArgumentList = { "+x" },
-                UseShellExecute = true,
-            };
-            foreach (var path in paths)
-                p.ArgumentList.Add(path);
-
-            Process.Start(p);
-        }
         static Process Launch(string executable, string arguments) => Process.Start(executable, arguments);
         static void ExecuteForOs(System.Action? windows, System.Action? linux, System.Action? mac)
         {

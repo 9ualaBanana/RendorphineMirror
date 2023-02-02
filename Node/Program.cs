@@ -15,7 +15,6 @@ global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
 global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
-using System.Diagnostics;
 using Node;
 using Node.Heartbeat;
 using Node.Listeners;
@@ -23,12 +22,15 @@ using Node.Plugins;
 using Node.Plugins.Discoverers;
 using Node.Profiling;
 
+
+ConsoleHide.Hide();
+
+foreach (var proc in FileList.GetAnotherInstances())
+    proc.Kill(true);
+
 var halfrelease = args.Contains("release");
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
-
-if (!Init.IsDebug)
-    FileList.KillNodeUI();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 await Task.WhenAll(
@@ -39,20 +41,12 @@ await Task.WhenAll(
 new LocalListener().Start();
 
 if (Settings.SessionId is not null)
-{
     logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
-
-    if (Settings.SessionId is not null && !Init.IsDebug)
-        try { Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden")); }
-        catch { }
-}
 else
 {
-    await AuthWithGui().ConfigureAwait(false);
+    await WaitForAuth().ConfigureAwait(false);
     logger.Info("Authentication completed");
 }
-
-Directory.CreateDirectory(Init.TaskFilesDirectory);
 
 if (!Init.IsDebug || halfrelease)
     PortForwarder.Initialize();
@@ -63,6 +57,9 @@ if (!Init.IsDebug || halfrelease)
 {
     if (!Init.IsDebug)
     {
+        // removing old service
+        try { SystemService.Stop("renderphinepinger"); }
+        catch (Exception ex) { logger.Error(ex); }
         SystemService.Start();
 
         var reepoHeartbeat = new Heartbeat(
@@ -97,7 +94,7 @@ new DirectoryDiffListener().Start();
 new DownloadListener().Start();
 new PublicPagesListener().Start();
 
-if (Init.IsDebug) new DebugListener().Start();
+if (Init.DebugFeatures) new DebugListener().Start();
 
 PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
 {
@@ -183,24 +180,27 @@ async Task InitializePlugins()
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
     Task.Run(() => logger.Info($"Found {{Plugins}} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {Path.GetFullPath(x.Path)}"))}", plugins.Count)).Consume();
 }
-async ValueTask AuthWithGui()
+async ValueTask WaitForAuth()
 {
-    logger.Warn(@$"You are not authenticated. Please use NodeUI app to authenticate");
-    Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
-
-    if (File.Exists("login"))
-    {
-        var data = File.ReadAllText("login").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var login = data[0];
-        var password = data[1];
-
-        await SessionManager.AuthAsync(login, password).ThrowIfError();
-        return;
-    }
+    logger.Warn(@$"You are not authenticated. Please use NodeUI app to authenticate or create an 'login' file with username and password separated by newline");
 
     while (true)
     {
         await Task.Delay(1000).ConfigureAwait(false);
+        if (File.Exists("login"))
+        {
+            var data = File.ReadAllText("login").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (data.Length < 2) continue;
+
+            var login = data[0];
+            var password = data[1];
+
+            var auth = await SessionManager.AuthAsync(login, password);
+            auth.LogIfError();
+            if (!auth) continue;
+
+            return;
+        }
 
         if (Settings.SessionId is null) continue;
         if (Settings.NodeName is null) continue;
