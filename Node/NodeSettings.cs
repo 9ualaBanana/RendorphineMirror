@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Linq;
 using Node.Profiling;
 using static NodeCommon.Settings;
 
@@ -30,6 +31,8 @@ public static class NodeSettings
         NodeGlobalState.Instance.WatchingTasks.Bind(WatchingTasks.Bindable);
         NodeGlobalState.Instance.PlacedTasks.Bind(PlacedTasks.Bindable);
         NodeGlobalState.Instance.QueuedTasks.Bind(QueuedTasks.Bindable);
+
+        BenchmarkResult.Bindable.SubscribeChanged(() => NodeGlobalState.Instance.BenchmarkResult.Value = BenchmarkResult.Value is null ? null : JObject.FromObject(BenchmarkResult.Value), true);
     }
 
 

@@ -684,8 +684,9 @@ namespace NodeUI.Pages
                 {
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Text = "beach mark",
-                });
+                }.With(t =>
+                    NodeGlobalState.Instance.BenchmarkResult.SubscribeChanged(() => t.Text = NodeGlobalState.Instance.BenchmarkResult.Value?.ToString(Formatting.None) ?? "bench mark", true)
+                ));
             }
         }
         class SettingsTab : Panel

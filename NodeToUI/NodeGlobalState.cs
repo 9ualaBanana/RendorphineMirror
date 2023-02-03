@@ -19,6 +19,7 @@ public class NodeGlobalState
     public readonly BindableList<ReceivedTask> ExecutingTasks = new();
     public readonly BindableList<DbTaskFullState> PlacedTasks = new();
     public readonly BindableList<WatchingTask> WatchingTasks = new();
+    public readonly Bindable<JObject?> BenchmarkResult = new();
 
     // string = request guid
     public readonly BindableDictionary<string, GuiRequest> Requests = new();
@@ -33,6 +34,7 @@ public class NodeGlobalState
         ExecutingTasks.Changed += () => AnyChanged.Invoke(nameof(ExecutingTasks));
         PlacedTasks.Changed += () => AnyChanged.Invoke(nameof(PlacedTasks));
         WatchingTasks.Changed += () => AnyChanged.Invoke(nameof(WatchingTasks));
+        BenchmarkResult.Changed += () => AnyChanged.Invoke(nameof(BenchmarkResult));
 
         Requests.Changed += () => AnyChanged.Invoke(nameof(Requests));
     }
