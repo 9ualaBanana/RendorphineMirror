@@ -362,11 +362,11 @@ namespace Common
 
             var newtasks = tasks.Select(async task =>
             {
-                await throttler.WaitAsync();
-                if (cancel) return OperationResult.Err<T>();
-
                 try
                 {
+                    await throttler.WaitAsync();
+                    if (cancel) return OperationResult.Err<T>();
+
                     var result = await task;
                     if (!result) cancel = true;
 
