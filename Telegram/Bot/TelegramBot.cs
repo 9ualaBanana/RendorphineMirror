@@ -31,7 +31,8 @@ public class TelegramBot : TelegramBotClient
     /// </summary>
     internal async Task InitializeAsync()
     {
-        string webhookUrl = $"{_options.Host}/telegram/{_options.Token}";
+        //string webhookUrl = $"{_options.Host}/telegram/{_options.Token}";
+        string webhookUrl = $"{_options.Host}/telegram";
         await this.SetWebhookAsync(webhookUrl,
             allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery, UpdateType.ChatMember },
             dropPendingUpdates: true);

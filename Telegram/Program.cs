@@ -39,7 +39,7 @@ if (app.Environment.IsDevelopment())
 }
 app.MapControllers();
 
-app.UseUpdateRouting();
+//app.UseUpdateRouting();
 app.UseRouting();
 
 app.Run();

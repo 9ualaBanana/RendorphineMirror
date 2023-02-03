@@ -10,6 +10,9 @@ using Telegram.Telegram.Updates.Tasks.Services;
 using Common.Plugins;
 using Telegram.Telegram.FileRegistry;
 using Telegram.Bot;
+using Common.Tasks.Info;
+using Microsoft.AspNetCore.Authentication;
+using Newtonsoft.Json.Linq;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
@@ -44,7 +47,7 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
         if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UpscaleImage) && mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
             await UpscaleAndUploadToMPlusAsync(ChatIdFrom(update), (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!, authenticationToken);
         else if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.VectorizeImage) && mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))
-            await VectorizeAndUploadToMPlusAsync(ChatIdFrom(update), (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!);
+            await VectorizeAndUploadToMPlusAsync(ChatIdFrom(update), (mediaFileProcessingCallbackData as ImageProcessingCallbackData)!, authenticationToken);
         else if (mediaFileProcessingCallbackData.Value.HasFlag(ImageProcessingQueryFlags.UploadImage))  // Must be last conditional as it's the least specific.
             await UploadToMPlusAsync(ChatIdFrom(update), mediaFilePath, authenticationToken);
     }
@@ -69,26 +72,41 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
             );
     }
 
-    async Task VectorizeAndUploadToMPlusAsync(ChatId chatId, ImageProcessingCallbackData imageCallbackData)
+    async Task VectorizeAndUploadToMPlusAsync(ChatId chatId, ImageProcessingCallbackData imageCallbackData, ChatAuthenticationToken authenticationToken)
     {
-        await Bot.TrySendMessageAsync(chatId, "Choose preferred level of details for the resulting image.",
-            new InlineKeyboardMarkup(new InlineKeyboardButton[][]
-            {
-                new InlineKeyboardButton[]
-                {
-                    InlineKeyboardButton.WithCallbackData("◭10000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 10000)),
-                    InlineKeyboardButton.WithCallbackData("◮8500", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 8500))
-                },
-                new InlineKeyboardButton[]
-                {
-                    InlineKeyboardButton.WithCallbackData("◭7000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 7000)),
-                    InlineKeyboardButton.WithCallbackData("◮4000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 4000))
-                },
-                new InlineKeyboardButton[]
-                {
-                    InlineKeyboardButton.WithCallbackData("◭2000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 2000)),
-                    InlineKeyboardButton.WithCallbackData("◮500", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 500))
-                }
-            }));
+        var taskId = (await TaskRegistration.RegisterAsync(
+            new TaskCreationInfo(
+                PluginType.VeeeVectorizer,
+                "VeeeVectorize",
+                default,
+                new DownloadLinkTaskInputInfo($"{_hostUrl}/tasks/getinput/{imageCallbackData.FileRegistryKey}"),
+                new MPlusTaskOutputInfo($"{imageCallbackData.FileRegistryKey}", "vectorized"),
+                JObject.FromObject(new VeeeVectorizeInfo() { Lods = new int[] { 500, 2000, 4000, 7000, 8500, 10000 } })),
+            authenticationToken.MPlus.SessionId))
+            .Result;
+        _taskRegistry[taskId] = authenticationToken;
+
+        await Bot.TrySendMessageAsync(chatId, "Resulting media files will be sent back to you as soon as they are ready.",
+            new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
+            );
+        //await Bot.TrySendMessageAsync(chatId, "Choose preferred level of details for the resulting image.",
+        //    new InlineKeyboardMarkup(new InlineKeyboardButton[][]
+        //    {
+        //        new InlineKeyboardButton[]
+        //        {
+        //            InlineKeyboardButton.WithCallbackData("◭10000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 10000)),
+        //            InlineKeyboardButton.WithCallbackData("◮8500", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 8500))
+        //        },
+        //        new InlineKeyboardButton[]
+        //        {
+        //            InlineKeyboardButton.WithCallbackData("◭7000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 7000)),
+        //            InlineKeyboardButton.WithCallbackData("◮4000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 4000))
+        //        },
+        //        new InlineKeyboardButton[]
+        //        {
+        //            InlineKeyboardButton.WithCallbackData("◭2000", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 2000)),
+        //            InlineKeyboardButton.WithCallbackData("◮500", VectorizerCallbackData.Serialize(VectorizerQueryFlags.V, imageCallbackData.FileRegistryKey, 500))
+        //        }
+        //    }));
     }
 }

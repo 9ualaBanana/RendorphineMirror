@@ -56,7 +56,7 @@ public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHa
                 default,
                 new DownloadLinkTaskInputInfo($"{_hostUrl}/tasks/getinput/{vectorizerCallbackData.FileRegistryKey}"),
                 new MPlusTaskOutputInfo($"{vectorizerCallbackData.FileRegistryKey}", "vectorized"),
-                JObject.FromObject(new VeeeVectorizeInfo() { Lods = new int[] { vectorizerCallbackData.Polygonality } })),
+                JObject.FromObject(new VeeeVectorizeInfo() { Lods = new int[] { 500 } })),
             authenticationToken.MPlus.SessionId))
             .Result;
         _taskRegistry[taskId] = authenticationToken;
