@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Common;
+using Newtonsoft.Json.Linq;
 using NLog;
 using UpdaterCommon;
 
@@ -32,10 +33,29 @@ if (Initializer.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Win
 
 
 Init.Initialize();
-var checker = UpdateChecker.LoadFromJsonOrDefault();
-LogManager.GetCurrentClassLogger().Info($"[Updater] App: {checker.App}; Target dir: {checker.TargetDirectory}; Current executable: {Path.GetFullPath(Environment.ProcessPath!)}");
 
-if (args.Contains("doupdate"))
+UpdateChecker checker;
+var doupdate = false;
+if (args.Length != 0)
+{
+    if (args[0] == "doupdate")
+    {
+        doupdate = true;
+        checker = UpdateChecker.LoadFromJsonOrDefault();
+    }
+    else
+    {
+        var json = JObject.Parse(args[0]);
+
+        doupdate = json["doupdate"]?.Value<bool>() ?? false;
+        checker = json.ToObject<UpdateChecker>().ThrowIfNull("Invalid JSON argument");
+    }
+}
+else checker = UpdateChecker.LoadFromJsonOrDefault();
+
+LogManager.GetCurrentClassLogger().Info($"[{(doupdate ? "D" : null)}Updater] App: {checker.App}; Target dir: {checker.TargetDirectory}; Current executable: {Path.GetFullPath(Environment.ProcessPath!)}");
+
+if (doupdate)
 {
     checker.MoveFilesAndStartApp();
     return;

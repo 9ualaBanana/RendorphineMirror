@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Web;
 using Common;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NLog;
 
 namespace UpdaterCommon;
@@ -28,23 +29,26 @@ namespace UpdaterCommon;
     kill everything again just in case
     start appexes
 */
-public partial class UpdateChecker
+public class UpdateChecker
 {
     static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
+    [JsonIgnore]
     readonly HttpClient Client = new(new HttpClientHandler() { AutomaticDecompression = DecompressionMethods.GZip }) { Timeout = TimeSpan.FromMinutes(1), };
+
     public readonly string Url, App;
     public readonly string TargetDirectory, TempDirectory;
     public readonly ImmutableArray<string> AppExecutables;
+    public readonly ImmutableDictionary<string, string> Args;
 
-    public static UpdateChecker LoadFromJsonOrDefault()
+    public static UpdateChecker LoadFromJsonOrDefault(string? url = null, string? app = null, string? targetdirectory = null, string? tempdirectory = null, string[]? appexecutables = null, IReadOnlyDictionary<string, string>? args = null)
     {
-        if (!File.Exists("updater.json")) return new();
+        if (!File.Exists("updater.json")) return new(url, app, targetdirectory, tempdirectory, appexecutables, args);
 
         var jsontext = File.ReadAllText("updater.json");
         return JsonConvert.DeserializeObject<UpdateChecker>(jsontext).ThrowIfNull("Could not deserialize updater.json");
     }
-    public UpdateChecker(string? url = null, string? app = null, string? targetdirectory = null, string? tempdirectory = null, string[]? appexecutables = null)
+    public UpdateChecker(string? url = null, string? app = null, string? targetdirectory = null, string? tempdirectory = null, string[]? appexecutables = null, IReadOnlyDictionary<string, string>? args = null)
     {
         Url = url ?? "https://t.microstock.plus:5011";
 
@@ -84,6 +88,10 @@ public partial class UpdateChecker
             appexe = Path.Combine(TargetDirectory, appexe);
         }
         AppExecutables = appexecutables.ToImmutableArray();
+
+        Args = args?.ToImmutableDictionary() ?? ImmutableDictionary<string, string>.Empty;
+
+        LogManager.GetCurrentClassLogger().Info($"Creating default updater: {JsonConvert.SerializeObject(this)}");
     }
 
 
@@ -166,7 +174,7 @@ public partial class UpdateChecker
             var start = new ProcessStartInfo(newUpdaterExe) { WindowStyle = ProcessWindowStyle.Hidden, CreateNoWindow = false };
             foreach (var arg in Environment.GetCommandLineArgs().Skip(1))
                 start.ArgumentList.Add(arg);
-            start.ArgumentList.Add("doupdate");
+            start.ArgumentList.Add(JObject.FromObject(this).With(j => j["doupdate"] = true).ToString(Formatting.None));
 
             if (Initializer.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -217,7 +225,10 @@ public partial class UpdateChecker
         {
             if (skipRunning && FileList.IsProcessRunning(Path.GetFullPath(appexe))) continue;
 
-            Process.Start(new ProcessStartInfo(appexe)
+            Args.TryGetValue(Path.GetFileNameWithoutExtension(appexe), out var args);
+            _logger.Info($"Starting {appexe} {args}");
+
+            Process.Start(new ProcessStartInfo(appexe, args ?? string.Empty)
             {
                 WorkingDirectory = Path.GetDirectoryName(appexe),
                 // WindowStyle = ProcessWindowStyle.Hidden,

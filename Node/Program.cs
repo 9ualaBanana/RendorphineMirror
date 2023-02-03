@@ -59,7 +59,7 @@ if (!Init.IsDebug || halfrelease)
     {
         // removing old service
         try { SystemService.Stop("renderphinepinger"); }
-        catch (Exception ex) { logger.Error(ex); }
+        catch { }
         SystemService.Start();
 
         var reepoHeartbeat = new Heartbeat(
