@@ -96,7 +96,8 @@
             "type": "process",
             "args": [
                 "run",
-                "--project", "${workspaceFolder}/Uploader/Uploader.csproj"
+                "--project",
+                "${workspaceFolder}/Uploader/Uploader.csproj"
             ],
             "problemMatcher": [],
             "group": {
@@ -109,9 +110,9 @@
             "type": "process",
             "args": [
                 "run",
-                "--project", "${workspaceFolder}/Uploader/Uploader.csproj",
-                "{ \"ProjectType\": \"NodeProject\", \"Type\": \"Release\", \"AppType\": \"renderfin-win\", \"Identifier\": \"win7-x64\", \"Dest\": \"debian@t.microstock.plus:/home/debian/updater3/files/renderfin-win-dbg\", \"Args\": [\"/p:DefineConstants=DBG\"] }",
-                "{ \"ProjectType\": \"NodeProject\", \"Type\": \"Release\", \"AppType\": \"renderfin-lin\", \"Identifier\": \"linux-x64\", \"Dest\": \"debian@t.microstock.plus:/home/debian/updater3/files/renderfin-lin-dbg\", \"Args\": [\"/p:DefineConstants=DBG\"] }"
+                "--project",
+                "${workspaceFolder}/Uploader/Uploader.csproj",
+                "nodedbg"
             ],
             "problemMatcher": [],
             "group": {
@@ -124,8 +125,9 @@
             "type": "process",
             "args": [
                 "run",
-                "--project", "${workspaceFolder}/Uploader/Uploader.csproj",
-                "{ \"Type\": \"Release\", \"Name\": \"UpdateServer\", \"Identifier\": \"linux-x64\", \"Dest\": \"debian@t.microstock.plus:/home/debian/updater3\" }"
+                "--project",
+                "${workspaceFolder}/Uploader/Uploader.csproj",
+                "updateserver"
             ],
             "problemMatcher": [],
             "group": {

@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text.Json.Serialization;
 using Common;
@@ -9,7 +8,7 @@ using UpdateServer;
 Initializer.ConfigDirectory = "renderfin-updater";
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
-var filez = new ConcurrentDictionary<string, Dictionary<string, UpdaterFileInfo>>();
+var filez = new Dictionary<string, AppData>();
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -66,7 +65,7 @@ FileSystemWatcher StartFileWatcher()
 
             foreach (var file in arr.SelectMany(x => Directory.Exists(x) ? Directory.GetFiles(x, "*", SearchOption.AllDirectories) : new[] { x }))
             {
-                if (!File.Exists(file)) filez.TryRemove(file, out _);
+                if (!File.Exists(file)) filez.Remove(file);
                 else UpdateFileData(file);
             }
 
@@ -78,18 +77,20 @@ FileSystemWatcher StartFileWatcher()
     return watcher;
 
 
-    void UpdateFileData(string file)
+    void UpdateFileData(string relafile)
     {
-        file = Path.GetFullPath(Path.Combine(basedir, file));
+        var appdir = Path.GetRelativePath(basedir, Path.GetFullPath(Path.Combine(basedir, relafile)));
+        appdir = relafile.Substring(0, relafile.IndexOf('/', StringComparison.Ordinal));
+        var appname = appdir.Split('.')[0];
 
-        var app = Path.GetRelativePath(basedir, file);
-        app = app.Substring(0, app.IndexOf('/', StringComparison.Ordinal));
+        if (!filez.TryGetValue(appdir, out var app))
+            filez[appname] = app = new(appname, new(), new(), new());
 
-        if (!filez.TryGetValue(app, out var list))
-            filez[app] = list = new();
+        app.Subdirs.Add(appdir);
 
-        var data = GetActualFileData(file, app);
-        list[data.Path] = data;
+        var data = GetActualFileData(relafile, appdir);
+        app.Files[data.Path] = data;
+        app.FileDirs[data.Path] = appdir;
     }
 
     IEnumerable<string> GetFilesRecursive(string dir)
@@ -100,10 +101,10 @@ FileSystemWatcher StartFileWatcher()
 
         IEnumerable<string> get(string dir) => Directory.GetFiles(dir).Concat(Directory.GetDirectories(dir).SelectMany(get));
     }
-    UpdaterFileInfo GetActualFileData(string path, string app)
+    UpdaterFileInfo GetActualFileData(string path, string appdir)
     {
         GetInfo(path, out var hash, out var size, out var time);
-        return new(Path.GetRelativePath(Path.Combine(basedir, app), path), time, size, hash);
+        return new(Path.GetRelativePath(Path.Combine(basedir, appdir), Path.Combine(basedir, path)), time, size, hash);
 
 
         void GetInfo(string path, out ulong hash, out long size, out long time)
@@ -139,7 +140,7 @@ FileSystemWatcher StartFileWatcher()
                 File.WriteAllText(sizefile, size.ToString());
                 File.SetLastWriteTimeUtc(sizefile, filetime);
 
-                logger.Info($"[Hash recalc] {path}: {hash}");
+                logger.Info($"[Hash recalc] {Path.GetRelativePath(basedir, path)}: {hash}");
             }
         }
     }
@@ -170,14 +171,15 @@ async ValueTask<IResult> GetFiles(string app, HttpRequest request)
     if (!filez.TryGetValue(app, out var data))
         return Results.NotFound();
 
-    return Results.Ok(new Return<IEnumerable<UpdaterFileInfo>>(1, data.Values));
+    return Results.Ok(new Return<IEnumerable<UpdaterFileInfo>>(1, data.Files.Values));
 }
 async ValueTask Download(string path, string app, HttpRequest request, HttpResponse response, CancellationToken token)
 {
     LogRequest(request);
     await WaitWhileUpdating();
 
-    if (!filez.TryGetValue(app, out var files) || !files.TryGetValue(path, out var file))
+
+    if (!filez.TryGetValue(app, out var info) || !info.Files.TryGetValue(path, out var file))
     {
         response.StatusCode = StatusCodes.Status404NotFound;
         return;
@@ -186,7 +188,7 @@ async ValueTask Download(string path, string app, HttpRequest request, HttpRespo
     response.StatusCode = StatusCodes.Status200OK;
     response.Headers.ContentEncoding = "gzip";
 
-    using var zipfile = File.Open(Path.Combine(basedir, app, file.Path), FileMode.Open, FileAccess.Read, FileShare.Read);
+    using var zipfile = File.Open(Path.Combine(basedir, info.FileDirs[file.Path], file.Path), FileMode.Open, FileAccess.Read, FileShare.Read);
     response.Headers.ContentLength = zipfile.Length;
 
     await zipfile.CopyToAsync(response.Body).ConfigureAwait(false);
@@ -200,6 +202,7 @@ void DoLog(HttpRequest request, HttpResponse response)
 }
 
 
+record AppData(string Name, HashSet<string> Subdirs, Dictionary<string, string> FileDirs, Dictionary<string, UpdaterFileInfo> Files);
 class Config
 {
     public string Url { get; set; } = null!;
