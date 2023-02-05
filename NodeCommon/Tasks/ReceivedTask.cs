@@ -17,6 +17,7 @@ public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info), ILogg
 
     public readonly HashSet<FileWithFormat> InputFiles = new();
     public readonly HashSet<FileWithFormat> OutputFiles = new();
+    public readonly HashSet<IUploadedFileInfo> UploadedFiles = new();
 
 
     public string FSInputFile() => InputFiles.Single().Path;
