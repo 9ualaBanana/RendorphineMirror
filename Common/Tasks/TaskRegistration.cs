@@ -32,6 +32,8 @@ public static class TaskRegistration
             var soft = new[] { new TaskSoftwareRequirement(info.Type.ToString().ToLowerInvariant(), ImmutableArray.Create(info.Version), null), };
             values.Add(("software", JsonConvert.SerializeObject(soft, JsonSettings.LowercaseIgnoreNull)));
         }
+        if (output is MPlusTaskOutputInfo mPlusOutput && mPlusOutput.AutoremoveTimer is not null)
+            values.Add(("autoremovetimer", mPlusOutput.AutoremoveTimer.ToString()!));
 
         _logger.Info("Registering task: {Task}", string.Join("; ", values.Skip(1).Select(x => x.Item1 + ": " + x.Item2)));
         var idr = await Api.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());

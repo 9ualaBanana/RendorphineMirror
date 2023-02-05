@@ -31,13 +31,15 @@ public class MPlusTaskOutputInfo : ITaskOutputInfo
     [Default("output_dir")]
     public readonly string Directory;
 
+    public readonly int? AutoremoveTimer;
     public readonly string? TUid;
     [Hidden] public string? IngesterHost;
 
-    public MPlusTaskOutputInfo(string name, string directory, string? tuid = null)
+    public MPlusTaskOutputInfo(string name, string directory, int? autoremoveTimer = null, string? tuid = null)
     {
         Name = name;
         Directory = directory;
+        AutoremoveTimer = autoremoveTimer;
         TUid = tuid;
     }
 }
