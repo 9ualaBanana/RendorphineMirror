@@ -11,7 +11,7 @@ public class RegistryTab : Panel
     {
         Children.Clear();
 
-        var softlist = (await Apis.GetSoftwareAsync()).ThrowIfError();
+        var softlist = await Apis.Default.GetSoftwareAsync().ThrowIfError();
         var prop = new JProperty("_", JObject.FromObject(softlist, JsonSettings.LowercaseS));
 
         var describer = new DictionaryDescriber(softlist.GetType())

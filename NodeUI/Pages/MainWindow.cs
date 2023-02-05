@@ -332,7 +332,7 @@ namespace NodeUI.Pages
                             {
                                 allplaced.ThrowIfNull();
 
-                                var tasks = await Apis.GetMyTasksAsync(new[] { TaskState.Queued, TaskState.Input, TaskState.Active, TaskState.Output, });
+                                var tasks = await Apis.Default.GetMyTasksAsync(new[] { TaskState.Queued, TaskState.Input, TaskState.Active, TaskState.Output, });
                                 await self.FlashErrorIfErr(tasks);
                                 if (!tasks) return;
 
@@ -407,7 +407,7 @@ namespace NodeUI.Pages
 
                     async Task updateState(MPButton button)
                     {
-                        var state = await task.GetTaskStateAsync();
+                        var state = await task.GetTaskStateAsyncOrThrow();
                         await button.FlashErrorIfErr(state);
                         if (!state) return;
 
@@ -476,7 +476,7 @@ namespace NodeUI.Pages
 
             abstract class TaskManager<T> : Panel
             {
-                protected string SessionId = Settings.SessionId;
+                protected Apis Api = Apis.Default;
 
                 public TaskManager()
                 {
@@ -515,7 +515,7 @@ namespace NodeUI.Pages
                 protected async Task LoadSetItems(DataGrid grid) => grid.Items = await Load();
                 protected abstract Task<IReadOnlyCollection<T>> Load();
             }
-            abstract class NormalTaskManager : TaskManager<ReceivedTask>
+            abstract class NormalTaskManager : TaskManager<TaskBase>
             {
                 protected override void CreateColumns(DataGrid data)
                 {
@@ -525,9 +525,9 @@ namespace NodeUI.Pages
                     data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding("Input.Type") });
                     data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding("Output.Type") });
 
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Host)}") });
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Userid)}") });
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(DbTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(Apis.ServerTaskFullState.Server)}.{nameof(TaskServer.Host)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(Apis.ServerTaskFullState.Server)}.{nameof(TaskServer.Userid)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(Apis.ServerTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") });
 
                     data.Columns.Add(new DataGridButtonColumn<DbTaskFullState>()
                     {
@@ -536,7 +536,7 @@ namespace NodeUI.Pages
                         CreationRequirements = task => task.State < TaskState.Finished,
                         SelfAction = async (task, self) =>
                         {
-                            var change = await task.ChangeStateAsync(TaskState.Canceled, sessionId: SessionId);
+                            var change = await Api.ChangeStateAsync(task, TaskState.Canceled);
                             await self.FlashErrorIfErr(change);
 
                             if (change) await LoadSetItems(data);
@@ -546,12 +546,12 @@ namespace NodeUI.Pages
             }
             class LocalTaskManager : NormalTaskManager
             {
-                protected override Task<IReadOnlyCollection<ReceivedTask>> Load() =>
-                    new IReadOnlyList<ReceivedTask>[] { NodeGlobalState.Instance.QueuedTasks, NodeGlobalState.Instance.PlacedTasks, NodeGlobalState.Instance.ExecutingTasks, }
+                protected override Task<IReadOnlyCollection<TaskBase>> Load() =>
+                    new IReadOnlyList<TaskBase>[] { NodeGlobalState.Instance.QueuedTasks, NodeGlobalState.Instance.PlacedTasks, NodeGlobalState.Instance.ExecutingTasks, }
                         .SelectMany(x => x)
                         .DistinctBy(x => x.Id)
                         .ToArray()
-                        .AsTask<IReadOnlyCollection<ReceivedTask>>();
+                        .AsTask<IReadOnlyCollection<TaskBase>>();
             }
             class RemoteTaskManager : NormalTaskManager
             {
@@ -563,7 +563,7 @@ namespace NodeUI.Pages
                         Text = "Set sessionid",
                         OnClickSelf = async self =>
                         {
-                            SessionId = string.IsNullOrWhiteSpace(sidtextbox.Text) ? Settings.SessionId : sidtextbox.Text.Trim();
+                            Api = Apis.Default.WithSessionId(string.IsNullOrWhiteSpace(sidtextbox.Text) ? Settings.SessionId : sidtextbox.Text.Trim());
                             grid.Items = await Load();
                         },
                     };
@@ -589,8 +589,8 @@ namespace NodeUI.Pages
                 }
 
 
-                protected override async Task<IReadOnlyCollection<ReceivedTask>> Load() =>
-                    (await Apis.GetMyTasksAsync(Enum.GetValues<TaskState>(), sessionId: SessionId)).ThrowIfError();
+                protected override async Task<IReadOnlyCollection<TaskBase>> Load() =>
+                    await Api.GetMyTasksAsync(Enum.GetValues<TaskState>()).ThrowIfError();
             }
             class WatchingTaskManager : TaskManager<WatchingTask>
             {

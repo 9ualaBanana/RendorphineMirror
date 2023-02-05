@@ -1,7 +1,8 @@
 global using System.Collections.Immutable;
 global using Common;
-global using Common.Plugins;
-global using Common.Tasks;
-global using Common.Tasks.Model;
-global using Common.Tasks.Watching;
 global using NLog;
+global using NodeCommon;
+global using NodeCommon.Plugins;
+global using NodeCommon.Tasks;
+global using NodeCommon.Tasks.Model;
+global using NodeCommon.Tasks.Watching;

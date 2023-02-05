@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Common;
+using NodeCommon;
 using NLog;
 
 try { ConsoleHide.Hide(); }

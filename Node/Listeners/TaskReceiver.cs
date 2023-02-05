@@ -12,6 +12,7 @@ public class TaskReceiver : ListenerBase
 
     protected override async ValueTask Execute(HttpListenerContext context)
     {
+        if (!NodeSettings.AcceptTasks.Value) return;
         if (context.Request.HttpMethod != "POST") return;
 
         using var response = context.Response;
@@ -36,6 +37,6 @@ public class TaskReceiver : ListenerBase
         response.StatusCode = (int) await WriteText(response, "{\"ok\":1}");
         response.Close();
 
-        NodeSettings.QueuedTasks.Add(new ReceivedTask(taskid, taskinfo, false) { HostShard = host });
+        NodeSettings.QueuedTasks.Add(new ReceivedTask(taskid, taskinfo) { HostShard = host });
     }
 }

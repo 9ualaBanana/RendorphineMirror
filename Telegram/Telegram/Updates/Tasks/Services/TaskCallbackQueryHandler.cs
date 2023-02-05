@@ -1,4 +1,3 @@
-﻿using Common.Tasks;
 using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -28,8 +27,9 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramCallbackQueryHandle
 
     async Task ShowDetailsAsync(ChatId chatId, TaskCallbackData taskCallbackData, ChatAuthenticationToken authenticationToken)
     {
-        string shardHost = (await Apis.GetTaskShardAsync(taskCallbackData.TaskId, authenticationToken.MPlus.SessionId)).Result;
-        var taskState = await new ApiTask(taskCallbackData.TaskId) { HostShard = shardHost }.GetTaskStateAsync(authenticationToken.MPlus.SessionId);
+        var api = Apis.Default.WithSessionId(authenticationToken.MPlus.SessionId);
+        string shardHost = await api.GetTaskShardAsync(taskCallbackData.TaskId).ThrowIfError();
+        var taskState = await api.GetTaskStateAsyncOrThrow(new ApiTask(taskCallbackData.TaskId) { HostShard = shardHost });
         if (taskState)
         {
             var messageBuilder = new StringBuilder()

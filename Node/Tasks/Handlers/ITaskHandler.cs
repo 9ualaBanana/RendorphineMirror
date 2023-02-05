@@ -9,7 +9,7 @@ public interface ITaskInputHandler : ITaskHandler
 
 
     /// <summary> Initialize placed task (e.g. start torrent seeding for uploading source files) </summary>
-    ValueTask InitializePlacedTaskAsync(DbTaskFullState task) => ValueTask.CompletedTask;
+    ValueTask UploadInputFiles(DbTaskFullState task) => ValueTask.CompletedTask;
 }
 public interface ITaskOutputHandler : ITaskHandler
 {
@@ -17,7 +17,11 @@ public interface ITaskOutputHandler : ITaskHandler
 
     ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default);
 
-    /// <summary> Check tasks for completion and returns true if task needs to be set to Finished. <br/> By default returns true if the task state is <see cref="TaskState.Output"/> </summary>
+    /// <summary>
+    /// Check tasks for completion and returns true if task needs to be set to Finished.
+    /// By default returns true if the task state is <see cref="TaskState.Output"/>.
+    /// Assumes all the task properties are updated.
+    /// </summary>
     ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Output);
 
 

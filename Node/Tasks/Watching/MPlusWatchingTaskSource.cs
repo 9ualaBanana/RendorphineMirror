@@ -7,6 +7,6 @@ public class MPlusWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusWatchingTa
     public MPlusWatchingTaskHandler(WatchingTask task) : base(task) { }
 
     protected override ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync() =>
-        Api.ApiGet<ImmutableArray<MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmynewitems", "items", "Getting new items",
+        Api.Default.ApiGet<ImmutableArray<MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmynewitems", "items", "Getting new items",
             ("sessionid", Settings.SessionId!), ("sinceiid", Input.SinceIid ?? string.Empty), ("directory", Input.Directory));
 }

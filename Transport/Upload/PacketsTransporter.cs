@@ -1,5 +1,4 @@
-﻿using Common;
-using NLog;
+﻿using NLog;
 
 namespace Transport.Upload;
 
@@ -7,29 +6,27 @@ public static class PacketsTransporter
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-    public static async Task<BenchmarkResult> UploadAsync(
+    /// <returns>The <c>iid</c> of the media file uploaded to M+.</returns>
+    public static async Task<string> UploadAsync(
         UploadSessionData sessionData,
         HttpClient? httpClient = null,
         CancellationToken cancellationToken = default)
     {
         httpClient ??= new();
 
-        var uploadResult = new BenchmarkResult(sessionData.File.Length);
         _logger.Info("Starting upload...");
         while (true)
         {
             var uploadSession = await UploadSession.InitializeAsync(
                 sessionData, httpClient, cancellationToken).ConfigureAwait(false);
             using var packetsUploader = new PacketsUploader(uploadSession, httpClient, cancellationToken);
-            uploadResult.Time += (await packetsUploader.UploadAsync().ConfigureAwait(false)).Time;
+            await packetsUploader.UploadAsync().ConfigureAwait(false);
             if (await uploadSession.EnsureAllBytesUploadedAsync().ConfigureAwait(false))
             {
-                await uploadSession.FinalizeAsync().ConfigureAwait(false);
-                break;
+                _logger.Info("Upload is complete");
+                return await uploadSession.FinalizeAsync().ConfigureAwait(false);
             }
-            _logger.Debug("Restarting upload");
+            else _logger.Debug("Restarting upload...");
         }
-        _logger.Info("Upload is complete");
-        return uploadResult;
     }
 }

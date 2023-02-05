@@ -21,7 +21,7 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
             var downloadLink = await task.ShardGet<string>("gettaskinputdownloadlink", "link", "Getting m+ input download link",
                 ("taskid", task.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"));
 
-            using var inputStream = await Api.Download(downloadLink.ThrowIfError());
+            using var inputStream = await Api.Default.Download(downloadLink.ThrowIfError());
             using var file = File.Open(task.FSNewInputFile(format), FileMode.Create, FileAccess.Write);
             await inputStream.CopyToAsync(file, cancellationToken);
         }
@@ -33,7 +33,10 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
             files = task.OutputFiles.OrderByDescending(x => x.Format).Select(x => x.Path);
 
         foreach (var file in files)
-            await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: Path.GetFileNameWithoutExtension(file), task, Api.Client), cancellationToken: cancellationToken);
+        {
+            var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: Path.GetFileNameWithoutExtension(file), task, Api.Client), cancellationToken: cancellationToken);
+            task.UploadedFiles.Add(new MPlusUploadedFileInfo(iid));
+        }
     }
 
     public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Output && ((MPlusTaskOutputInfo) task.Output).IngesterHost is not null);

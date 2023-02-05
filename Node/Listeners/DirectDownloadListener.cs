@@ -13,6 +13,10 @@ public class DirectDownloadListener : ExecutableListenerBase
         var response = context.Response;
         var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
 
+        NodeSettings.QueuedTasks.TryGetValue(taskid, out var task);
+        if (task is null || task.Output is not DirectUploadTaskOutputInfo doutput)
+            return await WriteErr(response, "No task found with such id");
+
         var taskdir = ReceivedTask.FSOutputDirectory(taskid);
         if (!Directory.Exists(taskdir)) return HttpStatusCode.NotFound;
 
@@ -44,6 +48,7 @@ public class DirectDownloadListener : ExecutableListenerBase
 
             using (var reader = File.OpenRead(zipfile))
                 await reader.CopyToAsync(response.OutputStream);
+            doutput.Uploaded = true;
         }
         catch { return HttpStatusCode.InternalServerError; }
         finally { File.Delete(zipfile); }

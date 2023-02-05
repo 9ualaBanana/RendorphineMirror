@@ -1,8 +1,4 @@
 global using System.Collections.Immutable;
-global using Common.Plugins;
-global using Common.Tasks;
-global using Common.Tasks.Model;
-global using Common.Tasks.Watching;
 global using NLog;
 using System.Diagnostics;
 
@@ -23,6 +19,7 @@ namespace Common
         public static readonly string TaskFilesDirectory = Path.Combine(ConfigDirectory, "tasks");
         public static readonly string PlacedTaskFilesDirectory = Path.Combine(ConfigDirectory, "ptasks");
         public static readonly string WatchingTaskFilesDirectory = Path.Combine(ConfigDirectory, "watchingtasks");
+        static readonly string TempFilesDirectory = Path.Combine(ConfigDirectory, "temp");
         static readonly string RuntimeCacheFilesDirectory = Path.Combine(ConfigDirectory, "cache");
         public static readonly string Version = GetVersion();
 
@@ -53,9 +50,9 @@ namespace Common
             catch { }
             IsDebug = Debugger.IsAttached || DebugFileExists;
 
-            #if DEBUG
+#if DEBUG
             IsDebug = true;
-            #endif
+#endif
 
             Directory.CreateDirectory(ConfigDirectory);
             if (Directory.Exists(RuntimeCacheFilesDirectory))
@@ -133,14 +130,15 @@ namespace Common
             }
         }
 
-        public static string RuntimeCacheDirectory(string? subdir = null)
+        static string NewDirectory(string dir, string? subdir)
         {
-            var dir = RuntimeCacheFilesDirectory;
             if (subdir is not null)
                 dir = Path.Combine(dir, subdir);
 
             Directory.CreateDirectory(dir);
             return dir;
         }
+        public static string RuntimeCacheDirectory(string? subdir = null) => NewDirectory(RuntimeCacheFilesDirectory, subdir);
+        public static string TempDirectory(string? subdir = null) => NewDirectory(TempFilesDirectory, subdir);
     }
 }

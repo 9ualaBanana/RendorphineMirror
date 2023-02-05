@@ -68,7 +68,12 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
     static async Task NotifyReepoOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        if (task.ExecuteLocally) return;
+        /*
+        var iids = null as string[];
+        if (task.Output.Type == TaskOutputType.MPlus)
+            iids = task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(f => f.Iid).ToArray();
+        */
+
 
         var queryString = $"taskid={task.Id}&shardHost={task.HostShard}&nodename={Settings.NodeName}";
         try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
