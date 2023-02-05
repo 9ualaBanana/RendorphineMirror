@@ -182,7 +182,7 @@ namespace Common
         //    }
         //}
 
-        public static async ValueTask<JToken> GetJsonFromResponseIfSuccessfulAsync(HttpResponseMessage response, string? errorDetails = null)
+        public static async ValueTask<JToken> GetJsonFromResponseIfSuccessfulAsync(this HttpResponseMessage response, string? errorDetails = null)
         {
             response.EnsureSuccessStatusCode();
 

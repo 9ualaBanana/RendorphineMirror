@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Telegram.Models;
 using Telegram.Middleware.UpdateRouting;
+using System.Security.Claims;
 
 namespace Telegram.Controllers;
 
@@ -18,4 +19,9 @@ public abstract class UpdateControllerBase : ControllerBase
 	UpdateContextCache UpdateContextCache
 		=> _updateContextCache ??= HttpContext.RequestServices.GetRequiredService<UpdateContextCache>();
 	UpdateContextCache? _updateContextCache;
+
+	/// <summary>
+	/// Gets the user for this request.
+	/// </summary>
+	public new ClaimsPrincipal User => UpdateContext.User;
 }

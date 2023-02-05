@@ -5,6 +5,8 @@ using Telegram.Controllers;
 using Telegram.Models;
 using Telegram.Telegram.Updates;
 
+using Command = Telegram.Commands.Command;
+
 namespace Telegram.Middleware.UpdateRouting.UpdateTypeRouting;
 
 public class MessageRouterMiddleware : IUpdateTypeRouter

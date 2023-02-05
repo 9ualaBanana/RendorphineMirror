@@ -10,6 +10,7 @@ using Telegram.Telegram.Updates.Tasks.Services;
 using Common.Plugins;
 using Telegram.Telegram.FileRegistry;
 using Telegram.Bot;
+using Microsoft.Extensions.Options;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
@@ -25,11 +26,11 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
         ChatAuthenticator authenticator,
         TaskRegistry taskRegistry,
         TelegramFileRegistry fileRegistry,
-        IConfiguration configuration,
+        IOptions<TelegramBotOptions> options,
         IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator, fileRegistry, httpClientFactory)
     {
         _taskRegistry = taskRegistry;
-        _hostUrl = configuration["Host"];
+        _hostUrl = options.Value.Host;
     }
 
     protected async override Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken) =>

@@ -1,6 +1,6 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Telegram.Updates;
+using Telegram.Commands;
 
 namespace Telegram.Telegram.Updates.Commands;
 

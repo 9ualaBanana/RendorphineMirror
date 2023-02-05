@@ -1,8 +1,10 @@
-﻿using Telegram.Bot.Types;
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Security;
+using Telegram.Bot.Types;
 using Telegram.Commands;
 
-namespace Telegram.Telegram.Authentication.Models;
+namespace Telegram.Security.Authentication;
 
 /// <summary>
 /// Credentials received by means of Telegram <see cref="Message"/>.
@@ -11,8 +13,25 @@ namespace Telegram.Telegram.Authentication.Models;
 /// Credentials must be provided in the format <c>`login password`</c>.
 /// </remarks>
 /// <param name="ChatId">The <see cref="Bot.Types.ChatId"/> from where the message containing credentials was sent.</param>
-internal record TelegramCredentials(string Login, string Password, ChatId ChatId)
+internal class CredentialsFromChat : NetworkCredential
 {
+    /// <summary>
+    /// The <see cref="Bot.Types.ChatId"/> from where the message containing credentials was sent.
+    /// </summary>
+    internal readonly ChatId ChatId;
+
+    CredentialsFromChat(string userName, string password, ChatId chatId, string? domain = null)
+        : base(userName, password, domain)
+    {
+        ChatId = chatId;
+    }
+
+    CredentialsFromChat(string userName, SecureString password, ChatId chatId, string? domain = null)
+        : base(userName, password, domain)
+    {
+        ChatId = chatId;
+    }
+
     /// <summary>
     /// Parses <see cref="CredentialsFromChat"/> from the <paramref name="message"/> if they are in the right format.
     /// </summary>
@@ -25,16 +44,17 @@ internal record TelegramCredentials(string Login, string Password, ChatId ChatId
     /// <see langword="true"/> if credentials provided inside the <paramref name="message"/>
     /// are in the rigth format; <see langword="false"/> otherwise.
     /// </returns>
-    internal static bool TryParse(Message message, [NotNullWhen(true)] out TelegramCredentials? credentials)
+    internal static bool TryParse(Message message, [NotNullWhen(true)] out CredentialsFromChat? credentials, bool messageIsCommand = true)
     {
         try { credentials = Parse(message); return true; }
         catch (Exception) { credentials = null; return false; }
     }
 
-    static TelegramCredentials Parse(Message message)
+    static CredentialsFromChat Parse(Message message, bool messageIsCommand = true)
     {
         ChatId id = message.Chat.Id;
         var messageParts = message.Text!.Arguments().ToArray();
-        return new(messageParts[0], messageParts[1], id);
+        var (userName, password) = messageIsCommand ? (messageParts[1], messageParts[2]) : (messageParts[0], messageParts[1]);
+        return new(userName, password, id);
     }
 }

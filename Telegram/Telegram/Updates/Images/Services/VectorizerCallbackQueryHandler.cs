@@ -12,6 +12,7 @@ using Telegram.Telegram.Updates.Tasks.Models;
 using Telegram.Telegram.Updates.Tasks.Services;
 using Telegram.Telegram.FileRegistry;
 using Telegram.Bot;
+using Microsoft.Extensions.Options;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
@@ -26,12 +27,12 @@ public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHa
         ChatAuthenticator authenticator,
         TaskRegistry taskRegistry,
         TelegramFileRegistry fileRegistry,
-        IConfiguration configuration,
+        IOptions<TelegramBotOptions> options,
         IHttpClientFactory httpClientFactory)
         : base(logger, bot, authenticator, fileRegistry, httpClientFactory)
     {
         _taskRegistry = taskRegistry;
-        _hostUrl = configuration["Host"];
+        _hostUrl = options.Value.Host;
     }
 
     protected override async Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken) =>
@@ -55,7 +56,7 @@ public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHa
                 "VeeeVectorize",
                 default,
                 new DownloadLinkTaskInputInfo($"{_hostUrl}/tasks/getinput/{vectorizerCallbackData.FileRegistryKey}"),
-                new MPlusTaskOutputInfo($"{vectorizerCallbackData.FileRegistryKey}", "vectorized"),
+                new MPlusTaskOutputInfo($"{vectorizerCallbackData.FileRegistryKey}", "vectorized", 3_600_000),
                 JObject.FromObject(new VeeeVectorizeInfo() { Lods = new int[] { vectorizerCallbackData.Polygonality } })),
             authenticationToken.MPlus.SessionId))
             .Result;

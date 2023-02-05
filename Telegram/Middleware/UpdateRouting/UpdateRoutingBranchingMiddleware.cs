@@ -3,6 +3,9 @@ using Telegram.Bot;
 
 namespace Telegram.Middleware.UpdateRouting;
 
+/// <summary>
+/// Redirects requests from Telegram containing <see cref="Bot.Types.Update"/>s to corresponding update routing branch.
+/// </summary>
 public class UpdateRoutingBranchingMiddleware : IMiddleware
 {
     readonly TelegramBotOptions _botOptions;

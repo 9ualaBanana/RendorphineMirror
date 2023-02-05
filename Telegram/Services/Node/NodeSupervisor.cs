@@ -1,8 +1,8 @@
 ﻿using Telegram.Models;
 using System.Collections.Specialized;
 using Telegram.Telegram.Authentication.Services;
-using Telegram.Telegram.Updates.Commands;
 using Telegram.Bot;
+using Telegram.Commands;
 
 namespace Telegram.Services.Node;
 

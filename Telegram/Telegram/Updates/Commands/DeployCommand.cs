@@ -3,6 +3,7 @@ using Common.Plugins;
 using Common.Plugins.Deployment;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Commands;
 using Telegram.Services.Node;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
