@@ -22,7 +22,7 @@ public static class UICache
     }
     static async Task<OperationResult> UpdateStatsAsync()
     {
-        var data = await Api.ApiGet<ImmutableDictionary<PluginType, SoftwareStats>>($"{Api.TaskManagerEndpoint}/getsoftwarestats", "stats", "Getting software stats").ConfigureAwait(false);
+        var data = await Api.Default.ApiGet<ImmutableDictionary<PluginType, SoftwareStats>>($"{Api.TaskManagerEndpoint}/getsoftwarestats", "stats", "Getting software stats").ConfigureAwait(false);
         if (data) SoftwareStats.SetRange(data.Value);
 
         return data.GetResult();
@@ -36,7 +36,7 @@ public static class UICache
         if (Init.IsDebug)
         {
             NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>
-                File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, LocalApi.JsonSettingsWithType)));
+                File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, JsonSettings.Typed)));
         }
 
         var cacheloaded = !Init.IsDebug; // dont load from cache is not debug
@@ -60,7 +60,7 @@ public static class UICache
                     _logger.Trace($"Node state updated: {string.Join(", ", (jtoken as JObject)?.Properties().Select(x => x.Name) ?? new[] { jtoken.ToString(Formatting.None) })}");
 
                     using var tokenreader = jtoken.CreateReader();
-                    LocalApi.JsonSerializerWithType.Populate(tokenreader, NodeGlobalState.Instance);
+                    JsonSettings.TypedS.Populate(tokenreader, NodeGlobalState.Instance);
                 }
             }
             catch (Exception ex)
@@ -78,7 +78,7 @@ public static class UICache
 
                     if (File.Exists(cachefile))
                     {
-                        try { JsonConvert.PopulateObject(File.ReadAllText(cachefile), NodeGlobalState.Instance, LocalApi.JsonSettingsWithType); }
+                        try { JsonConvert.PopulateObject(File.ReadAllText(cachefile), NodeGlobalState.Instance, JsonSettings.Typed); }
                         catch { }
                     }
                 }

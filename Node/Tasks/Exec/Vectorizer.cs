@@ -1,5 +1,3 @@
-using Common.Tasks.Info;
-
 namespace Node.Tasks.Exec;
 
 public static class VectorizerTasks

@@ -24,7 +24,7 @@ public class DebugListener : ExecutableListenerBase
         if (path == "addtask")
         {
             var task = new ReceivedTask("verylongtaskid", new TaskInfo(new TaskObject("debug.jpg", 798798), new MPlusTaskInputInfo("asd"), new MPlusTaskOutputInfo("a.mov", "dir"), new() { ["type"] = "EditVideo", ["hflip"] = true },
-                TaskPolicy.SameNode, Settings.Guid), true);
+                TaskPolicy.SameNode, Settings.Guid));
             NodeGlobalState.Instance.ExecutingTasks.Add(task);
 
             _ = Task.Delay(5000).ContinueWith(_ => NodeGlobalState.Instance.ExecutingTasks.Remove(task));

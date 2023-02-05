@@ -42,7 +42,7 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
         }
 
 
-        var uploadres = await Api.ApiPost($"{HttpHelper.AddSchemeIfNeeded(result.Host, "https")}/content/upload/qspreviews/", "Uploading qs preview", content);
+        var uploadres = await Api.Default.ApiPost($"{HttpHelper.AddSchemeIfNeeded(result.Host, "https")}/content/upload/qspreviews/", "Uploading qs preview", content);
         uploadres.ThrowIfError();
     }
 

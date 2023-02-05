@@ -15,7 +15,7 @@ public static class LocalPipe
         return await data.Content.ReadAsStreamAsync().ConfigureAwait(false);
     }
     public static Task StartReadingAsync<T>(Stream stream, Action<T> onReceive, CancellationToken token) =>
-        StartReadingAsync(stream, (JToken token) => onReceive(token.ToObject<T>(LocalApi.JsonSerializerWithType)!), token);
+        StartReadingAsync(stream, (JToken token) => onReceive(token.ToObject<T>(JsonSettings.TypedS)!), token);
     public static async Task StartReadingAsync(Stream stream, Action<JToken> onReceive, CancellationToken token)
     {
         try
@@ -49,7 +49,7 @@ public static class LocalPipe
             JWriter = new JsonTextWriter(new StreamWriter(stream) { AutoFlush = true });
         }
 
-        public Task<bool> WriteAsync<T>(T value) where T : notnull => WriteAsync(JToken.FromObject(value, LocalApi.JsonSerializerWithType));
+        public Task<bool> WriteAsync<T>(T value) where T : notnull => WriteAsync(JToken.FromObject(value, JsonSettings.TypedS));
         public async Task<bool> WriteAsync(JToken token)
         {
             try

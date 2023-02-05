@@ -22,8 +22,8 @@ public class NodeStateListener : ListenerBase
             while (true)
             {
                 JObject json;
-                if (changed is null) json = JObject.FromObject(NodeGlobalState.Instance, LocalApi.JsonSerializerWithType);
-                else json = new JObject() { [changed] = JToken.FromObject(typeof(NodeGlobalState).GetField(changed)!.GetValue(NodeGlobalState.Instance)!, LocalApi.JsonSerializerWithType), };
+                if (changed is null) json = JObject.FromObject(NodeGlobalState.Instance, JsonSettings.TypedS);
+                else json = new JObject() { [changed] = JToken.FromObject(typeof(NodeGlobalState).GetField(changed)!.GetValue(NodeGlobalState.Instance)!, JsonSettings.TypedS), };
 
                 var wrote = await writer.WriteAsync(json).ConfigureAwait(false);
                 if (!wrote) return;

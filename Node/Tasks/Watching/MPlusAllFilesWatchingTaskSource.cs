@@ -7,7 +7,7 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
     public MPlusAllFilesWatchingTaskHandler(WatchingTask task) : base(task) { }
 
     protected override ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync() =>
-        Api.ApiGet<ImmutableArray<MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getnewitems", "items", "Getting new items", ("sessionid", Settings.SessionId!), ("sinceiid", Input.SinceIid ?? string.Empty));
+        Api.Default.ApiGet<ImmutableArray<MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getnewitems", "items", "Getting new items", ("sessionid", Settings.SessionId!), ("sinceiid", Input.SinceIid ?? string.Empty));
 
     protected override ValueTask TickItem(MPlusNewItem item)
     {
@@ -32,7 +32,7 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
     protected override async ValueTask Tick()
     {
         // fetch new items only if there is less than N ptasks pending
-        const int taskFetchingThreshold = 50 - 1;
+        const int taskFetchingThreshold = 500 - 1;
 
         if (Task.PlacedNonCompletedTasks.Count > taskFetchingThreshold)
             return;

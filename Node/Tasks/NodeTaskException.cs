@@ -13,5 +13,5 @@ public class NodeTaskFailedException : Exception
 public static class NodeTaskExtensions
 {
     [DoesNotReturn]
-    public static void ThrowFailed(this ReceivedTask task, string message) => throw new NodeTaskFailedException(message);
+    public static void ThrowFailed(this TaskBase task, string message) => throw new NodeTaskFailedException(message);
 }

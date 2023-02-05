@@ -23,11 +23,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telegram", "Telegram\Telegr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TorrentTracker", "TorrentTracker\TorrentTracker.csproj", "{4C7F6898-5AFE-4D8B-89D9-6AB8DD7A30E1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transport", "Transport\Transport.csproj", "{F9E93050-FD50-4872-A2D6-440E2A9E0AE6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transport", "Transport\Transport.csproj", "{C32F5256-74E5-4375-870B-85829301DB69}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AwsSignatureVersion4", "aws-signature-version-4\src\AwsSignatureVersion4.csproj", "{97504EEF-0406-4765-8610-5BB43E10ED98}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_3DProductsPublish", "_3DProductsPublish\_3DProductsPublish.csproj", "{C67520F4-235F-473F-9A99-C188BFB1ECCD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeCommon", "NodeCommon\NodeCommon.csproj", "{838AA49A-86B2-4440-A3BB-E5165DDB906D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -75,18 +73,14 @@ Global
 		{4C7F6898-5AFE-4D8B-89D9-6AB8DD7A30E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4C7F6898-5AFE-4D8B-89D9-6AB8DD7A30E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C7F6898-5AFE-4D8B-89D9-6AB8DD7A30E1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F9E93050-FD50-4872-A2D6-440E2A9E0AE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F9E93050-FD50-4872-A2D6-440E2A9E0AE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F9E93050-FD50-4872-A2D6-440E2A9E0AE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F9E93050-FD50-4872-A2D6-440E2A9E0AE6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{97504EEF-0406-4765-8610-5BB43E10ED98}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{97504EEF-0406-4765-8610-5BB43E10ED98}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{97504EEF-0406-4765-8610-5BB43E10ED98}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{97504EEF-0406-4765-8610-5BB43E10ED98}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C67520F4-235F-473F-9A99-C188BFB1ECCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C67520F4-235F-473F-9A99-C188BFB1ECCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C67520F4-235F-473F-9A99-C188BFB1ECCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C67520F4-235F-473F-9A99-C188BFB1ECCD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C32F5256-74E5-4375-870B-85829301DB69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C32F5256-74E5-4375-870B-85829301DB69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C32F5256-74E5-4375-870B-85829301DB69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C32F5256-74E5-4375-870B-85829301DB69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{838AA49A-86B2-4440-A3BB-E5165DDB906D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{838AA49A-86B2-4440-A3BB-E5165DDB906D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{838AA49A-86B2-4440-A3BB-E5165DDB906D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{838AA49A-86B2-4440-A3BB-E5165DDB906D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

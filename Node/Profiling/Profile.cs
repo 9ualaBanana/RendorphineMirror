@@ -24,13 +24,13 @@ internal class Profile
     {
         var ip = MachineInfo.GetPublicIPAsync();
         var software = BuildSoftwarePayloadAsync();
-        var plugins = MachineInfo.DiscoverInstalledPluginsInBackground();
+        var types = BuildDefaultAllowedTypes();
 
         return new()
         {
             Ip = (await ip).ToString(),
-            Software = (await software),
-            AllowedTypes = (await plugins).SelectMany(x => TaskList.Get(x.Type)).DistinctBy(x => x.Name).ToDictionary(x => x.Name.ToString(), _ => 1),
+            Software = await software,
+            AllowedTypes = await types,
             AllowedInputs = TaskHandler.InputHandlerList.ToDictionary(x => x.Type, _ => 1),
             AllowedOutputs = TaskHandler.OutputHandlerList.ToDictionary(x => x.Type, _ => 1),
             Pricing = new
@@ -44,6 +44,12 @@ internal class Profile
             },
             Hardware = NodeSettings.BenchmarkResult.Value?.Data ?? throw new Exception("Could not create Profile without benchmark data"),
         };
+    }
+
+    public static async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes()
+    {
+        var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
+        return plugins.SelectMany(x => TaskList.Get(x.Type)).DistinctBy(x => x.Name).ToDictionary(x => x.Name.ToString(), _ => 1);
     }
 
     // Ridiculous.

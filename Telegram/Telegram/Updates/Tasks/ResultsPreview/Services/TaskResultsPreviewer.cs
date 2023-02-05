@@ -1,4 +1,3 @@
-using Common.Tasks;
 using Newtonsoft.Json.Linq;
 using Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
 using Telegram.Telegram.Updates.Tasks.Services;
@@ -50,9 +49,9 @@ public class TaskResultsPreviewer
 
     static async Task<OperationResult<string>> GetTaskOutputIidAsync(ITaskApi taskApi, string sessionId)
     {
-        return await Apis.GetTaskStateAsync(taskApi, sessionId)
-            .Next(taskinfo => taskinfo.Output["ingesterhost"]?.Value<string>().AsOpResult() ?? OperationResult.Err("Could not find ingester host"))
-            .Next(ingester => Api.ApiGet<string>($"https://{ingester}/content/vcupload/getiid", "iid", "Getting output iid", ("extid", taskApi.Id)))
+        return await Apis.Default.WithSessionId(sessionId).GetTaskStateAsyncOrThrow(taskApi)
+            .Next(taskinfo => ((MPlusTaskOutputInfo) taskinfo.Output).IngesterHost?.AsOpResult() ?? OperationResult.Err("Could not find ingester host"))
+            .Next(ingester => Api.Default.ApiGet<string>($"https://{ingester}/content/vcupload/getiid", "iid", "Getting output iid", ("extid", taskApi.Id)))
             .ConfigureAwait(false);
     }
 }

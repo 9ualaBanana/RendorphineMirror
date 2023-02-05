@@ -1,10 +1,5 @@
 ﻿global using System.Collections.Immutable;
 global using Common;
-global using Common.Plugins;
-global using Common.Plugins.Deployment;
-global using Common.Tasks;
-global using Common.Tasks.Model;
-global using Common.Tasks.Watching;
 global using Machine;
 global using NLog;
 global using Node.Plugins.Deployment;
@@ -12,21 +7,21 @@ global using Node.Registry;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Handlers;
 global using Node.Tasks.Watching;
+global using NodeCommon;
+global using NodeCommon.NodeUserSettings;
+global using NodeCommon.Plugins;
+global using NodeCommon.Plugins.Deployment;
+global using NodeCommon.Tasks;
+global using NodeCommon.Tasks.Model;
+global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
 using System.Diagnostics;
-using Common.Heartbeat;
 using Node;
+using Node.Heartbeat;
 using Node.Listeners;
 using Node.Plugins;
 using Node.Plugins.Discoverers;
 using Node.Profiling;
-
-if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-{
-    CefInitializer.StaticCtor();
-    if (args.Any(x => x.Contains("zygote", StringComparison.Ordinal) || x.Contains("sandbox", StringComparison.Ordinal) || x.StartsWith("--type", StringComparison.Ordinal)))
-        return;
-}
 
 var halfrelease = args.Contains("release");
 Init.Initialize();
@@ -126,23 +121,13 @@ logger.Info(@$"Tasks found
     {NodeSettings.QueuedTasks.Count} queued
     {NodeSettings.PlacedTasks.Count} placed
     {NodeSettings.PlacedTasks.Values.Count(x => !x.State.IsFinished())} non-finished placed
-".TrimLines().Replace("\n", "; "));
-
-
-
-Task.WhenAll(Enum.GetValues<TaskState>().Select(s => Apis.GetMyTasksAsync(s).Then(x => (s, x).AsOpResult()).AsTask()))
-    .Then(items =>
-    {
-        logger.Info($"Server tasks: {string.Join(", ", items.Select(oplistr => $"{oplistr.ThrowIfError().s}: {oplistr.ThrowIfError().x.ThrowIfError().Length}"))}");
-        return true;
-    })
-    .AsTask().Consume();
+".TrimLines().Replace("\n", "; ").Replace("\r", string.Empty));
 
 
 TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;
 
 TaskHandler.InitializePlacedTasksAsync().Consume();
-TaskHandler.StartUpdatingTaskState();
+TaskHandler.StartUpdatingPlacedTasks();
 TaskHandler.StartWatchingTasks();
 TaskHandler.StartListening();
 

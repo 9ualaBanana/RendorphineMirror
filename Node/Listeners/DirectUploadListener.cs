@@ -13,7 +13,7 @@ public class DirectUploadListener : MultipartListenerBase
     {
         var sections = await reader.GetSectionsAsync();
         var taskid = await sections["taskid"].ReadAsStringAsync();
-        var task = NodeSettings.QueuedTasks[taskid];
+        NodeSettings.QueuedTasks.TryGetValue(taskid, out var task);
 
         if (task is null || task.Input is not DirectDownloadTaskInputInfo dinput)
             return await WriteErr(context.Response, "No task found with such id");

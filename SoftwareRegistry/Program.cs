@@ -1,6 +1,7 @@
 global using System.Collections.Immutable;
 global using Common;
 global using NLog;
+global using NodeCommon;
 using Microsoft.AspNetCore.Mvc;
 using MonoTorrent;
 using Newtonsoft.Json;
