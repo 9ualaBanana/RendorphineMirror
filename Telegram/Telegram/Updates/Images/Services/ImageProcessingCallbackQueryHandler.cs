@@ -7,8 +7,6 @@ using Telegram.Telegram.Updates.Tasks.Models;
 using Telegram.Telegram.Updates.Tasks.Services;
 using Telegram.Telegram.FileRegistry;
 using Telegram.Bot;
-using Common.Tasks.Info;
-using Microsoft.AspNetCore.Authentication;
 using Newtonsoft.Json.Linq;
 
 namespace Telegram.Telegram.Updates.Images.Services;
@@ -64,8 +62,8 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
             .Result;
         _taskRegistry[taskId] = authenticationToken;
 
-        await Bot.TrySendMessageAsync(chatId, "Resulting media file will be sent back to you as soon as it's ready.",
-            new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
+        await Bot.SendMessageAsync_(chatId, "Resulting media file will be sent back to you as soon as it's ready.",
+            replyMarkup: new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
             );
     }
 
@@ -83,8 +81,8 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
             .Result;
         _taskRegistry[taskId] = authenticationToken;
 
-        await Bot.TrySendMessageAsync(chatId, "Resulting media files will be sent back to you as soon as they are ready.",
-            new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
+        await Bot.SendMessageAsync_(chatId, "Resulting media files will be sent back to you as soon as they are ready.",
+            replyMarkup: new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
             );
         //await Bot.TrySendMessageAsync(chatId, "Choose preferred level of details for the resulting image.",
         //    new InlineKeyboardMarkup(new InlineKeyboardButton[][]

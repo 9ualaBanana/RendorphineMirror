@@ -31,13 +31,13 @@ public class ChatAuthenticator
     {
         if (IsAuthenticated(id)) return _authenticatedUsers.Users.AsNoTracking().Single(user => user.ChatId == id);
 
-        _ = _bot.TrySendMessageAsync(id, "Authentication required."); return null;
+        _ = _bot.SendMessageAsync_(id, "Authentication required."); return null;
     }
 
     internal async Task AuthenticateAsync(Message message)
     {
         if (IsAuthenticated(message.Chat.Id))
-        { await _bot.TrySendMessageAsync(message.Chat.Id, "You are already authenticated."); return; }
+        { await _bot.SendMessageAsync_(message.Chat.Id, "You are already authenticated."); return; }
 
         await TryAuthenticateAsyncFrom(message);
     }
@@ -47,12 +47,12 @@ public class ChatAuthenticator
         if (TelegramCredentials.TryParse(message, out var credentials))
         {
             if (await TryAuthenticateAsync(credentials!))
-                await _bot.TrySendMessageAsync(message.Chat.Id, "You are successfully authenticated.");
+                await _bot.SendMessageAsync_(message.Chat.Id, "You are successfully authenticated.");
             else
-                await _bot.TrySendMessageAsync(message.Chat.Id, "Wrong credentials.");
+                await _bot.SendMessageAsync_(message.Chat.Id, "Wrong credentials.");
         }
         else
-        { await _bot.TrySendMessageAsync(message.Chat.Id, "Credentials are in a wrong format."); return; }
+        { await _bot.SendMessageAsync_(message.Chat.Id, "Credentials are in a wrong format."); return; }
     }
 
     async Task<bool> TryAuthenticateAsync(TelegramCredentials credentials)
@@ -81,19 +81,19 @@ public class ChatAuthenticator
             ["guid"] = Guid.NewGuid().ToString()
         });
         var response = await _httpClient.PostAsync("https://tasks.microstock.plus/rphtaskmgr/login", httpContent);
-        return (await Api.GetJsonFromResponseIfSuccessfulAsync(response)).ToObject<MPlusAuthenticationToken>()!;
+        return (await Api.GetJsonIfSuccessfulAsync(response)).ToObject<MPlusAuthenticationToken>()!;
     }
 
     internal async Task LogOutAsync(ChatId id)
     {
         if (!IsAuthenticated(id))
-        { await _bot.TrySendMessageAsync(id, "You are not authenticated."); }
+        { await _bot.SendMessageAsync_(id, "You are not authenticated."); }
         else
         {
             _authenticatedUsers.Remove(_authenticatedUsers.Users.Single(user => user.ChatId == id)); _authenticatedUsers.SaveChanges();
             if (_bot.Subscriptions.Contains((long)id.Identifier!))
                 _bot.Subscriptions.Remove((long)id.Identifier!);
-            await _bot.TrySendMessageAsync(id, "You are successfully logged out.");
+            await _bot.SendMessageAsync_(id, "You are successfully logged out.");
         }
     }
 

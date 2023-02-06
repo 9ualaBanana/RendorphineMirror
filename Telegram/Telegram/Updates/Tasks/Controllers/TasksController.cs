@@ -6,8 +6,8 @@ using Telegram.Telegram.Updates.Tasks.Services;
 
 namespace Telegram.Telegram.Updates.Tasks.Controllers;
 
-[Route("tasks")]
 [ApiController]
+[Route("tasks")]
 public class TasksController : ControllerBase
 {
     readonly IWebHostEnvironment _appEnvironment;
@@ -22,27 +22,32 @@ public class TasksController : ControllerBase
     [HttpPost("result_preview")]
     public async Task<JsonContent> NotifySubscribersAboutResultPreview(
     [FromQuery] string taskId,
+    [FromQuery] string[] iids,
     [FromQuery] string shardHost,
     [FromQuery] string nodeName,
     [FromServices] TelegramBot bot,
     [FromServices] TaskResultsPreviewer taskResultsPreviewer,
+    [FromServices] TaskResultPreviewService taskResultPreviewService,
     [FromServices] TaskRegistry taskRegistry,
     [FromServices] ILogger<TasksController> logger,
-    [FromServices] IHttpClientFactory httpClientFactory)
+    CancellationToken cancellationToken)
     {
         logger.LogDebug("Received task result preview");
-        var taskApi = new ApiTask(taskId) { HostShard = shardHost };
-
-        var mpItem = await taskResultsPreviewer.GetMyMPItemAsync(taskApi, nodeName);
+        var taskApi = new ApiTask(taskId, iids) { HostShard = shardHost };
 
         if (taskRegistry.Remove(taskId, out var authenticationToken))
         {
-            await Apis.Default.WithSessionId(authenticationToken.MPlus.SessionId).ChangeStateAsync(new ApiTask(taskId), TaskState.Finished).ThrowIfError();
-
-            if (mpItem is not null) await mpItem.SendWith(bot, authenticationToken.ChatId);
-            else await bot.TrySendMessageAsync(authenticationToken.ChatId, $"Couldn't retrieve the resulting M+ item for ({taskId}).");
-
+            foreach (var iid in iids)
+            {
+                var resultPreview = await taskResultPreviewService
+                    .RequestTaskResultPreviewAsyncUsing(taskApi, authenticationToken.MPlus.SessionId, nodeName, iid, cancellationToken);
+                
+            }
+            await Apis.Default.WithSessionId(authenticationToken.MPlus.SessionId).ChangeStateAsync(taskApi, TaskState.Finished).ThrowIfError();
         }
+
+            //if (mpItem is not null) await mpItem.SendWith(bot, authenticationToken.ChatId);
+            //else await bot.SendMessageAsync_(authenticationToken.ChatId, $"Couldn't retrieve the resulting M+ item for ({taskId}).");
 
         return JsonContent.Create(new { ok = 1 });
     }

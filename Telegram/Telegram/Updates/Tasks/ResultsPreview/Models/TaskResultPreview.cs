@@ -1,45 +1,28 @@
-﻿using Newtonsoft.Json.Linq;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
+﻿namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
 
-namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
-
-internal abstract class TaskResultPreview
+internal abstract record TaskResultPreview
 {
-    public string Title;
-    public string Description;
-    public string TaskId;
-    public string MpIid;
+    internal readonly MPlusFileInfo FileInfo;
+    internal readonly string TaskId;
+    /// <summary>
+    /// Name of the node that was responsible for producing the task result that this <see cref="TaskResultPreview"/> describes.
+    /// </summary>
+    internal readonly string TaskExecutor;
+    internal readonly Uri FileDownloadLink;
 
-    public string ThumbnailSmallUrl;
-    public string ThumbnailMediumUrl;
-    public string ThumbnailBigUrl;
+    internal static TaskResultPreview Create(MPlusFileInfo mPlusFileInfo, string taskExecutor, Uri downloadLink)
+        => mPlusFileInfo.Type switch
+        {
+            MPlusFileType.Raster or MPlusFileType.Vector => new ImageTaskResultPreview(mPlusFileInfo, taskExecutor, downloadLink),
+            MPlusFileType.Video => new VideoTaskResultPreview(mPlusFileInfo, taskExecutor, downloadLink),
+            _ => throw new NotImplementedException()
+        };
 
-    public string ExecutorNodeName;
-
-    protected string Caption;
-
-    protected InlineKeyboardMarkup DownloadButton;
-
-
-    internal TaskResultPreview(JToken mpItem, string executorNodeName, string downloadUri)
+    protected TaskResultPreview(MPlusFileInfo mPlusFileInfo, string taskExecutor, Uri downloadLink)
     {
-        var basicMetadata = mpItem["metadata"]!["basic"]!;
-        Title = (string)basicMetadata["title"]!;
-        Description = (string)basicMetadata["description"]!;
-        TaskId = (string)mpItem["id"]!;
-        MpIid = (string)mpItem["iid"]!;
-
-        ThumbnailSmallUrl = (string)mpItem["thumbnailurl"]!;
-        ThumbnailMediumUrl = (string)mpItem["previewurl"]!;
-        ThumbnailBigUrl = (string)mpItem["nowmpreviewurl"]!;
-
-        ExecutorNodeName = executorNodeName;
-
-        Caption = $"{Title}\n\nNode: *{ExecutorNodeName}*\nTask ID: *{TaskId}*\nM+ IID: *{MpIid}*";
-        DownloadButton = new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("Download", downloadUri));
+        FileInfo = mPlusFileInfo;
+        TaskId = (string)FileInfo["id"]!;
+        TaskExecutor = taskExecutor;
+        FileDownloadLink = downloadLink;
     }
-
-    internal abstract Task SendWith(TelegramBot bot, ChatId chatId);
 }

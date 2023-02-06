@@ -42,9 +42,9 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramCallbackQueryHandle
                 messageBuilder.AppendLine($"Server: *{taskState.Result.Server}*");
             }
 
-            await Bot.TrySendMessageAsync(chatId, messageBuilder.ToString());
+            await Bot.SendMessageAsync_(chatId, messageBuilder.ToString());
         }
         else
-            await Bot.TrySendMessageAsync(chatId, "Couldn't get task details.");
+            await Bot.SendMessageAsync_(chatId, "Couldn't get task details.");
     }
 }

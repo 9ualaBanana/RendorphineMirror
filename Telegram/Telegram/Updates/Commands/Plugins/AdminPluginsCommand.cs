@@ -35,6 +35,6 @@ public class AdminPluginsCommand : AdminAuthenticatedCommand
 
         if (messageBuilder.Length == 0) messageBuilder.AppendLine("No plugins are installed on the specified nodes.");
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, messageBuilder.ToString());
+        await Bot.SendMessageAsync_(update.Message!.Chat.Id, messageBuilder.ToString());
     }
 }

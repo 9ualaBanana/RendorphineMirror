@@ -15,7 +15,7 @@ public class AdminPaginatorCommand : AdminAuthenticatedCommand
 
     protected override async Task HandleAsyncCore(Update update, ChatAuthenticationToken authenticationToken)
     {
-        await Bot.TrySendMessageAsync(update.Message.Chat.Id, @"UN Climate Change News, 27 September 2022 -  Momentum is building for a strong political outcome relating to oceans at the UN Climate Change Conference COP27 in Sharm el-Sheikh, Egypt, in November, including greater ambition to cut greenhouse gas emissions, strengthened measures to build the resilience of coastal communities to climate change impacts and the financing needed for this.
+        await Bot.SendMessageAsync_(update.Message.Chat.Id, @"UN Climate Change News, 27 September 2022 -  Momentum is building for a strong political outcome relating to oceans at the UN Climate Change Conference COP27 in Sharm el-Sheikh, Egypt, in November, including greater ambition to cut greenhouse gas emissions, strengthened measures to build the resilience of coastal communities to climate change impacts and the financing needed for this.
 
 Oceans cover around 70% of the surface of the planet, and people in coastal regions continue to be at the forefront of the fight against climate change and are disproportionately affected. At the same time, oceans have a vast potential to store carbon, and coastal waters are, for example, a prime location for renewable energy projects and ecosystem protection and restoration.
 

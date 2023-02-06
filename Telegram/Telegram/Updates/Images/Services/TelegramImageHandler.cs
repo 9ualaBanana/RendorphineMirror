@@ -20,7 +20,7 @@ public class TelegramImageHandler : TelegramUpdateHandler
 
     public override async Task HandleAsync(Update update)
     {
-        await Bot.TrySendMessageAsync(
+        await Bot.SendMessageAsync_(
             update.Message!.Chat.Id,
             "*Choose how to process the image*",
             replyMarkup: CreateReplyMarkupForLowResolutionImage(TelegramMediaFile.From(update.Message)));

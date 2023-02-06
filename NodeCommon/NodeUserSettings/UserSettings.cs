@@ -32,7 +32,7 @@ public class UserSettings
 
     static async Task<UserSettings> ReadOrThrowAsyncCore(HttpResponseMessage response)
     {
-        var jToken = await Api.GetJsonFromResponseIfSuccessfulAsync(response);
+        var jToken = await Api.GetJsonIfSuccessfulAsync(response);
         var settings = ((JObject)jToken).Property("settings")!.Value;
         return settings.HasValues ? settings.ToObject<UserSettings>()! : new();
     }

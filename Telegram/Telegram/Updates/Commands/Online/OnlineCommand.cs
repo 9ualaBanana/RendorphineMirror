@@ -28,6 +28,6 @@ public class OnlineCommand : AuthenticatedCommand
 
         var message = Logic.BuildMessage(userNodesSupervisor.NodesOnline.Count, userNodesSupervisor.NodesOffline.Count);
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message);
+        await Bot.SendMessageAsync_(update.Message!.Chat.Id, message);
     }
 }

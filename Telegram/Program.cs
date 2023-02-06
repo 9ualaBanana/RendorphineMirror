@@ -11,6 +11,7 @@ using Telegram.Middleware.UpdateRouting;
 using Telegram.Services.GitHub;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates;
+using Telegram.Telegram.Updates.Tasks;
 using Telegram.Telegram.Updates.Tasks.ResultsPreview.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,7 +32,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddTelegramUpdateHandlers();
 
 builder.Services.AddScoped<ChatAuthenticator>().AddDbContext<AuthenticatedUsersDbContext>();
-builder.Services.AddScoped<TaskResultsPreviewer>();
+// Log failures inside `onRetry` delegate.
+builder.Services.AddScoped<TaskResultsPreviewer>().AddHttpClient<TaskResultPreviewService>();
 builder.Services.AddScoped<GitHubEventForwarder>();
 
 var app = builder.Build();

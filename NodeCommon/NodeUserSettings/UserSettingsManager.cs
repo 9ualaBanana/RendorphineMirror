@@ -52,7 +52,7 @@ public class UserSettingsManager
             { new StringContent(sessionId ?? Settings.SessionId!), "sessionid" },
             { new StringContent(JsonConvert.SerializeObject(userSettings)), "settings" }
         };
-        await Api.GetJsonFromResponseIfSuccessfulAsync(
+        await Api.GetJsonIfSuccessfulAsync(
             await _httpClient.PostAsync($"{Api.TaskManagerEndpoint}/setusersettings", httpContent, cancellationToken)
             );
     }

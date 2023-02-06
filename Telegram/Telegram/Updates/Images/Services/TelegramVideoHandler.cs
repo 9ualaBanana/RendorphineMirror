@@ -20,7 +20,7 @@ public class TelegramVideoHandler : TelegramUpdateHandler
 
     public override async Task HandleAsync(Update update)
     {
-        await Bot.TrySendMessageAsync(
+        await Bot.SendMessageAsync_(
             update.Message!.Chat.Id,
             "*Choose how to process the video*",
             replyMarkup: CreateReplyMarkupFor(TelegramMediaFile.From(update.Message)));

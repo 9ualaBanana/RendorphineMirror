@@ -33,7 +33,7 @@ public abstract class MediaFileProcessingCallbackQueryHandler : AuthenticatedTel
     {
         var mediaFile = _fileRegistry.TryGet(mediaFileProcessingCallbackData.FileRegistryKey);
         if (mediaFile is null)
-        { await Bot.TrySendMessageAsync(ChatIdFrom(update), "Media file is expired. Try to send it again."); return; }
+        { await Bot.SendMessageAsync_(ChatIdFrom(update), "Media file is expired. Try to send it again."); return; }
 
         var mediaFilePath = Path.ChangeExtension(
             Path.Combine(_fileRegistry.Path, mediaFileProcessingCallbackData.FileRegistryKey),
@@ -52,11 +52,11 @@ public abstract class MediaFileProcessingCallbackQueryHandler : AuthenticatedTel
 
     protected async Task UploadToMPlusAsync(ChatId chatId, string imagePath, ChatAuthenticationToken authenticationToken)
     {
-        await Bot.TrySendMessageAsync(chatId, "Uploading the media file to M+...");
+        await Bot.SendMessageAsync_(chatId, "Uploading the media file to M+...");
 
         try { await PacketsTransporter.UploadAsync(new MPlusUploadSessionData(imagePath, authenticationToken.MPlus.SessionId), _httpClient); }
-        catch { await Bot.TrySendMessageAsync(chatId, "Error occured trying to upload the media file to M+."); return; }
+        catch { await Bot.SendMessageAsync_(chatId, "Error occured trying to upload the media file to M+."); return; }
 
-        await Bot.TrySendMessageAsync(chatId, "The media file was succesfully uploaded to M+.");
+        await Bot.SendMessageAsync_(chatId, "The media file was succesfully uploaded to M+.");
     }
 }
