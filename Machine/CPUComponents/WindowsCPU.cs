@@ -22,12 +22,12 @@ internal static class WindowsCPU
 
     internal static CPU ToCPU(ManagementBaseObject mbo)
     {
-        string name = mbo["Name"].ToString() ?? string.Empty;
-        _ = uint.TryParse(mbo["NumberOfCores"].ToString(), out var coreCount);
-        _ = uint.TryParse(mbo["ThreadCount"].ToString(), out var threadCount);
-        _ = ulong.TryParse(mbo["CurrentClockSpeed"].ToString(), out var currentClockSpeed);
-        _ = ulong.TryParse(mbo["MaxClockSpeed"].ToString(), out var maxClockSpeed);
-        _ = uint.TryParse(mbo["LoadPercentage"].ToString(), out var loadPercentage);
+        string name = mbo["Name"]?.ToString() ?? string.Empty;
+        _ = uint.TryParse(mbo["NumberOfCores"]?.ToString(), out var coreCount);
+        _ = uint.TryParse(mbo["ThreadCount"]?.ToString(), out var threadCount);
+        _ = ulong.TryParse(mbo["CurrentClockSpeed"]?.ToString(), out var currentClockSpeed);
+        _ = ulong.TryParse(mbo["MaxClockSpeed"]?.ToString(), out var maxClockSpeed);
+        _ = uint.TryParse(mbo["LoadPercentage"]?.ToString(), out var loadPercentage);
 
         return new(name, coreCount, threadCount, currentClockSpeed, maxClockSpeed, loadPercentage);
     }
