@@ -13,20 +13,20 @@ namespace Telegram.Telegram.Updates.Images.Services;
 
 public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHandler
 {
-    readonly TaskRegistry _taskRegistry;
+    readonly RegisteredTasksCache _registeredTasksCache;
     readonly string _hostUrl;
 
     public VectorizerCallbackQueryHandler(
         ILogger<VectorizerCallbackQueryHandler> logger,
         TelegramBot bot,
         ChatAuthenticator authenticator,
-        TaskRegistry taskRegistry,
+        RegisteredTasksCache tasksRegistry,
         TelegramFileRegistry fileRegistry,
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory)
         : base(logger, bot, authenticator, fileRegistry, httpClientFactory)
     {
-        _taskRegistry = taskRegistry;
+        _registeredTasksCache = tasksRegistry;
         _hostUrl = configuration["Host"];
     }
 
@@ -55,7 +55,7 @@ public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHa
                 JObject.FromObject(new VeeeVectorizeInfo() { Lods = new int[] { 500 } })),
             authenticationToken.MPlus.SessionId))
             .Result;
-        _taskRegistry[taskId] = authenticationToken;
+        _registeredTasksCache[taskId] = authenticationToken;
 
         await Bot.SendMessageAsync_(chatId, "Resulting media file will be sent back to you as soon as it's ready.",
             replyMarkup: new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))

@@ -13,7 +13,7 @@ public static class MediaFileProcessingExtensions
             .AddScoped<ImageProcessingCallbackQueryHandler>()
             .AddScoped<VectorizerCallbackQueryHandler>()
             .AddScoped<VideoProcessingCallbackQueryHandler>()
-            .AddSingleton<TaskRegistry>()
+            .AddSingleton<RegisteredTasksCache>()
             .AddSingleton<TelegramFileRegistry>()
             .AddScoped<TaskCallbackQueryHandler>();
 }

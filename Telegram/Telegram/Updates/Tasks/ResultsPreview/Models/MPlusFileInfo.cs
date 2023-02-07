@@ -2,7 +2,10 @@
 
 namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
 
-public class MPlusFileInfo
+/// <summary>
+/// Represents info for a file stored on M+.
+/// </summary>
+internal class MPlusFileInfo
 {
     readonly JToken _json;
 
@@ -16,6 +19,9 @@ public class MPlusFileInfo
 
     internal static MPlusFileInfo From(JToken json) => new(json);
 
+    /// <param name="json">
+    /// JSON representing info for a file stored on M+ that can be requested using one of the M+ API endpoints.
+    /// </param>
     MPlusFileInfo(JToken json)
     {
         _json = json;

@@ -1,74 +1,70 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
-using Newtonsoft.Json.Linq;
-using Telegram.Bot;
+﻿using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Models;
 using Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
+using Telegram.Telegram.Updates.Tasks.Services;
 
 namespace Telegram.Telegram.Updates.Tasks;
 
 public class TaskResultPreviewService
 {
-	readonly HttpClient _httpClient;
+	readonly MPlusService _mPlusService;
+	readonly RegisteredTasksCache _registeredTasksCache;
+	readonly TelegramBot _bot;
 
 	readonly ILogger _logger;
 
-	public TaskResultPreviewService(HttpClient httpClient, ILogger<TaskResultPreviewService> logger)
+	public TaskResultPreviewService(MPlusService mPlusService, RegisteredTasksCache registeredTasksCache, TelegramBot bot, ILogger<TaskResultPreviewService> logger)
 	{
-		_httpClient = httpClient;
+		_mPlusService = mPlusService;
+		_registeredTasksCache = registeredTasksCache;
+		_bot = bot;
 		_logger = logger;
 	}
 
-	internal async Task<TaskResultPreview> RequestTaskResultPreviewAsyncUsing(ITaskApi taskApi, string sessionId, string iid, string taskExecutor, CancellationToken cancellationToken)
+	internal async Task SendTaskResultPreviewsAsyncUsing(ITaskApi taskApi, string[] iids, string taskExecutor, CancellationToken cancellationToken)
 	{
-		var mPlusFileInfo = await RequestMPlusFileInfoAsync(sessionId, iid, cancellationToken);
-		var downloadLink = await RequestDownloadLinkUsing(taskApi, sessionId, iid);
-		return TaskResultPreview.Create(mPlusFileInfo, taskExecutor, downloadLink);
-	}
+        if (_registeredTasksCache.Remove(taskApi.Id, out var authenticationToken))
+        {
+			var taskResultPreviews = new List<TaskResultPreview>(iids.Length);
+            foreach (var iid in iids)
+                taskResultPreviews.Add(await RequestTaskResultPreviewAsyncUsing(taskApi, authenticationToken.MPlus.SessionId, iid, taskExecutor, cancellationToken));
 
-	async Task<MPlusFileInfo> RequestMPlusFileInfoAsync(string sessionId, string iid, CancellationToken cancellationToken)
-	{
-		var endpoint = new Uri(new Uri(Api.TaskManagerEndpoint), "getmympitem").ToString();
-		var requestUrl = QueryHelpers.AddQueryString(endpoint, new Dictionary<string, string?> { { "sessionId", sessionId }, { "iid", iid } });
+			foreach (var taskResultPreview in taskResultPreviews)
+				await _bot.SendTaskResultPreviewAsync(authenticationToken.ChatId, taskResultPreview);
 
-		return await RequestMPlusFileInfoAsyncCore(cancellationToken);
-
-
-		async Task<MPlusFileInfo> RequestMPlusFileInfoAsyncCore(CancellationToken cancellationToken)
-		{
-			int attemptsLeft = 3;
-            JToken mPlusFileInfo;
-            while (attemptsLeft > 0)
-			{
-                mPlusFileInfo = (await (await _httpClient.GetAsync(requestUrl, cancellationToken)).GetJsonIfSuccessfulAsync())["item"]!;
-				if ((string)mPlusFileInfo["state"]! == "received")
-					return MPlusFileInfo.From(mPlusFileInfo);
-				else Thread.Sleep(TimeSpan.FromSeconds(3));
-            }
-
-			var exception = new Exception("Couldn't request {FileInfo} for the file with IID {Iid}.");
-			_logger.LogError(exception, message: default);
-			throw exception;
+            await Apis.Default.WithSessionId(authenticationToken.MPlus.SessionId).ChangeStateAsync(taskApi, TaskState.Finished).ThrowIfError();
         }
     }
 
-	async Task<Uri> RequestDownloadLinkUsing(ITaskApi taskApi, string sessionId, string iid)
-		=> new Uri((await taskApi.GetMPlusItemDownloadLinkAsync(iid, sessionId)).ThrowIfError());
+	async Task<TaskResultPreview> RequestTaskResultPreviewAsyncUsing(ITaskApi taskApi, string sessionId, string iid, string taskExecutor, CancellationToken cancellationToken)
+	{
+		var mPlusFileInfo = await _mPlusService.RequestFileInfoAsync(sessionId, iid, cancellationToken);
+		var downloadLink = await _mPlusService.RequestFileDownloadLinkUsing(taskApi, sessionId, iid);
+		return TaskResultPreview.Create(mPlusFileInfo, taskExecutor, downloadLink);
+	}
 }
 
 static class TaskResultPreviewServiceExtensions
 {
-	internal static async Task SendTaskResultPreviewAsync(this TelegramBot bot, ChatId chatId, TaskResultPreview taskResultPreview)
+    internal static async Task<Message> SendTaskResultPreviewAsync(this TelegramBot bot, ChatId chatId, TaskResultPreview taskResultPreview)
 	{
-		var inputOnlineFile = new InputOnlineFile(taskResultPreview.FileDownloadLink);
-        string caption = $"{taskResultPreview.FileInfo.Title}\\n\\n*Task Executor* : `{taskResultPreview.TaskExecutor}`\\n*Task ID* : `{taskResultPreview.TaskId}`\\n*M+ IID* : `{taskResultPreview.FileInfo.Iid}`";
+        string caption =
+			$"{taskResultPreview.FileInfo.Title}\n\n" +
+			$"*Task Executor* : `{taskResultPreview.TaskExecutor}`\n" +
+			$"*Task ID* : `{taskResultPreview.TaskId}`\n" +
+			$"*M+ IID* : `{taskResultPreview.FileInfo.Iid}`";
         var downloadButton = new InlineKeyboardMarkup( InlineKeyboardButton.WithUrl("Download", taskResultPreview.FileDownloadLink.ToString()) );
 
-		await (taskResultPreview switch
+		return await (taskResultPreview switch
 		{
-			ImageTaskResultPreview => bot.SendImageAsync_(chatId, inputOnlineFile, caption, downloadButton),
-			VideoTaskResultPreview video => bot.SendVideoAsync_(chatId, inputOnlineFile, width: video.Width, height: video.Height, thumb: taskResultPreview.FileInfo.BigThumbnailUrl.ToString(), caption: caption, replyMarkup: downloadButton),
+			ImageTaskResultPreview => bot.SendImageAsync_(chatId, taskResultPreview, caption, downloadButton),
+			VideoTaskResultPreview video => bot.SendVideoAsync_(chatId, taskResultPreview,
+				downloadButton,
+				null, video.Width, video.Height,
+				taskResultPreview.FileInfo.BigThumbnailUrl.ToString(),
+				caption),
 			_ => throw new NotImplementedException()
 		});
     }

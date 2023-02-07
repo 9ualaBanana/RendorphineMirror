@@ -1,4 +1,6 @@
-﻿namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
+﻿using Telegram.Bot.Types.InputFiles;
+
+namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
 
 internal abstract record TaskResultPreview
 {
@@ -25,4 +27,6 @@ internal abstract record TaskResultPreview
         TaskExecutor = taskExecutor;
         FileDownloadLink = downloadLink;
     }
+
+    public static implicit operator InputOnlineFile(TaskResultPreview this_) => new(this_.FileDownloadLink);
 }

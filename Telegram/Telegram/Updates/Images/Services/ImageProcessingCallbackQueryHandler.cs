@@ -8,12 +8,13 @@ using Telegram.Telegram.Updates.Tasks.Services;
 using Telegram.Telegram.FileRegistry;
 using Telegram.Bot;
 using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.Options;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
 public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQueryHandler
 {
-    readonly TaskRegistry _taskRegistry;
+    readonly RegisteredTasksCache _registeredTasksCache;
     readonly string _hostUrl;
 
 
@@ -21,13 +22,13 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
         ILogger<ImageProcessingCallbackQueryHandler> logger,
         TelegramBot bot,
         ChatAuthenticator authenticator,
-        TaskRegistry taskRegistry,
+        RegisteredTasksCache registeredTasksCache,
         TelegramFileRegistry fileRegistry,
-        IConfiguration configuration,
+        IOptions<TelegramBotOptions> botOptions,
         IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator, fileRegistry, httpClientFactory)
     {
-        _taskRegistry = taskRegistry;
-        _hostUrl = configuration["Host"];
+        _registeredTasksCache = registeredTasksCache;
+        _hostUrl = botOptions.Value.Host;
     }
 
     protected async override Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken) =>
@@ -60,7 +61,7 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
                 new()),
             authenticationToken.MPlus.SessionId))
             .Result;
-        _taskRegistry[taskId] = authenticationToken;
+        _registeredTasksCache[taskId] = authenticationToken;
 
         await Bot.SendMessageAsync_(chatId, "Resulting media file will be sent back to you as soon as it's ready.",
             replyMarkup: new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
@@ -79,7 +80,7 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
                 JObject.FromObject(new VeeeVectorizeInfo() { Lods = new int[] { 500, 2000, 4000, 7000, 8500, 10000 } })),
             authenticationToken.MPlus.SessionId))
             .Result;
-        _taskRegistry[taskId] = authenticationToken;
+        _registeredTasksCache[taskId] = authenticationToken;
 
         await Bot.SendMessageAsync_(chatId, "Resulting media files will be sent back to you as soon as they are ready.",
             replyMarkup: new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))

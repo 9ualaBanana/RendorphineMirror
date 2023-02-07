@@ -2,6 +2,6 @@
 
 namespace Telegram.Telegram.Updates.Tasks.Services;
 
-public class TaskRegistry : Dictionary<string, ChatAuthenticationToken>
+public class RegisteredTasksCache : Dictionary<string, ChatAuthenticationToken>
 {
 }
