@@ -114,6 +114,7 @@ public static class TaskHandler
                 await process(TaskState.Input, act.Input);
                 await process(TaskState.Active, act.Active);
                 await process(TaskState.Output, act.Output);
+                await process(TaskState.Validation, act.Output);
                 async ValueTask process(TaskState state, ImmutableArray<Apis.TMTaskStateInfo> tasks)
                 {
                     var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.Id, out var task) && task.State != state).Select(x => x.Id).ToArray();
@@ -137,7 +138,7 @@ public static class TaskHandler
 
                 task.State = newstate ?? task.State;
                 task.Populate(state);
-                if (task.State == TaskState.Output)
+                if (task.State == TaskState.Validation)
                     task.Populate(await task.GetTaskStateAsyncOrThrow().ThrowIfError());
 
                 try { await check(task, null); }
@@ -151,7 +152,7 @@ public static class TaskHandler
         }
         async ValueTask check(DbTaskFullState task, string? errmsg)
         {
-            if (task.State < TaskState.Output) return;
+            if (task.State < TaskState.Validation) return;
             if (task.State is TaskState.Canceled or TaskState.Failed)
             {
                 remove(task, errmsg);
@@ -280,7 +281,7 @@ public static class TaskHandler
                     task.State = state.State;
             }
 
-            if (state?.State == TaskState.Finished && task.State == TaskState.Output)
+            if (state?.State == TaskState.Finished && task.State == TaskState.Validation)
             {
                 task.LogErr($"Server task state was set to finished, but the result hasn't been uploaded yet (!! bug from the task creator node !!)");
                 return false;

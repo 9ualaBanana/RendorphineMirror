@@ -2,11 +2,12 @@
 
 namespace NodeCommon.Tasks;
 
-public record TaskTimes(long? Input = null, long? Active = null, long? Output = null, long? Finished = null, long? Canceled = null, long? Failed = null)
+public record TaskTimes(long? Input = null, long? Active = null, long? Output = null, long? Validation = null, long? Finished = null, long? Canceled = null, long? Failed = null)
 {
     [JsonIgnore] public DateTimeOffset? InputTime => FromLong(Input);
     [JsonIgnore] public DateTimeOffset? ActiveTime => FromLong(Active);
     [JsonIgnore] public DateTimeOffset? OutputTime => FromLong(Output);
+    [JsonIgnore] public DateTimeOffset? ValidationTime => FromLong(Validation);
     [JsonIgnore] public DateTimeOffset? FinishedTime => FromLong(Finished);
     [JsonIgnore] public DateTimeOffset? CanceledTime => FromLong(Canceled);
     [JsonIgnore] public DateTimeOffset? FailedTime => FromLong(Failed);
@@ -16,5 +17,5 @@ public record TaskTimes(long? Input = null, long? Active = null, long? Output = 
 
     public bool Exist => Input is not null;
 
-    public TimeSpan Total => Exist ? (OutputTime ?? DateTimeOffset.UtcNow) - InputTime!.Value : default;
+    public TimeSpan Total => Exist ? (ValidationTime ?? DateTimeOffset.UtcNow) - InputTime!.Value : default;
 }

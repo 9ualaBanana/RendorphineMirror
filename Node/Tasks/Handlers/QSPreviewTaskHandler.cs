@@ -46,7 +46,7 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
         uploadres.ThrowIfError();
     }
 
-    public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Output && ((QSPreviewOutputInfo) task.Output).IngesterHost is not null);
+    public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Validation && ((QSPreviewOutputInfo) task.Output).IngesterHost is not null);
 
 
     record InitOutputResult(string UploadId, string Host);

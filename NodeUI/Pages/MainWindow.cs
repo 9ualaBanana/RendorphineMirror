@@ -332,7 +332,7 @@ namespace NodeUI.Pages
                             {
                                 allplaced.ThrowIfNull();
 
-                                var tasks = await Apis.Default.GetMyTasksAsync(new[] { TaskState.Queued, TaskState.Input, TaskState.Active, TaskState.Output, });
+                                var tasks = await Apis.Default.GetMyTasksAsync(new[] { TaskState.Queued, TaskState.Input, TaskState.Active, TaskState.Output, TaskState.Validation, });
                                 await self.FlashErrorIfErr(tasks);
                                 if (!tasks) return;
 

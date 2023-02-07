@@ -57,6 +57,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
             await task.GetOutputHandler().UploadResult(task).ConfigureAwait(false);
             task.LogInfo($"Result uploaded");
 
+            await task.ChangeStateAsync(TaskState.Validation);
             NodeSettings.QueuedTasks.Save(task);
         }
         else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
