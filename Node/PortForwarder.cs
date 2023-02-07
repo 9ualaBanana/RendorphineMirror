@@ -45,8 +45,10 @@ namespace Node
                     var mapping = mappings.FirstOrDefault(x => x.Description == name);
                     if (mapping is not null)
                     {
-                        _logger.Info("[UPnP] Found already existing mapping: {Mapping}", mapping);
-                        portb.Value = (ushort) mapping.PublicPort;
+                        _logger.Info($"[UPnP] Found already existing mapping {mapping}. Remapping...");
+
+                        device.DeletePortMap(mapping);
+                        device.CreatePortMap(new Mapping(Protocol.Tcp, portb.Value, portb.Value, 0, name));
                     }
                     else
                     {
