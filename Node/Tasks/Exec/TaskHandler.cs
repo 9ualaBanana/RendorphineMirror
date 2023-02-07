@@ -114,7 +114,7 @@ public static class TaskHandler
                 await process(TaskState.Input, act.Input);
                 await process(TaskState.Active, act.Active);
                 await process(TaskState.Output, act.Output);
-                await process(TaskState.Validation, act.Output);
+                await process(TaskState.Validation, act.Validation);
                 async ValueTask process(TaskState state, ImmutableArray<Apis.TMTaskStateInfo> tasks)
                 {
                     var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.Id, out var task) && task.State != state).Select(x => x.Id).ToArray();
