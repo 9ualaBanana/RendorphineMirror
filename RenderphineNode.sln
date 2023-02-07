@@ -29,6 +29,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeCommon", "NodeCommon\No
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_3DProductsPublish", "_3DProductsPublish\_3DProductsPublish.csproj", "{4BC82566-6735-4089-A7EA-AA94D1A5FBF4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aws-signature-version-4", "aws-signature-version-4", "{08DCF857-D720-4B98-A63F-3FF1214B2D87}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwsSignatureVersion4", "aws-signature-version-4\src\AwsSignatureVersion4.csproj", "{87671FB3-32B2-4D88-BEB1-4CFEF5F0356E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,11 +91,18 @@ Global
 		{4BC82566-6735-4089-A7EA-AA94D1A5FBF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4BC82566-6735-4089-A7EA-AA94D1A5FBF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4BC82566-6735-4089-A7EA-AA94D1A5FBF4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87671FB3-32B2-4D88-BEB1-4CFEF5F0356E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87671FB3-32B2-4D88-BEB1-4CFEF5F0356E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87671FB3-32B2-4D88-BEB1-4CFEF5F0356E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87671FB3-32B2-4D88-BEB1-4CFEF5F0356E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1449F403-A78E-4A78-B65E-3DC50B1949C0}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{87671FB3-32B2-4D88-BEB1-4CFEF5F0356E} = {08DCF857-D720-4B98-A63F-3FF1214B2D87}
 	EndGlobalSection
 EndGlobal

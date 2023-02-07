@@ -10,16 +10,24 @@ namespace Node.Listeners;
 
 public abstract class ListenerBase
 {
+    static readonly List<ListenerBase> Listeners = new();
+
     protected readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     protected virtual string? Prefix => null;
     protected abstract ListenTypes ListenType { get; }
     protected virtual bool RequiresAuthentication => false;
 
-    protected readonly HttpListener Listener = new();
+    HttpListener? CurrentListener;
 
     public void Start()
     {
+        if (!Listeners.Contains(this))
+            Listeners.Add(this);
+
+        CurrentListener?.Stop();
+        CurrentListener?.Close();
+        CurrentListener = new();
         if (ListenType.HasFlag(ListenTypes.Local)) addprefix($"127.0.0.1:{Settings.LocalListenPort}");
         if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{PortForwarding.Port}");
         if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{PortForwarding.ServerPort}");
@@ -28,11 +36,11 @@ public abstract class ListenerBase
             prefix = $"http://{prefix}/{Prefix}";
             if (!prefix.EndsWith("/")) prefix += "/";
 
-            Listener.Prefixes.Add(prefix);
+            CurrentListener.Prefixes.Add(prefix);
         }
 
-        _logger.Info($"Starting HTTP {GetType().Name} on {string.Join(", ", Listener.Prefixes)}");
-        Listener.Start();
+        _logger.Info($"Starting HTTP {GetType().Name} on {string.Join(", ", CurrentListener.Prefixes)}");
+        CurrentListener.Start();
 
         new Thread(() =>
         {
@@ -40,7 +48,7 @@ public abstract class ListenerBase
             {
                 try
                 {
-                    var context = Listener.GetContext();
+                    var context = CurrentListener.GetContext();
                     LogRequest(context.Request);
 
                     _ = Task.Run(async () =>
@@ -70,6 +78,11 @@ public abstract class ListenerBase
             }
         })
         { IsBackground = true }.Start();
+    }
+    public static void RestartAll()
+    {
+        foreach (var listener in Listeners)
+            listener.Start();
     }
 
     protected abstract ValueTask Execute(HttpListenerContext context);

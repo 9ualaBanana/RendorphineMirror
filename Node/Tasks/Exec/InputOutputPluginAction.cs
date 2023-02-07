@@ -10,8 +10,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
     static async Task<FuncDispose> WaitDisposed(string info, ReceivedTask task, SemaphoreSlim semaphore)
     {
-        if (semaphore.CurrentCount == 0)
-            task.LogInfo($"Waiting for the {info} handle: {semaphore.CurrentCount}");
+        task.LogInfo($"Waiting for the {info} handle: (wh {semaphore.CurrentCount})");
 
         await semaphore.WaitAsync();
         return FuncDispose.Create(semaphore.Release);
@@ -25,7 +24,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         {
             using var _ = await WaitDisposed("input", task, InputSemaphore);
 
-            task.LogInfo($"Downloading input...");
+            task.LogInfo($"Downloading input... (wh {InputSemaphore.CurrentCount})");
             await task.GetInputHandler().Download(task).ConfigureAwait(false);
             task.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}");
 
@@ -38,7 +37,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         {
             using var _ = await WaitDisposed("active", task, TaskWaitHandle);
 
-            task.LogInfo($"Checking input files...");
+            task.LogInfo($"Checking input files... (wh {TaskWaitHandle.CurrentCount})");
             task.GetAction().InputRequirements.Check(task).ThrowIfError();
 
             task.LogInfo($"Executing task...");
@@ -54,7 +53,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         {
             using var _ = await WaitDisposed("output", task, OutputSemaphore);
 
-            task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ...");
+            task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
             await task.GetOutputHandler().UploadResult(task).ConfigureAwait(false);
             task.LogInfo($"Result uploaded");
 

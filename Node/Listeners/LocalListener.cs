@@ -67,6 +67,20 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
+        if (path == "updateports")
+        {
+            return await Test(request, response, "port", "webport", "torrentport", "dhtport", async (port, webport, torrentport, dhtport) =>
+            {
+                Settings.UPnpPort = ushort.Parse(port);
+                Settings.UPnpServerPort = ushort.Parse(webport);
+                Settings.TorrentPort = ushort.Parse(torrentport);
+                Settings.DhtPort = ushort.Parse(dhtport);
+
+                _ = Task.Delay(500).ContinueWith(_ => ListenerBase.RestartAll());
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
         if (path == "uploadcgtrader")
         {
             return await Test(request, response, "username", "password", "directory", "meta", async (username, password, dir, metastr) =>

@@ -36,7 +36,7 @@ namespace Common
             }
         }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
 
-        public static T ThrowIfNull<T>([NotNull] this T? value, string? message = null)
+        public static T ThrowIfNull<T>([NotNull] this T? value, string? message = null) where T : class
         {
             if (value is null)
                 throw new NullReferenceException(message ?? "Value is null");
