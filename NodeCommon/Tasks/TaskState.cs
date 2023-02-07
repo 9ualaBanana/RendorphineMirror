@@ -10,6 +10,7 @@ public enum TaskState
     Input,
     Active,
     Output,
+    Validation,
     Finished,
     Canceled,
     Failed,

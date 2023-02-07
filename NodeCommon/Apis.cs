@@ -203,9 +203,12 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
         var itasks = result.Value.SelectMany(x => x.Input).Select(x => (TaskState.Input, x));
         var atasks = result.Value.SelectMany(x => x.Active).Select(x => (TaskState.Active, x));
         var otasks = result.Value.SelectMany(x => x.Output).Select(x => (TaskState.Output, x));
-        return itasks.Concat(atasks).Concat(otasks).ToArray();
+        var vtasks = result.Value.SelectMany(x => x.Validation).Select(x => (TaskState.Validation, x));
+        return itasks.Concat(atasks).Concat(otasks).Concat(vtasks).ToArray();
     }
-    public record TMTasksStateInfo(ImmutableArray<TMTaskStateInfo> Input, ImmutableArray<TMTaskStateInfo> Active, ImmutableArray<TMTaskStateInfo> Output, int QueueSize, double AvgWaitTime, string ScGuid);
+    public record TMTasksStateInfo(
+        ImmutableArray<TMTaskStateInfo> Input, ImmutableArray<TMTaskStateInfo> Active, ImmutableArray<TMTaskStateInfo> Output, ImmutableArray<TMTaskStateInfo> Validation,
+        int QueueSize, double AvgWaitTime, string ScGuid);
     public record TMTaskStateInfo(string Id, double Progress) : ITaskStateInfo;
 
     /// <returns> Finished, Failed and Canceled tasks </returns>
