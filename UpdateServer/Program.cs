@@ -83,7 +83,7 @@ FileSystemWatcher StartFileWatcher()
         appdir = relafile.Substring(0, relafile.IndexOf('/', StringComparison.Ordinal));
         var appname = appdir.Split('.')[0];
 
-        if (!filez.TryGetValue(appdir, out var app))
+        if (!filez.TryGetValue(appname, out var app))
             filez[appname] = app = new(appname, new(), new(), new());
 
         app.Subdirs.Add(appdir);
