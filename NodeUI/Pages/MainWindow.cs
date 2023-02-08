@@ -685,7 +685,8 @@ namespace NodeUI.Pages
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
                 }.With(t =>
-                    NodeGlobalState.Instance.BenchmarkResult.SubscribeChanged(() => t.Text = NodeGlobalState.Instance.BenchmarkResult.Value?.ToString(Formatting.None) ?? "bench mark", true)
+                    NodeGlobalState.Instance.BenchmarkResult.SubscribeChanged(() =>
+                        Dispatcher.UIThread.Post(() => t.Text = NodeGlobalState.Instance.BenchmarkResult.Value?.ToString(Formatting.None) ?? "bench mark"), true)
                 ));
             }
         }

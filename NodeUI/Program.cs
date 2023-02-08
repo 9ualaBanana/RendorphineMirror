@@ -89,7 +89,7 @@ static class Program
             {
                 var action = Path.GetFileName(e.FullPath);
                 if (action == "show")
-                    (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow?.Show();
+                    Dispatcher.UIThread.Post(() => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow?.Show());
 
                 File.Delete(e.FullPath);
             };
