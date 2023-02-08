@@ -128,11 +128,28 @@ FileSystemWatcher StartFileWatcher()
             }
             else
             {
-                // gzip stores uncompressed file length in last 4 bytes but its broken for >4G so we decompress instead
-                using var file = File.OpenRead(path);
-                using var gzip = new GZipStream(file, CompressionMode.Decompress);
+                try { hash = calculateHash(out size); }
+                catch (InvalidDataException)
+                {
+                    var temp = Path.GetTempFileName();
+                    using (var tempfile = File.OpenWrite(temp))
+                    using (var gzip = new GZipStream(tempfile, CompressionMode.Compress))
+                    using (var file = File.OpenRead(path))
+                        file.CopyTo(gzip);
 
-                hash = XXHash.XXH64(gzip, out size);
+                    File.Move(temp, path, true);
+                    hash = calculateHash(out size);
+                }
+
+                // gzip stores uncompressed file length in last 4 bytes but its broken for >4G so we decompress instead
+
+                ulong calculateHash(out long size)
+                {
+                    using var file = File.OpenRead(path);
+                    using var gzip = new GZipStream(file, CompressionMode.Decompress);
+
+                    return XXHash.XXH64(gzip, out size);
+                }
 
                 File.WriteAllText(hashfile, hash.ToString());
                 File.SetLastWriteTimeUtc(hashfile, filetime);
