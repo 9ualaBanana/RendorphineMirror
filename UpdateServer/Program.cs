@@ -79,8 +79,8 @@ FileSystemWatcher StartFileWatcher()
 
     void UpdateFileData(string relafile)
     {
-        var appdir = Path.GetRelativePath(basedir, Path.GetFullPath(Path.Combine(basedir, relafile)));
-        appdir = relafile.Substring(0, relafile.IndexOf('/', StringComparison.Ordinal));
+        var appdir = Path.GetRelativePath(Path.GetFullPath(basedir), Path.GetFullPath(Path.Combine(basedir, relafile)));
+        appdir = appdir.Substring(0, appdir.IndexOf('/', StringComparison.Ordinal));
         var appname = appdir.Split('.')[0];
 
         if (!filez.TryGetValue(appname, out var app))
