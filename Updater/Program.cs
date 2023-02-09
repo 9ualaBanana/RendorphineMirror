@@ -30,6 +30,24 @@ else checker = UpdateChecker.LoadFromJsonOrDefault();
 
 LogManager.GetCurrentClassLogger().Info($"[{(doupdate ? "D" : null)}Updater] App: {checker.App}; Target dir: {checker.TargetDirectory}; Current executable: {Path.GetFullPath(Environment.ProcessPath!)}");
 
+{
+    Console.Title = "Renderfin";
+    const string appname = $"Renderfin —";
+    int allfiles = 0;
+    int filesdownloaded = 0;
+
+    checker.FetchingStarted += () => Console.Title = $"{appname} Fetching files";
+    checker.FilteringStarted += () => Console.Title = $"{appname} Filtering changed files";
+    checker.DownloadingStarted += files =>
+    {
+        allfiles = files;
+        Console.Title = $"{appname} Downloading files";
+    };
+    checker.FileDownloaded += _ => Console.Title = $"{appname} Downloading files ({++filesdownloaded}/{allfiles})";
+    checker.StartingApp += () => Console.Title = $"{appname} Starting apps";
+}
+
+
 if (doupdate)
 {
     checker.MoveFilesAndStartApp();
@@ -75,11 +93,7 @@ void ElevateIfNeeded()
 
     // admin rights test
     try { File.Create(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "_test")).Dispose(); }
-    catch
-    {
-        Elevate();
-        return;
-    }
+    catch { Elevate(); }
 
 
     void Elevate()
@@ -92,5 +106,6 @@ void ElevateIfNeeded()
         foreach (var arg in args) start.ArgumentList.Add(arg);
 
         Process.Start(start).ThrowIfNull();
+        Environment.Exit(0);
     }
 }

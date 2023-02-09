@@ -13,6 +13,6 @@ public static class UISettings
     static UISettings()
     {
         BLanguage = new(nameof(Language), null);
-        BShortcutsCreated = new(nameof(ShortcutsCreated), false);
+        BShortcutsCreated = new($"{nameof(ShortcutsCreated)}_2", false);
     }
 }

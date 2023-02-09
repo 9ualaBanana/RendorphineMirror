@@ -36,6 +36,14 @@ public class UpdateChecker
     [JsonIgnore]
     readonly HttpClient Client = new(new HttpClientHandler() { AutomaticDecompression = DecompressionMethods.GZip }) { Timeout = TimeSpan.FromMinutes(1), };
 
+
+    public event Action FetchingStarted = delegate { };
+    public event Action FilteringStarted = delegate { };
+    public event Action<int> DownloadingStarted = delegate { };
+    public event Action<string> FileDownloaded = delegate { };
+    public event Action StartingApp = delegate { };
+
+
     public readonly string Url, App;
     public readonly string TargetDirectory, TempDirectory;
     public readonly ImmutableArray<string> AppExecutables;
@@ -139,7 +147,8 @@ public class UpdateChecker
         if (Init.IsDebug) return true;
 
         _logger.Info("Checking files to update...");
-        var files = await GetAllFiles().Next(x => FilterNewFiles(x).AsOpResult()).ConfigureAwait(false);
+        FetchingStarted();
+        var files = await GetAllFiles().Next(x => { FilteringStarted(); return FilterNewFiles(x).AsOpResult(); }).ConfigureAwait(false);
         if (!files) return files.GetResult();
         if (files.Value.Length == 0)
         {
@@ -153,6 +162,7 @@ public class UpdateChecker
         if (files.Value.Length < 10)
             _logger.Info(string.Join("; ", files.Value.Select(x => x.Path)));
 
+        DownloadingStarted(files.Value.Length);
         var download = await files.Value.OrderByDescending(x => x.Size).Select(DownloadFileToTemp).MergeParallel(6).ConfigureAwait(false);
         if (!download) return download;
 
@@ -205,6 +215,7 @@ public class UpdateChecker
             File.SetLastWriteTimeUtc(localfilename, DateTimeOffset.FromUnixTimeSeconds(file.ModificationTime).UtcDateTime);
             _logger.Info($"+ {file.Path} ({(new FileInfo(localfilename).Length / 1024 / 1024d).ToString("0.##")} MB)");
 
+            FileDownloaded(file.Path);
             return true;
         }
         catch (Exception ex) { return OperationResult.Err(ex); }
@@ -219,6 +230,7 @@ public class UpdateChecker
     }
     public void StartApp(bool skipRunning = false)
     {
+        StartingApp();
         Common.CommonExtensions.MakeExecutable(TargetDirectory);
 
         foreach (var appexe in AppExecutables)
