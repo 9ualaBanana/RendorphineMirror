@@ -33,17 +33,17 @@ LogManager.GetCurrentClassLogger().Info($"[{(doupdate ? "D" : null)}Updater] App
 {
     Console.Title = "Renderfin";
     const string appname = $"Renderfin —";
-    int allfiles = 0;
-    int filesdownloaded = 0;
+    long allfiles = 0;
+    long filesdownloaded = 0;
 
     checker.FetchingStarted += () => Console.Title = $"{appname} Fetching files";
     checker.FilteringStarted += () => Console.Title = $"{appname} Filtering changed files";
     checker.DownloadingStarted += files =>
     {
-        allfiles = files;
+        allfiles = files.Sum(f => f.Size);
         Console.Title = $"{appname} Downloading files";
     };
-    checker.FileDownloaded += _ => Console.Title = $"{appname} Downloading files ({++filesdownloaded}/{allfiles})";
+    checker.BytesDownloaded += bytes => { filesdownloaded += bytes; Console.Title = $"{appname} Downloading files ({filesdownloaded * 100 / allfiles}%)"; };
     checker.StartingApp += () => Console.Title = $"{appname} Starting apps";
 }
 

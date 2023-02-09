@@ -39,7 +39,8 @@ public class UpdateChecker
 
     public event Action FetchingStarted = delegate { };
     public event Action FilteringStarted = delegate { };
-    public event Action<int> DownloadingStarted = delegate { };
+    public event Action<IReadOnlyList<UpdaterFileInfo>> DownloadingStarted = delegate { };
+    public event Action<int> BytesDownloaded = delegate { };
     public event Action<string> FileDownloaded = delegate { };
     public event Action StartingApp = delegate { };
 
@@ -162,7 +163,7 @@ public class UpdateChecker
         if (files.Value.Length < 10)
             _logger.Info(string.Join("; ", files.Value.Select(x => x.Path)));
 
-        DownloadingStarted(files.Value.Length);
+        DownloadingStarted(files.Value);
         var download = await files.Value.OrderByDescending(x => x.Size).Select(DownloadFileToTemp).MergeParallel(6).ConfigureAwait(false);
         if (!download) return download;
 
@@ -209,7 +210,7 @@ public class UpdateChecker
 
             // using HttpClient instead of Api for gzip decompression
             using (var stream = await Client.GetStreamAsync($"{Url}/download?pc={PcInfo()}&app={App}&path={HttpUtility.UrlEncode(file.Path)}").ConfigureAwait(false))
-            using (var writer = File.OpenWrite(localfilename))
+            using (var writer = new CallbackStream(File.OpenWrite(localfilename)) { OnWrite = count => BytesDownloaded(count) })
                 await stream.CopyToAsync(writer).ConfigureAwait(false);
 
             File.SetLastWriteTimeUtc(localfilename, DateTimeOffset.FromUnixTimeSeconds(file.ModificationTime).UtcDateTime);
@@ -245,6 +246,44 @@ public class UpdateChecker
                 WorkingDirectory = Path.GetDirectoryName(appexe),
                 // WindowStyle = ProcessWindowStyle.Hidden,
             }).ThrowIfNull($"Application process is null after starting ({appexe})");
+        }
+    }
+
+
+    class CallbackStream : Stream
+    {
+        public override bool CanRead => BaseStream.CanRead;
+        public override bool CanSeek => BaseStream.CanSeek;
+        public override bool CanWrite => BaseStream.CanWrite;
+        public override long Length => BaseStream.Length;
+        public override long Position { get => BaseStream.Position; set => BaseStream.Position = value; }
+
+        public Action<int>? OnWrite;
+        public readonly Stream BaseStream;
+
+        public CallbackStream(Stream baseStream) => BaseStream = baseStream;
+
+        public override void Flush() => BaseStream.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => BaseStream.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => BaseStream.Seek(offset, origin);
+        public override void SetLength(long value) => BaseStream.SetLength(value);
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            BaseStream.Write(buffer, offset, count);
+            OnWrite?.Invoke(count);
+        }
+
+
+        protected override void Dispose(bool disposing)
+        {
+            BaseStream.Dispose();
+            base.Dispose(disposing);
+        }
+        public override async ValueTask DisposeAsync()
+        {
+            await BaseStream.DisposeAsync();
+            await base.DisposeAsync();
         }
     }
 }
