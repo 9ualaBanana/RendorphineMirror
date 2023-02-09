@@ -28,7 +28,7 @@ global using NodeUI.Controls;
 global using NodeUI.Pages;
 global using APath = Avalonia.Controls.Shapes.Path;
 global using Path = System.IO.Path;
-using System.Runtime.InteropServices;
+using Avalonia.Controls.ApplicationLifetimes;
 
 namespace NodeUI;
 
@@ -42,18 +42,14 @@ static class Program
         Init.Initialize();
         ConsoleHide.Hide();
 
-        if (!Init.IsDebug)
+        if (!Init.IsDebug && !Process.GetCurrentProcess().ProcessName.Contains("dotnet", StringComparison.Ordinal))
         {
-            var updater = FileList.GetUpdaterExe();
-            Process.Start(new ProcessStartInfo(updater) { WorkingDirectory = Path.GetDirectoryName(updater), CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden, UseShellExecute = true })!.WaitForExit();
+            SendShowRequest();
+            ListenForShowRequests();
         }
 
         Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
-        if (!Init.IsDebug)
-        {
-            FileList.KillNodeUI();
-            Task.Run(CreateShortcuts);
-        }
+        if (!Init.IsDebug) Task.Run(CreateShortcuts);
 
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
@@ -65,8 +61,75 @@ static class Program
         .LogToTrace();
 
 
+    /// <summary> Check if another instance is already running, send show request to it and quit </summary>
+    static void SendShowRequest()
+    {
+        if (!FileList.GetAnotherInstances().Any()) return;
+
+        var dir = Path.Combine(Path.GetTempPath(), "renderfinuireq");
+        if (!Directory.Exists(dir)) return;
+
+        File.Create(Path.Combine(dir, "show")).Dispose();
+        Environment.Exit(0);
+    }
+    /// <summary> Start listening for outside requests to show the window </summary>
+    static void ListenForShowRequests()
+    {
+        new Thread(() =>
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "renderfinuireq");
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            Directory.CreateDirectory(dir);
+
+            using var watcher = new FileSystemWatcher(dir);
+            watcher.Created += (obj, e) =>
+            {
+                var action = Path.GetFileName(e.FullPath);
+                if (action == "show")
+                    Dispatcher.UIThread.Post(() => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow?.Show());
+
+                new Thread(() =>
+                {
+                    while (true)
+                    {
+                        try
+                        {
+                            if (File.Exists(e.FullPath))
+                                File.Delete(e.FullPath);
+                            return;
+                        }
+                        catch { Thread.Sleep(1000); }
+                    }
+                })
+                { IsBackground = true }.Start();
+            };
+
+            watcher.EnableRaisingEvents = true;
+            Thread.Sleep(-1);
+        })
+        { IsBackground = true }.Start();
+    }
+
     static void CreateShortcuts()
     {
+        if (Environment.OSVersion.Platform != PlatformID.Win32NT) return;
+
+        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+        try
+        {
+            File.Delete(Path.Combine(desktop, "Renderphine.url"));
+            UISettings.ShortcutsCreated = false;
+        }
+        catch { }
+        try
+        {
+            File.Delete(Path.Combine(startmenu, "Renderphine.url"));
+            UISettings.ShortcutsCreated = false;
+        }
+        catch { }
+
+
         if (UISettings.ShortcutsCreated) return;
 
         try
@@ -74,16 +137,14 @@ static class Program
             var ico = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, "Resources", "img", "icon.ico");
             var data = @$"
                 [InternetShortcut]
-                URL=file:///{Environment.ProcessPath}
+                URL=file:///{FileList.GetUpdaterExe()}
                 IconIndex=0
                 IconFile={ico.Replace('\\', '/')}
             ".TrimLines();
 
 
-            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             write(Path.Combine(desktop, "Renderfin.url"), data);
 
-            var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
             Directory.CreateDirectory(startmenu);
             write(Path.Combine(startmenu, "Renderfin.url"), data);
         }

@@ -39,8 +39,7 @@ namespace NodeUI.Pages
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("torrent test", new TorrentTab());
             tabs.Add("logs", new LogsTab());
-            if (Init.IsDebug)
-                tabs.Add("registry", new RegistryTab());
+            if (Init.DebugFeatures) tabs.Add("registry", new RegistryTab());
             tabs.Add("cgtraderupload", new CGTraderUploadTab());
 
             var statustb = new TextBlock()
@@ -676,8 +675,10 @@ namespace NodeUI.Pages
                 {
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Text = "beach mark",
-                });
+                }.With(t =>
+                    NodeGlobalState.Instance.BenchmarkResult.SubscribeChanged(() =>
+                        Dispatcher.UIThread.Post(() => t.Text = NodeGlobalState.Instance.BenchmarkResult.Value?.ToString(Formatting.None) ?? "bench mark"), true)
+                ));
             }
         }
         class SettingsTab : Panel

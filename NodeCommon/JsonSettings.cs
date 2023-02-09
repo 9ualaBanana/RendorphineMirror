@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace Common;
+namespace NodeCommon;
 
 public static class JsonSettings
 {

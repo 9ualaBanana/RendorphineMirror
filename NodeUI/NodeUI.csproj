@@ -39,6 +39,8 @@
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
     <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
+    <ProjectReference Include="..\UpdaterCommon\UpdaterCommon.csproj" />
+    <ProjectReference Include="..\Updater\Updater.csproj" />
     <ProjectReference Include="..\Transport\Transport.csproj" />
     <ProjectReference Include="..\_3DProductsPublish\_3DProductsPublish.csproj" />
   </ItemGroup>

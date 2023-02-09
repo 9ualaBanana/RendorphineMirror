@@ -1,4 +1,0 @@
-#!/bin/bash
-
-./dp rph/files/renderphine-dbg-win/app Node Release win7-x64 1
-./dp rph/files/renderphine-dbg-lin/app Node Release linux-x64
