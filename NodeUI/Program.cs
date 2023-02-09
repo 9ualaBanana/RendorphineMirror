@@ -41,15 +41,18 @@ static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        Init.Initialize();
+        if (args.Any(x => x.Contains("zygote", StringComparison.Ordinal) || x.Contains("sandbox", StringComparison.Ordinal) || x.StartsWith("--type", StringComparison.Ordinal)))
+        {
+            InitializeCef();
+            return;
+        }
+
         if (!Init.IsDebug && !Process.GetCurrentProcess().ProcessName.Contains("dotnet", StringComparison.Ordinal))
         {
             SendShowRequest();
             ListenForShowRequests();
         }
-
-        Init.Initialize();
-        if (args.Any(x => x.Contains("zygote", StringComparison.Ordinal) || x.Contains("sandbox", StringComparison.Ordinal) || x.StartsWith("--type", StringComparison.Ordinal)))
-            InitializeCef();
 
         Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
         if (!Init.IsDebug) Task.Run(CreateShortcuts);
@@ -91,7 +94,20 @@ static class Program
                 if (action == "show")
                     Dispatcher.UIThread.Post(() => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow?.Show());
 
-                File.Delete(e.FullPath);
+                new Thread(() =>
+                {
+                    while (true)
+                    {
+                        try
+                        {
+                            if (File.Exists(e.FullPath))
+                                File.Delete(e.FullPath);
+                            return;
+                        }
+                        catch { Thread.Sleep(1000); }
+                    }
+                })
+                { IsBackground = true }.Start();
             };
 
             watcher.EnableRaisingEvents = true;
@@ -127,7 +143,7 @@ static class Program
             var ico = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, "Resources", "img", "icon.ico");
             var data = @$"
                 [InternetShortcut]
-                URL=file:///{Environment.ProcessPath}
+                URL=file:///{FileList.GetUpdaterExe()}
                 IconIndex=0
                 IconFile={ico.Replace('\\', '/')}
             ".TrimLines();
