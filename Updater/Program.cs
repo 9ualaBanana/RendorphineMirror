@@ -6,32 +6,7 @@ using NLog;
 using UpdaterCommon;
 
 
-
-if (Initializer.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-{
-    // admin rights test
-    try { File.Create(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "_test")).Dispose(); }
-    catch
-    {
-        Elevate();
-        return;
-    }
-
-
-    void Elevate()
-    {
-        var start = new ProcessStartInfo(Environment.ProcessPath!)
-        {
-            UseShellExecute = true,
-            Verb = "runas",
-        };
-        foreach (var arg in args) start.ArgumentList.Add(arg);
-
-        Process.Start(start).ThrowIfNull();
-    }
-}
-
-
+ElevateIfNeeded();
 Init.Initialize();
 
 UpdateChecker checker;
@@ -71,8 +46,8 @@ while (true)
         if (!FileList.IsProcessRunning(FileList.GetNodeExe()))
             Process.Start(FileList.GetNodeExe()).ThrowIfNull($"Process is null after starting node");
 
-        if (!FileList.IsProcessRunning(FileList.GetNodeUIExe()))
-            Process.Start(FileList.GetNodeUIExe()).ThrowIfNull($"Process is null after starting nodeui");
+        // UI will quit itself if already running, and will also trigger an existing one to be shown, so we skip the check here
+        Process.Start(FileList.GetNodeUIExe()).ThrowIfNull($"Process is null after starting nodeui");
 
         return;
     }
@@ -92,3 +67,30 @@ while (true)
     await updater.DownloadFile(targetdir, file, null, CancellationToken.None).ConfigureAwait(false);
     RestartToUpdatedSelf();
 }*/
+
+
+void ElevateIfNeeded()
+{
+    if (!Initializer.UseAdminRights || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+
+    // admin rights test
+    try { File.Create(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "_test")).Dispose(); }
+    catch
+    {
+        Elevate();
+        return;
+    }
+
+
+    void Elevate()
+    {
+        var start = new ProcessStartInfo(Environment.ProcessPath!)
+        {
+            UseShellExecute = true,
+            Verb = "runas",
+        };
+        foreach (var arg in args) start.ArgumentList.Add(arg);
+
+        Process.Start(start).ThrowIfNull();
+    }
+}

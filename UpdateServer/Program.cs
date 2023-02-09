@@ -8,7 +8,7 @@ using UpdateServer;
 Initializer.ConfigDirectory = "renderfin-updater";
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
-var filez = new Dictionary<string, AppData>();
+var appz = new Dictionary<string, AppData>();
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,10 +64,7 @@ FileSystemWatcher StartFileWatcher()
             updating = true;
 
             foreach (var file in arr.SelectMany(x => Directory.Exists(x) ? Directory.GetFiles(x, "*", SearchOption.AllDirectories) : new[] { x }))
-            {
-                if (!File.Exists(file)) filez.Remove(file);
-                else UpdateFileData(file);
-            }
+                UpdateFileData(Path.GetRelativePath(Path.GetFullPath(basedir), file));
 
             logger.Info($"Hashes rebuilt.");
         });
@@ -77,22 +74,6 @@ FileSystemWatcher StartFileWatcher()
     return watcher;
 
 
-    void UpdateFileData(string relafile)
-    {
-        var appdir = Path.GetRelativePath(Path.GetFullPath(basedir), Path.GetFullPath(Path.Combine(basedir, relafile)));
-        appdir = appdir.Substring(0, appdir.IndexOf('/', StringComparison.Ordinal));
-        var appname = appdir.Split('.')[0];
-
-        if (!filez.TryGetValue(appname, out var app))
-            filez[appname] = app = new(appname, new(), new(), new());
-
-        app.Subdirs.Add(appdir);
-
-        var data = GetActualFileData(relafile, appdir);
-        app.Files[data.Path] = data;
-        app.FileDirs[data.Path] = appdir;
-    }
-
     IEnumerable<string> GetFilesRecursive(string dir)
     {
         dir = Path.GetFullPath(Path.Combine(basedir, dir));
@@ -101,64 +82,95 @@ FileSystemWatcher StartFileWatcher()
 
         IEnumerable<string> get(string dir) => Directory.GetFiles(dir).Concat(Directory.GetDirectories(dir).SelectMany(get));
     }
-    UpdaterFileInfo GetActualFileData(string path, string appdir)
+}
+void UpdateFileData(string fileRelativeToBaseDir)
+{
+    // renderfin-win.assets/Updater.exe
+    // fileRelativeToBaseDir
+
+    // renderfin-win.assets
+    var appdir = fileRelativeToBaseDir.Substring(0, fileRelativeToBaseDir.IndexOf('/', StringComparison.Ordinal));
+
+    // renderfin-win
+    var appname = appdir.Split('.')[0];
+
+    // Updater.exe
+    var fileRelativeToAppDir = Path.GetRelativePath(appdir, fileRelativeToBaseDir);
+
+    // files/renderfin-win.assets/Updater.exe
+    var fullpath = Path.Combine(basedir, fileRelativeToBaseDir);
+
+    // hashes/renderfin-win.assets/Updater.exe
+    var dataFileBasePath = Path.Combine(hashbasedir, fileRelativeToBaseDir);
+    Directory.CreateDirectory(Path.GetDirectoryName(dataFileBasePath)!);
+
+    // hashes/renderfin-win.assets/Updater.exe._hash_
+    var hashfile = dataFileBasePath + "._hash_";
+
+    // hashes/renderfin-win.assets/Updater.exe._size_
+    var sizefile = dataFileBasePath + "._size_";
+
+
+    if (!appz.TryGetValue(appname, out var app))
+        appz[appname] = app = new(appname, new(), new());
+
+    if (!File.Exists(fullpath))
     {
-        GetInfo(path, out var hash, out var size, out var time);
-        return new(Path.GetRelativePath(Path.Combine(basedir, appdir), Path.Combine(basedir, path)), time, size, hash);
+        app.Files.Remove(fileRelativeToAppDir);
+        app.FileDirs.Remove(fileRelativeToAppDir);
+        if (File.Exists(hashfile)) File.Delete(hashfile);
+        if (File.Exists(sizefile)) File.Delete(sizefile);
+
+        return;
+    }
+
+    GetInfo(out var hash, out var size, out var time);
+    app.Files[fileRelativeToAppDir] = new(fileRelativeToAppDir, time, size, hash);
+    app.FileDirs[fileRelativeToAppDir] = appdir;
 
 
-        void GetInfo(string path, out ulong hash, out long size, out long time)
+    void GetInfo(out ulong hash, out long size, out long time)
+    {
+        var filetime = File.GetLastWriteTimeUtc(fullpath);
+        time = new DateTimeOffset(filetime).ToUnixTimeSeconds();
+
+        if (File.Exists(hashfile) && File.GetLastWriteTimeUtc(hashfile) == filetime
+            && File.Exists(sizefile) && File.GetLastWriteTimeUtc(sizefile) == filetime)
         {
-            path = Path.Combine(basedir, path);
-
-            var filetime = File.GetLastWriteTimeUtc(path);
-            time = new DateTimeOffset(filetime).ToUnixTimeSeconds();
-
-            var datapath = Path.Combine(hashbasedir, Path.GetRelativePath(basedir, path));
-            Directory.CreateDirectory(Path.GetDirectoryName(datapath)!);
-
-            var hashfile = datapath + "._hash_";
-            var sizefile = datapath + "._size_";
-
-            if (File.Exists(hashfile) && File.GetLastWriteTimeUtc(hashfile) == filetime
-                && File.Exists(sizefile) && File.GetLastWriteTimeUtc(sizefile) == filetime)
+            hash = ulong.Parse(File.ReadAllText(hashfile));
+            size = long.Parse(File.ReadAllText(sizefile));
+        }
+        else
+        {
+            try { hash = calculateHash(out size); }
+            catch (InvalidDataException)
             {
-                hash = ulong.Parse(File.ReadAllText(hashfile));
-                size = long.Parse(File.ReadAllText(sizefile));
+                var temp = Path.GetTempFileName();
+                using (var tempfile = File.OpenWrite(temp))
+                using (var gzip = new GZipStream(tempfile, CompressionMode.Compress))
+                using (var file = File.OpenRead(fullpath))
+                    file.CopyTo(gzip);
+
+                File.Move(temp, fullpath, true);
+                hash = calculateHash(out size);
             }
-            else
+
+            // gzip stores uncompressed file length in last 4 bytes but its broken for >4G so we decompress instead
+            ulong calculateHash(out long size)
             {
-                try { hash = calculateHash(out size); }
-                catch (InvalidDataException)
-                {
-                    var temp = Path.GetTempFileName();
-                    using (var tempfile = File.OpenWrite(temp))
-                    using (var gzip = new GZipStream(tempfile, CompressionMode.Compress))
-                    using (var file = File.OpenRead(path))
-                        file.CopyTo(gzip);
+                using var file = File.OpenRead(fullpath);
+                using var gzip = new GZipStream(file, CompressionMode.Decompress);
 
-                    File.Move(temp, path, true);
-                    hash = calculateHash(out size);
-                }
-
-                // gzip stores uncompressed file length in last 4 bytes but its broken for >4G so we decompress instead
-
-                ulong calculateHash(out long size)
-                {
-                    using var file = File.OpenRead(path);
-                    using var gzip = new GZipStream(file, CompressionMode.Decompress);
-
-                    return XXHash.XXH64(gzip, out size);
-                }
-
-                File.WriteAllText(hashfile, hash.ToString());
-                File.SetLastWriteTimeUtc(hashfile, filetime);
-
-                File.WriteAllText(sizefile, size.ToString());
-                File.SetLastWriteTimeUtc(sizefile, filetime);
-
-                logger.Info($"[Hash recalc] {Path.GetRelativePath(basedir, path)}: {hash}");
+                return XXHash.XXH64(gzip, out size);
             }
+
+            File.WriteAllText(hashfile, hash.ToString());
+            File.SetLastWriteTimeUtc(hashfile, filetime);
+
+            File.WriteAllText(sizefile, size.ToString());
+            File.SetLastWriteTimeUtc(sizefile, filetime);
+
+            logger.Info($"[Hash recalc] {fileRelativeToBaseDir}: {hash}");
         }
     }
 }
@@ -185,7 +197,7 @@ async ValueTask<IResult> GetFiles(string app, HttpRequest request)
     LogRequest(request);
     await WaitWhileUpdating();
 
-    if (!filez.TryGetValue(app, out var data))
+    if (!appz.TryGetValue(app, out var data))
         return Results.NotFound();
 
     return Results.Ok(new Return<IEnumerable<UpdaterFileInfo>>(1, data.Files.Values));
@@ -196,8 +208,18 @@ async ValueTask Download(string path, string app, HttpRequest request, HttpRespo
     await WaitWhileUpdating();
 
 
-    if (!filez.TryGetValue(app, out var info) || !info.Files.TryGetValue(path, out var file))
+    if (!appz.TryGetValue(app, out var info) || !info.Files.TryGetValue(path, out var file))
     {
+        response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    // renderfin-win.assets/Updater.exe
+    var pathRelativeToBaseDir = Path.Combine(info.FileDirs[file.Path], file.Path);
+    var actualPath = Path.Combine(basedir, pathRelativeToBaseDir);
+    if (!File.Exists(actualPath))
+    {
+        UpdateFileData(pathRelativeToBaseDir); // just to remove it
         response.StatusCode = StatusCodes.Status404NotFound;
         return;
     }
@@ -205,7 +227,7 @@ async ValueTask Download(string path, string app, HttpRequest request, HttpRespo
     response.StatusCode = StatusCodes.Status200OK;
     response.Headers.ContentEncoding = "gzip";
 
-    using var zipfile = File.Open(Path.Combine(basedir, info.FileDirs[file.Path], file.Path), FileMode.Open, FileAccess.Read, FileShare.Read);
+    using var zipfile = File.Open(Path.Combine(basedir, actualPath), FileMode.Open, FileAccess.Read, FileShare.Read);
     response.Headers.ContentLength = zipfile.Length;
 
     await zipfile.CopyToAsync(response.Body).ConfigureAwait(false);
@@ -219,7 +241,7 @@ void DoLog(HttpRequest request, HttpResponse response)
 }
 
 
-record AppData(string Name, HashSet<string> Subdirs, Dictionary<string, string> FileDirs, Dictionary<string, UpdaterFileInfo> Files);
+record AppData(string Name, Dictionary<string, string> FileDirs, Dictionary<string, UpdaterFileInfo> Files);
 class Config
 {
     public string Url { get; set; } = null!;
