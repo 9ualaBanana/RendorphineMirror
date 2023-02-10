@@ -19,7 +19,6 @@ public record ApiTask(string Id, HashSet<IUploadedFileInfo> UploadedFiles) : ITa
     }
 
     public string? HostShard { get; set; }
-    public readonly HashSet<IUploadedFileInfo> UploadedFiles = new();
 }
 
 public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info), ILoggable
