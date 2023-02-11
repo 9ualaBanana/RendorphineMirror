@@ -31,110 +31,94 @@ public class TelegramBot : TelegramBotClient
     /// </summary>
     internal async Task InitializeAsync()
     {
-        string webhookUrl = $"{_options.Host}/telegram/{_options.Token}";
+        //string webhookUrl = $"{_options.Host}/telegram/{_options.Token}";
+        string webhookUrl = $"{_options.Host}/telegram";    // Used while update routing middleware pipeline is in development.
         await this.SetWebhookAsync(webhookUrl,
             allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery, UpdateType.ChatMember },
             dropPendingUpdates: true);
         Logger.LogDebug("Webhook for {Url} is set", webhookUrl);
     }
 
-    internal async Task TryNotifySubscribersAboutImageAsync(
-        InputOnlineFile image,
-        string? caption = null,
-        IReplyMarkup? replyMarkup = null)
+    internal async Task NotifySubscribersAsync(string text, IReplyMarkup? replyMarkup = null)
     {
         foreach (var subscriber in Subscriptions)
-            await TrySendImageAsync(subscriber, image, caption, replyMarkup);
+            await SendMessageAsync_(subscriber, text, replyMarkup: replyMarkup);
     }
 
-    internal async Task TryNotifySubscribersAboutVideoAsync(
-        InputOnlineFile video,
-        InputMedia? thumb = null,
-        string? caption = null,
-        int? width = null,
-        int? height = null,
-        IReplyMarkup? replyMarkup = null)
-    {
-        foreach (var subscriber in Subscriptions)
-            await TrySendVideoAsync(subscriber, video, thumb, caption, width, height, replyMarkup);
-    }
-
-    internal async Task TryNotifySubscribersAsync(string text, IReplyMarkup? replyMarkup = null)
-    {
-        foreach (var subscriber in Subscriptions)
-            await TrySendMessageAsync(subscriber, text, replyMarkup);
-    }
-
-    internal async Task<bool> TrySendImageAsync(
+    internal async Task<Message> SendImageAsync_(
         ChatId chatId,
         InputOnlineFile image,
         string? caption = null,
-        IReplyMarkup? replyMarkup = null)
-    {
-        try
-        {
-            await this.SendPhotoAsync(
-                chatId,
-                image,
-                caption: caption?.Sanitize(),
-                replyMarkup: replyMarkup,
-                parseMode: ParseMode.MarkdownV2);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Following image couldn't be sent to {Chat}:\n\n{Image}", chatId, image);
-        }
-        return false;
-    }
+        IReplyMarkup? replyMarkup = null,
+        bool? disableNotification = null,
+        bool? protectContent = null,
+        CancellationToken cancellationToken = default) => await this.SendPhotoAsync(
+            chatId,
+            image,
+            caption?.Sanitize(),
+            ParseMode.MarkdownV2,
+            default,
+            disableNotification,
+            protectContent,
+            replyMarkup: replyMarkup,
+            cancellationToken: cancellationToken);
 
-    internal async Task<bool> TrySendVideoAsync(
+    internal async Task<Message> SendVideoAsync_(
         ChatId chatId,
         InputOnlineFile video,
-        InputMedia? thumb = null,
-        string? caption = null,
+        IReplyMarkup? replyMarkup = null,
+        int? duration = null,
         int? width = null,
         int? height = null,
-        IReplyMarkup? replyMarkup = null)
-    {
-        try
-        {
-            await this.SendVideoAsync(
-                chatId,
-                video,
-                thumb: thumb,
-                caption: caption?.Sanitize(),
-                width: width,
-                height: height,
-                supportsStreaming: true,
-                replyMarkup: replyMarkup,
-                parseMode: ParseMode.MarkdownV2);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Following video couldn't be sent to {Chat}:\n{Video}\n{Thumbnail}",
-                chatId, video, thumb);
-        }
-        return false;
-    }
+        InputMedia? thumb = default,
+        string? caption = null,
+        bool? supportsStreaming = default,
+        bool? disableNotification = default,
+        bool? protectContent = default,
+        CancellationToken cancellationToken = default) => await this.SendVideoAsync(
+            chatId,
+            video,
+            duration,
+            width,
+            height,
+            thumb,
+            caption?.Sanitize(),
+            ParseMode.MarkdownV2,
+            null,
+            supportsStreaming,
+            disableNotification,
+            protectContent,
+            replyMarkup: replyMarkup,
+            cancellationToken: cancellationToken);
 
-    internal async Task<Message?> TrySendMessageAsync(ChatId chatId, string text, IReplyMarkup? replyMarkup = null) => await
-        (MessagePaginator.MustBeUsedToSend(text) && replyMarkup is null ?
-        _messagePaginator.TrySendPaginatedMessageAsync(this, chatId, text) :
-        TrySendMessageAsyncCore(chatId, text, replyMarkup));
+    internal async Task<Message> SendMessageAsync_(
+        ChatId chatId,
+        string text,
+        IReplyMarkup? replyMarkup = null,
+        bool? disableWebPagePreview = default,
+        bool? disableNotification = default,
+        bool? protectContent = default,
+        CancellationToken cancellationToken = default) => await (MessagePaginator.MustBeUsedToSend(text) && replyMarkup is null ?
+        _messagePaginator.SendPaginatedMessageAsyncUsing(this, chatId, text, disableWebPagePreview, disableNotification, protectContent, cancellationToken) :
+        SendMessageAsyncCore(chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, cancellationToken));
 
-    internal async Task<Message?> TrySendMessageAsyncCore(ChatId chatId, string text, IReplyMarkup? replyMarkup = null)
-    {
-        try
-        {
-            return await this.SendTextMessageAsync(
-                chatId,
-                text.Sanitize(),
-                replyMarkup: replyMarkup,
-                parseMode: ParseMode.MarkdownV2);
-        }
-        catch (Exception ex)
-        { Logger.LogError(ex, "Following message couldn't be sent to {Chat}:\n{Message}", chatId, text); return null; }
-    }
+    internal async Task<Message> SendMessageAsyncCore(
+        ChatId chatId,
+        string text,
+        IReplyMarkup? replyMarkup = null,
+        bool? disableWebPagePreview = default,
+        bool? disableNotification = default,
+        bool? protectContent = default,
+        CancellationToken cancellationToken = default) => await this.SendTextMessageAsync(
+            chatId,
+            text.Sanitize(),
+            ParseMode.MarkdownV2,
+            null,
+            disableWebPagePreview,
+            disableNotification,
+            protectContent,
+            replyMarkup: replyMarkup,
+            cancellationToken: cancellationToken);
 }
 
 public static class TelegramHelperExtensions
@@ -159,7 +143,8 @@ public static class TelegramHelperExtensions
             .Replace("=", @"\=");
     }
 
-    public static StringBuilder AppendHeader(this StringBuilder builder, string header) =>
-        builder.AppendLine(header)
-               .AppendLine(HorizontalDelimeter);
+    public static StringBuilder AppendHeader(this StringBuilder builder, string header)
+        => builder
+        .AppendLine(header)
+        .AppendLine(HorizontalDelimeter);
 }

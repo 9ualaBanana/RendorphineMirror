@@ -8,10 +8,11 @@ global using NodeCommon.Tasks.Model;
 using NLog.Web;
 using Telegram.Bot;
 using Telegram.Middleware.UpdateRouting;
+using Telegram.Models;
 using Telegram.Services.GitHub;
+using Telegram.Tasks;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates;
-using Telegram.Telegram.Updates.Tasks.ResultsPreview.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseDefaultServiceProvider(o => o.ValidateScopes = false);
@@ -31,7 +32,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddTelegramUpdateHandlers();
 
 builder.Services.AddScoped<ChatAuthenticator>().AddDbContext<AuthenticatedUsersDbContext>();
-builder.Services.AddScoped<TaskResultsPreviewer>();
+builder.Services.AddScoped<TaskResultMPlusPreviewService>();
+builder.Services.AddHttpClient<MPlusService>();
 builder.Services.AddScoped<GitHubEventForwarder>();
 
 var app = builder.Build();
@@ -45,7 +47,7 @@ if (app.Environment.IsDevelopment())
 }
 app.MapControllers();
 
-app.UseUpdateRouting();
+//app.UseUpdateRouting();
 app.UseRouting();
 
-app.Run();
+app.Run("https://localhost:7000");

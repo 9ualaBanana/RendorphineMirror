@@ -13,7 +13,7 @@ public static class Api
     public static readonly HttpClient Client = new();
     public static readonly ApiInstance Default = new(Client);
 
-    public static async ValueTask<JToken> GetJsonFromResponseIfSuccessfulAsync(HttpResponseMessage response, string? errorDetails = null)
+    public static async ValueTask<JToken> GetJsonIfSuccessfulAsync(this HttpResponseMessage response, string? errorDetails = null)
     {
         response.EnsureSuccessStatusCode();
 

@@ -6,8 +6,18 @@ public interface ITaskApi
     string? HostShard { get; set; }
 }
 // for use in Telegram or something
-public record ApiTask(string Id) : ITaskApi
+public record ApiTask(string Id, HashSet<IUploadedFileInfo> UploadedFiles) : ITaskApi
 {
+    public ApiTask(string Id) : this(Id, Enumerable.Empty<string>())
+    {
+    }
+
+    public ApiTask(string id, IEnumerable<string> iidsOfUploadedFiles)
+        : this(id, iidsOfUploadedFiles.Select(iid => new MPlusUploadedFileInfo(iid)).Cast<IUploadedFileInfo>().ToHashSet())
+    {
+
+    }
+
     public string? HostShard { get; set; }
 }
 

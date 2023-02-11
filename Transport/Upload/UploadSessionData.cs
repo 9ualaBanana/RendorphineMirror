@@ -36,7 +36,7 @@ public abstract class UploadSessionData
         CancellationToken cancellationToken)
     {
         var httpResponse = await httpClient.PostAsync(Endpoint, HttpContent, cancellationToken).ConfigureAwait(false);
-        var response = await Api.GetJsonFromResponseIfSuccessfulAsync(httpResponse);
+        var response = await Api.GetJsonIfSuccessfulAsync(httpResponse);
         return new(
             this,
             (string)response["fileid"]!,

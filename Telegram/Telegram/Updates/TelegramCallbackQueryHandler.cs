@@ -1,10 +1,9 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.MessagePagination.CallbackQuery;
 using Telegram.Bot.Types;
+using Telegram.Tasks.CallbackQuery;
 using Telegram.Telegram.Updates.Images.Models;
 using Telegram.Telegram.Updates.Images.Services;
-using Telegram.Telegram.Updates.Tasks.Models;
-using Telegram.Telegram.Updates.Tasks.Services;
 
 namespace Telegram.Telegram.Updates;
 

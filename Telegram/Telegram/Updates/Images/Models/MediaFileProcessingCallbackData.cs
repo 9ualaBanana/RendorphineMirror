@@ -2,7 +2,7 @@
 
 public abstract record MediaFileProcessingCallbackData<T> : TelegramCallbackData<T> where T : struct, Enum
 {
-    public string FileRegistryKey => Arguments.First();
+    public string FileCacheKey => Arguments.First();
     internal abstract IContentType ContentType { get; }
 
 

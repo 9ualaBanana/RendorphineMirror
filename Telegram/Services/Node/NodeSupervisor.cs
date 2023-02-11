@@ -31,11 +31,11 @@ public class NodeSupervisor
 
     internal async Task UpdateNodeStatusAsync(MachineInfo nodeInfo)
     {
-        _logger.LogDebug("Updating node status...");
+        _logger.LogTrace("Updating node status...");
 
         await AddOrUpdateNodeAsync(nodeInfo);
 
-        _logger.LogDebug("Node status is updated");
+        _logger.LogTrace("Node status is updated");
     }
 
     async Task AddOrUpdateNodeAsync(MachineInfo nodeInfo)
@@ -58,7 +58,7 @@ public class NodeSupervisor
                 var userChatAuthenticationTokens = _authenticatedUsers.Users.Where(user => user.MPlus.UserId == nodeInfo.UserId);
                 if (userChatAuthenticationTokens.Any())
                     foreach (var chatAuthenticationToken in userChatAuthenticationTokens)
-                        await _bot.TrySendMessageAsync(chatAuthenticationToken.ChatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline!.Version}* *=>* v.*{nodeInfo.Version}*.");
+                        await _bot.SendMessageAsync_(chatAuthenticationToken.ChatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline!.Version}* *=>* v.*{nodeInfo.Version}*.");
             }
         }
         else _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);

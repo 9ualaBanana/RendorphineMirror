@@ -8,10 +8,10 @@ namespace Telegram.Telegram.Updates.Images.Services;
 
 public class TelegramVideoHandler : TelegramUpdateHandler
 {
-    readonly TelegramFileRegistry _fileRegistry;
+    readonly CachedFiles _fileRegistry;
 
 
-    public TelegramVideoHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, TelegramFileRegistry fileRegistry)
+    public TelegramVideoHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, CachedFiles fileRegistry)
         : base(logger, bot)
     {
         _fileRegistry = fileRegistry;
@@ -20,7 +20,7 @@ public class TelegramVideoHandler : TelegramUpdateHandler
 
     public override async Task HandleAsync(Update update)
     {
-        await Bot.TrySendMessageAsync(
+        await Bot.SendMessageAsync_(
             update.Message!.Chat.Id,
             "*Choose how to process the video*",
             replyMarkup: CreateReplyMarkupFor(TelegramMediaFile.From(update.Message)));

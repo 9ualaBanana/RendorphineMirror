@@ -8,19 +8,19 @@ namespace Telegram.Telegram.Updates.Images.Services;
 
 public class TelegramImageHandler : TelegramUpdateHandler
 {
-    readonly TelegramFileRegistry _fileRegistry;
+    readonly CachedFiles _cachedFiles;
 
 
-    public TelegramImageHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, TelegramFileRegistry fileRegistry)
+    public TelegramImageHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, CachedFiles cachedFiles)
         : base(logger, bot)
     {
-        _fileRegistry = fileRegistry;
+        _cachedFiles = cachedFiles;
     }
 
 
     public override async Task HandleAsync(Update update)
     {
-        await Bot.TrySendMessageAsync(
+        await Bot.SendMessageAsync_(
             update.Message!.Chat.Id,
             "*Choose how to process the image*",
             replyMarkup: CreateReplyMarkupForLowResolutionImage(TelegramMediaFile.From(update.Message)));
@@ -34,7 +34,7 @@ public class TelegramImageHandler : TelegramUpdateHandler
 
     InlineKeyboardMarkup CreateReplyMarkupForLowResolutionImage(TelegramMediaFile mediaFile)
     {
-        var key = _fileRegistry.Add(mediaFile);
+        var key = _cachedFiles.Add(mediaFile);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]
@@ -52,7 +52,7 @@ public class TelegramImageHandler : TelegramUpdateHandler
             new InlineKeyboardButton[]
             {
                 InlineKeyboardButton.WithCallbackData(
-                    "Vectorize and upload to M+",
+                    "Vectorize",
                     ImageProcessingCallbackData.Serialize(ImageProcessingQueryFlags.VectorizeImage | ImageProcessingQueryFlags.UploadImage, key))
             }
         });

@@ -96,7 +96,7 @@ internal record UploadSession(
                 $"https://{Host}/content/vcupload/finish",
                 new FormUrlEncodedContent(new Dictionary<string, string>() { ["fileid"] = FileId })
                 ).ConfigureAwait(false);
-            _iid = (string)(await Api.GetJsonFromResponseIfSuccessfulAsync(response))["iid"]!;
+            _iid = (string)(await Api.GetJsonIfSuccessfulAsync(response))["iid"]!;
 
             _logger.Debug("Upload session is successfully finalized");
         }

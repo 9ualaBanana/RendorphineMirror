@@ -31,6 +31,6 @@ public class AdminOnlineCommand : AdminAuthenticatedCommand
 
         var message = Logic.BuildMessage(nodesOnline, nodesOffline);
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message);
+        await Bot.SendMessageAsync_(update.Message!.Chat.Id, message);
     }
 }

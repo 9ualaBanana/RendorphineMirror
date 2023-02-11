@@ -35,7 +35,7 @@ public class DeployCommand : AuthenticatedCommand
         var userSettingsManager = new UserSettingsManager(_httpClient);
         var userSettings = await userSettingsManager.TryFetchAsync(authenticationToken.MPlus.SessionId);
         if (userSettings is null)
-        { await Bot.TrySendMessageAsync(update.Message.Chat.Id, "Plugins couldn't be deployed."); return; }
+        { await Bot.SendMessageAsync_(update.Message.Chat.Id, "Plugins couldn't be deployed."); return; }
 
         PopulateWithChildPlugins(plugins, pluginTypes);
 
@@ -49,16 +49,16 @@ public class DeployCommand : AuthenticatedCommand
                 var nodeSettings = new UserSettings(node.Guid) { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware };
                 nodeSettings.ThisNodeInstallSoftware.UnionEachWith(plugins);
                 if (!await userSettingsManager.TrySetAsync(nodeSettings, authenticationToken.MPlus.SessionId))
-                { await Bot.TrySendMessageAsync(update.Message.Chat.Id, "Plugins couldn't be deployed."); return; }
+                { await Bot.SendMessageAsync_(update.Message.Chat.Id, "Plugins couldn't be deployed."); return; }
             }
         }
         else
         {
             userSettings.InstallSoftware.UnionEachWith(plugins);
             if (!await userSettingsManager.TrySetAsync(new UserSettings() { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware }, authenticationToken.MPlus.SessionId))
-            { await Bot.TrySendMessageAsync(update.Message.Chat.Id, "Plugins couldn't be deployed."); return; }
+            { await Bot.SendMessageAsync_(update.Message.Chat.Id, "Plugins couldn't be deployed."); return; }
         }
-        await Bot.TrySendMessageAsync(update.Message.Chat.Id, "Plugins successfully added to the deploy queue.");
+        await Bot.SendMessageAsync_(update.Message.Chat.Id, "Plugins successfully added to the deploy queue.");
     }
 
     static void PopulateWithChildPlugins(IEnumerable<PluginToDeploy> plugins, IEnumerable<PluginType> pluginTypes)
