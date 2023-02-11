@@ -69,7 +69,8 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
     static async Task NotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        var iids = string.Join('&', task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(fileInfo => $"iids={fileInfo.Iid}"));
+        var uploaded = task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Where(f => f.FileName.EndsWith(".g.jpg", StringComparison.Ordinal));
+        var iids = string.Join('&', uploaded.Select(fileInfo => $"iids={fileInfo.Iid}"));
         var queryString = $"taskId={task.Id}&shardHost={task.HostShard}&{iids}&taskExecutor={Settings.NodeName}";
         try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to reepo: " + ex); }
