@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
-using Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
+using Telegram.Tasks;
 
 namespace Telegram.Models;
 
 public class MPlusService
 {
     readonly HttpClient _httpClient;
+    readonly static Uri _taskManagerEndpoint = new(Api.TaskManagerEndpoint+'/');
 
     readonly ILogger<MPlusService> _logger;
 
@@ -18,8 +19,8 @@ public class MPlusService
 
     internal async Task<MPlusFileInfo> RequestFileInfoAsync(string sessionId, string iid, CancellationToken cancellationToken)
     {
-        var endpoint = new Uri(new Uri(Api.TaskManagerEndpoint), "getmympitem").ToString();
-        var requestUrl = QueryHelpers.AddQueryString(endpoint, new Dictionary<string, string?> { { "sessionId", sessionId }, { "iid", iid } });
+        string endpoint = new Uri(_taskManagerEndpoint, "getmympitem").ToString();
+        string requestUrl = QueryHelpers.AddQueryString(endpoint, new Dictionary<string, string?> { { "sessionid", sessionId }, { "iid", iid } });
 
         return await RequestFileInfoAsyncCore(cancellationToken);
 
@@ -27,16 +28,20 @@ public class MPlusService
         async Task<MPlusFileInfo> RequestFileInfoAsyncCore(CancellationToken cancellationToken)
         {
             int attemptsLeft = 3;
-            JToken mPlusFileInfo;
+            JToken mPlusFileInfoJson;
             while (attemptsLeft > 0)
             {
-                mPlusFileInfo = (await (await _httpClient.GetAsync(requestUrl, cancellationToken)).GetJsonIfSuccessfulAsync())["item"]!;
-                if ((string)mPlusFileInfo["state"]! == "received")
-                    return MPlusFileInfo.From(mPlusFileInfo);
+                mPlusFileInfoJson = (await (await _httpClient.GetAsync(requestUrl, cancellationToken)).GetJsonIfSuccessfulAsync())["item"]!;
+                if ((string)mPlusFileInfoJson["state"]! == "received")
+                {
+                    var mPlusFileInfo = MPlusFileInfo.From(mPlusFileInfoJson);
+                    _logger.LogTrace("IID {Iid}: {MPlusFileInfo} is received", mPlusFileInfo.Iid, nameof(MPlusFileInfo));
+                    return mPlusFileInfo;
+                }
                 else Thread.Sleep(TimeSpan.FromSeconds(3));
             }
 
-            var exception = new Exception("Couldn't request {FileInfo} for the file with IID {Iid}.");
+            var exception = new Exception($"IID {iid}: {nameof(MPlusFileInfo)} request failed.");
             _logger.LogError(exception, message: default);
             throw exception;
         }

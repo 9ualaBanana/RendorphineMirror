@@ -31,11 +31,11 @@ public class NodeSupervisor
 
     internal async Task UpdateNodeStatusAsync(MachineInfo nodeInfo)
     {
-        _logger.LogDebug("Updating node status...");
+        _logger.LogTrace("Updating node status...");
 
         await AddOrUpdateNodeAsync(nodeInfo);
 
-        _logger.LogDebug("Node status is updated");
+        _logger.LogTrace("Node status is updated");
     }
 
     async Task AddOrUpdateNodeAsync(MachineInfo nodeInfo)

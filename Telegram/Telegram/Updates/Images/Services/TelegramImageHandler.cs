@@ -8,13 +8,13 @@ namespace Telegram.Telegram.Updates.Images.Services;
 
 public class TelegramImageHandler : TelegramUpdateHandler
 {
-    readonly TelegramFileRegistry _fileRegistry;
+    readonly CachedFiles _cachedFiles;
 
 
-    public TelegramImageHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, TelegramFileRegistry fileRegistry)
+    public TelegramImageHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, CachedFiles cachedFiles)
         : base(logger, bot)
     {
-        _fileRegistry = fileRegistry;
+        _cachedFiles = cachedFiles;
     }
 
 
@@ -34,7 +34,7 @@ public class TelegramImageHandler : TelegramUpdateHandler
 
     InlineKeyboardMarkup CreateReplyMarkupForLowResolutionImage(TelegramMediaFile mediaFile)
     {
-        var key = _fileRegistry.Add(mediaFile);
+        var key = _cachedFiles.Add(mediaFile);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]

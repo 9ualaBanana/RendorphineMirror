@@ -4,10 +4,10 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates.Images.Models;
-using Telegram.Telegram.Updates.Tasks.Models;
-using Telegram.Telegram.Updates.Tasks.Services;
 using Telegram.Telegram.FileRegistry;
 using Telegram.Bot;
+using Telegram.Tasks;
+using Telegram.Tasks.CallbackQuery;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
@@ -21,7 +21,7 @@ public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHa
         TelegramBot bot,
         ChatAuthenticator authenticator,
         RegisteredTasksCache tasksRegistry,
-        TelegramFileRegistry fileRegistry,
+        CachedFiles fileRegistry,
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory)
         : base(logger, bot, authenticator, fileRegistry, httpClientFactory)
@@ -50,15 +50,15 @@ public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHa
                 PluginType.VeeeVectorizer,
                 "VeeeVectorize",
                 default,
-                new DownloadLinkTaskInputInfo($"{_hostUrl}/tasks/getinput/{vectorizerCallbackData.FileRegistryKey}"),
-                new MPlusTaskOutputInfo($"{vectorizerCallbackData.FileRegistryKey}", "vectorized"),
+                new DownloadLinkTaskInputInfo($"{_hostUrl}/tasks/getinput/{vectorizerCallbackData.FileCacheKey}"),
+                new MPlusTaskOutputInfo($"{vectorizerCallbackData.FileCacheKey}", "vectorized"),
                 JObject.FromObject(new VeeeVectorizeInfo() { Lods = new int[] { 500 } })),
             authenticationToken.MPlus.SessionId))
             .Result;
         _registeredTasksCache[taskId] = authenticationToken;
 
         await Bot.SendMessageAsync_(chatId, "Resulting media file will be sent back to you as soon as it's ready.",
-            replyMarkup: new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
+            replyMarkup: new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskCallbackQueryFlags.Details, taskId)))
             );
     }
 }

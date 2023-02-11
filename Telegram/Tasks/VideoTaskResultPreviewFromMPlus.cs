@@ -1,6 +1,7 @@
-﻿namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
+﻿namespace Telegram.Tasks;
 
-internal record VideoTaskResultPreview : TaskResultPreview
+/// <inheritdoc cref="TaskResultPreviewFromMPlus"/>
+internal record VideoTaskResultPreviewFromMPlus : TaskResultPreviewFromMPlus
 {
     internal int Width;
     internal int Height;
@@ -12,7 +13,7 @@ internal record VideoTaskResultPreview : TaskResultPreview
     internal string WebmUrl;
 
 
-    internal VideoTaskResultPreview(MPlusFileInfo mPlusFileInfo, string taskExecutor, Uri downloadLink)
+    internal VideoTaskResultPreviewFromMPlus(MPlusFileInfo mPlusFileInfo, string taskExecutor, Uri downloadLink)
         : base(mPlusFileInfo, taskExecutor, downloadLink)
     {
         var videoInfo = mPlusFileInfo["videopreview"]!;

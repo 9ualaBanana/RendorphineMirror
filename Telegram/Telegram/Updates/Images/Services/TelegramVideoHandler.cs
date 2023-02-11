@@ -8,10 +8,10 @@ namespace Telegram.Telegram.Updates.Images.Services;
 
 public class TelegramVideoHandler : TelegramUpdateHandler
 {
-    readonly TelegramFileRegistry _fileRegistry;
+    readonly CachedFiles _fileRegistry;
 
 
-    public TelegramVideoHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, TelegramFileRegistry fileRegistry)
+    public TelegramVideoHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, CachedFiles fileRegistry)
         : base(logger, bot)
     {
         _fileRegistry = fileRegistry;

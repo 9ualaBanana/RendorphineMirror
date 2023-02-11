@@ -1,6 +1,6 @@
 ﻿using Telegram.Telegram.Authentication.Models;
 
-namespace Telegram.Telegram.Updates.Tasks.Services;
+namespace Telegram.Tasks;
 
 public class RegisteredTasksCache : Dictionary<string, ChatAuthenticationToken>
 {

@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 
-namespace Telegram.Telegram.Updates.Tasks.ResultsPreview.Models;
+namespace Telegram.Tasks;
 
 /// <summary>
 /// Represents info for a file stored on M+.

@@ -3,9 +3,9 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
-using Telegram.Telegram.Updates.Tasks.Models;
+using Telegram.Telegram.Updates;
 
-namespace Telegram.Telegram.Updates.Tasks.Services;
+namespace Telegram.Tasks.CallbackQuery;
 
 public class TaskCallbackQueryHandler : AuthenticatedTelegramCallbackQueryHandlerBase
 {
@@ -21,30 +21,30 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramCallbackQueryHandle
     {
         var taskCallbackData = new TaskCallbackData(CallbackDataFrom(update));
 
-        if (taskCallbackData.Value.HasFlag(TaskQueryFlags.Details))
+        if (taskCallbackData.Value.HasFlag(TaskCallbackQueryFlags.Details))
             await ShowDetailsAsync(ChatIdFrom(update), taskCallbackData, authenticationToken);
     }
 
     async Task ShowDetailsAsync(ChatId chatId, TaskCallbackData taskCallbackData, ChatAuthenticationToken authenticationToken)
     {
         var api = Apis.Default.WithSessionId(authenticationToken.MPlus.SessionId);
-        string shardHost = await api.GetTaskShardAsync(taskCallbackData.TaskId).ThrowIfError();
-        var taskState = await api.GetTaskStateAsyncOrThrow(new ApiTask(taskCallbackData.TaskId) { HostShard = shardHost });
-        if (taskState)
+        try
         {
+            string shardHost = await api.GetTaskShardAsync(taskCallbackData.TaskId).ThrowIfError();
+            var taskState = await api.GetTaskStateAsyncOrThrow(new ApiTask(taskCallbackData.TaskId) { HostShard = shardHost }).ThrowIfError();
+
             var messageBuilder = new StringBuilder()
-                .AppendLine($"TaskID: *{taskCallbackData.TaskId}*")
-                .AppendLine($"State: *{taskState.Result.State}*")
-                .AppendLine($"Progress: *{taskState.Result.Progress}*");
-            if (taskState.Result.Times.Exist)
+                .AppendLine($"*Task ID*: `{taskCallbackData.TaskId}`")
+                .AppendLine($"*State*: `{taskState.State}`")
+                .AppendLine($"*Progress*: `{taskState.Progress}`");
+            if (taskState.Times.Exist)
             {
-                messageBuilder.AppendLine($"Duration: *{taskState.Result.Times.Total}*");
-                messageBuilder.AppendLine($"Server: *{taskState.Result.Server}*");
+                messageBuilder.AppendLine($"*Duration*: `{taskState.Times.Total}`");
+                messageBuilder.AppendLine($"*Server*: `{taskState.Server}`");
             }
 
             await Bot.SendMessageAsync_(chatId, messageBuilder.ToString());
         }
-        else
-            await Bot.SendMessageAsync_(chatId, "Couldn't get task details.");
+        catch { await Bot.SendMessageAsync_(chatId, "Task details are unavailable."); }
     }
 }

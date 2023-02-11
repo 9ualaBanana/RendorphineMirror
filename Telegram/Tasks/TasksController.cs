@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Telegram.Telegram.FileRegistry;
+using Telegram.Telegram.Updates.Images.Models;
 
-namespace Telegram.Telegram.Updates.Tasks.Controllers;
+namespace Telegram.Tasks;
 
 [ApiController]
 [Route("tasks")]
@@ -13,7 +14,7 @@ public class TasksController : ControllerBase
         [FromQuery] string shardHost,
         [FromQuery] string[] iids,
         [FromQuery] string taskExecutor,
-        [FromServices] TaskResultPreviewService taskResultPreviewService,
+        [FromServices] TaskResultMPlusPreviewService taskResultPreviewService,
         CancellationToken cancellationToken)
     {
         var taskApi = new ApiTask(taskId, iids) { HostShard = shardHost };
@@ -21,14 +22,16 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet("getinput/{id}")]
-    public ActionResult GetInput([FromRoute] string id, [FromServices] TelegramFileRegistry fileRegistry, [FromServices] IWebHostEnvironment environment)
+    public ActionResult GetInput([FromRoute] string id, [FromServices] CachedFiles cachedFiles, [FromServices] IWebHostEnvironment environment)
     {
-        var file = fileRegistry.TryGet(id);
-        if (file is null) return NotFound();
+        if (cachedFiles[id] is TelegramMediaFile file)
+        {
+            var fileName = Path.ChangeExtension(Path.Combine(environment.ContentRootPath, cachedFiles.Location, id), file.Extension);
 
-        var fileName = Path.ChangeExtension(Path.Combine(environment.ContentRootPath, fileRegistry.Path, id), file.Extension);
-
-        try { return PhysicalFile(fileName, MimeTypes.GetMimeType(file.Extension)); }
-        catch { return NotFound(); }
+            try { return PhysicalFile(fileName, MimeTypes.GetMimeType(file.Extension)); }
+            catch { }
+        }
+        
+        return NotFound();
     }
 }

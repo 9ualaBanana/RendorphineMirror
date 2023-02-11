@@ -1,4 +1,4 @@
-﻿namespace Telegram.Telegram.Updates.Tasks;
+﻿namespace Telegram.Tasks;
 
 internal enum MPlusFileType
 {

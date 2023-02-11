@@ -1,6 +1,7 @@
-﻿using Telegram.Telegram.FileRegistry;
+﻿using Telegram.Tasks;
+using Telegram.Tasks.CallbackQuery;
+using Telegram.Telegram.FileRegistry;
 using Telegram.Telegram.Updates.Images.Services;
-using Telegram.Telegram.Updates.Tasks.Services;
 
 namespace Telegram.Telegram.Updates.Images;
 
@@ -14,6 +15,6 @@ public static class MediaFileProcessingExtensions
             .AddScoped<VectorizerCallbackQueryHandler>()
             .AddScoped<VideoProcessingCallbackQueryHandler>()
             .AddSingleton<RegisteredTasksCache>()
-            .AddSingleton<TelegramFileRegistry>()
+            .AddSingleton<CachedFiles>()
             .AddScoped<TaskCallbackQueryHandler>();
 }
