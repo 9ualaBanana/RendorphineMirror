@@ -47,7 +47,7 @@ public static class GenerateQSPreviewTasks
                 // rotate watermark -20 deg
                 graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih), format= rgba";
 
-                var argholder = new FFMpegArgsHolder(null);
+                var argholder = new FFMpegArgsHolder(FileFormat.Jpeg, null);
                 argholder.Filtergraph.Add(graph);
 
                 var ffargs = FFMpegExec.GetFFMpegArgs(watermarkFile, repeatedWatermarkFile, task, false, argholder);
