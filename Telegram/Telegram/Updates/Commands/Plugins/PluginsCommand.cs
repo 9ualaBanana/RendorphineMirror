@@ -32,6 +32,6 @@ public class PluginsCommand : AuthenticatedCommand
 
         var message = Logic.ListInstalledPluginsFor(nodeNamesWhosePluginsToShow, userNodesSupervisor).ToString();
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, message);
+        await Bot.SendMessageAsync_(update.Message!.Chat.Id, message);
     }
 }

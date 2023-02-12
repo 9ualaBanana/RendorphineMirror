@@ -13,7 +13,7 @@ public class VideoProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
         ILogger<VideoProcessingCallbackQueryHandler> logger,
         TelegramBot bot,
         ChatAuthenticator authenticator,
-        TelegramFileRegistry fileRegistry,
+        CachedFiles fileRegistry,
         IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator, fileRegistry, httpClientFactory)
     {
     }

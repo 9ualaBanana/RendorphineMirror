@@ -97,7 +97,7 @@ public abstract class ListenerBase
             if (CachedAuthentications.TryGetValue(sid, out var cached))
                 return cached;
 
-            var nodes = await Apis.GetMyNodesAsync(sid).ConfigureAwait(false);
+            var nodes = await Apis.Default.WithSessionId(sid).GetMyNodesAsync().ConfigureAwait(false);
             if (!nodes) return false;
 
             var theiruserid = nodes.Result.Select(x => x.UserId).FirstOrDefault();
@@ -122,9 +122,6 @@ public abstract class ListenerBase
         return path;
     }
 
-
-    protected static JsonSerializerSettings JsonSettingsWithTypes => LocalApi.JsonSettingsWithType;
-    protected static JsonSerializer JsonSerializerWithTypes => LocalApi.JsonSerializerWithType;
 
     protected void LogRequest(HttpListenerRequest request) => _logger.Trace(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
     protected static Task<HttpStatusCode> WriteSuccess(HttpListenerResponse response) => _Write(response, JsonApi.Success());

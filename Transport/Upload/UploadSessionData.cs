@@ -1,5 +1,6 @@
 ﻿using Common;
-using Common.Tasks;
+using NodeCommon;
+using NodeCommon.Tasks;
 using Transport.Models;
 
 namespace Transport.Upload;
@@ -35,7 +36,7 @@ public abstract class UploadSessionData
         CancellationToken cancellationToken)
     {
         var httpResponse = await httpClient.PostAsync(Endpoint, HttpContent, cancellationToken).ConfigureAwait(false);
-        var response = await Api.GetJsonFromResponseIfSuccessfulAsync(httpResponse);
+        var response = await Api.GetJsonIfSuccessfulAsync(httpResponse);
         return new(
             this,
             (string)response["fileid"]!,
@@ -125,7 +126,8 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
         HttpClient httpClient,
         string? sessionId = default)
     {
-        await httpClient.UpdateTaskShardAsync(taskApi, sessionId);
+        var api = Apis.Default with { SessionId = sessionId ?? Settings.SessionId, Api = Api.Default with { Client = httpClient } };
+        await api.WithSessionId(sessionId ?? Settings.SessionId).UpdateTaskShardAsync(taskApi);
         return new(file, postfix, taskApi);
     }
 
@@ -147,7 +149,8 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
         HttpClient httpClient,
         CancellationToken cancellationToken)
     {
-        var requestedUploadSessionData = (await httpClient.ShardPost<RequestedUploadSessionData>(
+        var api = Apis.Default with { Api = Api.Default with { Client = httpClient } };
+        var requestedUploadSessionData = (await api.ShardPost<RequestedUploadSessionData>(
             _taskApi,
             Endpoint.Segments.Last(),
             property: null,

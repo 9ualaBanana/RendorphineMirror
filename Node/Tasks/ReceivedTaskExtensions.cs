@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks;
 
@@ -50,22 +51,28 @@ public static class ReceivedTaskExtensions
     }
 
 
-    public static async ValueTask<OperationResult> UpdateTaskStateAsync(this DbTaskFullState task, string? sessionId = default)
+    public static bool IsFromSameNode(this TaskBase task) => NodeSettings.QueuedTasks.ContainsKey(task.Id) && NodeSettings.PlacedTasks.ContainsKey(task.Id);
+    public static void Populate(this DbTaskFullState task, Apis.ITaskStateInfo info)
     {
-        var stater = await task.GetTaskStateAsync(sessionId);
-        if (stater)
-        {
-            var state = stater.Value;
-            if (task.State != state.State)
-                task.LogInfo($"Placed task state changed to {state.State}");
+        if (info is Apis.TMTaskStateInfo tsi) task.Populate(tsi);
+        if (info is Apis.TMOldTaskStateInfo osi) task.Populate(osi);
+        if (info is Apis.ServerTaskState sts) task.Populate(sts);
+    }
+    public static void Populate(this DbTaskFullState task, Apis.TMTaskStateInfo info) => task.Progress = info.Progress;
+    public static void Populate(this DbTaskFullState task, Apis.TMOldTaskStateInfo info)
+    {
+        task.State = info.State;
+        if (info.Output is not null)
+            JsonSettings.Default.Populate(JObject.FromObject(info.Output).CreateReader(), task.Output);
+    }
+    public static void Populate(this DbTaskFullState task, Apis.ServerTaskState info)
+    {
+        task.State = info.State;
+        task.Progress = info.Progress;
+        task.Times = info.Times;
+        // task.Server = info.Server;
 
-            task.State = state.State;
-            task.Progress = state.Progress;
-            task.Server = state.Server;
-            task.Times = state.Times;
-            JsonSettings.Default.Populate(state.Output.CreateReader(), task.Output);
-        }
-
-        return stater.GetResult();
+        if (info.Output is not null)
+            JsonSettings.Default.Populate(JObject.FromObject(info.Output).CreateReader(), task.Output);
     }
 }

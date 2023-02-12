@@ -17,7 +17,7 @@ public class UserNodes : ConcurrentDictionary<string, NodeSupervisor>
         if (TryGetValue(authentictationToken.MPlus.UserId, out userNodeSupervisor)) return true;
         else
         {
-            _ = bot.TrySendMessageAsync(chatId, "No nodes owned by the current user were detected so far.");
+            _ = bot.SendMessageAsync_(chatId, "No nodes owned by the current user were detected so far.");
             return false;
         }
     }

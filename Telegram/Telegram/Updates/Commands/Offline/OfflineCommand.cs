@@ -33,6 +33,6 @@ public class OfflineCommand : AuthenticatedCommand
 
         messageBuilder.AppendLine(Logic.ListOfflineNodes(userNodesSupervisor).ToString());
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, messageBuilder.ToString());
+        await Bot.SendMessageAsync_(update.Message!.Chat.Id, messageBuilder.ToString());
     }
 }

@@ -13,16 +13,23 @@ public class MessagePaginator
         _chunkedMessagesAutoStorage = chunkedMessagesAutoStorage;
     }
 
-    internal async Task<Message?> TrySendPaginatedMessageAsync(TelegramBot bot, ChatId chatId, string text)
+    internal static bool MustBeUsedToSend(string text) => text.Length > MessageLengthLimit;
+
+    internal async Task<Message> SendPaginatedMessageAsyncUsing(
+        TelegramBot bot,
+        ChatId chatId,
+        string text,
+        bool? disableWebPagePreview = default,
+        bool? disableNotification = default,
+        bool? protectContent = default,
+        CancellationToken cancellationToken = default)
     {
         var chunkedText = new ChunkedText(text);
         var messagePaginatorControlButtons = MessagePaginatorControlButtons.For(chunkedText);
 
-        var message = (await bot.TrySendMessageAsyncCore(chatId, chunkedText.NextChunk, messagePaginatorControlButtons))!;
-        if (message is not null && chunkedText.IsChunked)
+        var message = await bot.SendMessageAsyncCore(chatId, chunkedText.NextChunk, messagePaginatorControlButtons, disableWebPagePreview, disableNotification, protectContent, cancellationToken);
+        if (chunkedText.IsChunked)
             _chunkedMessagesAutoStorage.Add(new(message, chunkedText));
         return message;
     }
-
-    internal static bool MustBeUsedToSend(string text) => text.Length > MessageLengthLimit;
 }

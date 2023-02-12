@@ -47,7 +47,7 @@ public class MPlusAuthenticationViaTelegramChatHandler : AuthenticationHandler<A
 
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        await _bot.TrySendMessageAsync(_updateContextCache.Retrieve().Update.ChatId(), "You must be logged in.");
+        await _bot.SendMessageAsync_(_updateContextCache.Retrieve().Update.ChatId(), "You must be logged in.");
     }
 }
 

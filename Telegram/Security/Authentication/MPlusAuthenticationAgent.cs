@@ -19,6 +19,6 @@ public class MPlusAuthenticationAgent
             ["guid"] = Guid.NewGuid().ToString()
         });
         var response = await _httpClient.PostAsync("login", credentialsForm);
-        return (await response.GetJsonFromResponseIfSuccessfulAsync()).ToObject<MPlusIdentity>();
+        return (await response.GetJsonIfSuccessfulAsync()).ToObject<MPlusIdentity>();
     }
 }

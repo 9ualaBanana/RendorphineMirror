@@ -32,6 +32,6 @@ public class AdminOfflineCommand : AdminAuthenticatedCommand
         foreach (var theUserNodes in _userNodes)
             messageBuilder.AppendLine(Logic.ListOfflineNodes(theUserNodes.Value).ToString());
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, messageBuilder.ToString());
+        await Bot.SendMessageAsync_(update.Message!.Chat.Id, messageBuilder.ToString());
     }
 }

@@ -1,38 +1,33 @@
-﻿using Common.Plugins;
-using Common.Tasks.Info;
-using Common.Tasks.Model;
-using Common.Tasks;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates.Images.Models;
-using Telegram.Telegram.Updates.Tasks.Models;
-using Telegram.Telegram.Updates.Tasks.Services;
 using Telegram.Telegram.FileRegistry;
 using Telegram.Bot;
-using Microsoft.Extensions.Options;
+using Telegram.Tasks;
+using Telegram.Tasks.CallbackQuery;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
 public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHandler
 {
-    readonly TaskRegistry _taskRegistry;
+    readonly RegisteredTasksCache _registeredTasksCache;
     readonly string _hostUrl;
 
     public VectorizerCallbackQueryHandler(
         ILogger<VectorizerCallbackQueryHandler> logger,
         TelegramBot bot,
         ChatAuthenticator authenticator,
-        TaskRegistry taskRegistry,
-        TelegramFileRegistry fileRegistry,
-        IOptions<TelegramBotOptions> options,
+        RegisteredTasksCache tasksRegistry,
+        CachedFiles fileRegistry,
+        IConfiguration configuration,
         IHttpClientFactory httpClientFactory)
         : base(logger, bot, authenticator, fileRegistry, httpClientFactory)
     {
-        _taskRegistry = taskRegistry;
-        _hostUrl = options.Value.Host;
+        _registeredTasksCache = tasksRegistry;
+        _hostUrl = configuration["Host"];
     }
 
     protected override async Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken) =>
@@ -55,15 +50,15 @@ public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHa
                 PluginType.VeeeVectorizer,
                 "VeeeVectorize",
                 default,
-                new DownloadLinkTaskInputInfo($"{_hostUrl}/tasks/getinput/{vectorizerCallbackData.FileRegistryKey}"),
-                new MPlusTaskOutputInfo($"{vectorizerCallbackData.FileRegistryKey}", "vectorized", 3_600_000),
-                JObject.FromObject(new VeeeVectorizeInfo() { Lods = new int[] { vectorizerCallbackData.Polygonality } })),
+                new DownloadLinkTaskInputInfo($"{_hostUrl}/tasks/getinput/{vectorizerCallbackData.FileCacheKey}"),
+                new MPlusTaskOutputInfo($"{vectorizerCallbackData.FileCacheKey}", "vectorized"),
+                JObject.FromObject(new VeeeVectorizeInfo() { Lods = new int[] { 500 } })),
             authenticationToken.MPlus.SessionId))
             .Result;
-        _taskRegistry[taskId] = authenticationToken;
+        _registeredTasksCache[taskId] = authenticationToken;
 
-        await Bot.TrySendMessageAsync(chatId, "Resulting media file will be sent back to you as soon as it's ready.",
-            new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskQueryFlags.Details, taskId)))
+        await Bot.SendMessageAsync_(chatId, "Resulting media file will be sent back to you as soon as it's ready.",
+            replyMarkup: new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Progress", TaskCallbackData.Serialize(TaskCallbackQueryFlags.Details, taskId)))
             );
     }
 }

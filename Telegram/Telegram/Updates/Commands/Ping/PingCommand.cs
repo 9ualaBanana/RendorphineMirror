@@ -33,6 +33,6 @@ public class PingCommand : AuthenticatedCommand
         var nodeNames = update.Message!.Text!.QuotedArguments().Select(nodeName => nodeName.CaseInsensitive()).ToHashSet();
         messageBuilder.AppendLine(Logic.ListOnlineNodes(userNodesSupervisor, nodeNames).ToString());
 
-        await Bot.TrySendMessageAsync(update.Message!.Chat.Id, messageBuilder.ToString());
+        await Bot.SendMessageAsync_(update.Message!.Chat.Id, messageBuilder.ToString());
     }
 }

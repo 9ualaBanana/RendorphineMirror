@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\aws-signature-version-4\src\AwsSignatureVersion4.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
     <ProjectReference Include="..\Machine\Machine.csproj" />
     <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
   </ItemGroup>
