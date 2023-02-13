@@ -10,12 +10,12 @@ namespace Telegram.Security.Authentication;
 public class MPlusAuthenticationViaTelegramChatHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     readonly TelegramBot _bot;
-    readonly MPlusAuthenticationAgent _mPlusAuthenticationAgent;
+    readonly MPlusAuthenticationClient _mPlusAuthenticationClient;
     readonly UpdateContextCache _updateContextCache;
 
     public MPlusAuthenticationViaTelegramChatHandler(
         TelegramBot bot,
-        MPlusAuthenticationAgent mPlusAuthenticationAgent,
+        MPlusAuthenticationClient mPlusAuthenticationClient,
         UpdateContextCache updateContextCache,
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
@@ -23,7 +23,7 @@ public class MPlusAuthenticationViaTelegramChatHandler : AuthenticationHandler<A
         ISystemClock clock) : base(options, logger, encoder, clock)
     {
         _bot = bot;
-        _mPlusAuthenticationAgent = mPlusAuthenticationAgent;
+        _mPlusAuthenticationClient = mPlusAuthenticationClient;
         _updateContextCache = updateContextCache;
     }
 
@@ -33,7 +33,7 @@ public class MPlusAuthenticationViaTelegramChatHandler : AuthenticationHandler<A
         // Include authentication when /login command is invoked.
         if (CredentialsFromChat.TryParse(updateContext.Update.Message, out var credentialsFromChat))
         {
-            if (await _mPlusAuthenticationAgent.TryLogInAsyncUsing(credentialsFromChat) is MPlusIdentity mPlusIdentity)
+            if (await _mPlusAuthenticationClient.TryLogInAsyncUsing(credentialsFromChat) is MPlusIdentity mPlusIdentity)
             {
                 updateContext.User.AddIdentity(mPlusIdentity.ToClaimsIdentity());
                 return AuthenticateResult.Success(new(updateContext.User, MPlusAuthenticationViaTelegramChatDefaults.AuthenticationScheme));

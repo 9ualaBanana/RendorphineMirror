@@ -30,7 +30,7 @@ public class UpdateContextCache
     /// Following call attempts will result in an exception.
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown when this method is called more than once per request.</exception>
-    internal void Cache(UpdateContext updateContext) => _httpContextAccessor.HttpContext?.Items.Add(CacheKey, updateContext);
+    internal void Cache(UpdateContext updateContext) => _httpContextAccessor.HttpContext?.Items.Add(_CacheKey, updateContext);
 
     /// <summary>
     /// Retrieves <see cref="UpdateContext"/> instance that is cached inside <see cref="HttpContext.Items"/>.
@@ -41,17 +41,17 @@ public class UpdateContextCache
     /// <exception cref="InvalidOperationException"/>
     internal UpdateContext Retrieve()
     {
-        if (HttpContext.Items[CacheKey] is UpdateContext updateContext)
+        if (HttpContext.Items[_CacheKey] is UpdateContext updateContext)
             return updateContext;
         else
         {
-            const string errorMessage = $"{nameof(Cache)} {nameof(UpdateContext)} before attempting to {nameof(Retrieve)} it";
+            const string errorMessage = $"{nameof(Cache)} {nameof(UpdateContext)} before attempting to {nameof(Retrieve)} it.";
             _logger.LogCritical(errorMessage);
             throw new InvalidOperationException($"{errorMessage}.");
         }
     }
 
-    static readonly object CacheKey = new();
+    static readonly object _CacheKey = new();
 
     HttpContext HttpContext
     {
@@ -60,7 +60,7 @@ public class UpdateContextCache
             if (_httpContextAccessor.HttpContext is HttpContext httpContext) return httpContext;
             else
             {
-                const string errorMessage = $"{nameof(HttpContext)} instance is inaccessible from the current context";
+                const string errorMessage = $"{nameof(HttpContext)} instance is inaccessible from the current context.";
                 var exception = new MemberAccessException(errorMessage);
                 _logger.LogCritical(exception, message: default);
                 throw exception;

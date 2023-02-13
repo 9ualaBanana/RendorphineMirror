@@ -8,7 +8,7 @@ internal static class TelegramBotAuthenticationExtensions
         this IServiceCollection services,
         string? authenticationScheme = default)
     {
-        services.AddHttpClient<MPlusAuthenticationAgent>();
+        services.AddHttpClient<MPlusAuthenticationClient>();
         return services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, MPlusAuthenticationViaTelegramChatHandler>(
                 authenticationScheme ?? MPlusAuthenticationViaTelegramChatDefaults.AuthenticationScheme, default

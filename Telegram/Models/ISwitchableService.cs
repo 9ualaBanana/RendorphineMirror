@@ -10,7 +10,7 @@ public interface ISwitchableService<TService, TSwitch> where TService : class
 {
     /// <summary>
     /// Determines whether this <typeparamref name="TService"/> implementation should be chosen by
-    /// <see cref="SwitchableServiceExtension.Switch{TService, TSwitch}(IEnumerable{ISwitchableService{TService, TSwitch}}, TSwitch)"/>
+    /// <see cref="SwitchableServiceExtensions.Switch{TService, TSwitch}(IEnumerable{ISwitchableService{TService, TSwitch}}, TSwitch)"/>
     /// based on data stored inside <paramref name="switchObject"/>.
     /// </summary>
     /// <param name="switchObject">The object containing data that can be used to determine if this <typeparamref name="TService"/> implementation should be chosen</param>

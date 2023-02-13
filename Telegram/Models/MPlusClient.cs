@@ -1,17 +1,18 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
+using Telegram.Security;
 using Telegram.Tasks;
 
 namespace Telegram.Models;
 
-public class MPlusService
+public class MPlusClient
 {
     readonly HttpClient _httpClient;
     readonly static Uri _taskManagerEndpoint = new(Api.TaskManagerEndpoint+'/');
 
-    readonly ILogger<MPlusService> _logger;
+    readonly ILogger<MPlusClient> _logger;
 
-    public MPlusService(HttpClient httpClient, ILogger<MPlusService> logger)
+    public MPlusClient(HttpClient httpClient, ILogger<MPlusClient> logger)
 	{
 		_httpClient = httpClient;
         _logger = logger;
@@ -49,4 +50,16 @@ public class MPlusService
 
     internal async Task<Uri> RequestFileDownloadLinkUsing(ITaskApi taskApi, string sessionId, string iid)
         => new Uri((await taskApi.GetMPlusItemDownloadLinkAsync(iid, sessionId)).ThrowIfError());
+
+    internal async Task<MPlusIdentity?> TryLogInAsyncUsing(string email, string password)
+    {
+        var credentialsForm = new FormUrlEncodedContent(new Dictionary<string, string>()
+        {
+            ["email"] = email,
+            ["password"] = password,
+            ["guid"] = Guid.NewGuid().ToString()
+        });
+        return (await (await _httpClient.PostAsync("login", credentialsForm)).GetJsonIfSuccessfulAsync())
+            .ToObject<MPlusIdentity>();
+    }
 }

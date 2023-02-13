@@ -37,7 +37,7 @@ builder.Services.AddTelegramUpdateHandlers();
 
 builder.Services.AddScoped<ChatAuthenticator>().AddDbContext<AuthenticatedUsersDbContext>();
 builder.Services.AddScoped<TaskResultMPlusPreviewService>();
-builder.Services.AddHttpClient<MPlusService>();
+builder.Services.AddHttpClient<MPlusClient>();
 builder.Services.AddScoped<GitHubEventForwarder>();
 
 var app = builder.Build();
@@ -53,8 +53,5 @@ app.MapControllers();
 app.UseUpdateRouting();
 app.UseRouting();
 app.UseAuthentication();
-
-//app.UseUpdateRouting();
-app.UseRouting();
 
 app.Run("https://localhost:7000");

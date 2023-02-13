@@ -12,7 +12,7 @@ namespace Telegram.Tasks;
 /// </summary>
 public class TaskResultMPlusPreviewService
 {
-    readonly MPlusService _mPlusService;
+    readonly MPlusClient _mPlusService;
     readonly TelegramBot _bot;
     readonly RegisteredTasksCache _registeredTasksCache;
     readonly CachedFiles _cachedFiles;
@@ -20,7 +20,7 @@ public class TaskResultMPlusPreviewService
     readonly ILogger _logger;
 
     public TaskResultMPlusPreviewService(
-        MPlusService mPlusService,
+        MPlusClient mPlusService,
         TelegramBot bot,
         RegisteredTasksCache registeredTasksCache,
         CachedFiles cachedFiles,
