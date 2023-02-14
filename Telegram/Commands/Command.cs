@@ -1,4 +1,5 @@
-﻿using Telegram.Commands.Tokenization.Tokens;
+﻿using System.Diagnostics;
+using Telegram.Commands.Tokenization.Tokens;
 
 namespace Telegram.Commands;
 
@@ -21,23 +22,14 @@ public class Command : IEquatable<Command>, IEquatable<string>
     //    { command = null; return false; }
     //}
 
-    internal static Command From(CommandToken commandToken) => new(commandToken);
+    internal static Command From(CommandToken commandToken) => new(commandToken.Lexeme);
 
-    /// <summary>
-    /// Initializes <see cref="Command"/>s from <paramref name="commandToken"/>
-    /// unless <paramref name="commandToken"/> contains invalid command characters.
-    /// </summary>
-    /// <param name="commandToken">
-    /// Prefixed/unprefixed command token that represents <see cref="CommandTokenType.Command"/> <see cref="Token"/>.
-    /// </param>
-    /// <exception cref="FormatException">
-    /// <paramref name="commandToken"/> doesn't represent <see cref="CommandTokenType.Command"/> <see cref="Token"/>
-    /// </exception>
-    protected Command(string commandToken)
+    protected Command(string lexeme)
     {
-        if (CommandLexemeScanner.Instance.Pattern.IsMatch(commandToken))
-            PrefixedCommandText = commandToken;
-        else throw new FormatException($"{commandToken} doesn't represent a command token.");
+        Debug.Assert(CommandLexemeScanner.Instance.Pattern.IsMatch(lexeme),
+            $"{lexeme} doesn't represent a command token.");
+        
+        PrefixedCommandText = lexeme;
     }
 
     #endregion
@@ -58,6 +50,10 @@ public class Command : IEquatable<Command>, IEquatable<string>
 
     #endregion
 
+    #region Conversions
+
     public static implicit operator string(Command command) => command.PrefixedCommandText;
     public static implicit operator Command(string commandToken) => new(commandToken);
+
+    #endregion
 }

@@ -3,7 +3,7 @@
 namespace Telegram.Commands.Tokenization;
 
 /// <summary>
-/// 
+/// Service that uses registered <see cref="LexemeScanner"/>s to tokenize its input.
 /// </summary>
 public class CommandTokenizer
 {
@@ -14,12 +14,16 @@ public class CommandTokenizer
         _lexemeScanners = lexemeScanners;
     }
 
-    internal IEnumerable<Token> Tokenize(string input)
+    /// <summary>
+    /// Transforms <paramref name="rawCommand"/> into a stream of <see cref="Token"/>s.
+    /// </summary>
+    internal IEnumerable<Token> Tokenize(string rawCommand)
     {
-        var tokenizationContext = new TokenizationContext(input);
-        while (!tokenizationContext.TokenizerInputIsExhausted && _lexemeScanners.Any())
+        var tokenizerInput = new TokenizerInput(rawCommand);
+
+        while (!tokenizerInput.IsExhausted && _lexemeScanners.Any())
             foreach (var lexemeScanner in _lexemeScanners)
-                if (lexemeScanner.TryGetNextToken(tokenizationContext) is Token token)
+                if (lexemeScanner.TryConstructTokenFrom(tokenizerInput) is Token token)
                 { yield return token; break; }
     }
 }

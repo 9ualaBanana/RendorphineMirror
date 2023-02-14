@@ -1,4 +1,4 @@
-﻿using Telegram.Commands.Tokenization;
+﻿using Telegram.Commands.SyntaxAnalysis;
 using Telegram.Telegram.Updates.Commands;
 using Telegram.Telegram.Updates.Commands.Offline;
 using Telegram.Telegram.Updates.Commands.Online;
@@ -29,11 +29,11 @@ internal static class CommandsExtensions
 
     internal static IServiceCollection AddCommands(this IServiceCollection services)
         => services
-        .AddCommandsCore()
-        .AddCommandsTokenization();
+        .AddCommandsHandlers()
+        .AddCommandsParsing();
 
-    static IServiceCollection AddCommandsCore(this IServiceCollection services) =>
-        services
+    static IServiceCollection AddCommandsHandlers(this IServiceCollection services)
+        => services
         .AddScoped<CommandHandler, PingCommand>();
 
     internal static IServiceCollection AddTelegramBotCommands(this IServiceCollection serviceCollection) =>

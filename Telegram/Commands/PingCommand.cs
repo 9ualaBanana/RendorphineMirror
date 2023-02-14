@@ -1,25 +1,20 @@
-﻿using System.Text;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Models;
+﻿using Telegram.Models;
 using Telegram.Security.Authorization;
-using Telegram.Security;
-using Telegram.Services.Node;
-using Telegram.Telegram.Authentication.Services;
-using Telegram.Telegram.Updates.Commands;
 using Microsoft.AspNetCore.Authorization;
-using Telegram.Commands.Tokenization;
+using Telegram.Commands.SyntaxAnalysis;
+using Telegram.Bot;
 
 namespace Telegram.Commands;
 
 public class PingCommand : CommandHandler, IAuthorizationRequirementsProvider
 {
-    readonly CommandTokenizer _tokenizer;
+    private readonly TelegramBot bot;
     readonly ILogger<PingCommand> _logger;
 
-    public PingCommand(CommandTokenizer tokenizer, ILogger<PingCommand> logger) : base(tokenizer)
+    public PingCommand(Bot.TelegramBot bot, CommandParser parser, ILogger<PingCommand> logger)
+        : base(parser, logger)
     {
-        _tokenizer = tokenizer;
+        this.bot = bot;
         _logger = logger;
     }
 
@@ -31,12 +26,8 @@ public class PingCommand : CommandHandler, IAuthorizationRequirementsProvider
 
     internal override Command Target => "/ping";
 
-    public override async Task HandleAsync(UpdateContext updateContext, CancellationToken cancellationToken)
+    protected override async Task HandleAsync(UpdateContext updateContext, ParsedCommand parsedCommand, CancellationToken cancellationToken)
     {
-        var tokens = _tokenizer.Tokenize(updateContext.Update.Message!.Text!);
-        foreach (var token in tokens)
-        {
-            Console.WriteLine($"Token: {token.GetType()}\nValue: {token.Value}\nLexeme: {token.Lexeme}\n");
-        }
+        bot.SendMessageAsync_(updateContext.Update.Message.Chat.Id, $"Command: {parsedCommand.Command}\nUnquotedArguments: {string.Join(", ", parsedCommand.UnquotedArguments)}\nQuotedArguments: {string.Join(", ", parsedCommand.QuotedArguments)}");
     }
 }

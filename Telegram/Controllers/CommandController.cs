@@ -27,14 +27,14 @@ public class CommandController : UpdateControllerBase
     }
 
     [HttpPost]
-    public async Task Handle([FromServices] IEnumerable<CommandHandler> commands)
+    public async Task Handle([FromServices] IEnumerable<CommandHandler> commandHandlers)
     {
         string prefixedCommandText = UpdateContext.Update.Message!.Text!;
 
-        if (commands.Switch(prefixedCommandText) is CommandHandler command)
+        if (commandHandlers.Switch(prefixedCommandText) is CommandHandler commandHandler)
         {
-            if (await UserIsAuthorizedToCall(command))
-                await command.HandleAsync(UpdateContext, HttpContext.RequestAborted);
+            if (await UserIsAuthorizedToCall(commandHandler))
+                await commandHandler.HandleAsync(UpdateContext, HttpContext.RequestAborted);
             else
             {
                 _logger.LogTrace("User is not authorized to use {Command} command", prefixedCommandText);
