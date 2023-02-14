@@ -11,18 +11,13 @@ namespace Telegram.Middleware.UpdateRouting.UpdateTypeRouting;
 
 public class MessageRouterMiddleware : IUpdateTypeRouter
 {
+    readonly TelegramBot _bot;
+
     readonly ILogger _logger;
 
-    readonly TelegramBot _bot;
-    readonly UpdateContextCache _updateContextCache;
-
-    public MessageRouterMiddleware(
-        TelegramBot bot,
-        UpdateContextCache updateContextCache,
-        ILogger<MessageRouterMiddleware> logger)
+    public MessageRouterMiddleware(TelegramBot bot, ILogger<MessageRouterMiddleware> logger)
     {
         _bot = bot;
-        _updateContextCache = updateContextCache;
         _logger = logger;
     }
 
@@ -30,7 +25,7 @@ public class MessageRouterMiddleware : IUpdateTypeRouter
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
-        var message = _updateContextCache.Retrieve().Update.Message!;
+        var message = context.GetUpdate().Message!;
 
         if (message.IsCommand())
             context.Request.Path += CommandController.PathFragment;

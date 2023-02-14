@@ -6,20 +6,17 @@ using Telegram.Models;
 
 namespace Telegram.Middleware.UpdateRouting;
 
-public class UpdateContextConstructorMiddleware : IMiddleware
+public class UpdateReaderMiddleware : IMiddleware
 {
+    readonly UpdateTypeRouterMiddleware _updateTypeRouterMiddleware;
+
     readonly ILogger _logger;
 
-    readonly UpdateTypeRouterMiddleware _updateTypeRouterMiddleware;
-    readonly UpdateContextCache _updateContextCache;
-
-    public UpdateContextConstructorMiddleware(
+    public UpdateReaderMiddleware(
         UpdateTypeRouterMiddleware updateTypeRouterMiddleware,
-        UpdateContextCache updateContextCache,
-        ILogger<UpdateContextConstructorMiddleware> logger)
+        ILogger<UpdateReaderMiddleware> logger)
     {
         _updateTypeRouterMiddleware = updateTypeRouterMiddleware;
-        _updateContextCache = updateContextCache;
         _logger = logger;
     }
 
@@ -28,8 +25,8 @@ public class UpdateContextConstructorMiddleware : IMiddleware
         var update = await DeserializeUpdateAsyncFrom(context);
         EnsureUpdateIsSuccessfullyDeserialized(update);
 
-        _updateContextCache.Cache(new UpdateContext(update));
-        _logger.LogTrace($"{nameof(UpdateContext)} is constructed");
+        context.SetUpdate(update);
+        _logger.LogTrace($"{nameof(Update)} is read and set");
 
         await _updateTypeRouterMiddleware.InvokeAsync(context, next);
     }
@@ -54,9 +51,9 @@ public class UpdateContextConstructorMiddleware : IMiddleware
     {
         if (update is null)
         {
-            string errorMessage = $"Request body didn't contain JSON representing {nameof(Update)}";
-            _logger.LogCritical(errorMessage);
-            throw new InvalidDataException($"{errorMessage}.");
+            var exception = new InvalidDataException($"Request body doesn't contain JSON representing {nameof(Update)}");
+            _logger.LogCritical(exception, message: default);
+            throw exception;
         }
     }
 }

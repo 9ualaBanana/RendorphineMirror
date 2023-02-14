@@ -34,7 +34,7 @@ internal static class CommandsExtensions
 
     static IServiceCollection AddCommandsHandlers(this IServiceCollection services)
         => services
-        .AddScoped<CommandHandler, PingCommand>();
+        .AddScoped<CommandHandler, PingCommandHandler>();
 
     internal static IServiceCollection AddTelegramBotCommands(this IServiceCollection serviceCollection) =>
         serviceCollection

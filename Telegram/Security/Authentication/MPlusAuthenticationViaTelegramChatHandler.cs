@@ -11,12 +11,12 @@ public class MPlusAuthenticationViaTelegramChatHandler : AuthenticationHandler<A
 {
     readonly TelegramBot _bot;
     readonly MPlusAuthenticationClient _mPlusAuthenticationClient;
-    readonly UpdateContextCache _updateContextCache;
+    readonly IHttpContextAccessor _httpContextAccessor;
 
     public MPlusAuthenticationViaTelegramChatHandler(
         TelegramBot bot,
         MPlusAuthenticationClient mPlusAuthenticationClient,
-        UpdateContextCache updateContextCache,
+        IHttpContextAccessor httpContextAccessor,
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
@@ -24,19 +24,19 @@ public class MPlusAuthenticationViaTelegramChatHandler : AuthenticationHandler<A
     {
         _bot = bot;
         _mPlusAuthenticationClient = mPlusAuthenticationClient;
-        _updateContextCache = updateContextCache;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var updateContext = _updateContextCache.Retrieve();
+        var context = _httpContextAccessor.HttpContext!;
         // Include authentication when /login command is invoked.
-        if (CredentialsFromChat.TryParse(updateContext.Update.Message, out var credentialsFromChat))
+        if (CredentialsFromChat.TryParse(context.GetUpdate().Message!, out var credentialsFromChat))
         {
             if (await _mPlusAuthenticationClient.TryLogInAsyncUsing(credentialsFromChat) is MPlusIdentity mPlusIdentity)
             {
-                updateContext.User.AddIdentity(mPlusIdentity.ToClaimsIdentity());
-                return AuthenticateResult.Success(new(updateContext.User, MPlusAuthenticationViaTelegramChatDefaults.AuthenticationScheme));
+                context.User.AddIdentity(mPlusIdentity.ToClaimsIdentity());
+                return AuthenticateResult.Success(new(context.User, MPlusAuthenticationViaTelegramChatDefaults.AuthenticationScheme));
             }
             else Logger.LogError("M+ authentication result returned from the server was in a wrong format");
         }
@@ -47,7 +47,7 @@ public class MPlusAuthenticationViaTelegramChatHandler : AuthenticationHandler<A
 
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        await _bot.SendMessageAsync_(_updateContextCache.Retrieve().Update.ChatId(), "You must be logged in.");
+        await _bot.SendMessageAsync_(_httpContextAccessor.HttpContext!.GetUpdate().ChatId(), "You must be logged in.");
     }
 }
 

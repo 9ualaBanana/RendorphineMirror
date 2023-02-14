@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Telegram.Models;
 
 namespace Telegram.Security.Authentication;
 
@@ -8,6 +9,7 @@ internal static class TelegramBotAuthenticationExtensions
         this IServiceCollection services,
         string? authenticationScheme = default)
     {
+        services.AddHttpClient<MPlusClient>();
         services.AddHttpClient<MPlusAuthenticationClient>();
         return services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, MPlusAuthenticationViaTelegramChatHandler>(

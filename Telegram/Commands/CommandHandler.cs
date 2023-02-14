@@ -9,7 +9,7 @@ namespace Telegram.Commands;
 /// <see cref="HandleAsync(UpdateContext, ParsedCommand, CancellationToken)"/>
 /// via publicly available <see cref="HandleAsync(UpdateContext, CancellationToken)"/>.
 /// </summary>
-public abstract class CommandHandler : IUpdateHandler, ISwitchableService<CommandHandler, Command>
+public abstract class CommandHandler : IHandler, ISwitchableService<CommandHandler, Command>
 {
     readonly CommandParser _parser;
 
@@ -33,11 +33,11 @@ public abstract class CommandHandler : IUpdateHandler, ISwitchableService<Comman
     /// </returns>
     public bool Matches(Command command) => ((string)command).StartsWith(Target);
 
-    public async Task HandleAsync(UpdateContext updateContext, CancellationToken cancellationToken)
+    public async Task HandleAsync(HttpContext context, CancellationToken cancellationToken)
     {
-        string receivedMessage = updateContext.Update.Message!.Text!;
+        string receivedMessage = context.GetUpdate().Message!.Text!;
         if (_parser.TryParse(receivedMessage) is ParsedCommand receivedCommand)
-            await HandleAsync(updateContext, receivedCommand, cancellationToken);
+            await HandleAsync(context, receivedCommand, cancellationToken);
         else
         {
             string errorMessage =
@@ -49,5 +49,5 @@ public abstract class CommandHandler : IUpdateHandler, ISwitchableService<Comman
         }
     }
 
-    protected abstract Task HandleAsync(UpdateContext updateContext, ParsedCommand receivedCommand, CancellationToken cancellationToken);
+    protected abstract Task HandleAsync(HttpContext context, ParsedCommand receivedCommand, CancellationToken cancellationToken);
 }

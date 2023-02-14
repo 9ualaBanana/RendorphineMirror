@@ -1,6 +1,6 @@
 ﻿namespace Telegram.Models;
 
-public abstract class Command : IUpdateHandler, ISwitchableService<Command, string>, IEquatable<Command>, IEquatable<string>
+public abstract class Command : IHandler, ISwitchableService<Command, string>, IEquatable<Command>, IEquatable<string>
 {
     internal const char Prefix = '/';
 
@@ -10,7 +10,7 @@ public abstract class Command : IUpdateHandler, ISwitchableService<Command, stri
 
     public bool Matches(string prefixedCommandText) => prefixedCommandText.StartsWith(this.PrefixedCommandText);
     
-    public abstract Task HandleAsync(UpdateContext updateContext, CancellationToken cancellationToken);
+    public abstract Task HandleAsync(HttpContext context, CancellationToken cancellationToken);
 
     #region Equality
 

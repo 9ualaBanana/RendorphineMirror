@@ -9,11 +9,11 @@ namespace Telegram.Middleware.UpdateRouting;
 public class UpdateRoutingBranchingMiddleware : IMiddleware
 {
     readonly TelegramBotOptions _botOptions;
-    readonly UpdateContextConstructorMiddleware _updateContextConstructorMiddleware;
+    readonly UpdateReaderMiddleware _updateContextConstructorMiddleware;
 
     public UpdateRoutingBranchingMiddleware(
         IOptions<TelegramBotOptions> botOptions,
-        UpdateContextConstructorMiddleware updateContextConstructorMiddleware)
+        UpdateReaderMiddleware updateContextConstructorMiddleware)
     {
         _botOptions = botOptions.Value;
         _updateContextConstructorMiddleware = updateContextConstructorMiddleware;

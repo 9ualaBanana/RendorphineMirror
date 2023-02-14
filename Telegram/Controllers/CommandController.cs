@@ -9,7 +9,7 @@ namespace Telegram.Controllers;
 
 [ApiController]
 [Route($"telegram/{{token}}/{PathFragment}")]
-public class CommandController : UpdateControllerBase
+public class CommandController : ControllerBase
 {
     internal const string PathFragment = "command";
 
@@ -29,12 +29,12 @@ public class CommandController : UpdateControllerBase
     [HttpPost]
     public async Task Handle([FromServices] IEnumerable<CommandHandler> commandHandlers)
     {
-        string prefixedCommandText = UpdateContext.Update.Message!.Text!;
+        string prefixedCommandText = HttpContext.GetUpdate().Message!.Text!;
 
         if (commandHandlers.Switch(prefixedCommandText) is CommandHandler commandHandler)
         {
             if (await UserIsAuthorizedToCall(commandHandler))
-                await commandHandler.HandleAsync(UpdateContext, HttpContext.RequestAborted);
+                await commandHandler.HandleAsync(HttpContext, HttpContext.RequestAborted);
             else
             {
                 _logger.LogTrace("User is not authorized to use {Command} command", prefixedCommandText);

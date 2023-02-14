@@ -37,7 +37,6 @@ builder.Services.AddTelegramUpdateHandlers();
 
 builder.Services.AddScoped<ChatAuthenticator>().AddDbContext<AuthenticatedUsersDbContext>();
 builder.Services.AddScoped<TaskResultMPlusPreviewService>();
-builder.Services.AddHttpClient<MPlusClient>();
 builder.Services.AddScoped<GitHubEventForwarder>();
 
 var app = builder.Build();
