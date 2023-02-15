@@ -27,7 +27,7 @@ public class TaskCallbackQueryHandler : AuthenticatedTelegramCallbackQueryHandle
 
     async Task ShowDetailsAsync(ChatId chatId, TaskCallbackData taskCallbackData, ChatAuthenticationToken authenticationToken)
     {
-        var api = Apis.Default.WithSessionId(authenticationToken.MPlus.SessionId);
+        var api = Apis.DefaultWithSessionId(authenticationToken.MPlus.SessionId);
         try
         {
             string shardHost = await api.GetTaskShardAsync(taskCallbackData.TaskId).ThrowIfError();

@@ -77,7 +77,7 @@ namespace NodeUI.Pages
 
                 if (auth)
                 {
-                    try { await LocalApi.Send("reloadcfg").ConfigureAwait(false); }
+                    try { await LocalApi.Default.Get("reloadcfg", "Reloading config").ConfigureAwait(false); }
                     catch { }
 
                     Dispatcher.UIThread.Post(ShowMainWindow);
@@ -94,8 +94,6 @@ namespace NodeUI.Pages
 
         void ShowMainWindow()
         {
-            Settings.Reload();
-
             var w = new MainWindow();
             ((IClassicDesktopStyleApplicationLifetime) Application.Current!.ApplicationLifetime!).MainWindow = w;
             w.Show();

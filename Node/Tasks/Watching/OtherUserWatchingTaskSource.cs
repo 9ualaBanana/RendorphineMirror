@@ -21,7 +21,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskHandler<OtherUserWatchin
 
         async ValueTask tick()
         {
-            var check = await LocalApi.Send<DirectoryDiffListener.DiffOutput>(url, path + $"&lastcheck={Input.LastCheck}");
+            var check = await Api.Default.ApiGet<DirectoryDiffListener.DiffOutput>($"{url}/{path}", "value", "Getting directory diff", ("lastcheck", Input.LastCheck.ToString()));
             check.LogIfError();
             if (!check) return;
 

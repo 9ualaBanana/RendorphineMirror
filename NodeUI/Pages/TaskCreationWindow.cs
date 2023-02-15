@@ -376,7 +376,7 @@ namespace NodeUI.Pages
                 ProcessObject(Builder.Output);
 
                 var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
-                var taskid = await LocalApi.Post<string>(LocalApi.LocalIP, StartTaskEndpoint, new StringContent(serialized)).ConfigureAwait(false);
+                var taskid = await LocalApi.Default.Post<string>(StartTaskEndpoint, "Starting a task", new StringContent(serialized)).ConfigureAwait(false);
                 if (!taskid)
                 {
                     Dispatcher.UIThread.Post(() => StatusTextBlock.Text = $"error {taskid}");

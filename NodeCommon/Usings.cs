@@ -1,6 +1,7 @@
 global using System.Collections.Immutable;
 global using Common;
 global using NLog;
+global using NodeCommon.ApiModel;
 global using NodeCommon.Plugins;
 global using NodeCommon.Plugins.Deployment;
 global using NodeCommon.Tasks;

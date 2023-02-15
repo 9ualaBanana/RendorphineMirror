@@ -1,6 +1,5 @@
 using Newtonsoft.Json.Linq;
 using Node.Profiling;
-using static NodeCommon.Settings;
 
 namespace Node;
 
@@ -27,12 +26,6 @@ public static class NodeSettings
             new DatabaseValue<object?>(nameof(BenchmarkResult), default).Delete();
             BenchmarkResult = new(nameof(BenchmarkResult), default);
         }
-
-        NodeGlobalState.Instance.WatchingTasks.Bind(WatchingTasks.Bindable);
-        NodeGlobalState.Instance.PlacedTasks.Bind(PlacedTasks.Bindable);
-        NodeGlobalState.Instance.QueuedTasks.Bind(QueuedTasks.Bindable);
-
-        BenchmarkResult.Bindable.SubscribeChanged(() => NodeGlobalState.Instance.BenchmarkResult.Value = BenchmarkResult.Value is null ? null : JObject.FromObject(BenchmarkResult.Value), true);
     }
 
 

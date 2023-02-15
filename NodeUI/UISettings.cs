@@ -1,5 +1,3 @@
-using static NodeCommon.Settings;
-
 namespace NodeUI;
 
 public static class UISettings

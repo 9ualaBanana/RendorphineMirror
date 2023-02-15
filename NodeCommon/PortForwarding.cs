@@ -1,13 +1,10 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace NodeToUI
+namespace NodeCommon
 {
     public static class PortForwarding
     {
-        public static int Port => Settings.UPnpPort;
-        public static int ServerPort => Settings.UPnpServerPort;
-
         static IPAddress? CachedPublicIp;
         static DateTime IpCacheTime = DateTime.MinValue;
 

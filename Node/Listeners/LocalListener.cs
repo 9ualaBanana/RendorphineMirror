@@ -30,7 +30,7 @@ public class LocalListener : ExecutableListenerBase
                 var peerid = TorrentClient.PeerId.UrlEncode();
                 var peerurl = PortForwarding.GetPublicIPAsync().ConfigureAwait(false);
                 var (data, manager) = await TorrentClient.CreateAddTorrent(dir).ConfigureAwait(false);
-                var downloadr = await LocalApi.Post(url, $"downloadtorrent?peerid={peerid}&peerurl={await peerurl}:{TorrentClient.ListenPort}", new ByteArrayContent(data)).ConfigureAwait(false);
+                var downloadr = await Api.Default.ApiPost($"{url}/downloadtorrent?peerid={peerid}&peerurl={await peerurl}:{Settings.TorrentPort}", "Downloading torrent", new ByteArrayContent(data)).ConfigureAwait(false);
                 if (!downloadr) return await WriteJson(response, downloadr).ConfigureAwait(false);
 
                 return await WriteJson(response, manager.InfoHash.ToHex().AsOpResult()).ConfigureAwait(false);
@@ -40,6 +40,14 @@ public class LocalListener : ExecutableListenerBase
         if (path == "reloadcfg")
         {
             Settings.Reload();
+            return await WriteSuccess(response).ConfigureAwait(false);
+        }
+
+        if (path == "logout")
+        {
+            Settings.AuthInfo = null;
+            Settings.NodeName = null!;
+
             return await WriteSuccess(response).ConfigureAwait(false);
         }
 

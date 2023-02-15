@@ -32,8 +32,8 @@ public abstract class ListenerBase
 
         var prefixes = new List<string>();
         if (ListenType.HasFlag(ListenTypes.Local)) addprefix($"127.0.0.1:{Settings.LocalListenPort}");
-        if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{PortForwarding.Port}");
-        if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{PortForwarding.ServerPort}");
+        if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{Settings.UPnpPort}");
+        if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{Settings.UPnpServerPort}");
         void addprefix(string prefix)
         {
             prefix = $"http://{prefix}/{Prefix}";

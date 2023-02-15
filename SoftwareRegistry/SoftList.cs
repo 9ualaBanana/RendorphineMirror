@@ -4,12 +4,12 @@ namespace SoftwareRegistry;
 
 public class SoftList
 {
-    readonly Settings.DatabaseValueKeyDictionary<string, SoftwareDefinition> SoftwareDictBindable = new(nameof(Software), StringComparer.OrdinalIgnoreCase);
+    readonly DatabaseValueKeyDictionary<string, SoftwareDefinition> SoftwareDictBindable = new(nameof(Software), StringComparer.OrdinalIgnoreCase);
     public ImmutableDictionary<string, SoftwareDefinition> Software => SoftwareDictBindable.Values.ToImmutableDictionary();
 
     public SoftList()
     {
-        var soft = new Settings.DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>>(nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
+        var soft = new DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>>(nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
         var softv = soft.Value.WithComparers(StringComparer.OrdinalIgnoreCase);
         if (softv.Count != 0)
         {

@@ -8,6 +8,7 @@ namespace NodeCommon
 {
     public interface IBindable
     {
+        event Action? Changed;
         JsonSerializer JsonSerializer { get; set; }
 
         JToken AsJson(JsonSerializer? serializer);
@@ -17,7 +18,6 @@ namespace NodeCommon
     }
     public interface IReadOnlyBindable<out T> : IBindable
     {
-        event Action? Changed;
         T Value { get; }
 
         IReadOnlyBindable<T> GetBoundCopy();

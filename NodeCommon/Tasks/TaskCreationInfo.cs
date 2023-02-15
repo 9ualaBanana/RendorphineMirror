@@ -18,6 +18,7 @@ public class TaskCreationInfo
     [JsonConstructor]
     public TaskCreationInfo() { }
 
+    [Obsolete("Use larger overload instead")]
     public TaskCreationInfo(PluginType type, string? version, string action, JObject input, JObject output, JObject data, TaskPolicy policy, TaskObject? taskobj = null)
     {
         Type = type;

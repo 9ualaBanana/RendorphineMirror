@@ -45,7 +45,7 @@ public class RegistryTab : Panel
                         stream.Position = 0;
                         using var content = new StreamContent(stream) { Headers = { ContentType = new("application/json") } };
 
-                        var result = await LocalApi.Post<ImmutableDictionary<string, SoftwareDefinition>>(Settings.RegistryUrl, "editall", content)
+                        var result = await Api.Default.ApiPost<ImmutableDictionary<string, SoftwareDefinition>>($"{Apis.RegistryUrl}/editall", "value", "Edit registry", content)
                             .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
                         if (await self.FlashErrorIfErr(result))
                             return;

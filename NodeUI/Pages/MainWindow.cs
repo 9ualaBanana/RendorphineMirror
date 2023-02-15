@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Web;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Utils;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
@@ -37,7 +38,6 @@ namespace NodeUI.Pages
             tabs.Add("tasks", new TasksTab());
             tabs.Add("tab.benchmark", new BenchmarkTab());
             tabs.Add("menu.settings", new SettingsTab());
-            tabs.Add("torrent test", new TorrentTab());
             tabs.Add("logs", new LogsTab());
             if (Init.DebugFeatures) tabs.Add("registry", new RegistryTab());
             tabs.Add("cgtraderupload", new CGTraderUploadTab());
@@ -151,7 +151,8 @@ namespace NodeUI.Pages
                         token = new JObject() { ["value"] = token };
 
                         using var content = new StringContent(token.ToString());
-                        var post = await LocalApi.Post(NodeGui.GuiRequestNames[request.GetType()] + "?reqid=" + HttpUtility.UrlEncode(reqid), content);
+                        var reqtype = NodeGui.GuiRequestNames[request.GetType()];
+                        var post = await LocalApi.Default.Post($"{reqtype}?reqid={HttpUtility.UrlEncode(reqid)}", $"Sending {reqtype} request", content);
                         post.LogIfError();
 
                         receivedrequests.Remove(reqid);
@@ -174,7 +175,6 @@ namespace NodeUI.Pages
                 };
                 Children.Add(infotb);
                 updatetext();
-                Settings.AnyChanged += updatetext;
                 NodeGlobalState.Instance.AnyChanged.Subscribe(this, _ => updatetext());
 
                 var langbtn = new MPButton()
@@ -195,20 +195,20 @@ namespace NodeUI.Pages
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     Margin = new Thickness(200, 0, 0, 0),
-                    Text = new("unlogin"),
-                    OnClick = () =>
+                    Text = new("Log out"),
+                    OnClickSelf = async self =>
                     {
-                        Settings.AuthInfo = null;
-                        Settings.NodeName = null!;
+                        var logout = await LocalApi.Default.Get("logout", "Logging out");
+                        if (await self.FlashErrorIfErr(logout))
+                            return;
 
-                        LocalApi.Send("reloadcfg").AsTask().Consume();
-                        new LoginWindow().Show();
+                        ((IClassicDesktopStyleApplicationLifetime) Application.Current!.ApplicationLifetime!).MainWindow = new LoginWindow();
                         ((Window) VisualRoot!).Close();
                     },
                 };
                 Children.Add(unloginbtn);
 
-                if (Settings.IsSlave == false)
+                if (NodeGlobalState.Instance.AuthInfo?.Slave == false)
                 {
                     var taskbtn = new MPButton()
                     {
@@ -225,8 +225,8 @@ namespace NodeUI.Pages
                 {
                     Dispatcher.UIThread.Post(() => infotb.Text =
                         @$"
-                        Auth: {JsonConvert.SerializeObject(Settings.AuthInfo ?? default, Formatting.None)}
-                        Ports: [ LocalListen: {Settings.LocalListenPort}; UPnp: {Settings.UPnpPort}; UPnpServer: {Settings.UPnpServerPort}; Dht: {Settings.DhtPort}; Torrent: {Settings.TorrentPort} ]
+                        Auth: {JsonConvert.SerializeObject(NodeGlobalState.Instance.AuthInfo ?? default, Formatting.None)}
+                        Ports: {JsonConvert.SerializeObject(new { NodeGlobalState.Instance.LocalListenPort, NodeGlobalState.Instance.UPnpPort, NodeGlobalState.Instance.UPnpServerPort, NodeGlobalState.Instance.DhtPort, NodeGlobalState.Instance.TorrentPort })}
 
                         Ui start time: {starttime}
                         ".TrimLines()
@@ -300,7 +300,7 @@ namespace NodeUI.Pages
                         Text = "Install plugin",
                         OnClickSelf = async self =>
                         {
-                            var res = await LocalApi.Send($"deploy?type={HttpUtility.UrlEncode(pluginslist.SelectedItem)}&version={HttpUtility.UrlEncode(versionslist.SelectedItem)}");
+                            var res = await LocalApi.Default.Get("deploy", "Installing plugin", ("type", pluginslist.SelectedItem), ("version", versionslist.SelectedItem));
                             await self.FlashErrorIfErr(res);
                         },
                     };
@@ -396,7 +396,7 @@ namespace NodeUI.Pages
                         Text = "Cancel task",
                         OnClickSelf = async self =>
                         {
-                            var cstate = await task.ChangeStateAsync(TaskState.Canceled);
+                            var cstate = await Apis.Default.ChangeStateAsync(task, TaskState.Canceled);
                             await self.FlashErrorIfErr(cstate);
                             if (!cstate) return;
 
@@ -406,7 +406,7 @@ namespace NodeUI.Pages
 
                     async Task updateState(MPButton button)
                     {
-                        var state = await task.GetTaskStateAsyncOrThrow();
+                        var state = await Apis.Default.GetTaskStateAsyncOrThrow(task);
                         await button.FlashErrorIfErr(state);
                         if (!state) return;
 
@@ -460,8 +460,6 @@ namespace NodeUI.Pages
 
         class TasksTab2 : Panel
         {
-            string SessionId = Settings.SessionId;
-
             public TasksTab2()
             {
                 var tabs = new TabbedControl();
@@ -475,7 +473,7 @@ namespace NodeUI.Pages
 
             abstract class TaskManager<T> : Panel
             {
-                protected Apis Api = Apis.Default;
+                protected NodeCommon.Apis Api => Apis.Default;
 
                 public TaskManager()
                 {
@@ -524,9 +522,9 @@ namespace NodeUI.Pages
                     data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding("Input.Type") });
                     data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding("Output.Type") });
 
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(Apis.ServerTaskFullState.Server)}.{nameof(TaskServer.Host)}") });
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(Apis.ServerTaskFullState.Server)}.{nameof(TaskServer.Userid)}") });
-                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(Apis.ServerTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Host", Binding = new Binding($"{nameof(ServerTaskFullState.Server)}.{nameof(TaskServer.Host)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Userid", Binding = new Binding($"{nameof(ServerTaskFullState.Server)}.{nameof(TaskServer.Userid)}") });
+                    data.Columns.Add(new DataGridTextColumn() { Header = "Server Nickname", Binding = new Binding($"{nameof(ServerTaskFullState.Server)}.{nameof(TaskServer.Nickname)}") });
 
                     data.Columns.Add(new DataGridButtonColumn<DbTaskFullState>()
                     {
@@ -554,40 +552,6 @@ namespace NodeUI.Pages
             }
             class RemoteTaskManager : NormalTaskManager
             {
-                protected override Control WrapGrid(DataGrid grid)
-                {
-                    var sidtextbox = new TextBox() { Watermark = "session id" };
-                    var setsidbtn = new MPButton()
-                    {
-                        Text = "Set sessionid",
-                        OnClickSelf = async self =>
-                        {
-                            Api = Apis.Default.WithSessionId(string.IsNullOrWhiteSpace(sidtextbox.Text) ? Settings.SessionId : sidtextbox.Text.Trim());
-                            grid.Items = await Load();
-                        },
-                    };
-                    var sidgrid = new Grid()
-                    {
-                        ColumnDefinitions = ColumnDefinitions.Parse("* Auto"),
-                        Children =
-                        {
-                            sidtextbox.WithColumn(0),
-                            setsidbtn.WithColumn(1),
-                        },
-                    };
-
-                    return new Grid()
-                    {
-                        RowDefinitions = RowDefinitions.Parse("Auto *"),
-                        Children =
-                        {
-                            sidgrid.WithRow(0),
-                            base.WrapGrid(grid).WithRow(1),
-                        },
-                    };
-                }
-
-
                 protected override async Task<IReadOnlyCollection<TaskBase>> Load() =>
                     await Api.GetMyTasksAsync(Enum.GetValues<TaskState>()).ThrowIfError();
             }
@@ -609,7 +573,7 @@ namespace NodeUI.Pages
                         Text = "Delete",
                         SelfAction = async (task, self) =>
                         {
-                            var result = await LocalApi.Send($"tasks/delwatching?taskid={task.Id}");
+                            var result = await LocalApi.Default.Get("tasks/delwatching", "Deleting watching task", ("taskid", task.Id));
                             await self.FlashErrorIfErr(result);
 
                             if (result) await LoadSetItems(data);
@@ -621,7 +585,7 @@ namespace NodeUI.Pages
                         Text = "Pause/Unpause",
                         SelfAction = async (task, self) =>
                         {
-                            var result = await LocalApi.Send<WatchingTask>($"tasks/pausewatching?taskid={task.Id}");
+                            var result = await LocalApi.Default.Get<WatchingTask>("tasks/pausewatching", "Pausing watching task", ("taskid", task.Id));
                             await self.FlashErrorIfErr(result);
 
                             if (result) await LoadSetItems(data);
@@ -704,29 +668,26 @@ namespace NodeUI.Pages
             Control CreateNick()
             {
                 var nicktb = new TextBox();
-                Settings.BNodeName.Bindable.SubscribeChanged(() => Dispatcher.UIThread.Post(() => nicktb.Text = Settings.NodeName), true);
+                NodeGlobalState.Instance.BNodeName.SubscribeChanged(() => Dispatcher.UIThread.Post(() => nicktb.Text = NodeGlobalState.Instance.NodeName), true);
 
                 var nicksbtn = new MPButton()
                 {
                     Text = new("set nick"),
                 };
-                nicksbtn.OnClick += async () =>
+                nicksbtn.OnClickSelf += async self =>
                 {
                     using var _ = new FuncDispose(() => Dispatcher.UIThread.Post(() => nicksbtn.IsEnabled = true));
                     nicksbtn.IsEnabled = false;
 
                     var nick = nicktb.Text.Trim();
-                    if (Settings.NodeName == nick)
+                    if (NodeGlobalState.Instance.NodeName == nick)
                     {
-                        Dispatcher.UIThread.Post(() => nicksbtn.Text = new($"cant change nickname to the same one"));
+                        Dispatcher.UIThread.Post(() => nicksbtn.Text = new($"Can not change nickname to the same one"));
                         return;
                     }
 
-                    var set = await LocalApi.Send($"setnick?nick={HttpUtility.UrlEncode(nick)}").ConfigureAwait(false);
-                    Settings.Reload();
-
-                    if (set) Dispatcher.UIThread.Post(() => nicksbtn.Text = new($"nick change good, new nick = {Settings.NodeName}"));
-                    else Dispatcher.UIThread.Post(() => nicksbtn.Text = new(set.AsString()));
+                    var set = await LocalApi.Default.Get("setnick", "Changing node nickname", ("nick", nick)).ConfigureAwait(false);
+                    await self.FlashErrorIfErr(set);
                 };
 
                 return new Grid()
@@ -745,16 +706,16 @@ namespace NodeUI.Pages
                 var setting = null as JsonUISetting.Setting;
 
                 var json = new JObject();
-                Settings.AnyChanged += () => Dispatcher.UIThread.Post(updatecontrol);
+                NodeGlobalState.Instance.AnyChanged.Subscribe(this, _ => Dispatcher.UIThread.Post(updatecontrol));
                 updatecontrol();
                 void updatecontrol()
                 {
                     var obj = new
                     {
-                        port = Settings.UPnpPort,
-                        webport = Settings.UPnpServerPort,
-                        torrentport = Settings.TorrentPort,
-                        dhtport = Settings.DhtPort,
+                        port = NodeGlobalState.Instance.UPnpPort,
+                        webport = NodeGlobalState.Instance.UPnpServerPort,
+                        torrentport = NodeGlobalState.Instance.TorrentPort,
+                        dhtport = NodeGlobalState.Instance.DhtPort,
                     };
 
                     json = JObject.FromObject(obj);
@@ -783,107 +744,6 @@ namespace NodeUI.Pages
                         },
                     },
                 };
-            }
-        }
-        class TorrentTab : Panel
-        {
-            public TorrentTab() => CreateTorrentUI();
-
-            void CreateTorrentUI()
-            {
-                var info = new TextBlock() { Text = "loading info..." };
-                var info2 = new TextBlock() { Text = $"waiting for upload.." };
-
-                var urltb = new TextBox() { Text = "URL" };
-                var dirtb = new TextBox() { Text = "/home/i3ym/Документы/Projects/tzn/Debug/" };
-                var button = new MPButton() { Text = new("send torrent") };
-                button.OnClick += click;
-
-                var torrentgrid = new Grid()
-                {
-                    Height = 300,
-                    RowDefinitions = RowDefinitions.Parse("* * * * *"),
-                    Children =
-                    {
-                        info.WithRow(0),
-                        info2.WithRow(1),
-                        urltb.WithRow(2),
-                        dirtb.WithRow(3),
-                        button.WithRow(4),
-                    },
-                };
-                Children.Add(torrentgrid);
-
-                PortForwarding.GetPublicIPAsync().ContinueWith(t => Dispatcher.UIThread.Post(() =>
-                {
-                    if (t.Status == TaskStatus.RanToCompletion)
-                        info.Text = $"this pc:  pub ip: {t.Result}  pub port: {PortForwarding.Port}  torrent port: {TorrentClient.ListenPort}";
-                }));
-
-
-                async void click()
-                {
-                    var url = urltb.Text.Trim();
-                    var dir = dirtb.Text.Trim();
-
-                    if (!Directory.Exists(dir))
-                    {
-                        button.Text = new("err dir not found");
-                        return;
-                    }
-
-                    try
-                    {
-                        var client = new HttpClient();
-                        var get = await LocalApi.Send<string>($"uploadtorrent?url={HttpUtility.UrlEncode(url)}&dir={HttpUtility.UrlEncode(dir)}").ConfigureAwait(false);
-                        if (!get)
-                        {
-                            Dispatcher.UIThread.Post(() => button.Text = new("err " + get.AsString()));
-                            return;
-                        }
-                        var hash = InfoHash.FromHex(get.Value);
-
-                        new Thread(async () =>
-                        {
-                            bool die = false;
-                            while (true)
-                            {
-                                var info = await LocalApi.Send<JObject>(url, $"torrentinfo?hash={HttpUtility.UrlEncode(hash.ToHex())}").ConfigureAwait(false);
-                                if (!info)
-                                {
-                                    Thread.Sleep(200);
-                                    continue;
-                                }
-                                var ifo = info.Value;
-
-                                try
-                                {
-                                    if (ifo["progress"]?.Value<double>() > 99)
-                                        Dispatcher.UIThread.Post(() => info2.Text = ifo.ToString(Newtonsoft.Json.Formatting.None) + "\nUpload completed.");
-
-                                    if (!die && ifo["progress"]?.Value<double>() > 99)
-                                    {
-                                        die = true;
-                                        Thread.Sleep(500);
-                                        continue;
-                                    }
-                                }
-                                catch { }
-
-                                if (die)
-                                {
-                                    await client.GetAsync($"http://127.0.0.1:{Settings.LocalListenPort}/stoptorrent?url={hash.ToHex()}").ConfigureAwait(false);
-                                    break;
-                                }
-
-                                Dispatcher.UIThread.Post(() => info2.Text = ifo.ToString(Newtonsoft.Json.Formatting.None));
-                                Thread.Sleep(200);
-                            }
-                        })
-                        { IsBackground = true }.Start();
-                    }
-                    catch { Dispatcher.UIThread.Post(() => button.Text = new("LOCAL connection error")); }
-                }
             }
         }
         class LogsTab : Panel

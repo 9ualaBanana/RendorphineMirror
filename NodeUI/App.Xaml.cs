@@ -44,7 +44,7 @@ namespace NodeUI
 
         public static Window SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime) =>
             lifetime.MainWindow =
-                Settings.SessionId is null
+                NodeGlobalState.Instance.AuthInfo?.SessionId is null
                 ? new LoginWindow()
                 : new MainWindow();
     }

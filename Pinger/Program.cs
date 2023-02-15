@@ -1,6 +1,5 @@
 using Common;
 using NLog;
-using NodeCommon;
 using UpdaterCommon;
 
 
@@ -11,7 +10,10 @@ await updater.Update().ThrowIfError();
 
 try
 {
-    var msg = await new HttpClient().GetAsync($"http://127.0.0.1:{Settings.LocalListenPort}/ping");
+    var portfile = Path.Combine(Init.ConfigDirectory, "lport");
+    var port = ushort.Parse(await File.ReadAllTextAsync(portfile));
+
+    var msg = await new HttpClient().GetAsync($"http://127.0.0.1:{port}/ping");
     if (!msg.IsSuccessStatusCode)
         restart($"Ping bad, HTTP {msg.StatusCode}, restarting...");
 }

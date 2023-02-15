@@ -48,5 +48,5 @@ public class MPlusService
     }
 
     internal async Task<Uri> RequestFileDownloadLinkUsing(ITaskApi taskApi, string sessionId, string iid)
-        => new Uri((await taskApi.GetMPlusItemDownloadLinkAsync(iid, sessionId)).ThrowIfError());
+        => new Uri((await new Apis(Api.Default, sessionId).GetMPlusItemDownloadLinkAsync(taskApi, iid)).ThrowIfError());
 }

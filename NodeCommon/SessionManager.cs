@@ -7,27 +7,20 @@ namespace NodeCommon;
 public static class SessionManager
 {
     const string Endpoint = Api.TaskManagerEndpoint;
-    static string SessionId => Settings.SessionId!;
+    public static string SessionId = null!;
 
-    static ValueTask<OperationResult<LoginResult>> LoginAsync(string email, string password, string guid) =>
-        Api.Default.ApiPost<LoginResult>($"{Endpoint}/login", null, "Couldn't login.", ("email", email), ("password", password), ("guid", guid));
-    static ValueTask<OperationResult<LoginResult>> AutoLoginAsync(string email, string guid) =>
-        Api.Default.ApiPost<LoginResult>($"{Endpoint}/autologin", null, "Couldn't login.", ("email", email), ("guid", guid));
 
-    static ValueTask<OperationResult<string>> RequestNicknameAsync() =>
-        Api.Default.ApiPost<string>($"{Endpoint}/generatenickname", "nickname", "Couldn't generate nickname.", ("sessionid", SessionId));
     public static ValueTask<OperationResult> RenameServerAsync(string name) =>
-        Api.Default.ApiPost($"{Endpoint}/renameserver", "Couldn't rename.", ("sessionid", SessionId), ("oldname", Settings.NodeName), ("newname", name));
-
+        Api.Default.ApiPost($"{Endpoint}/renameserver", "Renaming the node", ("sessionid", SessionId), ("oldname", Settings.NodeName), ("newname", name));
 
     public static ValueTask<OperationResult> AutoAuthAsync(string email) => AutoAuthAsync(email, Guid.NewGuid().ToString());
     public static ValueTask<OperationResult> AutoAuthAsync(string email, string guid) =>
-        AutoLoginAsync(email, guid)
+        Api.Default.ApiPost<LoginResult>($"{Endpoint}/autologin", null, "Autologging in", ("email", email), ("guid", guid))
         .Next(res => LoginSuccess(res.SessionId, email, guid, res.UserId, true));
 
     public static ValueTask<OperationResult> AuthAsync(string email, string password) => AuthAsync(email, password, Guid.NewGuid().ToString());
     public static ValueTask<OperationResult> AuthAsync(string email, string password, string guid) =>
-        LoginAsync(email, password, guid)
+        Api.Default.ApiPost<LoginResult>($"{Endpoint}/login", null, "Logging in", ("email", email), ("password", password), ("guid", guid))
         .Next(res => LoginSuccess(res.SessionId, email, guid, res.UserId, false));
 
     public static async ValueTask<OperationResult> WebAuthAsync(CancellationToken token = default)
@@ -81,6 +74,10 @@ public static class SessionManager
         }
 
         return true;
+
+
+        static ValueTask<OperationResult<string>> RequestNicknameAsync() =>
+            Api.Default.ApiPost<string>($"{Endpoint}/generatenickname", "nickname", "Generating nickname", ("sessionid", SessionId));
     }
 
 

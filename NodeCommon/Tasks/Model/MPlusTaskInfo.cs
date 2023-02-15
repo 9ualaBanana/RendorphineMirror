@@ -20,6 +20,13 @@ public class MPlusTaskInputInfo : ITaskInputInfo
 
         return new TaskObject(data.Files.File.FileName, data.Files.File.Size);
     }
+    public static async ValueTask<TaskObject> GetFileInfo(string iid, string userid, string sessionid)
+    {
+        var datar = await Api.Default.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info", ("sessionid", sessionid), ("userid", userid), ("iids", $"[\"{userid}\"]"));
+        var data = datar.ThrowIfError()[iid];
+
+        return new TaskObject(data.Files.File.FileName, data.Files.File.Size);
+    }
 }
 public class MPlusTaskOutputInfo : ITaskOutputInfo
 {

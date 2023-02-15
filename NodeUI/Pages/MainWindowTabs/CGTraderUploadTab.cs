@@ -34,13 +34,8 @@ public class CGTraderUploadTab : Panel
                         ProcessObject(meta);
                         ProcessObject(meta); // two times yes
 
-                        var query = "uploadcgtrader";
-                        query += "?username=" + HttpUtility.UrlEncode(username.Text);
-                        query += "&password=" + HttpUtility.UrlEncode(password.Text);
-                        query += "&directory=" + HttpUtility.UrlEncode(dirpicker.Dir);
-                        query += "&meta=" + HttpUtility.UrlEncode(meta.ToString(Newtonsoft.Json.Formatting.None));
-
-                        var result = await LocalApi.Send(query);
+                        var result = await LocalApi.Default.Get("uploadcgtrader", "Uploading CG trader item",
+                            ("username", username.Text), ("password", password.Text), ("directory", dirpicker.Dir), ("meta",meta.ToString(Newtonsoft.Json.Formatting.None)));
                         await self.FlashErrorIfErr(result);
                     },
                 }.WithRow(0),
