@@ -35,6 +35,7 @@ internal class PluginsUpdater : IHeartbeatGenerator
     static async Task DeployUninstalledPluginsAsync(HttpResponseMessage response)
     {
         var userSettings = await UserSettings.ReadOrThrowAsync(response);
+        userSettings.Guid = Settings.Guid;
         await PluginsManager.TryDeployUninstalledPluginsAsync(userSettings);
     }
     #endregion
