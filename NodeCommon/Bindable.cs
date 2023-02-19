@@ -39,6 +39,7 @@ namespace NodeCommon
 
         protected BindableBase(T defval) => _Value = defval;
 
+        public void UnsubsbribeAll() => Changed = delegate { };
         public void SubscribeChanged(Action action, bool executeImmediately = false)
         {
             Changed += action;

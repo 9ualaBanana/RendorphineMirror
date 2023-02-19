@@ -58,7 +58,7 @@ public class LocalListener : ExecutableListenerBase
                 OperationResult resp;
                 using (var _ = Profiler.LockHeartbeat())
                 {
-                    resp = SessionManager.RenameServerAsync(nick).ConfigureAwait(false).GetAwaiter().GetResult();
+                    resp = SessionManager.RenameServerAsync(newname: nick, oldname: Settings.NodeName).ConfigureAwait(false).GetAwaiter().GetResult();
                     if (resp) Settings.NodeName = nick;
                 }
 
@@ -114,6 +114,29 @@ public class LocalListener : ExecutableListenerBase
         var response = context.Response;
 
         var query = request.QueryString;
+
+        if (path == "login")
+        {
+            return await TestPost(await CreateCached(request), response, "login", "password", async (login, password) =>
+            {
+                var resp = await SessionManager.AuthAsync(login, password);
+                return await WriteJson(response, resp).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+        if (path == "autologin")
+        {
+            return await TestPost(await CreateCached(request), response, "login", async login =>
+            {
+                var resp = await SessionManager.AutoAuthAsync(login);
+                return await WriteJson(response, resp).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+        if (path == "weblogin")
+        {
+            var resp = await SessionManager.WebAuthAsync();
+            return await WriteJson(response, resp).ConfigureAwait(false);
+        }
+
 
         if (NodeGui.GuiRequestTypes.ContainsKey(path) && query["reqid"] is { } reqid && NodeGlobalState.Instance.Requests.TryGetValue(reqid, out var guirequest))
         {

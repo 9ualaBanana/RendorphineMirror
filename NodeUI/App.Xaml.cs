@@ -33,7 +33,7 @@ namespace NodeUI
 
                 this.InitializeTrayIndicator();
                 UICache.StartUpdatingStats();
-                UICache.StartUpdatingState().Consume();
+                NodeStateUpdater.Start();
 
                 MainTheme.Apply(Resources, Styles);
 

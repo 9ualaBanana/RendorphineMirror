@@ -2,16 +2,15 @@
 using System.Net;
 using System.Text;
 
-namespace NodeCommon;
+namespace Node;
 
 public static class SessionManager
 {
     const string Endpoint = Api.TaskManagerEndpoint;
-    public static string SessionId = null!;
 
 
-    public static ValueTask<OperationResult> RenameServerAsync(string name) =>
-        Api.Default.ApiPost($"{Endpoint}/renameserver", "Renaming the node", ("sessionid", SessionId), ("oldname", Settings.NodeName), ("newname", name));
+    public static ValueTask<OperationResult> RenameServerAsync(string newname, string oldname) =>
+        Api.Default.ApiPost($"{Endpoint}/renameserver", "Renaming the node", ("sessionid", Settings.SessionId), ("oldname", oldname), ("newname", newname));
 
     public static ValueTask<OperationResult> AutoAuthAsync(string email) => AutoAuthAsync(email, Guid.NewGuid().ToString());
     public static ValueTask<OperationResult> AutoAuthAsync(string email, string guid) =>
@@ -77,7 +76,7 @@ public static class SessionManager
 
 
         static ValueTask<OperationResult<string>> RequestNicknameAsync() =>
-            Api.Default.ApiPost<string>($"{Endpoint}/generatenickname", "nickname", "Generating nickname", ("sessionid", SessionId));
+            Api.Default.ApiPost<string>($"{Endpoint}/generatenickname", "nickname", "Generating nickname", ("sessionid", Settings.SessionId));
     }
 
 

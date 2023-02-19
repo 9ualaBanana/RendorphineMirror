@@ -40,14 +40,14 @@ namespace NodeUI.Pages
                     if (string.IsNullOrEmpty(password))
                         return OperationResult.Err("login.empty_password");
 
-                    auth = await SessionManager.AuthAsync(login, password).ConfigureAwait(false);
+                    auth = await LocalApi.Default.Post("login", "Logging in", (nameof(login), login), (nameof(password), password));
                 }
                 else if (loginType == LoginType.Slave)
                 {
                     if (string.IsNullOrWhiteSpace(login))
                         return OperationResult.Err("login.empty_login");
 
-                    auth = await SessionManager.AutoAuthAsync(login).ConfigureAwait(false);
+                    auth = await LocalApi.Default.Post("autologin", "Autologging in", (nameof(login), login));
                 }
                 else if (loginType == LoginType.Web)
                 {
@@ -60,7 +60,7 @@ namespace NodeUI.Pages
                         })).Consume();
 
                         WebAuthToken = new();
-                        auth = await SessionManager.WebAuthAsync(WebAuthToken.Token);
+                        auth = await LocalApi.Default.WithCancellationToken(WebAuthToken.Token).Post("weblogin", "Weblogging in");
                         WebAuthToken = null;
                         Login.SetMPlusLoginButtonText("Login via M+");
                     }

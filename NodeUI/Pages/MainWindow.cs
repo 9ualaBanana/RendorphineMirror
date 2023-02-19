@@ -59,9 +59,9 @@ namespace NodeUI.Pages
             };
 
 
-            UICache.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
             {
-                if (UICache.IsConnectedToNode.Value) statustb.Text = null;
+                if (NodeStateUpdater.IsConnectedToNode.Value) statustb.Text = null;
                 else
                 {
                     statustb.Text = "!!! No connection to node !!!";

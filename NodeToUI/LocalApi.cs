@@ -4,6 +4,7 @@ public record LocalApi(ApiInstance Api)
 {
     public static readonly LocalApi Default = new LocalApi(Common.Api.Default);
 
+    public LocalApi WithCancellationToken(CancellationToken token) => this with { Api = Api with { CancellationToken = token } };
 
     string Url(string part) => $"http://127.0.0.1:{NodeGlobalState.Instance.LocalListenPort}/{part}";
 

@@ -43,7 +43,6 @@ await Task.WhenAll(
 InitializeSettings();
 new LocalListener().Start();
 
-SessionManager.SessionId = Settings.SessionId;
 if (Settings.SessionId is not null)
     logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
 else

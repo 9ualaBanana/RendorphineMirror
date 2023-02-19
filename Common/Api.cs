@@ -35,13 +35,12 @@ public static class Api
         return responseJson;
     }
 }
-public record ApiInstance(HttpClient Client, bool LogRequests = true)
+public record ApiInstance(HttpClient Client, bool LogRequests = true, CancellationToken? CancellationToken = default)
 {
     const string ServerUri = Api.ServerUri;
     const string TaskManagerEndpoint = Api.TaskManagerEndpoint;
 
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-
 
     public ValueTask<OperationResult<T>> ApiGet<T>(string url, string? property, string errorDetails, params (string, string)[] values) =>
         Send<T>(HttpMethod.Get, JustGet, url, property, values, errorDetails);
