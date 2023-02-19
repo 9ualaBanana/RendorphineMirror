@@ -4,12 +4,12 @@ namespace SoftwareRegistry;
 
 public class SoftList
 {
-    readonly DatabaseValueKeyDictionary<string, SoftwareDefinition> SoftwareDictBindable = new(nameof(Software), StringComparer.OrdinalIgnoreCase);
+    readonly DatabaseValueKeyDictionary<string, SoftwareDefinition> SoftwareDictBindable = new(Database.Instance, nameof(Software), StringComparer.OrdinalIgnoreCase);
     public ImmutableDictionary<string, SoftwareDefinition> Software => SoftwareDictBindable.Values.ToImmutableDictionary();
 
     public SoftList()
     {
-        var soft = new DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>>(nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
+        var soft = new DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>>(Database.Instance, nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
         var softv = soft.Value.WithComparers(StringComparer.OrdinalIgnoreCase);
         if (softv.Count != 0)
         {
@@ -35,7 +35,7 @@ public class SoftList
         var bkppath = Path.Combine(Init.ConfigDirectory, "bkp");
         Directory.CreateDirectory(bkppath);
 
-        File.Copy(Settings.DbPath, Path.Combine(bkppath, DateTimeOffset.Now.ToUnixTimeSeconds().ToString() + ".db"), true);
+        File.Copy(Database.Instance.DbPath, Path.Combine(bkppath, DateTimeOffset.Now.ToUnixTimeSeconds().ToString() + ".db"), true);
     }
 
     public void Set(IEnumerable<KeyValuePair<string, SoftwareDefinition>> soft)

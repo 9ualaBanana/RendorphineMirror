@@ -26,24 +26,26 @@ public abstract class DatabaseValueBase<T, TBindable> : IDatabaseBindable<T> whe
 
     public string Name { get; }
     public readonly TBindable Bindable;
+    readonly Database Database;
 
 
-    public DatabaseValueBase(string name, TBindable bindable)
+    public DatabaseValueBase(Database database, string name, TBindable bindable)
     {
+        Database = database;
+        database.Track(this);
+
         Name = name;
         Bindable = bindable;
 
         Reload();
         Bindable.Changed += Save;
-
-        _Bindables.Add(this);
     }
 
     public void Reload()
     {
-        Settings.ExecuteNonQuery($"create table if not exists {ConfigTable} (key text primary key unique, value text null);");
+        Database.ExecuteNonQuery($"create table if not exists {ConfigTable} (key text primary key unique, value text null);");
 
-        using var query = Settings.ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", Name));
+        using var query = Database.ExecuteQuery(@$"select value from {ConfigTable} where key=@key;", new SQLiteParameter("key", Name));
         if (!query.Read()) return;
 
         JToken jt;
@@ -54,7 +56,7 @@ public abstract class DatabaseValueBase<T, TBindable> : IDatabaseBindable<T> whe
     }
     public void Save()
     {
-        Settings.ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
+        Database.ExecuteNonQuery(@$"insert into {ConfigTable}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
             new SQLiteParameter("key", Name),
             new SQLiteParameter("value", (Value is null ? JValue.CreateNull() : JToken.FromObject(Value)).ToString())
         );
@@ -62,7 +64,7 @@ public abstract class DatabaseValueBase<T, TBindable> : IDatabaseBindable<T> whe
 
     public void Delete()
     {
-        Settings.ExecuteNonQuery(@$"delete from {ConfigTable} where key=@key;",
+        Database.ExecuteNonQuery(@$"delete from {ConfigTable} where key=@key;",
             new SQLiteParameter("key", Name)
         );
     }
@@ -71,12 +73,12 @@ public class DatabaseValue<T> : DatabaseValueBase<T, Bindable<T>>, IDatabaseValu
 {
     public new T Value { get => Bindable.Value; set => Bindable.Value = value; }
 
-    public DatabaseValue(string name, T defaultValue) : base(name, new(defaultValue)) { }
+    public DatabaseValue(Database database, string name, T defaultValue) : base(database, name, new(defaultValue)) { }
 }
 
 public class DatabaseValueKeyDictionary<TKey, TValue> : DatabaseValueDictionary<TKey, KeyValuePair<TKey, TValue>> where TKey : notnull
 {
-    public DatabaseValueKeyDictionary(string table, IEqualityComparer<TKey>? comparer = null) : base(table, k => k.Key, comparer) { }
+    public DatabaseValueKeyDictionary(Database database, string table, IEqualityComparer<TKey>? comparer = null) : base(database, table, k => k.Key, comparer) { }
 
     public void Add(TKey key, TValue value) => base.Add(KeyValuePair.Create(key, value));
 }
@@ -93,9 +95,13 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
 
     readonly Func<TValue, TKey> KeyFunc;
     readonly string TableName;
+    readonly Database Database;
 
-    public DatabaseValueDictionary(string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null, JsonSerializer? serializer = null)
+    public DatabaseValueDictionary(Database database, string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null, JsonSerializer? serializer = null)
     {
+        Database = database;
+        database.Track(this);
+
         if (serializer is not null) ItemsList.JsonSerializer = serializer;
         Items = new(comparer);
 
@@ -119,7 +125,7 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
         ItemsList.Add(value);
         Items.Add(key, value);
 
-        Settings.ExecuteNonQuery(@$"insert into {TableName}(key, value) values (@key, @value)",
+        Database.ExecuteNonQuery(@$"insert into {TableName}(key, value) values (@key, @value)",
             Parameter("key", key),
             Parameter("value", value)
         );
@@ -137,14 +143,14 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
             ItemsList.Remove(value);
         Items.Remove(key);
 
-        Settings.ExecuteNonQuery(@$"delete from {TableName} where key=@key", Parameter("key", key));
+        Database.ExecuteNonQuery(@$"delete from {TableName} where key=@key", Parameter("key", key));
     }
 
     public void Clear()
     {
         ItemsList.Clear();
         Items.Clear();
-        Settings.ExecuteNonQuery(@$"delete from {TableName}");
+        Database.ExecuteNonQuery(@$"delete from {TableName}");
     }
 
     public void Reload()
@@ -152,8 +158,8 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
         Items.Clear();
         ItemsList.Clear();
 
-        Settings.ExecuteNonQuery($"create table if not exists {TableName} (key text primary key unique not null, value text null);");
-        var reader = Settings.ExecuteQuery($"select * from {TableName} order by rowid");
+        Database.ExecuteNonQuery($"create table if not exists {TableName} (key text primary key unique not null, value text null);");
+        var reader = Database.ExecuteQuery($"select * from {TableName} order by rowid");
 
         while (reader.Read())
         {
@@ -166,7 +172,7 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
     }
     public void Save(TValue value)
     {
-        Settings.ExecuteNonQuery($"insert into {TableName}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
+        Database.ExecuteNonQuery($"insert into {TableName}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
             Parameter("key", KeyFunc(value)),
             Parameter("value", value)
         );

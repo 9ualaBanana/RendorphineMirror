@@ -1,16 +1,8 @@
-﻿using System.Data.Common;
-using System.Data.SQLite;
-
-namespace Node;
+﻿namespace Node;
 
 public static class Settings
 {
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
     public static event Action? AnyChanged;
-    public static IReadOnlyList<IDatabaseBindable> Bindables => _Bindables;
-    static readonly List<IDatabaseBindable> _Bindables = new();
-    public static readonly string DbPath;
 
     public static string SessionId => AuthInfo?.SessionId!;
     public static string? Email => AuthInfo?.Email;
@@ -32,25 +24,20 @@ public static class Settings
     public static readonly DatabaseValue<string?> BNodeName;
     public static readonly DatabaseValue<AuthInfo?> BAuthInfo;
 
-    static readonly SQLiteConnection Connection;
-
     static Settings()
     {
-        DbPath = Path.Combine(Init.ConfigDirectory, "config.db");
-        Connection = new SQLiteConnection("Data Source=" + DbPath + ";Version=3;cache=shared");
-        if (!File.Exists(DbPath)) SQLiteConnection.CreateFile(DbPath);
-        Connection.Open();
-        OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA cache=shared;")).LogIfError();
+        static ushort randomized(ushort port) => (ushort) (port + Random.Shared.Next(80));
 
+        var db = Database.Instance;
 
-        BServerUrl = new(nameof(ServerUrl), "https://t.microstock.plus:8443");
-        BLocalListenPort = new(nameof(LocalListenPort), randomized(5123));
-        BUPnpPort = new(nameof(UPnpPort), randomized(5223));
-        BUPnpServerPort = new(nameof(UPnpServerPort), randomized(5323));
-        BDhtPort = new(nameof(DhtPort), randomized(6223));
-        BTorrentPort = new(nameof(TorrentPort), randomized(6323));
-        BAuthInfo = new(nameof(AuthInfo), default);
-        BNodeName = new(nameof(NodeName), null);
+        BServerUrl = new(db, nameof(ServerUrl), "https://t.microstock.plus:8443");
+        BLocalListenPort = new(db, nameof(LocalListenPort), randomized(5123));
+        BUPnpPort = new(db, nameof(UPnpPort), randomized(5223));
+        BUPnpServerPort = new(db, nameof(UPnpServerPort), randomized(5323));
+        BDhtPort = new(db, nameof(DhtPort), randomized(6223));
+        BTorrentPort = new(db, nameof(TorrentPort), randomized(6323));
+        BAuthInfo = new(db, nameof(AuthInfo), default);
+        BNodeName = new(db, nameof(NodeName), null);
 
         typeof(Settings).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)
             .Where(x => x.FieldType.IsAssignableTo(typeof(IBindable)))
@@ -60,46 +47,5 @@ public static class Settings
 
         foreach (var bindable in new[] { BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort })
             bindable.Save();
-
-
-        static ushort randomized(ushort port) => (ushort) (port + Random.Shared.Next(80));
-    }
-
-    public static int ExecuteNonQuery(string command)
-    {
-        using var cmd = new SQLiteCommand(command, Connection);
-        return cmd.ExecuteNonQuery();
-    }
-    public static int ExecuteNonQuery(string command, params DbParameter[] parameters) => ExecuteNonQuery(command, parameters.AsEnumerable());
-    public static int ExecuteNonQuery(string command, IEnumerable<DbParameter> parameters)
-    {
-        using var cmd = new SQLiteCommand(command, Connection);
-
-        foreach (var parameter in parameters)
-            cmd.Parameters.Add(parameter);
-
-        return cmd.ExecuteNonQuery();
-    }
-
-    public static DbDataReader ExecuteQuery(string command)
-    {
-        using var cmd = new SQLiteCommand(command, Connection);
-        return cmd.ExecuteReader();
-    }
-    public static DbDataReader ExecuteQuery(string command, params DbParameter[] parameters) => ExecuteQuery(command, parameters.AsEnumerable());
-    public static DbDataReader ExecuteQuery(string command, IEnumerable<DbParameter> parameters)
-    {
-        using var cmd = new SQLiteCommand(command, Connection);
-
-        foreach (var parameter in parameters)
-            cmd.Parameters.Add(parameter);
-
-        return cmd.ExecuteReader();
-    }
-
-    public static void Reload()
-    {
-        foreach (var bindable in Bindables)
-            bindable.Reload();
     }
 }

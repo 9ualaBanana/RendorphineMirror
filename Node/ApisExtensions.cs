@@ -16,6 +16,7 @@ public static class ApisExtensions
     public static ValueTask<OperationResult<ServerTaskState>> GetTaskStateAsyncOrThrow(this ITaskApi task) => Apis.GetTaskStateAsyncOrThrow(task);
     public static ValueTask<OperationResult<ServerTaskState?>> GetTaskStateAsync(this ITaskApi task) => Apis.GetTaskStateAsync(task);
 
+    public static ValueTask<OperationResult> ChangeStateAsync(this ITaskApi task, TaskState state) => Apis.ChangeStateAsync(task, state);
     public static async ValueTask<OperationResult> FailTaskAsync(this ITaskApi task, string errorMessage)
     {
         var fail = await Apis.FailTaskAsync(task, errorMessage);

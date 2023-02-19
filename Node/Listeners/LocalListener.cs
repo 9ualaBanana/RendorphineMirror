@@ -39,7 +39,7 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "reloadcfg")
         {
-            Settings.Reload();
+            Database.Instance.ReloadAllBindables();
             return await WriteSuccess(response).ConfigureAwait(false);
         }
 
