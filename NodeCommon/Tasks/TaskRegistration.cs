@@ -27,7 +27,7 @@ public static class TaskRegistration
         var data = info.Data;
         var input = TaskModels.DeserializeInput(info.Input);
         var output = TaskModels.DeserializeOutput(info.Output);
-        var taskobj = info.TaskObject ?? (await input.GetFileInfo());
+        var taskobj = info.TaskObject; // .ThrowIfNull("Task object is null"); // TODO: uncomment after all instances of TaskObject=null are fixed
 
         await input.InitializeAsync();
         await output.InitializeAsync();

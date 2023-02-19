@@ -29,7 +29,7 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
             ?? Task.Output.CreateOutput(Task, fileName);
 
         var newinput = new MPlusTaskInputInfo(item.Iid, item.UserId);
-        var newtask = await Task.RegisterTask(newinput, output);
+        var newtask = await Task.RegisterTask(newinput, output, await newinput.GetFileInfo(Settings.SessionId, Settings.UserId).ThrowIfError());
         Task.PlacedNonCompletedTasks.Add(newtask.Id);
 
         SaveTask();

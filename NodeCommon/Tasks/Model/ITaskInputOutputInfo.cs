@@ -10,8 +10,6 @@ public interface ITaskInputOutputInfo
 public interface ITaskInputInfo : ITaskInputOutputInfo
 {
     TaskInputType Type { get; }
-
-    ValueTask<TaskObject> GetFileInfo();
 }
 [JsonConverter(typeof(TaskOutputJConverter))]
 public interface ITaskOutputInfo : ITaskInputOutputInfo

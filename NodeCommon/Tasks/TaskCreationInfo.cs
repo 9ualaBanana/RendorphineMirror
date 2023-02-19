@@ -12,24 +12,11 @@ public class TaskCreationInfo
     public JObject Output = default!;
     public JObject Data = default!;
     public TaskPolicy Policy = TaskPolicy.AllNodes;
-    public TaskObject? TaskObject = null;
+    public TaskObject TaskObject = default!;
     public double PriceMultiplication = 1;
 
     [JsonConstructor]
     public TaskCreationInfo() { }
-
-    [Obsolete("Use larger overload instead")]
-    public TaskCreationInfo(PluginType type, string? version, string action, JObject input, JObject output, JObject data, TaskPolicy policy, TaskObject? taskobj = null)
-    {
-        Type = type;
-        Version = version;
-        Action = action;
-        Input = input;
-        Output = output;
-        Data = data;
-        Policy = policy;
-        TaskObject = taskobj;
-    }
 
 
     [Obsolete("Use larger overload instead")]
