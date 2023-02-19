@@ -23,20 +23,6 @@ public class LocalListener : ExecutableListenerBase
 
         var query = request.QueryString;
 
-        if (path == "uploadtorrent")
-        {
-            return await Test(request, response, "url", "dir", async (url, dir) =>
-            {
-                var peerid = TorrentClient.PeerId.UrlEncode();
-                var peerurl = PortForwarding.GetPublicIPAsync().ConfigureAwait(false);
-                var (data, manager) = await TorrentClient.CreateAddTorrent(dir).ConfigureAwait(false);
-                var downloadr = await Api.Default.ApiPost($"{url}/downloadtorrent?peerid={peerid}&peerurl={await peerurl}:{Settings.TorrentPort}", "Downloading torrent", new ByteArrayContent(data)).ConfigureAwait(false);
-                if (!downloadr) return await WriteJson(response, downloadr).ConfigureAwait(false);
-
-                return await WriteJson(response, manager.InfoHash.ToHex().AsOpResult()).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-
         if (path == "reloadcfg")
         {
             Database.Instance.ReloadAllBindables();

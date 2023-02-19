@@ -31,7 +31,7 @@ public class DownloadTorrentCmdlet : PSCmdlet
             await torrentstream.CopyToAsync(torrentstreamcopy);
 
         torrentstreamcopy.Position = 0;
-        var manager = await TorrentClient.AddOrGetTorrent(await Torrent.LoadAsync(torrentstreamcopy), targetdir);
+        var manager = await TorrentClientInstance.Instance.AddOrGetTorrent(await Torrent.LoadAsync(torrentstreamcopy), targetdir);
 
         // TODO:                                                                                     move IP declaration into registry or something 
         foreach (var port in peer.Ports)

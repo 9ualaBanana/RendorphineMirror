@@ -15,6 +15,7 @@ using Srv = Microsoft.AspNetCore.Mvc.FromServicesAttribute;
 Initializer.ConfigDirectory = "renderfin_registry";
 Init.Initialize();
 
+var client = new TorrentClient(6229, 6230);
 var logger = LogManager.GetCurrentClassLogger();
 
 Directory.CreateDirectory("torrents");
@@ -32,12 +33,12 @@ foreach (var dir in Directory.GetDirectories("torrents").Concat(Directory.GetDir
     }
 
     var torrent = await Torrent.LoadAsync(torrentfile);
-    var manager = await TorrentClient.AddOrGetTorrent(torrent, dir);
+    var manager = await client.AddOrGetTorrent(torrent, dir);
     logger.Info("Started torrent " + torrentfile + " " + torrent.InfoHash.ToHex());
 }
-logger.Info("Torrent listening at dht" + TorrentClient.DhtPort + " and trt" + TorrentClient.ListenPort);
+logger.Info("Torrent listening at dht" + client.DhtPort + " and trt" + client.ListenPort);
 
-foreach (var t in TorrentClient.Client.Torrents)
+foreach (var t in client.Client.Torrents)
     await t.LocalPeerAnnounceAsync();
 
 
@@ -47,6 +48,7 @@ builder.Logging.ClearProviders();
 builder.Host.UseNLog();
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddSingleton(new SoftList());
+builder.Services.AddSingleton(client);
 
 var app = builder.Build();
 
@@ -60,7 +62,7 @@ app.Run();
 public class SoftwareController : ControllerBase
 {
     [HttpGet("getpeer")]
-    public JObject GetPeerId() => JsonApi.Success(new JsonPeer(TorrentClient.PeerId.UrlEncode(), ImmutableArray.Create(TorrentClient.ListenPort)));
+    public JObject GetPeerId([Srv] TorrentClient client) => JsonApi.Success(new JsonPeer(client.PeerId.UrlEncode(), ImmutableArray.Create(client.ListenPort)));
 
     [HttpGet("getsoft")]
     public JObject GetSoftware([Srv] ILogger<SoftwareController> logger, [Srv] SoftList softlist,
