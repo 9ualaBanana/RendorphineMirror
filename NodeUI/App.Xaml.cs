@@ -37,15 +37,24 @@ namespace NodeUI
 
                 MainTheme.Apply(Resources, Styles);
 
+                NodeGlobalState.Instance.BAuthInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
                 if (!Environment.GetCommandLineArgs().Contains("hidden"))
                     SetMainWindow(desktop);
             }
         }
 
-        public static Window SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime) =>
-            lifetime.MainWindow =
-                NodeGlobalState.Instance.AuthInfo?.SessionId is null
-                ? new LoginWindow()
-                : new MainWindow();
+        public static Window SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime)
+        {
+            if (lifetime.MainWindow is MainWindow && NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
+                return lifetime.MainWindow;
+
+            lifetime.MainWindow?.Hide();
+            return lifetime.MainWindow =
+                (!NodeStateUpdater.IsConnectedToNode.Value)
+                ? new InitializingWindow()
+                : NodeGlobalState.Instance.AuthInfo?.SessionId is null
+                    ? new LoginWindow()
+                    : new MainWindow();
+        }
     }
 }
