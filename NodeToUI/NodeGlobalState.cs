@@ -12,6 +12,8 @@ public class NodeGlobalState
     [JsonIgnore]
     public readonly WeakEventManager<string> AnyChanged = new();
 
+    public string? SessionId => AuthInfo?.SessionId;
+
     public readonly Bindable<TasksFullDescriber> TaskDefinitions = new();
     public readonly BindableList<Plugin> InstalledPlugins = new();
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
@@ -21,22 +23,35 @@ public class NodeGlobalState
     public readonly BindableList<WatchingTask> WatchingTasks = new();
     public readonly Bindable<JObject?> BenchmarkResult = new();
 
+    public string ServerUrl => BServerUrl.Value;
+    public ushort LocalListenPort => BLocalListenPort.Value;
+    public ushort UPnpPort => BUPnpPort.Value;
+    public ushort UPnpServerPort => BUPnpServerPort.Value;
+    public ushort DhtPort => BDhtPort.Value;
+    public ushort TorrentPort => BTorrentPort.Value;
+    public string? NodeName => BNodeName.Value;
+    public AuthInfo? AuthInfo => BAuthInfo.Value;
+
+    public readonly Bindable<string> BServerUrl = new();
+    public readonly Bindable<ushort> BLocalListenPort = new();
+    public readonly Bindable<ushort> BUPnpPort = new();
+    public readonly Bindable<ushort> BUPnpServerPort = new();
+    public readonly Bindable<ushort> BDhtPort = new();
+    public readonly Bindable<ushort> BTorrentPort = new();
+    public readonly Bindable<string?> BNodeName = new();
+    public readonly Bindable<AuthInfo?> BAuthInfo = new();
+
     // string = request guid
     public readonly BindableDictionary<string, GuiRequest> Requests = new();
 
 
     private NodeGlobalState()
     {
-        TaskDefinitions.Changed += () => AnyChanged.Invoke(nameof(TaskDefinitions));
-        InstalledPlugins.Changed += () => AnyChanged.Invoke(nameof(InstalledPlugins));
-        ExecutingBenchmarks.Changed += () => AnyChanged.Invoke(nameof(ExecutingBenchmarks));
-        QueuedTasks.Changed += () => AnyChanged.Invoke(nameof(QueuedTasks));
-        ExecutingTasks.Changed += () => AnyChanged.Invoke(nameof(ExecutingTasks));
-        PlacedTasks.Changed += () => AnyChanged.Invoke(nameof(PlacedTasks));
-        WatchingTasks.Changed += () => AnyChanged.Invoke(nameof(WatchingTasks));
-        BenchmarkResult.Changed += () => AnyChanged.Invoke(nameof(BenchmarkResult));
-
-        Requests.Changed += () => AnyChanged.Invoke(nameof(Requests));
+        GetType().GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
+            .Where(x => x.FieldType.IsAssignableTo(typeof(IBindable)))
+            .Select(x => ((IBindable) x.GetValue(this)!, x.Name))
+            .ToList()
+            .ForEach(x => x.Item1.Changed += () => AnyChanged.Invoke(x.Name));
     }
 
 

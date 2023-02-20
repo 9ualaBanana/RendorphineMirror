@@ -115,7 +115,8 @@ public static class TaskHandler
                 await process(TaskState.Active, act.Active);
                 await process(TaskState.Output, act.Output);
                 await process(TaskState.Validation, act.Validation);
-                async ValueTask process(TaskState state, ImmutableArray<Apis.TMTaskStateInfo> tasks)
+
+                async ValueTask process(TaskState state, ImmutableArray<TMTaskStateInfo> tasks)
                 {
                     var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.Id, out var task) && task.State != state).Select(x => x.Id).ToArray();
                     if (changed.Length != 0)
@@ -132,7 +133,7 @@ public static class TaskHandler
                 await processTask(id, state, null);
 
 
-            async ValueTask processTask(string taskid, Apis.ITaskStateInfo state, TaskState? newstate)
+            async ValueTask processTask(string taskid, ITaskStateInfo state, TaskState? newstate)
             {
                 if (!NodeSettings.PlacedTasks.TryGetValue(taskid, out var task)) return;
 

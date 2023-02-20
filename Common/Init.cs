@@ -128,6 +128,6 @@ public static class Init
         return dir;
     }
 
-    public static string RuntimeCacheDirectory(string? subdir = null) => NewDirectory(ConfigDirectory, "cache", subdir);
+    public static string RuntimeCacheDirectory(string? subdir = null) => NewDirectory(ConfigDirectory, Path.GetFileNameWithoutExtension(Environment.ProcessPath) + "_cache", subdir);
     public static string TempDirectory(string? subdir = null) => NewDirectory(ConfigDirectory, "temp", subdir);
 }

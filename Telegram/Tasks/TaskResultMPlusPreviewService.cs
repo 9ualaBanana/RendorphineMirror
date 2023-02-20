@@ -55,7 +55,7 @@ public class TaskResultMPlusPreviewService
             foreach (var taskResultPreview in taskResultPreviews)
                 await SendTaskResultPreviewAsync(authenticationToken.ChatId, taskResultPreview);
 
-            await Apis.Default.WithSessionId(authenticationToken.MPlus.SessionId).ChangeStateAsync(taskApi, TaskState.Finished).ThrowIfError();
+            await Apis.DefaultWithSessionId(authenticationToken.MPlus.SessionId).ChangeStateAsync(taskApi, TaskState.Finished).ThrowIfError();
         }
         else throw new ArgumentException($"Task ID is unknown: {taskApi.Id}");
     }

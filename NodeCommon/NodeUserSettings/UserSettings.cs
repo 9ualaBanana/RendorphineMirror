@@ -8,7 +8,7 @@ public class UserSettings
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-    public readonly string? Guid;
+    public string? Guid;
     [JsonProperty(ItemConverterType = typeof(PluginToDeployConverter))]
     public HashSet<PluginToDeploy> InstallSoftware { get; set; } = new();
     [JsonProperty(ItemConverterType = typeof(PluginToDeployConverter))]
@@ -17,7 +17,7 @@ public class UserSettings
     public HashSet<PluginToDeploy> NodeInstallSoftwareFor(string guid) => NodeInstallSoftware.GetValueOrDefault(guid, new());
 
 
-    public UserSettings(string? guid = default) => Guid = guid ?? Settings.Guid!;
+    public UserSettings(string? guid = default) => Guid = guid;
 
     public static async Task<UserSettings> ReadOrThrowAsync(HttpResponseMessage response)
     {

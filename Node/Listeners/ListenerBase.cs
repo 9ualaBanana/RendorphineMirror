@@ -4,6 +4,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
+using System.Web;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
@@ -32,8 +33,8 @@ public abstract class ListenerBase
 
         var prefixes = new List<string>();
         if (ListenType.HasFlag(ListenTypes.Local)) addprefix($"127.0.0.1:{Settings.LocalListenPort}");
-        if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{PortForwarding.Port}");
-        if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{PortForwarding.ServerPort}");
+        if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{Settings.UPnpPort}");
+        if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{Settings.UPnpServerPort}");
         void addprefix(string prefix)
         {
             prefix = $"http://{prefix}/{Prefix}";
@@ -222,6 +223,58 @@ public abstract class ListenerBase
 
             return func(c1v, c2v, c3v, c4v);
         });
+
+    protected static ValueTask<CachedHttpListenerRequest> CreateCached(HttpListenerRequest request) => CachedHttpListenerRequest.Create(request);
+    protected static Task<HttpStatusCode> TestPost(CachedHttpListenerRequest request, HttpListenerResponse response, string c1, Func<string, Task<HttpStatusCode>> func)
+    {
+        var c1v = request.Data[c1];
+        if (c1v is null) return WriteNoArgument(response, c1);
+
+        return func(c1v);
+    }
+    protected static Task<HttpStatusCode> TestPost(CachedHttpListenerRequest request, HttpListenerResponse response, string c1, string c2, Func<string, string, Task<HttpStatusCode>> func) =>
+        TestPost(request, response, c1, c1v =>
+        {
+            var c2v = request.Data[c2];
+            if (c2v is null) return WriteNoArgument(response, c2);
+
+            return func(c1v, c2v);
+        });
+    protected static Task<HttpStatusCode> TestPost(CachedHttpListenerRequest request, HttpListenerResponse response, string c1, string c2, string c3, Func<string, string, string, Task<HttpStatusCode>> func) =>
+        TestPost(request, response, c1, c2, (c1v, c2v) =>
+        {
+            var c3v = request.Data[c3];
+            if (c3v is null) return WriteNoArgument(response, c3);
+
+            return func(c1v, c2v, c3v);
+        });
+    protected static Task<HttpStatusCode> TestPost(CachedHttpListenerRequest request, HttpListenerResponse response, string c1, string c2, string c3, string c4, Func<string, string, string, string, Task<HttpStatusCode>> func) =>
+        TestPost(request, response, c1, c2, c3, (c1v, c2v, c3v) =>
+        {
+            var c4v = request.Data[c4];
+            if (c4v is null) return WriteNoArgument(response, c4);
+
+            return func(c1v, c2v, c3v, c4v);
+        });
+    public readonly struct CachedHttpListenerRequest
+    {
+        public readonly NameValueCollection Data;
+        readonly HttpListenerRequest Request;
+
+        public static async ValueTask<CachedHttpListenerRequest> Create(HttpListenerRequest request)
+        {
+            using var reader = new StreamReader(request.InputStream);
+            var inputstr = await reader.ReadToEndAsync();
+            var data = HttpUtility.ParseQueryString(inputstr);
+
+            return new(request, data);
+        }
+        public CachedHttpListenerRequest(HttpListenerRequest request, NameValueCollection data)
+        {
+            Request = request;
+            Data = data;
+        }
+    }
 
 
     protected static OperationResult<string> ReadQueryValue(HttpListenerContext context, string key) => ReadQueryString(context.Request.QueryString, key);

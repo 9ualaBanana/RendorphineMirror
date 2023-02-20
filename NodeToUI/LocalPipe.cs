@@ -7,7 +7,6 @@ public static class LocalPipe
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-    public static Task<Stream> SendLocalAsync(string prefix) => SendAsync(new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{Settings.LocalListenPort}/{prefix}"));
     public static Task<Stream> SendAsync(string uri) => SendAsync(new HttpRequestMessage(HttpMethod.Get, uri));
     public static async Task<Stream> SendAsync(HttpRequestMessage msg)
     {

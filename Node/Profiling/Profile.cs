@@ -4,8 +4,8 @@ namespace Node.Profiling;
 
 internal class Profile
 {
-    public int Port => PortForwarding.Port;
-    public int WebPort => PortForwarding.ServerPort;
+    public int Port => Settings.UPnpPort;
+    public int WebPort => Settings.UPnpServerPort;
     public string Nickname => Settings.NodeName;
     public string Guid => Settings.Guid;
     public string Version => MachineInfo.Version;

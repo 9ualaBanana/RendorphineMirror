@@ -24,7 +24,7 @@ public class DirectoryDiffListener : ExecutableListenerBase
         if (!Directory.Exists(dir)) return await WriteErr(response, "Directory does not exists");
 
         var files = Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories)
-            .Select(file => new DiffOutputFile(file, new DateTimeOffset(File.GetCreationTimeUtc(file)).ToUnixTimeMilliseconds()))
+            .Select(file => new DiffOutputFile(file, new FileInfo(file).Length, new DateTimeOffset(File.GetCreationTimeUtc(file)).ToUnixTimeMilliseconds()))
             .Where(v => v.ModifTime > lastcheck)
             .ToImmutableArray();
 
@@ -32,5 +32,5 @@ public class DirectoryDiffListener : ExecutableListenerBase
     }
 
     public readonly record struct DiffOutput(ImmutableArray<DiffOutputFile> Files);
-    public readonly record struct DiffOutputFile(string Path, long ModifTime);
+    public readonly record struct DiffOutputFile(string Path, long Size, long ModifTime);
 }

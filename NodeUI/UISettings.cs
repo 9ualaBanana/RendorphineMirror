@@ -1,5 +1,3 @@
-using static NodeCommon.Settings;
-
 namespace NodeUI;
 
 public static class UISettings
@@ -12,7 +10,8 @@ public static class UISettings
 
     static UISettings()
     {
-        BLanguage = new(nameof(Language), null);
-        BShortcutsCreated = new($"{nameof(ShortcutsCreated)}_2", false);
+        var db = Database.Instance;
+        BLanguage = new(db, nameof(Language), null);
+        BShortcutsCreated = new(db, $"{nameof(ShortcutsCreated)}_2", false);
     }
 }

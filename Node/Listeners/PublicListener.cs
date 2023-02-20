@@ -18,40 +18,6 @@ public class PublicListener : ExecutableListenerBase
         if (path == "ping")
             return await WriteJToken(response, $"ok from {MachineInfo.PCName} {MachineInfo.UserName} {Settings.NodeName} v{MachineInfo.Version} web{Settings.UPnpServerPort}").ConfigureAwait(false);
 
-        if (path == "torrentinfo")
-        {
-            return await Test(request, response, "hash", async hash =>
-            {
-                var ihash = InfoHash.FromHex(hash);
-                var manager = TorrentClient.TryGetManager(ihash);
-                if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
-
-                var data = new JObject()
-                {
-                    ["peers"] = JObject.FromObject(manager.Peers),
-                    ["progress"] = new JValue(manager.PartialProgress),
-                    ["monitor"] = JObject.FromObject(manager.Monitor),
-                };
-
-                return await WriteJToken(response, data).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-        if (path == "stoptorrent")
-        {
-            return await Test(request, response, "hash", async hash =>
-            {
-                var ihash = InfoHash.FromHex(hash);
-                var manager = TorrentClient.TryGetManager(ihash);
-                if (manager is null) return await WriteErr(response, "no such torrent").ConfigureAwait(false);
-
-                _logger.Info("Stopping torrent {Hash}", hash);
-                await manager.StopAsync().ConfigureAwait(false);
-                await TorrentClient.Client.RemoveAsync(manager).ConfigureAwait(false);
-
-                return await WriteSuccess(response).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-
         if (path == "getcontents")
         {
             var authcheck = await CheckAuthentication(context).ConfigureAwait(false);
@@ -96,36 +62,6 @@ public class PublicListener : ExecutableListenerBase
                 await reader.CopyToAsync(response.OutputStream);
                 return HttpStatusCode.OK;
             }
-        }
-
-        return HttpStatusCode.NotFound;
-    }
-    protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
-    {
-        var request = context.Request;
-        var response = context.Response;
-
-        var query = request.QueryString;
-
-        if (path == "downloadtorrent")
-        {
-            return await Test(request, response, "peerurl", "peerid", async (peerurl, peerid) =>
-            {
-                // using memorystream since request.InputStream doesnt support seeking
-                var stream = new MemoryStream();
-                await request.InputStream.CopyToAsync(stream).ConfigureAwait(false);
-                stream.Position = 0;
-
-                var torrent = await Torrent.LoadAsync(stream).ConfigureAwait(false);
-                var manager = await TorrentClient.AddOrGetTorrent(torrent, "torrenttest_" + torrent.InfoHash.ToHex()).ConfigureAwait(false);
-
-                _logger.Debug(@$"Downloading torrent {torrent.InfoHash.ToHex()} from peer {peerurl}");
-
-                var peer = new Peer(BEncodedString.FromUrlEncodedString(peerid), new Uri("ipv4://" + peerurl));
-                await manager.AddPeerAsync(peer).ConfigureAwait(false);
-
-                return await WriteSuccess(response).ConfigureAwait(false);
-            }).ConfigureAwait(false);
         }
 
         return HttpStatusCode.NotFound;

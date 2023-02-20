@@ -34,7 +34,7 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
         foreach (var file in files)
         {
-            var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: Path.GetFileNameWithoutExtension(file), task, Api.Client), cancellationToken: cancellationToken);
+            var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: Path.GetFileNameWithoutExtension(file), task, Api.Client, Settings.SessionId), cancellationToken: cancellationToken);
             task.UploadedFiles.Add(new MPlusUploadedFileInfo(iid, file));
         }
     }

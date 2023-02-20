@@ -87,7 +87,7 @@ public class UpdateChecker
         TempDirectory = tempdirectory ?? Path.Combine(Path.GetTempPath(), $"{app}-update");
         Directory.CreateDirectory(TempDirectory);
 
-        appexecutables ??= appexecutables = new[] { "Node", "NodeUI" };
+        appexecutables ??= new[] { "Node", "NodeUI" };
         for (int i = 0; i < appexecutables.Length; i++)
         {
             ref var appexe = ref appexecutables[i];
@@ -145,8 +145,6 @@ public class UpdateChecker
     /// <returns> Error if error; Success if no updates found; Environment.Exit(0) if updates found </returns>
     public async ValueTask<OperationResult> Update()
     {
-        if (Init.IsDebug) return true;
-
         _logger.Info("Checking files to update...");
         FetchingStarted();
         var files = await GetAllFiles().Next(x => { FilteringStarted(); return FilterNewFiles(x).AsOpResult(); }).ConfigureAwait(false);

@@ -4,12 +4,13 @@ using Newtonsoft.Json.Linq;
 
 namespace NodeCommon;
 
-public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
+public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
 {
+    public const string RegistryUrl = "https://t.microstock.plus:7897";
     const string TaskManagerEndpoint = Common.Api.TaskManagerEndpoint;
-    public static readonly Apis Default = new(Common.Api.Default, Settings.SessionId);
 
 
+    public static Apis DefaultWithSessionId(string sid) => new(Common.Api.Default, sid);
     public Apis WithSessionId(string sid) => this with { SessionId = sid };
     public Apis WithNoErrorLog() => this with { LogErrors = false };
 
@@ -189,7 +190,6 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
     }
 
 
-    public interface ITaskStateInfo { }
 
     /// <returns> Input, Active, Output tasks on a shard </returns>
     public async ValueTask<OperationResult<TMTasksStateInfo>> GetTasksOnShardAsync(string shardhost) =>
@@ -206,10 +206,6 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
         var vtasks = result.Value.SelectMany(x => x.Validation).Select(x => (TaskState.Validation, x));
         return itasks.Concat(atasks).Concat(otasks).Concat(vtasks).ToArray();
     }
-    public record TMTasksStateInfo(
-        ImmutableArray<TMTaskStateInfo> Input, ImmutableArray<TMTaskStateInfo> Active, ImmutableArray<TMTaskStateInfo> Output, ImmutableArray<TMTaskStateInfo> Validation,
-        int QueueSize, double AvgWaitTime, string ScGuid);
-    public record TMTaskStateInfo(string Id, double Progress) : ITaskStateInfo;
 
     /// <returns> Finished, Failed and Canceled tasks </returns>
     public async ValueTask<OperationResult<Dictionary<string, TMOldTaskStateInfo>>> GetFinishedTasksStatesAsync(IEnumerable<string> taskids)
@@ -221,7 +217,6 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
             .Select(sel)
             .MergeDictResults();
     }
-    public record TMOldTaskStateInfo(string Id, TaskState State, ITaskOutputInfo? Output, string? ErrMsg) : ITaskStateInfo;
 
 
     /// <returns> Task state or null if the task is Finished/Canceled/Failed </returns>
@@ -255,7 +250,6 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
     public async ValueTask<OperationResult<ServerTaskState>> GetTaskStateAsyncOrThrow(ITaskApi task) =>
         await GetTaskStateAsync(task)
             .Next(state => state.ThrowIfNull($"Task {task.Id} is already completed").AsOpResult());
-    public record ServerTaskState(TaskState State, double Progress, ITaskOutputInfo Output, TaskTimes Times, TaskServer? Server = null) : ITaskStateInfo;
 
 
     public ValueTask<OperationResult> FailTaskAsync(ITaskApi task, string errorMessage) => ChangeStateAsync(task, TaskState.Failed, errorMessage);
@@ -324,14 +318,6 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
 
         return await shards.Select(async shard => await getfunc(shard)).MergeArrResults();
     }
-    public record ServerTaskFullState : DbTaskFullState, ILoggable
-    {
-        public TaskServer? Server { get; set; }
-
-        [JsonConstructor]
-        public ServerTaskFullState(string id, string originGuid, TaskPolicy launchPolicy, TaskObject @object, ITaskInputInfo input, ITaskOutputInfo output, JObject data)
-            : base(id, new TaskInfo(@object, input, output, data, launchPolicy, originGuid)) { }
-    }
 
 
     public ValueTask<OperationResult<ImmutableArray<NodeInfo>>> GetMyNodesAsync() =>
@@ -340,34 +326,11 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
         GetMyNodesAsync().Next(nodes => nodes.FirstOrDefault(x => x.Id == nodeid)?.AsOpResult() ?? OperationResult.Err($"Node with such id ({nodeid}) was not found"));
 
     public ValueTask<OperationResult<ImmutableDictionary<string, SoftwareDefinition>>> GetSoftwareAsync() =>
-        LocalApi.Send<ImmutableDictionary<string, SoftwareDefinition>>(Settings.RegistryUrl, "getsoft")
+        Api.ApiGet<ImmutableDictionary<string, SoftwareDefinition>>($"{RegistryUrl}/getsoft", "value", "Getting registry software")
             .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
-}
-public static class ApisExtensions
-{
-    public static ValueTask<OperationResult> ShardGet(this ITaskApi task, string url, string errorDetails, params (string, string)[] values) =>
-        Apis.Default.ShardGet(task, url, errorDetails, values);
-    public static ValueTask<OperationResult> ShardPost(this ITaskApi task, string url, string errorDetails, params (string, string)[] values) =>
-        Apis.Default.ShardPost(task, url, errorDetails, values);
-    public static ValueTask<OperationResult<T>> ShardGet<T>(this ITaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
-        Apis.Default.ShardGet<T>(task, url, property, errorDetails, values);
-    public static ValueTask<OperationResult<T>> ShardPost<T>(this ITaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
-        Apis.Default.ShardPost<T>(task, url, property, errorDetails, values);
 
-    public static ValueTask<OperationResult<Apis.ServerTaskState>> GetTaskStateAsyncOrThrow(this ITaskApi task) => Apis.Default.GetTaskStateAsyncOrThrow(task);
-    public static ValueTask<OperationResult<Apis.ServerTaskState?>> GetTaskStateAsync(this ITaskApi task) => Apis.Default.GetTaskStateAsync(task);
 
-    public static async ValueTask<OperationResult> FailTaskAsync(this ITaskApi task, string errorMessage)
-    {
-        var fail = await Apis.Default.FailTaskAsync(task, errorMessage);
-        if (!fail && fail.Message?.Contains("invalid old task state", StringComparison.OrdinalIgnoreCase) == true)
-            return true;
-
-        return fail;
-    }
-    public static ValueTask<OperationResult> ChangeStateAsync(this ITaskApi task, TaskState state) => Apis.Default.ChangeStateAsync(task, state);
-
-    public static async Task<OperationResult<string>> GetMPlusItemDownloadLinkAsync(this ITaskApi taskApi, string iid, string? sessionId = default) =>
-        await taskApi.ShardGet<string>("getmplusitemdownloadlink", "link", "Getting M+ item download link", new (string, string)[]
-        { ("sessionid", sessionId ?? Settings.SessionId!), ("iid", iid), ("format", "jpeg"), ("original", "1") });
+    public async Task<OperationResult<string>> GetMPlusItemDownloadLinkAsync(ITaskApi task, string iid) =>
+        await ShardGet<string>(task, "getmplusitemdownloadlink", "link", "Getting M+ item download link",
+            AddSessionId(("iid", iid), ("format", "jpeg"), ("original", "1")));
 }

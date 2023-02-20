@@ -13,12 +13,13 @@ public class MPlusTaskInputInfo : ITaskInputInfo
         TUid = tuid;
     }
 
-    public async ValueTask<TaskObject> GetFileInfo()
+    public ValueTask<OperationResult<TaskObject>> GetFileInfo(string sessionid, string myuserid) => GetFileInfo(sessionid, TUid ?? myuserid, Iid);
+    public static ValueTask<OperationResult<TaskObject>> GetFileInfo(string sessionid, string userid, string iid)
     {
-        var datar = await Api.Default.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info", ("sessionid", Settings.SessionId), ("userid", TUid ?? Settings.UserId), ("iids", $"[\"{Iid}\"]"));
-        var data = datar.ThrowIfError()[Iid];
+        var get = () => Api.Default.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info",
+            ("sessionid", sessionid), ("userid", userid), ("iids", $"[\"{userid}\"]"));
 
-        return new TaskObject(data.Files.File.FileName, data.Files.File.Size);
+        return get().Next(data => new TaskObject(data[iid].Files.File.FileName, data[iid].Files.File.Size).AsOpResult());
     }
 }
 public class MPlusTaskOutputInfo : ITaskOutputInfo

@@ -25,7 +25,7 @@ public class LocalWatchingTaskHandler : WatchingTaskHandler<LocalWatchingTaskInp
 
             var filename = Path.GetFileName(file);
             var info = new TorrentTaskInputInfo(file, link: null!);
-            await Task.RegisterTask(filename, info);
+            await Task.RegisterTask(filename, info, new TaskObject(filename, new FileInfo(file).Length));
 
             Input.LastCheck = new DateTimeOffset(File.GetCreationTimeUtc(file)).ToUnixTimeMilliseconds();
             SaveTask();

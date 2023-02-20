@@ -8,6 +8,7 @@ global using Node.Tasks.Exec;
 global using Node.Tasks.Handlers;
 global using Node.Tasks.Watching;
 global using NodeCommon;
+global using NodeCommon.ApiModel;
 global using NodeCommon.NodeUserSettings;
 global using NodeCommon.Plugins;
 global using NodeCommon.Plugins.Deployment;
@@ -15,6 +16,7 @@ global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
 global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
+using Newtonsoft.Json.Linq;
 using Node;
 using Node.Heartbeat;
 using Node.Listeners;
@@ -25,8 +27,9 @@ using Node.Profiling;
 
 ConsoleHide.Hide();
 
-foreach (var proc in FileList.GetAnotherInstances())
-    proc.Kill(true);
+if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
+    foreach (var proc in FileList.GetAnotherInstances())
+        proc.Kill(true);
 
 var halfrelease = args.Contains("release");
 Init.Initialize();
@@ -38,6 +41,7 @@ await Task.WhenAll(
     UpdatePublicPorts()
 );
 
+InitializeSettings();
 new LocalListener().Start();
 
 if (Settings.SessionId is not null)
@@ -99,9 +103,9 @@ if (Init.DebugFeatures) new DebugListener().Start();
 PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
 {
     var ip = t.Result.ToString();
-    logger.Info("Public IP: {Ip}; Public port: {PublicPort}; Web server port: {ServerPort}", ip, PortForwarding.Port, PortForwarding.ServerPort);
+    logger.Info("Public IP: {Ip}; Public port: {PublicPort}; Web server port: {ServerPort}", ip, Settings.UPnpPort, Settings.UPnpServerPort);
 
-    var ports = new[] { PortForwarding.Port, PortForwarding.ServerPort };
+    var ports = new[] { Settings.UPnpPort, Settings.UPnpServerPort };
     foreach (var port in ports)
     {
         var open = await PortForwarding.IsPortOpenAndListening(ip, port).ConfigureAwait(false);
@@ -131,6 +135,28 @@ TaskHandler.StartListening();
 Thread.Sleep(-1);
 GC.KeepAlive(captured);
 
+
+void InitializeSettings()
+{
+    var state = NodeGlobalState.Instance;
+
+    state.WatchingTasks.Bind(NodeSettings.WatchingTasks.Bindable);
+    state.PlacedTasks.Bind(NodeSettings.PlacedTasks.Bindable);
+    state.QueuedTasks.Bind(NodeSettings.QueuedTasks.Bindable);
+    NodeSettings.BenchmarkResult.Bindable.SubscribeChanged(() => NodeGlobalState.Instance.BenchmarkResult.Value = NodeSettings.BenchmarkResult.Value is null ? null : JObject.FromObject(NodeSettings.BenchmarkResult.Value), true);
+
+    state.BServerUrl.Bind(Settings.BServerUrl.Bindable);
+    state.BLocalListenPort.Bind(Settings.BLocalListenPort.Bindable);
+    state.BUPnpPort.Bind(Settings.BUPnpPort.Bindable);
+    state.BUPnpServerPort.Bind(Settings.BUPnpServerPort.Bindable);
+    state.BDhtPort.Bind(Settings.BDhtPort.Bindable);
+    state.BTorrentPort.Bind(Settings.BTorrentPort.Bindable);
+    state.BNodeName.Bind(Settings.BNodeName.Bindable);
+    state.BAuthInfo.Bind(Settings.BAuthInfo.Bindable);
+
+
+    Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Init.ConfigDirectory, "lport"), Settings.LocalListenPort.ToString()), true);
+}
 
 /// <summary> Check settings-saved public ports and change them if someone is already listening </summary>
 async Task UpdatePublicPorts()

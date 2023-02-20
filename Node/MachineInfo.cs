@@ -2,7 +2,7 @@
 using System.Net;
 using System.Net.Http.Json;
 
-namespace Machine;
+namespace Node;
 
 public record MachineInfo
 {
@@ -18,8 +18,8 @@ public record MachineInfo
         try { return _publicIP ??= await PortForwarding.GetPublicIPAsync(); }
         catch (Exception) { return IPAddress.None; }
     }
-    readonly public static string Port = PortForwarding.Port.ToString();
-    readonly public static string WebServerPort = PortForwarding.ServerPort.ToString();
+    readonly public static string Port = Settings.UPnpPort.ToString();
+    readonly public static string WebServerPort = Settings.UPnpServerPort.ToString();
     static IReadOnlyCollection<Plugin>? _installedPlugins;
     public static async Task<IReadOnlyCollection<Plugin>> DiscoverInstalledPluginsInBackground() =>
         _installedPlugins ??= await PluginsManager.DiscoverInstalledPluginsInBackground();

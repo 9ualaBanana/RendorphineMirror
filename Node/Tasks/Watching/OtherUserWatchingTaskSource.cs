@@ -21,7 +21,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskHandler<OtherUserWatchin
 
         async ValueTask tick()
         {
-            var check = await LocalApi.Send<DirectoryDiffListener.DiffOutput>(url, path + $"&lastcheck={Input.LastCheck}");
+            var check = await Api.Default.ApiGet<DirectoryDiffListener.DiffOutput>($"{url}/{path}", "value", "Getting directory diff", ("lastcheck", Input.LastCheck.ToString()));
             check.LogIfError();
             if (!check) return;
 
@@ -39,7 +39,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskHandler<OtherUserWatchin
                 using (var writer = File.OpenWrite(fsfile))
                     await download.CopyToAsync(writer);
 
-                await Task.RegisterTask(fsfile, new TorrentTaskInputInfo(fsfile));
+                await Task.RegisterTask(fsfile, new TorrentTaskInputInfo(fsfile), new TaskObject(Path.GetFileName(file.Path), file.Size));
                 Input.LastCheck = file.ModifTime;
                 SaveTask();
             }

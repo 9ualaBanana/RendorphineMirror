@@ -43,7 +43,7 @@ public class TaskListener : ExecutableListenerBase
         if (path == "start")
         {
             var task = new JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-            var taskid = await TaskRegistration.RegisterAsync(task);
+            var taskid = await TaskRegistration.RegisterAsync(task, Settings.SessionId);
 
             return await WriteJson(response, taskid).ConfigureAwait(false);
         }
