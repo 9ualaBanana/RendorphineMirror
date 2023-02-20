@@ -120,6 +120,21 @@
             }
         },
         {
+            "label": "Upload node-test",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/Uploader/Uploader.csproj",
+                "nodetest"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
             "label": "Upload update server",
             "command": "dotnet",
             "type": "process",
