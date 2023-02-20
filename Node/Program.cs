@@ -34,15 +34,28 @@ if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
 var halfrelease = args.Contains("release");
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
+InitializeSettings();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
-await Task.WhenAll(
-    InitializePlugins(),
-    UpdatePublicPorts()
-);
 
-InitializeSettings();
-new LocalListener().Start();
+{
+    var localport = UpdatePort("127.0.0.1", Settings.BLocalListenPort, "Local")
+        .ContinueWith(_ => new LocalListener().Start());
+
+    var publicports = PortForwarding.GetPublicIPAsync()
+        .ContinueWith(ip => Task.WhenAll(
+            UpdatePort(ip.Result.ToString(), Settings.BUPnpPort, "Public"),
+            UpdatePort(ip.Result.ToString(), Settings.BUPnpServerPort, "Server")
+        )).Unwrap();
+
+    var pluginsinit = InitializePlugins();
+
+    await Task.WhenAll(
+        pluginsinit,
+        publicports,
+        localport
+    );
+}
 
 if (Settings.SessionId is not null)
     logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
@@ -158,23 +171,22 @@ void InitializeSettings()
     Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Init.ConfigDirectory, "lport"), Settings.LocalListenPort.ToString()), true);
 }
 
-/// <summary> Check settings-saved public ports and change them if someone is already listening </summary>
-async Task UpdatePublicPorts()
+/// <summary> Try to connect to the port and change it if someone is already listening there </summary>
+async Task UpdatePort(string ip, DatabaseValue<ushort> port, string description)
 {
-    var publicip = await PortForwarding.GetPublicIPAsync();
+    logger.Info($"[PORTCHECK] Checking {description.ToLowerInvariant()} port {port.Value}");
 
-    foreach (var port in new[] { Settings.BLocalListenPort, Settings.BUPnpPort, Settings.BUPnpServerPort })
+    while (true)
     {
-        logger.Warn($"Checking port {port.Value} for availability");
-
-        while (true)
+        var open = await PortForwarding.IsPortOpenAndListening(ip, port.Value, new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
+        if (!open)
         {
-            var open = await PortForwarding.IsPortOpenAndListening(publicip.ToString(), port.Value, new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
-            if (!open) break;
-
-            logger.Warn($"Port {port.Value} is already listening, skipping");
-            port.Value++;
+            logger.Info($"[PORTCHECK] {description} port: {port.Value}");
+            break;
         }
+
+        logger.Warn($"[PORTCHECK] {description} port {port.Value} is already listening, skipping");
+        port.Value++;
     }
 }
 async Task InitializePlugins()
