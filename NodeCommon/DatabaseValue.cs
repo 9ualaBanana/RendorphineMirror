@@ -50,7 +50,11 @@ public abstract class DatabaseValueBase<T, TBindable> : IDatabaseBindable<T> whe
 
         JToken jt;
         try { jt = JToken.Parse(query.GetString(0)); }
-        catch { jt = JValue.FromObject(query.GetString(0)); }
+        catch
+        {
+            try { jt = JValue.FromObject(query.GetString(0)); }
+            catch { jt = query.GetString(0); }
+        }
 
         Bindable.LoadFromJson(jt, null);
     }

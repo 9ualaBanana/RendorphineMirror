@@ -27,8 +27,9 @@ using Node.Profiling;
 
 ConsoleHide.Hide();
 
-foreach (var proc in FileList.GetAnotherInstances())
-    proc.Kill(true);
+if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
+    foreach (var proc in FileList.GetAnotherInstances())
+        proc.Kill(true);
 
 var halfrelease = args.Contains("release");
 Init.Initialize();

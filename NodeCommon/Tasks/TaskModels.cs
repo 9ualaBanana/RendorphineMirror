@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -26,8 +27,9 @@ public static class TaskModels
         // FormatterServices.GetSafeUninitializedObject is being used to create valid object for getting only the .Type property
         // since all TaskInOutputInfo object implement ITaskInOutputInfo.Type property using `=>` and not `{ get; } =`
         static T[] CreateUninitializedObjects<T, TInput, TOutput>() where TInput : T where TOutput : T =>
-            AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(ass => ass.GetTypes())
+            new[] { Assembly.GetCallingAssembly(), Assembly.GetEntryAssembly(), Assembly.GetExecutingAssembly(), }
+                .Distinct()
+                .SelectMany(ass => ass!.GetTypes())
                 .Where(x => x.IsAssignableTo(typeof(T)))
                 .Where(x => x.IsClass && !x.IsAbstract)
                 .Where(x => x.IsAssignableTo(typeof(TInput)) || x.IsAssignableTo(typeof(TOutput)))

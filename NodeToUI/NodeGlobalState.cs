@@ -12,6 +12,8 @@ public class NodeGlobalState
     [JsonIgnore]
     public readonly WeakEventManager<string> AnyChanged = new();
 
+    public string? SessionId => AuthInfo?.SessionId;
+
     public readonly Bindable<TasksFullDescriber> TaskDefinitions = new();
     public readonly BindableList<Plugin> InstalledPlugins = new();
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();

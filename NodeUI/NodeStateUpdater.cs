@@ -12,28 +12,30 @@ public static class NodeStateUpdater
 
     static NodeStateUpdater()
     {
-        try { NodeHost.Value = "127.0.0.1:" + ushort.Parse(File.ReadAllText(Path.Combine(Init.ConfigDirectory, "nodelocalport")).Trim()); }
+        try { NodeHost.Value = "127.0.0.1:" + ushort.Parse(File.ReadAllText(Path.Combine(Init.ConfigDirectory, "lport")).Trim()); }
         catch { }
     }
 
     public static void Start() => _Start().Consume();
     static async Task _Start()
     {
+        var loadcache = Init.IsDebug;
+        var cacheloaded = !loadcache;
+
         var cachefile = Path.Combine(Init.ConfigDirectory, "nodeinfocache");
-        if (Init.IsDebug)
+        if (loadcache)
         {
             NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>
                 File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, JsonSettings.Typed)));
         }
 
         var cancel = false;
-        var cacheloaded = !Init.IsDebug; // dont load from cache if not debug
         var consecutive = 0;
         while (true)
         {
             try
             {
-                var stream = await LocalPipe.SendAsync($"http://{NodeHost}/getstate").ConfigureAwait(false);
+                var stream = await LocalPipe.SendAsync($"http://{NodeHost.Value}/getstate").ConfigureAwait(false);
 
                 var host = NodeHost.GetBoundCopy();
                 using var _ = new FuncDispose(host.UnsubsbribeAll);
