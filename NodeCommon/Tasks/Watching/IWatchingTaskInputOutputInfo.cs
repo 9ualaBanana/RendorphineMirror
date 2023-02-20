@@ -8,10 +8,7 @@ public interface IWatchingTaskInputInfo : IWatchingTaskInputOutputInfo
 {
     WatchingTaskInputType Type { get; }
 }
-public interface IMPlusWatchingTaskInputInfo : IWatchingTaskInputInfo
-{
-    string? SinceIid { get; set; }
-}
+public interface IMPlusWatchingTaskInputInfo : IWatchingTaskInputInfo { }
 
 [JsonConverter(typeof(WatchingTaskOutputJConverter))]
 public interface IWatchingTaskOutputInfo : IWatchingTaskInputOutputInfo

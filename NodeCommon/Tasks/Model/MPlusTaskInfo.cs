@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace NodeCommon.Tasks.Model;
 
 public class MPlusTaskInputInfo : ITaskInputInfo
@@ -13,14 +15,16 @@ public class MPlusTaskInputInfo : ITaskInputInfo
         TUid = tuid;
     }
 
-    public ValueTask<OperationResult<TaskObject>> GetFileInfo(string sessionid, string myuserid) => GetFileInfo(sessionid, TUid ?? myuserid, Iid);
-    public static ValueTask<OperationResult<TaskObject>> GetFileInfo(string sessionid, string userid, string iid)
-    {
-        var get = () => Api.Default.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info",
-            ("sessionid", sessionid), ("userid", userid), ("iids", $"[\"{userid}\"]"));
 
-        return get().Next(data => new TaskObject(data[iid].Files.File.FileName, data[iid].Files.File.Size).AsOpResult());
-    }
+    static ValueTask<OperationResult<ImmutableDictionary<string, MPlusNewItem>>> GetMpItems(string sessionid, string userid, IEnumerable<string> iids) =>
+        Api.Default.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info",
+            ("sessionid", sessionid), ("userid", userid), ("iids", JsonConvert.SerializeObject(iids)));
+
+    public ValueTask<OperationResult<TaskObject>> GetFileInfo(string sessionid, string myuserid) => GetFileInfo(sessionid, TUid ?? myuserid, Iid);
+    public static ValueTask<OperationResult<TaskObject>> GetFileInfo(string sessionid, string userid, string iid) =>
+        GetMpItems(sessionid, userid, new[] { iid }).Next(data => new TaskObject(data[iid].Files.File.FileName, data[iid].Files.File.Size).AsOpResult());
+    public static ValueTask<OperationResult<Dictionary<string, TaskObject>>> GetFilesInfoDict(string sessionid, string userid, IEnumerable<string> iids) =>
+        GetMpItems(sessionid, userid,iids).Next(data => data.Values.Select(item => KeyValuePair.Create(item.Iid, new TaskObject(item.Files.File.FileName, item.Files.File.Size)).AsOpResult()).MergeDictResults());
 }
 public class MPlusTaskOutputInfo : ITaskOutputInfo
 {

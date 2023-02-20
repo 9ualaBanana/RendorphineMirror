@@ -1,4 +1,6 @@
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
 using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -9,6 +11,7 @@ public static class Api
 {
     public const string ServerUri = "https://tasks.microstock.plus";
     public const string TaskManagerEndpoint = $"{ServerUri}/rphtaskmgr";
+    public const string ContentDBEndpoint = $"https://cdb.microstock.plus/contentdb";
 
     public static readonly HttpClient Client = new();
     public static readonly ApiInstance Default = new(Client);
@@ -34,6 +37,9 @@ public static class Api
 
         return responseJson;
     }
+
+    public static (string, string)[] SignRequest(string key, params (string, string)[] values) => ApiInstance.SignRequest(key, values);
+    public static string CalculateSign(string key, params (string, string)[] values) => ApiInstance.CalculateSign(key, values);
 }
 public record ApiInstance(HttpClient Client, bool LogRequests = true, CancellationToken? CancellationToken = default)
 {
@@ -125,6 +131,8 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
     }
 
     public HttpContent ToContent((string, string)[] values) => new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
+    public static string ToGetContent((string, string)[] values) => string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
+
     public async Task<HttpResponseMessage> JustPost(string url, (string, string)[] values)
     {
         using var content = ToContent(values);
@@ -132,7 +140,7 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
     }
     public Task<HttpResponseMessage> JustGet(string url, (string, string)[] values)
     {
-        var str = string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
+        var str = ToGetContent(values);
         if (str.Length != 0) str = "?" + str;
 
         return JustGet(url + str);
@@ -143,6 +151,12 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
     public Task<Stream> Download(string url) => Client.GetStreamAsync(url);
     public Task<HttpResponseMessage> Get(string url) => Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
+    public static (string, string)[] SignRequest(string key, params (string, string)[] values) => values.Append(("sign", CalculateSign(key, values))).ToArray();
+    public static string CalculateSign(string key, params (string, string)[] values)
+    {
+        var content = string.Join('|', values.Select(x => x.Item2));
+        return Convert.ToHexString(HMACSHA256.HashData(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(content))).ToLowerInvariant();
+    }
 
     async ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<OperationResult<T>>> func)
     {

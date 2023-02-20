@@ -1,6 +1,6 @@
 namespace NodeCommon.Tasks.Watching;
 
-public record MPlusNewItem(string Iid, string UserId, MPlusNewItemFiles Files, long Registered, MPlusNewItemQSPreview? QSPreview = null);
+public record MPlusNewItem(string Iid, string UserId, MPlusNewItemFiles Files, long Registered);
 public record MPlusNewItemFiles(MPlusNewItemFile Jpeg, MPlusNewItemFile? Mov = null)
 {
     public MPlusNewItemFile File => Mov ?? Jpeg;

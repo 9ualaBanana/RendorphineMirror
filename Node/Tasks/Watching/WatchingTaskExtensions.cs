@@ -38,7 +38,7 @@ public static class WatchingTaskExtensions
     {
         var taskinfo = task.CreateTaskInfo(input, output, tobj);
         var register = await TaskRegistration.TaskRegisterAsync(taskinfo, Settings.SessionId, task).ConfigureAwait(false);
-        var newtask = register.ThrowIfError();
+        var newtask = register.ThrowIfError().ThrowIfNull();
         NodeSettings.WatchingTasks.Save(task);
 
         return newtask;
