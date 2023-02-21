@@ -11,7 +11,7 @@ public class Database
     public readonly string DbPath;
     readonly SQLiteConnection Connection;
 
-    private Database(string? dbpath = null)
+    public Database(string? dbpath = null)
     {
         DbPath = dbpath ?? Path.Combine(Init.ConfigDirectory, "config.db");
         Connection = new SQLiteConnection("Data Source=" + DbPath + ";Version=3;cache=shared");
@@ -19,8 +19,6 @@ public class Database
 
         Connection.Open();
         OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA cache=shared;")).LogIfError();
-        OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA optimize;")).LogIfError();
-        OperationResult.WrapException(() => ExecuteNonQuery("vacuum;")).LogIfError();
     }
 
     public int ExecuteNonQuery(string command)

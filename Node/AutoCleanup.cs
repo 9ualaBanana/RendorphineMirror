@@ -35,5 +35,9 @@ public static class AutoCleanup
             Logger.Info($"[Cleanup] Deleting unknown ptask dir {dir}");
             Directory.Delete(dir, true);
         }
+
+
+        OperationResult.WrapException(() => Database.Instance.ExecuteNonQuery("PRAGMA optimize;")).LogIfError();
+        OperationResult.WrapException(() => Database.Instance.ExecuteNonQuery("vacuum;")).LogIfError();
     }
 }

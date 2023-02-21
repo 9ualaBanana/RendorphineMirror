@@ -10,7 +10,8 @@ public static class UISettings
 
     static UISettings()
     {
-        var db = Database.Instance;
+        var db = new Database(Path.Combine(Init.ConfigDirectory, "ui.db"));
+
         BLanguage = new(db, nameof(Language), null);
         BShortcutsCreated = new(db, $"{nameof(ShortcutsCreated)}_2", false);
     }
