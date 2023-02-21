@@ -19,6 +19,8 @@ public class Database
 
         Connection.Open();
         OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA cache=shared;")).LogIfError();
+        OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA optimize;")).LogIfError();
+        OperationResult.WrapException(() => ExecuteNonQuery("vacuum;")).LogIfError();
     }
 
     public int ExecuteNonQuery(string command)
