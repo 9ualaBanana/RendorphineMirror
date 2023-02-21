@@ -7,6 +7,7 @@ namespace Node;
 public static class SessionManager
 {
     const string Endpoint = Api.TaskManagerEndpoint;
+    readonly static Logger Logger = LogManager.GetCurrentClassLogger();
 
 
     public static ValueTask<OperationResult> RenameServerAsync(string newname, string oldname) =>
@@ -70,6 +71,8 @@ public static class SessionManager
 
             if (nickr) Settings.NodeName = nickr.Value;
             else Settings.NodeName = email + "_" + guid;
+
+            Logger.Info($"Generated nickname: {Settings.NodeName ?? "!!NULL!!"}");
         }
 
         return true;
