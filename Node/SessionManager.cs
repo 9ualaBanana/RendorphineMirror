@@ -64,7 +64,7 @@ public static class SessionManager
     static async ValueTask<OperationResult> LoginSuccess(string sid, string? email, string guid, string userid, bool slave)
     {
         Settings.AuthInfo = new AuthInfo(sid, email, guid, userid, slave);
-        if (Settings.NodeName is null)
+        if (string.IsNullOrEmpty(Settings.NodeName))
         {
             var nickr = await RequestNicknameAsync().ConfigureAwait(false);
             nickr.LogIfError();
