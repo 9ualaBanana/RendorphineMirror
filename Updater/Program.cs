@@ -62,10 +62,12 @@ while (true)
     if (update)
     {
         if (!FileList.IsProcessRunning(FileList.GetNodeExe()))
-            Process.Start(FileList.GetNodeExe()).ThrowIfNull($"Process is null after starting node");
+            Process.Start(new ProcessStartInfo(FileList.GetNodeExe()) { WorkingDirectory = Path.GetDirectoryName(FileList.GetNodeExe()) })
+                .ThrowIfNull($"Process is null after starting node");
 
         // UI will quit itself if already running, and will also trigger an existing one to be shown, so we skip the check here
-        Process.Start(FileList.GetNodeUIExe()).ThrowIfNull($"Process is null after starting nodeui");
+        Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()) { WorkingDirectory = Path.GetDirectoryName(FileList.GetNodeUIExe()) })
+            .ThrowIfNull($"Process is null after starting nodeui");
 
         return;
     }
