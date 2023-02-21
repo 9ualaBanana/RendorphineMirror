@@ -53,11 +53,11 @@ public static class NodeStateUpdater
 
                 while (true)
                 {
-                    var read = reader.Read();
+                    var read = await reader.ReadAsync();
                     if (!read) break;
                     if (cancel) return;
 
-                    var jtoken = JToken.Load(reader);
+                    var jtoken = await JToken.LoadAsync(reader);
                     Logger.Trace($"Node state updated: {string.Join(", ", (jtoken as JObject)?.Properties().Select(x => x.Name) ?? new[] { jtoken.ToString(Formatting.None) })}");
 
                     using var tokenreader = jtoken.CreateReader();

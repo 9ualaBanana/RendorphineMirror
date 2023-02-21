@@ -74,15 +74,6 @@ namespace NodeUI.Pages
                 else throw new InvalidOperationException("Unknown value of LoginType: " + loginType);
 
                 // https://microstock.plus/oauth2/authorize?clientid=001&redirecturl=http://127.0.0.1:9999/
-
-                if (auth)
-                {
-                    try { await LocalApi.Default.Get("reloadcfg", "Reloading config").ConfigureAwait(false); }
-                    catch { }
-
-                    Dispatcher.UIThread.Post(ShowMainWindow);
-                }
-
                 return auth;
             }
 
@@ -90,17 +81,6 @@ namespace NodeUI.Pages
             Login.OnPressLogin += (login, password, slave) => authenticate(login, password, slave ? LoginType.Slave : LoginType.Normal).Consume();
             Login.OnPressWebLogin += () => authenticate(null, null, LoginType.Web).Consume();
             Login.OnPressForgotPassword += () => Process.Start(new ProcessStartInfo("https://accounts.stocksubmitter.com/resetpasswordrequest") { UseShellExecute = true });
-        }
-
-        void ShowMainWindow()
-        {
-            var w = new MainWindow();
-            ((IClassicDesktopStyleApplicationLifetime) Application.Current!.ApplicationLifetime!).MainWindow = w;
-            w.Show();
-            if (Environment.GetCommandLineArgs().Contains("hidden"))
-                w.Hide();
-
-            Close();
         }
 
 

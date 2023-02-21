@@ -1,4 +1,4 @@
-global using System.Collections.Immutable;
+﻿global using System.Collections.Immutable;
 global using Common;
 global using Machine;
 global using NLog;
@@ -57,6 +57,7 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
     );
 }
 
+new NodeStateListener().Start();
 if (Settings.SessionId is not null)
     logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
 else
@@ -106,7 +107,6 @@ new DirectDownloadListener().Start();
 
 new PublicListener().Start();
 new TaskListener().Start();
-new NodeStateListener().Start();
 new DirectoryDiffListener().Start();
 new DownloadListener().Start();
 new PublicPagesListener().Start();
