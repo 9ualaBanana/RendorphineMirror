@@ -22,6 +22,7 @@ public class NodeGlobalState
     public readonly BindableList<DbTaskFullState> PlacedTasks = new();
     public readonly BindableList<WatchingTask> WatchingTasks = new();
     public readonly Bindable<JObject?> BenchmarkResult = new();
+    public readonly Bindable<uint> TaskAutoDeletionDelayDays = new();
 
     public string ServerUrl => BServerUrl.Value;
     public ushort LocalListenPort => BLocalListenPort.Value;

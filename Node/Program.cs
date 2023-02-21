@@ -1,4 +1,4 @@
-﻿global using System.Collections.Immutable;
+global using System.Collections.Immutable;
 global using Common;
 global using Machine;
 global using NLog;
@@ -145,6 +145,16 @@ TaskHandler.StartUpdatingPlacedTasks();
 TaskHandler.StartWatchingTasks();
 TaskHandler.StartListening();
 
+new Thread(() =>
+{
+    while (true)
+    {
+        OperationResult.WrapException(AutoCleanup.Start).LogIfError();
+        Thread.Sleep(60 * 60 * 24);
+    }
+})
+{ IsBackground = true }.Start();
+
 Thread.Sleep(-1);
 GC.KeepAlive(captured);
 
@@ -157,6 +167,7 @@ void InitializeSettings()
     state.PlacedTasks.Bind(NodeSettings.PlacedTasks.Bindable);
     state.QueuedTasks.Bind(NodeSettings.QueuedTasks.Bindable);
     NodeSettings.BenchmarkResult.Bindable.SubscribeChanged(() => NodeGlobalState.Instance.BenchmarkResult.Value = NodeSettings.BenchmarkResult.Value is null ? null : JObject.FromObject(NodeSettings.BenchmarkResult.Value), true);
+    state.TaskAutoDeletionDelayDays.Bind(NodeSettings.TaskAutoDeletionDelayDays.Bindable);
 
     state.BServerUrl.Bind(Settings.BServerUrl.Bindable);
     state.BLocalListenPort.Bind(Settings.BLocalListenPort.Bindable);

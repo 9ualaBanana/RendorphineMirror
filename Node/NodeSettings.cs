@@ -11,6 +11,8 @@ public static class NodeSettings
     public static readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
     public static readonly DatabaseValue<bool> AcceptTasks;
 
+    public static readonly DatabaseValue<uint> TaskAutoDeletionDelayDays;
+
     static NodeSettings()
     {
         var db = Database.Instance;
@@ -19,6 +21,7 @@ public static class NodeSettings
         PlacedTasks = new(db, nameof(PlacedTasks), t => t.Id, serializer: JsonSettings.Default);
         CompletedTasks = new(db, nameof(CompletedTasks), t => t.TaskInfo.Id, serializer: JsonSettings.Default);
         AcceptTasks = new(db, nameof(AcceptTasks), true);
+        TaskAutoDeletionDelayDays = new(db, nameof(TaskAutoDeletionDelayDays), 4);
 
         try { BenchmarkResult = new(db, nameof(BenchmarkResult), default); }
         catch
