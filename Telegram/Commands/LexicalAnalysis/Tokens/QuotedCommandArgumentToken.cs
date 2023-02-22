@@ -6,7 +6,7 @@ internal class QuotedCommandArgumentLexemeScanner : LexemeScanner
 {
     internal static LexemeScanner Instance = new QuotedCommandArgumentLexemeScanner();
 
-    internal override Regex Pattern => new("^\".*\"", RegexOptions.Compiled);
+    internal override Regex Pattern => new("^\".*?\"", RegexOptions.Compiled);
 
     protected override Token Token(string lexeme) => new QuotedCommandArgumentToken(lexeme);
 }
