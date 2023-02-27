@@ -59,7 +59,7 @@ public class MPlusClient
             ["password"] = password,
             ["guid"] = Guid.NewGuid().ToString()
         });
-        return (await (await _httpClient.PostAsync("login", credentialsForm)).GetJsonIfSuccessfulAsync())
+        return (await (await _httpClient.PostAsync(new Uri(_taskManagerEndpoint, "login"), credentialsForm)).GetJsonIfSuccessfulAsync())
             .ToObject<MPlusIdentity>();
     }
 }

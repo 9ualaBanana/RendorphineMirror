@@ -1,10 +1,11 @@
 ﻿using Microsoft.Extensions.Options;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 
 namespace Telegram.Middleware.UpdateRouting;
 
 /// <summary>
-/// Redirects requests from Telegram containing <see cref="Bot.Types.Update"/>s to corresponding update routing branch.
+/// Redirects requests from Telegram containing <see cref="Update"/>s to corresponding update routing branch.
 /// </summary>
 public class UpdateRoutingBranchingMiddleware : IMiddleware
 {

@@ -8,28 +8,16 @@ public class Command : IEquatable<Command>, IEquatable<string>
     internal const char Prefix = '/';
 
     internal readonly string PrefixedCommandText;
+    internal readonly string UnprefixedCommandText;
 
     #region Initialization
-
-    //internal static bool TryParseFromMessage(Message commandMessage, [NotNullWhen(true)] out Command? command)
-    //    => TryParseFromMessage(commandMessage.Text, out command);
-
-    //internal static bool TryParseFromMessage(string? commandMessage, [NotNullWhen(true)] out Command? command)
-    //{
-    //    if (CommandToken.ParseAllFrom(commandMessage).First() is CommandToken commandToken)
-    //    { command = (string)commandToken; return true; }
-    //    else
-    //    { command = null; return false; }
-    //}
 
     internal static Command From(CommandToken commandToken) => new(commandToken.Lexeme);
 
     protected Command(string lexeme)
     {
-        Debug.Assert(CommandLexemeScanner.Instance.Pattern.IsMatch(lexeme),
-            $"{lexeme} doesn't represent a command token.");
-        
-        PrefixedCommandText = lexeme;
+        (PrefixedCommandText, UnprefixedCommandText) = lexeme.StartsWith(Prefix) ?
+            (lexeme, lexeme.TrimStart(Prefix)) : (Prefix + lexeme, lexeme);
     }
 
     #endregion

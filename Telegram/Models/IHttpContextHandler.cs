@@ -1,6 +1,6 @@
 ﻿namespace Telegram.Models;
 
-internal interface IHandler
+internal interface IHttpContextHandler
 {
     Task HandleAsync(HttpContext context, CancellationToken cancellationToken);
 }

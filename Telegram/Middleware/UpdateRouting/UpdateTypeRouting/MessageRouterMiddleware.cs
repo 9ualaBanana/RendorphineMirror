@@ -4,7 +4,6 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Controllers;
 using Telegram.Models;
 using Telegram.Telegram.Updates;
-
 using Command = Telegram.Commands.Command;
 
 namespace Telegram.Middleware.UpdateRouting.UpdateTypeRouting;
@@ -28,11 +27,11 @@ public class MessageRouterMiddleware : IUpdateTypeRouter
         var message = context.GetUpdate().Message!;
 
         if (message.IsCommand())
-            context.Request.Path += CommandController.PathFragment;
+            context.Request.Path += '/'+CommandController.PathFragment;
         else if (message.IsVideo()) // Check for video must precede the one for image because Photo is not null for videos too.
-            context.Request.Path += ImageController.PathFragment;
+            context.Request.Path += '/'+ImageController.PathFragment;
         else if (message.IsImage())
-            context.Request.Path += ImageController.PathFragment;
+            context.Request.Path += '/'+ImageController.PathFragment;
         else
         {
             if (message.IsSystemMessageOf(_bot))

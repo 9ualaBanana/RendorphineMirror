@@ -6,21 +6,21 @@ namespace Telegram.Commands;
 /// <summary>
 /// Base class for <see cref="CommandHandler"/>s that should be used to handle <see cref="Target"/> and
 /// also provides access to received <see cref="ParsedCommand"/> to its children by calling abstract
-/// <see cref="HandleAsync(UpdateContext, ParsedCommand, CancellationToken)"/>
-/// via publicly available <see cref="HandleAsync(UpdateContext, CancellationToken)"/>.
+/// <see cref="HandleAsync(HttpContext, ParsedCommand, CancellationToken)"/>
+/// via publicly available <see cref="HandleAsync(HttpContext, CancellationToken)"/>.
 /// </summary>
-public abstract class CommandHandler : IHandler, ISwitchableService<CommandHandler, Command>
+public abstract class CommandHandler : IHttpContextHandler, ISwitchableService<CommandHandler, Command>
 {
     readonly CommandParser _parser;
 
-    readonly ILogger _logger;
+    protected readonly ILogger Logger;
 
     internal abstract Command Target { get; }
 
     protected CommandHandler(CommandParser parser, ILogger logger)
     {
         _parser = parser;
-        _logger = logger;
+        Logger = logger;
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ public abstract class CommandHandler : IHandler, ISwitchableService<CommandHandl
                 "Received message is not a command:\n" +
                 $"{receivedMessage}";
             var exception = new ArgumentException(errorMessage, nameof(receivedMessage));
-            _logger.LogError(exception, message: default);
+            Logger.LogError(exception, message: default);
             throw exception;
         }
     }
