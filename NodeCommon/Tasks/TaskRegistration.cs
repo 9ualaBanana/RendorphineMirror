@@ -41,7 +41,7 @@ public static class TaskRegistration
             ("data", data.ToString(Formatting.None)),
             ("policy", info.Policy.ToString()),
             ("origin", string.Empty),
-            ("pricemul", (info.PriceMultiplication - (info.PriceMultiplication % .1)).ToString()),
+            ("pricemul", ((decimal)info.PriceMultiplication - ((decimal)info.PriceMultiplication % .1m)).ToString()),
         };
         if (info.Version is not null)
         {
