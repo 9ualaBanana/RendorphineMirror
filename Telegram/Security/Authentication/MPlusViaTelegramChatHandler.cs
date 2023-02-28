@@ -4,18 +4,19 @@ using System.Text.Encodings.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Models;
+using Telegram.Persistence;
 
 namespace Telegram.Security.Authentication;
 
-public class MPlusAuthenticationViaTelegramChatHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+public class MPlusViaTelegramChatHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     readonly TelegramBot _bot;
-    readonly MPlusAuthenticationClient _mPlusAuthenticationClient;
+    readonly TelegramBotDbContext _database;
     readonly IHttpContextAccessor _httpContextAccessor;
 
-    public MPlusAuthenticationViaTelegramChatHandler(
+    public MPlusViaTelegramChatHandler(
         TelegramBot bot,
-        MPlusAuthenticationClient mPlusAuthenticationClient,
+        TelegramBotDbContext database,
         IHttpContextAccessor httpContextAccessor,
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
@@ -23,24 +24,21 @@ public class MPlusAuthenticationViaTelegramChatHandler : AuthenticationHandler<A
         ISystemClock clock) : base(options, logger, encoder, clock)
     {
         _bot = bot;
-        _mPlusAuthenticationClient = mPlusAuthenticationClient;
+        _database = database;
         _httpContextAccessor = httpContextAccessor;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var context = _httpContextAccessor.HttpContext!;
-        // Include authentication when /login command is invoked.
-        if (CredentialsFromChat.TryParse(context.GetUpdate().Message!, out var credentialsFromChat))
+        if (await _database.FindAsync<TelegramBotUserEntity>(context.GetUpdate().ChatId()) is TelegramBotUserEntity user)
         {
-            if (await _mPlusAuthenticationClient.TryLogInAsyncUsing(credentialsFromChat) is MPlusIdentity mPlusIdentity)
+            if (user.MPlusIdentity is not null)
             {
-                context.User.AddIdentity(mPlusIdentity.ToClaimsIdentity());
-                return AuthenticateResult.Success(new(context.User, MPlusAuthenticationViaTelegramChatDefaults.AuthenticationScheme));
+                context.User.AddIdentity(user.MPlusIdentity.ToClaimsIdentity());
+                return AuthenticateResult.Success(new(context.User, MPlusViaTelegramChatDefaults.AuthenticationScheme));
             }
-            else Logger.LogError("M+ authentication result returned from the server was in a wrong format");
         }
-        else Logger.LogTrace("Credentials couldn't be parsed due to them being in a wrong format");
 
         return AuthenticateResult.NoResult();
     }

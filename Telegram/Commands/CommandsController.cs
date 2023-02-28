@@ -1,15 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Telegram.Models;
-﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Telegram.Commands;
+using Telegram.Models;
 using Telegram.Security.Authorization;
+using Telegram.Commands.Handlers;
 
-namespace Telegram.Controllers;
+namespace Telegram.Commands;
 
 [ApiController]
 [Route($"telegram/{{token}}/{PathFragment}")]
-public class CommandController : ControllerBase
+public class CommandsController : ControllerBase
 {
     internal const string PathFragment = "command";
 
@@ -18,9 +18,9 @@ public class CommandController : ControllerBase
     /// that must be explicitly passed to <see cref="IAuthorizationService"/> during imperative authorization.
     /// </remarks>
     private readonly IAuthorizationService _authorizationService;
-    private readonly ILogger<CommandController> _logger;
+    private readonly ILogger<CommandsController> _logger;
 
-    public CommandController(IAuthorizationService authorizationService, ILogger<CommandController> logger)
+    public CommandsController(IAuthorizationService authorizationService, ILogger<CommandsController> logger)
     {
         _authorizationService = authorizationService;
         _logger = logger;
@@ -29,19 +29,19 @@ public class CommandController : ControllerBase
     [HttpPost]
     public async Task Handle([FromServices] IEnumerable<CommandHandler> commandHandlers)
     {
-        string prefixedCommandText = HttpContext.GetUpdate().Message!.Text!;
+        string rawCommand = HttpContext.GetUpdate().Message!.Text!;
 
-        if (commandHandlers.Switch(prefixedCommandText) is CommandHandler commandHandler)
+        if (commandHandlers.Switch(rawCommand) is CommandHandler commandHandler)
         {
             if (await UserIsAuthorizedToCall(commandHandler))
-                await commandHandler.HandleAsync(HttpContext, HttpContext.RequestAborted);
+                await commandHandler.HandleAsync(HttpContext);
             else
             {
-                _logger.LogTrace("User is not authorized to use {Command} command", prefixedCommandText);
+                _logger.LogTrace("User is not authorized to use {Command} command", rawCommand);
                 await HttpContext.ChallengeAsync();
             }
         }
-        else _logger.LogTrace("{Command} command is unknown", prefixedCommandText);
+        else _logger.LogTrace("{Command} command is unknown", rawCommand);
     }
 
     async Task<bool> UserIsAuthorizedToCall(CommandHandler command)

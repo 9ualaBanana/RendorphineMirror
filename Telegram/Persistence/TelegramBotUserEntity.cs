@@ -1,6 +1,6 @@
 ﻿using Telegram.Bot.Types;
 
-namespace Telegram.Security.Authentication.Persistence;
+namespace Telegram.Persistence;
 
 /// <summary>
 /// Principal entity with which other entities representing information related to this <see cref="ChatId"/> are associated.

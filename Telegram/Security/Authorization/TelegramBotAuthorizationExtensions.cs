@@ -4,8 +4,9 @@ namespace Telegram.Security.Authorization;
 
 internal static class TelegramBotAuthorizationExtensions
 {
-    internal static IServiceCollection AddAuthorizationHandlers(this IServiceCollection services)
+    internal static IServiceCollection AddAuthorizationWithHandlers(this IServiceCollection services)
         => services
+        .AddAuthorization()
         .AddSingleton<IAuthorizationHandler, MPlusAuthenticationAuthorizationHandler>()
         .AddSingleton<IAuthorizationHandler, AccessLevelAuthorizationHandler>();
 }

@@ -36,7 +36,7 @@ public class TelegramBot : TelegramBotClient
         await this.SetWebhookAsync(webhookUrl,
             allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery, UpdateType.ChatMember },
             dropPendingUpdates: true);
-        Logger.LogDebug("Webhook for {Url} is set", webhookUrl);
+        Logger.LogTrace("Webhook is set", webhookUrl);
     }
 
     internal async Task NotifySubscribersAsync(string text, IReplyMarkup? replyMarkup = null)

@@ -1,8 +1,9 @@
 ﻿using Telegram.Bot.MessagePagination;
+using Telegram.Persistence;
 
 namespace Telegram.Bot;
 
-internal static class TelegramBotServiceCollectionExtension
+internal static class TelegramBotExtensions
 {
     internal static IServiceCollection AddTelegramBotUsing(this IServiceCollection services, ConfigurationManager configuration)
     {
@@ -13,6 +14,7 @@ internal static class TelegramBotServiceCollectionExtension
         return services
             .ConfigureTelegramBotOptionsUsing(configuration)
             .AddSingleton<TelegramBot>()
-                .AddMessagePagination();
+                .AddMessagePagination()
+            .AddDbContext<TelegramBotDbContext>();
     }
 }

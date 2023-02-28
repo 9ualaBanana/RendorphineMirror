@@ -9,7 +9,6 @@ using NLog.Web;
 using Telegram.Bot;
 using Telegram.Commands;
 using Telegram.Middleware.UpdateRouting;
-using Telegram.Models;
 using Telegram.Security.Authentication;
 using Telegram.Security.Authorization;
 using Telegram.Services.GitHub;
@@ -25,8 +24,10 @@ builder.Host.UseNLog();
 
 builder.Services.AddTelegramBotUsing(builder.Configuration).AddCommands();
 builder.Services.AddUpdateRouting();
-builder.Services.AddMPlusAuthenticationViaTelegramChat();
-builder.Services.AddAuthorization().AddAuthorizationHandlers();
+builder.Services
+    .AddAuthentication(MPlusViaTelegramChatDefaults.AuthenticationScheme)
+    .AddMPlusViaTelegramChat();
+builder.Services.AddAuthorizationWithHandlers();
 
 // Telegram.Bot works only with Newtonsoft.
 builder.Services.AddControllers().AddNewtonsoftJson();
@@ -52,5 +53,6 @@ app.MapControllers();
 app.UseUpdateRouting();
 app.UseRouting();
 app.UseAuthentication();
+app.UseAuthorization();
 
-app.Run("https://localhost:7000");
+app.Run();

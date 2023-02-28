@@ -7,9 +7,11 @@ public class MPlusAuthenticationAuthorizationHandler : AuthorizationHandler<MPlu
 {
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, MPlusAuthenticationRequirement requirement)
     {
-        if (context.User.Identity?.AuthenticationType == MPlusAuthenticationViaTelegramChatDefaults.AuthenticationScheme)
+        if (context.User.Identities.Any(identity => identity.AuthenticationType == MPlusViaTelegramChatDefaults.AuthenticationScheme))
             context.Succeed(requirement);
-        else context.Fail(new(handler: this, $"Current request is not authenticated by M+."));
+        else context.Fail(
+            new AuthorizationFailureReason(handler: this, $"Current request is not authenticated by M+.")
+            );
 
         return Task.CompletedTask;
     }

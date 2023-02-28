@@ -2,5 +2,5 @@
 
 internal interface IHttpContextHandler
 {
-    Task HandleAsync(HttpContext context, CancellationToken cancellationToken);
+    Task HandleAsync(HttpContext context);
 }

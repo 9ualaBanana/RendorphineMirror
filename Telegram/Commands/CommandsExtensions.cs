@@ -1,4 +1,5 @@
-﻿using Telegram.Commands.SyntaxAnalysis;
+﻿using Telegram.Commands.Handlers;
+using Telegram.Commands.SyntaxAnalysis;
 using Telegram.Telegram.Updates.Commands;
 using Telegram.Telegram.Updates.Commands.Offline;
 using Telegram.Telegram.Updates.Commands.Online;
@@ -29,12 +30,13 @@ internal static class CommandsExtensions
 
     internal static IServiceCollection AddCommands(this IServiceCollection services)
         => services
-        .AddCommandsHandlers()
-        .AddCommandsParsing();
+        .AddCommandParsing()
+        .AddCommandHandlers();
 
-    static IServiceCollection AddCommandsHandlers(this IServiceCollection services)
+    static IServiceCollection AddCommandHandlers(this IServiceCollection services)
         => services
-        .AddScoped<CommandHandler, PingCommandHandler>();
+        .AddScoped<CommandHandler, LoginCommandHandler>()
+        .AddScoped<CommandHandler, LogoutCommandHandler>();
 
     internal static IServiceCollection AddTelegramBotCommands(this IServiceCollection serviceCollection) =>
         serviceCollection
@@ -42,7 +44,7 @@ internal static class CommandsExtensions
             .AddScoped<Telegram.Updates.Commands.Command, LoginCommand>()
             .AddScoped<Telegram.Updates.Commands.Command, PingListCommand>()
             .AddScoped<Telegram.Updates.Commands.Command, AdminPinglistCommand>()
-            //.AddScoped<Telegram.Updates.Commands.Command, PingCommand>()
+            .AddScoped<Telegram.Updates.Commands.Command, PingCommand>()
             .AddScoped<Telegram.Updates.Commands.Command, AdminPingCommand>()
             .AddScoped<Telegram.Updates.Commands.Command, OnlineCommand>()
             .AddScoped<Telegram.Updates.Commands.Command, AdminOnlineCommand>()

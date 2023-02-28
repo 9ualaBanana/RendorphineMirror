@@ -1,6 +1,6 @@
 ﻿namespace Telegram.Security.Authentication;
 
-internal static class MPlusAuthenticationViaTelegramChatDefaults
+internal static class MPlusViaTelegramChatDefaults
 {
     internal const string AuthenticationScheme = "MPlusViaTelegramChat";
 }

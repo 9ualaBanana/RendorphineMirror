@@ -5,15 +5,13 @@ namespace Telegram.Security.Authentication;
 
 internal static class TelegramBotAuthenticationExtensions
 {
-    internal static AuthenticationBuilder AddMPlusAuthenticationViaTelegramChat(
-        this IServiceCollection services,
+    internal static AuthenticationBuilder AddMPlusViaTelegramChat(
+        this AuthenticationBuilder authenticationBuilder,
         string? authenticationScheme = default)
     {
-        services.AddHttpClient<MPlusClient>();
-        services.AddHttpClient<MPlusAuthenticationClient>();
-        return services.AddAuthentication()
-            .AddScheme<AuthenticationSchemeOptions, MPlusAuthenticationViaTelegramChatHandler>(
-                authenticationScheme ?? MPlusAuthenticationViaTelegramChatDefaults.AuthenticationScheme, default
+        authenticationBuilder.Services.AddHttpClient<MPlusClient>();
+        return authenticationBuilder.AddScheme<AuthenticationSchemeOptions, MPlusViaTelegramChatHandler>(
+                authenticationScheme ?? MPlusViaTelegramChatDefaults.AuthenticationScheme, default
             );
     }
 }

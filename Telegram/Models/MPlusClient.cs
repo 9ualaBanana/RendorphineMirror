@@ -51,7 +51,9 @@ public class MPlusClient
     internal async Task<Uri> RequestFileDownloadLinkUsing(ITaskApi taskApi, string sessionId, string iid)
         => new Uri((await taskApi.GetMPlusItemDownloadLinkAsync(iid, sessionId)).ThrowIfError());
 
-    internal async Task<MPlusIdentity?> TryLogInAsyncUsing(string email, string password)
+    /// <exception cref="InvalidDataException">M+ server returned authentication result in a wrong format.</exception>
+    /// <exception cref="HttpRequestException">Exception occured on the M+ server.</exception>
+    internal async Task<MPlusIdentity> LogInAsyncUsing(string email, string password)
     {
         var credentialsForm = new FormUrlEncodedContent(new Dictionary<string, string>()
         {
@@ -60,6 +62,7 @@ public class MPlusClient
             ["guid"] = Guid.NewGuid().ToString()
         });
         return (await (await _httpClient.PostAsync(new Uri(_taskManagerEndpoint, "login"), credentialsForm)).GetJsonIfSuccessfulAsync())
-            .ToObject<MPlusIdentity>();
+            .ToObject<MPlusIdentity>() ??
+            throw new InvalidDataException("M+ authentication result returned from the server was in a wrong format.");
     }
 }

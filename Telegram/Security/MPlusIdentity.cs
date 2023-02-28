@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using Newtonsoft.Json;
+using System.Security.Claims;
 using Telegram.Security.Authentication;
 
 namespace Telegram.Security;
@@ -6,7 +7,10 @@ namespace Telegram.Security;
 /// <summary>
 /// Helper for working with M+ <see cref="ClaimsIdentity"/>.
 /// </summary>
-internal record MPlusIdentity(string UserId, string SessionId, AccessLevel AccessLevel)
+public record MPlusIdentity(
+    [JsonProperty(PropertyName = "userid")] string UserId,
+    [JsonProperty(PropertyName = "sessionid")] string SessionId,
+    [JsonProperty(PropertyName = "accesslevel")] AccessLevel AccessLevel)
 {
     internal const string UserIdClaimType = "UserId";
     internal const string SessionIdClaimType = "SessionId";
@@ -34,5 +38,5 @@ internal record MPlusIdentity(string UserId, string SessionId, AccessLevel Acces
             new(UserIdClaimType, UserId),
             new(SessionIdClaimType, SessionId),
             new(AccessLevelClaimType, ((int)AccessLevel.User).ToString(), ClaimValueTypes.Integer)
-    }, MPlusAuthenticationViaTelegramChatDefaults.AuthenticationScheme);
+    }, MPlusViaTelegramChatDefaults.AuthenticationScheme);
 }

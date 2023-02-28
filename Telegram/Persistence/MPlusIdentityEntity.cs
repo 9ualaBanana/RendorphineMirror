@@ -1,4 +1,6 @@
-﻿namespace Telegram.Security.Authentication.Persistence;
+﻿using Telegram.Security;
+
+namespace Telegram.Persistence;
 
 /// <summary>
 /// Entity representing <see cref="MPlusIdentity"/> of the user represented by <see cref="TelegramBotUserEntity"/>.
@@ -9,7 +11,7 @@ public record MPlusIdentityEntity : MPlusIdentity
 
     internal MPlusIdentityEntity(MPlusIdentity mPlusIdentity)
         : base(mPlusIdentity)
-    { 
+    {
     }
 
     internal MPlusIdentityEntity(string userId, string sessionId, AccessLevel accessLevel)

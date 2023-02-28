@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Telegram.Security.Authentication.Persistence;
+namespace Telegram.Persistence;
 
 public class TelegramBotDbContext : DbContext
 {

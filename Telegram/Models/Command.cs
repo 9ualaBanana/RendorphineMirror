@@ -1,6 +1,6 @@
 ﻿namespace Telegram.Models;
 
-public abstract class Command : IHttpContextHandler, ISwitchableService<Command, string>, IEquatable<Command>, IEquatable<string>
+public abstract class Command : IHttpContextHandlerr, ISwitchableService<Command, string>, IEquatable<Command>, IEquatable<string>
 {
     internal const char Prefix = '/';
 
@@ -28,4 +28,8 @@ public abstract class Command : IHttpContextHandler, ISwitchableService<Command,
     public override int GetHashCode() => PrefixedCommandText.GetHashCode();
 
     #endregion
+}
+
+public interface IHttpContextHandlerr
+{
 }
