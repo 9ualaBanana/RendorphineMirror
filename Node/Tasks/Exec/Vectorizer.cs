@@ -1,3 +1,6 @@
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace Node.Tasks.Exec;
 
 public static class VectorizerTasks
@@ -30,7 +33,7 @@ public static class VectorizerTasks
             // assuming we aren't executing several of veee.exe simultaneously
             if (Directory.Exists(veeeoutdir)) Directory.Delete(veeeoutdir, true);
             Directory.CreateDirectory(veeeoutdir);
-            File.WriteAllText(Path.Combine(plugindir, "config.xml"), GetConfig(data.Lods));
+            File.WriteAllText(Path.Combine(plugindir, "config.xml"), GetConfig(inputfile, data.Lods, task));
 
             await ExecuteProcessWithWineSupport(exepath, args, delegate { }, task);
 
@@ -41,11 +44,21 @@ public static class VectorizerTasks
         }
 
 
-        static string GetConfig(IEnumerable<int> lods) =>
-            $@"
-                <CONFIG Version=""1"" ProfilesDir=""Veee"" Lang=""Data\lang_en.xml"" W=""1920"" H=""1080"" ShowFps=""1"" LastUser=""no"" outdir=""out"" outsize=""1024"">
+        static string GetConfig(string imagefile, IReadOnlyCollection<int> lods, ILoggable? logger = null)
+        {
+            var image = Image<Rgba32>.Load(imagefile);
+
+            var outwidth = 5000;
+            if (image.Height < image.Width)
+                outwidth = image.Width * outwidth / image.Height;
+
+            logger?.LogInfo($"Vectorizing image {imagefile} with outwidth {outwidth} and lods [{string.Join(", ", lods)}]");
+
+            return $@"
+                <CONFIG Version=""1"" ProfilesDir=""Veee"" Lang=""Data\lang_en.xml"" W=""1920"" H=""1080"" ShowFps=""1"" LastUser=""no"" outdir=""out"" outsize=""{outwidth}"">
                 {string.Join(Environment.NewLine, lods.Select(lod => @$"<EXPORT mode=""0"" lod=""{lod}""/>"))}
                 </CONFIG>
-            ";
+            ".TrimLines();
+        }
     }
 }
