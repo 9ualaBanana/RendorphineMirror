@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using Telegram.Commands.Tokenization.Tokens;
+using Telegram.Commands.LexicalAnalysis.Tokens;
 
 namespace Telegram.Commands;
 

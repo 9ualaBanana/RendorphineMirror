@@ -1,5 +1,6 @@
 ﻿using Telegram.Bot;
-using Telegram.Commands.SyntaxAnalysis;
+using Telegram.Commands.SyntacticAnalysis;
+using Telegram.Handlers;
 using Telegram.Models;
 
 namespace Telegram.Commands.Handlers;
@@ -10,18 +11,14 @@ namespace Telegram.Commands.Handlers;
 /// <see cref="HandleAsync(HttpContext, ParsedCommand)"/>
 /// via publicly available <see cref="HandleAsync(HttpContext)"/>.
 /// </summary>
-public abstract class CommandHandler : IHttpContextHandler, ISwitchableService<CommandHandler, Command>
+public abstract class CommandHandler : UpdateHandler, ISwitchableService<CommandHandler, Command>
 {
     readonly CommandParser _parser;
 
-    protected readonly TelegramBot Bot;
-    protected readonly ILogger Logger;
-
-    protected CommandHandler(TelegramBot bot, CommandParser parser, ILogger logger)
+    protected CommandHandler(CommandParser parser, TelegramBot bot, ILogger logger)
+        : base(bot, logger)
     {
         _parser = parser;
-        Bot = bot;
-        Logger = logger;
     }
 
     internal abstract Command Target { get; }
@@ -36,7 +33,7 @@ public abstract class CommandHandler : IHttpContextHandler, ISwitchableService<C
     /// </returns>
     public bool Matches(Command command) => ((string)command).StartsWith(Target);
 
-    public async Task HandleAsync(HttpContext context)
+    public override async Task HandleAsync(HttpContext context)
     {
         string receivedMessage = context.GetUpdate().Message!.Text!;
         if (_parser.TryParse(receivedMessage) is ParsedCommand receivedCommand)

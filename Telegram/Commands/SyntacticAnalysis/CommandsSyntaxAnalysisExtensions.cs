@@ -1,6 +1,6 @@
-﻿using Telegram.Commands.Tokenization;
+﻿using Telegram.Commands.LexicalAnalysis;
 
-namespace Telegram.Commands.SyntaxAnalysis;
+namespace Telegram.Commands.SyntacticAnalysis;
 
 internal static class CommandsSyntaxAnalysisExtensions
 {

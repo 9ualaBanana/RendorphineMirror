@@ -1,17 +1,18 @@
 ﻿using System.Text.RegularExpressions;
+using Telegram.Commands.LexicalAnalysis;
 
-namespace Telegram.Commands.Tokenization.Tokens;
+namespace Telegram.Commands.LexicalAnalysis.Tokens;
 
 /// <summary>
-/// Builder responsible for constructing <see cref="Tokens.Token"/>s of some certain concrete type from scanned lexemes that represent them.
+/// Builder responsible for constructing <see cref="Telegram.Commands.LexicalAnalysis.Tokens.Token"/>s of some certain concrete type from scanned lexemes that represent them.
 /// </summary>
 public abstract class LexemeScanner
 {
     /// <summary>
-    /// Constructs <see cref="Tokens.Token"/> of some certain concrete type specific to this <see cref="LexemeScanner"/>.
+    /// Constructs <see cref="Telegram.Commands.LexicalAnalysis.Tokens.Token"/> of some certain concrete type specific to this <see cref="LexemeScanner"/>.
     /// </summary>
     /// <returns>
-    /// Concrete <see cref="Tokens.Token"/> for construction of which this <see cref="LexemeScanner"/> is responsible
+    /// Concrete <see cref="Telegram.Commands.LexicalAnalysis.Tokens.Token"/> for construction of which this <see cref="LexemeScanner"/> is responsible
     /// if the current lexeme represents it; <see langword="null"/> otherwise.
     /// </returns>
     internal Token? TryConstructTokenFrom(TokenizerInput tokenizerInput)
@@ -21,10 +22,10 @@ public abstract class LexemeScanner
     internal abstract Regex Pattern { get; }
 
     /// <summary>
-    /// Constructs <see cref="Tokens.Token"/> of concrete type from <paramref name="lexeme"/>.
+    /// Constructs <see cref="Telegram.Commands.LexicalAnalysis.Tokens.Token"/> of concrete type from <paramref name="lexeme"/>.
     /// </summary>
     /// <param name="lexeme">The lexeme to construct <see cref="Token"/> from.</param>
-    /// <returns><see cref="Tokens.Token"/> of concrete type constructed from <paramref name="lexeme"/>.</returns>
+    /// <returns><see cref="Telegram.Commands.LexicalAnalysis.Tokens.Token"/> of concrete type constructed from <paramref name="lexeme"/>.</returns>
     protected abstract Token Token(string lexeme);
 }
 

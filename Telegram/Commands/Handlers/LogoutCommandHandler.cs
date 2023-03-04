@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Telegram.Bot;
-using Telegram.Commands.SyntaxAnalysis;
+using Telegram.Commands.SyntacticAnalysis;
 using Telegram.Models;
 using Telegram.Persistence;
 using Telegram.Security.Authentication;
@@ -14,9 +14,9 @@ public class LogoutCommandHandler : CommandHandler, IAuthorizationRequirementsPr
 
     public LogoutCommandHandler(
         TelegramBotDbContext database,
-        TelegramBot bot,
         CommandParser parser,
-        ILogger<LogoutCommandHandler> logger) : base(bot, parser, logger)
+        TelegramBot bot,
+        ILogger<LogoutCommandHandler> logger) : base(parser, bot, logger)
     {
         _database = database;
     }

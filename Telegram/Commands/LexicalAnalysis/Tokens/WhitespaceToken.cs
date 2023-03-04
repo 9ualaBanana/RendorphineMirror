@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Telegram.Commands.Tokenization.Tokens;
+namespace Telegram.Commands.LexicalAnalysis.Tokens;
 
 internal class WhitespaceLexemeScanner : LexemeScanner
 {

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Telegram.Bot;
-using Telegram.Commands.SyntaxAnalysis;
+using Telegram.Commands.SyntacticAnalysis;
 using Telegram.Models;
 using Telegram.Persistence;
 using Telegram.Security.Authentication;
@@ -15,9 +15,9 @@ public class LoginCommandHandler : CommandHandler
     public LoginCommandHandler(
         MPlusClient mPlusClient,
         TelegramBotDbContext database,
-        TelegramBot bot,
         CommandParser parser,
-        ILogger<LoginCommandHandler> logger) : base(bot, parser, logger)
+        TelegramBot bot,
+        ILogger<LoginCommandHandler> logger) : base(parser, bot, logger)
     {
         _mPlusClient = mPlusClient;
         _database = database;

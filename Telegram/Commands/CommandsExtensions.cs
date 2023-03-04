@@ -1,5 +1,5 @@
 ﻿using Telegram.Commands.Handlers;
-using Telegram.Commands.SyntaxAnalysis;
+using Telegram.Commands.SyntacticAnalysis;
 using Telegram.Telegram.Updates.Commands;
 using Telegram.Telegram.Updates.Commands.Offline;
 using Telegram.Telegram.Updates.Commands.Online;

@@ -1,6 +1,6 @@
-﻿using Telegram.Commands.Tokenization.Tokens;
+﻿using Telegram.Commands.LexicalAnalysis.Tokens;
 
-namespace Telegram.Commands.Tokenization;
+namespace Telegram.Commands.LexicalAnalysis;
 
 /// <summary>
 /// Service that uses registered <see cref="LexemeScanner"/>s to tokenize its input.
