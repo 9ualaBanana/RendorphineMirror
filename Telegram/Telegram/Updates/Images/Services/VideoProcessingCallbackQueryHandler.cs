@@ -1,5 +1,6 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Models;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.FileRegistry;
@@ -13,8 +14,10 @@ public class VideoProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
         ILogger<VideoProcessingCallbackQueryHandler> logger,
         TelegramBot bot,
         ChatAuthenticator authenticator,
-        CachedFiles fileRegistry,
-        IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator, fileRegistry, httpClientFactory)
+        CachedMediaFiles fileRegistry,
+        MediaFileDownloader telegramMediaFilesDownloader,
+        IHttpClientFactory httpClientFactory)
+        : base(logger, bot, authenticator, fileRegistry, telegramMediaFilesDownloader, httpClientFactory)
     {
     }
 

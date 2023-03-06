@@ -1,6 +1,7 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Models;
 using Telegram.Telegram.FileRegistry;
 using Telegram.Telegram.Updates.Images.Models;
 
@@ -8,10 +9,10 @@ namespace Telegram.Telegram.Updates.Images.Services;
 
 public class TelegramVideoHandler : TelegramUpdateHandler
 {
-    readonly CachedFiles _fileRegistry;
+    readonly CachedMediaFiles _fileRegistry;
 
 
-    public TelegramVideoHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, CachedFiles fileRegistry)
+    public TelegramVideoHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, CachedMediaFiles fileRegistry)
         : base(logger, bot)
     {
         _fileRegistry = fileRegistry;
@@ -23,10 +24,11 @@ public class TelegramVideoHandler : TelegramUpdateHandler
         await Bot.SendMessageAsync_(
             update.Message!.Chat.Id,
             "*Choose how to process the video*",
-            replyMarkup: CreateReplyMarkupFor(TelegramMediaFile.From(update.Message)));
+            // Wrap From in try-catch block.
+            replyMarkup: CreateReplyMarkupFor(MediaFile.From(update.Message)));
     }
 
-    InlineKeyboardMarkup CreateReplyMarkupFor(TelegramMediaFile mediaFile)
+    InlineKeyboardMarkup CreateReplyMarkupFor(MediaFile mediaFile)
     {
         var key = _fileRegistry.Add(mediaFile);
         return new(new InlineKeyboardButton[][]

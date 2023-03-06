@@ -1,6 +1,7 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Models;
 using Telegram.Telegram.FileRegistry;
 using Telegram.Telegram.Updates.Images.Models;
 
@@ -8,10 +9,10 @@ namespace Telegram.Telegram.Updates.Images.Services;
 
 public class TelegramImageHandler : TelegramUpdateHandler
 {
-    readonly CachedFiles _cachedFiles;
+    readonly CachedMediaFiles _cachedFiles;
 
 
-    public TelegramImageHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, CachedFiles cachedFiles)
+    public TelegramImageHandler(ILogger<TelegramImageHandler> logger, TelegramBot bot, CachedMediaFiles cachedFiles)
         : base(logger, bot)
     {
         _cachedFiles = cachedFiles;
@@ -23,16 +24,16 @@ public class TelegramImageHandler : TelegramUpdateHandler
         await Bot.SendMessageAsync_(
             update.Message!.Chat.Id,
             "*Choose how to process the image*",
-            replyMarkup: CreateReplyMarkupForLowResolutionImage(TelegramMediaFile.From(update.Message)));
+            replyMarkup: CreateReplyMarkupForLowResolutionImage(MediaFile.From(update.Message)));
     }
 
-    InlineKeyboardMarkup ReplyMarkupFor(TelegramMediaFile mediaFile) => mediaFile.Size switch
+    InlineKeyboardMarkup ReplyMarkupFor(MediaFile mediaFile) => mediaFile.Size switch
     {
         < 20_000_000 => CreateReplyMarkupForLowResolutionImage(mediaFile),
         _ => CreateReplyMarkupForHighResolutionImage(mediaFile)
     };
 
-    InlineKeyboardMarkup CreateReplyMarkupForLowResolutionImage(TelegramMediaFile mediaFile)
+    InlineKeyboardMarkup CreateReplyMarkupForLowResolutionImage(MediaFile mediaFile)
     {
         var key = _cachedFiles.Add(mediaFile);
         return new(new InlineKeyboardButton[][]
@@ -58,7 +59,7 @@ public class TelegramImageHandler : TelegramUpdateHandler
         });
     }
 
-    InlineKeyboardMarkup CreateReplyMarkupForHighResolutionImage(TelegramMediaFile mediaFile)
+    InlineKeyboardMarkup CreateReplyMarkupForHighResolutionImage(MediaFile mediaFile)
     {
         throw new NotImplementedException();
     }

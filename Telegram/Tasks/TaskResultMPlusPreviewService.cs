@@ -15,7 +15,7 @@ public class TaskResultMPlusPreviewService
     readonly MPlusClient _mPlusService;
     readonly TelegramBot _bot;
     readonly RegisteredTasksCache _registeredTasksCache;
-    readonly CachedFiles _cachedFiles;
+    readonly CachedMediaFiles _cachedMediaFiles;
 
     readonly ILogger _logger;
 
@@ -23,13 +23,13 @@ public class TaskResultMPlusPreviewService
         MPlusClient mPlusService,
         TelegramBot bot,
         RegisteredTasksCache registeredTasksCache,
-        CachedFiles cachedFiles,
+        CachedMediaFiles cachedMediaFiles,
         ILogger<TaskResultMPlusPreviewService> logger)
     {
         _mPlusService = mPlusService;
         _bot = bot;
         _registeredTasksCache = registeredTasksCache;
-        _cachedFiles = cachedFiles;
+        _cachedMediaFiles = cachedMediaFiles;
         _logger = logger;
     }
 
@@ -89,14 +89,14 @@ public class TaskResultMPlusPreviewService
 
     async Task<Message> SendTaskResultPreviewAsyncCore(ChatId chatId, TaskResultPreviewFromMPlus taskResultPreview)
     {
-        var cachedFileKey = _cachedFiles.Add(TelegramMediaFile.From(taskResultPreview.FileDownloadLink));
+        var cachedMediaFileIndex = _cachedMediaFiles.Add(MediaFile.From(taskResultPreview.FileDownloadLink));
         string caption =
             $"{taskResultPreview.FileInfo.Title}\n\n" +
             $"*Task Executor* : `{taskResultPreview.TaskExecutor}`\n" +
             $"*Task ID* : `{taskResultPreview.TaskId}`\n" +
             $"*M+ IID* : `{taskResultPreview.FileInfo.Iid}`";
         var downloadButton = InlineKeyboardButton.WithUrl("Download", taskResultPreview.FileDownloadLink.ToString());
-        var uploadToMPlusButton = InlineKeyboardButton.WithCallbackData("Upload to M+", ImageProcessingCallbackData.Serialize(ImageProcessingQueryFlags.UploadImage, cachedFileKey));
+        var uploadToMPlusButton = InlineKeyboardButton.WithCallbackData("Upload to M+", ImageProcessingCallbackData.Serialize(ImageProcessingQueryFlags.UploadImage, cachedMediaFileIndex));
         var replyMarkup = new InlineKeyboardMarkup(new InlineKeyboardButton[] { downloadButton, uploadToMPlusButton });
 
         return await (taskResultPreview switch

@@ -5,6 +5,9 @@ namespace Common
 {
     public static class Extensions
     {
+        public const string Jpeg = ".jpeg";
+        public const string Mp4 = ".mp4";
+
         readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
         public static T With<T>(this T t, Action<T> action)

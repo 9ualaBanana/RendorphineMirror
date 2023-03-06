@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Options;
 using Telegram.Tasks;
 using Telegram.Tasks.CallbackQuery;
+using Telegram.Models;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
@@ -23,9 +24,10 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
         TelegramBot bot,
         ChatAuthenticator authenticator,
         RegisteredTasksCache registeredTasksCache,
-        CachedFiles cachedFiles,
+        CachedMediaFiles cachedFiles,
         IOptions<TelegramBotOptions> botOptions,
-        IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator, cachedFiles, httpClientFactory)
+        MediaFileDownloader telegramMediaFilesDownloader,
+        IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator, cachedFiles, telegramMediaFilesDownloader, httpClientFactory)
     {
         _registeredTasksCache = registeredTasksCache;
         _hostUrl = botOptions.Value.Host.ToString();

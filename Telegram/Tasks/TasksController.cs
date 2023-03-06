@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Telegram.Models;
 using Telegram.Telegram.FileRegistry;
-using Telegram.Telegram.Updates.Images.Models;
 
 namespace Telegram.Tasks;
 
@@ -22,16 +22,13 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet("getinput/{id}")]
-    public ActionResult GetInput([FromRoute] string id, [FromServices] CachedFiles cachedFiles, [FromServices] IWebHostEnvironment environment)
+    public ActionResult GetInput([FromRoute] string id, [FromServices] CachedMediaFiles cachedMediaFiles)
     {
-        if (cachedFiles[id] is TelegramMediaFile file)
+        if (cachedMediaFiles[id] is MediaFile mediaFile)
         {
-            var fileName = Path.ChangeExtension(Path.Combine(environment.ContentRootPath, cachedFiles.Location, id), file.Extension);
-
-            try { return PhysicalFile(fileName, MimeTypes.GetMimeType(file.Extension)); }
-            catch { }
+            var mediaFileName = Path.ChangeExtension(Path.Combine(cachedMediaFiles.PathFor(mediaFile, id)), mediaFile.Extension);
+            return PhysicalFile(mediaFileName, MimeTypes.GetMimeType(mediaFile.Extension));
         }
-        
-        return NotFound();
+        else return NotFound();
     }
 }

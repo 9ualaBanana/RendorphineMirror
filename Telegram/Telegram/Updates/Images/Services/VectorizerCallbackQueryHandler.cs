@@ -8,6 +8,7 @@ using Telegram.Telegram.FileRegistry;
 using Telegram.Bot;
 using Telegram.Tasks;
 using Telegram.Tasks.CallbackQuery;
+using Telegram.Models;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 
@@ -21,10 +22,11 @@ public class VectorizerCallbackQueryHandler : MediaFileProcessingCallbackQueryHa
         TelegramBot bot,
         ChatAuthenticator authenticator,
         RegisteredTasksCache tasksRegistry,
-        CachedFiles fileRegistry,
+        CachedMediaFiles fileRegistry,
         IConfiguration configuration,
+        MediaFileDownloader telegramMediaFilesDownloader,
         IHttpClientFactory httpClientFactory)
-        : base(logger, bot, authenticator, fileRegistry, httpClientFactory)
+        : base(logger, bot, authenticator, fileRegistry, telegramMediaFilesDownloader, httpClientFactory)
     {
         _registeredTasksCache = tasksRegistry;
         _hostUrl = configuration["Host"];

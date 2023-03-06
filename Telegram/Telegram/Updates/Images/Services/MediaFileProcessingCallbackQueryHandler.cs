@@ -1,5 +1,6 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Models;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.FileRegistry;
@@ -10,7 +11,8 @@ namespace Telegram.Telegram.Updates.Images.Services;
 
 public abstract class MediaFileProcessingCallbackQueryHandler : AuthenticatedTelegramCallbackQueryHandlerBase
 {
-    readonly CachedFiles _cachedFiles;
+    readonly CachedMediaFiles _cachedFiles;
+    readonly MediaFileDownloader _telegramMediaFilesDownloader;
     readonly HttpClient _httpClient;
 
 
@@ -18,10 +20,12 @@ public abstract class MediaFileProcessingCallbackQueryHandler : AuthenticatedTel
         ILogger logger,
         TelegramBot bot,
         ChatAuthenticator authenticator,
-        CachedFiles cachedFiles,
+        CachedMediaFiles cachedFiles,
+        MediaFileDownloader telegramMediaFilesDownloader,
         IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator)
     {
         _cachedFiles = cachedFiles;
+        _telegramMediaFilesDownloader = telegramMediaFilesDownloader;
         _httpClient = httpClientFactory.CreateClient();
     }
 
@@ -31,12 +35,12 @@ public abstract class MediaFileProcessingCallbackQueryHandler : AuthenticatedTel
         ChatAuthenticationToken authenticationToken,
         MediaFileProcessingCallbackData<T> mediaFileProcessingCallbackData) where T : struct, Enum
     {
-        if (_cachedFiles[mediaFileProcessingCallbackData.FileCacheKey] is TelegramMediaFile file)
+        if (_cachedFiles[mediaFileProcessingCallbackData.FileCacheKey] is MediaFile telegramMediaFile)
         {
             var mediaFilePath = Path.ChangeExtension(
                 Path.Combine(_cachedFiles.Location, mediaFileProcessingCallbackData.FileCacheKey),
                 mediaFileProcessingCallbackData.ContentType.Extension);
-            await file.DownloadAsyncTo(mediaFilePath, _httpClient, Bot, CancellationToken.None);
+            await _telegramMediaFilesDownloader.UseAsyncToDownload(telegramMediaFile, mediaFilePath, CancellationToken.None);
 
             await Process(update, authenticationToken, mediaFileProcessingCallbackData, mediaFilePath);
         }
