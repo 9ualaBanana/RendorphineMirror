@@ -19,18 +19,18 @@ public record MPlusIdentity(
     internal bool IsAdmin => AccessLevel > AccessLevel.User;
 
     internal static MPlusIdentity CreateFrom(ClaimsPrincipal claimsPrincipal)
-        => new(UserIdFrom(claimsPrincipal), SessionIdFrom(claimsPrincipal), AccessLevelFrom(claimsPrincipal));
+        => new(UserIdOf(claimsPrincipal), SessionIdOf(claimsPrincipal), AccessLevelOf(claimsPrincipal));
     internal static MPlusIdentity Create(string userId, string sessionId, int accessLevel)
         => Create(userId, sessionId, (AccessLevel)accessLevel);
 
     internal static MPlusIdentity Create(string userId, string sessionId, AccessLevel accessLevel)
         => new(userId, sessionId, accessLevel);
 
-    internal static string UserIdFrom(ClaimsPrincipal claimsPrincipal) => claimsPrincipal.FindFirstValue(UserIdClaimType);
+    internal static string UserIdOf(ClaimsPrincipal claimsPrincipal) => claimsPrincipal.FindFirstValue(UserIdClaimType);
 
-    internal static string SessionIdFrom(ClaimsPrincipal claimsPrincipal) => claimsPrincipal.FindFirstValue(SessionIdClaimType);
+    internal static string SessionIdOf(ClaimsPrincipal claimsPrincipal) => claimsPrincipal.FindFirstValue(SessionIdClaimType);
 
-    internal static AccessLevel AccessLevelFrom(ClaimsPrincipal claimsPrincipal)
+    internal static AccessLevel AccessLevelOf(ClaimsPrincipal claimsPrincipal)
         => Enum.Parse<AccessLevel>(claimsPrincipal.FindFirstValue(AccessLevelClaimType), ignoreCase: true);
 
     internal ClaimsIdentity ToClaimsIdentity() => new(new Claim[]

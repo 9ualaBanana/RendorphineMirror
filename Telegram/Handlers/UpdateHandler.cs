@@ -1,4 +1,6 @@
 ﻿using Telegram.Bot;
+using Telegram.Bot.Types;
+using Telegram.Models;
 
 namespace Telegram.Handlers;
 
@@ -7,9 +9,14 @@ public abstract class UpdateHandler : IHttpContextHandler
 	protected readonly TelegramBot Bot;
 	protected readonly ILogger Logger;
 
-	protected UpdateHandler(TelegramBot bot, ILogger logger)
+	protected Update Update => _httpContextAccessor.HttpContext!.GetUpdate();
+
+    readonly IHttpContextAccessor _httpContextAccessor;
+
+    protected UpdateHandler(TelegramBot bot, IHttpContextAccessor httpContextAccessor, ILogger logger)
 	{
 		Bot = bot;
+		_httpContextAccessor = httpContextAccessor;
 		Logger = logger;
 	}
 

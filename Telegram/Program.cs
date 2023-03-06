@@ -24,8 +24,7 @@ builder.Host.UseNLog();
 
 builder.Services.AddTelegramBotUsing(builder.Configuration).AddCommands();
 builder.Services.AddUpdateRouting();
-builder.Services
-    .AddAuthentication(MPlusViaTelegramChatDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(MPlusViaTelegramChatDefaults.AuthenticationScheme)
     .AddMPlusViaTelegramChat();
 builder.Services.AddAuthorizationWithHandlers();
 

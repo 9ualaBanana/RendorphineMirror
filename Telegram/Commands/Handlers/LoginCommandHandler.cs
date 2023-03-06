@@ -17,7 +17,9 @@ public class LoginCommandHandler : CommandHandler
         TelegramBotDbContext database,
         CommandParser parser,
         TelegramBot bot,
-        ILogger<LoginCommandHandler> logger) : base(parser, bot, logger)
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<LoginCommandHandler> logger)
+        : base(parser, bot, httpContextAccessor, logger)
     {
         _mPlusClient = mPlusClient;
         _database = database;
@@ -33,7 +35,7 @@ public class LoginCommandHandler : CommandHandler
             if (await TryLogInAsyncUsing(arguments.First(), arguments.Last(), context) is MPlusIdentityEntity mPlusIdentityEntity)
                 await TryPersistAuthenticatedUserAsync(mPlusIdentityEntity, context);
         }
-        else await Bot.SendMessageAsync_(context.GetUpdate().ChatId(),
+        else await Bot.SendMessageAsync_(Update.ChatId(),
             $"Login must be performed like the following:\n" +
             $"`{Target.PrefixedCommandText} <email> <password>`",
             cancellationToken: context.RequestAborted);
@@ -49,7 +51,7 @@ public class LoginCommandHandler : CommandHandler
         }
         catch (Exception ex)
         {
-            await Bot.SendMessageAsync_(context.GetUpdate().ChatId(),
+            await Bot.SendMessageAsync_(Update.ChatId(),
                 "Login failed:\n" +
                 ex.Message,
                 cancellationToken: context.RequestAborted);
@@ -61,13 +63,13 @@ public class LoginCommandHandler : CommandHandler
     {
         if (await TryPersistAuthenticatedUserAsyncCore())
         {
-            await Bot.SendMessageAsync_(context.GetUpdate().ChatId(),
+            await Bot.SendMessageAsync_(Update.ChatId(),
                 "You are logged in now.",
                 cancellationToken: context.RequestAborted);
         }
         else
         {
-            await Bot.SendMessageAsync_(context.GetUpdate().ChatId(),
+            await Bot.SendMessageAsync_(Update.ChatId(),
                 "You need to logout first.",
                 cancellationToken: context.RequestAborted);
         }
@@ -75,7 +77,7 @@ public class LoginCommandHandler : CommandHandler
 
         async Task<bool> TryPersistAuthenticatedUserAsyncCore()
         {
-            if (await _database.FindAsync<TelegramBotUserEntity>(context.GetUpdate().ChatId()) is TelegramBotUserEntity user)
+            if (await _database.FindAsync<TelegramBotUserEntity>(Update.ChatId()) is TelegramBotUserEntity user)
             {
                 if (user.MPlusIdentity is null)
                 {
@@ -85,7 +87,7 @@ public class LoginCommandHandler : CommandHandler
                 else return false;
             }
             else
-            { await _database.Users.AddAsync(new(context.GetUpdate().ChatId()) { MPlusIdentity = mPlusIdentityEntity }, context.RequestAborted); }
+            { await _database.Users.AddAsync(new(Update.ChatId()) { MPlusIdentity = mPlusIdentityEntity }, context.RequestAborted); }
 
             await _database.SaveChangesAsync(context.RequestAborted);
             return true;

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Telegram.Bot;
 using Telegram.Commands.SyntacticAnalysis;
-using Telegram.Models;
 using Telegram.Persistence;
 using Telegram.Security.Authentication;
 using Telegram.Security.Authorization;
@@ -16,7 +15,9 @@ public class LogoutCommandHandler : CommandHandler, IAuthorizationRequirementsPr
         TelegramBotDbContext database,
         CommandParser parser,
         TelegramBot bot,
-        ILogger<LogoutCommandHandler> logger) : base(parser, bot, logger)
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<LogoutCommandHandler> logger)
+        : base(parser, bot, httpContextAccessor, logger)
     {
         _database = database;
     }
@@ -30,12 +31,12 @@ public class LogoutCommandHandler : CommandHandler, IAuthorizationRequirementsPr
 
     protected override async Task HandleAsync(HttpContext context, ParsedCommand receivedCommand)
     {
-        if (await _database.FindAsync<TelegramBotUserEntity>(context.GetUpdate().ChatId()) is TelegramBotUserEntity user && user.MPlusIdentity is not null)
+        if (await _database.FindAsync<TelegramBotUserEntity>(Update.ChatId()) is TelegramBotUserEntity user && user.MPlusIdentity is not null)
         {
             _database.Remove(user.MPlusIdentity);
             await _database.SaveChangesAsync(context.RequestAborted);
 
-            await Bot.SendMessageAsync_(context.GetUpdate().ChatId(),
+            await Bot.SendMessageAsync_(Update.ChatId(),
                 "You are logged out now.",
                 cancellationToken: context.RequestAborted);
         }

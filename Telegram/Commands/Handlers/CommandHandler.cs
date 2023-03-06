@@ -15,8 +15,12 @@ public abstract class CommandHandler : UpdateHandler, ISwitchableService<Command
 {
     readonly CommandParser _parser;
 
-    protected CommandHandler(CommandParser parser, TelegramBot bot, ILogger logger)
-        : base(bot, logger)
+    protected CommandHandler(
+        CommandParser parser,
+        TelegramBot bot,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger logger)
+        : base(bot, httpContextAccessor, logger)
     {
         _parser = parser;
     }
@@ -35,7 +39,7 @@ public abstract class CommandHandler : UpdateHandler, ISwitchableService<Command
 
     public override async Task HandleAsync(HttpContext context)
     {
-        string receivedMessage = context.GetUpdate().Message!.Text!;
+        string receivedMessage = Update.Message!.Text!;
         if (_parser.TryParse(receivedMessage) is ParsedCommand receivedCommand)
             await HandleAsync(context, receivedCommand);
         else
