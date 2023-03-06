@@ -28,7 +28,7 @@ public class ImageProcessingCallbackQueryHandler : MediaFileProcessingCallbackQu
         IHttpClientFactory httpClientFactory) : base(logger, bot, authenticator, cachedFiles, httpClientFactory)
     {
         _registeredTasksCache = registeredTasksCache;
-        _hostUrl = botOptions.Value.Host;
+        _hostUrl = botOptions.Value.Host.ToString();
     }
 
     protected async override Task HandleAsync(Update update, ChatAuthenticationToken authenticationToken) =>
