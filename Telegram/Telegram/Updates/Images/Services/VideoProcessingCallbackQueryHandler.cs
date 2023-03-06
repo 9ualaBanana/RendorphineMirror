@@ -1,9 +1,8 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Models;
+using Telegram.MediaFiles;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
-using Telegram.Telegram.FileRegistry;
 using Telegram.Telegram.Updates.Images.Models;
 
 namespace Telegram.Telegram.Updates.Images.Services;

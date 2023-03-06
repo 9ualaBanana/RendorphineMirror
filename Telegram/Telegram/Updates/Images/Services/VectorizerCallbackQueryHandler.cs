@@ -4,11 +4,10 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Telegram.Authentication.Models;
 using Telegram.Telegram.Authentication.Services;
 using Telegram.Telegram.Updates.Images.Models;
-using Telegram.Telegram.FileRegistry;
 using Telegram.Bot;
 using Telegram.Tasks;
 using Telegram.Tasks.CallbackQuery;
-using Telegram.Models;
+using Telegram.MediaFiles;
 
 namespace Telegram.Telegram.Updates.Images.Services;
 

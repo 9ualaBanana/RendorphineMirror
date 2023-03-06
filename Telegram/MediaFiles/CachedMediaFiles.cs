@@ -1,7 +1,6 @@
 ﻿using Telegram.Bot.Types;
-using Telegram.Models;
 
-namespace Telegram.Telegram.FileRegistry;
+namespace Telegram.MediaFiles;
 
 /// <summary>
 /// Enables file processing that spans over multiple <see cref="Update"/> requests.

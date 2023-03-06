@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Telegram.Models;
-using Telegram.Telegram.FileRegistry;
+using Telegram.MediaFiles;
 
 namespace Telegram.Tasks;
 

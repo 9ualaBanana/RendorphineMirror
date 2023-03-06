@@ -4,7 +4,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.InputFiles;
 using ILogger = NLog.ILogger;
 
-namespace Telegram.Models;
+namespace Telegram.MediaFiles;
 
 /// <summary>
 /// Represents a media file stored in one of the supported by Telegram forms.

@@ -1,20 +1,20 @@
 ﻿using Telegram.Bot;
 
-namespace Telegram.Models;
+namespace Telegram.MediaFiles;
 
 public class MediaFileDownloader
 {
     readonly TelegramBot _bot;
-	readonly HttpClient _httpClient;
+    readonly HttpClient _httpClient;
 
-	public MediaFileDownloader(TelegramBot bot, IHttpClientFactory httpClientFactory)
-	{
+    public MediaFileDownloader(TelegramBot bot, IHttpClientFactory httpClientFactory)
+    {
         _bot = bot;
-		_httpClient = httpClientFactory.CreateClient();
-	}
+        _httpClient = httpClientFactory.CreateClient();
+    }
 
-	internal async Task<DownloadedMediaFile> UseAsyncToDownload(MediaFile mediaFile, string destinationPath, CancellationToken cancellationToken)
-	{
+    internal async Task<DownloadedMediaFile> UseAsyncToDownload(MediaFile mediaFile, string destinationPath, CancellationToken cancellationToken)
+    {
         using var downloadedMediaFile = File.Create(destinationPath);
 
         if (mediaFile.FileId is not null)
