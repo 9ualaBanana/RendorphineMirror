@@ -17,8 +17,8 @@ public class CommandsController : ControllerBase
     /// Explicitly requested via DI because <see cref="Command"/>s have requirements
     /// that must be explicitly passed to <see cref="IAuthorizationService"/> during imperative authorization.
     /// </remarks>
-    private readonly IAuthorizationService _authorizationService;
-    private readonly ILogger<CommandsController> _logger;
+    readonly IAuthorizationService _authorizationService;
+    readonly ILogger<CommandsController> _logger;
 
     public CommandsController(IAuthorizationService authorizationService, ILogger<CommandsController> logger)
     {

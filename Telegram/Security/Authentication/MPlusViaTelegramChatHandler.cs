@@ -31,14 +31,14 @@ public class MPlusViaTelegramChatHandler : AuthenticationHandler<AuthenticationS
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var context = _httpContextAccessor.HttpContext!;
-        if (await _database.FindAsync<TelegramBotUserEntity>(context.GetUpdate().ChatId()) is TelegramBotUserEntity user)
-        {
-            if (user.MPlusIdentity is not null)
-            {
-                context.User.AddIdentity(user.MPlusIdentity.ToClaimsIdentity());
-                return AuthenticateResult.Success(new(context.User, MPlusViaTelegramChatDefaults.AuthenticationScheme));
-            }
-        }
+        // AuthenticationMiddleware is invoked regardless of the current middleware pipeline so Update might have been not read.
+        if (context.ContainsUpdate())
+            if (await _database.FindAsync<TelegramBotUserEntity>(context.GetUpdate().ChatId()) is TelegramBotUserEntity user)
+                if (user.MPlusIdentity is not null)
+                {
+                    context.User.AddIdentity(user.MPlusIdentity.ToClaimsIdentity());
+                    return AuthenticateResult.Success(new(context.User, MPlusViaTelegramChatDefaults.AuthenticationScheme));
+                }
 
         return AuthenticateResult.NoResult();
     }

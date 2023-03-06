@@ -40,5 +40,8 @@ internal static class UpdateHttpContextExtensions
         }
     }
 
+    internal static bool ContainsUpdate(this HttpContext context)
+        => context.Items[_cacheKey] is not null;
+
     static readonly object _cacheKey = new();
 }

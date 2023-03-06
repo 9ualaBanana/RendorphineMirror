@@ -10,17 +10,17 @@ namespace Telegram.Middleware.UpdateRouting;
 public class UpdateRoutingBranchingMiddleware : IMiddleware
 {
     readonly TelegramBotOptions _botOptions;
-    readonly UpdateReaderMiddleware _updateContextConstructorMiddleware;
+    readonly UpdateReaderMiddleware _updateReaderMiddleware;
 
     public UpdateRoutingBranchingMiddleware(
         IOptions<TelegramBotOptions> botOptions,
-        UpdateReaderMiddleware updateContextConstructorMiddleware)
+        UpdateReaderMiddleware updateReaderMiddleware)
     {
         _botOptions = botOptions.Value;
-        _updateContextConstructorMiddleware = updateContextConstructorMiddleware;
+        _updateReaderMiddleware = updateReaderMiddleware;
     }
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next) => await
         (context.Request.Path.HasValue && context.Request.Path.Value.Contains(_botOptions.Token) ?
-        _updateContextConstructorMiddleware.InvokeAsync(context, next) : next(context));
+        _updateReaderMiddleware.InvokeAsync(context, next) : next(context));
 }
