@@ -29,7 +29,7 @@ public class LogoutCommandHandler : CommandHandler, IAuthorizationRequirementsPr
         MPlusAuthenticationRequirement.Instance
     };
 
-    protected override async Task HandleAsync(HttpContext context, ParsedCommand receivedCommand)
+    protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
     {
         if (await _database.FindAsync<TelegramBotUserEntity>(Update.ChatId()) is TelegramBotUserEntity user && user.MPlusIdentity is not null)
         {

@@ -8,7 +8,7 @@ namespace Telegram.Commands.Handlers;
 /// <summary>
 /// Base class for <see cref="CommandHandler"/>s that should be used to handle <see cref="Target"/> and
 /// also provides access to received <see cref="ParsedCommand"/> to its children by calling abstract
-/// <see cref="HandleAsync(HttpContext, ParsedCommand)"/>
+/// <see cref="HandleAsync(ParsedCommand, HttpContext)"/>
 /// via publicly available <see cref="HandleAsync(HttpContext)"/>.
 /// </summary>
 public abstract class CommandHandler : UpdateHandler, ISwitchableService<CommandHandler, Command>
@@ -41,7 +41,7 @@ public abstract class CommandHandler : UpdateHandler, ISwitchableService<Command
     {
         string receivedMessage = Update.Message!.Text!;
         if (_parser.TryParse(receivedMessage) is ParsedCommand receivedCommand)
-            await HandleAsync(context, receivedCommand);
+            await HandleAsync(receivedCommand, context);
         else
         {
             string errorMessage =
@@ -53,5 +53,5 @@ public abstract class CommandHandler : UpdateHandler, ISwitchableService<Command
         }
     }
 
-    protected abstract Task HandleAsync(HttpContext context, ParsedCommand receivedCommand);
+    protected abstract Task HandleAsync(ParsedCommand receivedCommand, HttpContext context);
 }

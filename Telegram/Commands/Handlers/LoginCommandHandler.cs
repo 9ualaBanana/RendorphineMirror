@@ -27,7 +27,7 @@ public class LoginCommandHandler : CommandHandler
 
     internal override Command Target => "login";
 
-    protected override async Task HandleAsync(HttpContext context, ParsedCommand receivedCommand)
+    protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
     {
         var arguments = receivedCommand.UnquotedArguments.ToImmutableArray();
         if (arguments.Length == 2)
