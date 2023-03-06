@@ -1,5 +1,4 @@
 ﻿using Telegram.Bot.MessagePagination;
-using Telegram.Bot.MessagePagination.CallbackQuery;
 using Telegram.Services.Node;
 using Telegram.Commands;
 using Telegram.Telegram.Updates.Images;
@@ -13,9 +12,6 @@ public static class TelegramUpdateHandlersExtensions
         return serviceCollection
             .AddSingleton<TelegramUpdateTypeHandler>()
             .AddScoped<TelegramMessageHandler>()
-            .AddSingleton<MessagePaginator>()
-            .AddScoped<MessagePaginatorCallbackQueryHandler>()
-            .AddSingleton<ChunkedMessagesAutoStorage>()
             .AddTelegramBotCommands()
             .AddTelegramImageProcessing()
             .AddScoped<TelegramCallbackQueryHandler>()
