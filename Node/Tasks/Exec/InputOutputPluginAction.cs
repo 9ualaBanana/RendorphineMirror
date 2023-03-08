@@ -62,14 +62,14 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         }
         else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
 
-        if (task.Output.Type is TaskOutputType.MPlus)
+        if (task.Output.Type is TaskOutputType.MPlus && task.Action is ("VeeeVectorize" or "EsrganUpscale"))
             await NotifyTelegramBotOfTaskCompletion(task);
     }
 
 
     static async Task NotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        var uploaded = task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Where(f => f.FileName.EndsWith(".g.jpg", StringComparison.Ordinal));
+        var uploaded = task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Where(f => task.Action != "VeeeVectorize" || !f.FileName.Contains(".t.", StringComparison.Ordinal));
         var iids = string.Join('&', uploaded.Select(fileInfo => $"iids={fileInfo.Iid}"));
         var queryString = $"taskId={task.Id}&shardHost={task.HostShard}&{iids}&taskExecutor={Settings.NodeName}";
         try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
