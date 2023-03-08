@@ -11,6 +11,11 @@ public interface ITaskInputInfo : ITaskInputOutputInfo
 {
     TaskInputType Type { get; }
 }
+public interface ITaskInputFileInfo : ITaskInputInfo
+{
+    ValueTask<TaskObject> GetFileInfo();
+}
+
 [JsonConverter(typeof(TaskOutputJConverter))]
 public interface ITaskOutputInfo : ITaskInputOutputInfo
 {

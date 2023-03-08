@@ -1,7 +1,7 @@
 namespace NodeCommon.Tasks.Model;
 
 // TODO: here just to not crash every time loading task list
-public class UserTaskInputInfo : ITaskInputInfo
+public class UserTaskInputInfo : ITaskInputFileInfo
 {
     public TaskInputType Type => TaskInputType.User;
 

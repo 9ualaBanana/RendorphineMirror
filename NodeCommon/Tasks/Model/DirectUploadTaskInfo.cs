@@ -1,6 +1,6 @@
 ﻿namespace NodeCommon.Tasks.Model;
 
-public class DirectDownloadTaskInputInfo : ITaskInputInfo
+public class DirectDownloadTaskInputInfo : ITaskInputFileInfo
 {
     public TaskInputType Type => TaskInputType.DirectUpload;
 
