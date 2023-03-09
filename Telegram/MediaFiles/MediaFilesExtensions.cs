@@ -2,8 +2,9 @@
 
 internal static class MediaFilesExtensions
 {
-    internal static IServiceCollection AddMediaFiles(this IServiceCollection services)
+    internal static IServiceCollection AddMediaFilesManager(this IServiceCollection services)
         => services
         .AddScoped<MediaFileDownloader>()
-        .AddSingleton<CachedMediaFiles>();
+        .AddSingleton<MediaFilesCache>()
+        .AddScoped<MediaFilesManager>();
 }

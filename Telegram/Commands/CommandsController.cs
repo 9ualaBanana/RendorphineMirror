@@ -31,16 +31,14 @@ public class CommandsController : ControllerBase
     {
         string rawCommand = HttpContext.GetUpdate().Message!.Text!;
 
-        if (commandHandlers.Switch(rawCommand) is CommandHandler commandHandler)
-        {
-            if (await UserIsAuthorizedToCall(commandHandler))
-                await commandHandler.HandleAsync(HttpContext);
+        if (commandHandlers.Switch(rawCommand) is CommandHandler command)
+            if (await UserIsAuthorizedToCall(command))
+                await command.HandleAsync(HttpContext);
             else
             {
                 _logger.LogTrace("User is not authorized to use {Command} command", rawCommand);
                 await HttpContext.ChallengeAsync();
             }
-        }
         else _logger.LogTrace("{Command} command is unknown", rawCommand);
     }
 

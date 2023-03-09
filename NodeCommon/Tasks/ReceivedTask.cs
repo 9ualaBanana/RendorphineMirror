@@ -1,24 +1,72 @@
 ﻿namespace NodeCommon.Tasks;
 
-public interface ITaskApi
+public interface ITask
 {
-    string Id { get; }
+    public string Id { get; }
+}
+
+public record RegisteredTask(string Id) : ITask
+{
+    public static RegisteredTask With(string id) => new(id);
+}
+
+public record ExecutedTask : RegisteredTask
+{
+    public string Executor { get; init; }
+    public HashSet<IUploadedFileInfo> UploadedFiles { get; init; }
+
+    public ExecutedTask(string id, string executor, IEnumerable<string> uploadedFilesIids)
+        : base(id)
+    {
+        Executor = executor;
+        UploadedFiles = uploadedFilesIids?
+            .Select(iid => new MPlusUploadedFileInfo(iid))
+            .Cast<IUploadedFileInfo>()
+            .ToHashSet()!;
+    }
+}
+
+public interface ITaskApi : ITask
+{
     string? HostShard { get; set; }
 }
-// for use in Telegram or something
-public record ApiTask(string Id, HashSet<IUploadedFileInfo> UploadedFiles) : ITaskApi
+
+
+/// <summary>
+/// Default implementation of <see cref="ITaskApi"/>.
+/// </summary>
+public record TaskApi : ITaskApi
 {
-    public ApiTask(string Id) : this(Id, Enumerable.Empty<string>())
-    {
-    }
-
-    public ApiTask(string id, IEnumerable<string> iidsOfUploadedFiles)
-        : this(id, iidsOfUploadedFiles.Select(iid => new MPlusUploadedFileInfo(iid)).Cast<IUploadedFileInfo>().ToHashSet())
-    {
-
-    }
+    public string Id { get; set; }
 
     public string? HostShard { get; set; }
+
+    public static TaskApi For(ITask task, string? hostShard = default)
+        => new(task.Id, hostShard);
+
+    /// <summary>
+    /// <b>Not intended for use. Required for model binding.</b>.
+    /// </summary>
+    public TaskApi()
+    {
+        Id = default!;
+        HostShard = default;
+    }
+
+    TaskApi(string id, string? hostShard = default)
+    {
+        Id = id;
+        HostShard = hostShard;
+    }
+}
+
+public record ExecutedTaskApi : ExecutedTask, ITaskApi
+{
+    public string? HostShard { get; set; }
+
+    public ExecutedTaskApi() : base(default!, default!, default!)
+    {
+    }
 }
 
 public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info), ILoggable

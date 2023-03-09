@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Telegram.Commands.LexicalAnalysis.Tokens;
+﻿using Telegram.Commands.LexicalAnalysis.Tokens;
 
 namespace Telegram.Commands;
 
@@ -14,7 +13,7 @@ public class Command : IEquatable<Command>, IEquatable<string>
 
     internal static Command From(CommandToken commandToken) => new(commandToken.Lexeme);
 
-    protected Command(string lexeme)
+    Command(string lexeme)
     {
         (PrefixedCommandText, UnprefixedCommandText) = lexeme.StartsWith(Prefix) ?
             (lexeme, lexeme.TrimStart(Prefix)) : (Prefix + lexeme, lexeme);
@@ -41,7 +40,7 @@ public class Command : IEquatable<Command>, IEquatable<string>
     #region Conversions
 
     public static implicit operator string(Command command) => command.PrefixedCommandText;
-    public static implicit operator Command(string commandToken) => new(commandToken);
+    public static implicit operator Command(string command) => new(command);
 
     #endregion
 }

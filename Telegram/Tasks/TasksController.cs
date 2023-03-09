@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Telegram.MediaFiles;
+using Telegram.Tasks.ResultPreview;
 
 namespace Telegram.Tasks;
 
@@ -7,25 +8,18 @@ namespace Telegram.Tasks;
 [Route("tasks")]
 public class TasksController : ControllerBase
 {
-    [HttpPost("result_preview")]
-    public async Task NotifySubscribersAboutResultPreview(
-        [FromQuery] string taskId,
-        [FromQuery] string shardHost,
-        [FromQuery] string[] iids,
-        [FromQuery] string taskExecutor,
-        [FromServices] TaskResultMPlusPreviewService taskResultPreviewService,
-        CancellationToken cancellationToken)
-    {
-        var taskApi = new ApiTask(taskId, iids) { HostShard = shardHost };
-        await taskResultPreviewService.SendTaskResultPreviewsAsyncUsing(taskApi, iids, taskExecutor, cancellationToken);
-    }
+    [HttpPost("result")]
+    public async Task Handle(
+        [FromQuery] ExecutedTaskApi executedTaskApi,
+        [FromServices] TelegramPreviewTaskResultHandler taskResultHandler)
+            => await taskResultHandler.SendPreviewAsyncUsing(executedTaskApi, HttpContext.RequestAborted);
 
     [HttpGet("getinput/{id}")]
-    public ActionResult GetInput([FromRoute] string id, [FromServices] CachedMediaFiles cachedMediaFiles)
+    public ActionResult GetInput([FromRoute] string id, [FromServices] MediaFilesCache mediaFilesCache)
     {
-        if (cachedMediaFiles[id] is MediaFile mediaFile)
+        if (mediaFilesCache[id] is MediaFile mediaFile)
         {
-            var mediaFileName = Path.ChangeExtension(Path.Combine(cachedMediaFiles.PathFor(mediaFile, id)), mediaFile.Extension);
+            var mediaFileName = Path.ChangeExtension(Path.Combine(mediaFilesCache.PathFor(mediaFile, id)), mediaFile.Extension);
             return PhysicalFile(mediaFileName, MimeTypes.GetMimeType(mediaFile.Extension));
         }
         else return NotFound();

@@ -18,8 +18,8 @@ public static class TaskRegistration
     public static event Action<DbTaskFullState> TaskRegistered = delegate { };
 
 
-    public static async ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, string? sessionId = default) =>
-        await TaskRegisterAsync(info, sessionId).Next(task => task.Id.AsOpResult());
+    public static async ValueTask<OperationResult<RegisteredTask>> RegisterAsync(TaskCreationInfo info, string? sessionId = default) =>
+        await TaskRegisterAsync(info, sessionId).Next(task => RegisteredTask.With(task.Id).AsOpResult());
     public static async ValueTask<OperationResult<DbTaskFullState>> TaskRegisterAsync(TaskCreationInfo info, string? sessionId = default, ILoggable? log = null)
     {
         if (info.PriceMultiplication < 1) return OperationResult.Err("Could not create task with price multiplication being less than 1");

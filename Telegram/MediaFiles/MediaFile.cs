@@ -66,9 +66,9 @@ public sealed class MediaFile
             return From(new Uri(message.Text));
         else
         {
-            string errorMessage = $"BUG: {nameof(Message)} doesn't represent a media file.";
+            string errorMessage = $"Received {nameof(Message)} doesn't represent a media file.";
             var exception = new ArgumentException(errorMessage);
-            _logger.Error(exception);
+            _logger.Fatal(exception);
             throw exception;
         }
     }

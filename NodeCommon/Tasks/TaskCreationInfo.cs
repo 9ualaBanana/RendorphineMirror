@@ -30,12 +30,21 @@ public class TaskCreationInfo
         TaskObject = taskobj;
     }
 
+    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, TaskObject taskobj)
+        : this(pluginType, action, pluginVersion, input, output, new(), TaskPolicy.AllNodes, taskobj)
+    {
+    }
+
+    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, object data, TaskObject taskobj)
+        : this(pluginType, action, pluginVersion, input, output, data, TaskPolicy.AllNodes, taskobj)
+    {
+    }
 
     [Obsolete("Use larger overload instead")]
-    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, JObject data)
+    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, object data)
         : this(pluginType, action, pluginVersion, input, output, data, TaskPolicy.AllNodes, null!) { }
 
-    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, JObject data, TaskPolicy policy, TaskObject taskobj)
+    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, object data, TaskPolicy policy, TaskObject taskobj)
     {
         Type = pluginType;
         Version = pluginVersion;

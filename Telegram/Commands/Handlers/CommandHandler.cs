@@ -35,20 +35,22 @@ public abstract class CommandHandler : UpdateHandler, ISwitchableService<Command
     /// <see langword="true"/> if this <see cref="CommandHandler"/> is the one that should be used
     /// to handle the <paramref name="command"/>; <see langword="false"/> otherwise.
     /// </returns>
-    public bool Matches(Command command) => ((string)command).StartsWith(Target);
+    public bool Matches(Command command)
+        => (_receivedCommand = _parser.TryParse(command)) is not null && _receivedCommand.Command == Target;
+
+    ParsedCommand? _receivedCommand;
 
     public override async Task HandleAsync(HttpContext context)
     {
-        string receivedMessage = Update.Message!.Text!;
-        if (_parser.TryParse(receivedMessage) is ParsedCommand receivedCommand)
-            await HandleAsync(receivedCommand, context);
+        if (_receivedCommand is not null)
+            await HandleAsync(_receivedCommand, context);
         else
         {
-            string errorMessage =
-                "Received message is not a command:\n" +
-                $"{receivedMessage}";
-            var exception = new ArgumentException(errorMessage, nameof(receivedMessage));
-            Logger.LogError(exception, message: default);
+            var exception = new InvalidOperationException(
+                $"{nameof(HandleAsync)} can be called only after this {nameof(CommandHandler)} matched the received command.",
+                new ArgumentNullException(nameof(_receivedCommand))
+                );
+            Logger.LogCritical(exception, message: default);
             throw exception;
         }
     }

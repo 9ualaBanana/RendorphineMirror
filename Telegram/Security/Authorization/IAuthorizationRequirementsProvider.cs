@@ -12,4 +12,7 @@ namespace Telegram.Security.Authorization;
 internal interface IAuthorizationRequirementsProvider
 {
     IEnumerable<IAuthorizationRequirement> Requirements { get; }
+
+    protected static IEnumerable<IAuthorizationRequirement> Provide(params IAuthorizationRequirement[] requirements)
+        => requirements;
 }

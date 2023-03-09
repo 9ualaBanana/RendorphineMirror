@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json;
 
 namespace Node.Tasks.Exec;
@@ -69,10 +70,16 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
     static async Task NotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        var iids = string.Join('&', task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(fileInfo => $"iids={fileInfo.Iid}"));
-        var queryString = $"taskId={task.Id}&shardHost={task.HostShard}&{iids}&taskExecutor={Settings.NodeName}";
-        try { await Api.Client.PostAsync($"{Settings.ServerUrl}/tasks/result_preview?{queryString}", null, cancellationToken); }
-        catch (Exception ex) { task.LogErr("Error sending result to reepo: " + ex); }
+        var endpoint = new Uri(new Uri(Settings.ServerUrl), "tasks/result").ToString();
+        var uploadedFiles = string.Join('&', task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(fileInfo => $"uploadedfiles={fileInfo.Iid}"));
+        var queryString =
+            $"id={task.Id}&" +
+            $"{uploadedFiles}&" +
+            $"hostshard={task.HostShard}&" +
+            $"executor={Settings.NodeName}";
+
+        try { await Api.Client.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
+        catch (Exception ex) { task.LogErr("Error sending result to Telegram bot: " + ex); }
     }
 
     protected abstract Task ExecuteImpl(ReceivedTask task, T data);

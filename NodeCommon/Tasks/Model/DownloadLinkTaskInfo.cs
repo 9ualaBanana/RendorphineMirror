@@ -1,4 +1,6 @@
-﻿namespace NodeCommon.Tasks.Model;
+﻿using Newtonsoft.Json;
+
+namespace NodeCommon.Tasks.Model;
 
 public class DownloadLinkTaskInputInfo : ITaskInputInfo
 {
@@ -6,6 +8,12 @@ public class DownloadLinkTaskInputInfo : ITaskInputInfo
 
     public readonly string Url;
 
+    public DownloadLinkTaskInputInfo(Uri url)
+        : this(url.ToString())
+    {
+    }
+
+    [JsonConstructor]
     public DownloadLinkTaskInputInfo(string url) => Url = url;
 
     public async ValueTask<TaskObject> GetFileInfo()

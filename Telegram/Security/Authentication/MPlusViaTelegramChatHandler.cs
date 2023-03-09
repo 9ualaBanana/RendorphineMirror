@@ -52,5 +52,5 @@ public class MPlusViaTelegramChatHandler : AuthenticationHandler<AuthenticationS
 static class TelegramChatAuthenticationHandlerHelpers
 {
     internal static ChatId ChatId(this Update update) =>
-        update.Message?.Chat.Id ?? update.CallbackQuery?.Message?.Chat.Id;
+        update.Message?.Chat.Id ?? update.CallbackQuery?.Message!.Chat.Id;
 }

@@ -8,16 +8,16 @@ global using NodeCommon.Tasks.Model;
 using NLog.Web;
 using Telegram.Bot;
 using Telegram.Commands;
+using Telegram.MediaFiles.Images;
+using Telegram.MediaFiles.Videos;
 using Telegram.Middleware.UpdateRouting;
 using Telegram.Security.Authentication;
 using Telegram.Security.Authorization;
 using Telegram.Services.GitHub;
-using Telegram.Tasks;
-using Telegram.Telegram.Authentication.Services;
-using Telegram.Telegram.Updates;
+using Telegram.Services.Node;
+using Telegram.Tasks.ResultPreview;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Host.UseDefaultServiceProvider(o => o.ValidateScopes = false);
 
 builder.Logging.ClearProviders();
 builder.Host.UseNLog();
@@ -28,15 +28,19 @@ builder.Services.AddAuthentication(MPlusViaTelegramChatDefaults.AuthenticationSc
     .AddMPlusViaTelegramChat();
 builder.Services.AddAuthorizationWithHandlers();
 
+builder.Services
+    .AddImageProcessing()
+    .AddVideoProcessing();
+
+builder.Services.AddScoped<TelegramPreviewTaskResultHandler>();
+
 // Telegram.Bot works only with Newtonsoft.
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpClient();
 builder.Services.AddSwaggerGen();
-builder.Services.AddTelegramUpdateHandlers();
 
-builder.Services.AddScoped<ChatAuthenticator>().AddDbContext<AuthenticatedUsersDbContext>();
-builder.Services.AddScoped<TaskResultMPlusPreviewService>();
+builder.Services.AddSingleton<UserNodes>();
 builder.Services.AddScoped<GitHubEventForwarder>();
 
 var app = builder.Build();
