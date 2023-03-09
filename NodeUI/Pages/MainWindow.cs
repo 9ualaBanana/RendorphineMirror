@@ -40,6 +40,7 @@ namespace NodeUI.Pages
             tabs.Add("logs", new LogsTab());
             if (Init.DebugFeatures) tabs.Add("registry", new RegistryTab());
             tabs.Add("cgtraderupload", new CGTraderUploadTab());
+            tabs.Add("3dupload", new ModelUploader());
 
             var statustb = new TextBlock()
             {
