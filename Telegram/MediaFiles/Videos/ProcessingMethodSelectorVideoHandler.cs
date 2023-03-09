@@ -26,11 +26,11 @@ public class ProcessingMethodSelectorVideoHandler : UpdateHandler
         => await Bot.SendMessageAsync_(
             Update.Message!.Chat.Id,
             "*Choose how to process the video*",
-            ReplyMarkupFor(MediaFile.From(Update.Message)));
+            await BuildReplyMarkupAsyncFor(MediaFile.From(Update.Message), context.RequestAborted));
 
-    InlineKeyboardMarkup ReplyMarkupFor(MediaFile receivedVideo)
+    async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedVideo, CancellationToken cancellationToken)
     {
-        var cachedVideoIndex = _mediaFilesCache.Add(receivedVideo);
+        var cachedVideo = await _mediaFilesCache.AddAsync(receivedVideo, cancellationToken);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]
@@ -38,7 +38,7 @@ public class ProcessingMethodSelectorVideoHandler : UpdateHandler
                 InlineKeyboardButton.WithCallbackData("Upload to M+",
                 _callbackQuerySerializer.Serialize(new VideoProcessingCallbackQuery.Builder<VideoProcessingCallbackQuery>()
                 .Data(VideoProcessingCallbackData.UploadVideo)
-                .Arguments(cachedVideoIndex)
+                .Arguments(cachedVideo.Index)
                 .Build()))
             }
         });

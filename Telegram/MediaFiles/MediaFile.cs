@@ -73,8 +73,8 @@ public sealed class MediaFile
         }
     }
 
-    static MediaFile From(PhotoSize image) => new(image.FileSize, Extension.JPEG, MediaTypeNames.Image.Jpeg, image.FileId);
-    static MediaFile From(Video video) => new(video.FileSize, Extension.MP4, "video/mp4", video.FileId);
+    static MediaFile From(PhotoSize image) => new(image.FileSize, Extension.jpeg, MediaTypeNames.Image.Jpeg, image.FileId);
+    static MediaFile From(Video video) => new(video.FileSize, Extension.mp4, "video/mp4", video.FileId);
     static MediaFile FromDocumentAttachedTo(Message message)
     {
         var document = message.Document!;
@@ -89,7 +89,7 @@ public sealed class MediaFile
         throw new ArgumentNullException(nameof(extension), "Extension of the document can't be deduced.");
     }
     // Resource URL can point only to an image.
-    internal static MediaFile From(Uri imageUrl) => new(Extension.JPEG, MediaTypeNames.Image.Jpeg, imageUrl);
+    internal static MediaFile From(Uri imageUrl) => new(Extension.jpeg, MediaTypeNames.Image.Jpeg, imageUrl);
 
     #endregion
 

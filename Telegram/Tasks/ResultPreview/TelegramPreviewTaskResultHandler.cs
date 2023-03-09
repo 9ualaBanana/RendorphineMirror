@@ -56,7 +56,7 @@ public class TelegramPreviewTaskResultHandler
                 taskResultPreviews.Add(await RequestPreviewAsyncUsing(executedTaskApi, iid, taskOwner, cancellationToken));
 
             foreach (var taskResultPreview in taskResultPreviews)
-                await SendPreviewAsync(taskResultPreview, taskOwner.ChatId);
+                await SendPreviewAsync(taskResultPreview, taskOwner.ChatId, cancellationToken);
 
             await Apis.Default.WithSessionId(MPlusIdentity.SessionIdOf(taskOwner.User))
                 .ChangeStateAsync(executedTaskApi, TaskState.Finished).ThrowIfError();
@@ -67,13 +67,13 @@ public class TelegramPreviewTaskResultHandler
     {
         var mPlusMediaFile = new MPlusMediaFile(iid, MPlusIdentity.SessionIdOf(taskOwner.User));
         var mPlusFileInfo = await _mPlusClient.TaskManager.RequestFileInfoAsyncFor(mPlusMediaFile, cancellationToken);
-        var downloadLink = await _mPlusClient.RequestFileDownloadLinkUsingFor(mPlusMediaFile, Extension.JPEG, executedTaskApi);
+        var downloadLink = await _mPlusClient.RequestFileDownloadLinkUsingFor(mPlusMediaFile, Extension.jpeg, executedTaskApi);
         return TaskResultPreviewFromMPlus.Create(mPlusFileInfo, executedTaskApi.Executor, downloadLink);
     }
     //
-    async Task<Message> SendPreviewAsync(TaskResultPreviewFromMPlus taskResultPreview, ChatId chatId)
+    async Task<Message> SendPreviewAsync(TaskResultPreviewFromMPlus taskResultPreview, ChatId chatId, CancellationToken cancellationToken)
     {
-        try { return await SendPreviewAsyncCore(taskResultPreview, chatId); }
+        try { return await SendPreviewAsyncCore(taskResultPreview, chatId, cancellationToken); }
         catch (Exception ex)
         {
             var exception = new Exception($"IID {taskResultPreview.FileInfo.Iid}: Sending task result preview failed.", ex);
@@ -82,9 +82,9 @@ public class TelegramPreviewTaskResultHandler
         }
     }
 
-    async Task<Message> SendPreviewAsyncCore(TaskResultPreviewFromMPlus taskResultPreview, ChatId chatId)
+    async Task<Message> SendPreviewAsyncCore(TaskResultPreviewFromMPlus taskResultPreview, ChatId chatId, CancellationToken cancellationToken)
     {
-        var cachedMediaFileIndex = _mediaFilesCache.Add(MediaFile.From(taskResultPreview.FileDownloadLink));
+        var cachedTaskResult = await _mediaFilesCache.AddAsync(MediaFile.From(taskResultPreview.FileDownloadLink), cancellationToken);
 
         string caption =
             $"{taskResultPreview.FileInfo.Title}\n\n" +
@@ -96,7 +96,7 @@ public class TelegramPreviewTaskResultHandler
         var uploadToMPlusButton = InlineKeyboardButton.WithCallbackData("Upload to M+",
             _callbackQuerySerializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
             .Data(ImageProcessingCallbackData.UploadImage)
-            .Arguments(cachedMediaFileIndex)
+            .Arguments(cachedTaskResult.Index)
             .Build()));
         var replyMarkup = new InlineKeyboardMarkup(new InlineKeyboardButton[] { downloadButton, uploadToMPlusButton });
 

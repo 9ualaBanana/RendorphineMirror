@@ -2,6 +2,6 @@
 
 public enum Extension
 {
-    JPEG,
-    MP4
+    jpeg,
+    mp4
 }

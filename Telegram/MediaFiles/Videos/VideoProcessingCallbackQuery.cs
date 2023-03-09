@@ -19,11 +19,11 @@ public class VideoProcessingCallbackQueryHandler
 
     protected override async Task HandleAsync(
         VideoProcessingCallbackQuery callbackQuery,
-        DownloadedMediaFile downloadedVideo,
+        CachedMediaFile cachedVideo,
         HttpContext context) => await (callbackQuery.Data switch
         {
             VideoProcessingCallbackData.UploadVideo
-                => UploadToMPlusAsync(downloadedVideo, context),
+                => UploadToMPlusAsync(cachedVideo, context),
             _ => HandleUnknownCallbackData()
         });
 }

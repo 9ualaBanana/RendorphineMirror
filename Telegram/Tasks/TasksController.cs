@@ -14,14 +14,11 @@ public class TasksController : ControllerBase
         [FromServices] TelegramPreviewTaskResultHandler taskResultHandler)
             => await taskResultHandler.SendPreviewAsyncUsing(executedTaskApi, HttpContext.RequestAborted);
 
-    [HttpGet("getinput/{id}")]
-    public ActionResult GetInput([FromRoute] string id, [FromServices] MediaFilesCache mediaFilesCache)
+    [HttpGet("getinput/{index}")]
+    public ActionResult GetInput([FromRoute] string index, [FromServices] MediaFilesCache mediaFilesCache)
     {
-        if (mediaFilesCache[id] is MediaFile mediaFile)
-        {
-            var mediaFileName = Path.ChangeExtension(Path.Combine(mediaFilesCache.PathFor(mediaFile, id)), mediaFile.Extension.ToString());
-            return PhysicalFile(mediaFileName, MimeTypes.GetMimeType(mediaFile.Extension.ToString()));
-        }
+        if (mediaFilesCache.RetrieveMediaFileWith(index) is CachedMediaFile cachedTaskInputFile)
+            return PhysicalFile(cachedTaskInputFile.Path, MimeTypes.GetMimeType(cachedTaskInputFile.File.Extension.ToString()));
         else return NotFound();
     }
 }

@@ -32,7 +32,7 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
             await Bot.SendMessageAsync_(
                 message.Chat.Id,
                 "*Choose how to process the image*",
-                replyMarkup: ReplyMarkupFor(receivedImage));
+                replyMarkup: await BuildReplyMarkupAsyncFor(receivedImage, context.RequestAborted));
         }
         catch (ArgumentNullException ex)
         {
@@ -44,9 +44,9 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
         }
     }
 
-    InlineKeyboardMarkup ReplyMarkupFor(MediaFile receivedImage)
+    async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedImage, CancellationToken cancellationToken)
     {
-        var cachedImageIndex = _mediaFilesCache.Add(receivedImage);
+        var cachedImage = await _mediaFilesCache.AddAsync(receivedImage, cancellationToken);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]
@@ -54,7 +54,7 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
                 InlineKeyboardButton.WithCallbackData("Upload to M+",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.UploadImage)
-                .Arguments(cachedImageIndex)
+                .Arguments(cachedImage.Index)
                 .Build()))
             },
             new InlineKeyboardButton[]
@@ -62,7 +62,7 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
                 InlineKeyboardButton.WithCallbackData("Upscale and upload to M+",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.UpscaleImage | ImageProcessingCallbackData.UploadImage)
-                .Arguments(cachedImageIndex)
+                .Arguments(cachedImage.Index)
                 .Build()))
             },
             new InlineKeyboardButton[]
@@ -70,7 +70,7 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
                 InlineKeyboardButton.WithCallbackData("Vectorize and upload to M+",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.VectorizeImage | ImageProcessingCallbackData.UploadImage)
-                .Arguments(cachedImageIndex)
+                .Arguments(cachedImage.Index)
                 .Build()))
             }
         });

@@ -13,7 +13,7 @@ public class MediaFileDownloader
         _httpClient = httpClientFactory.CreateClient();
     }
 
-    internal async Task<DownloadedMediaFile> UseAsyncToDownload(MediaFile mediaFile, string destinationPath, CancellationToken cancellationToken)
+    internal async Task UseAsyncToDownload(MediaFile mediaFile, string destinationPath, CancellationToken cancellationToken)
     {
         using var downloadedMediaFile = File.Create(destinationPath);
 
@@ -22,7 +22,5 @@ public class MediaFileDownloader
         else await
             (await _httpClient.GetStreamAsync(mediaFile.Location, cancellationToken))
                 .CopyToAsync(downloadedMediaFile, cancellationToken);
-
-        return new(mediaFile, destinationPath);
     }
 }
