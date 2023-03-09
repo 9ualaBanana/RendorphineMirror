@@ -1,4 +1,6 @@
-﻿using Telegram.Bot.Types;
+﻿using NLog;
+using Telegram.Bot.Types;
+using ILogger = NLog.ILogger;
 
 namespace Telegram.CallbackQueries;
 
@@ -21,6 +23,20 @@ public abstract record CallbackQuery<ECallbackData>
 
     internal ECallbackData Data { get; private set; }
     internal object[] Arguments { get; private set; } = EmptyArguments;
+
+    protected object ArgumentAt(int index)
+    {
+        if (Arguments[index] is object argument)
+            return argument;
+        else
+        {
+            var exception = new ArgumentNullException(nameof(argument), "Missing required callback query argument.");
+            _logger.Fatal(exception);
+            throw exception;
+        }
+    }
+
+    readonly static ILogger _logger = LogManager.GetCurrentClassLogger();
 
     internal class Builder<TCallbackQuery>
         where TCallbackQuery : CallbackQuery<ECallbackData>, new()

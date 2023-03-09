@@ -54,10 +54,13 @@ public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : Upda
     /// <exception cref="InvalidOperationException">
     /// <typeparamref name="TCallbackQuery"/> hasn't matched this handler in a call to <see cref="Matches(string)"/> or that call didn't take place at all.
     /// </exception>
-    public override Task HandleAsync(HttpContext context)
+    public override async Task HandleAsync(HttpContext context)
     {
         if (_callbackQuery is not null)
-            return HandleAsync(_callbackQuery, context);
+        {
+            await Bot.AnswerCallbackQueryAsync(Update.CallbackQuery!.Id, cancellationToken: context.RequestAborted);
+            await HandleAsync(_callbackQuery, context);
+        }
         else
         {
             var exception = new InvalidOperationException(
@@ -70,4 +73,11 @@ public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : Upda
     }
 
     public abstract Task HandleAsync(TCallbackQuery callbackQuery, HttpContext context);
+
+    protected Task HandleUnknownCallbackData()
+    {
+        var exception = new ArgumentException($"Unknown {nameof(ECallbackData)}.");
+        Logger.LogCritical(exception, message: default);
+        throw exception;
+    }
 }

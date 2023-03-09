@@ -6,7 +6,7 @@ internal static class CallbackQueriesExtensions
 {
     internal static IServiceCollection AddCallbackQueries(this IServiceCollection services)
         => services
-        .AddScoped(_
+        .AddSingleton(_
             => new CallbackQuerySerializer(new CallbackQuerySerializerOptions.Builder().BuildDefault())
         );
 }
