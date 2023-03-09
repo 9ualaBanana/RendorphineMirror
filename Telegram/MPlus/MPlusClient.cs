@@ -9,6 +9,6 @@ public class MPlusClient
         TaskManager = taskManager;
     }
 
-    internal async Task<Uri> RequestFileDownloadLinkUsingFor(MPlusMediaFile mPlusMediaFile, ITaskApi taskApi)
-        => new Uri((await taskApi.GetMPlusItemDownloadLinkAsync(mPlusMediaFile.Iid, mPlusMediaFile.SessionId)).ThrowIfError());
+    internal async Task<Uri> RequestFileDownloadLinkUsingFor(MPlusMediaFile mPlusMediaFile, Extension extension, ITaskApi taskApi)
+        => new Uri((await taskApi.GetMPlusItemDownloadLinkAsync(mPlusMediaFile.Iid, extension, mPlusMediaFile.SessionId)).ThrowIfError());
 }

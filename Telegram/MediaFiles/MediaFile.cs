@@ -16,7 +16,7 @@ public sealed class MediaFile
 {
     internal readonly long? Size;
 
-    internal string Extension { get; }
+    internal Extension Extension { get; }
 
     internal string? MimeType { get; }
 
@@ -34,7 +34,7 @@ public sealed class MediaFile
 
     #region Initialization
 
-    MediaFile(long? size, string extension, string? mimeType, string fileId)
+    MediaFile(long? size, Extension extension, string? mimeType, string fileId)
     {
         Size = size;
         Extension = extension;
@@ -43,7 +43,7 @@ public sealed class MediaFile
         Location = null;
     }
 
-    MediaFile(string extension, string? mimeType, Uri location)
+    MediaFile(Extension extension, string? mimeType, Uri location)
     {
         Size = null;
         Extension = extension;
@@ -73,24 +73,23 @@ public sealed class MediaFile
         }
     }
 
-    static MediaFile From(PhotoSize image) => new(image.FileSize, Extensions.Jpeg, MediaTypeNames.Image.Jpeg, image.FileId);
-    static MediaFile From(Video video) => new(video.FileSize, Extensions.Mp4, "video/mp4", video.FileId);
+    static MediaFile From(PhotoSize image) => new(image.FileSize, Extension.JPEG, MediaTypeNames.Image.Jpeg, image.FileId);
+    static MediaFile From(Video video) => new(video.FileSize, Extension.MP4, "video/mp4", video.FileId);
     static MediaFile FromDocumentAttachedTo(Message message)
     {
         var document = message.Document!;
 
-        string? extension = null;
+        Extension extension;
         if (document.FileName is string fileName)
-            extension = Path.GetExtension(fileName);
-        extension ??= Path.GetExtension(message.Caption?.Trim());
-
-        if (extension is null)
-            throw new ArgumentNullException(nameof(extension), "Extension of the document can't be deduced.");
-
-        return new(document.FileSize, extension, document.MimeType, document.FileId);
+            if (Enum.TryParse(Path.GetExtension(fileName), ignoreCase: true, out extension) ||
+                Enum.TryParse(Path.GetExtension(message.Caption?.Trim()), ignoreCase: true, out extension)
+                )
+                return new(document.FileSize, extension, document.MimeType, document.FileId);
+        
+        throw new ArgumentNullException(nameof(extension), "Extension of the document can't be deduced.");
     }
     // Resource URL can point only to an image.
-    internal static MediaFile From(Uri imageUrl) => new(Extensions.Jpeg, MediaTypeNames.Image.Jpeg, imageUrl);
+    internal static MediaFile From(Uri imageUrl) => new(Extension.JPEG, MediaTypeNames.Image.Jpeg, imageUrl);
 
     #endregion
 

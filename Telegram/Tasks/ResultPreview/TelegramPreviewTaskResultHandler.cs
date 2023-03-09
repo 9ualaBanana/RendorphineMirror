@@ -52,11 +52,11 @@ public class TelegramPreviewTaskResultHandler
         {
             var taskOwner = _ownedRegisteredTasksCache.Retrieve(RegisteredTask.With(executedTaskApi.Id)).Owner;
             var taskResultPreviews = new List<TaskResultPreviewFromMPlus>(executedTaskApi.UploadedFiles.Count);
-            foreach (var iid in executedTaskApi.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(fileInfo => fileInfo.Iid))
+            foreach (var iid in executedTaskApi.UploadedFiles)
                 taskResultPreviews.Add(await RequestPreviewAsyncUsing(executedTaskApi, iid, taskOwner, cancellationToken));
 
             foreach (var taskResultPreview in taskResultPreviews)
-                await SendPreviewAsync(taskOwner.ChatId, taskResultPreview);
+                await SendPreviewAsync(taskResultPreview, taskOwner.ChatId);
 
             await Apis.Default.WithSessionId(MPlusIdentity.SessionIdOf(taskOwner.User))
                 .ChangeStateAsync(executedTaskApi, TaskState.Finished).ThrowIfError();
@@ -67,31 +67,22 @@ public class TelegramPreviewTaskResultHandler
     {
         var mPlusMediaFile = new MPlusMediaFile(iid, MPlusIdentity.SessionIdOf(taskOwner.User));
         var mPlusFileInfo = await _mPlusClient.TaskManager.RequestFileInfoAsyncFor(mPlusMediaFile, cancellationToken);
-        var downloadLink = await _mPlusClient.RequestFileDownloadLinkUsingFor(mPlusMediaFile, executedTaskApi);
+        var downloadLink = await _mPlusClient.RequestFileDownloadLinkUsingFor(mPlusMediaFile, Extension.JPEG, executedTaskApi);
         return TaskResultPreviewFromMPlus.Create(mPlusFileInfo, executedTaskApi.Executor, downloadLink);
     }
-
-    async Task<Message> SendPreviewAsync(ChatId chatId, TaskResultPreviewFromMPlus taskResultPreview)
+    //
+    async Task<Message> SendPreviewAsync(TaskResultPreviewFromMPlus taskResultPreview, ChatId chatId)
     {
-        int attemptsLeft = 3;
-        Exception innerException = null!;
-        while (attemptsLeft > 0)
+        try { return await SendPreviewAsyncCore(taskResultPreview, chatId); }
+        catch (Exception ex)
         {
-            try { return await SendPreviewAsyncCore(chatId, taskResultPreview); }
-            catch (Exception ex)
-            {
-                innerException = ex;
-                attemptsLeft--;
-                Thread.Sleep(TimeSpan.FromSeconds(3));
-            }
+            var exception = new Exception($"IID {taskResultPreview.FileInfo.Iid}: Sending task result preview failed.", ex);
+            _logger.LogError(exception, message: default);
+            throw exception;
         }
-
-        var exception = new Exception($"IID {taskResultPreview.FileInfo.Iid}: Sending task result preview failed.", innerException);
-        _logger.LogError(exception, message: default);
-        throw exception;
     }
 
-    async Task<Message> SendPreviewAsyncCore(ChatId chatId, TaskResultPreviewFromMPlus taskResultPreview)
+    async Task<Message> SendPreviewAsyncCore(TaskResultPreviewFromMPlus taskResultPreview, ChatId chatId)
     {
         var cachedMediaFileIndex = _mediaFilesCache.Add(MediaFile.From(taskResultPreview.FileDownloadLink));
 

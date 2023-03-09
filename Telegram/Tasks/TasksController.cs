@@ -19,8 +19,8 @@ public class TasksController : ControllerBase
     {
         if (mediaFilesCache[id] is MediaFile mediaFile)
         {
-            var mediaFileName = Path.ChangeExtension(Path.Combine(mediaFilesCache.PathFor(mediaFile, id)), mediaFile.Extension);
-            return PhysicalFile(mediaFileName, MimeTypes.GetMimeType(mediaFile.Extension));
+            var mediaFileName = Path.ChangeExtension(Path.Combine(mediaFilesCache.PathFor(mediaFile, id)), mediaFile.Extension.ToString());
+            return PhysicalFile(mediaFileName, MimeTypes.GetMimeType(mediaFile.Extension.ToString()));
         }
         else return NotFound();
     }

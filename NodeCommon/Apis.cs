@@ -364,7 +364,7 @@ public static class ApisExtensions
     }
     public static ValueTask<OperationResult> ChangeStateAsync(this ITaskApi task, TaskState state) => Apis.Default.ChangeStateAsync(task, state);
 
-    public static async Task<OperationResult<string>> GetMPlusItemDownloadLinkAsync(this ITaskApi taskApi, string iid, string? sessionId = default) =>
+    public static async Task<OperationResult<string>> GetMPlusItemDownloadLinkAsync(this ITaskApi taskApi, string iid, Extension extension, string? sessionId = default) =>
         await taskApi.ShardGet<string>("getmplusitemdownloadlink", "link", "Getting M+ item download link", new (string, string)[]
-        { ("sessionid", sessionId ?? Settings.SessionId!), ("iid", iid), ("format", "jpeg"), ("original", "1") });
+        { ("sessionid", sessionId ?? Settings.SessionId!), ("iid", iid), ("format", extension.ToString().ToLower()), ("original", "1") });
 }

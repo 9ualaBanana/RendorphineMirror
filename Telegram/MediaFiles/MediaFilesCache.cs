@@ -38,5 +38,5 @@ public class MediaFilesCache
     { get { _cachedMediaFiles.TryGetValue(index, out var mediaFile); return mediaFile; } }
 
     internal string PathFor(MediaFile mediaFile, string name)
-        => Path.ChangeExtension(Path.Combine(_environment.ContentRootPath, Location, name), mediaFile.Extension);
+        => Path.ChangeExtension(Path.Combine(_environment.ContentRootPath, Location, name), mediaFile.Extension.ToString());
 }
