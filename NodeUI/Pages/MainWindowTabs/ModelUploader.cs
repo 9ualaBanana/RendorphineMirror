@@ -20,11 +20,11 @@ public class ModelUploader : Panel
                     Orientation = Orientation.Vertical,
                     Children =
                     {
-                        WithTitle("Title", new TextBox()
+                        NamedControl.Create("Title", new TextBox()
                         {
                             AcceptsReturn = false,
                         }.Bound(TextBox.TextProperty, Title)),
-                        WithTitle("Files", new Border()
+                        NamedControl.Create("Files", new Border()
                         {
                             Background = ColorsNew.BackgroundContent,
                             CornerRadius = new CornerRadius(2),
@@ -56,7 +56,7 @@ public class ModelUploader : Panel
                                 },
                             },
                         }),
-                        WithTitle("Product images", new Border()
+                        NamedControl.Create("Product images", new Border()
                         {
                             Background = ColorsNew.BackgroundLight2,
                             Height = 100,
@@ -75,7 +75,7 @@ public class ModelUploader : Panel
                                 },
                             },
                         }),
-                        WithTitle("Description", new TextBox()
+                        NamedControl.Create("Description", new TextBox()
                         {
                             MinHeight = 40,
                             AcceptsReturn = true,
@@ -90,47 +90,5 @@ public class ModelUploader : Panel
                 }.WithColumn(1),
             }
         });
-    }
-
-
-    static Control WithTitle(LocalizedString title, Control child) => WithTitle(child, title, out _);
-    static Control WithTitle(LocalizedString title, Control child, out StackPanel titleBase) => WithTitle(child, title, out titleBase);
-    static Control WithTitle(Control child, LocalizedString title) => WithTitle(child, title, out _);
-    static Control WithTitle(Control child, LocalizedString title, out StackPanel titleBase)
-    {
-        var titleText = new TextBlock()
-        {
-            VerticalAlignment = VerticalAlignment.Center,
-            FontSize = 16,
-        }.Bind(title);
-
-        titleBase = new StackPanel()
-        {
-            Orientation = Orientation.Horizontal,
-            Children =
-            {
-                titleText,
-            },
-        };
-
-        return new Grid()
-        {
-            RowDefinitions = RowDefinitions.Parse("40 Auto"),
-            Children =
-            {
-                new Border()
-                {
-                    Background = ColorsNew.BackgroundLight2,
-                    Padding = new Thickness(20, 10),
-                    Child = titleBase,
-                }.WithRow(0),
-                new Border()
-                {
-                    Background = ColorsNew.BackgroundLight,
-                    Padding = new Thickness(20),
-                    Child = child,
-                }.WithRow(1),
-            },
-        };
     }
 }

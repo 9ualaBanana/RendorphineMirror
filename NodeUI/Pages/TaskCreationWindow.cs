@@ -60,14 +60,14 @@ namespace NodeUI.Pages
 
             public TaskPartContainer(TaskPart firstPart)
             {
-                RowDefinitions = RowDefinitions.Parse("Auto * Auto");
+                RowDefinitions = RowDefinitions.Parse("Auto Auto *");
 
                 TitleTextBlock = new TextBlock()
                 {
                     HorizontalAlignment = HorizontalAlignment.Center,
                     FontSize = 20,
                 };
-                Children.Add(TitleTextBlock.WithRow(0));
+                Children.Add(TitleTextBlock.WithRow(1));
 
                 BackButton = new MPButton()
                 {
@@ -89,7 +89,7 @@ namespace NodeUI.Pages
                         NextButton.WithColumn(1),
                     }
                 };
-                Children.Add(buttonsgrid.WithRow(2));
+                Children.Add(buttonsgrid.WithRow(0));
 
                 ShowPart(firstPart);
             }
@@ -100,7 +100,7 @@ namespace NodeUI.Pages
                     prev.IsVisible = false;
 
                 Parts.Push(part);
-                Children.Add(part.WithRow(1));
+                Children.Add(part.WithRow(2));
                 TitleTextBlock.Bind(part.Title);
 
                 part.OnChoose += UpdateButtons;

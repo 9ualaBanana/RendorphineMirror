@@ -9,10 +9,10 @@ public static class MainTheme
             ("ThemeForegroundBrush", ColorsNew.Foreground),                                     // foreground
             ("HighlightForegroundBrush", Colors.White),                                         // selection fg
             ("HighlightBrush", Colors.Accent),                                                  // selection bg
-            ("ThemeControlHighlightMidBrush", Colors.SelectedMenuItemBackground),               // item: pointerover
-            ("ThemeAccentBrush4", Colors.From(255, 16)),                                        // item: secondary bg
-            ("ThemeAccentBrush3", Colors.SelectedMenuItemBackground.Lighten(10)),               // item: selected
-            ("ThemeAccentBrush2", Colors.SelectedMenuItemBackground.Lighten(20))                // item: focused selected
+            ("ThemeControlHighlightMidBrush", ColorsNew.BackgroundLight),                       // item: hovered
+            ("ThemeAccentBrush4", Colors.From(255, 16)),                                        // item: selected focused; secondary bg
+            ("ThemeAccentBrush3", ColorsNew.BackgroundLight.Lighten(10)),                       // item: selected hovered
+            ("ThemeAccentBrush2", ColorsNew.BackgroundLight2.Lighten(20))                       // item: selected focused hovered
         );
 
         styles.AddStyle<ComboBoxItem>((ComboBoxItem.BackgroundProperty, Colors.MenuItemBackground));

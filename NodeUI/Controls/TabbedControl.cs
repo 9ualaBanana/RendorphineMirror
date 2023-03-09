@@ -27,14 +27,11 @@ namespace NodeUI.Controls
             if (TitleGrid.Children.Count != 0)
                 control.IsVisible = false;
 
-            var button = new MPButton()
-            {
-                Text = name,
-                OnClick = () => Show(control),
-            };
-
             TitleGrid.ColumnDefinitions.Add(new(GridLength.Auto));
-            TitleGrid.Children.Add(button.WithColumn(TitleGrid.Children.Count));
+            TitleGrid.Children.Add(new MPButton()
+            {
+                OnClick = () => Show(control)
+            }.Bind(name).WithColumn(TitleGrid.Children.Count));
             ItemPanel.Children.Add(control);
         }
 

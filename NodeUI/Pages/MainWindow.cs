@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using System.Web;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Utils;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
@@ -35,7 +34,6 @@ namespace NodeUI.Pages
             tabs.Add("tab.dashboard", new DashboardTab());
             tabs.Add("tab.plugins", new PluginsTab());
             tabs.Add("tasks", new TasksTab());
-            tabs.Add("tab.benchmark", new BenchmarkTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
             if (Init.DebugFeatures) tabs.Add("registry", new RegistryTab());
@@ -161,79 +159,6 @@ namespace NodeUI.Pages
             });
         }
 
-
-        class DashboardTab : Panel
-        {
-            public DashboardTab()
-            {
-                var starttime = DateTimeOffset.Now;
-                var infotb = new TextBlock()
-                {
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    TextWrapping = TextWrapping.Wrap,
-                };
-                Children.Add(infotb);
-                updatetext();
-                NodeGlobalState.Instance.AnyChanged.Subscribe(this, _ => updatetext());
-
-                var langbtn = new MPButton()
-                {
-                    MaxWidth = 100,
-                    MaxHeight = 30,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    Text = "lang.current",
-                    OnClick = () => UISettings.Language = UISettings.Language == "ru-RU" ? "en-US" : "ru-RU",
-                };
-                Children.Add(langbtn);
-
-                var unloginbtn = new MPButton()
-                {
-                    MaxWidth = 100,
-                    MaxHeight = 30,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    Margin = new Thickness(200, 0, 0, 0),
-                    Text = new("Log out"),
-                    OnClickSelf = async self =>
-                    {
-                        var logout = await LocalApi.Default.Get("logout", "Logging out");
-                        if (await self.FlashErrorIfErr(logout))
-                            return;
-
-                        ((IClassicDesktopStyleApplicationLifetime) Application.Current!.ApplicationLifetime!).MainWindow = new LoginWindow();
-                        ((Window) VisualRoot!).Close();
-                    },
-                };
-                Children.Add(unloginbtn);
-
-                if (NodeGlobalState.Instance.AuthInfo?.Slave == false)
-                {
-                    var taskbtn = new MPButton()
-                    {
-                        Text = new("new task"),
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        OnClick = () => new TaskCreationWindow().Show(),
-                    };
-                    Children.Add(taskbtn);
-                }
-
-
-                void updatetext()
-                {
-                    Dispatcher.UIThread.Post(() => infotb.Text =
-                        @$"
-                        Auth: {JsonConvert.SerializeObject(NodeGlobalState.Instance.AuthInfo ?? default, Formatting.None)}
-                        Ports: {JsonConvert.SerializeObject(new { NodeGlobalState.Instance.LocalListenPort, NodeGlobalState.Instance.UPnpPort, NodeGlobalState.Instance.UPnpServerPort, NodeGlobalState.Instance.DhtPort, NodeGlobalState.Instance.TorrentPort })}
-
-                        Ui start time: {starttime}
-                        ".TrimLines()
-                    );
-                }
-            }
-        }
         class PluginsTab : Panel
         {
             public PluginsTab()
@@ -627,22 +552,6 @@ namespace NodeUI.Pages
 
                 protected override IControl GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
                 protected override object PrepareCellForEdit(IControl editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
-            }
-        }
-
-        class BenchmarkTab : Panel
-        {
-            public BenchmarkTab()
-            {
-                Background = Brushes.Aqua;
-                Children.Add(new TextBlock()
-                {
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                }.With(t =>
-                    NodeGlobalState.Instance.BenchmarkResult.SubscribeChanged(() =>
-                        Dispatcher.UIThread.Post(() => t.Text = NodeGlobalState.Instance.BenchmarkResult.Value?.ToString(Formatting.None) ?? "bench mark"), true)
-                ));
             }
         }
         class LogsTab : Panel
