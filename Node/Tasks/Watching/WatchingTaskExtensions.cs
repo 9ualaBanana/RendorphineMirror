@@ -22,15 +22,14 @@ public static class WatchingTaskExtensions
         var action = TaskList.TryGet(task.TaskAction).ThrowIfNull($"Task action {task.TaskAction} does not exists");
 
         return new TaskCreationInfo(
-            action.Type,
             action.Name,
-            task.Version,
             input,
             output,
             JObject.FromObject(task.TaskData, JsonSettings.LowercaseIgnoreNullS),
             task.Policy,
             tobj
-        );
+        )
+        { SoftwareRequirements = task.SoftwareRequirements };
     }
 
     public static ValueTask<DbTaskFullState> RegisterTask(this WatchingTask task, string filename, ITaskInputInfo input, TaskObject tobj) => task.RegisterTask(input, task.Output.CreateOutput(task, filename), tobj);

@@ -78,6 +78,18 @@
             "stopAtEntry": false
         },
         {
+            "name": "RApi",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildrapi",
+            "program": "${workspaceFolder}/RApi/bin/Debug/net6.0/RApi.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
             "name": "Pinger",
             "type": "coreclr",
             "request": "launch",

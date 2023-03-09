@@ -15,7 +15,6 @@ public record TaskTimes(long? Input = null, long? Active = null, long? Output = 
     static DateTimeOffset? FromLong(long? time) => time is null ? null : DateTimeOffset.FromUnixTimeMilliseconds(time.Value);
 
 
-    public bool Exist => Input is not null;
-
-    public TimeSpan Total => Exist ? (ValidationTime ?? DateTimeOffset.UtcNow) - InputTime!.Value : default;
+    [JsonIgnore] public bool Exist => Input is not null;
+    [JsonIgnore] public TimeSpan Total => Exist ? (ValidationTime ?? DateTimeOffset.UtcNow) - InputTime!.Value : default;
 }

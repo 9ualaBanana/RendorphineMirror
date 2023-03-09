@@ -8,13 +8,13 @@ public class WatchingTask : ILoggable
     string ILoggable.LogName => $"WTask {Id}";
 
     public string Id { get; init; }
-    public string? Version { get; init; }
     public IWatchingTaskInputInfo Source { get; init; }
     public IWatchingTaskOutputInfo Output { get; init; }
     public string TaskAction { get; init; }
     public JObject TaskData { get; init; }
     public TaskPolicy Policy { get; init; }
     public bool IsPaused = false;
+    public ImmutableArray<TaskSoftwareRequirement>? SoftwareRequirements { get; init; }
 
     [JsonIgnore] public IDisposable? Handler;
 
@@ -24,7 +24,7 @@ public class WatchingTask : ILoggable
     [JsonConstructor] private WatchingTask() { }
 #pragma warning restore
 
-    public WatchingTask(string taskaction, JObject taskData, IWatchingTaskInputInfo source, IWatchingTaskOutputInfo output, TaskPolicy policy, string? version)
+    public WatchingTask(string taskaction, JObject taskData, IWatchingTaskInputInfo source, IWatchingTaskOutputInfo output, TaskPolicy policy)
     {
         Id = Guid.NewGuid().ToString();
 
