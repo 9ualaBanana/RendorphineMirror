@@ -1,3 +1,4 @@
+using System.Web;
 using Newtonsoft.Json;
 
 namespace Node.Tasks.Exec;
@@ -73,8 +74,8 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         var queryString =
             $"id={task.Id}&" +
             $"{uploadedFiles}&" +
-            $"hostshard={task.HostShard}&" +
-            $"executor={Settings.NodeName}";
+            $"hostshard={HttpUtility.UrlDecode(task.HostShard)}&" +
+            $"executor={HttpUtility.UrlDecode(Settings.NodeName)}";
 
         try { await Api.Client.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to Telegram bot: " + ex); }
