@@ -14,5 +14,18 @@ namespace NodeUI
             obj.GetObservable<TValue>(property).Subscribe(changed);
             return obj;
         }
+
+
+        public static T Centered<T>(this T obj) where T : Control => obj.With(x => { x.HorizontalAlignment = HorizontalAlignment.Center; x.VerticalAlignment = VerticalAlignment.Center; });
+
+        public static T Bound<T, TVal>(this T obj, AvaloniaProperty<TVal> property, IBindable<TVal> bindable) where T : Control
+        {
+            bindable = bindable.GetBoundCopy();
+
+            bindable.SubscribeChanged(() => obj.SetValue(property, bindable.Value), true);
+            obj.Subscribe(property, v => bindable.Value = v);
+
+            return obj;
+        }
     }
 }

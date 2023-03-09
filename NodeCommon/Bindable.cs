@@ -25,6 +25,8 @@ namespace NodeCommon
     public interface IBindable<T> : IReadOnlyBindable<T>
     {
         new T Value { get; set; }
+
+        new IBindable<T> GetBoundCopy();
     }
 
     [JsonObject, JsonConverter(typeof(BindableJsonConverter))]
@@ -110,6 +112,7 @@ namespace NodeCommon
         public Bindable(T defval = default!) : base(defval) { }
 
         public override Bindable<T> GetBoundCopy() => (Bindable<T>) base.GetBoundCopy();
+        IBindable<T> IBindable<T>.GetBoundCopy() => GetBoundCopy();
     }
 
     public interface IReadOnlyBindableCollection<out T> : IBindable, IReadOnlyCollection<T>

@@ -7,7 +7,7 @@ namespace NodeUI.Controls
 
         public TabbedControl()
         {
-            TitleGrid = new Grid();
+            TitleGrid = new Grid() { Margin = new Thickness(0, 0, 0, 5) };
             ItemPanel = new Panel();
 
             var grid = new Grid()
