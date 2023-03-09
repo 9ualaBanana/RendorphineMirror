@@ -8,22 +8,19 @@ public interface ITask
 public record RegisteredTask(string Id) : ITask
 {
     public static RegisteredTask With(string id) => new(id);
+
+    /// <summary>
+    /// <b>Not intended for use. Required for model binding.</b>.
+    /// </summary>
+    public RegisteredTask() : this(default(string)!)
+    {
+    }
 }
 
 public record ExecutedTask : RegisteredTask
 {
-    public string Executor { get; init; }
-    public HashSet<IUploadedFileInfo> UploadedFiles { get; init; }
-
-    public ExecutedTask(string id, string executor, IEnumerable<string> uploadedFilesIids)
-        : base(id)
-    {
-        Executor = executor;
-        UploadedFiles = uploadedFilesIids?
-            .Select(iid => new MPlusUploadedFileInfo(iid))
-            .Cast<IUploadedFileInfo>()
-            .ToHashSet()!;
-    }
+    public string Executor { get; init; } = default!;
+    public HashSet<string> UploadedFiles { get; init; } = default!;
 }
 
 public interface ITaskApi : ITask
@@ -44,6 +41,12 @@ public record TaskApi : ITaskApi
     public static TaskApi For(ITask task, string? hostShard = default)
         => new(task.Id, hostShard);
 
+    TaskApi(string id, string? hostShard = default)
+    {
+        Id = id;
+        HostShard = hostShard;
+    }
+
     /// <summary>
     /// <b>Not intended for use. Required for model binding.</b>.
     /// </summary>
@@ -52,21 +55,11 @@ public record TaskApi : ITaskApi
         Id = default!;
         HostShard = default;
     }
-
-    TaskApi(string id, string? hostShard = default)
-    {
-        Id = id;
-        HostShard = hostShard;
-    }
 }
 
 public record ExecutedTaskApi : ExecutedTask, ITaskApi
 {
     public string? HostShard { get; set; }
-
-    public ExecutedTaskApi() : base(default!, default!, default!)
-    {
-    }
 }
 
 public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info), ILoggable
