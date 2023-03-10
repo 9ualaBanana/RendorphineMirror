@@ -48,9 +48,17 @@ public static class VectorizerTasks
         {
             var image = Image<Rgba32>.Load(imagefile);
 
-            var outwidth = 5000;
-            if (image.Height < image.Width)
-                outwidth = image.Width * outwidth / image.Height;
+            // min size for vectorized jpegs is 16MP, and we add 1MP just in case
+            const int minsize = (16 + 1) * 1024 * 1024;
+
+            var mp = image.Width * image.Height;
+
+            var outwidth = image.Width;
+            if (minsize > mp)
+            {
+                var scale = minsize / (double) mp;
+                outwidth = (int) (image.Width * Math.Sqrt(scale));
+            }
 
             logger?.LogInfo($"Vectorizing image {imagefile} with outwidth {outwidth} and lods [{string.Join(", ", lods)}]");
 
