@@ -1,4 +1,6 @@
-﻿using Telegram.Bot.Types;
+﻿using System.Collections.Specialized;
+using Telegram.Bot.Types;
+using File = System.IO.File;
 
 namespace Telegram.MediaFiles;
 
@@ -7,16 +9,27 @@ namespace Telegram.MediaFiles;
 /// </summary>
 public class MediaFilesCache
 {
-    internal const int StorageTimeAfterRetrieval = 60_000;
+    internal const int CachingTime = 300_000;
 
-    readonly Dictionary<string, MediaFile> _cachedMediaFiles = new();
+    readonly AutoStorage<CachedMediaFile> _cachedMediaFiles;
     readonly MediaFileDownloader _mediaFileDownloader;
     readonly IWebHostEnvironment _environment;
 
-    public MediaFilesCache(MediaFileDownloader mediaFileDownloader, IWebHostEnvironment environment)
+    readonly ILogger<MediaFilesCache> _logger;
+
+    public MediaFilesCache(MediaFileDownloader mediaFileDownloader, IWebHostEnvironment environment, ILogger<MediaFilesCache> logger)
     {
+        _cachedMediaFiles = new(new CachedMediaFile.IndexEqualityComparer(), (StorageTime)CachingTime);
         _mediaFileDownloader = mediaFileDownloader;
         _environment = environment;
+        _location = Rooted("cached_media");
+        _logger = logger;
+
+        _cachedMediaFiles.ItemStorageTimeElapsed += (_, expiredMediaFile) =>
+        {
+            File.Delete(expiredMediaFile.Value.Path);
+            _logger.LogTrace($"Media file with index {expiredMediaFile.Value.Index} has expired");
+        };
     }
 
     /// <summary>
@@ -29,42 +42,43 @@ public class MediaFilesCache
     {
         get
         {
-            const string Location_ = "cached_media";
-
-            if (!Directory.Exists(Location_))
-                Directory.CreateDirectory(Location_);
-            return Location_;
+            if (!Directory.Exists(_location))
+                Directory.CreateDirectory(_location);
+            return _location;
         }
     }
+    readonly string _location;
+
+    internal async Task<CachedMediaFile> AddAsync(MediaFile mediaFile, CancellationToken cancellationToken)
+        => await CacheAsync(mediaFile, StorageTime.Default, cancellationToken);
 
     /// <returns>
     /// <see cref="CachedMediaFile"/> physically stored inside <see cref="MediaFilesCache.Location"/>
-    /// whose <see cref="CachedMediaFile.Index"/> can be used to <see cref="RetrieveMediaFileWith(string)"/> its.
+    /// whose <see cref="CachedMediaFile.Index"/> can be used to <see cref="TryRetrieveMediaFileWith(string)"/> its.
     /// </returns>
-    internal async Task<CachedMediaFile> AddAsync(MediaFile mediaFile, CancellationToken cancellationToken)
+    internal async Task<CachedMediaFile> CacheAsync(MediaFile mediaFile, StorageTime cachingTime, CancellationToken cancellationToken)
     {
-        var index = Guid.NewGuid().ToString();
-        _cachedMediaFiles[index] = mediaFile;
-        string cachedMediaFilePath = RootedPathFor(mediaFile, index);
+        var index = Guid.NewGuid();
+        string cachedMediaFilePath = RootedPathFor(mediaFile, index.ToString());
         await _mediaFileDownloader.UseAsyncToDownload(mediaFile, cachedMediaFilePath, cancellationToken);
-        return new CachedMediaFile(mediaFile, index, cachedMediaFilePath);
+        var cachedMediaFile = new CachedMediaFile(mediaFile, index, cachedMediaFilePath);
+        _cachedMediaFiles.Add(cachedMediaFile, cachingTime);
+        return cachedMediaFile;
     }
 
     /// <remarks>
-    /// Physical copy of <see cref="CachedMediaFile"/> stored under the <paramref name="index"/> will be deleted after <see cref="StorageTimeAfterRetrieval"/>.
+    /// Physical copy of <see cref="CachedMediaFile"/> stored under the <paramref name="index"/> will be deleted after <see cref="CachingTime"/>.
     /// </remarks>
-    internal CachedMediaFile? RetrieveMediaFileWith(string index)
+    internal CachedMediaFile? TryRetrieveMediaFileWith(Guid index)
     {
-        if (_cachedMediaFiles.TryGetValue(index, out var cachedMediaFile))
-        {
-            string cachedMediaFilePath = RootedPathFor(cachedMediaFile, index);
-            using var removeMediaFileFromCacheAfterwards =
-                FuncDispose.Create(async () => { await Task.Delay(StorageTimeAfterRetrieval); System.IO.File.Delete(cachedMediaFilePath); });
-            return new(cachedMediaFile, index, cachedMediaFilePath);
-        }
+        if (_cachedMediaFiles.TryGetValue(CachedMediaFile.WithIndex(index), out var cachedMediaFile))
+            return cachedMediaFile;
         else return null;
     }
 
     string RootedPathFor(MediaFile mediaFile, string name)
-        => Path.ChangeExtension(Path.Combine(_environment.ContentRootPath, Location, name), mediaFile.Extension.ToString());
+        => Path.ChangeExtension(Rooted(Location, name), mediaFile.Extension.ToString());
+
+    string Rooted(params string[] paths)
+        => Path.Combine(paths.Prepend(_environment.ContentRootPath).ToArray());
 }
