@@ -52,6 +52,7 @@ public sealed class MediaFile
         Location = location;
     }
 
+    /// <inheritdoc cref="FromDocumentAttachedTo(Message)"/>
     internal static MediaFile From(Message message)
     {
         if (message.Video is Video video)  // Check for video must precede the one for image because Photo is not null for videos too.
@@ -75,6 +76,7 @@ public sealed class MediaFile
 
     static MediaFile From(PhotoSize image) => new(image.FileSize, Extension.jpeg, MediaTypeNames.Image.Jpeg, image.FileId);
     static MediaFile From(Video video) => new(video.FileSize, Extension.mp4, "video/mp4", video.FileId);
+    /// <exception cref="ArgumentException">Extension of the document can't be deduced.</exception>
     static MediaFile FromDocumentAttachedTo(Message message)
     {
         var document = message.Document!;
@@ -86,7 +88,7 @@ public sealed class MediaFile
                 )
                 return new(document.FileSize, extension, document.MimeType, document.FileId);
         
-        throw new ArgumentNullException(nameof(extension), "Extension of the document can't be deduced.");
+        throw new ArgumentException("Extension of the document can't be deduced.", nameof(extension));
     }
     // Resource URL can point only to an image.
     internal static MediaFile From(Uri imageUrl) => new(Extension.jpeg, MediaTypeNames.Image.Jpeg, imageUrl);

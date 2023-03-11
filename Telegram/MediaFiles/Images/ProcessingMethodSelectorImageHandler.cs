@@ -34,11 +34,11 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
                 "*Choose how to process the image*",
                 replyMarkup: await BuildReplyMarkupAsyncFor(receivedImage, context.RequestAborted));
         }
-        catch (ArgumentNullException ex)
+        catch (ArgumentException ex) when (ex.ParamName is not null)
         {
             await Bot.SendMessageAsync_(
                 message.Chat.Id,
-                $"{ex.Message}" +
+                $"{ex.Message}\n" +
                 $"Specify an extension as the caption of the document.",
                 cancellationToken: context.RequestAborted);
         }
@@ -46,7 +46,7 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
 
     async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedImage, CancellationToken cancellationToken)
     {
-        var cachedImage = await _mediaFilesCache.AddAsync(receivedImage, cancellationToken);
+        var cachedImage = await _mediaFilesCache.CacheAsync(receivedImage, cancellationToken);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]

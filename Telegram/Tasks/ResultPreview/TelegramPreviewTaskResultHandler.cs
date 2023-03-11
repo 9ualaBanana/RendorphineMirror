@@ -1,7 +1,7 @@
-﻿using Telegram.Bot;
+﻿using System.Text;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.CallbackQueries;
 using Telegram.MediaFiles;
 using Telegram.MPlus;
 using File = System.IO.File;
@@ -48,33 +48,28 @@ public class TelegramPreviewTaskResultHandler
         async Task SendPreviewsAsyncCore()
         {
             var taskOwner = _ownedRegisteredTasksCache.Retrieve(RegisteredTask.With(executedTaskApi.Id)).Owner;
-            var taskResultPreviews = new List<TaskResultPreviewFromMPlus>(executedTaskApi.UploadedFiles.Count);
-            foreach (var iid in executedTaskApi.UploadedFiles)
-                taskResultPreviews.Add(await RequestPreviewAsync(iid, taskOwner));
 
-            foreach (var taskResultPreview in taskResultPreviews)
-                await SendPreviewAsync(taskResultPreview, taskOwner.ChatId, cancellationToken);
+            var taskResults = new List<TaskResultFromMPlus>(executedTaskApi.UploadedFiles.Count);
+            foreach (var iid in executedTaskApi.UploadedFiles)
+            {
+                var fileAccessor = new MPlusFileAccessor(iid, MPlusIdentity.SessionIdOf(taskOwner.User));
+                taskResults.Add(await _mPlusClient.RequestTaskResultAsyncUsing(executedTaskApi, fileAccessor, cancellationToken));
+            }
+
+            foreach (var taskResult in taskResults)
+                await SendPreviewAsyncOf(taskResult, taskOwner, cancellationToken);
 
             await Apis.Default.WithSessionId(MPlusIdentity.SessionIdOf(taskOwner.User))
                 .ChangeStateAsync(executedTaskApi, TaskState.Finished).ThrowIfError();
-
-
-            async Task<TaskResultPreviewFromMPlus> RequestPreviewAsync(string iid, TelegramBotUser taskOwner)
-            {
-                var mPlusMediaFile = new MPlusMediaFile(iid, MPlusIdentity.SessionIdOf(taskOwner.User));
-                var mPlusFileInfo = await _mPlusClient.TaskManager.RequestFileInfoAsyncFor(mPlusMediaFile, cancellationToken);
-                var downloadLink = await _mPlusClient.RequestFileDownloadLinkUsingFor(mPlusMediaFile, Extension.jpeg, executedTaskApi);
-                return TaskResultPreviewFromMPlus.Create(mPlusFileInfo, executedTaskApi.Executor, downloadLink);
-            }
         }
     }
 
-    async Task<Message> SendPreviewAsync(TaskResultPreviewFromMPlus taskResultPreview, ChatId chatId, CancellationToken cancellationToken)
+    async Task<Message> SendPreviewAsyncOf(TaskResultFromMPlus taskResult, TelegramBotUser user, CancellationToken cancellationToken)
     {
         try { return await SendPreviewAsyncCore(); }
         catch (Exception ex)
         {
-            var exception = new Exception($"IID {taskResultPreview.FileInfo.Iid}: Sending task result preview failed.", ex);
+            var exception = new Exception($"IID {taskResult.FileInfo.Iid}: Sending task result preview failed.", ex);
             _logger.LogError(exception, message: default);
             throw exception;
         }
@@ -82,37 +77,54 @@ public class TelegramPreviewTaskResultHandler
 
         async Task<Message> SendPreviewAsyncCore()
         {
-            var cachedTaskResult = await _mediaFilesCache.CacheAsync(MediaFile.From(taskResultPreview.FileDownloadLink), 1_800_000, cancellationToken);
+            var cachedTaskResult = await _mediaFilesCache.CacheAsync(MediaFile.From(taskResult.FileDownloadLink), 1_800_000, cancellationToken);
 
-            string caption =
-                $"{taskResultPreview.FileInfo.Title}\n\n" +
-                $"*Task Executor* : `{taskResultPreview.TaskExecutor}`\n" +
-                $"*Task ID* : `{taskResultPreview.TaskId}`\n" +
-                $"*M+ IID* : `{taskResultPreview.FileInfo.Iid}`";
-
-            var downloadButton = InlineKeyboardButton.WithUrl("Download", taskResultPreview.FileDownloadLink.ToString());
-            var replyMarkup = new InlineKeyboardMarkup(new InlineKeyboardButton[] { downloadButton });
+            var caption = BuildCaption();
+            var replyMarkup = BuildReplyMarkup();
 
             return await SendPreviewAsyncCore_();
 
 
+            string BuildCaption()
+            {
+                var caption = new StringBuilder();
+
+                if (!string.IsNullOrWhiteSpace(taskResult.FileInfo.Title))
+                    caption.AppendLine(taskResult.FileInfo.Title);
+                caption.AppendLine($"*Size*: `{cachedTaskResult.Size / 1024 / 1024}` *MB*");
+
+                if (MPlusIdentity.AccessLevelOf(user.User) is AccessLevel.Admin)
+                    caption
+                        .AppendLine($"*Task Executor* : `{taskResult.TaskExecutor}`")
+                        .AppendLine($"*Task ID* : `{taskResult.TaskId}`")
+                        .AppendLine($"*M+ IID* : `{taskResult.FileInfo.Iid}`");
+
+                return caption.ToString();
+            }
+
+            InlineKeyboardMarkup BuildReplyMarkup()
+            {
+                var downloadButton = InlineKeyboardButton.WithUrl("Download", taskResult.FileDownloadLink.ToString());
+                return new InlineKeyboardMarkup(new InlineKeyboardButton[] { downloadButton });
+            }
+
             async Task<Message> SendPreviewAsyncCore_()
             {
-                if (taskResultPreview is ImageTaskResultPreviewFromMPlus)
+                if (taskResult is ImageTaskResultFromMPlus)
                 {
-                    var downscaledTaskResultPath = await Downscaled(cachedTaskResult);
+                    var taskResultPreviewPath = await Downscaled(cachedTaskResult);
                     try
                     {
-                        using var downscaledTaskResult = File.OpenRead(downscaledTaskResultPath);
-                        return await _bot.SendImageAsync_(chatId, downscaledTaskResult!, caption, replyMarkup, cancellationToken: cancellationToken);
+                        using var taskResultPreview = File.OpenRead(taskResultPreviewPath);
+                        return await _bot.SendImageAsync_(user.ChatId, taskResultPreview!, caption, replyMarkup, cancellationToken: cancellationToken);
                     }
-                    finally { File.Delete(downscaledTaskResultPath); }
+                    finally { File.Delete(taskResultPreviewPath); }
                 }
-                else if (taskResultPreview is VideoTaskResultPreviewFromMPlus video)
-                    return await _bot.SendVideoAsync_(chatId, cachedTaskResult.File!,
+                else if (taskResult is VideoTaskResultFromMPlus video)
+                    return await _bot.SendVideoAsync_(user.ChatId, cachedTaskResult.File!,
                         replyMarkup,
                         null, video.Width, video.Height,
-                        taskResultPreview.FileInfo.MediumThumbnailUrl.ToString(),
+                        taskResult.FileInfo.MediumThumbnailUrl.ToString(),
                         caption,
                         cancellationToken: cancellationToken);
                 else throw new NotImplementedException();

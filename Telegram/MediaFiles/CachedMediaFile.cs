@@ -12,6 +12,9 @@ namespace Telegram.MediaFiles;
 /// </remarks>
 public record CachedMediaFile(MediaFile File, Guid Index, string Path)
 {
+    internal long Size => _size ??= new FileInfo(Path).Length;
+    long? _size;
+
 	/// <summary>
 	/// Intended for use only with AutoStorage to construct objects with a property/properties
 	/// playing role of a primary key based on which the search is performed.

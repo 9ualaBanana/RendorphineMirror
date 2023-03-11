@@ -49,21 +49,29 @@ public class MediaFilesCache
     }
     readonly string _location;
 
-    internal async Task<CachedMediaFile> AddAsync(MediaFile mediaFile, CancellationToken cancellationToken)
+    internal async Task<CachedMediaFile> CacheAsync(MediaFile mediaFile, CancellationToken cancellationToken)
         => await CacheAsync(mediaFile, StorageTime.Default, cancellationToken);
 
     /// <returns>
     /// <see cref="CachedMediaFile"/> physically stored inside <see cref="MediaFilesCache.Location"/>
-    /// whose <see cref="CachedMediaFile.Index"/> can be used to <see cref="TryRetrieveMediaFileWith(string)"/> its.
+    /// whose <see cref="CachedMediaFile.Index"/> can be used to <see cref="TryRetrieveMediaFileWith(Guid)"/> it.
     /// </returns>
     internal async Task<CachedMediaFile> CacheAsync(MediaFile mediaFile, StorageTime cachingTime, CancellationToken cancellationToken)
     {
-        var index = Guid.NewGuid();
-        string cachedMediaFilePath = RootedPathFor(mediaFile, index.ToString());
-        await _mediaFileDownloader.UseAsyncToDownload(mediaFile, cachedMediaFilePath, cancellationToken);
-        var cachedMediaFile = new CachedMediaFile(mediaFile, index, cachedMediaFilePath);
-        _cachedMediaFiles.Add(cachedMediaFile, cachingTime);
+        var cachedMediaFile = await CacheAsyncCore();
+        _logger.LogTrace("Media file with index {Index} was added to the cache", cachedMediaFile.Index);
         return cachedMediaFile;
+
+
+        async Task<CachedMediaFile> CacheAsyncCore()
+        {
+            var index = Guid.NewGuid();
+            string cachedMediaFilePath = RootedPathFor(mediaFile, index.ToString());
+            await _mediaFileDownloader.UseAsyncToDownload(mediaFile, cachedMediaFilePath, cancellationToken);
+            var cachedMediaFile = new CachedMediaFile(mediaFile, index, cachedMediaFilePath);
+            _cachedMediaFiles.Add(cachedMediaFile, cachingTime);
+            return cachedMediaFile;
+        }
     }
 
     /// <remarks>

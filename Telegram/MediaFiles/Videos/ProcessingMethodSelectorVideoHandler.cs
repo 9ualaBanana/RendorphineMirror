@@ -30,7 +30,7 @@ public class ProcessingMethodSelectorVideoHandler : UpdateHandler
 
     async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedVideo, CancellationToken cancellationToken)
     {
-        var cachedVideo = await _mediaFilesCache.AddAsync(receivedVideo, cancellationToken);
+        var cachedVideo = await _mediaFilesCache.CacheAsync(receivedVideo, cancellationToken);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]

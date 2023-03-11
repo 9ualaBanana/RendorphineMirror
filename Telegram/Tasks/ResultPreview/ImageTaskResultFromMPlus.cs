@@ -2,13 +2,13 @@
 
 namespace Telegram.Tasks.ResultPreview;
 
-/// <inheritdoc cref="TaskResultPreviewFromMPlus"/>
-internal record ImageTaskResultPreviewFromMPlus : TaskResultPreviewFromMPlus
+/// <inheritdoc cref="TaskResultFromMPlus"/>
+internal record ImageTaskResultFromMPlus : TaskResultFromMPlus
 {
     internal readonly int Width;
     internal readonly int Height;
 
-    internal ImageTaskResultPreviewFromMPlus(MPlusFileInfo mPlusFileInfo, string taskExecutor, Uri downloadLink)
+    internal ImageTaskResultFromMPlus(MPlusFileInfo mPlusFileInfo, string taskExecutor, Uri downloadLink)
         : base(mPlusFileInfo, taskExecutor, downloadLink)
     {
         var imageDimensions = mPlusFileInfo["media"]!["jpeg"]!;

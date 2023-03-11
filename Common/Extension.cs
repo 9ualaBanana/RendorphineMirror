@@ -3,5 +3,7 @@
 public enum Extension
 {
     jpeg,
+    jpg,
+    png,
     mp4
 }

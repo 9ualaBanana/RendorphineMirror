@@ -31,17 +31,18 @@ public class MPlusTaskManagerClient
             throw new InvalidDataException("M+ authentication result returned from the server was in a wrong format.");
     }
 
-    internal async Task<MPlusFileInfo> RequestFileInfoAsyncFor(MPlusMediaFile mPlusMediaFile, CancellationToken cancellationToken)
+    internal async Task<MPlusFileInfo> RequestFileInfoAsyncUsing(MPlusFileAccessor fileAccessor, CancellationToken cancellationToken)
     {
         var requestUrl = QueryHelpers.AddQueryString("getmympitem", new Dictionary<string, string?>()
         {
-            ["sessionid"] = mPlusMediaFile.SessionId,
-            ["iid"] = mPlusMediaFile.Iid
+            ["sessionid"] = fileAccessor.SessionId,
+            ["iid"] = fileAccessor.Iid
         });
 
-        return await RequestFileInfoAsyncCore(cancellationToken);
+        return await RequestFileInfoAsyncCore();
 
-        async Task<MPlusFileInfo> RequestFileInfoAsyncCore(CancellationToken cancellationToken)
+
+        async Task<MPlusFileInfo> RequestFileInfoAsyncCore()
         {
             int attemptsLeft = 3;
             JToken mPlusFileInfoJson;
@@ -57,7 +58,7 @@ public class MPlusTaskManagerClient
                 else Thread.Sleep(TimeSpan.FromSeconds(3));
             }
 
-            var exception = new Exception($"IID {mPlusMediaFile.Iid}: {nameof(MPlusFileInfo)} request failed.");
+            var exception = new Exception($"IID {fileAccessor.Iid}: {nameof(MPlusFileInfo)} request failed.");
             _logger.LogError(exception, message: default);
             throw exception;
         }

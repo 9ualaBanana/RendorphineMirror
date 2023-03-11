@@ -3,6 +3,9 @@ using Telegram.Bot.Types;
 
 namespace Telegram.Tasks;
 
+/// <summary>
+/// Represents <see cref="ClaimsPrincipal"/> that belong to a Telegram bot user uniquely identified by <see cref="ChatId"/>.
+/// </summary>
 internal record TelegramBotUser(ChatId ChatId, ClaimsPrincipal User)
 {
 }
