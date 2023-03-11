@@ -81,8 +81,8 @@ public sealed class MediaFile
 
         Extension extension;
         if (document.FileName is string fileName)
-            if (Enum.TryParse(Path.GetExtension(fileName), ignoreCase: true, out extension) ||
-                Enum.TryParse(Path.GetExtension(message.Caption?.Trim()), ignoreCase: true, out extension)
+            if (Enum.TryParse(Path.GetExtension(fileName).TrimStart('.'), ignoreCase: true, out extension) ||
+                Enum.TryParse(Path.GetExtension(message.Caption?.Trim(' ', '.')), ignoreCase: true, out extension)
                 )
                 return new(document.FileSize, extension, document.MimeType, document.FileId);
         
