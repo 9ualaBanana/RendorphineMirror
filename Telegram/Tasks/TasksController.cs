@@ -15,9 +15,9 @@ public class TasksController : ControllerBase
             => await taskResultHandler.SendPreviewAsyncUsing(executedTaskApi, HttpContext.RequestAborted);
 
     [HttpGet("getinput/{index}")]
-    public ActionResult GetInput([FromRoute] string index, [FromServices] MediaFilesCache mediaFilesCache)
+    public ActionResult GetInput([FromRoute] Guid index, [FromServices] MediaFilesCache mediaFilesCache)
     {
-        if (mediaFilesCache.RetrieveMediaFileWith(index) is CachedMediaFile cachedTaskInputFile)
+        if (mediaFilesCache.TryRetrieveMediaFileWith(index) is CachedMediaFile cachedTaskInputFile)
             return PhysicalFile(cachedTaskInputFile.Path, MimeTypes.GetMimeType(cachedTaskInputFile.File.Extension.ToString()));
         else return NotFound();
     }

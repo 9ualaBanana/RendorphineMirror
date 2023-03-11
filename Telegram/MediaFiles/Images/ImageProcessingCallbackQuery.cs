@@ -50,7 +50,7 @@ public class ImageProcessingCallbackQueryHandler
                 "EsrganUpscale",
                 pluginVersion: default,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{callbackQuery.CachedMediaFileIndex}")),
-                new MPlusTaskOutputInfo(callbackQuery.CachedMediaFileIndex, "upscaled"),
+                new MPlusTaskOutputInfo(callbackQuery.CachedMediaFileIndex.ToString(), "upscaled"),
                 TaskObjectFor(cachedImage)),
             MPlusIdentity.SessionIdOf(context.User))).Result;
 
@@ -69,8 +69,8 @@ public class ImageProcessingCallbackQueryHandler
                 "VeeeVectorize",
                 pluginVersion: default,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{callbackQuery.CachedMediaFileIndex}")),
-                new MPlusTaskOutputInfo(callbackQuery.CachedMediaFileIndex, "vectorized", 3_600_000),
-                new VeeeVectorizeInfo() { Lods = new int[] { 500, 2000, 4000, 7000, 8500, 10000 } },
+                new MPlusTaskOutputInfo(callbackQuery.CachedMediaFileIndex.ToString(), "vectorized"),
+                new VeeeVectorizeInfo() { Lods = new int[] { 8500 } },
                 TaskObjectFor(cachedImage)),
             MPlusIdentity.SessionIdOf(context.User))).Result;
 

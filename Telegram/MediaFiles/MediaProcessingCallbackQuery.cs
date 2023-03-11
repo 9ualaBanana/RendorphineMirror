@@ -28,7 +28,7 @@ public abstract class MediaProcessingCallbackQueryHandler<TCallbackQuery, ECallb
 
     public override async Task HandleAsync(TCallbackQuery callbackQuery, HttpContext context)
     {
-        if (_mediaFilesManager.Cache.RetrieveMediaFileWith(callbackQuery.CachedMediaFileIndex) is CachedMediaFile cachedMediaFile)
+        if (_mediaFilesManager.Cache.TryRetrieveMediaFileWith(callbackQuery.CachedMediaFileIndex) is CachedMediaFile cachedMediaFile)
             await HandleAsync(callbackQuery, cachedMediaFile, context);
         else await Bot.SendMessageAsync_(ChatId, "Media file is expired. Try to send it again.");
     }
@@ -51,5 +51,5 @@ public abstract class MediaProcessingCallbackQueryHandler<TCallbackQuery, ECallb
 public abstract record MediaProcessingCallbackQuery<ECallbackData> : CallbackQuery<ECallbackData>
     where ECallbackData : struct, Enum
 {
-    internal string CachedMediaFileIndex => ArgumentAt(0).ToString()!;
+    internal Guid CachedMediaFileIndex => Guid.Parse(ArgumentAt(0).ToString()!);
 }
