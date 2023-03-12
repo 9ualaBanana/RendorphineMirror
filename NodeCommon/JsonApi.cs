@@ -8,22 +8,25 @@ public static class JsonApi
 
     public static JObject JsonFromOpResult(in OperationResult result)
     {
-        var json = new JObject() { ["ok"] = new JValue(result.Success), };
+        var json = new JObject() { ["ok"] = new JValue(result.Success ? 1 : 0), };
         if (!result) json["errormessage"] = result.AsString();
 
         return json;
     }
-    public static JObject JsonFromOpResult<T>(in OperationResult<T> result)
+    public static JObject JsonFromOpResult<T>(in OperationResult<T> result) => JsonFromOpResult(result, "value");
+    public static JObject JsonFromOpResult<T>(in OperationResult<T> result, string propertyname)
     {
         var json = JsonFromOpResult(result.EString);
-        if (result) json["value"] = JToken.FromObject(result.Value!);
+        if (result) json[propertyname] = JToken.FromObject(result.Value!);
 
         return json;
     }
-    public static JObject JsonFromOpResult(JToken token)
+
+    public static JObject JsonFromOpResult(JToken token) => JsonFromOpResult(token, "value");
+    public static JObject JsonFromOpResult(JToken token, string propertyname)
     {
         var json = JsonFromOpResult((OperationResult) true);
-        json["value"] = token;
+        json[propertyname] = token;
 
         return json;
     }

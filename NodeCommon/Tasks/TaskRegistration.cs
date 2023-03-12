@@ -46,11 +46,9 @@ public static class TaskRegistration
             ("origin", string.Empty),
             ("pricemul", ((decimal)info.PriceMultiplication - ((decimal)info.PriceMultiplication % .1m)).ToString()),
         };
-        if (info.Version is not null)
-        {
-            var soft = new[] { new TaskSoftwareRequirement(info.Type.ToString().ToLowerInvariant(), ImmutableArray.Create(info.Version), null), };
-            values.Add(("software", JsonConvert.SerializeObject(soft, JsonSettings.LowercaseIgnoreNull)));
-        }
+        if (info.SoftwareRequirements?.IsDefaultOrEmpty == false)
+            values.Add(("software", JsonConvert.SerializeObject(info.SoftwareRequirements.Value, JsonSettings.LowercaseIgnoreNull)));
+
         if (output is MPlusTaskOutputInfo mPlusOutput && mPlusOutput.AutoremoveTimer is not null)
             values.Add(("autoremovetimer", mPlusOutput.AutoremoveTimer.ToString()!));
 

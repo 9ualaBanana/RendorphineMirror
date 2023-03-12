@@ -41,6 +41,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdaterCommon", "UpdaterCom
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uploader", "Uploader\Uploader.csproj", "{D24D9D93-6248-44F7-BE9C-62C8198F3020}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RApi", "RApi\RApi.csproj", "{B9FE8EB3-89FE-4DC4-A0AE-93813128A1F5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -123,6 +125,10 @@ Global
 		{D24D9D93-6248-44F7-BE9C-62C8198F3020}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D24D9D93-6248-44F7-BE9C-62C8198F3020}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D24D9D93-6248-44F7-BE9C-62C8198F3020}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9FE8EB3-89FE-4DC4-A0AE-93813128A1F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9FE8EB3-89FE-4DC4-A0AE-93813128A1F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9FE8EB3-89FE-4DC4-A0AE-93813128A1F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9FE8EB3-89FE-4DC4-A0AE-93813128A1F5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

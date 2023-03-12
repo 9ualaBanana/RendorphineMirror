@@ -122,6 +122,18 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
         return shard;
     }
 
+    /// <summary> Maybe get shard host for a task </summary>
+    public async ValueTask<OperationResult<string?>> MaybeGetTaskShardAsync(string taskid)
+    {
+        var shard = await Api.ApiGet<string>($"{TaskManagerEndpoint}/gettaskshard", "host", $"Getting {taskid} task shard", AddSessionId(("taskid", taskid)));
+
+        // TODO: fix -72 check
+        if (!shard && shard.Message!.Contains("-72 error code", StringComparison.Ordinal))
+            return null as string;
+
+        return shard!;
+    }
+
 
     public async ValueTask<OperationResult<ImmutableArray<string>>> GetShardListAsync() =>
         await Api.ApiGet<ImmutableArray<string>>($"{TaskManagerEndpoint}/getshardlist", "list", "Getting shards list", AddSessionId());
@@ -159,7 +171,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     }
 
     /// <summary> Updates <see cref="task.HostShard"/> values. Does not return until all shards are fetched </summary>
-    public async ValueTask<OperationResult> UpdateAllTaskShardsAsync(IEnumerable<DbTaskFullState> tasks)
+    public async ValueTask<OperationResult> UpdateAllTaskShardsAsync(IEnumerable<ITaskApi> tasks)
     {
         const int maxmin = 5;
 
@@ -195,16 +207,18 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     public async ValueTask<OperationResult<TMTasksStateInfo>> GetTasksOnShardAsync(string shardhost) =>
         await Api.ApiGet<TMTasksStateInfo>($"https://{shardhost}/rphtasklauncher/getmytasksinfo", null, "Getting shard tasks", AddSessionId());
     /// <inheritdoc cref="GetTasksOnShardAsync(string, string)"/>
-    public async ValueTask<OperationResult<(TaskState state, TMTaskStateInfo info)[]>> GetTasksOnShardsAsync(IEnumerable<string> shards)
+    public async ValueTask<OperationResult<ImmutableDictionary<TaskState, ImmutableArray<TMTaskStateInfo>>>> GetTasksOnShardsAsync(IEnumerable<string> shards)
     {
         var result = await shards.Select(async shard => await GetTasksOnShardAsync(shard)).MergeResults();
         if (!result) return result.GetResult();
 
-        var itasks = result.Value.SelectMany(x => x.Input).Select(x => (TaskState.Input, x));
-        var atasks = result.Value.SelectMany(x => x.Active).Select(x => (TaskState.Active, x));
-        var otasks = result.Value.SelectMany(x => x.Output).Select(x => (TaskState.Output, x));
-        var vtasks = result.Value.SelectMany(x => x.Validation).Select(x => (TaskState.Validation, x));
-        return itasks.Concat(atasks).Concat(otasks).Concat(vtasks).ToArray();
+        return new Dictionary<TaskState, ImmutableArray<TMTaskStateInfo>>()
+        {
+            [TaskState.Input] = result.Value.SelectMany(x => x.Input).ToImmutableArray(),
+            [TaskState.Active] = result.Value.SelectMany(x => x.Active).ToImmutableArray(),
+            [TaskState.Output] = result.Value.SelectMany(x => x.Output).ToImmutableArray(),
+            [TaskState.Validation] = result.Value.SelectMany(x => x.Validation).ToImmutableArray(),
+        }.ToImmutableDictionary();
     }
 
     /// <returns> Finished, Failed and Canceled tasks </returns>
@@ -219,31 +233,35 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     }
 
 
-    /// <returns> Task state or null if the task is Finished/Canceled/Failed </returns>
-    public async ValueTask<OperationResult<ServerTaskState?>> GetTaskStateAsync(ITaskApi task)
+    /// <returns> Task state or null if the task is Finished/Canceled/Failed; without fetching shards </returns>
+    public async ValueTask<OperationResult<ServerTaskState?>> JustGetTaskStateAsync(ITaskApi task)
     {
         var get = () => ShardGet<ServerTaskState>(task, "getmytaskstate", null, $"Getting {task.Id} task state", AddSessionId(("taskid", task.Id)));
         bool exists(string errmsg) => !errmsg.Contains("There is no task with such ID", StringComparison.Ordinal) && !errmsg.Contains("No shard known for this task", StringComparison.Ordinal);
 
-
-        // (completed in this case means finished, canceled or failed)
-        // Completed tasks are not being stored on shards anymore, so if we get `There is no task with such ID` error, the task probably was completed
-        // On this error, we refetch the task shard and retry the request on that shard. If the same error is returned, the task was completed and we return null
-
         var state = await get();
         if (!state && !exists(state.Message!))
-        {
-            var update = await UpdateTaskShardAsync(task);
-            if (!update) return update;
-
-            state = await get();
-            if (!state && !exists(state.Message!))
-                return null as ServerTaskState;
-        }
+            return null as ServerTaskState;
 
         if (task is TaskBase rtask)
             rtask.SetStateTime(state.Value.State);
         return state!;
+    }
+    /// <returns> Task state or null if the task is Finished/Canceled/Failed </returns>
+    public async ValueTask<OperationResult<ServerTaskState?>> GetTaskStateAsync(ITaskApi task)
+    {
+        var state = await JustGetTaskStateAsync(task);
+        if (!state) return state;
+
+        if (state.Value is null)
+        {
+            var update = await UpdateTaskShardAsync(task);
+            if (!update) return update;
+
+            state = await JustGetTaskStateAsync(task);
+        }
+
+        return state;
     }
 
     /// <returns> Task state; Throws if task is Finished/Canceled/Failed. </returns>
@@ -310,7 +328,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     /// <returns> User tasks by state, up to 500 </returns>
     ValueTask<OperationResult<List<ServerTaskFullState>>> GetMyTasksAsync(TaskState state, string? afterId = null) =>
         GetShardListAsync().Next(shards => GetMyTasksAsync(shards, state, afterId));
-    /// <inheritdoc cref="GetMyTasksAsync(TaskState, string?, string?)"/>
+    /// <inheritdoc cref="GetMyTasksAsync(TaskState, string?)"/>
     async ValueTask<OperationResult<List<ServerTaskFullState>>> GetMyTasksAsync(IReadOnlyCollection<string> shards, TaskState state, string? afterId = null)
     {
         var getfunc = (string shard) => Api.ApiGet<List<ServerTaskFullState>>($"https://{shard}/rphtasklauncher/gettasklist", "list", "Getting task list",
@@ -330,7 +348,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
             .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
 
 
-    public async Task<OperationResult<string>> GetMPlusItemDownloadLinkAsync(ITaskApi task, string iid) =>
+    public async ValueTask<OperationResult<string>> GetMPlusItemDownloadLinkAsync(ITaskApi task, string iid, string format = "jpeg") =>
         await ShardGet<string>(task, "getmplusitemdownloadlink", "link", "Getting M+ item download link",
-            AddSessionId(("iid", iid), ("format", "jpeg"), ("original", "1")));
+            AddSessionId(("iid", iid), ("format", format), ("original", format == "jpeg" ? "1" : "0")));
 }

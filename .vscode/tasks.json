@@ -46,6 +46,17 @@
             ]
         },
         {
+            "label": "buildrapi",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/RApi/RApi.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ]
+        },
+        {
             "label": "buildpinger",
             "command": "dotnet",
             "type": "process",
@@ -143,6 +154,21 @@
                 "--project",
                 "${workspaceFolder}/Uploader/Uploader.csproj",
                 "updateserver"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "Upload RApi",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/Uploader/Uploader.csproj",
+                "rapi"
             ],
             "problemMatcher": [],
             "group": {

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Newtonsoft.Json.Linq;
 
 namespace Common
@@ -37,10 +38,10 @@ namespace Common
             }
         }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
 
-        public static T ThrowIfNull<T>([NotNull] this T? value, string? message = null) where T : class
+        public static T ThrowIfNull<T>([NotNull] this T? value, string? message = null, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
         {
             if (value is null)
-                throw new NullReferenceException(message ?? "Value is null");
+                throw new NullReferenceException(message ?? $"{expression ?? "Value"} is null");
 
             return value;
         }

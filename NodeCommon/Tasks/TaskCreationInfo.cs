@@ -5,15 +5,14 @@ namespace NodeCommon.Tasks;
 
 public class TaskCreationInfo
 {
-    public PluginType Type = default!;
-    public string? Version = default!;
     public string Action = default!;
     public JObject Input = default!;
     public JObject Output = default!;
     public JObject Data = default!;
     public TaskPolicy Policy = TaskPolicy.AllNodes;
     public TaskObject TaskObject = default!;
-    public double PriceMultiplication = 1;
+    public decimal PriceMultiplication = 1;
+    public ImmutableArray<TaskSoftwareRequirement>? SoftwareRequirements;
 
     [JsonConstructor]
     public TaskCreationInfo() { }
@@ -24,9 +23,13 @@ public class TaskCreationInfo
         : this(pluginType, action, pluginVersion, input, output, data, TaskPolicy.AllNodes, null!) { }
 
     public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, JObject data, TaskPolicy policy, TaskObject taskobj)
+        : this(action, input, output, data, policy, taskobj)
     {
-        Type = pluginType;
-        Version = pluginVersion;
+        if (pluginVersion is not null)
+            SoftwareRequirements = ImmutableArray.Create(new TaskSoftwareRequirement(pluginType.ToString(), ImmutableArray.Create(pluginVersion), null));
+    }
+    public TaskCreationInfo(string action, ITaskInputInfo input, ITaskOutputInfo output, JObject data, TaskPolicy policy, TaskObject taskobj)
+    {
         Action = action;
         Input = JObject.FromObject(input, JsonSettings.LowercaseS);
         Output = JObject.FromObject(output, JsonSettings.LowercaseS);
@@ -34,4 +37,12 @@ public class TaskCreationInfo
         Policy = policy;
         TaskObject = taskobj;
     }
+}
+public class UITaskCreationInfo : TaskCreationInfo
+{
+    public PluginType Type = default!;
+    public string? Version = default!;
+
+    [JsonConstructor]
+    public UITaskCreationInfo() { }
 }
