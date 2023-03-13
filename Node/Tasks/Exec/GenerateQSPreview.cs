@@ -9,7 +9,7 @@ public static class GenerateQSPreviewTasks
 
     class GenerateQSPreview : FFMpegTasks.FFMpegAction<QSPreviewInfo>
     {
-        public override string Name => "GenerateQSPreview";
+        public override TaskAction Name => TaskAction.GenerateQSPreview;
         public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg).MaybeOne(FileFormat.Mov);
         public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg).MaybeOne(FileFormat.Mov);
 

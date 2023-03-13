@@ -24,7 +24,7 @@ public static class TaskList
             );
 
 
-            static TaskActionDescriber serializeaction(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name, new ObjectDescriber(action.DataType));
+            static TaskActionDescriber serializeaction(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name.ToString(), new ObjectDescriber(action.DataType));
             static ImmutableArray<TaskInputOutputDescriber> serialize<T>(ImmutableDictionary<T, Type> dict) where T : struct, Enum =>
                 dict.Select(x => new TaskInputOutputDescriber(x.Key.ToString(), new ObjectDescriber(x.Value))).ToImmutableArray();
         }
@@ -34,9 +34,9 @@ public static class TaskList
     public static IEnumerable<IPluginAction> Get(PluginType type) => Actions.Where(x => x.Type == type);
     public static IPluginAction GetAction(this ReceivedTask task) => task.Info.GetAction();
     public static IPluginAction GetAction(this TaskInfo task) => TryGet(task.TaskType) ?? throw new Exception($"Got an unknown task type: {task.TaskType}");
-    public static IPluginAction Get(string name) => Actions.First(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-    public static IPluginAction? TryGet(string name) => Actions.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-    public static IPluginAction? TryGet(PluginType type, string name) => Actions.FirstOrDefault(x => x.Type == type && x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    public static IPluginAction Get(string name) => Actions.First(x => x.Name.ToString().Equals(name, StringComparison.OrdinalIgnoreCase));
+    public static IPluginAction? TryGet(string name) => Actions.FirstOrDefault(x => x.Name.ToString().Equals(name, StringComparison.OrdinalIgnoreCase));
+    public static IPluginAction? TryGet(PluginType type, string name) => Actions.FirstOrDefault(x => x.Type == type && x.Name.ToString().Equals(name, StringComparison.OrdinalIgnoreCase));
 
     public static  IEnumerable<FileWithFormat> GetInputFiles(this ReceivedTask task) => task.GetAction().InputRequirements.GetInputFiles(task);
 }

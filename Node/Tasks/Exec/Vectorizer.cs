@@ -10,7 +10,7 @@ public static class VectorizerTasks
 
     class VeeeVectorize : InputOutputPluginAction<VeeeVectorizeInfo>
     {
-        public override string Name => "VeeeVectorize";
+        public override TaskAction Name => TaskAction.VeeeVectorize;
         public override PluginType Type => PluginType.VeeeVectorizer;
         public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
         public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements()

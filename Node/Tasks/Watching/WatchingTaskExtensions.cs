@@ -22,7 +22,7 @@ public static class WatchingTaskExtensions
         var action = TaskList.TryGet(task.TaskAction).ThrowIfNull($"Task action {task.TaskAction} does not exists");
 
         return new TaskCreationInfo(
-            action.Name,
+            action.Name.ToString(),
             input,
             output,
             JObject.FromObject(task.TaskData, JsonSettings.LowercaseIgnoreNullS),

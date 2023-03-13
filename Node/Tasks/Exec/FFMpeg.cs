@@ -186,7 +186,7 @@ public static class FFMpegTasks
     }
     class FFMpegEditVideo : FFMpegMediaEditAction<EditVideoInfo>
     {
-        public override string Name => "EditVideo";
+        public override TaskAction Name => TaskAction.EditVideo;
         public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Mov);
         public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Mov);
 
@@ -226,7 +226,7 @@ public static class FFMpegTasks
     }
     class FFMpegEditRaster : FFMpegMediaEditAction<EditRasterInfo>
     {
-        public override string Name => "EditRaster";
+        public override TaskAction Name => TaskAction.EditRaster;
         public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
         public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
     }
