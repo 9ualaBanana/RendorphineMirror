@@ -28,6 +28,9 @@ public static class TaskHandler
                 while (timeout > DateTime.Now)
                 {
                     var state = await Apis.Default.WithNoErrorLog().GetTaskStateAsync(task);
+                    NodeSettings.PlacedTasks.Save(task);
+                    if (task.State.IsFinished()) return;
+
                     if (state && state.Value is not null)
                     {
                         task.State = state.Value.State;
@@ -93,7 +96,12 @@ public static class TaskHandler
             if (NodeSettings.PlacedTasks.Count == 0) return;
 
             var copy = NodeSettings.PlacedTasks.Values.ToArray();
-            await Apis.Default.UpdateTaskShardsAsync(copy.Where(x => x.HostShard is null)).ThrowIfError();
+            var emptysharded = copy.Where(x => x.HostShard is null).ToArray();
+            await Apis.Default.UpdateTaskShardsAsync(emptysharded).ThrowIfError();
+
+            foreach (var es in emptysharded)
+                NodeSettings.PlacedTasks.Save(es);
+
             copy = copy.Where(x => x.HostShard is not null).ToArray();
 
             var checkedtasks = new List<string>();
@@ -153,7 +161,13 @@ public static class TaskHandler
         }
         async ValueTask check(DbTaskFullState task, string? errmsg)
         {
-            if (task.State < TaskState.Validation) return;
+            if (task.State.IsFinished())
+            {
+                remove(task);
+                return;
+            }
+
+            if (task.State < TaskState.Output) return;
             if (task.State is TaskState.Canceled or TaskState.Failed)
             {
                 remove(task, errmsg);

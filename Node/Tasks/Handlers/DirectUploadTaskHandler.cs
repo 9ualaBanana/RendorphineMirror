@@ -35,7 +35,10 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
         var dout = (DirectUploadTaskOutputInfo) task.Output;
         while (!dout.Uploaded)
+        {
+            if (cancellationToken.IsCancellationRequested) return;
             await Task.Delay(2_000);
+        }
     }
 
     public async ValueTask UploadInputFiles(DbTaskFullState task)
@@ -97,6 +100,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         }
     }
 
+    public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State >= TaskState.Output);
     public async ValueTask OnPlacedTaskCompleted(DbTaskFullState task)
     {
         var state = await task.GetTaskStateAsync().ThrowIfError();
@@ -123,7 +127,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         }
         catch { }
         if (json is not null && json["ok"]?.Value<bool>() != true)
-            throw new Exception(json["errmsg"]!.Value<string>());
+            throw new Exception(json["errormessage"]!.Value<string>());
 
         try { ZipFile.ExtractToDirectory(zipfile, task.FSPlacedResultsDirectory()); }
         catch
