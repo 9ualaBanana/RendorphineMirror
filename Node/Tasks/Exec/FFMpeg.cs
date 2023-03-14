@@ -45,7 +45,7 @@ public abstract class MediaEditInfo
     [Default(1), Ranged(.1, 10)]
     public double? Gamma;
 
-    [JsonProperty("ro")]
+    [JsonProperty("rot")]
     [Default(0), Ranged(-Math.PI * 2, Math.PI * 2)]
     public double? RotationRadians;
 }
