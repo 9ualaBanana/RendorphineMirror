@@ -73,7 +73,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         var uploadedFiles = string.Join('&', task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(fileInfo => $"uploadedfiles={fileInfo.Iid}"));
         var queryString =
             $"id={task.Id}&" +
-            $"action={task.Info.TaskType}" +
+            $"action={task.Info.TaskType}&" +
             $"{uploadedFiles}&" +
             $"hostshard={HttpUtility.UrlDecode(task.HostShard)}&" +
             $"executor={HttpUtility.UrlDecode(Settings.NodeName)}";
