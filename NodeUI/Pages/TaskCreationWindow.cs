@@ -1,6 +1,7 @@
 using Avalonia.Controls.Templates;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using TaskCreationInfo = NodeCommon.Tasks.UITaskCreationInfo;
 
 namespace NodeUI.Pages
 {
@@ -60,14 +61,14 @@ namespace NodeUI.Pages
 
             public TaskPartContainer(TaskPart firstPart)
             {
-                RowDefinitions = RowDefinitions.Parse("Auto * Auto");
+                RowDefinitions = RowDefinitions.Parse("Auto Auto *");
 
                 TitleTextBlock = new TextBlock()
                 {
                     HorizontalAlignment = HorizontalAlignment.Center,
                     FontSize = 20,
                 };
-                Children.Add(TitleTextBlock.WithRow(0));
+                Children.Add(TitleTextBlock.WithRow(1));
 
                 BackButton = new MPButton()
                 {
@@ -89,7 +90,7 @@ namespace NodeUI.Pages
                         NextButton.WithColumn(1),
                     }
                 };
-                Children.Add(buttonsgrid.WithRow(2));
+                Children.Add(buttonsgrid.WithRow(0));
 
                 ShowPart(firstPart);
             }
@@ -100,7 +101,7 @@ namespace NodeUI.Pages
                     prev.IsVisible = false;
 
                 Parts.Push(part);
-                Children.Add(part.WithRow(1));
+                Children.Add(part.WithRow(2));
                 TitleTextBlock.Bind(part.Title);
 
                 part.OnChoose += UpdateButtons;
@@ -376,7 +377,7 @@ namespace NodeUI.Pages
                 ProcessObject(Builder.Output);
 
                 var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
-                var taskid = await LocalApi.Post<string>(LocalApi.LocalIP, StartTaskEndpoint, new StringContent(serialized)).ConfigureAwait(false);
+                var taskid = await LocalApi.Default.Post<string>(StartTaskEndpoint, "Starting a task", new StringContent(serialized)).ConfigureAwait(false);
                 if (!taskid)
                 {
                     Dispatcher.UIThread.Post(() => StatusTextBlock.Text = $"error {taskid}");

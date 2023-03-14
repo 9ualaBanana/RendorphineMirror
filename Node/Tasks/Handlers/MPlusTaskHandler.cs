@@ -28,16 +28,29 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     }
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
     {
-        var files = Directory.GetFiles(task.FSOutputDirectory()).AsEnumerable();
+        var files = Directory.GetFiles(task.FSOutputDirectory());
         if (task.OutputFiles.Count != 0)
-            files = task.OutputFiles.OrderByDescending(x => x.Format).Select(x => x.Path);
+            files = task.OutputFiles.OrderByDescending(x => x.Format).Select(x => x.Path).ToArray();
+
+        // example: files=["input.g.jpg", "input.t.jpg"] returns "input."
+        var commonprefix = files.Select(Path.GetFileNameWithoutExtension).Cast<string>().Aggregate((seed, z) => string.Join("", seed.TakeWhile((v, i) => z.Length > i && v == z[i])));
+        if (commonprefix.EndsWith('.'))
+            commonprefix = commonprefix[..^1];
+
+        task.LogInfo($"[MPlus] Uploading {files.Length} files with common prefix '{commonprefix}': {string.Join(", ", files.Select(Path.GetFileName))}");
 
         foreach (var file in files)
         {
-            var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: Path.GetFileNameWithoutExtension(file), task, Api.Client), cancellationToken: cancellationToken);
-            if (Path.GetExtension(file) != ".eps") task.UploadedFiles.Add(new MPlusUploadedFileInfo(iid));
+            var postfix = Path.GetFileNameWithoutExtension(file);
+            if (postfix.StartsWith("output", StringComparison.Ordinal))
+                postfix = postfix.Substring("output".Length);
+            else postfix = postfix.Substring(commonprefix.Length);
+
+            task.LogInfo($"[MPlus] Uploading {file} with postfix '{postfix}'");
+            var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: postfix, task, Api.Client, Settings.SessionId), cancellationToken: cancellationToken);
+            task.UploadedFiles.Add(new MPlusUploadedFileInfo(iid, file));
         }
     }
 
-    public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Output && ((MPlusTaskOutputInfo) task.Output).IngesterHost is not null);
+    public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Validation && ((MPlusTaskOutputInfo) task.Output).IngesterHost is not null);
 }

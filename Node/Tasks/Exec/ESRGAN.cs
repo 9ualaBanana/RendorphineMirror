@@ -8,7 +8,7 @@ public static class EsrganTasks
 
     class UpscaleEsrgan : InputOutputPluginAction<UpscaleEsrganInfo>
     {
-        public override string Name => "EsrganUpscale";
+        public override TaskAction Name => TaskAction.EsrganUpscale;
         public override PluginType Type => PluginType.Python_Esrgan;
         public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
         public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);

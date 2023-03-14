@@ -8,6 +8,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     TaskInputType ITaskInputHandler.Type => TaskInputType.Torrent;
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.Torrent;
 
+    static TorrentClient TorrentClient => TorrentClientInstance.Instance;
     readonly Dictionary<string, TorrentManager> InputTorrents = new();
 
     public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
@@ -33,7 +34,7 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     {
         if (task.IsFromSameNode())
         {
-            Extensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
+            CommonExtensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
             return;
         }
 

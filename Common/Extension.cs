@@ -5,5 +5,7 @@ public enum Extension
     jpeg,
     jpg,
     png,
-    mp4
+    mp4,
+    eps,
+    mov
 }

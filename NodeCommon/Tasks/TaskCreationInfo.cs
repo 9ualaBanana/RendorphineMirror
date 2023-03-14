@@ -5,49 +5,30 @@ namespace NodeCommon.Tasks;
 
 public class TaskCreationInfo
 {
-    public PluginType Type = default!;
-    public string? Version = default!;
     public string Action = default!;
     public JObject Input = default!;
     public JObject Output = default!;
     public JObject Data = default!;
     public TaskPolicy Policy = TaskPolicy.AllNodes;
-    public TaskObject? TaskObject = null;
-    public double PriceMultiplication = 1;
+    public TaskObject TaskObject = default!;
+    public decimal PriceMultiplication = 1;
+    public ImmutableArray<TaskSoftwareRequirement>? SoftwareRequirements;
 
     [JsonConstructor]
     public TaskCreationInfo() { }
 
-    public TaskCreationInfo(PluginType type, string? version, string action, JObject input, JObject output, JObject data, TaskPolicy policy, TaskObject? taskobj = null)
+    public TaskCreationInfo(TaskAction action, ITaskInputInfo input, ITaskOutputInfo output, TaskObject taskobj)
+        : this(action.ToString(), input, output, new { }, TaskPolicy.AllNodes, taskobj)
     {
-        Type = type;
-        Version = version;
-        Action = action;
-        Input = input;
-        Output = output;
-        Data = data;
-        Policy = policy;
-        TaskObject = taskobj;
     }
-
-    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, TaskObject taskobj)
-        : this(pluginType, action, pluginVersion, input, output, new(), TaskPolicy.AllNodes, taskobj)
+    
+    public TaskCreationInfo(TaskAction action, ITaskInputInfo input, ITaskOutputInfo output, object data, TaskObject taskobj)
+        : this(action.ToString(), input, output, data, TaskPolicy.AllNodes, taskobj)
     {
     }
 
-    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, object data, TaskObject taskobj)
-        : this(pluginType, action, pluginVersion, input, output, data, TaskPolicy.AllNodes, taskobj)
+    public TaskCreationInfo(string action, ITaskInputInfo input, ITaskOutputInfo output, object data, TaskPolicy policy, TaskObject taskobj)
     {
-    }
-
-    [Obsolete("Use larger overload instead")]
-    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, object data)
-        : this(pluginType, action, pluginVersion, input, output, data, TaskPolicy.AllNodes, null!) { }
-
-    public TaskCreationInfo(PluginType pluginType, string action, string? pluginVersion, ITaskInputInfo input, ITaskOutputInfo output, object data, TaskPolicy policy, TaskObject taskobj)
-    {
-        Type = pluginType;
-        Version = pluginVersion;
         Action = action;
         Input = JObject.FromObject(input, JsonSettings.LowercaseS);
         Output = JObject.FromObject(output, JsonSettings.LowercaseS);
@@ -55,4 +36,12 @@ public class TaskCreationInfo
         Policy = policy;
         TaskObject = taskobj;
     }
+}
+public class UITaskCreationInfo : TaskCreationInfo
+{
+    public PluginType Type = default!;
+    public string? Version = default!;
+
+    [JsonConstructor]
+    public UITaskCreationInfo() { }
 }

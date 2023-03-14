@@ -1,15 +1,17 @@
 using System.Diagnostics;
+using Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NodeCommon;
 
-public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
+public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
 {
+    public const string RegistryUrl = "https://t.microstock.plus:7897";
     const string TaskManagerEndpoint = Common.Api.TaskManagerEndpoint;
-    public static readonly Apis Default = new(Common.Api.Default, Settings.SessionId);
 
 
+    public static Apis DefaultWithSessionId(string sid) => new(Common.Api.Default, sid);
     public Apis WithSessionId(string sid) => this with { SessionId = sid };
     public Apis WithNoErrorLog() => this with { LogErrors = false };
 
@@ -121,6 +123,18 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
         return shard;
     }
 
+    /// <summary> Maybe get shard host for a task </summary>
+    public async ValueTask<OperationResult<string?>> MaybeGetTaskShardAsync(string taskid)
+    {
+        var shard = await Api.ApiGet<string>($"{TaskManagerEndpoint}/gettaskshard", "host", $"Getting {taskid} task shard", AddSessionId(("taskid", taskid)));
+
+        // TODO: fix -72 check
+        if (!shard && shard.Message!.Contains("-72 error code", StringComparison.Ordinal))
+            return null as string;
+
+        return shard!;
+    }
+
 
     public async ValueTask<OperationResult<ImmutableArray<string>>> GetShardListAsync() =>
         await Api.ApiGet<ImmutableArray<string>>($"{TaskManagerEndpoint}/getshardlist", "list", "Getting shards list", AddSessionId());
@@ -158,7 +172,7 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
     }
 
     /// <summary> Updates <see cref="task.HostShard"/> values. Does not return until all shards are fetched </summary>
-    public async ValueTask<OperationResult> UpdateAllTaskShardsAsync(IEnumerable<DbTaskFullState> tasks)
+    public async ValueTask<OperationResult> UpdateAllTaskShardsAsync(IEnumerable<ITaskApi> tasks)
     {
         const int maxmin = 5;
 
@@ -189,24 +203,24 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
     }
 
 
-    public interface ITaskStateInfo { }
 
     /// <returns> Input, Active, Output tasks on a shard </returns>
     public async ValueTask<OperationResult<TMTasksStateInfo>> GetTasksOnShardAsync(string shardhost) =>
         await Api.ApiGet<TMTasksStateInfo>($"https://{shardhost}/rphtasklauncher/getmytasksinfo", null, "Getting shard tasks", AddSessionId());
     /// <inheritdoc cref="GetTasksOnShardAsync(string, string)"/>
-    public async ValueTask<OperationResult<(TaskState state, TMTaskStateInfo info)[]>> GetTasksOnShardsAsync(IEnumerable<string> shards)
+    public async ValueTask<OperationResult<ImmutableDictionary<TaskState, ImmutableArray<TMTaskStateInfo>>>> GetTasksOnShardsAsync(IEnumerable<string> shards)
     {
         var result = await shards.Select(async shard => await GetTasksOnShardAsync(shard)).MergeResults();
         if (!result) return result.GetResult();
 
-        var itasks = result.Value.SelectMany(x => x.Input).Select(x => (TaskState.Input, x));
-        var atasks = result.Value.SelectMany(x => x.Active).Select(x => (TaskState.Active, x));
-        var otasks = result.Value.SelectMany(x => x.Output).Select(x => (TaskState.Output, x));
-        return itasks.Concat(atasks).Concat(otasks).ToArray();
+        return new Dictionary<TaskState, ImmutableArray<TMTaskStateInfo>>()
+        {
+            [TaskState.Input] = result.Value.SelectMany(x => x.Input).ToImmutableArray(),
+            [TaskState.Active] = result.Value.SelectMany(x => x.Active).ToImmutableArray(),
+            [TaskState.Output] = result.Value.SelectMany(x => x.Output).ToImmutableArray(),
+            [TaskState.Validation] = result.Value.SelectMany(x => x.Validation).ToImmutableArray(),
+        }.ToImmutableDictionary();
     }
-    public record TMTasksStateInfo(ImmutableArray<TMTaskStateInfo> Input, ImmutableArray<TMTaskStateInfo> Active, ImmutableArray<TMTaskStateInfo> Output, int QueueSize, double AvgWaitTime, string ScGuid);
-    public record TMTaskStateInfo(string Id, double Progress) : ITaskStateInfo;
 
     /// <returns> Finished, Failed and Canceled tasks </returns>
     public async ValueTask<OperationResult<Dictionary<string, TMOldTaskStateInfo>>> GetFinishedTasksStatesAsync(IEnumerable<string> taskids)
@@ -218,41 +232,43 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
             .Select(sel)
             .MergeDictResults();
     }
-    public record TMOldTaskStateInfo(string Id, TaskState State, ITaskOutputInfo? Output, string? ErrMsg) : ITaskStateInfo;
 
 
-    /// <returns> Task state or null if the task is Finished/Canceled/Failed </returns>
-    public async ValueTask<OperationResult<ServerTaskState?>> GetTaskStateAsync(ITaskApi task)
+    /// <returns> Task state or null if the task is Finished/Canceled/Failed; without fetching shards </returns>
+    public async ValueTask<OperationResult<ServerTaskState?>> JustGetTaskStateAsync(ITaskApi task)
     {
         var get = () => ShardGet<ServerTaskState>(task, "getmytaskstate", null, $"Getting {task.Id} task state", AddSessionId(("taskid", task.Id)));
         bool exists(string errmsg) => !errmsg.Contains("There is no task with such ID", StringComparison.Ordinal) && !errmsg.Contains("No shard known for this task", StringComparison.Ordinal);
 
-
-        // (completed in this case means finished, canceled or failed)
-        // Completed tasks are not being stored on shards anymore, so if we get `There is no task with such ID` error, the task probably was completed
-        // On this error, we refetch the task shard and retry the request on that shard. If the same error is returned, the task was completed and we return null
-
         var state = await get();
         if (!state && !exists(state.Message!))
-        {
-            var update = await UpdateTaskShardAsync(task);
-            if (!update) return update;
-
-            state = await get();
-            if (!state && !exists(state.Message!))
-                return null as ServerTaskState;
-        }
+            return null as ServerTaskState;
 
         if (task is TaskBase rtask)
             rtask.SetStateTime(state.Value.State);
         return state!;
+    }
+    /// <returns> Task state or null if the task is Finished/Canceled/Failed </returns>
+    public async ValueTask<OperationResult<ServerTaskState?>> GetTaskStateAsync(ITaskApi task)
+    {
+        var state = await JustGetTaskStateAsync(task);
+        if (!state) return state;
+
+        if (state.Value is null)
+        {
+            var update = await UpdateTaskShardAsync(task);
+            if (!update) return update;
+
+            state = await JustGetTaskStateAsync(task);
+        }
+
+        return state;
     }
 
     /// <returns> Task state; Throws if task is Finished/Canceled/Failed. </returns>
     public async ValueTask<OperationResult<ServerTaskState>> GetTaskStateAsyncOrThrow(ITaskApi task) =>
         await GetTaskStateAsync(task)
             .Next(state => state.ThrowIfNull($"Task {task.Id} is already completed").AsOpResult());
-    public record ServerTaskState(TaskState State, double Progress, ITaskOutputInfo Output, TaskTimes Times, TaskServer? Server = null) : ITaskStateInfo;
 
 
     public ValueTask<OperationResult> FailTaskAsync(ITaskApi task, string errorMessage) => ChangeStateAsync(task, TaskState.Failed, errorMessage);
@@ -313,21 +329,13 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
     /// <returns> User tasks by state, up to 500 </returns>
     ValueTask<OperationResult<List<ServerTaskFullState>>> GetMyTasksAsync(TaskState state, string? afterId = null) =>
         GetShardListAsync().Next(shards => GetMyTasksAsync(shards, state, afterId));
-    /// <inheritdoc cref="GetMyTasksAsync(TaskState, string?, string?)"/>
+    /// <inheritdoc cref="GetMyTasksAsync(TaskState, string?)"/>
     async ValueTask<OperationResult<List<ServerTaskFullState>>> GetMyTasksAsync(IReadOnlyCollection<string> shards, TaskState state, string? afterId = null)
     {
         var getfunc = (string shard) => Api.ApiGet<List<ServerTaskFullState>>($"https://{shard}/rphtasklauncher/gettasklist", "list", "Getting task list",
             AddSessionId(("state", state.ToString().ToLowerInvariant()), ("afterid", afterId ?? string.Empty)));
 
         return await shards.Select(async shard => await getfunc(shard)).MergeArrResults();
-    }
-    public record ServerTaskFullState : DbTaskFullState, ILoggable
-    {
-        public TaskServer? Server { get; set; }
-
-        [JsonConstructor]
-        public ServerTaskFullState(string id, string originGuid, TaskPolicy launchPolicy, TaskObject @object, ITaskInputInfo input, ITaskOutputInfo output, JObject data)
-            : base(id, new TaskInfo(@object, input, output, data, launchPolicy, originGuid)) { }
     }
 
 
@@ -337,34 +345,10 @@ public record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
         GetMyNodesAsync().Next(nodes => nodes.FirstOrDefault(x => x.Id == nodeid)?.AsOpResult() ?? OperationResult.Err($"Node with such id ({nodeid}) was not found"));
 
     public ValueTask<OperationResult<ImmutableDictionary<string, SoftwareDefinition>>> GetSoftwareAsync() =>
-        LocalApi.Send<ImmutableDictionary<string, SoftwareDefinition>>(Settings.RegistryUrl, "getsoft")
+        Api.ApiGet<ImmutableDictionary<string, SoftwareDefinition>>($"{RegistryUrl}/getsoft", "value", "Getting registry software")
             .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
-}
-public static class ApisExtensions
-{
-    public static ValueTask<OperationResult> ShardGet(this ITaskApi task, string url, string errorDetails, params (string, string)[] values) =>
-        Apis.Default.ShardGet(task, url, errorDetails, values);
-    public static ValueTask<OperationResult> ShardPost(this ITaskApi task, string url, string errorDetails, params (string, string)[] values) =>
-        Apis.Default.ShardPost(task, url, errorDetails, values);
-    public static ValueTask<OperationResult<T>> ShardGet<T>(this ITaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
-        Apis.Default.ShardGet<T>(task, url, property, errorDetails, values);
-    public static ValueTask<OperationResult<T>> ShardPost<T>(this ITaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
-        Apis.Default.ShardPost<T>(task, url, property, errorDetails, values);
 
-    public static ValueTask<OperationResult<Apis.ServerTaskState>> GetTaskStateAsyncOrThrow(this ITaskApi task) => Apis.Default.GetTaskStateAsyncOrThrow(task);
-    public static ValueTask<OperationResult<Apis.ServerTaskState?>> GetTaskStateAsync(this ITaskApi task) => Apis.Default.GetTaskStateAsync(task);
-
-    public static async ValueTask<OperationResult> FailTaskAsync(this ITaskApi task, string errorMessage)
-    {
-        var fail = await Apis.Default.FailTaskAsync(task, errorMessage);
-        if (!fail && fail.Message?.Contains("invalid old task state", StringComparison.OrdinalIgnoreCase) == true)
-            return true;
-
-        return fail;
-    }
-    public static ValueTask<OperationResult> ChangeStateAsync(this ITaskApi task, TaskState state) => Apis.Default.ChangeStateAsync(task, state);
-
-    public static async Task<OperationResult<string>> GetMPlusItemDownloadLinkAsync(this ITaskApi taskApi, string iid, Extension extension, string? sessionId = default) =>
-        await taskApi.ShardGet<string>("getmplusitemdownloadlink", "link", "Getting M+ item download link", new (string, string)[]
-        { ("sessionid", sessionId ?? Settings.SessionId!), ("iid", iid), ("format", extension.ToString().ToLower()), ("original", "1") });
+    public async ValueTask<OperationResult<string>> GetMPlusItemDownloadLinkAsync(ITaskApi task, string iid, Extension extension) =>
+        await ShardGet<string>(task, "getmplusitemdownloadlink", "link", "Getting M+ item download link",
+            AddSessionId(("iid", iid), ("format", extension.ToString().ToLower()), ("original", extension == Extension.jpeg ? "1" : "0")));
 }

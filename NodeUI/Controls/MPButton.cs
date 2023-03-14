@@ -2,56 +2,25 @@ using Avalonia.Animation.Easings;
 
 namespace NodeUI.Controls
 {
-    public class MPButton : ClickableControl<MPButton>
+    public class MPButton : Button, IStyleable
     {
-        public LocalizedString Text { get => TextBlock.GetValue(TextBlock.TextProperty); set => TextBlock.Bind(TextBlock.TextProperty, value); }
-        public new FontWeight FontWeight { get => TextBlock.FontWeight; set => TextBlock.FontWeight = value; }
-        public new double FontSize { get => TextBlock.FontSize; set => TextBlock.FontSize = value; }
+        Type IStyleable.StyleKey => typeof(Button);
 
-        IBrush _Background = null!;
-        public new IBrush Background
-        {
-            get => _Background;
-            set => Border.Background = _Background = value;
-        }
-        public IBrush HoverBackground = Colors.DarkDarkGray;
+        public LocalizedString Text { get => (Content is LocalizedString ls) ? ls : (Content as string) ?? ""; set => Content = value; }
 
-        readonly TextBlock TextBlock;
-        readonly Border Border;
+        public new Action OnClick = delegate { };
+        public Action<MPButton> OnClickSelf = delegate { };
+
+        // border only !!!!
+        public IBrush HoverBackground { set => this.AddStyle(("ThemeBorderMidBrush", value)); }
 
         public MPButton()
         {
-            TextBlock = new TextBlock
+            Click += (_, _) =>
             {
-                Foreground = Colors.White,
-                FontSize = 16,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                OnClick();
+                OnClickSelf(this);
             };
-
-            Border = new Border()
-            {
-                CornerRadius = new CornerRadius(5),
-                Child = TextBlock
-            };
-
-            Content = Border;
-            Background = Colors.Accent;
-
-            PointerEnter += (_, _) =>
-            {
-                if (IsEnabled) Border.Background = HoverBackground;
-            };
-            PointerLeave += (_, _) =>
-            {
-                if (IsEnabled) Border.Background = Background;
-            };
-
-            this.GetObservable(IsEnabledProperty).Subscribe(v =>
-            {
-                Border.Background = v ? Background : HoverBackground;
-                TextBlock.Foreground = v ? Colors.White : Colors.Black;
-            });
         }
 
 
@@ -61,15 +30,23 @@ namespace NodeUI.Controls
             if (opres) return Task.FromResult(false);
             return FlashError(opres.Message!, duration).ContinueWith(_ => true);
         }
-        public async Task FlashError(string text, int duration = 2000)
+        public Task<bool> Flash(OperationResult opres, int duration = 2000)
+        {
+            if (opres) return FlashOk("ok", duration).ContinueWith(_ => false);
+            return FlashError(opres.Message!, duration).ContinueWith(_ => true);
+        }
+
+        public Task FlashError(string text, int duration = 2000) => Flash(Brushes.Red, text, duration);
+        public Task FlashOk(string text, int duration = 2000) => Flash(Brushes.Green, text, duration);
+        public async Task Flash(IBrush color, string text, int duration = 2000)
         {
             using var _ = new FuncDispose(() => IsEnabled = true);
             IsEnabled = false;
 
             var prevbg = Background;
-            Background = Brushes.Red;
-            Border.Transitions ??= new();
-            Border.Transitions.Add(new BrushTransition() { Property = Border.BackgroundProperty, Duration = TimeSpan.FromMilliseconds(duration), Easing = new QuarticEaseIn() });
+            Background = color;
+            Transitions ??= new();
+            Transitions.Add(new BrushTransition() { Property = Border.BackgroundProperty, Duration = TimeSpan.FromMilliseconds(duration), Easing = new QuarticEaseIn() });
             Background = prevbg;
 
             var prevtext = Text;
@@ -77,7 +54,7 @@ namespace NodeUI.Controls
 
             await Task.Delay(duration);
             Text = prevtext;
-            Border.Transitions.Clear();
+            Transitions.Clear();
         }
     }
 }

@@ -29,6 +29,7 @@ public abstract record TaskBase(string Id, TaskInfo Info) : ITaskApi, ILoggable
             TaskState.Input => Times with { Input = Times.Input ?? time },
             TaskState.Active => Times with { Active = Times.Active ?? time },
             TaskState.Output => Times with { Output = Times.Output ?? time },
+            TaskState.Validation => Times with { Output = Times.Validation ?? time },
             TaskState.Finished => Times with { Finished = Times.Finished ?? time },
             TaskState.Failed => Times with { Failed = Times.Failed ?? time },
             TaskState.Canceled => Times with { Canceled = Times.Canceled ?? time },
@@ -39,19 +40,21 @@ public abstract record TaskBase(string Id, TaskInfo Info) : ITaskApi, ILoggable
     public static string GenerateLocalId() => "local_" + Guid.NewGuid();
 
 
-    string FSDataDirectory() => FSDataDirectory(Id);
+    public string FSDataDirectory() => FSDataDirectory(Id);
     public string FSOutputDirectory() => FSOutputDirectory(Id);
     public string FSInputDirectory() => FSInputDirectory(Id);
 
-    string FSPlacedDataDirectory() => FSPlacedDataDirectory(Id);
+    public string FSPlacedDataDirectory() => FSPlacedDataDirectory(Id);
     public string FSPlacedResultsDirectory() => FSPlacedResultsDirectory(Id);
     public string FSPlacedSourcesDirectory() => FSPlacedSourcesDirectory(Id);
 
-    static string FSDataDirectory(string id) => DirectoryCreated(Path.Combine(Init.TaskFilesDirectory, id));
+    public static string FSTaskDataDirectory() => DirectoryCreated(Path.Combine(Init.ConfigDirectory, "tasks"));
+    public static string FSDataDirectory(string id) => DirectoryCreated(Path.Combine(FSTaskDataDirectory(), id));
     public static string FSOutputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "output"));
     public static string FSInputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "input"));
 
-    static string FSPlacedDataDirectory(string id) => DirectoryCreated(Path.Combine(Init.PlacedTaskFilesDirectory, id));
+    public static string FSPlacedTaskDataDirectory() => DirectoryCreated(Path.Combine(Init.ConfigDirectory, "ptasks"));
+    public static string FSPlacedDataDirectory(string id) => DirectoryCreated(Path.Combine(FSPlacedTaskDataDirectory(), id));
     public static string FSPlacedResultsDirectory(string id) => DirectoryCreated(Path.Combine(FSPlacedDataDirectory(id), "results"));
     public static string FSPlacedSourcesDirectory(string id) => DirectoryCreated(Path.Combine(FSPlacedDataDirectory(id), "sources"));
 

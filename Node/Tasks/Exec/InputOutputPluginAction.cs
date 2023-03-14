@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.WebUtilities;
+using System.Web;
 using Newtonsoft.Json;
 
 namespace Node.Tasks.Exec;
@@ -11,8 +11,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
     static async Task<FuncDispose> WaitDisposed(string info, ReceivedTask task, SemaphoreSlim semaphore)
     {
-        if (semaphore.CurrentCount == 0)
-            task.LogInfo($"Waiting for the {info} handle: {semaphore.CurrentCount}");
+        task.LogInfo($"Waiting for the {info} handle: (wh {semaphore.CurrentCount})");
 
         await semaphore.WaitAsync();
         return FuncDispose.Create(semaphore.Release);
@@ -26,7 +25,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         {
             using var _ = await WaitDisposed("input", task, InputSemaphore);
 
-            task.LogInfo($"Downloading input...");
+            task.LogInfo($"Downloading input... (wh {InputSemaphore.CurrentCount})");
             await task.GetInputHandler().Download(task).ConfigureAwait(false);
             task.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}");
 
@@ -39,7 +38,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         {
             using var _ = await WaitDisposed("active", task, TaskWaitHandle);
 
-            task.LogInfo($"Checking input files...");
+            task.LogInfo($"Checking input files... (wh {TaskWaitHandle.CurrentCount})");
             task.GetAction().InputRequirements.Check(task).ThrowIfError();
 
             task.LogInfo($"Executing task...");
@@ -55,18 +54,18 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         {
             using var _ = await WaitDisposed("output", task, OutputSemaphore);
 
-            task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ...");
+            task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
             await task.GetOutputHandler().UploadResult(task).ConfigureAwait(false);
             task.LogInfo($"Result uploaded");
 
+            await task.ChangeStateAsync(TaskState.Validation);
             NodeSettings.QueuedTasks.Save(task);
         }
         else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
 
-        if (task.Output.Type is TaskOutputType.MPlus)
+        if (task.Output.Type is TaskOutputType.MPlus && task.Action is ("VeeeVectorize" or "EsrganUpscale"))
             await NotifyTelegramBotOfTaskCompletion(task);
     }
-
 
     static async Task NotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
@@ -75,8 +74,8 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         var queryString =
             $"id={task.Id}&" +
             $"{uploadedFiles}&" +
-            $"hostshard={task.HostShard}&" +
-            $"executor={Settings.NodeName}";
+            $"hostshard={HttpUtility.UrlDecode(task.HostShard)}&" +
+            $"executor={HttpUtility.UrlDecode(Settings.NodeName)}";
 
         try { await Api.Client.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to Telegram bot: " + ex); }

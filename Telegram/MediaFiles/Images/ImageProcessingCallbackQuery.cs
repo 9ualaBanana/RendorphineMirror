@@ -48,9 +48,7 @@ public class ImageProcessingCallbackQueryHandler
     {
         var registeredTask = (await TaskRegistration.RegisterAsync(
             new TaskCreationInfo(
-                PluginType.Python_Esrgan,
-                "EsrganUpscale",
-                pluginVersion: default,
+                TaskAction.EsrganUpscale,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{callbackQuery.CachedMediaFileIndex}")),
                 new MPlusTaskOutputInfo(callbackQuery.CachedMediaFileIndex.ToString(), "upscaled"),
                 TaskObjectFor(cachedImage)),
@@ -67,9 +65,7 @@ public class ImageProcessingCallbackQueryHandler
     {
         var registeredTask = (await TaskRegistration.RegisterAsync(
             new TaskCreationInfo(
-                PluginType.VeeeVectorizer,
-                "VeeeVectorize",
-                pluginVersion: default,
+                TaskAction.VeeeVectorize,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{callbackQuery.CachedMediaFileIndex}")),
                 new MPlusTaskOutputInfo(callbackQuery.CachedMediaFileIndex.ToString(), "vectorized"),
                 new VeeeVectorizeInfo() { Lods = new int[] { 8500 } },

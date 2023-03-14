@@ -1,6 +1,10 @@
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Net;
+using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
+using System.Web;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
@@ -10,36 +14,65 @@ namespace Node.Listeners;
 
 public abstract class ListenerBase
 {
+    static readonly List<ListenerBase> Listeners = new();
+
     protected readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     protected virtual string? Prefix => null;
     protected abstract ListenTypes ListenType { get; }
     protected virtual bool RequiresAuthentication => false;
 
-    protected readonly HttpListener Listener = new();
+    int StartIndex = 0;
+    HttpListener? Listener;
 
-    public void Start()
+    public void Start() => _Start(true);
+    void _Start(bool firsttime)
     {
+        if (!Listeners.Contains(this))
+            Listeners.Add(this);
+
+        var prefixes = new List<string>();
         if (ListenType.HasFlag(ListenTypes.Local)) addprefix($"127.0.0.1:{Settings.LocalListenPort}");
-        if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{PortForwarding.Port}");
-        if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{PortForwarding.ServerPort}");
+        if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{Settings.UPnpPort}");
+        if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{Settings.UPnpServerPort}");
         void addprefix(string prefix)
         {
             prefix = $"http://{prefix}/{Prefix}";
             if (!prefix.EndsWith("/")) prefix += "/";
 
-            Listener.Prefixes.Add(prefix);
+            prefixes.Add(prefix);
         }
 
-        _logger.Info($"Starting HTTP {GetType().Name} on {string.Join(", ", Listener.Prefixes)}");
-        Listener.Start();
+        Listener?.Stop();
+        Listener?.Close();
+        Listener = new();
+        foreach (var prefix in prefixes)
+            Listener.Prefixes.Add(prefix);
+        _logger.Info($"{(firsttime ? null : "(re)")}Starting HTTP {GetType().Name} on {string.Join(", ", prefixes)}");
+
+        try { Listener.Start(); }
+        catch (Exception ex) when (firsttime && Initializer.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            _logger.Error($"Could not start HttpListener: {ex.Message}, bypassing...");
+
+            var args = string.Join(';', prefixes.Select(p => $"netsh http add urlacl url={p} user={WindowsIdentity.GetCurrent().Name}"));
+            using (var proc = Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{args}\"") { UseShellExecute = true, Verb = "runas", }).ThrowIfNull("Could not bypass httplistener rights: {0}"))
+                proc.WaitForExit();
+
+            _Start(false);
+            return;
+        }
 
         new Thread(() =>
         {
+            var idx = ++StartIndex;
+
             while (true)
             {
                 try
                 {
+                    if (StartIndex != idx) return;
+
                     var context = Listener.GetContext();
                     LogRequest(context.Request);
 
@@ -70,6 +103,11 @@ public abstract class ListenerBase
             }
         })
         { IsBackground = true }.Start();
+    }
+    public static void RestartAll()
+    {
+        foreach (var listener in Listeners)
+            listener.Start();
     }
 
     protected abstract ValueTask Execute(HttpListenerContext context);
@@ -185,6 +223,58 @@ public abstract class ListenerBase
 
             return func(c1v, c2v, c3v, c4v);
         });
+
+    protected static ValueTask<CachedHttpListenerRequest> CreateCached(HttpListenerRequest request) => CachedHttpListenerRequest.Create(request);
+    protected static Task<HttpStatusCode> TestPost(CachedHttpListenerRequest request, HttpListenerResponse response, string c1, Func<string, Task<HttpStatusCode>> func)
+    {
+        var c1v = request.Data[c1];
+        if (c1v is null) return WriteNoArgument(response, c1);
+
+        return func(c1v);
+    }
+    protected static Task<HttpStatusCode> TestPost(CachedHttpListenerRequest request, HttpListenerResponse response, string c1, string c2, Func<string, string, Task<HttpStatusCode>> func) =>
+        TestPost(request, response, c1, c1v =>
+        {
+            var c2v = request.Data[c2];
+            if (c2v is null) return WriteNoArgument(response, c2);
+
+            return func(c1v, c2v);
+        });
+    protected static Task<HttpStatusCode> TestPost(CachedHttpListenerRequest request, HttpListenerResponse response, string c1, string c2, string c3, Func<string, string, string, Task<HttpStatusCode>> func) =>
+        TestPost(request, response, c1, c2, (c1v, c2v) =>
+        {
+            var c3v = request.Data[c3];
+            if (c3v is null) return WriteNoArgument(response, c3);
+
+            return func(c1v, c2v, c3v);
+        });
+    protected static Task<HttpStatusCode> TestPost(CachedHttpListenerRequest request, HttpListenerResponse response, string c1, string c2, string c3, string c4, Func<string, string, string, string, Task<HttpStatusCode>> func) =>
+        TestPost(request, response, c1, c2, c3, (c1v, c2v, c3v) =>
+        {
+            var c4v = request.Data[c4];
+            if (c4v is null) return WriteNoArgument(response, c4);
+
+            return func(c1v, c2v, c3v, c4v);
+        });
+    public readonly struct CachedHttpListenerRequest
+    {
+        public readonly NameValueCollection Data;
+        readonly HttpListenerRequest Request;
+
+        public static async ValueTask<CachedHttpListenerRequest> Create(HttpListenerRequest request)
+        {
+            using var reader = new StreamReader(request.InputStream);
+            var inputstr = await reader.ReadToEndAsync();
+            var data = HttpUtility.ParseQueryString(inputstr);
+
+            return new(request, data);
+        }
+        public CachedHttpListenerRequest(HttpListenerRequest request, NameValueCollection data)
+        {
+            Request = request;
+            Data = data;
+        }
+    }
 
 
     protected static OperationResult<string> ReadQueryValue(HttpListenerContext context, string key) => ReadQueryString(context.Request.QueryString, key);

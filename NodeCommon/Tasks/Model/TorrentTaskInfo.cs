@@ -2,7 +2,7 @@ using MonoTorrent;
 
 namespace NodeCommon.Tasks.Model;
 
-public class TorrentTaskInputInfo : ITaskInputInfo
+public class TorrentTaskInputInfo : ITaskInputFileInfo
 {
     public TaskInputType Type => TaskInputType.Torrent;
 

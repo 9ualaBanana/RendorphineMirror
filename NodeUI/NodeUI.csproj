@@ -29,8 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia.Desktop" Version="0.10.17" />
-    <PackageReference Include="Avalonia.Svg.Skia" Version="0.10.16" />
+    <PackageReference Include="Avalonia.Desktop" Version="0.10.18" />
+    <PackageReference Include="Avalonia.Svg.Skia" Version="0.10.18" />
     <PackageReference Include="System.Runtime.Experimental" Version="6.0.2-mauipre.1.22102.15" />
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="0.10.18" />
   </ItemGroup>
@@ -39,6 +39,8 @@
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
     <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
+    <ProjectReference Include="..\UpdaterCommon\UpdaterCommon.csproj" />
+    <ProjectReference Include="..\Updater\Updater.csproj" />
     <ProjectReference Include="..\Transport\Transport.csproj" />
     <ProjectReference Include="..\_3DProductsPublish\_3DProductsPublish.csproj" />
   </ItemGroup>

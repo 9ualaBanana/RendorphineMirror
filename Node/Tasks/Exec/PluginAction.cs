@@ -7,7 +7,7 @@ public interface IPluginAction
 {
     Type DataType { get; }
     PluginType Type { get; }
-    string Name { get; }
+    TaskAction Name { get; }
     TaskFileFormatRequirements InputRequirements { get; }
     TaskFileFormatRequirements OutputRequirements { get; }
 
@@ -17,7 +17,7 @@ public abstract class PluginAction<T> : IPluginAction
 {
     Type IPluginAction.DataType => typeof(T);
 
-    public abstract string Name { get; }
+    public abstract TaskAction Name { get; }
     public abstract PluginType Type { get; }
     public abstract TaskFileFormatRequirements InputRequirements { get; }
     public abstract TaskFileFormatRequirements OutputRequirements { get; }

@@ -28,7 +28,6 @@ public interface ITaskApi : ITask
     string? HostShard { get; set; }
 }
 
-
 /// <summary>
 /// Default implementation of <see cref="ITaskApi"/>.
 /// </summary>

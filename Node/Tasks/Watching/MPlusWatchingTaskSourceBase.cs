@@ -10,26 +10,34 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
         var items = (await FetchItemsAsync()).ThrowIfError();
         if (items.Length == 0) return;
 
-        foreach (var item in items.OrderBy<MPlusNewItem, long>(x => x.Registered))
+        var taskobjs = await items
+            .GroupBy(i => i.UserId)
+            .Select(async g => await MPlusTaskInputInfo.GetFilesInfoDict(Settings.SessionId, g.Key, g.Select(i => i.Iid)))
+            .MergeDictResults()
+            .ThrowIfError();
+
+        foreach (var item in items)
         {
-            await TickItem(item);
-            Input.SinceIid = item.Iid;
+            await TickItem(item, taskobjs[item.Iid]);
+
+            if (Input is MPlusWatchingTaskInputInfo mpinfo)
+                mpinfo.SinceIid = item.Iid;
         }
 
         if (Task.PlacedNonCompletedTasks.Count == 0) await Tick();
     }
     protected abstract ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync();
-    protected virtual async ValueTask TickItem(MPlusNewItem item)
+    protected virtual async ValueTask TickItem(MPlusNewItem item, TaskObject taskobj)
     {
         var fileName = item.Files.Jpeg.FileName;
-        Task.LogInfo($"Adding new file {item.Iid} {Path.ChangeExtension(fileName, null)}");
+        Task.LogInfo($"Adding new file [userid: {item.UserId}; iid: {item.Iid}] {Path.ChangeExtension(fileName, null)}");
 
         var output =
             (Task.Output as IMPlusWatchingTaskOutputInfo)?.CreateOutput(Task, item, fileName)
             ?? Task.Output.CreateOutput(Task, fileName);
 
         var newinput = new MPlusTaskInputInfo(item.Iid, item.UserId);
-        var newtask = await Task.RegisterTask(newinput, output);
+        var newtask = await Task.RegisterTask(newinput, output, taskobj);
         Task.PlacedNonCompletedTasks.Add(newtask.Id);
 
         SaveTask();

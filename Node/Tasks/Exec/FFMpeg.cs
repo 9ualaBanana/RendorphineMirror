@@ -60,6 +60,9 @@ public class EditVideoInfo : MediaEditInfo
 
     [JsonProperty("endFrame")]
     public double? EndFrame;
+
+    [JsonProperty("cutframeat")]
+    public double? CutFrameAt;
 }
 public class EditRasterInfo : MediaEditInfo { }
 
@@ -68,11 +71,16 @@ public class FFMpegArgsHolder
     public readonly FFMpegTasks.FFProbe.FFProbeInfo? FFProbe;
     public double Rate = 1;
 
+    public FileFormat OutputFileFormat;
     public readonly ArgList Args = new();
     public readonly OrderList<string> AudioFilers = new();
     public readonly OrderList<string> Filtergraph = new();
 
-    public FFMpegArgsHolder(FFMpegTasks.FFProbe.FFProbeInfo? ffprobe) => FFProbe = ffprobe;
+    public FFMpegArgsHolder(FileFormat outputFileFormat, FFMpegTasks.FFProbe.FFProbeInfo? ffprobe)
+    {
+        OutputFileFormat = outputFileFormat;
+        FFProbe = ffprobe;
+    }
 
 
 
@@ -104,8 +112,15 @@ public static class FFMpegTasks
             NumberDecimalSeparator = ".",
             NumberGroupSeparator = string.Empty,
         };
+        protected static readonly NumberFormatInfo NumberFormatNoDecimalLimit = new()
+        {
+            NumberDecimalDigits = 10,
+            NumberDecimalSeparator = ".",
+            NumberGroupSeparator = string.Empty,
+        };
 
         public override PluginType Type => PluginType.FFmpeg;
+
 
         protected sealed override async Task ExecuteImpl(ReceivedTask task, T data)
         {
@@ -116,11 +131,11 @@ public static class FFMpegTasks
             async Task execute(FileWithFormat file)
             {
                 var inputfile = file.Path;
-                var outputfile = task.FSNewOutputFile(file.Format);
                 var ffprobe = await FFProbe.Get(inputfile, task) ?? throw new Exception();
-
-                var argholder = new FFMpegArgsHolder(ffprobe);
+                var argholder = new FFMpegArgsHolder(file.Format, ffprobe);
                 ConstructFFMpegArguments(task, data, argholder);
+
+                var outputfile = task.FSNewOutputFile(argholder.OutputFileFormat);
                 var args = FFMpegExec.GetFFMpegArgs(inputfile, outputfile, task, data is EditVideoInfo, argholder);
 
                 var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
@@ -171,7 +186,7 @@ public static class FFMpegTasks
     }
     class FFMpegEditVideo : FFMpegMediaEditAction<EditVideoInfo>
     {
-        public override string Name => "EditVideo";
+        public override TaskAction Name => TaskAction.EditVideo;
         public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Mov);
         public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Mov);
 
@@ -179,6 +194,18 @@ public static class FFMpegTasks
         {
             var filters = args.Filtergraph;
             base.ConstructFFMpegArguments(task, data, args);
+
+            if (data.CutFrameAt is not (null or -1))
+            {
+                args.OutputFileFormat = FileFormat.Jpeg;
+
+                // frame position, seconds
+                args.Args.Add("-ss", data.CutFrameAt.Value.ToString(NumberFormatNoDecimalLimit));
+
+                // cut a single frame
+                args.Args.Add("-frames:v", "1");
+                return;
+            }
 
             if (data.Speed is not null)
             {
@@ -199,7 +226,7 @@ public static class FFMpegTasks
     }
     class FFMpegEditRaster : FFMpegMediaEditAction<EditRasterInfo>
     {
-        public override string Name => "EditRaster";
+        public override TaskAction Name => TaskAction.EditRaster;
         public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
         public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
     }

@@ -2,7 +2,7 @@
 
 namespace NodeCommon.Tasks.Model;
 
-public class DownloadLinkTaskInputInfo : ITaskInputInfo
+public class DownloadLinkTaskInputInfo : ITaskInputFileInfo
 {
     public TaskInputType Type => TaskInputType.DownloadLink;
 

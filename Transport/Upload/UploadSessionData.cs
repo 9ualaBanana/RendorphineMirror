@@ -52,21 +52,24 @@ public abstract class UploadSessionData
 
 public class UserUploadSessionData : UploadSessionData
 {
-    public UserUploadSessionData(Uri baseUri, string filePath)
-        : this(baseUri, new FileInfo(filePath))
+    readonly string _sessionId;
+
+    public UserUploadSessionData(Uri baseUri, string filePath, string sessionId)
+        : this(baseUri, new FileInfo(filePath), sessionId)
     {
     }
 
-    public UserUploadSessionData(Uri baseUri, FileInfo file)
+    public UserUploadSessionData(Uri baseUri, FileInfo file, string sessionId)
         : base(new Uri(baseUri, "initupload"), file)
     {
+        _sessionId = sessionId;
     }
 
 
     protected override FormUrlEncodedContent HttpContent => new(
         new Dictionary<string, string>()
         {
-            ["sessionid"] = Settings.SessionId!,
+            ["sessionid"] = _sessionId,
             ["name"] = _FileNameWithGuid,
             ["size"] = File.Length.ToString(),
             ["extension"] = File.Extension,
@@ -75,15 +78,15 @@ public class UserUploadSessionData : UploadSessionData
 
 public class MPlusUploadSessionData : UploadSessionData
 {
-    readonly string? _sessionId;
+    readonly string _sessionId;
 
 
-    public MPlusUploadSessionData(string filePath, string? sessionId = default)
+    public MPlusUploadSessionData(string filePath, string sessionId)
         : this(new FileInfo(filePath), sessionId)
     {
     }
 
-    public MPlusUploadSessionData(FileInfo file, string? sessionId = default)
+    public MPlusUploadSessionData(FileInfo file, string sessionId)
         : base(new Uri(new Uri(Api.TaskManagerEndpoint+'/'), "initselfmpoutput"), file)
     {
         _sessionId = sessionId;
@@ -92,7 +95,7 @@ public class MPlusUploadSessionData : UploadSessionData
 
     protected override FormUrlEncodedContent HttpContent => new(new Dictionary<string, string>
     {
-        ["sessionid"] = _sessionId ?? Settings.SessionId!,
+        ["sessionid"] = _sessionId,
         ["directory"] = "uploaded",
         ["fname"] = _FileNameWithGuid,
         ["fsize"] = File.Length.ToString(),
@@ -106,6 +109,7 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
 {
     readonly ITaskApi _taskApi;
     readonly string? _postfix;
+    readonly string _sessionId;
 
     /// <inheritdoc cref="InitializeAsync(FileInfo, string?, ITaskApi, HttpClient, string?)"/>
     public static async ValueTask<MPlusTaskResultUploadSessionData> InitializeAsync(
@@ -113,7 +117,7 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
         string? postfix,
         ITaskApi taskApi,
         HttpClient httpClient,
-        string? sessionId = default) =>
+        string sessionId) =>
             await InitializeAsync(new FileInfo(filePath), postfix, taskApi, httpClient, sessionId);
 
     /// <summary>
@@ -124,32 +128,33 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
         string? postfix,
         ITaskApi taskApi,
         HttpClient httpClient,
-        string? sessionId = default)
+        string sessionId)
     {
-        var api = Apis.Default with { SessionId = sessionId ?? Settings.SessionId, Api = Api.Default with { Client = httpClient } };
-        await api.WithSessionId(sessionId ?? Settings.SessionId).UpdateTaskShardAsync(taskApi);
-        return new(file, postfix, taskApi);
+        var api = new Apis(Api.Default with { Client = httpClient }, sessionId);
+        await api.UpdateTaskShardAsync(taskApi);
+        return new(file, postfix, taskApi, sessionId);
     }
 
     /// <inheritdoc cref="MPlusTaskResultUploadSessionData(FileInfo, string?, ITaskApi)"/>
-    public MPlusTaskResultUploadSessionData(string filePath, string? postfix, ITaskApi taskApi)
-        : this(new FileInfo(filePath), postfix, taskApi)
+    public MPlusTaskResultUploadSessionData(string filePath, string? postfix, ITaskApi taskApi, string sessionId)
+        : this(new FileInfo(filePath), postfix, taskApi, sessionId)
     {
     }
 
     /// <remarks>Must be called only if <see cref="ITaskApi.HostShard"/> of <paramref name="taskApi"/> is already updated.</remarks>
-    public MPlusTaskResultUploadSessionData(FileInfo file, string? postfix, ITaskApi taskApi)
+    public MPlusTaskResultUploadSessionData(FileInfo file, string? postfix, ITaskApi taskApi, string sessionId)
         : base(new Uri(new Uri($"https://{taskApi.HostShard}"), "rphtasklauncher/initmptaskoutput"), file)
     {
         _taskApi = taskApi;
         _postfix = postfix;
+        _sessionId = sessionId;
     }
 
     internal override async Task<UploadSession> UseToRequestUploadSessionAsyncUsing(
         HttpClient httpClient,
         CancellationToken cancellationToken)
     {
-        var api = Apis.Default with { Api = Api.Default with { Client = httpClient } };
+        var api = new Apis(Api.Default with { Client = httpClient }, _sessionId);
         var requestedUploadSessionData = (await api.ShardPost<RequestedUploadSessionData>(
             _taskApi,
             Endpoint.Segments.Last(),
@@ -173,7 +178,7 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
         {
             var dict = new Dictionary<string, string>()
             {
-                ["sessionid"] = Settings.SessionId!,
+                ["sessionid"] = _sessionId,
                 ["taskid"] = _taskApi.Id,
                 ["fsize"] = File.Length.ToString(),
                 ["mimetype"] = MimeType,

@@ -78,11 +78,61 @@
             "stopAtEntry": false
         },
         {
+            "name": "RApi",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildrapi",
+            "program": "${workspaceFolder}/RApi/bin/Debug/net6.0/RApi.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
             "name": "Pinger",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "buildpinger",
             "program": "${workspaceFolder}/Pinger/bin/Debug/net6.0/Pinger.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Updater",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildupdater",
+            "program": "${workspaceFolder}/Updater/bin/Debug/net6.0/Updater.dll",
+            "args": [
+                "debug"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
+            "name": "UpdateServer",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildupdateserver",
+            "program": "${workspaceFolder}/UpdateServer/bin/Debug/net6.0/UpdateServer.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Uploader",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "builduploader",
+            "program": "${workspaceFolder}/Uploader/bin/Debug/net6.0/Uploader.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",

@@ -25,7 +25,7 @@ public class TaskCallbackQueryHandler : CallbackQueryHandler<TaskCallbackQuery, 
 
     async Task ShowDetailsAsync(TaskCallbackQuery callbackQuery, HttpContext context)
     {
-        var api = Apis.Default.WithSessionId(MPlusIdentity.SessionIdOf(context.User));
+        var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(context.User));
 
         try { await ShowDetailsAsyncCore(); }
         catch { await Bot.SendMessageAsync_(ChatId, "Task details are currently unavailable."); }

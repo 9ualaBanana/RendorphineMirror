@@ -1,67 +1,32 @@
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using Common;
-using NodeCommon;
 using NLog;
+using UpdaterCommon;
 
-try { ConsoleHide.Hide(); }
-catch { }
-
-try { Process.Start(new ProcessStartInfo(FileList.GetUpdaterExe()) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden })!.WaitForExit(); }
-catch (Exception ex)
-{
-    try { File.AppendAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "renderfinpinger", "exception"), ex.ToString()); }
-    catch { }
-}
 
 Init.Initialize();
-var _logger = LogManager.GetCurrentClassLogger();
-
-var nodeexe = GetPath(args, 0, "Node");
-var updaterexe = GetPath(args, 1, "Updater");
-
-await Ping(new HttpClient(), CancellationToken.None).ConfigureAwait(false);
+var updater = UpdateChecker.LoadFromJsonOrDefault(args: new Dictionary<string, string>() { ["NodeUI"] = "hidden" });
+await updater.Update().ThrowIfError();
 
 
-static string GetPath(string[] args, int index, string info)
+try
 {
-    if (args.Length < index + 1) throw new Exception(info + " executable was not provided");
+    var portfile = Path.Combine(Init.ConfigDirectory, "lport");
+    var port = ushort.Parse(await File.ReadAllTextAsync(portfile));
 
-    var path = args[index];
-    if (!File.Exists(path))
-        throw new Exception(@$"{info} executable {path} does not exists");
-
-    return Path.GetFullPath(path);
-}
-
-void Log(string text) => _logger.Info(text);
-
-async Task<bool> Ping(HttpClient client, CancellationToken token)
-{
-    var sw = Stopwatch.StartNew();
-
-    HttpResponseMessage msg;
-    try { msg = await client.GetAsync(@$"http://127.0.0.1:{Settings.LocalListenPort}/ping", token).ConfigureAwait(false); }
-    catch (Exception ex) { restart(@$"Could not connect to the node, {ex.Message}, starting..."); }
-
+    var msg = await new HttpClient().GetAsync($"http://127.0.0.1:{port}/ping");
     if (!msg.IsSuccessStatusCode)
-        restart(@$"Ping bad, HTTP {msg.StatusCode}, restarting...");
-
-    return true;
-
-
-    [DoesNotReturn]
-    void restart(string message)
-    {
-        Log(message);
-        RestartNode();
-
-        Environment.Exit(0);
-        throw new InvalidOperationException();
-    }
+        restart($"Ping bad, HTTP {msg.StatusCode}, restarting...");
 }
-void RestartNode()
+catch (Exception ex)
 {
+    restart($"Could not connect to the node: {ex.Message}, starting...");
+}
+
+
+void restart(string errmsg)
+{
+    LogManager.GetCurrentClassLogger().Info(errmsg);
+
     FileList.KillProcesses();
-    _ = Process.Start(new ProcessStartInfo(updaterexe) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden }) ?? throw new Exception("Could not start updater process");
+    updater.StartApp();
 }

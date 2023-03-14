@@ -29,7 +29,7 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
         // TODO: maybe move instead of copy? but the gallery..
         if (task.IsFromSameNode())
         {
-            Common.Extensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
+            Common.CommonExtensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
             return;
         }
 

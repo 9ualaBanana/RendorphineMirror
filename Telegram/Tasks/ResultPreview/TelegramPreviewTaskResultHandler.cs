@@ -60,7 +60,7 @@ public class TelegramPreviewTaskResultHandler
             foreach (var taskResult in taskResults)
                 await SendPreviewAsyncOf(taskResult, taskOwner, cancellationToken);
 
-            await Apis.Default.WithSessionId(MPlusIdentity.SessionIdOf(taskOwner.User))
+            await Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(taskOwner.User))
                 .ChangeStateAsync(executedTaskApi, TaskState.Finished).ThrowIfError();
         }
     }

@@ -9,7 +9,7 @@ public static class GenerateQSPreviewTasks
 
     class GenerateQSPreview : FFMpegTasks.FFMpegAction<QSPreviewInfo>
     {
-        public override string Name => "GenerateQSPreview";
+        public override TaskAction Name => TaskAction.GenerateQSPreview;
         public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg).MaybeOne(FileFormat.Mov);
         public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg).MaybeOne(FileFormat.Mov);
 
@@ -47,7 +47,7 @@ public static class GenerateQSPreviewTasks
                 // rotate watermark -20 deg
                 graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih), format= rgba";
 
-                var argholder = new FFMpegArgsHolder(null);
+                var argholder = new FFMpegArgsHolder(FileFormat.Jpeg, null);
                 argholder.Filtergraph.Add(graph);
 
                 var ffargs = FFMpegExec.GetFFMpegArgs(watermarkFile, repeatedWatermarkFile, task, false, argholder);

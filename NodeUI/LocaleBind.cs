@@ -13,5 +13,6 @@ namespace NodeUI
             return obj;
         }
         public static TextBlock Bind(this TextBlock obj, LocalizedString text) => Bind(obj, TextBlock.TextProperty, text);
+        public static Button Bind(this Button obj, LocalizedString text) => Bind(obj, Button.ContentProperty, text);
     }
 }

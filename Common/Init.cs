@@ -1,121 +1,37 @@
-global using System.Collections.Immutable;
 global using NLog;
 using System.Diagnostics;
 
-namespace Common
+namespace Common;
+
+public static class Initializer
 {
-    public static class Initializer
+    // should the node to be launched with admin rights?
+    // always true, keeping just in case we'd want to change this
+    public static readonly bool UseAdminRights = true;
+
+
+    public static string ConfigDirectory = "renderfin";
+}
+public static class Init
+{
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+
+    public static readonly bool IsDebug = false;
+    public static readonly bool DebugFeatures = false;
+    public static readonly string Version, ConfigDirectory, LogDirectory;
+
+    public static void Initialize() { }
+    static Init()
     {
-        public static string ConfigDirectory = "renderfin";
-    }
-    public static class Init
-    {
-        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
-        public static readonly bool IsDebug = false;
-        static readonly bool DebugFileExists = false;
-        public static readonly string ConfigDirectory = Path.GetFullPath(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), Initializer.ConfigDirectory));
-        public static readonly string LogDirectory = Path.GetFullPath(Path.Combine(typeof(Init).Assembly.Location, "..", "logs"));
-        public static readonly string TaskFilesDirectory = Path.Combine(ConfigDirectory, "tasks");
-        public static readonly string PlacedTaskFilesDirectory = Path.Combine(ConfigDirectory, "ptasks");
-        public static readonly string WatchingTaskFilesDirectory = Path.Combine(ConfigDirectory, "watchingtasks");
-        static readonly string TempFilesDirectory = Path.Combine(ConfigDirectory, "temp");
-        static readonly string RuntimeCacheFilesDirectory = Path.Combine(ConfigDirectory, "cache");
-        public static readonly string Version = GetVersion();
-
-        public static void Initialize() { }
-        static Init()
-        {
-            static void MoveOldConfigDir()
-            {
-                var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), Initializer.ConfigDirectory.Replace("fin", "phine"));
-                if (!Directory.Exists(path))
-                {
-                    path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), Initializer.ConfigDirectory.Replace("fin", "phin"));
-                    if (!Directory.Exists(path)) return;
-                }
-
-                if (!Directory.Exists(ConfigDirectory))
-                    Directory.Move(path, ConfigDirectory);
-            }
-            MoveOldConfigDir();
-
-
-            try
-            {
-                DebugFileExists =
-                    File.Exists(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Environment.ProcessPath!))!, "_debugupd"))
-                    || File.Exists(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Environment.ProcessPath!))!, "../_debugupd"));
-            }
-            catch { }
-            IsDebug = Debugger.IsAttached || DebugFileExists;
-
-#if DEBUG
-            IsDebug = true;
-#endif
-
-            Directory.CreateDirectory(ConfigDirectory);
-            if (Directory.Exists(RuntimeCacheFilesDirectory))
-                Directory.Delete(RuntimeCacheFilesDirectory, true);
-
-            Logging.Configure(IsDebug);
-
-            _logger.Info($"Starting {Environment.ProcessId} {Process.GetCurrentProcess().ProcessName}, {Path.GetFileName(Environment.ProcessPath)} {Version}"
-                + $" on {GetOSInfo()} with UTC+{TimeZoneInfo.Local.BaseUtcOffset}, {(IsDebug ? "debug" : "non-debug")}");
-
-            try
-            {
-                const long gig = 1024 * 1024 * 1024;
-                var drive = DriveInfo.GetDrives().First(x => Init.ConfigDirectory.StartsWith(x.RootDirectory.FullName));
-                _logger.Info(@$"
-                    Config drive: {drive.Name}, Space: {drive.TotalFreeSpace / gig}G totalfree & {drive.AvailableFreeSpace / gig}G availfree out of {drive.TotalSize / gig}G total
-                ".TrimLines());
-            }
-            catch { }
-
-            AppDomain.CurrentDomain.UnhandledException += (_, e) => LogException(e.ExceptionObject as Exception, "UnhandledException", "unhexp");
-            TaskScheduler.UnobservedTaskException += (obj, e) => LogException(e.Exception, "UnobservedTaskException", "untexp");
-
-
-            static void LogException(Exception? ex, string type, string filename)
-            {
-                try { _logger.Error("[{Type}]: {Exception}", type, ex?.ToString() ?? "null unhandled exception"); }
-                catch { }
-
-                try { File.WriteAllText(Path.Combine(ConfigDirectory, "unhexp"), ex?.ToString()); }
-                catch
-                {
-                    try { File.WriteAllText(Path.GetTempPath(), ex?.ToString()); }
-                    catch { }
-                }
-            }
-        }
-
-        static string GetOSInfo()
-        {
-            var version = Environment.OSVersion;
-            var str = version.ToString();
-
-            if (version.Platform == PlatformID.Unix)
-            {
-                try
-                {
-                    var info = Process.Start(new ProcessStartInfo("/usr/bin/uname", "-a") { RedirectStandardOutput = true })!;
-                    info.WaitForExit();
-
-                    str += " " + info.StandardOutput.ReadToEnd().TrimEnd(Environment.NewLine.ToCharArray());
-                }
-                catch { }
-            }
-
-            return str;
-        }
+        ConfigDirectory = NewDirectory(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), Initializer.ConfigDirectory);
+        LogDirectory = NewDirectory(typeof(Init).Assembly.Location, "..", "logs");
+        Version = GetVersion();
         static string GetVersion()
         {
+            if (IsDebug) return "debug";
+
             try
             {
-                if (IsDebug) return "debug";
-
                 var assembly = typeof(Init).Assembly.Location ?? Environment.ProcessPath!;
                 if (FileVersionInfo.GetVersionInfo(assembly).ProductVersion is { } ver && ver != "1.0.0")
                     return ver;
@@ -130,15 +46,88 @@ namespace Common
             }
         }
 
-        static string NewDirectory(string dir, string? subdir)
-        {
-            if (subdir is not null)
-                dir = Path.Combine(dir, subdir);
 
-            Directory.CreateDirectory(dir);
-            return dir;
+        ConfigureDebug(out IsDebug, out DebugFeatures);
+        void ConfigureDebug(out bool isDebug, out bool debugFeatures)
+        {
+            isDebug = Debugger.IsAttached;
+#if DEBUG || DBG
+            isDebug = true;
+#endif
+
+            debugFeatures = IsDebug;
+            try
+            {
+                debugFeatures |=
+                    File.Exists(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Environment.ProcessPath!))!, "_debugupd"))
+                    || File.Exists(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Environment.ProcessPath!))!, "../_debugupd"));
+            }
+            catch { }
         }
-        public static string RuntimeCacheDirectory(string? subdir = null) => NewDirectory(RuntimeCacheFilesDirectory, subdir);
-        public static string TempDirectory(string? subdir = null) => NewDirectory(TempFilesDirectory, subdir);
+
+        Directory.CreateDirectory(ConfigDirectory);
+        if (Directory.Exists(RuntimeCacheDirectory()))
+            Directory.Delete(RuntimeCacheDirectory(), true);
+
+
+        ConfigureLogging();
+        void ConfigureLogging()
+        {
+            Logging.Configure(DebugFeatures);
+            LogInit();
+            static void LogInit()
+            {
+                var version = Environment.OSVersion;
+                var osinfo = version.ToString();
+
+                if (version.Platform == PlatformID.Unix)
+                {
+                    try
+                    {
+                        using var info = Process.Start(new ProcessStartInfo("/usr/bin/uname", "-a") { RedirectStandardOutput = true })!;
+                        info.WaitForExit();
+
+                        osinfo += " " + info.StandardOutput.ReadToEnd().TrimEnd(Environment.NewLine.ToCharArray());
+                    }
+                    catch { }
+                }
+
+
+                _logger.Info($"Starting {Environment.ProcessId} {Environment.ProcessPath}, {Process.GetCurrentProcess().ProcessName} v {Version} on \"{osinfo}\" at {DateTimeOffset.Now}");
+                if (Environment.GetCommandLineArgs() is { Length: > 1 } args)
+                    _logger.Info($"Arguments: {string.Join(' ', args.Select(x => $"\"{x}\""))}");
+
+
+                try
+                {
+                    const long gig = 1024 * 1024 * 1024;
+                    var drive = DriveInfo.GetDrives().First(x => Init.ConfigDirectory.StartsWith(x.RootDirectory.FullName));
+                    _logger.Info(@$"Config dir: {Init.ConfigDirectory} on drive {drive.Name} (totalfree {drive.TotalFreeSpace / gig}G; availfree {drive.AvailableFreeSpace / gig}G; total {drive.TotalSize / gig}G)");
+                }
+                catch { }
+            }
+
+        }
+
+
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => LogException(e.ExceptionObject as Exception, "UnhandledException");
+        TaskScheduler.UnobservedTaskException += (obj, e) => LogException(e.Exception, "UnobservedTaskException");
+        static void LogException(Exception? ex, string type)
+        {
+            try { _logger.Error("[{Type}]: {Exception}", type, ex?.ToString() ?? "null unhandled exception"); }
+            catch { }
+        }
     }
+
+
+    static string NewDirectory(params string?[] dirs)
+    {
+        var dir = Path.GetFullPath(Path.Combine(dirs.Where(x => x is not null).ToArray()!));
+        Directory.CreateDirectory(dir);
+
+        return dir;
+    }
+
+    public static string RuntimeCacheDirectory(string? subdir = null) => NewDirectory(ConfigDirectory, Path.GetFileNameWithoutExtension(Environment.ProcessPath) + "_cache", subdir);
+    public static string TempDirectory(string? subdir = null) => NewDirectory(ConfigDirectory, "temp", subdir);
 }

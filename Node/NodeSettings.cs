@@ -1,5 +1,4 @@
 using Node.Profiling;
-using static NodeCommon.Settings;
 
 namespace Node;
 
@@ -12,24 +11,24 @@ public static class NodeSettings
     public static readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
     public static readonly DatabaseValue<bool> AcceptTasks;
 
+    public static readonly DatabaseValue<uint> TaskAutoDeletionDelayDays;
+
     static NodeSettings()
     {
-        QueuedTasks = new(nameof(QueuedTasks), t => t.Id, serializer: JsonSettings.Default);
-        WatchingTasks = new(nameof(WatchingTasks), t => t.Id, serializer: JsonSettings.Default);
-        PlacedTasks = new(nameof(PlacedTasks), t => t.Id, serializer: JsonSettings.Default);
-        CompletedTasks = new(nameof(CompletedTasks), t => t.TaskInfo.Id, serializer: JsonSettings.Default);
-        AcceptTasks = new(nameof(AcceptTasks), true);
+        var db = Database.Instance;
+        QueuedTasks = new(db, nameof(QueuedTasks), t => t.Id, serializer: JsonSettings.Default);
+        WatchingTasks = new(db, nameof(WatchingTasks), t => t.Id, serializer: JsonSettings.Default);
+        PlacedTasks = new(db, nameof(PlacedTasks), t => t.Id, serializer: JsonSettings.Default);
+        CompletedTasks = new(db, nameof(CompletedTasks), t => t.TaskInfo.Id, serializer: JsonSettings.Default);
+        AcceptTasks = new(db, nameof(AcceptTasks), true);
+        TaskAutoDeletionDelayDays = new(db, nameof(TaskAutoDeletionDelayDays), 4);
 
-        try { BenchmarkResult = new(nameof(BenchmarkResult), default); }
+        try { BenchmarkResult = new(db, nameof(BenchmarkResult), default); }
         catch
         {
-            new DatabaseValue<object?>(nameof(BenchmarkResult), default).Delete();
-            BenchmarkResult = new(nameof(BenchmarkResult), default);
+            new DatabaseValue<object?>(db, nameof(BenchmarkResult), default).Delete();
+            BenchmarkResult = new(db, nameof(BenchmarkResult), default);
         }
-
-        NodeGlobalState.Instance.WatchingTasks.Bind(WatchingTasks.Bindable);
-        NodeGlobalState.Instance.PlacedTasks.Bind(PlacedTasks.Bindable);
-        NodeGlobalState.Instance.QueuedTasks.Bind(QueuedTasks.Bindable);
     }
 
 

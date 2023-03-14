@@ -18,36 +18,39 @@ public static class TaskRegistration
     public static event Action<DbTaskFullState> TaskRegistered = delegate { };
 
 
-    public static async ValueTask<OperationResult<RegisteredTask>> RegisterAsync(TaskCreationInfo info, string? sessionId = default) =>
+    public static async ValueTask<OperationResult<RegisteredTask>> RegisterAsync(TaskCreationInfo info, string sessionId) =>
         await TaskRegisterAsync(info, sessionId).Next(task => RegisteredTask.With(task.Id).AsOpResult());
-    public static async ValueTask<OperationResult<DbTaskFullState>> TaskRegisterAsync(TaskCreationInfo info, string? sessionId = default, ILoggable? log = null)
+    public static async ValueTask<OperationResult<DbTaskFullState>> TaskRegisterAsync(TaskCreationInfo info, string sessionId, ILoggable? log = null)
     {
         if (info.PriceMultiplication < 1) return OperationResult.Err("Could not create task with price multiplication being less than 1");
 
         var data = info.Data;
         var input = TaskModels.DeserializeInput(info.Input);
         var output = TaskModels.DeserializeOutput(info.Output);
-        var taskobj = info.TaskObject ?? (await input.GetFileInfo());
+        var taskobj = info.TaskObject
+            ?? (await ((input as ITaskInputFileInfo)?.GetFileInfo() ?? ValueTask.FromResult(null as TaskObject)!))
+            ?? new TaskObject("_asd_temp_fix_pleeeeease.jpg", 159159);
+            // .ThrowIfNull("Task object is null"); // TODO: uncomment after all instances of TaskObject=null are fixed
 
         await input.InitializeAsync();
         await output.InitializeAsync();
 
         var values = new List<(string, string)>()
         {
-            ("sessionid", sessionId ?? Apis.Default.SessionId),
+            ("sessionid", sessionId),
             ("object", JsonConvert.SerializeObject(taskobj, JsonSettings.LowercaseIgnoreNull)),
             ("input", JsonConvert.SerializeObject(input, LowercaseIgnoreNullTaskInOut)),
             ("output", JsonConvert.SerializeObject(output, LowercaseIgnoreNullTaskInOut)),
             ("data", data.ToString(Formatting.None)),
             ("policy", info.Policy.ToString()),
             ("origin", string.Empty),
-            ("pricemul", (info.PriceMultiplication - (info.PriceMultiplication % .1)).ToString()),
+            ("pricemul", ((decimal)info.PriceMultiplication - ((decimal)info.PriceMultiplication % .1m)).ToString()),
         };
-        if (info.Version is not null)
-        {
-            var soft = new[] { new TaskSoftwareRequirement(info.Type.ToString().ToLowerInvariant(), ImmutableArray.Create(info.Version), null), };
-            values.Add(("software", JsonConvert.SerializeObject(soft, JsonSettings.LowercaseIgnoreNull)));
-        }
+        if (info.SoftwareRequirements?.IsDefaultOrEmpty == false)
+            values.Add(("software", JsonConvert.SerializeObject(info.SoftwareRequirements.Value, JsonSettings.LowercaseIgnoreNull)));
+
+        if (output is MPlusTaskOutputInfo mPlusOutput && mPlusOutput.AutoremoveTimer is not null)
+            values.Add(("autoremovetimer", mPlusOutput.AutoremoveTimer.ToString()!));
 
         var logtext = $"Registering task: {string.Join("; ", values.Skip(1).Select(x => x.Item1 + ": " + x.Item2))}";
         if (log is not null) log.LogInfo(logtext);
@@ -57,7 +60,7 @@ public static class TaskRegistration
         if (!idr) return idr.GetResult();
 
         _logger.Info("Task registered with ID {Id}", idr.Value);
-        var task = new DbTaskFullState(idr.Value, new TaskInfo(taskobj, input, output, data, info.Policy, Settings.Guid));
+        var task = new DbTaskFullState(idr.Value, new TaskInfo(taskobj, input, output, data, info.Policy));
         TaskRegistered(task);
 
         return task;

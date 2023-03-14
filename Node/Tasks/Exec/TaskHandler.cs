@@ -114,7 +114,9 @@ public static class TaskHandler
                 await process(TaskState.Input, act.Input);
                 await process(TaskState.Active, act.Active);
                 await process(TaskState.Output, act.Output);
-                async ValueTask process(TaskState state, ImmutableArray<Apis.TMTaskStateInfo> tasks)
+                await process(TaskState.Validation, act.Validation);
+
+                async ValueTask process(TaskState state, ImmutableArray<TMTaskStateInfo> tasks)
                 {
                     var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.Id, out var task) && task.State != state).Select(x => x.Id).ToArray();
                     if (changed.Length != 0)
@@ -131,13 +133,13 @@ public static class TaskHandler
                 await processTask(id, state, null);
 
 
-            async ValueTask processTask(string taskid, Apis.ITaskStateInfo state, TaskState? newstate)
+            async ValueTask processTask(string taskid, ITaskStateInfo state, TaskState? newstate)
             {
                 if (!NodeSettings.PlacedTasks.TryGetValue(taskid, out var task)) return;
 
                 task.State = newstate ?? task.State;
                 task.Populate(state);
-                if (task.State == TaskState.Output)
+                if (task.State == TaskState.Validation)
                     task.Populate(await task.GetTaskStateAsyncOrThrow().ThrowIfError());
 
                 try { await check(task, null); }
@@ -151,7 +153,7 @@ public static class TaskHandler
         }
         async ValueTask check(DbTaskFullState task, string? errmsg)
         {
-            if (task.State < TaskState.Output) return;
+            if (task.State < TaskState.Validation) return;
             if (task.State is TaskState.Canceled or TaskState.Failed)
             {
                 remove(task, errmsg);
@@ -230,15 +232,6 @@ public static class TaskHandler
                 task.LogInfo($"Deleting {task.FSInputDirectory()}");
                 Directory.Delete(task.FSInputDirectory(), true);
 
-                foreach (var file in task.OutputFiles)
-                {
-                    if (file.Format == FileFormat.Jpeg) continue;
-                    if (!File.Exists(file.Path)) continue;
-
-                    task.LogInfo($"Deleting {file.Path} ({new FileInfo(file.Path).Length / 1024f / 1024 / 1024}G)");
-                    File.Delete(file.Path);
-                }
-
                 NodeSettings.QueuedTasks.Remove(task);
                 return;
             }
@@ -280,7 +273,7 @@ public static class TaskHandler
                     task.State = state.State;
             }
 
-            if (state?.State == TaskState.Finished && task.State == TaskState.Output)
+            if (state?.State == TaskState.Finished && task.State == TaskState.Validation)
             {
                 task.LogErr($"Server task state was set to finished, but the result hasn't been uploaded yet (!! bug from the task creator node !!)");
                 return false;

@@ -19,10 +19,10 @@ public interface ITaskOutputHandler : ITaskHandler
 
     /// <summary>
     /// Check tasks for completion and returns true if task needs to be set to Finished.
-    /// By default returns true if the task state is <see cref="TaskState.Output"/>.
+    /// By default returns true if the task state is <see cref="TaskState.Validation"/>.
     /// Assumes all the task properties are updated.
     /// </summary>
-    ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Output);
+    ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Validation);
 
 
     ValueTask OnPlacedTaskCompleted(DbTaskFullState task) => ValueTask.CompletedTask;

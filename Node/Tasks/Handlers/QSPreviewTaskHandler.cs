@@ -42,11 +42,19 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
         }
 
 
-        var uploadres = await Api.Default.ApiPost($"{HttpHelper.AddSchemeIfNeeded(result.Host, "https")}/content/upload/qspreviews/", "Uploading qs preview", content);
+        var uploadres = await Api.Default.ApiPost($"{AddSchemeIfNeeded(result.Host, "https")}/content/upload/qspreviews/", "Uploading qs preview", content);
         uploadres.ThrowIfError();
     }
 
-    public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Output && ((QSPreviewOutputInfo) task.Output).IngesterHost is not null);
+    public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Validation && ((QSPreviewOutputInfo) task.Output).IngesterHost is not null);
+
+    static string AddSchemeIfNeeded(string url, string scheme)
+    {
+        if (!scheme.EndsWith("://", StringComparison.Ordinal)) scheme += "://";
+
+        if (url.StartsWith(scheme, StringComparison.Ordinal)) return url;
+        return scheme + url;
+    }
 
 
     record InitOutputResult(string UploadId, string Host);

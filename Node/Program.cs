@@ -8,6 +8,7 @@ global using Node.Tasks.Exec;
 global using Node.Tasks.Handlers;
 global using Node.Tasks.Watching;
 global using NodeCommon;
+global using NodeCommon.ApiModel;
 global using NodeCommon.NodeUserSettings;
 global using NodeCommon.Plugins;
 global using NodeCommon.Plugins.Deployment;
@@ -15,7 +16,7 @@ global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
 global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
-using System.Diagnostics;
+using Newtonsoft.Json.Linq;
 using Node;
 using Node.Heartbeat;
 using Node.Listeners;
@@ -23,36 +24,47 @@ using Node.Plugins;
 using Node.Plugins.Discoverers;
 using Node.Profiling;
 
+
+ConsoleHide.Hide();
+
+if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
+    foreach (var proc in FileList.GetAnotherInstances())
+        proc.Kill(true);
+
 var halfrelease = args.Contains("release");
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
-
-if (!Init.IsDebug)
-    FileList.KillNodeUI();
+InitializeSettings();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
-await Task.WhenAll(
-    InitializePlugins(),
-    UpdatePublicPorts()
-);
 
-new LocalListener().Start();
-
-if (Settings.SessionId is not null)
 {
-    logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
+    var localport = UpdatePort("127.0.0.1", Settings.BLocalListenPort, "Local")
+        .ContinueWith(_ => new LocalListener().Start());
 
-    if (Settings.SessionId is not null && !Init.IsDebug)
-        try { Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe(), "hidden")); }
-        catch { }
+    var publicports = PortForwarding.GetPublicIPAsync()
+        .ContinueWith(ip => Task.WhenAll(
+            UpdatePort(ip.Result.ToString(), Settings.BUPnpPort, "Public"),
+            UpdatePort(ip.Result.ToString(), Settings.BUPnpServerPort, "Server")
+        )).Unwrap();
+
+    var pluginsinit = InitializePlugins();
+
+    await Task.WhenAll(
+        pluginsinit,
+        publicports,
+        localport
+    );
 }
+
+new NodeStateListener().Start();
+if (Settings.SessionId is not null)
+    logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
 else
 {
-    await AuthWithGui().ConfigureAwait(false);
+    await WaitForAuth().ConfigureAwait(false);
     logger.Info("Authentication completed");
 }
-
-Directory.CreateDirectory(Init.TaskFilesDirectory);
 
 if (!Init.IsDebug || halfrelease)
     PortForwarder.Initialize();
@@ -63,6 +75,9 @@ if (!Init.IsDebug || halfrelease)
 {
     if (!Init.IsDebug)
     {
+        // removing old service
+        try { SystemService.Stop("renderphinepinger"); }
+        catch { }
         SystemService.Start();
 
         var reepoHeartbeat = new Heartbeat(
@@ -92,19 +107,18 @@ new DirectDownloadListener().Start();
 
 new PublicListener().Start();
 new TaskListener().Start();
-new NodeStateListener().Start();
 new DirectoryDiffListener().Start();
 new DownloadListener().Start();
 new PublicPagesListener().Start();
 
-if (Init.IsDebug) new DebugListener().Start();
+if (Init.DebugFeatures) new DebugListener().Start();
 
 PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
 {
     var ip = t.Result.ToString();
-    logger.Info("Public IP: {Ip}; Public port: {PublicPort}; Web server port: {ServerPort}", ip, PortForwarding.Port, PortForwarding.ServerPort);
+    logger.Info("Public IP: {Ip}; Public port: {PublicPort}; Web server port: {ServerPort}", ip, Settings.UPnpPort, Settings.UPnpServerPort);
 
-    var ports = new[] { PortForwarding.Port, PortForwarding.ServerPort };
+    var ports = new[] { Settings.UPnpPort, Settings.UPnpServerPort };
     foreach (var port in ports)
     {
         var open = await PortForwarding.IsPortOpenAndListening(ip, port).ConfigureAwait(false);
@@ -131,27 +145,59 @@ TaskHandler.StartUpdatingPlacedTasks();
 TaskHandler.StartWatchingTasks();
 TaskHandler.StartListening();
 
+new Thread(() =>
+{
+    while (true)
+    {
+        OperationResult.WrapException(AutoCleanup.Start).LogIfError();
+        Thread.Sleep(60 * 60 * 24 * 1000);
+    }
+})
+{ IsBackground = true }.Start();
+
 Thread.Sleep(-1);
 GC.KeepAlive(captured);
 
 
-/// <summary> Check settings-saved public ports and change them if someone is already listening </summary>
-async Task UpdatePublicPorts()
+void InitializeSettings()
 {
-    var publicip = await PortForwarding.GetPublicIPAsync();
+    var state = NodeGlobalState.Instance;
 
-    foreach (var port in new[] { Settings.BLocalListenPort, Settings.BUPnpPort, Settings.BUPnpServerPort })
+    state.WatchingTasks.Bind(NodeSettings.WatchingTasks.Bindable);
+    state.PlacedTasks.Bind(NodeSettings.PlacedTasks.Bindable);
+    state.QueuedTasks.Bind(NodeSettings.QueuedTasks.Bindable);
+    NodeSettings.BenchmarkResult.Bindable.SubscribeChanged(() => NodeGlobalState.Instance.BenchmarkResult.Value = NodeSettings.BenchmarkResult.Value is null ? null : JObject.FromObject(NodeSettings.BenchmarkResult.Value), true);
+    state.TaskAutoDeletionDelayDays.Bind(NodeSettings.TaskAutoDeletionDelayDays.Bindable);
+
+    state.BServerUrl.Bind(Settings.BServerUrl.Bindable);
+    state.BLocalListenPort.Bind(Settings.BLocalListenPort.Bindable);
+    state.BUPnpPort.Bind(Settings.BUPnpPort.Bindable);
+    state.BUPnpServerPort.Bind(Settings.BUPnpServerPort.Bindable);
+    state.BDhtPort.Bind(Settings.BDhtPort.Bindable);
+    state.BTorrentPort.Bind(Settings.BTorrentPort.Bindable);
+    state.BNodeName.Bind(Settings.BNodeName.Bindable);
+    state.BAuthInfo.Bind(Settings.BAuthInfo.Bindable);
+
+
+    Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Init.ConfigDirectory, "lport"), Settings.LocalListenPort.ToString()), true);
+}
+
+/// <summary> Try to connect to the port and change it if someone is already listening there </summary>
+async Task UpdatePort(string ip, DatabaseValue<ushort> port, string description)
+{
+    logger.Info($"[PORTCHECK] Checking {description.ToLowerInvariant()} port {port.Value}");
+
+    while (true)
     {
-        logger.Warn($"Checking port {port.Value} for availability");
-
-        while (true)
+        var open = await PortForwarding.IsPortOpenAndListening(ip, port.Value, new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
+        if (!open)
         {
-            var open = await PortForwarding.IsPortOpenAndListening(publicip.ToString(), port.Value, new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
-            if (!open) break;
-
-            logger.Warn($"Port {port.Value} is already listening, skipping");
-            port.Value++;
+            logger.Info($"[PORTCHECK] {description} port: {port.Value}");
+            break;
         }
+
+        logger.Warn($"[PORTCHECK] {description} port {port.Value} is already listening, skipping");
+        port.Value++;
     }
 }
 async Task InitializePlugins()
@@ -183,24 +229,27 @@ async Task InitializePlugins()
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
     Task.Run(() => logger.Info($"Found {{Plugins}} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {Path.GetFullPath(x.Path)}"))}", plugins.Count)).Consume();
 }
-async ValueTask AuthWithGui()
+async ValueTask WaitForAuth()
 {
-    logger.Warn(@$"You are not authenticated. Please use NodeUI app to authenticate");
-    Process.Start(new ProcessStartInfo(FileList.GetNodeUIExe()));
-
-    if (File.Exists("login"))
-    {
-        var data = File.ReadAllText("login").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var login = data[0];
-        var password = data[1];
-
-        await SessionManager.AuthAsync(login, password).ThrowIfNull();
-        return;
-    }
+    logger.Warn(@$"You are not authenticated. Please use NodeUI app to authenticate or create an 'login' file with username and password separated by newline");
 
     while (true)
     {
         await Task.Delay(1000).ConfigureAwait(false);
+        if (File.Exists("login"))
+        {
+            var data = File.ReadAllText("login").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (data.Length < 2) continue;
+
+            var login = data[0];
+            var password = data[1];
+
+            var auth = await SessionManager.AuthAsync(login, password);
+            auth.LogIfError();
+            if (!auth) continue;
+
+            return;
+        }
 
         if (Settings.SessionId is null) continue;
         if (Settings.NodeName is null) continue;
