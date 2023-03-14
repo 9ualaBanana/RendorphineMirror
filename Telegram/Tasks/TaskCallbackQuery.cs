@@ -55,7 +55,7 @@ public record TaskCallbackQuery : CallbackQuery<TaskCallbackData>
 {
     internal string TaskId => ArgumentAt(0).ToString()!;
 
-    internal static TaskCallbackQuery DetailsFor(RegisteredTypedTask registeredTask)
+    internal static TaskCallbackQuery DetailsFor(IRegisteredTask registeredTask)
         => new Builder<TaskCallbackQuery>()
         .Data(TaskCallbackData.Details)
         .Arguments(registeredTask.Id)

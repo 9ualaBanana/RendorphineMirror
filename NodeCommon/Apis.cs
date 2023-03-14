@@ -21,27 +21,27 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
         return values.Append(("sessionid", SessionId)).ToArray();
     }
 
-    public ValueTask<OperationResult> ShardPost(ITaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
+    public ValueTask<OperationResult> ShardPost(IRegisteredTaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
         ShardPost<JToken>(task, url, property, errorDetails, content).Next(j => true);
-    public ValueTask<OperationResult<T>> ShardPost<T>(ITaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
+    public ValueTask<OperationResult<T>> ShardPost<T>(IRegisteredTaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
         ShardSend(task, url, url => Api.ApiPost<T>(url, property, errorDetails, content));
 
-    public ValueTask<OperationResult> ShardGet(ITaskApi task, string url, string errorDetails, params (string, string)[] values) =>
+    public ValueTask<OperationResult> ShardGet(IRegisteredTaskApi task, string url, string errorDetails, params (string, string)[] values) =>
         ShardGet<JToken>(task, url, null, errorDetails, values).Next(j => true);
-    public ValueTask<OperationResult> ShardPost(ITaskApi task, string url, string errorDetails, params (string, string)[] values) =>
+    public ValueTask<OperationResult> ShardPost(IRegisteredTaskApi task, string url, string errorDetails, params (string, string)[] values) =>
         ShardPost<JToken>(task, url, null, errorDetails, values).Next(j => true);
-    public ValueTask<OperationResult<T>> ShardGet<T>(ITaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
+    public ValueTask<OperationResult<T>> ShardGet<T>(IRegisteredTaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
         ShardSend(task, url, url => Api.ApiGet<T>(url, property, errorDetails, AddSessionId(values)));
-    public ValueTask<OperationResult<T>> ShardPost<T>(ITaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
+    public ValueTask<OperationResult<T>> ShardPost<T>(IRegisteredTaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
         ShardSend(task, url, url => Api.ApiPost<T>(url, property, errorDetails, Api.ToContent(AddSessionId(values))));
 
-    async ValueTask<OperationResult<T>> ShardSend<T>(ITaskApi task, string url, Func<string, ValueTask<OperationResult<T>>> func)
+    async ValueTask<OperationResult<T>> ShardSend<T>(IRegisteredTaskApi task, string url, Func<string, ValueTask<OperationResult<T>>> func)
     {
         (task as ILoggable)?.LogTrace($"Sending shard request {url}; Shard is {task.HostShard ?? "<null>"}");
         return await ShardSend(task, () => func($"https://{task.HostShard}/rphtasklauncher/{url}"), true);
 
 
-        async ValueTask<OperationResult<T>> ShardSend(ITaskApi task, Func<ValueTask<OperationResult<T>>> func, bool tryDefaultShard)
+        async ValueTask<OperationResult<T>> ShardSend(IRegisteredTaskApi task, Func<ValueTask<OperationResult<T>>> func, bool tryDefaultShard)
         {
             if (tryDefaultShard)
             {
@@ -88,7 +88,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
 
 
     /// <inheritdoc cref="GetTaskShardAsync"/>
-    public ValueTask<OperationResult> UpdateTaskShardAsync(ITaskApi task) =>
+    public ValueTask<OperationResult> UpdateTaskShardAsync(IRegisteredTaskApi task) =>
         GetTaskShardAsync(task.Id)
             .Next(s =>
             {
@@ -172,7 +172,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     }
 
     /// <summary> Updates <see cref="task.HostShard"/> values. Does not return until all shards are fetched </summary>
-    public async ValueTask<OperationResult> UpdateAllTaskShardsAsync(IEnumerable<ITaskApi> tasks)
+    public async ValueTask<OperationResult> UpdateAllTaskShardsAsync(IEnumerable<IRegisteredTaskApi> tasks)
     {
         const int maxmin = 5;
 
@@ -235,7 +235,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
 
 
     /// <returns> Task state or null if the task is Finished/Canceled/Failed; without fetching shards </returns>
-    public async ValueTask<OperationResult<ServerTaskState?>> JustGetTaskStateAsync(ITaskApi task)
+    public async ValueTask<OperationResult<ServerTaskState?>> JustGetTaskStateAsync(IRegisteredTaskApi task)
     {
         var get = () => ShardGet<ServerTaskState>(task, "getmytaskstate", null, $"Getting {task.Id} task state", AddSessionId(("taskid", task.Id)));
         bool exists(string errmsg) => !errmsg.Contains("There is no task with such ID", StringComparison.Ordinal) && !errmsg.Contains("No shard known for this task", StringComparison.Ordinal);
@@ -249,7 +249,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
         return state!;
     }
     /// <returns> Task state or null if the task is Finished/Canceled/Failed </returns>
-    public async ValueTask<OperationResult<ServerTaskState?>> GetTaskStateAsync(ITaskApi task)
+    public async ValueTask<OperationResult<ServerTaskState?>> GetTaskStateAsync(IRegisteredTaskApi task)
     {
         var state = await JustGetTaskStateAsync(task);
         if (!state) return state;
@@ -266,14 +266,14 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     }
 
     /// <returns> Task state; Throws if task is Finished/Canceled/Failed. </returns>
-    public async ValueTask<OperationResult<ServerTaskState>> GetTaskStateAsyncOrThrow(ITaskApi task) =>
+    public async ValueTask<OperationResult<ServerTaskState>> GetTaskStateAsyncOrThrow(IRegisteredTaskApi task) =>
         await GetTaskStateAsync(task)
             .Next(state => state.ThrowIfNull($"Task {task.Id} is already completed").AsOpResult());
 
 
-    public ValueTask<OperationResult> FailTaskAsync(ITaskApi task, string errorMessage) => ChangeStateAsync(task, TaskState.Failed, errorMessage);
-    public ValueTask<OperationResult> ChangeStateAsync(ITaskApi task, TaskState state) => ChangeStateAsync(task, state, null);
-    async ValueTask<OperationResult> ChangeStateAsync(ITaskApi task, TaskState state, string? errorMessage)
+    public ValueTask<OperationResult> FailTaskAsync(IRegisteredTaskApi task, string errorMessage) => ChangeStateAsync(task, TaskState.Failed, errorMessage);
+    public ValueTask<OperationResult> ChangeStateAsync(IRegisteredTaskApi task, TaskState state) => ChangeStateAsync(task, state, null);
+    async ValueTask<OperationResult> ChangeStateAsync(IRegisteredTaskApi task, TaskState state, string? errorMessage)
     {
         (task as ILoggable)?.LogInfo($"Changing state to {state}");
 
@@ -348,7 +348,10 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
         Api.ApiGet<ImmutableDictionary<string, SoftwareDefinition>>($"{RegistryUrl}/getsoft", "value", "Getting registry software")
             .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
 
-    public async ValueTask<OperationResult<string>> GetMPlusItemDownloadLinkAsync(ITaskApi task, string iid, Extension extension) =>
-        await ShardGet<string>(task, "getmplusitemdownloadlink", "link", "Getting M+ item download link",
+    public async ValueTask<OperationResult<string>> GetMPlusItemDownloadLinkAsync(
+        IRegisteredTaskApi registeredTaskApi,
+        string iid,
+        Extension extension)
+        => await ShardGet<string>(registeredTaskApi, "getmplusitemdownloadlink", "link", "Getting M+ item download link",
             AddSessionId(("iid", iid), ("format", extension.ToString().ToLower()), ("original", extension == Extension.jpeg ? "1" : "0")));
 }

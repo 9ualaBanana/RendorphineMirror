@@ -1,49 +1,86 @@
 ﻿namespace NodeCommon.Tasks;
 
-public interface ITask
+/// <summary>
+/// Task that has a unique <see cref="Id"/>.
+/// </summary>
+public interface IRegisteredTask : IEquatable<IRegisteredTask>
 {
     public string Id { get; }
 }
 
-public interface ITaskApi : ITask
+public interface IRegisteredTaskApi : IRegisteredTask
 {
     string? HostShard { get; set; }
 }
 
-public interface ITypedTask : ITask
+/// <summary>
+/// <see cref="IRegisteredTask"/> with known <see cref="Action"/>.
+/// </summary>
+public interface ITypedRegisteredTask : IRegisteredTask
 {
-    public string Type { get; }
+    public TaskAction Action { get; }
 }
 
-public record RegisteredTask(string Id) : ITask
+/// <summary>
+/// Default implementation of <see cref="IRegisteredTask"/>.
+/// </summary>
+public record RegisteredTask(string Id) : IRegisteredTask
 {
     public static RegisteredTask With(string id) => new(id);
+
+    public bool Equals(IRegisteredTask? other) => Id == other?.Id;
 }
 
-public record RegisteredTypedTask(string Id = default!, string Type = default!) : ITypedTask
+/// <summary>
+/// Default implementation of <see cref="ITypedRegisteredTask"/>.
+/// </summary>
+public record TypedRegisteredTask(string Id, TaskAction Action) : ITypedRegisteredTask
 {
-    public static RegisteredTypedTask With(string id, string type) => new(id, type);
+    public static TypedRegisteredTask With(string id, TaskAction action) => new(id, action);
+
+    public bool Equals(IRegisteredTask? other) => Id == other?.Id;
+
+    public class IdEqualityComparer : IEqualityComparer<TypedRegisteredTask>
+    {
+        bool IEqualityComparer<TypedRegisteredTask>.Equals(TypedRegisteredTask? x, TypedRegisteredTask? y)
+            => x?.Id == y?.Id;
+
+        int IEqualityComparer<TypedRegisteredTask>.GetHashCode(TypedRegisteredTask obj)
+            => obj.Id.GetHashCode();
+    }
 }
 
-public record ExecutedTask : RegisteredTypedTask
+public record ExecutedTask : TypedRegisteredTask
 {
+    public ExecutedTask(string Id, TaskAction Action)
+        : base(Id, Action)
+    {
+    }
+
     public string Executor { get; init; } = default!;
     public HashSet<string> UploadedFiles { get; init; } = default!;
 }
 
 /// <summary>
-/// Default implementation of <see cref="ITaskApi"/>.
+/// Default implementation of <see cref="IRegisteredTaskApi"/>.
 /// </summary>
-public record TaskApi(string Id = default!) : ITaskApi
+public record TaskApi(string Id) : IRegisteredTaskApi
 {
     public string? HostShard { get; set; }
 
-    public static TaskApi For(ITask task)
+    public static TaskApi For(IRegisteredTask task)
         => new(task.Id);
+
+    public bool Equals(IRegisteredTask? other) => Id == other?.Id;
 }
 
-public record ExecutedTaskApi : ExecutedTask, ITaskApi
+public record ExecutedTaskApi : ExecutedTask, IRegisteredTaskApi
 {
+    public ExecutedTaskApi(string Id = default!, TaskAction Action = default!)
+        : base(Id, Action)
+    {
+    }
+
     public string? HostShard { get; set; }
 }
 

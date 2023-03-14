@@ -16,7 +16,7 @@ public class ImageProcessingCallbackQueryHandler
     readonly Uri _hostUrl;
 
     public ImageProcessingCallbackQueryHandler(
-        OwnedRegisteredTasksCache usersWithRegisteredTask,
+        OwnedRegisteredTasksCache ownedRegisteredTasksCache,
         IOptions<TelegramBotOptions> botOptions,
         MediaFilesManager mediaFilesManager,
         IHttpClientFactory httpClientFactory,
@@ -26,7 +26,7 @@ public class ImageProcessingCallbackQueryHandler
         ILogger<ImageProcessingCallbackQueryHandler> logger)
         : base(mediaFilesManager, httpClientFactory, serializer, bot, httpContextAccessor, logger)
     {
-        _ownedRegisteredTasksCache = usersWithRegisteredTask;
+        _ownedRegisteredTasksCache = ownedRegisteredTasksCache;
         _hostUrl = botOptions.Value.Host;
     }
 
@@ -81,11 +81,11 @@ public class ImageProcessingCallbackQueryHandler
     static TaskObject TaskObjectFor(CachedMediaFile cachedImage)
         => new(Path.GetFileName(cachedImage.Path), new FileInfo(cachedImage.Path).Length);
 
-    InlineKeyboardButton DetailsButtonFor(ITypedTask task)
+    InlineKeyboardButton DetailsButtonFor(ITypedRegisteredTask typedRegisteredTask)
         => InlineKeyboardButton.WithCallbackData("Details",
             Serializer.Serialize(new TaskCallbackQuery.Builder<TaskCallbackQuery>()
                 .Data(TaskCallbackData.Details)
-                .Arguments(task.Id)
+                .Arguments(typedRegisteredTask.Id, typedRegisteredTask.Action)
                 .Build())
             );
 

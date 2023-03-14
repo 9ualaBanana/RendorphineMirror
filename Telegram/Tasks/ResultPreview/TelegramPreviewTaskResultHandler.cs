@@ -48,7 +48,7 @@ public class TelegramPreviewTaskResultHandler
 
         async Task SendPreviewsAsyncCore()
         {
-            var taskOwner = _ownedRegisteredTasksCache.Retrieve(RegisteredTypedTask.With(executedTaskApi.Id, executedTaskApi.Type)).Owner;
+            var taskOwner = _ownedRegisteredTasksCache.Retrieve(TypedRegisteredTask.With(executedTaskApi.Id, executedTaskApi.Action)).Owner;
             var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(taskOwner.User));
 
             var taskResults = new List<TaskResultFromMPlus>(executedTaskApi.UploadedFiles.Count);
@@ -95,7 +95,7 @@ public class TelegramPreviewTaskResultHandler
                 if (!string.IsNullOrWhiteSpace(taskResult.FileInfo.Title))
                     caption.AppendLine(taskResult.FileInfo.Title);
                 caption
-                    .AppendLine($"{taskResult.Type} action has completed.")
+                    .AppendLine($"{taskResult.Action} action has completed.")
                     .AppendLine($"*Duration*: `{taskExecutionTime}`")
                     .AppendLine($"*Size*: `{cachedTaskResult.Size / 1024 / 1024}` *MB*");
 
@@ -115,7 +115,7 @@ public class TelegramPreviewTaskResultHandler
                     {
                         try
                         {
-                            var taskExecutionTime = (await api.GetTaskStateAsyncOrThrow(TaskApi.For(RegisteredTypedTask.With(taskResult.Id, taskResult.Type))).ThrowIfError()).Times.Total;
+                            var taskExecutionTime = (await api.GetTaskStateAsyncOrThrow(TaskApi.For(TypedRegisteredTask.With(taskResult.Id, taskResult.Action))).ThrowIfError()).Times.Total;
                             return taskExecutionTime!;
                         }
                         catch (Exception ex)

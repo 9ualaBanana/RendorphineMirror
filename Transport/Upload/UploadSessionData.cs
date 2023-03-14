@@ -107,26 +107,26 @@ public class MPlusUploadSessionData : UploadSessionData
 
 public class MPlusTaskResultUploadSessionData : UploadSessionData
 {
-    readonly ITaskApi _taskApi;
+    readonly IRegisteredTaskApi _taskApi;
     readonly string? _postfix;
     readonly string _sessionId;
 
-    /// <inheritdoc cref="InitializeAsync(FileInfo, string?, ITaskApi, HttpClient, string?)"/>
+    /// <inheritdoc cref="InitializeAsync(FileInfo, string?, IRegisteredTaskApi, HttpClient, string?)"/>
     public static async ValueTask<MPlusTaskResultUploadSessionData> InitializeAsync(
         string filePath,
         string? postfix,
-        ITaskApi taskApi,
+        IRegisteredTaskApi taskApi,
         HttpClient httpClient,
         string sessionId) =>
             await InitializeAsync(new FileInfo(filePath), postfix, taskApi, httpClient, sessionId);
 
     /// <summary>
-    /// Updates <see cref="ITaskApi.HostShard"/> of <paramref name="taskApi"/> and initializes <see cref="MPlusTaskResultUploadSessionData"/>.
+    /// Updates <see cref="IRegisteredTaskApi.HostShard"/> of <paramref name="taskApi"/> and initializes <see cref="MPlusTaskResultUploadSessionData"/>.
     /// </summary>
     public static async ValueTask<MPlusTaskResultUploadSessionData> InitializeAsync(
         FileInfo file,
         string? postfix,
-        ITaskApi taskApi,
+        IRegisteredTaskApi taskApi,
         HttpClient httpClient,
         string sessionId)
     {
@@ -135,14 +135,14 @@ public class MPlusTaskResultUploadSessionData : UploadSessionData
         return new(file, postfix, taskApi, sessionId);
     }
 
-    /// <inheritdoc cref="MPlusTaskResultUploadSessionData(FileInfo, string?, ITaskApi)"/>
-    public MPlusTaskResultUploadSessionData(string filePath, string? postfix, ITaskApi taskApi, string sessionId)
+    /// <inheritdoc cref="MPlusTaskResultUploadSessionData(FileInfo, string?, IRegisteredTaskApi)"/>
+    public MPlusTaskResultUploadSessionData(string filePath, string? postfix, IRegisteredTaskApi taskApi, string sessionId)
         : this(new FileInfo(filePath), postfix, taskApi, sessionId)
     {
     }
 
-    /// <remarks>Must be called only if <see cref="ITaskApi.HostShard"/> of <paramref name="taskApi"/> is already updated.</remarks>
-    public MPlusTaskResultUploadSessionData(FileInfo file, string? postfix, ITaskApi taskApi, string sessionId)
+    /// <remarks>Must be called only if <see cref="IRegisteredTaskApi.HostShard"/> of <paramref name="taskApi"/> is already updated.</remarks>
+    public MPlusTaskResultUploadSessionData(FileInfo file, string? postfix, IRegisteredTaskApi taskApi, string sessionId)
         : base(new Uri(new Uri($"https://{taskApi.HostShard}"), "rphtasklauncher/initmptaskoutput"), file)
     {
         _taskApi = taskApi;

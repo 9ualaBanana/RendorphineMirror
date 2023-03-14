@@ -15,8 +15,8 @@ internal record VideoTaskResultFromMPlus : TaskResultFromMPlus
     internal string WebmUrl;
 
 
-    internal VideoTaskResultFromMPlus(MPlusFileInfo mPlusFileInfo,  string taskType, string taskExecutor, Uri downloadLink)
-        : base(mPlusFileInfo, taskType, taskExecutor, downloadLink)
+    internal VideoTaskResultFromMPlus(MPlusFileInfo mPlusFileInfo,  TaskAction taskAction, string taskExecutor, Uri downloadLink)
+        : base(mPlusFileInfo, taskAction, taskExecutor, downloadLink)
     {
         var videoInfo = mPlusFileInfo["videopreview"]!;
         Width = (int)videoInfo["width"]!;

@@ -19,7 +19,7 @@ internal abstract record TaskResultFromMPlus
     /// </summary>
     internal readonly string Id;
 
-    internal readonly string Type;
+    internal readonly TaskAction Action;
 
     /// <summary>
     /// Name of the node that was responsible for producing the task result that this <see cref="TaskResultFromMPlus"/> represents.
@@ -31,19 +31,19 @@ internal abstract record TaskResultFromMPlus
     /// <summary>
     /// Static factory for constructing <see cref="TaskResultFromMPlus"/> instances.
     /// </summary>
-    internal static TaskResultFromMPlus Create(MPlusFileInfo mPlusFileInfo, string taskType, string taskExecutor, Uri downloadLink)
+    internal static TaskResultFromMPlus Create(MPlusFileInfo mPlusFileInfo, TaskAction taskAction, string taskExecutor, Uri downloadLink)
         => mPlusFileInfo.Type switch
         {
-            MPlusFileType.Raster or MPlusFileType.Vector => new ImageTaskResultFromMPlus(mPlusFileInfo, taskType, taskExecutor, downloadLink),
-            MPlusFileType.Video => new VideoTaskResultFromMPlus(mPlusFileInfo, taskType, taskExecutor, downloadLink),
+            MPlusFileType.Raster or MPlusFileType.Vector => new ImageTaskResultFromMPlus(mPlusFileInfo, taskAction, taskExecutor, downloadLink),
+            MPlusFileType.Video => new VideoTaskResultFromMPlus(mPlusFileInfo, taskAction, taskExecutor, downloadLink),
             _ => throw new NotImplementedException()
         };
 
-    protected TaskResultFromMPlus(MPlusFileInfo mPlusFileInfo, string taskType, string taskExecutor, Uri downloadLink)
+    protected TaskResultFromMPlus(MPlusFileInfo mPlusFileInfo, TaskAction taskAction, string taskExecutor, Uri downloadLink)
     {
         FileInfo = mPlusFileInfo;
         Id = (string)FileInfo["extid"]!;
-        Type = taskType;
+        Action = taskAction;
         Executor = taskExecutor;
         FileDownloadLink = downloadLink;
     }

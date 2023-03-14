@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace NodeCommon.Tasks;
 
-public abstract record TaskBase(string Id, TaskInfo Info) : ITaskApi, ILoggable
+public abstract record TaskBase(string Id, TaskInfo Info) : IRegisteredTaskApi, ILoggable
 {
     string ILoggable.LogName => $"{GetType().Name} {Id}";
 
@@ -78,4 +78,6 @@ public abstract record TaskBase(string Id, TaskInfo Info) : ITaskApi, ILoggable
         Directory.CreateDirectory(dir);
         return dir;
     }
+
+    public bool Equals(IRegisteredTask? other) => Id == other?.Id;
 }
