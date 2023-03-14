@@ -179,7 +179,19 @@ public static class FFMpegTasks
 
             if (data.Hflip == true) filters.Add("hflip");
             if (data.Vflip == true) filters.Add("vflip");
-            if (data.RotationRadians is not null) filters.Add($"rotate={data.RotationRadians.Value.ToString(NumberFormat)}");
+            if (data.RotationRadians is not null)
+            {
+                if (args.FFProbe is null) task.ThrowFailed("Could not execute ffprobe to correctly rotate the image");
+
+                var (w, h) = (args.FFProbe.Streams.First().Width, args.FFProbe.Streams.First().Height);
+
+                var absCosRA = Math.Abs(Math.Cos(data.RotationRadians.Value));
+                var absSinRA = Math.Abs(Math.Sin(data.RotationRadians.Value));
+                var outw = w * absCosRA + h * absSinRA;
+                var outh = w * absSinRA + h * absCosRA;
+
+                filters.Add($"rotate={data.RotationRadians.Value.ToString(NumberFormat)}:ow={outw.ToString(NumberFormat)}:oh={outh.ToString(NumberFormat)}");
+            }
 
             if (data.Crop is not null) filters.AddFirst($"crop={data.Crop.W.ToString(NumberFormat)}:{data.Crop.H.ToString(NumberFormat)}:{data.Crop.X.ToString(NumberFormat)}:{data.Crop.Y.ToString(NumberFormat)}");
         }
