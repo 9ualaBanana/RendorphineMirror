@@ -25,6 +25,7 @@ public static class AutoCleanup
         {
             var taskid = Path.GetFileName(dir);
             if (NodeSettings.QueuedTasks.ContainsKey(taskid)) return;
+            if (NodeSettings.CompletedTasks.ContainsKey(taskid)) return;
 
             Logger.Info($"[Cleanup] Deleting unknown qtask dir {dir}");
             Directory.Delete(dir, true);
