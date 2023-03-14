@@ -5,55 +5,41 @@ public interface ITask
     public string Id { get; }
 }
 
-public record RegisteredTask(string Id) : ITask
-{
-    public static RegisteredTask With(string id) => new(id);
-
-    /// <summary>
-    /// <b>Not intended for use. Required for model binding.</b>.
-    /// </summary>
-    public RegisteredTask() : this(default(string)!)
-    {
-    }
-}
-
-public record ExecutedTask : RegisteredTask
-{
-    public string Executor { get; init; } = default!;
-    public HashSet<string> UploadedFiles { get; init; } = default!;
-}
-
 public interface ITaskApi : ITask
 {
     string? HostShard { get; set; }
 }
 
+public interface ITypedTask : ITask
+{
+    public string Type { get; }
+}
+
+public record RegisteredTask(string Id) : ITask
+{
+    public static RegisteredTask With(string id) => new(id);
+}
+
+public record RegisteredTypedTask(string Id = default!, string Type = default!) : ITypedTask
+{
+    public static RegisteredTypedTask With(string id, string type) => new(id, type);
+}
+
+public record ExecutedTask : RegisteredTypedTask
+{
+    public string Executor { get; init; } = default!;
+    public HashSet<string> UploadedFiles { get; init; } = default!;
+}
+
 /// <summary>
 /// Default implementation of <see cref="ITaskApi"/>.
 /// </summary>
-public record TaskApi : ITaskApi
+public record TaskApi(string Id = default!) : ITaskApi
 {
-    public string Id { get; set; }
-
     public string? HostShard { get; set; }
 
-    public static TaskApi For(ITask task, string? hostShard = default)
-        => new(task.Id, hostShard);
-
-    TaskApi(string id, string? hostShard = default)
-    {
-        Id = id;
-        HostShard = hostShard;
-    }
-
-    /// <summary>
-    /// <b>Not intended for use. Required for model binding.</b>.
-    /// </summary>
-    public TaskApi()
-    {
-        Id = default!;
-        HostShard = default;
-    }
+    public static TaskApi For(ITask task)
+        => new(task.Id);
 }
 
 public record ExecutedTaskApi : ExecutedTask, ITaskApi

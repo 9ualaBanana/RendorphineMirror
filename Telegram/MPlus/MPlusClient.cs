@@ -1,5 +1,4 @@
-﻿using NodeCommon;
-using Telegram.Tasks.ResultPreview;
+﻿using Telegram.Tasks.ResultPreview;
 
 namespace Telegram.MPlus;
 
@@ -20,7 +19,7 @@ public class MPlusClient
         var api = Apis.DefaultWithSessionId(fileAccessor.SessionId);
         var mPlusFileInfo = await TaskManager.RequestFileInfoAsyncUsing(fileAccessor, cancellationToken);
         var downloadLink = await RequestFileDownloadLinkUsing(fileAccessor, Extension.jpeg);
-        return TaskResultFromMPlus.Create(mPlusFileInfo, taskApi.Executor, downloadLink);
+        return TaskResultFromMPlus.Create(mPlusFileInfo, taskApi.Type, taskApi.Executor, downloadLink);
         
 
 

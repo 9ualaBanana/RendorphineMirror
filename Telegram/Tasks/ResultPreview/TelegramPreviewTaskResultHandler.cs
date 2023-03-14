@@ -48,7 +48,8 @@ public class TelegramPreviewTaskResultHandler
 
         async Task SendPreviewsAsyncCore()
         {
-            var taskOwner = _ownedRegisteredTasksCache.Retrieve(RegisteredTask.With(executedTaskApi.Id)).Owner;
+            var taskOwner = _ownedRegisteredTasksCache.Retrieve(RegisteredTypedTask.With(executedTaskApi.Id, executedTaskApi.Type)).Owner;
+            var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(taskOwner.User));
 
             var taskResults = new List<TaskResultFromMPlus>(executedTaskApi.UploadedFiles.Count);
             foreach (var iid in executedTaskApi.UploadedFiles)
@@ -58,14 +59,13 @@ public class TelegramPreviewTaskResultHandler
             }
 
             foreach (var taskResult in taskResults)
-                await SendPreviewAsyncOf(taskResult, taskOwner, cancellationToken);
+                await SendPreviewAsyncUsing(api, taskResult, taskOwner, cancellationToken);
 
-            await Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(taskOwner.User))
-                .ChangeStateAsync(executedTaskApi, TaskState.Finished).ThrowIfError();
+            await api.ChangeStateAsync(executedTaskApi, TaskState.Finished).ThrowIfError();
         }
     }
 
-    async Task<Message> SendPreviewAsyncOf(TaskResultFromMPlus taskResult, TelegramBotUser user, CancellationToken cancellationToken)
+    async Task<Message> SendPreviewAsyncUsing(Apis api, TaskResultFromMPlus taskResult, TelegramBotUser user, CancellationToken cancellationToken)
     {
         try { return await SendPreviewAsyncCore(); }
         catch (Exception ex)
@@ -80,27 +80,54 @@ public class TelegramPreviewTaskResultHandler
         {
             var cachedTaskResult = await _mediaFilesCache.CacheAsync(MediaFile.From(taskResult.FileDownloadLink), 1_800_000, cancellationToken);
 
-            var caption = BuildCaption();
+            var caption = await BuildCaptionAsync();
             var replyMarkup = BuildReplyMarkup();
 
             return await SendPreviewAsyncCore_();
 
 
-            string BuildCaption()
+            async Task<string> BuildCaptionAsync()
             {
                 var caption = new StringBuilder();
 
+                var taskExecutionTime = await RequestTaskExecutionTime();
+
                 if (!string.IsNullOrWhiteSpace(taskResult.FileInfo.Title))
                     caption.AppendLine(taskResult.FileInfo.Title);
-                caption.AppendLine($"*Size* : `{cachedTaskResult.Size / 1024 / 1024}` *MB*");
+                caption
+                    .AppendLine($"{taskResult.Type} action has completed.")
+                    .AppendLine($"*Duration*: `{taskExecutionTime}`")
+                    .AppendLine($"*Size*: `{cachedTaskResult.Size / 1024 / 1024}` *MB*");
 
                 if (MPlusIdentity.AccessLevelOf(user.User) is AccessLevel.Admin)
                     caption
-                        .AppendLine($"*Task ID* : `{taskResult.TaskId}`")
-                        .AppendLine($"*M+ IID* : `{taskResult.FileInfo.Iid}`")
-                        .AppendLine($"*Executor* : `{taskResult.TaskExecutor}`");
+                        .AppendLine($"*Task Executor* : `{taskResult.Executor}`")
+                        .AppendLine($"*Task ID* : `{taskResult.Id}`")
+                        .AppendLine($"*M+ IID* : `{taskResult.FileInfo.Iid}`");
 
                 return caption.ToString();
+
+                async Task<TimeSpan> RequestTaskExecutionTime()
+                {
+                    Exception exception = null!;
+                    int attemptsLeft = 3;
+                    while (attemptsLeft > 0)
+                    {
+                        try
+                        {
+                            var taskExecutionTime = (await api.GetTaskStateAsyncOrThrow(TaskApi.For(RegisteredTypedTask.With(taskResult.Id, taskResult.Type))).ThrowIfError()).Times.Total;
+                            return taskExecutionTime!;
+                        }
+                        catch (Exception ex)
+                        {
+                            exception = ex;
+                            attemptsLeft--;
+                            Thread.Sleep(TimeSpan.FromSeconds(3));
+                        }
+                    }
+
+                    throw exception;
+                }
             }
 
             InlineKeyboardMarkup BuildReplyMarkup()

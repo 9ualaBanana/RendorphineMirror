@@ -4,7 +4,7 @@ using Telegram.MPlus;
 namespace Telegram.Tasks.ResultPreview;
 
 /// <summary>
-/// Preview of a task result media file uploaded to M+.
+/// Task result media file uploaded to M+.
 /// </summary>
 /// <remarks>
 /// Implicitly convertible to <see cref="InputOnlineFile"/>.
@@ -17,31 +17,34 @@ internal abstract record TaskResultFromMPlus
     /// <summary>
     /// ID of the task that was responsible for producing the task result that this <see cref="TaskResultFromMPlus"/> represents.
     /// </summary>
-    internal readonly string TaskId;
+    internal readonly string Id;
+
+    internal readonly string Type;
 
     /// <summary>
     /// Name of the node that was responsible for producing the task result that this <see cref="TaskResultFromMPlus"/> represents.
     /// </summary>
-    internal readonly string TaskExecutor;
+    internal readonly string Executor;
 
     internal readonly Uri FileDownloadLink;
 
     /// <summary>
     /// Static factory for constructing <see cref="TaskResultFromMPlus"/> instances.
     /// </summary>
-    internal static TaskResultFromMPlus Create(MPlusFileInfo mPlusFileInfo, string taskExecutor, Uri downloadLink)
+    internal static TaskResultFromMPlus Create(MPlusFileInfo mPlusFileInfo, string taskType, string taskExecutor, Uri downloadLink)
         => mPlusFileInfo.Type switch
         {
-            MPlusFileType.Raster or MPlusFileType.Vector => new ImageTaskResultFromMPlus(mPlusFileInfo, taskExecutor, downloadLink),
-            MPlusFileType.Video => new VideoTaskResultFromMPlus(mPlusFileInfo, taskExecutor, downloadLink),
+            MPlusFileType.Raster or MPlusFileType.Vector => new ImageTaskResultFromMPlus(mPlusFileInfo, taskType, taskExecutor, downloadLink),
+            MPlusFileType.Video => new VideoTaskResultFromMPlus(mPlusFileInfo, taskType, taskExecutor, downloadLink),
             _ => throw new NotImplementedException()
         };
 
-    protected TaskResultFromMPlus(MPlusFileInfo mPlusFileInfo, string taskExecutor, Uri downloadLink)
+    protected TaskResultFromMPlus(MPlusFileInfo mPlusFileInfo, string taskType, string taskExecutor, Uri downloadLink)
     {
         FileInfo = mPlusFileInfo;
-        TaskId = (string)FileInfo["extid"]!;
-        TaskExecutor = taskExecutor;
+        Id = (string)FileInfo["extid"]!;
+        Type = taskType;
+        Executor = taskExecutor;
         FileDownloadLink = downloadLink;
     }
 

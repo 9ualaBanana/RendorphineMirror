@@ -17,7 +17,6 @@ public abstract record TaskBase(string Id, TaskInfo Info) : ITaskApi, ILoggable
     [JsonIgnore] public ITaskInputInfo Input => Info.Input;
     [JsonIgnore] public ITaskOutputInfo Output => Info.Output;
 
-
     public void SetStateTime(TaskState state)
     {
         var time = DateTimeOffset.Now.ToUnixTimeMilliseconds();

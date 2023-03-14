@@ -81,7 +81,7 @@ public class ImageProcessingCallbackQueryHandler
     static TaskObject TaskObjectFor(CachedMediaFile cachedImage)
         => new(Path.GetFileName(cachedImage.Path), new FileInfo(cachedImage.Path).Length);
 
-    InlineKeyboardButton DetailsButtonFor(ITask task)
+    InlineKeyboardButton DetailsButtonFor(ITypedTask task)
         => InlineKeyboardButton.WithCallbackData("Details",
             Serializer.Serialize(new TaskCallbackQuery.Builder<TaskCallbackQuery>()
                 .Data(TaskCallbackData.Details)

@@ -34,7 +34,7 @@ public class TaskCallbackQueryHandler : CallbackQueryHandler<TaskCallbackQuery, 
         async Task ShowDetailsAsyncCore()
         {
             string hostShard = await api.GetTaskShardAsync(callbackQuery.TaskId).ThrowIfError();
-            var taskState = await api.GetTaskStateAsyncOrThrow(TaskApi.For(RegisteredTask.With(callbackQuery.TaskId), hostShard)).ThrowIfError();
+            var taskState = await api.GetTaskStateAsyncOrThrow(TaskApi.For(RegisteredTask.With(callbackQuery.TaskId))).ThrowIfError();
 
             var messageBuilder = new StringBuilder()
                 .AppendLine($"*Task ID* : `{callbackQuery.TaskId}`")
@@ -55,7 +55,7 @@ public record TaskCallbackQuery : CallbackQuery<TaskCallbackData>
 {
     internal string TaskId => ArgumentAt(0).ToString()!;
 
-    internal static TaskCallbackQuery DetailsFor(RegisteredTask registeredTask)
+    internal static TaskCallbackQuery DetailsFor(RegisteredTypedTask registeredTask)
         => new Builder<TaskCallbackQuery>()
         .Data(TaskCallbackData.Details)
         .Arguments(registeredTask.Id)
