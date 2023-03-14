@@ -21,6 +21,7 @@
     </PackageReference>
     <PackageReference Include="NLog.Schema" Version="5.1.1" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.2.1" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
     <PackageReference Include="Telegram.Bot" Version="18.0.0" />
 	<Content Update="*.Development.json;">
@@ -34,6 +35,10 @@
     <ProjectReference Include="..\Transport\Transport.csproj" />
   </ItemGroup>
 
-  <ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
+  <ItemGroup>
+    <Folder Include="Handlers\" />
+  </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties appsettings_1development_1json__JsonSchema="https://json.schemastore.org/appsettings.json" /></VisualStudio></ProjectExtensions>
 
 </Project>

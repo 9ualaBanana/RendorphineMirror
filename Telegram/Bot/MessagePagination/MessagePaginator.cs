@@ -7,10 +7,14 @@ public class MessagePaginator
     internal const int MessageLengthLimit = 4096;
 
     readonly ChunkedMessagesAutoStorage _chunkedMessagesAutoStorage;
+    readonly MessagePaginatorControlButtons _controlButtons;
 
-    public MessagePaginator(ChunkedMessagesAutoStorage chunkedMessagesAutoStorage)
+    public MessagePaginator(
+        ChunkedMessagesAutoStorage chunkedMessagesAutoStorage,
+        MessagePaginatorControlButtons controlButtons)
     {
         _chunkedMessagesAutoStorage = chunkedMessagesAutoStorage;
+        _controlButtons = controlButtons;
     }
 
     internal static bool MustBeUsedToSend(string text) => text.Length > MessageLengthLimit;
@@ -25,7 +29,7 @@ public class MessagePaginator
         CancellationToken cancellationToken = default)
     {
         var chunkedText = new ChunkedText(text);
-        var messagePaginatorControlButtons = MessagePaginatorControlButtons.For(chunkedText);
+        var messagePaginatorControlButtons = _controlButtons.For(chunkedText);
 
         var message = await bot.SendMessageAsyncCore(chatId, chunkedText.NextChunk, messagePaginatorControlButtons, disableWebPagePreview, disableNotification, protectContent, cancellationToken);
         if (chunkedText.IsChunked)

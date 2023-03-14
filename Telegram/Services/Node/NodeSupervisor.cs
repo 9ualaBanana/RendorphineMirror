@@ -1,8 +1,8 @@
 ﻿using Telegram.Models;
 using System.Collections.Specialized;
-using Telegram.Telegram.Authentication.Services;
-using Telegram.Telegram.Updates.Commands;
 using Telegram.Bot;
+using Telegram.Persistence;
+using Telegram.Infrastructure.Commands;
 
 namespace Telegram.Services.Node;
 
@@ -15,10 +15,10 @@ public class NodeSupervisor
     readonly object _lock = new();
     readonly ILogger<NodeSupervisor> _logger;
     readonly TelegramBot _bot;
-    readonly AuthenticatedUsersDbContext _authenticatedUsers;
+    readonly TelegramBotDbContext _authenticatedUsers;
 
 
-    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot, AuthenticatedUsersDbContext users)
+    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot, TelegramBotDbContext users)
     {
         AllNodes = new();
         NodesOnline = new(configuration.ReadIdleTimeBeforeGoingOfflineFrom(logger));
@@ -55,7 +55,7 @@ public class NodeSupervisor
         {
             if (versionIsUpdated)
             {
-                var userChatAuthenticationTokens = _authenticatedUsers.Users.Where(user => user.MPlus.UserId == nodeInfo.UserId);
+                var userChatAuthenticationTokens = _authenticatedUsers.Users.Where(user => user.MPlusIdentity.UserId == nodeInfo.UserId);
                 if (userChatAuthenticationTokens.Any())
                     foreach (var chatAuthenticationToken in userChatAuthenticationTokens)
                         await _bot.SendMessageAsync_(chatAuthenticationToken.ChatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline!.Version}* *=>* v.*{nodeInfo.Version}*.");

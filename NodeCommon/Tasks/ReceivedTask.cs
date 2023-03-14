@@ -1,23 +1,49 @@
 ﻿namespace NodeCommon.Tasks;
 
-public interface ITaskApi
+public interface ITask
 {
-    string Id { get; }
+    public string Id { get; }
+}
+
+public interface ITaskApi : ITask
+{
     string? HostShard { get; set; }
 }
-// for use in Telegram or something
-public record ApiTask(string Id, HashSet<string> UploadedFiles) : ITaskApi
+
+public interface ITypedTask : ITask
 {
-    public ApiTask(string Id) : this(Id, Enumerable.Empty<string>())
-    {
-    }
+    public string Type { get; }
+}
 
-    public ApiTask(string id, IEnumerable<string> iidsOfUploadedFiles)
-        : this(id, iidsOfUploadedFiles.ToHashSet())
-    {
+public record RegisteredTask(string Id) : ITask
+{
+    public static RegisteredTask With(string id) => new(id);
+}
 
-    }
+public record RegisteredTypedTask(string Id = default!, string Type = default!) : ITypedTask
+{
+    public static RegisteredTypedTask With(string id, string type) => new(id, type);
+}
 
+public record ExecutedTask : RegisteredTypedTask
+{
+    public string Executor { get; init; } = default!;
+    public HashSet<string> UploadedFiles { get; init; } = default!;
+}
+
+/// <summary>
+/// Default implementation of <see cref="ITaskApi"/>.
+/// </summary>
+public record TaskApi(string Id = default!) : ITaskApi
+{
+    public string? HostShard { get; set; }
+
+    public static TaskApi For(ITask task)
+        => new(task.Id);
+}
+
+public record ExecutedTaskApi : ExecutedTask, ITaskApi
+{
     public string? HostShard { get; set; }
 }
 

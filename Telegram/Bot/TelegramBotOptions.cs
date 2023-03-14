@@ -2,16 +2,16 @@
 
 namespace Telegram.Bot;
 
-public record TelegramBotOptions(string Token, string Host)
+public record TelegramBotOptions(string Token, Uri Host)
 {
     internal const string Section = "TelegramBot";
 
     /// <summary>
     /// Shouldn't be called. Required for use with <see cref="IOptions{TOptions}"/>.
     /// </summary>
-    public TelegramBotOptions() : this(string.Empty, string.Empty)
-	{
-	}
+    public TelegramBotOptions() : this(null!, null!)
+    {
+    }
 }
 
 internal static class TelegramBotOptionsConfigurationExtension

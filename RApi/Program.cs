@@ -67,7 +67,7 @@ async Task<string> GetTaskState([FromQuery] string sessionid, [FromQuery] string
 {
     var apis = Apis.DefaultWithSessionId(sessionid);
 
-    var task = new ApiTask(taskid);
+    var task = TaskApi.For(RegisteredTask.With(taskid));
     var shard = await apis.MaybeGetTaskShardAsync(taskid);
     if (!shard) return JsonApi.Error("Could not fetch task shard, try again later").ToString(Newtonsoft.Json.Formatting.None);
 
@@ -84,15 +84,16 @@ async Task<string> GetTaskState([FromQuery] string sessionid, [FromQuery] string
 }
 async Task<string> GetResult([FromQuery] string sessionid, [FromQuery] string taskid, [FromQuery] string format)
 {
-    if (format is not ("jpeg" or "eps" or "mov"))
+    var extension = Enum.Parse<Extension>(format);
+    if (extension is not (Extension.jpeg or Extension.eps or Extension.mov))
         return JsonApi.Error("Invalid format").ToString(Newtonsoft.Json.Formatting.None);
 
     var apis = Apis.DefaultWithSessionId(sessionid);
-    var task = new ApiTask(taskid);
+    var task = TaskApi.For(RegisteredTask.With(taskid));
 
     var getMplusItems = () => apis.ShardGet<ImmutableArray<ReceivedContentItemLite>>(task, "getmytaskmpitems", "items", "Getting task m+ results", ("sessionid", sessionid), ("taskid", taskid));
     var getUrls = async (ReceivedContentItemLite item) =>
-        await apis.GetMPlusItemDownloadLinkAsync(task, item.Iid, format)
+        await apis.GetMPlusItemDownloadLinkAsync(task, item.Iid, extension)
             .Next(url => (item.Iid, new { filename = getitem(item.Files).Filename, size = getitem(item.Files).Size, url = url }).AsOpResult());
 
     var items = await getMplusItems()
@@ -112,7 +113,7 @@ async Task<string> GetResult([FromQuery] string sessionid, [FromQuery] string ta
 async Task<string> FinishTask([FromQuery] string sessionid, [FromQuery] string taskid)
 {
     var apis = Apis.DefaultWithSessionId(sessionid);
-    var task = new ApiTask(taskid);
+    var task = TaskApi.For(RegisteredTask.With(taskid));
 
     var change = await apis.ChangeStateAsync(task, TaskState.Finished);
     return JsonApi.JsonFromOpResult(change).ToString(Newtonsoft.Json.Formatting.None);

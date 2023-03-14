@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -347,8 +348,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
         Api.ApiGet<ImmutableDictionary<string, SoftwareDefinition>>($"{RegistryUrl}/getsoft", "value", "Getting registry software")
             .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
 
-
-    public async ValueTask<OperationResult<string>> GetMPlusItemDownloadLinkAsync(ITaskApi task, string iid, string format = "jpeg") =>
+    public async ValueTask<OperationResult<string>> GetMPlusItemDownloadLinkAsync(ITaskApi task, string iid, Extension extension) =>
         await ShardGet<string>(task, "getmplusitemdownloadlink", "link", "Getting M+ item download link",
-            AddSessionId(("iid", iid), ("format", format), ("original", format == "jpeg" ? "1" : "0")));
+            AddSessionId(("iid", iid), ("format", extension.ToString().ToLower()), ("original", extension == Extension.jpeg ? "1" : "0")));
 }

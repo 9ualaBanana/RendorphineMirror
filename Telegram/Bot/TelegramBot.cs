@@ -31,12 +31,11 @@ public class TelegramBot : TelegramBotClient
     /// </summary>
     internal async Task InitializeAsync()
     {
-        //string webhookUrl = $"{_options.Host}/telegram/{_options.Token}";
-        string webhookUrl = $"{_options.Host}/telegram";    // Used while update routing middleware pipeline is in development.
+        string webhookUrl = new Uri(_options.Host, $"telegram/{_options.Token}").ToString();
         await this.SetWebhookAsync(webhookUrl,
-            allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery, UpdateType.ChatMember },
+            allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery },
             dropPendingUpdates: true);
-        Logger.LogDebug("Webhook for {Url} is set", webhookUrl);
+        Logger.LogTrace("Webhook is set", webhookUrl);
     }
 
     internal async Task NotifySubscribersAsync(string text, IReplyMarkup? replyMarkup = null)
