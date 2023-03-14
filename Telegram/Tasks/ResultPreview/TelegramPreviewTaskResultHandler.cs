@@ -2,7 +2,8 @@
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.MediaFiles;
+using Telegram.Infrastructure.MediaFiles;
+using Telegram.Infrastructure.Tasks;
 using Telegram.MPlus;
 using File = System.IO.File;
 
@@ -91,13 +92,13 @@ public class TelegramPreviewTaskResultHandler
 
                 if (!string.IsNullOrWhiteSpace(taskResult.FileInfo.Title))
                     caption.AppendLine(taskResult.FileInfo.Title);
-                caption.AppendLine($"*Size*: `{cachedTaskResult.Size / 1024 / 1024}` *MB*");
+                caption.AppendLine($"*Size* : `{cachedTaskResult.Size / 1024 / 1024}` *MB*");
 
                 if (MPlusIdentity.AccessLevelOf(user.User) is AccessLevel.Admin)
                     caption
-                        .AppendLine($"*Task Executor* : `{taskResult.TaskExecutor}`")
                         .AppendLine($"*Task ID* : `{taskResult.TaskId}`")
-                        .AppendLine($"*M+ IID* : `{taskResult.FileInfo.Iid}`");
+                        .AppendLine($"*M+ IID* : `{taskResult.FileInfo.Iid}`")
+                        .AppendLine($"*Executor* : `{taskResult.TaskExecutor}`");
 
                 return caption.ToString();
             }

@@ -1,7 +1,7 @@
 ﻿using Telegram.Bot;
-using Telegram.Commands.SyntacticAnalysis;
-using Telegram.Handlers;
-using Telegram.Models;
+using Telegram.Infrastructure;
+using Telegram.Infrastructure.Commands;
+using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 
 namespace Telegram.Commands.Handlers;
 

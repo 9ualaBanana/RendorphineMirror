@@ -1,7 +1,8 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.CallbackQueries;
-using Telegram.Handlers;
+using Telegram.Infrastructure;
+using Telegram.Infrastructure.CallbackQueries;
+using Telegram.Infrastructure.MediaFiles;
 
 namespace Telegram.MediaFiles.Images;
 
@@ -32,7 +33,7 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
             await Bot.SendMessageAsync_(
                 message.Chat.Id,
                 "*Choose how to process the image*",
-                replyMarkup: await BuildReplyMarkupAsyncFor(receivedImage, context.RequestAborted));
+                await BuildReplyMarkupAsyncFor(receivedImage, context.RequestAborted));
         }
         catch (ArgumentException ex) when (ex.ParamName is not null)
         {

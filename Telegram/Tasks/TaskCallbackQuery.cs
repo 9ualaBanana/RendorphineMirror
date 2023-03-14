@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using Telegram.Bot;
-using Telegram.CallbackQueries;
+using Telegram.Infrastructure.CallbackQueries;
 using Telegram.MPlus;
 
 namespace Telegram.Tasks;
@@ -28,7 +28,7 @@ public class TaskCallbackQueryHandler : CallbackQueryHandler<TaskCallbackQuery, 
         var api = Apis.Default.WithSessionId(MPlusIdentity.SessionIdOf(context.User));
 
         try { await ShowDetailsAsyncCore(); }
-        catch { await Bot.SendMessageAsync_(ChatId, "Task details are unavailable."); }
+        catch { await Bot.SendMessageAsync_(ChatId, "Task details are currently unavailable."); }
 
 
         async Task ShowDetailsAsyncCore()
@@ -37,13 +37,13 @@ public class TaskCallbackQueryHandler : CallbackQueryHandler<TaskCallbackQuery, 
             var taskState = await api.GetTaskStateAsyncOrThrow(TaskApi.For(RegisteredTask.With(callbackQuery.TaskId), hostShard)).ThrowIfError();
 
             var messageBuilder = new StringBuilder()
-                .AppendLine($"*Task ID*: `{callbackQuery.TaskId}`")
-                .AppendLine($"*State*: `{taskState.State}`")
-                .AppendLine($"*Progress*: `{taskState.Progress}`");
+                .AppendLine($"*Task ID* : `{callbackQuery.TaskId}`")
+                .AppendLine($"*State* : `{taskState.State}`")
+                .AppendLine($"*Progress* : `{taskState.Progress}`");
             if (taskState.Times.Exist)
             {
-                messageBuilder.AppendLine($"*Duration*: `{taskState.Times.Total}`");
-                messageBuilder.AppendLine($"*Server*: `{taskState.Server}`");
+                messageBuilder.AppendLine($"*Duration* : `{taskState.Times.Total}`");
+                messageBuilder.AppendLine($"*Server* : `{taskState.Server}`");
             }
 
             await Bot.SendMessageAsync_(ChatId, messageBuilder.ToString());

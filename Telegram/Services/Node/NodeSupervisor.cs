@@ -1,8 +1,8 @@
 ﻿using Telegram.Models;
 using System.Collections.Specialized;
 using Telegram.Bot;
-using Telegram.Commands;
 using Telegram.Persistence;
+using Telegram.Infrastructure.Commands;
 
 namespace Telegram.Services.Node;
 

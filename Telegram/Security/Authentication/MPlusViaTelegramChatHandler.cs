@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using System.Text.Encodings.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Models;
+using Telegram.Infrastructure;
 using Telegram.Persistence;
 
 namespace Telegram.Security.Authentication;

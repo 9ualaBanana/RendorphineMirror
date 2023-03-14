@@ -1,4 +1,4 @@
-﻿using Telegram.CallbackQueries;
+﻿using Telegram.Infrastructure.CallbackQueries;
 
 namespace Telegram.Bot.MessagePagination;
 

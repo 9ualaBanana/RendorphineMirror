@@ -8,14 +8,13 @@ global using NodeCommon.Tasks.Model;
 using NLog.Web;
 using Telegram.Bot;
 using Telegram.Commands;
+using Telegram.Infrastructure.Middleware.UpdateRouting;
 using Telegram.MediaFiles.Images;
 using Telegram.MediaFiles.Videos;
-using Telegram.Middleware.UpdateRouting;
 using Telegram.Security.Authentication;
 using Telegram.Security.Authorization;
 using Telegram.Services.GitHub;
 using Telegram.Services.Node;
-using Telegram.Tasks.ResultPreview;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,10 +28,8 @@ builder.Services.AddAuthentication(MPlusViaTelegramChatDefaults.AuthenticationSc
 builder.Services.AddAuthorizationWithHandlers();
 
 builder.Services
-    .AddImageProcessing()
-    .AddVideoProcessing();
-
-builder.Services.AddScoped<TelegramPreviewTaskResultHandler>();
+    .AddImages()
+    .AddVideos();
 
 // Telegram.Bot works only with Newtonsoft.
 builder.Services.AddControllers().AddNewtonsoftJson();

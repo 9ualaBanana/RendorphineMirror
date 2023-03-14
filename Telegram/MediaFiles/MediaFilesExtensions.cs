@@ -1,10 +1,12 @@
-﻿namespace Telegram.MediaFiles;
+﻿using Telegram.Infrastructure.CallbackQueries;
+using Telegram.Infrastructure.MediaFiles;
 
-internal static class MediaFilesExtensions
+namespace Telegram.MediaFiles;
+
+static class MediaFilesExtensions
 {
-    internal static IServiceCollection AddMediaFilesManager(this IServiceCollection services)
+    internal static IServiceCollection AddMediaFiles(this IServiceCollection services)
         => services
-        .AddSingleton<MediaFileDownloader>()
-        .AddSingleton<MediaFilesCache>()
-        .AddSingleton<MediaFilesManager>();
+        .AddMediaFilesManager()
+        .AddCallbackQueries();
 }

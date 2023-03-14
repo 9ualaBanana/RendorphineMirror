@@ -2,7 +2,8 @@
 using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Commands.SyntacticAnalysis;
+using Telegram.Infrastructure.Commands;
+using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.MPlus;
 using Telegram.Security.Authorization;
 using Telegram.Services.Node;

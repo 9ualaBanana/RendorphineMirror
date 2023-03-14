@@ -1,7 +1,8 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.CallbackQueries;
-using Telegram.Handlers;
+using Telegram.Infrastructure;
+using Telegram.Infrastructure.CallbackQueries;
+using Telegram.Infrastructure.MediaFiles;
 
 namespace Telegram.MediaFiles.Videos;
 

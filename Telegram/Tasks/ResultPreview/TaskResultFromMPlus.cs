@@ -40,7 +40,7 @@ internal abstract record TaskResultFromMPlus
     protected TaskResultFromMPlus(MPlusFileInfo mPlusFileInfo, string taskExecutor, Uri downloadLink)
     {
         FileInfo = mPlusFileInfo;
-        TaskId = (string)FileInfo["id"]!;
+        TaskId = (string)FileInfo["extid"]!;
         TaskExecutor = taskExecutor;
         FileDownloadLink = downloadLink;
     }

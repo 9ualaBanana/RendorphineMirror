@@ -32,9 +32,8 @@ public class TelegramBot : TelegramBotClient
     internal async Task InitializeAsync()
     {
         string webhookUrl = new Uri(_options.Host, $"telegram/{_options.Token}").ToString();
-        //string webhookUrl = $"{_options.Host}/telegram";    // Used while update routing middleware pipeline is in development.
         await this.SetWebhookAsync(webhookUrl,
-            allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery, UpdateType.ChatMember },
+            allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery },
             dropPendingUpdates: true);
         Logger.LogTrace("Webhook is set", webhookUrl);
     }

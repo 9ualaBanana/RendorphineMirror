@@ -1,4 +1,4 @@
-﻿using Telegram.Commands;
+﻿using Telegram.Infrastructure.Commands;
 
 namespace Telegram.Models;
 

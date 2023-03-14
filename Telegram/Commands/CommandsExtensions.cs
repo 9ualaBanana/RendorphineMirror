@@ -1,15 +1,13 @@
 ﻿using Telegram.Commands.Handlers;
-using Telegram.Commands.SyntacticAnalysis;
+using Telegram.Infrastructure.Commands;
 
 namespace Telegram.Commands;
 
-internal static class CommandsExtensions
+static class CommandsExtensions
 {
-    internal static string CaseInsensitive(this string value) => value.ToLowerInvariant();
-
     internal static IServiceCollection AddCommands(this IServiceCollection services)
         => services
-        .AddCommandParsing()
+        .AddCommandsCore()
         .AddCommandHandlers();
 
     static IServiceCollection AddCommandHandlers(this IServiceCollection services)
