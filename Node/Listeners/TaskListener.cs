@@ -45,7 +45,7 @@ public class TaskListener : ExecutableListenerBase
             var task = new JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
             var taskid = await TaskRegistration.RegisterAsync(task, Settings.SessionId);
 
-            return await WriteJson(response, taskid).ConfigureAwait(false);
+            return await WriteJson(response, taskid.Next(task => task.Id.AsOpResult())).ConfigureAwait(false);
         }
         if (path == "startwatching")
         {
