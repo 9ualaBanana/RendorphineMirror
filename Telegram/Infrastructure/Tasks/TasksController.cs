@@ -12,7 +12,7 @@ public class TasksController : ControllerBase
     public async Task Handle(
         [FromQuery] ExecutedTaskApi executedTaskApi,
         [FromServices] TelegramPreviewTaskResultHandler taskResultHandler)
-            => await taskResultHandler.SendPreviewAsyncUsing(executedTaskApi, HttpContext.RequestAborted);
+        => await taskResultHandler.SendPreviewAsyncUsing(executedTaskApi, HttpContext.RequestAborted);
 
     [HttpGet("getinput/{index}")]
     public ActionResult GetInput([FromRoute] Guid index, [FromServices] MediaFilesCache mediaFilesCache)
