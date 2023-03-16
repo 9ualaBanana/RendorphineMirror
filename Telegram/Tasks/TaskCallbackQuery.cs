@@ -37,6 +37,7 @@ public class TaskCallbackQueryHandler : CallbackQueryHandler<TaskCallbackQuery, 
             var taskState = await api.GetTaskStateAsyncOrThrow(TaskApi.For(RegisteredTask.With(callbackQuery.TaskId))).ThrowIfError();
 
             var messageBuilder = new StringBuilder()
+                .AppendLine($"*Action* : `{callbackQuery.Action}`")
                 .AppendLine($"*Task ID* : `{callbackQuery.TaskId}`")
                 .AppendLine($"*State* : `{taskState.State}`")
                 .AppendLine($"*Progress* : `{taskState.Progress}`");
@@ -54,6 +55,7 @@ public class TaskCallbackQueryHandler : CallbackQueryHandler<TaskCallbackQuery, 
 public record TaskCallbackQuery : CallbackQuery<TaskCallbackData>
 {
     internal string TaskId => ArgumentAt(0).ToString()!;
+    internal string Action => ArgumentAt(1).ToString()!;
 
     internal static TaskCallbackQuery DetailsFor(IRegisteredTask registeredTask)
         => new Builder<TaskCallbackQuery>()
