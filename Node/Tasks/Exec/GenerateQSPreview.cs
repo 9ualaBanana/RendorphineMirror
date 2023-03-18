@@ -30,6 +30,7 @@ public static class GenerateQSPreviewTasks
             graph += "format= yuv420p";
 
             args.Filtergraph.AddLast(graph);
+            args.Args.Add("-an");
 
 
             async Task<string> cacheRepeateWatermark()
