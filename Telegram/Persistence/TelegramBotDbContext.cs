@@ -20,7 +20,7 @@ public class TelegramBotDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite(@"DataSource=botUsers.db");
+        optionsBuilder.UseSqlite(@"DataSource=bot.db");
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
