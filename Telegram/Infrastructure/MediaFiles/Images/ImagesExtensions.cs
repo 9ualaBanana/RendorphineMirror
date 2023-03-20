@@ -8,7 +8,7 @@ static class ImagesExtensions
 {
     internal static IServiceCollection AddImagesCore(this IServiceCollection services)
         => services
-        .AddScoped<IMessageRouter, ImagesRouterMiddleware>()
+        .AddScoped<MessageRouter, ImagesRouterMiddleware>()
         .AddMediaFiles();
 
     internal static async Task<bool> IsImageAsync(this Message message, HttpClient httpClient, CancellationToken cancellationToken)
