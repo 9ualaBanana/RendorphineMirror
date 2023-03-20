@@ -17,7 +17,7 @@ internal class PluginsUpdater : IHeartbeatGenerator
     public EventHandler<HttpResponseMessage> ResponseHandler => async (_, response) =>
     {
         _logger.Trace("{Service}'s (as {Interface}) plugins deployment callback is called",
-            nameof(UserSettingsManager), nameof(IHeartbeatGenerator));
+            "UserSettingsManager", nameof(IHeartbeatGenerator));
 
         if (_deploymentInProcess) return;
 
@@ -29,7 +29,7 @@ internal class PluginsUpdater : IHeartbeatGenerator
     async Task TryDeployUninstalledPluginsAsync(HttpResponseMessage response)
     {
         try { await DeployUninstalledPluginsAsync(response); }
-        catch (Exception ex) { _logger.Error(ex, "{Service} was unable to deploy uninstalled plugins", nameof(UserSettingsManager)); }
+        catch (Exception ex) { _logger.Error(ex, "{Service} was unable to deploy uninstalled plugins", "UserSettingsManager"); }
     }
 
     static async Task DeployUninstalledPluginsAsync(HttpResponseMessage response)

@@ -5,8 +5,6 @@ namespace NodeCommon.Tasks;
 
 public class TaskCreationInfo
 {
-    public PluginType Type = default!;
-    public string? Version = default!;
     public string Action = default!;
     public JObject Input = default!;
     public JObject Output = default!;

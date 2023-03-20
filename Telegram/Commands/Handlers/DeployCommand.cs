@@ -38,11 +38,14 @@ public class DeployCommand : CommandHandler, IAuthorizationRequirementsProvider
 
         var plugins = pluginTypes.Where(type => type.IsPlugin())
             .Select(type => new PluginToDeploy() { Type = type, Version = string.Empty }).ToHashSet();
+        
+        var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(context.User));
 
-        var userSettingsManager = new UserSettingsManager(_httpClient);
-        var userSettings = await userSettingsManager.TryFetchAsync(MPlusIdentity.SessionIdOf(context.User));
-        if (userSettings is null)
+        var userSettingsr = await api.GetSettingsAsync();
+        if (!userSettingsr)
         { await Bot.SendMessageAsync_(Update.Message!.Chat.Id, "Plugins couldn't be deployed."); return; }
+    
+        var userSettings = userSettingsr.Value;
         PopulateWithChildPlugins(plugins, pluginTypes);
         if (nodeNames.Any())
         {
@@ -53,14 +56,14 @@ public class DeployCommand : CommandHandler, IAuthorizationRequirementsProvider
             {
                 var nodeSettings = new UserSettings(node.Guid) { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware };
                 nodeSettings.ThisNodeInstallSoftware.UnionEachWith(plugins);
-                if (!await userSettingsManager.TrySetAsync(nodeSettings, MPlusIdentity.SessionIdOf(context.User)))
+                if (!await api.SetSettingsAsync(nodeSettings))
                 { await Bot.SendMessageAsync_(Update.Message.Chat.Id, "Plugins couldn't be deployed."); return; }
             }
         }
         else
         {
             userSettings.InstallSoftware.UnionEachWith(plugins);
-            if (!await userSettingsManager.TrySetAsync(new UserSettings() { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware }, MPlusIdentity.SessionIdOf(context.User)))
+            if (!await api.SetSettingsAsync(new UserSettings() { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware }))
             { await Bot.SendMessageAsync_(Update.Message!.Chat.Id, "Plugins couldn't be deployed."); return; }
         }
         await Bot.SendMessageAsync_(Update.Message!.Chat.Id, "Plugins successfully added to the deploy queue.");

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NodeCommon.NodeUserSettings;
 
 namespace NodeCommon;
 
@@ -354,4 +355,11 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
         Extension extension)
         => await ShardGet<string>(registeredTaskApi, "getmplusitemdownloadlink", "link", "Getting M+ item download link",
             AddSessionId(("iid", iid), ("format", extension.ToString().ToLower()), ("original", extension == Extension.jpeg ? "1" : "0")));
+
+
+    public ValueTask<OperationResult<UserSettings>> GetSettingsAsync() =>
+        Api.ApiGet<UserSettings>($"{TaskManagerEndpoint}/getmysettings", "settings", "Getting user settings", AddSessionId());
+
+    public ValueTask<OperationResult> SetSettingsAsync(UserSettings userSettings) =>
+        Api.ApiPost($"{TaskManagerEndpoint}/setusersettings", "Setting user settings", AddSessionId(("settings", JsonConvert.SerializeObject(userSettings))));
 }
