@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
 using Telegram.Models;
+using Telegram.Tasks;
 
 namespace Telegram.MPlus;
 
@@ -41,5 +42,29 @@ public class MPlusTaskLauncherClient
 				throw exception;
 			}
 		}
+	}
+
+	internal async Task<TaskPrices> RequestTaskPricesAsync(CancellationToken cancellationToken)
+	{
+		if ((await RequestTaskPricesAsyncCore())["levels"] is JToken prices)
+			return new TaskPrices(prices);
+		else
+		{
+			var exception = new InvalidDataException("Task prices request returned data in an unknow format.");
+			_logger.LogCritical(exception, message: default);
+			throw exception;
+		}
+
+
+		async Task<JToken> RequestTaskPricesAsyncCore()
+		{
+            try { return (await (await _client.GetAsync("getbasepricelevels", cancellationToken)).GetJsonIfSuccessfulAsync()); }
+            catch (Exception ex)
+            {
+                var exception = new HttpRequestException("Task prices request failed.", ex);
+                _logger.LogCritical(exception, message: default);
+                throw exception;
+            }
+        }
 	}
 }
