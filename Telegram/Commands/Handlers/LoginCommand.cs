@@ -80,10 +80,10 @@ public class LoginCommand : CommandHandler
 
         async Task SendSuccessfulLogInMessageAsync(string sessionId)
         {
-            var balance = await _mPlusClient.TaskLauncher.TryRequestBalanceAsync(sessionId, context.RequestAborted);
+            var balance = await _mPlusClient.TaskLauncher.RequestBalanceAsync(sessionId, context.RequestAborted);
             await Bot.SendMessageAsync_(Update.ChatId(),
                 "You are logged in now.\n\n" +
-                $"*Balance* : {(balance is not null ? $"`{balance.RealBalance}`" : "Not available")}",
+                $"*Balance* : `{balance.RealBalance}`",
                 cancellationToken: context.RequestAborted);
         }
     }
