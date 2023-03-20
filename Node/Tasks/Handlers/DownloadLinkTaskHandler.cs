@@ -21,7 +21,7 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
             () => FileFormatExtensions.FromMime(data.Content.Headers.ContentType!.ToString()),
             () => FileFormatExtensions.FromFilename(data.Content.Headers.ContentDisposition!.FileName!),
             () => FileFormatExtensions.FromFilename(info.Url.Split('?')[0]),
-            () => task.GetAction().InputRequirements.Single(x => x.Required).Format
+            () => task.GetAction().InputRequirements.Single(x => x.Required).DistinctFormats.Max()
         );
 
         using (var file = File.Open(task.FSNewInputFile(format), FileMode.Create, FileAccess.Write))

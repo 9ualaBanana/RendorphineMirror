@@ -10,8 +10,12 @@ public static class EsrganTasks
     {
         public override TaskAction Name => TaskAction.EsrganUpscale;
         public override PluginType Type => PluginType.Python_Esrgan;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
+
+        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements()
+            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Mov));
+
+        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements()
+            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Mov));
 
         protected override async Task ExecuteImpl(ReceivedTask task, UpscaleEsrganInfo data)
         {

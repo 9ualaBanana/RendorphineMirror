@@ -69,7 +69,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
 
     static async Task NotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        var endpoint = new Uri(new Uri("https://78a3-82-211-155-73.eu.ngrok.io"), "tasks/result").ToString();
+        var endpoint = new Uri(new Uri(Settings.ServerUrl), "tasks/result").ToString();
         var uploadedFiles = string.Join('&', task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(fileInfo => $"uploadedfiles={fileInfo.Iid}"));
         var queryString =
             $"id={task.Id}&" +

@@ -11,9 +11,11 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     {
         foreach (var requirement in task.GetAction().InputRequirements)
         {
-            try { await download(requirement.Format); }
-            catch { if (requirement.Required) throw; }
+            try { await Task.WhenAll(requirement.DistinctFormats.Select(download)); }
+            catch { }
         }
+
+        task.GetAction().InputRequirements.Check(task).ThrowIfError();
 
 
         async Task download(FileFormat format)

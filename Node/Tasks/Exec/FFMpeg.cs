@@ -124,7 +124,7 @@ public static class FFMpegTasks
 
         protected sealed override async Task ExecuteImpl(ReceivedTask task, T data)
         {
-            foreach (var file in task.GetInputFiles())
+            foreach (var file in task.InputFiles)
                 await execute(file);
 
 
