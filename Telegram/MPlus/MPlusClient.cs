@@ -1,15 +1,16 @@
-﻿using NodeCommon.Tasks;
-using Telegram.Tasks.ResultPreview;
+﻿using Telegram.Tasks.ResultPreview;
 
 namespace Telegram.MPlus;
 
 public class MPlusClient
 {
     internal readonly MPlusTaskManagerClient TaskManager;
+    internal readonly MPlusTaskLauncherClient TaskLauncher;
 
-    public MPlusClient(MPlusTaskManagerClient taskManager)
+    public MPlusClient(MPlusTaskManagerClient taskManager, MPlusTaskLauncherClient taskLauncher)
     {
         TaskManager = taskManager;
+        TaskLauncher = taskLauncher;
     }
 
     internal async Task<TaskResultFromMPlus> RequestTaskResultAsyncUsing(

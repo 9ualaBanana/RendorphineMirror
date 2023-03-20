@@ -30,63 +30,61 @@ public class LoginCommand : CommandHandler
 
     protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
     {
-        var arguments = receivedCommand.UnquotedArguments.ToImmutableArray();
-        if (arguments.Length == 2)
+        var user = await _database.FindAsync<TelegramBotUserEntity>(Update.ChatId());
+        if (user is null)
         {
-            if (await TryLogInAsyncUsing(arguments.First(), arguments.Last(), context) is MPlusIdentityEntity mPlusIdentityEntity)
-                await TryPersistAuthenticatedUserAsync(mPlusIdentityEntity, context);
+            user = (await _database.Users.AddAsync(new(Update.ChatId()), context.RequestAborted)).Entity;
+            await _database.SaveChangesAsync(context.RequestAborted);
+        }
+
+        if (user.MPlusIdentity is null)
+        {
+            var arguments = receivedCommand.UnquotedArguments.ToImmutableArray();
+            if (arguments.Length == 2)
+            {
+                if (await TryLogInAsyncUsing(arguments.First(), arguments.Last()) is MPlusIdentityEntity identity)
+                {
+                    await PersistAuthenticatedUserAsync(identity);
+                    await SendSuccessfulLogInMessageAsync(identity.SessionId);
+                }
+            }
+            else await Bot.SendMessageAsync_(Update.ChatId(),
+                $"Login must be performed like the following:\n" +
+                $"`{Target.PrefixedCommandText} <email> <password>`",
+                cancellationToken: context.RequestAborted);
         }
         else await Bot.SendMessageAsync_(Update.ChatId(),
-            $"Login must be performed like the following:\n" +
-            $"`{Target.PrefixedCommandText} <email> <password>`",
+            $"You are already logged in.",
             cancellationToken: context.RequestAborted);
-    }
-
-    async Task<MPlusIdentityEntity?> TryLogInAsyncUsing(string email, string password, HttpContext context)
-    {
-        try { return new MPlusIdentityEntity(await _mPlusClient.TaskManager.LogInAsyncUsing(email, password)); }
-        catch (Exception ex)
-        {
-            await Bot.SendMessageAsync_(Update.ChatId(),
-                "Login failed:\n" +
-                ex.Message,
-                cancellationToken: context.RequestAborted);
-            return null;
-        }
-    }
-
-    async Task TryPersistAuthenticatedUserAsync(MPlusIdentityEntity mPlusIdentityEntity, HttpContext context)
-    {
-        if (await TryPersistAuthenticatedUserAsyncCore())
-        {
-            await Bot.SendMessageAsync_(Update.ChatId(),
-                "You are logged in now.",
-                cancellationToken: context.RequestAborted);
-        }
-        else
-        {
-            await Bot.SendMessageAsync_(Update.ChatId(),
-                "You need to logout first.",
-                cancellationToken: context.RequestAborted);
-        }
 
 
-        async Task<bool> TryPersistAuthenticatedUserAsyncCore()
+        async Task<MPlusIdentityEntity?> TryLogInAsyncUsing(string email, string password)
         {
-            if (await _database.FindAsync<TelegramBotUserEntity>(Update.ChatId()) is TelegramBotUserEntity user)
+            try { return new MPlusIdentityEntity(await _mPlusClient.TaskManager.LogInAsyncUsing(email, password)); }
+            catch (Exception ex)
             {
-                if (user.MPlusIdentity is null)
-                {
-                    user.MPlusIdentity = mPlusIdentityEntity;
-                    _database.Update(user);
-                }
-                else return false;
+                await Bot.SendMessageAsync_(Update.ChatId(),
+                    "Login attempt failed:\n" +
+                    ex.Message,
+                    cancellationToken: context.RequestAborted);
+                return null;
             }
-            else
-            { await _database.Users.AddAsync(new(Update.ChatId()) { MPlusIdentity = mPlusIdentityEntity }, context.RequestAborted); }
+        }
 
+        async Task PersistAuthenticatedUserAsync(MPlusIdentityEntity identity)
+        {
+            user.MPlusIdentity = identity;
+            _database.Update(user);
             await _database.SaveChangesAsync(context.RequestAborted);
-            return true;
+        }
+
+        async Task SendSuccessfulLogInMessageAsync(string sessionId)
+        {
+            var balance = await _mPlusClient.TaskLauncher.TryRequestBalanceAsync(sessionId, context.RequestAborted);
+            await Bot.SendMessageAsync_(Update.ChatId(),
+                "You are logged in now.\n\n" +
+                $"*Balance* : {(balance is not null ? $"`{balance.RealBalance}`" : "Not available")}",
+                cancellationToken: context.RequestAborted);
         }
     }
 }

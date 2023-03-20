@@ -11,6 +11,7 @@ public static class Api
 {
     public const string ServerUri = "https://tasks.microstock.plus";
     public const string TaskManagerEndpoint = $"{ServerUri}/rphtaskmgr";
+    public static readonly Uri TaskLauncherEndpoint = new($"{ServerUri}/rphtasklauncher/");
     public const string ContentDBEndpoint = $"https://cdb.microstock.plus/contentdb";
 
     public static readonly HttpClient Client = new();
