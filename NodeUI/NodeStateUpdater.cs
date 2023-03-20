@@ -59,6 +59,7 @@ public static class NodeStateUpdater
 
                     var jtoken = await JToken.LoadAsync(reader);
                     Logger.Trace($"Node state updated: {string.Join(", ", (jtoken as JObject)?.Properties().Select(x => x.Name) ?? new[] { jtoken.ToString(Formatting.None) })}");
+                    cacheloaded = true;
 
                     using var tokenreader = jtoken.CreateReader();
                     JsonSettings.TypedS.Populate(tokenreader, NodeGlobalState.Instance);
