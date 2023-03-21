@@ -12,10 +12,12 @@ public static class VectorizerTasks
     {
         public override TaskAction Name => TaskAction.VeeeVectorize;
         public override PluginType Type => PluginType.VeeeVectorizer;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
+        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements()
+            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Png));
+
         public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements()
-            .RequiredAtLeast(FileFormat.Jpeg, 1)
-            .RequiredAtLeast(FileFormat.Eps, 1);
+            .RequiredAtLeast(FileFormat.Jpeg, 2)
+            .RequiredAtLeast(FileFormat.Eps, 2);
 
         protected override async Task ExecuteImpl(ReceivedTask task, VeeeVectorizeInfo data)
         {

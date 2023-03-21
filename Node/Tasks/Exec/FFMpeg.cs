@@ -239,8 +239,10 @@ public static class FFMpegTasks
     class FFMpegEditRaster : FFMpegMediaEditAction<EditRasterInfo>
     {
         public override TaskAction Name => TaskAction.EditRaster;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg);
+        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements()
+            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Png));
+        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements()
+            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Png));
     }
 
 
