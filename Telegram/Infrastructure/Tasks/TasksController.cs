@@ -18,7 +18,7 @@ public class TasksController : ControllerBase
     public ActionResult GetInput([FromRoute] Guid index, [FromServices] MediaFilesCache mediaFilesCache)
     {
         if (mediaFilesCache.TryRetrieveMediaFileWith(index) is CachedMediaFile cachedTaskInputFile)
-            return PhysicalFile(cachedTaskInputFile.Path, MimeTypes.GetMimeType(cachedTaskInputFile.File.Extension.ToString()));
+            return PhysicalFile(cachedTaskInputFile.Path, cachedTaskInputFile.File.MimeType);
         else return NotFound();
     }
 }

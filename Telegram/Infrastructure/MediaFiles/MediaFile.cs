@@ -1,4 +1,5 @@
-﻿using NLog;
+﻿using HeyRed.Mime;
+using NLog;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.InputFiles;
 using ILogger = NLog.ILogger;
@@ -37,7 +38,7 @@ public sealed class MediaFile
     {
         Size = size;
         Extension = extension;
-        MimeType = MimeTypes.GetMimeType(extension.ToString());
+        MimeType = MimeTypesMap.GetMimeType(extension.ToString());
         FileId = fileId;
         Location = null;
     }
@@ -46,7 +47,7 @@ public sealed class MediaFile
     {
         Size = null;
         Extension = extension;
-        MimeType = MimeTypes.GetMimeType(extension.ToString());
+        MimeType = MimeTypesMap.GetMimeType(extension.ToString());
         FileId = null;
         Location = location;
     }
