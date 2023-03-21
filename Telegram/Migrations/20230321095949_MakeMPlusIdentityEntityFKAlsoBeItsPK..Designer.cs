@@ -11,8 +11,8 @@ using Telegram.Persistence;
 namespace Telegram.Migrations.TelegramBotUsersDb
 {
     [DbContext(typeof(TelegramBotDbContext))]
-    [Migration("20230320065640_Rename database.")]
-    partial class Renamedatabase
+    [Migration("20230321095949_MakeMPlusIdentityEntityFKAlsoBeItsPK.")]
+    partial class MakeMPlusIdentityEntityFKAlsoBeItsPK
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -21,8 +21,8 @@ namespace Telegram.Migrations.TelegramBotUsersDb
 
             modelBuilder.Entity("Telegram.Persistence.MPlusIdentityEntity", b =>
                 {
-                    b.Property<string>("UserId")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("TelegramBotUserChatId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AccessLevel")
                         .HasColumnType("INTEGER");
@@ -31,13 +31,11 @@ namespace Telegram.Migrations.TelegramBotUsersDb
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<long?>("TelegramBotUserChatId")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
-                    b.HasKey("UserId");
-
-                    b.HasIndex("TelegramBotUserChatId")
-                        .IsUnique();
+                    b.HasKey("TelegramBotUserChatId");
 
                     b.ToTable("MPlusIdentityEntity");
                 });
@@ -56,7 +54,9 @@ namespace Telegram.Migrations.TelegramBotUsersDb
                 {
                     b.HasOne("Telegram.Persistence.TelegramBotUserEntity", "TelegramBotUser")
                         .WithOne("MPlusIdentity")
-                        .HasForeignKey("Telegram.Persistence.MPlusIdentityEntity", "TelegramBotUserChatId");
+                        .HasForeignKey("Telegram.Persistence.MPlusIdentityEntity", "TelegramBotUserChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("TelegramBotUser");
                 });
