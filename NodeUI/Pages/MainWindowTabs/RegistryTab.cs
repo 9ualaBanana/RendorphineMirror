@@ -12,8 +12,6 @@ public class RegistryTab : Panel
         Children.Clear();
 
         var softlist = await Apis.Default.GetSoftwareAsync().ThrowIfError();
-        var prop = new JProperty("_", JObject.FromObject(softlist, JsonSettings.LowercaseS));
-
         var describer = new DictionaryDescriber(softlist.GetType())
         {
             DefaultKeyValue = JToken.FromObject("NewSoft"),
@@ -24,7 +22,7 @@ public class RegistryTab : Panel
                 ImmutableArray<string>.Empty
             ), JsonSettings.LowercaseS)
         };
-        var setting = JsonUISetting.Create(prop, describer);
+        var setting = JsonUISetting.Create(new JProperty("_", JObject.FromObject(softlist, JsonSettings.LowercaseS)), describer);
 
 
         Children.Add(new StackPanel()
@@ -38,9 +36,11 @@ public class RegistryTab : Panel
                     Text = "SAVE",
                     OnClickSelf = async self =>
                     {
+                        setting.UpdateValue();
+
                         var stream = new MemoryStream();
                         using (var writer = new JsonTextWriter(new StreamWriter(stream, leaveOpen: true)))
-                            await ((JObject) prop.Value).WriteToAsync(writer);
+                            await ((JObject) setting.Property.Value).WriteToAsync(writer);
 
                         stream.Position = 0;
                         using var content = new StreamContent(stream) { Headers = { ContentType = new("application/json") } };
