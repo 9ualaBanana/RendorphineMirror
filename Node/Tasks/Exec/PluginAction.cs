@@ -36,72 +36,6 @@ public abstract class PluginAction<T> : IPluginAction
     protected abstract Task Execute(ReceivedTask task, T data);
 
 
-    static Process StartProcess(string exepath, string args, IEnumerable<string> argsarr, ILoggable? logobj)
-    {
-        logobj?.LogInfo($"Starting {exepath} {args}{string.Join(' ', argsarr)}");
-
-        var startinfo = new ProcessStartInfo(exepath, args)
-        {
-            WindowStyle = ProcessWindowStyle.Hidden,
-            CreateNoWindow = true,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-        foreach (var arg in argsarr) startinfo.ArgumentList.Add(arg);
-
-        var process = Process.Start(startinfo);
-        if (process is null) throw new InvalidOperationException("Could not start plugin process");
-
-        return process;
-    }
-    protected static Process StartProcess(string exepath, IEnumerable<string> args, ILoggable? logobj) => StartProcess(exepath, "", args, logobj);
-    protected static Process StartProcess(string exepath, string args, ILoggable? logobj) => StartProcess(exepath, args, Enumerable.Empty<string>(), logobj);
-
-    protected static void EnsureZeroStatusCode(Process process)
-    {
-        if (process.ExitCode != 0)
-            throw new Exception($"Task process ended with exit code {process.ExitCode}");
-    }
-    protected static Task StartReadingProcessOutput(Process process, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout, LogLevel? stderr)
-    {
-        return Task.WhenAll(
-            startReading(process.StandardOutput, false),
-            startReading(process.StandardError, true)
-        );
-
-
-        async Task startReading(StreamReader input, bool err)
-        {
-            while (true)
-            {
-                var str = await input.ReadLineAsync().ConfigureAwait(false);
-                if (str is null) return;
-
-                var logstr = $"[Process {process.Id}] {str}";
-                if (err) logobj?.Log(stderr ?? LogLevel.Error, logstr);
-                else logobj?.Log(stdout ?? LogLevel.Info, logstr);
-
-                onRead?.Invoke(err, str);
-            }
-        }
-    }
-
-    static async Task ExecuteProcess(string exepath, string args, IEnumerable<string> argsarr, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout, LogLevel? stderr)
-    {
-        using var process = StartProcess(exepath, args, argsarr, logobj);
-        var reading = StartReadingProcessOutput(process, onRead, logobj, stdout, stderr);
-
-        await process.WaitForExitAsync();
-        await reading;
-
-        EnsureZeroStatusCode(process);
-    }
-    protected static Task ExecuteProcess(string exepath, IEnumerable<string> args, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null) =>
-        ExecuteProcess(exepath, string.Empty, args, onRead, logobj, stdout, stderr);
-    protected static Task ExecuteProcess(string exepath, string args, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null) =>
-        ExecuteProcess(exepath, args, Enumerable.Empty<string>(), onRead, logobj, stdout, stderr);
-
     /// <summary>
     /// For windows, just returns provided path parameter.
     /// For unix, returns path for use in wine: /home/user/test -> Z:\home\user\test
@@ -109,17 +43,7 @@ public abstract class PluginAction<T> : IPluginAction
     protected static async ValueTask<string> GetWinPath(string path)
     {
         if (Environment.OSVersion.Platform == PlatformID.Win32NT) return path;
-
-        var winpath = string.Empty;
-        await ExecuteProcess("/bin/winepath", string.Empty, new[] { "-w", path }, onread, null, LogLevel.Info, LogLevel.Error);
-        return winpath;
-
-
-        void onread(bool err, string str)
-        {
-            if (!err)
-                winpath += str;
-        }
+        return await Processes.FullExecute("/bin/winepath", new[] { "-w", path }, null, LogLevel.Info, LogLevel.Error);
     }
     protected static Task ExecuteProcessWithWineSupport(string exepath, string args, Action<bool, string>? onRead, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null)
     {
@@ -129,7 +53,7 @@ public abstract class PluginAction<T> : IPluginAction
             exepath = "/bin/wine";
         }
 
-        return ExecuteProcess(exepath, args, Enumerable.Empty<string>(), onRead, logobj, stdout, stderr);
+        return Processes.Execute(exepath, args, onRead, logobj, stdout, stderr);
     }
 
 

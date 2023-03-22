@@ -142,7 +142,7 @@ public static class FFMpegTasks
                 task.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
                 duration /= argholder.Rate;
 
-                await ExecuteProcess(task.GetPlugin().GetInstance().Path, args, onRead, task, stderr: LogLevel.Trace);
+                await Processes.Execute(task.GetPlugin().GetInstance().Path, args, onRead, task, stderr: LogLevel.Trace);
 
 
                 void onRead(bool err, string line)
