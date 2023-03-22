@@ -24,8 +24,8 @@ public static class AutoCleanup
         foreach (var dir in Directory.GetDirectories(ReceivedTask.FSTaskDataDirectory()))
         {
             var taskid = Path.GetFileName(dir);
-            if (NodeSettings.QueuedTasks.ContainsKey(taskid)) return;
-            if (NodeSettings.CompletedTasks.ContainsKey(taskid)) return;
+            if (NodeSettings.QueuedTasks.ContainsKey(taskid)) continue;
+            if (NodeSettings.CompletedTasks.ContainsKey(taskid)) continue;
 
             Logger.Info($"[Cleanup] Deleting unknown qtask dir {dir}");
             Directory.Delete(dir, true);
@@ -35,7 +35,7 @@ public static class AutoCleanup
         foreach (var dir in Directory.GetDirectories(ReceivedTask.FSPlacedTaskDataDirectory()))
         {
             var taskid = Path.GetFileName(dir);
-            if (NodeSettings.PlacedTasks.ContainsKey(taskid) || NodeSettings.CompletedTasks.ContainsKey(taskid)) return;
+            if (NodeSettings.PlacedTasks.ContainsKey(taskid) || NodeSettings.CompletedTasks.ContainsKey(taskid)) continue;
 
             Logger.Info($"[Cleanup] Deleting unknown ptask dir {dir}");
             Directory.Delete(dir, true);
