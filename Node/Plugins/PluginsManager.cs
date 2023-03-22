@@ -6,18 +6,20 @@ public static class PluginsManager
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-    readonly static HashSet<PluginDiscoverer> _pluginsDiscoverers = new(_pluginsTypesCount);
+    readonly static HashSet<IPluginDiscoverer> _pluginsDiscoverers = new(_pluginsTypesCount);
     readonly static int _pluginsTypesCount = typeof(PluginType).GetFields().Length - 1;
 
+    /*
     /// <remarks>
     /// Lazily evaluated. Might contain outdated info.
     /// Call <see cref="DiscoverInstalledPlugins"/> or <see cref="DiscoverInstalledPluginsInBackground"/> to update.
     /// </remarks>
     public static HashSet<Plugin> InstalledPlugins
     {
-        get => _installedPlugins ??= DiscoverInstalledPlugins();
+        get => _installedPlugins ??= DiscoverInstalledPluginsAsync();
         private set => _installedPlugins = value;
-    }
+    }*/
+
     static HashSet<Plugin>? _installedPlugins;
 
 
@@ -32,7 +34,7 @@ public static class PluginsManager
 
     static async Task DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins)
     {
-        foreach (var plugin in LeaveOnlyUninstalled(plugins))
+        foreach (var plugin in await LeaveOnlyUninstalled(plugins))
             await DeployUninstalledPluginAsync(plugin);
     }
 
@@ -41,29 +43,34 @@ public static class PluginsManager
         _logger.Info("Deploying {PluginType} plugin", plugin.Type);
         await new ScriptPluginDeploymentInfo(plugin).DeployAsync();
         _logger.Info("{PluginType} plugin is deployed", plugin.Type);
-        await DiscoverInstalledPluginsInBackground();
+        await DiscoverInstalledPluginsAsync();
     }
     #endregion
 
 
     #region Discovering
-    public static async Task<HashSet<Plugin>> DiscoverInstalledPluginsInBackground() =>
-        await Task.Run(DiscoverInstalledPlugins);
+    /// <summary> Discovers installed plugins. Returns already cached result if available. </summary>
+    static async ValueTask<HashSet<Plugin>> GetInstalledPluginsAsync() => _installedPlugins ??= await DiscoverInstalledPluginsAsync();
 
-    public static HashSet<Plugin> DiscoverInstalledPlugins()
+    public static async ValueTask<HashSet<Plugin>> DiscoverInstalledPluginsAsync()
     {
-        InstalledPlugins = _pluginsDiscoverers.SelectMany(pluginDiscoverer => pluginDiscoverer.Discover()).ToHashSet();
+        _installedPlugins = (await Task.WhenAll(_pluginsDiscoverers.Select(async d => await d.Discover()))).SelectMany(ps => ps).ToHashSet();
         _logger.Info("List of installed plugins is updated");
-        NodeGlobalState.Instance.InstalledPlugins.SetRange(InstalledPlugins);
-        return InstalledPlugins;
+
+        NodeGlobalState.Instance.InstalledPlugins.SetRange(_installedPlugins);
+        return _installedPlugins;
     }
 
-    public static void RegisterPluginDiscoverers(params PluginDiscoverer[] pluginDiscoverers) => _pluginsDiscoverers.UnionWith(pluginDiscoverers);
-    public static void RegisterPluginDiscoverer(PluginDiscoverer pluginDiscoverer) => _pluginsDiscoverers.Add(pluginDiscoverer);
+    public static void RegisterPluginDiscoverers(params IPluginDiscoverer[] pluginDiscoverers) => _pluginsDiscoverers.UnionWith(pluginDiscoverers);
+    public static void RegisterPluginDiscoverer(IPluginDiscoverer pluginDiscoverer) => _pluginsDiscoverers.Add(pluginDiscoverer);
     #endregion
 
 
-    static IEnumerable<PluginToDeploy> LeaveOnlyUninstalled(IEnumerable<PluginToDeploy> plugins) =>
-    plugins.SelectMany(plugin => plugin.SelfAndSubPlugins)
-        .Where(plugin => !InstalledPlugins.Any(installedPlugin => plugin == installedPlugin));
+    static async ValueTask<IEnumerable<PluginToDeploy>> LeaveOnlyUninstalled(IEnumerable<PluginToDeploy> plugins)
+    {
+        var installed = await GetInstalledPluginsAsync();
+
+        return plugins.SelectMany(plugin => plugin.SelfAndSubPlugins)
+            .Where(plugin => !installed.Any(installedPlugin => plugin == installedPlugin));
+    }
 }
