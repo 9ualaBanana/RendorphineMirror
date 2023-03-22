@@ -99,7 +99,7 @@ public static class JsonUISetting
 
             public TextBoxSetting(TextSetting setting) : base(setting)
             {
-                TextBox = new TextBox() { Text = Get().Value<string?>() ?? string.Empty };
+                TextBox = new TextBox() { AcceptsReturn = true, Text = Get().Value<string?>() ?? string.Empty };
                 Children.Add(TextBox);
             }
 
