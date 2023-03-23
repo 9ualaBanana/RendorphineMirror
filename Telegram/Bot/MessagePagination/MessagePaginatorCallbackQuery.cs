@@ -24,14 +24,16 @@ public class MessagePaginatorCallbackQueryHandler : CallbackQueryHandler<Message
 
     public override async Task HandleAsync(MessagePaginatorCallbackQuery callbackQuery, HttpContext context)
     {
-        if (!_chunkedMessagesAutoStorage.TryGet(Update.CallbackQuery!.Message!, out var paginatedMessage))
-            return;
+        if (_chunkedMessagesAutoStorage.TryGet(Update.CallbackQuery!.Message!, out var paginatedMessage))
+        {
+            if (callbackQuery.Data is MessagePaginatorCallbackData.Previous)
+                paginatedMessage.Content.MovePointerToBeginningOfPreviousChunk();
+            var controlButtons = _controlButtons.For(paginatedMessage);
+            var nextPage = paginatedMessage.Content.NextChunk.Sanitize();
 
-        if (callbackQuery.Data is MessagePaginatorCallbackData.Previous)
-            paginatedMessage.Content.MovePointerToBeginningOfPreviousChunk();
-        var messagePaginatorControlButtons = _controlButtons.For(paginatedMessage);
-        await Bot.EditMessageTextAsync(ChatId, paginatedMessage.Message.MessageId, paginatedMessage.Content.NextChunk.Sanitize(), ParseMode.MarkdownV2);
-        await Bot.EditMessageReplyMarkupAsync(ChatId, paginatedMessage.Message.MessageId, messagePaginatorControlButtons);
+            await Bot.EditMessageTextAsync(ChatId, paginatedMessage.Message.MessageId, nextPage, ParseMode.MarkdownV2);
+            await Bot.EditMessageReplyMarkupAsync(ChatId, paginatedMessage.Message.MessageId, controlButtons);
+        }
     }
 }
 

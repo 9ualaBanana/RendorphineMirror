@@ -1,4 +1,5 @@
 ﻿using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Telegram.Bot.MessagePagination;
 
@@ -23,17 +24,27 @@ public class MessagePaginator
         TelegramBot bot,
         ChatId chatId,
         string text,
+        InlineKeyboardMarkup? replyMarkup = null,
         bool? disableWebPagePreview = default,
         bool? disableNotification = default,
         bool? protectContent = default,
         CancellationToken cancellationToken = default)
     {
         var chunkedText = new ChunkedText(text);
-        var messagePaginatorControlButtons = _controlButtons.For(chunkedText);
+        replyMarkup = ReplyMarkup();
 
-        var message = await bot.SendMessageAsyncCore(chatId, chunkedText.NextChunk, messagePaginatorControlButtons, disableWebPagePreview, disableNotification, protectContent, cancellationToken);
+        var message = await bot.SendMessageAsyncCore(chatId, chunkedText.NextChunk, replyMarkup, disableWebPagePreview, disableNotification, protectContent, cancellationToken);
         if (chunkedText.IsChunked)
             _chunkedMessagesAutoStorage.Add(new(message, chunkedText));
         return message;
+
+
+        InlineKeyboardMarkup? ReplyMarkup()
+        {
+            var controlButtons = _controlButtons.For(chunkedText);
+            return replyMarkup is null ?
+                controlButtons.ToArray() :
+                replyMarkup.InlineKeyboard.Append(controlButtons).ToArray();
+        }
     }
 }

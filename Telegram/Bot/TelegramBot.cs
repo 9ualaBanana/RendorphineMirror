@@ -38,7 +38,7 @@ public class TelegramBot : TelegramBotClient
         Logger.LogTrace("Webhook is set", webhookUrl);
     }
 
-    internal async Task NotifySubscribersAsync(string text, IReplyMarkup? replyMarkup = null)
+    internal async Task NotifySubscribersAsync(string text, InlineKeyboardMarkup? replyMarkup = null)
     {
         foreach (var subscriber in Subscriptions)
             await SendMessageAsync_(subscriber, text, replyMarkup: replyMarkup);
@@ -56,7 +56,7 @@ public class TelegramBot : TelegramBotClient
             image,
             caption?.Sanitize(),
             ParseMode.MarkdownV2,
-            default,
+            captionEntities: null,
             disableNotification,
             protectContent,
             replyMarkup: replyMarkup,
@@ -83,7 +83,7 @@ public class TelegramBot : TelegramBotClient
             thumb,
             caption?.Sanitize(),
             ParseMode.MarkdownV2,
-            null,
+            captionEntities: null,
             supportsStreaming,
             disableNotification,
             protectContent,
@@ -93,13 +93,13 @@ public class TelegramBot : TelegramBotClient
     internal async Task<Message> SendMessageAsync_(
         ChatId chatId,
         string text,
-        IReplyMarkup? replyMarkup = null,
+        InlineKeyboardMarkup? replyMarkup = null,
         bool? disableWebPagePreview = default,
         bool? disableNotification = default,
         bool? protectContent = default,
         CancellationToken cancellationToken = default)
-        => await (MessagePaginator.MustBeUsedToSend(text) && replyMarkup is null ?
-        _messagePaginator.SendPaginatedMessageAsyncUsing(this, chatId, text, disableWebPagePreview, disableNotification, protectContent, cancellationToken) :
+        => await (MessagePaginator.MustBeUsedToSend(text) ?
+        _messagePaginator.SendPaginatedMessageAsyncUsing(this, chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, cancellationToken) :
         SendMessageAsyncCore(chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, cancellationToken));
 
     internal async Task<Message> SendMessageAsyncCore(
@@ -113,7 +113,7 @@ public class TelegramBot : TelegramBotClient
             chatId,
             text.Sanitize(),
             ParseMode.MarkdownV2,
-            null,
+            entities: null,
             disableWebPagePreview,
             disableNotification,
             protectContent,
