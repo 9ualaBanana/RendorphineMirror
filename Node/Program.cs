@@ -221,7 +221,8 @@ async Task InitializePlugins()
         new FFmpegPluginDiscoverer(),
         new PythonPluginDiscoverer(),
         new PythonEsrganPluginDiscoverer(),
-        new VeeeVectorizerPluginDiscoverer()
+        new VeeeVectorizerPluginDiscoverer(),
+        new CUDAPluginDiscoverer()
     );
 
     TaskHandler.AutoInitializeHandlers();

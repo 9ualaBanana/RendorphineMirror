@@ -3,8 +3,10 @@ using System.Text.RegularExpressions;
 
 namespace Node.Plugins.Discoverers;
 
-public abstract class PluginDiscoverer
+public abstract class PluginDiscoverer : IPluginDiscoverer
 {
+    public static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
     protected IEnumerable<string> InstallationPaths => _installationPaths ??=
         InstallationPathsImpl.Select(Path.TrimEndingDirectorySeparator);
     IEnumerable<string>? _installationPaths;
@@ -25,7 +27,7 @@ public abstract class PluginDiscoverer
         RegexExecutable = ExecutableRegex is null ? null : new Regex(ExecutableRegex, RegexOptions.Compiled);
     }
 
-    public IEnumerable<Plugin> Discover() => GetPluginsInDirectories(GetPossiblePluginDirectories());
+    public ValueTask<IEnumerable<Plugin>> Discover() => ValueTask.FromResult(GetPluginsInDirectories(GetPossiblePluginDirectories()));
     protected virtual IEnumerable<string> GetPossiblePluginDirectories()
     {
         var directories = InstallationPaths

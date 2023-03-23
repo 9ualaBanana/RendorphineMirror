@@ -20,9 +20,7 @@ public record MachineInfo
     }
     readonly public static string Port = Settings.UPnpPort.ToString();
     readonly public static string WebServerPort = Settings.UPnpServerPort.ToString();
-    static IReadOnlyCollection<Plugin>? _installedPlugins;
-    public static async Task<IReadOnlyCollection<Plugin>> DiscoverInstalledPluginsInBackground() =>
-        _installedPlugins ??= await PluginsManager.DiscoverInstalledPluginsInBackground();
+    public static ValueTask<HashSet<Plugin>> DiscoverInstalledPluginsInBackground() => PluginsManager.DiscoverInstalledPluginsAsync();
     public static async Task<string> GetBriefInfoAsync() => $"{NodeName} {PCName} (v.{Version}) | {await GetPublicIPAsync()}:{Port}";
 
     //public static async Task<string> ToTelegramMessageAsync(bool verbose = false)
