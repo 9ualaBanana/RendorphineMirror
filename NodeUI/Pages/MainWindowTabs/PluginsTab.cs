@@ -61,24 +61,25 @@ public class PluginsTab : Panel
 
     class InstallPluginPanel : Panel
     {
-        readonly object Bindable;
+        readonly IBindable GCBindable;
 
         public InstallPluginPanel()
         {
+            var stats = NodeGlobalState.Instance.Software.GetBoundCopy();
+            GCBindable = stats;
+
             var versionslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
             versionslist.SelectedIndex = 0;
 
             var pluginslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
-            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = NodeGlobalState.Instance.SoftwareStats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.ByVersion.Keys.ToArray() ?? Array.Empty<string>();
+            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.Versions.Keys.ToArray() ?? Array.Empty<string>();
             pluginslist.SelectedIndex = 0;
 
-            var cp = NodeGlobalState.Instance.SoftwareStats.GetBoundCopy();
-            cp.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
             {
-                pluginslist.Items = NodeGlobalState.Instance.SoftwareStats.Value.Keys.ToArray();
+                pluginslist.Items = stats.Value.Keys.ToArray();
                 pluginslist.SelectedIndex = pluginslist.SelectedIndex;
             }), true);
-            Bindable = cp;
 
             var installbtn = new MPButton()
             {
