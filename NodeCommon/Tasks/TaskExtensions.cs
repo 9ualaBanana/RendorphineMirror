@@ -12,4 +12,6 @@ public static class TaskExtensions
     public static void LogErr(this ILoggable obj, string text) => _logger.Log(LogLevel.Error, $"[{obj.LogName}] {text}");
     public static void LogErr(this ILoggable obj, Exception ex) => obj.LogErr(ex.ToString());
     public static void LogTrace(this ILoggable obj, string text) => _logger.Log(LogLevel.Trace, $"[{obj.LogName}] {text}");
+
+    public static LoggableLogger AsLoggable(this Logger logger) => new(logger);
 }

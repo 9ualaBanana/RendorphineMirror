@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 
@@ -61,9 +62,9 @@ public static class PowerShellInvoker
 
         return psh;
     }
-    public static IReadOnlyCollection<PSObject> Invoke(PowerShell psh)
+    public static Collection<PSObject> Invoke(PowerShell psh)
     {
-        var result = psh.Invoke(Array.Empty<object>(), new PSInvocationSettings() { ErrorActionPreference = ActionPreference.Stop });
+        var result = psh.Invoke(Enumerable.Empty<object>(), new PSInvocationSettings() { ErrorActionPreference = ActionPreference.Stop });
         if (psh.InvocationStateInfo.Reason is not null)
             throw psh.InvocationStateInfo.Reason;
 
@@ -72,6 +73,10 @@ public static class PowerShellInvoker
 
         return result;
     }
+    public static Collection<PSObject> Invoke(string script) => Invoke(Initialize(script));
+
+    public static Collection<PSObject> JustInvoke(string script) => PowerShell.Create().AddScript(script).Invoke();
+    public static Collection<T> JustInvoke<T>(string script) => PowerShell.Create().AddScript(script).Invoke<T>();
 
 
     static void AddVariables(Runspace runspace)

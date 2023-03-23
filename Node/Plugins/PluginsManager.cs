@@ -54,7 +54,7 @@ public static class PluginsManager
 
     public static async ValueTask<HashSet<Plugin>> DiscoverInstalledPluginsAsync()
     {
-        _installedPlugins = (await Task.WhenAll(_pluginsDiscoverers.Select(async d => await d.Discover()))).SelectMany(ps => ps).ToHashSet();
+        _installedPlugins = (await Task.WhenAll(_pluginsDiscoverers.Select(async d => { try { return await d.Discover(); } catch { return Enumerable.Empty<Plugin>(); } }))).SelectMany(ps => ps).ToHashSet();
         _logger.Info("List of installed plugins is updated");
 
         NodeGlobalState.Instance.InstalledPlugins.SetRange(_installedPlugins);
