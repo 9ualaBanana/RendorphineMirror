@@ -97,7 +97,8 @@ public class TelegramBot : TelegramBotClient
         bool? disableWebPagePreview = default,
         bool? disableNotification = default,
         bool? protectContent = default,
-        CancellationToken cancellationToken = default) => await (MessagePaginator.MustBeUsedToSend(text) && replyMarkup is null ?
+        CancellationToken cancellationToken = default)
+        => await (MessagePaginator.MustBeUsedToSend(text) && replyMarkup is null ?
         _messagePaginator.SendPaginatedMessageAsyncUsing(this, chatId, text, disableWebPagePreview, disableNotification, protectContent, cancellationToken) :
         SendMessageAsyncCore(chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, cancellationToken));
 
@@ -118,6 +119,33 @@ public class TelegramBot : TelegramBotClient
             protectContent,
             replyMarkup: replyMarkup,
             cancellationToken: cancellationToken);
+
+    internal async Task<Message> EditMessageAsync_(
+        ChatId chatId,
+        int messageId,
+        string text,
+        InlineKeyboardMarkup? replyMarkup = null,
+        bool? disableWebPagePreview = default,
+        CancellationToken cancellationToken = default)
+    {
+        var editedMessage = await this.EditMessageTextAsync(
+            chatId,
+            messageId,
+            text,
+            ParseMode.MarkdownV2,
+            entities: null,
+            disableWebPagePreview,
+            replyMarkup,
+            cancellationToken);
+        if (replyMarkup is not null)
+            editedMessage = await this.EditMessageReplyMarkupAsync(
+                chatId,
+                messageId,
+                replyMarkup,
+                cancellationToken);
+
+        return editedMessage;
+    }
 }
 
 public static class TelegramHelperExtensions
