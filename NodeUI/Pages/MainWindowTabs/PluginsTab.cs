@@ -12,10 +12,10 @@ public class PluginsTab : Panel
                 Spacing = 20,
                 Children =
                 {
-                    new InstallPluginPanel(),
-                    new Panel() { Background = Colors.Black, Width = 400, },
-                    NamedList.Create("Software stats", NodeGlobalState.Instance.SoftwareStats, softToControl),
-                    NamedList.Create("Our plugins", NodeGlobalState.Instance.InstalledPlugins, pluginToControl),
+                    new InstallPluginPanel().Named("Install plugins"),
+                    NamedList.Create("Stats", NodeGlobalState.Instance.SoftwareStats, softStatToControl),
+                    NamedList.Create("Registry", NodeGlobalState.Instance.Software, softToControl),
+                    NamedList.Create("Installed", NodeGlobalState.Instance.InstalledPlugins, pluginToControl),
                 },
             },
         };
@@ -23,7 +23,7 @@ public class PluginsTab : Panel
         Children.Add(scroll);
 
 
-        IControl softToControl(KeyValuePair<string, SoftwareStats> value)
+        IControl softStatToControl(KeyValuePair<string, SoftwareStats> value)
         {
             var (type, stat) = value;
 
@@ -33,6 +33,25 @@ public class PluginsTab : Panel
                 Content = new ItemsControl()
                 {
                     Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
+                },
+            };
+        }
+        IControl softToControl(KeyValuePair<string, SoftwareDefinition> value)
+        {
+            var (type, stat) = value;
+
+            return new Expander()
+            {
+                Header = $"{type} \"{stat.VisualName}\"",
+                Content = new StackPanel()
+                {
+                    Orientation = Orientation.Vertical,
+                    Children =
+                    {
+                        stat.Parents.Length == 0 ? new Control() : new TextBlock() { Text = "Parents: " + string.Join(", ", stat.Parents) },
+                        stat.Requirements is null ? new Control() : new TextBlock() { Text = "Requirements: " + "Windows " + stat.Requirements.WindowsVersion },
+                        stat.Versions.Count == 0 ? new Control() : new TextBlock() { Text = "Versions: " + string.Join(", ", stat.Versions.Keys) },
+                    },
                 },
             };
         }
@@ -46,10 +65,10 @@ public class PluginsTab : Panel
 
         public InstallPluginPanel()
         {
-            var versionslist = TypedComboBox.Create(Array.Empty<string>());
+            var versionslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
             versionslist.SelectedIndex = 0;
 
-            var pluginslist = TypedComboBox.Create(Array.Empty<string>());
+            var pluginslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
             pluginslist.SelectionChanged += (obj, e) => versionslist.Items = NodeGlobalState.Instance.SoftwareStats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.ByVersion.Keys.ToArray() ?? Array.Empty<string>();
             pluginslist.SelectedIndex = 0;
 
@@ -63,7 +82,7 @@ public class PluginsTab : Panel
 
             var installbtn = new MPButton()
             {
-                Text = "Install plugin",
+                Text = "Install",
                 OnClickSelf = async self =>
                 {
                     var res = await LocalApi.Default.Get("deploy", "Installing plugin", ("type", pluginslist.SelectedItem), ("version", versionslist.SelectedItem));
@@ -74,6 +93,7 @@ public class PluginsTab : Panel
             var panel = new StackPanel()
             {
                 Orientation = Orientation.Horizontal,
+                Spacing = 10,
                 Children = { pluginslist, versionslist, installbtn },
             };
             Children.Add(panel);

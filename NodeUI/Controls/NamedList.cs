@@ -12,7 +12,7 @@ public class NamedList<T> : NamedControl
 
     public NamedList(LocalizedString title, IReadOnlyBindable<IReadOnlyCollection<T>> items, Func<T, IControl> templatefunc) : base(title)
     {
-        GCItems = items = items .GetBoundCopy() ;
+        GCItems = items = items.GetBoundCopy();
 
         (items as IReadOnlyBindableCollection<T>)?.SubscribeChanged(() => Dispatcher.UIThread.Post(() => Title.Text = $"{title}\nLast update: {DateTime.Now}"), true);
         Control.Children.Add(TypedItemsControl.Create(items, templatefunc));

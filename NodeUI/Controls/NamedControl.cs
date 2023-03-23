@@ -1,5 +1,9 @@
 namespace NodeUI.Controls;
 
+public static class NamedControlExtensions
+{
+    public static NamedControl Named(this Control control, LocalizedString title) => NamedControl.Create(title, control);
+}
 public class NamedControl : Panel
 {
     public readonly TextBlock Title;
