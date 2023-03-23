@@ -1,6 +1,16 @@
+using Newtonsoft.Json;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
 namespace Node.Tasks.Exec;
 
-public class UpscaleEsrganInfo { }
+public class UpscaleEsrganInfo
+{
+    [JsonProperty("x2")]
+    [Default(false)]
+    public bool X2;
+}
 public static class EsrganTasks
 {
     public static IEnumerable<IPluginAction> CreateTasks() => new IPluginAction[] { new UpscaleEsrgan() };
@@ -24,6 +34,29 @@ public static class EsrganTasks
 
             await Task.Run(() => ExecutePowerShell(getScript(), false, onRead, task));
 
+            if (data.X2)
+            {
+                task.LogInfo("Downscaling the result to x2..");
+
+                using var image = Image.Load<Rgba32>(outputfile);
+                image.Mutate(img => img.Resize(image.Width / 2, image.Height / 2));
+                await image.SaveAsJpegAsync(outputfile);
+
+                /*
+                    or use ffmpeg in getScript(), aka:
+
+                    var downscale = "";
+                    if (data.X2)
+                    {
+                        var tempfile = task.GetTempFileName("jpg");
+                        downscale = $@"
+                            {PluginType.FFmpeg.GetInstance().Path.Replace(" ", "' '")} -i '{outputfile}' -filter_complex 'scale=iw/2:ih/2' '{tempfile}'
+                            mv '{tempfile}' '{outputfile}'
+                        ";
+                    }
+                */
+            }
+
 
             void onRead(bool err, object obj)
             {
@@ -45,7 +78,7 @@ public static class EsrganTasks
                 var pythonpath = PluginType.Python.GetInstance().Path.Replace(" ", "' '");
 
 
-                var pythonstart = "python ";
+                var pythonstart = $"{pythonpath} ";
 
                 // unbuffered output, for progress tracking
                 pythonstart += "-u ";
