@@ -4,19 +4,19 @@ namespace NodeUI.Controls;
 
 public static class TypedItemsControl
 {
-    public static TypedItemsControl<T> Create<T>(IReadOnlyCollection<T> items, Func<T, IControl> func) => new(items, func);
+    public static TypedItemsControl<T> Create<T>(IReadOnlyBindable<IReadOnlyCollection<T>> items, Func<T, IControl> func) => new(items, func);
 }
 public class TypedItemsControl<T> : ItemsControl, IStyleable
 {
     Type IStyleable.StyleKey => typeof(ItemsControl);
 
-    public TypedItemsControl(IReadOnlyCollection<T> items, Func<T, IControl> func)
-    {
-        var bitems = items as IReadOnlyBindableCollection<T>;
-        bitems = bitems?.GetBoundCopy();
+    // GC protected instance
+    readonly object GCItems;
 
-        Items = bitems ?? items;
-        bitems?.SubscribeChanged(() => Dispatcher.UIThread.Post(() => Items = items));
+    public TypedItemsControl(IReadOnlyBindable<IReadOnlyCollection<T>> items, Func<T, IControl> func)
+    {
+        GCItems = items = items.GetBoundCopy();
+        items.SubscribeChanged(() => Dispatcher.UIThread.Post(() => Items = items.Value), true);
 
         ItemTemplate = new FuncDataTemplate<T>((t, _) => func(t));
     }

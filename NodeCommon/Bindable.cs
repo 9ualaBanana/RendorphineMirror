@@ -119,6 +119,23 @@ namespace NodeCommon
     {
         IReadOnlyBindableCollection<T> GetBoundCopy();
     }
+    public static class BindableCollection
+    {
+        public static BindableCollection<T, TVal> Create<T, TVal>(T collection) where T : notnull, ICollection<TVal> => new(collection);
+    }
+    public class BindableCollection<T, TVal> : BindableBase<T>, IReadOnlyBindable<T>, IReadOnlyBindableCollection<TVal> where T : notnull, ICollection<TVal>
+    {
+        public int Count => Value.Count;
+
+        public BindableCollection(T defval) : base(defval) { }
+
+
+        IReadOnlyBindableCollection<TVal> IReadOnlyBindableCollection<TVal>.GetBoundCopy() => (BindableCollection<T, TVal>) GetBoundCopy();
+
+        public IEnumerator<TVal> GetEnumerator() => Value.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => Value.GetEnumerator();
+    }
+
     public class BindableList<T> : BindableBase<IReadOnlyList<T>>, IReadOnlyBindable<IReadOnlyList<T>>, IReadOnlyBindableCollection<T>, IReadOnlyList<T>
     {
         public int Count => Value.Count;

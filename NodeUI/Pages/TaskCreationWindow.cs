@@ -206,10 +206,10 @@ namespace NodeUI.Pages
 
             public override void Initialize()
             {
-                string[] versions;
-                if (UICache.SoftwareStats.Value.TryGetValue(Builder.Type, out var stats))
-                    versions = stats.ByVersion.Keys.ToArray();
-                else versions = Array.Empty<string>();
+                IEnumerable<string> versions;
+                if (NodeGlobalState.Instance.SoftwareStats.Value.TryGetValue(Builder.Type.ToString(), out var stats))
+                    versions = stats.ByVersion.Keys;
+                else versions = Enumerable.Empty<string>();
 
                 var list = CreateListBox(versions.Prepend(AnyVersion).ToArray(), version => new TextBlock() { Text = version });
                 list.SelectionChanged += (obj, e) =>

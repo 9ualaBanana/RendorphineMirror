@@ -15,6 +15,9 @@ public class NodeGlobalState
     public string? SessionId => AuthInfo?.SessionId;
 
     public readonly Bindable<TasksFullDescriber> TaskDefinitions = new();
+    public readonly Bindable<ImmutableDictionary<string, SoftwareDefinition>> Software = new(ImmutableDictionary<string, SoftwareDefinition>.Empty);
+    public readonly Bindable<ImmutableDictionary<string, SoftwareStats>> SoftwareStats = new(ImmutableDictionary<string, SoftwareStats>.Empty);
+
     public readonly BindableList<Plugin> InstalledPlugins = new();
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
     public readonly BindableList<ReceivedTask> QueuedTasks = new();

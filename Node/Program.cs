@@ -179,6 +179,7 @@ void InitializeSettings()
     state.BAuthInfo.Bind(Settings.BAuthInfo.Bindable);
 
 
+    Software.StartUpdating(null, default);
     Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Init.ConfigDirectory, "lport"), Settings.LocalListenPort.ToString()), true);
 }
 

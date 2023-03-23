@@ -173,7 +173,7 @@ namespace NodeUI.Pages
                         {
                             new InstallPluginPanel(),
                             new Panel() { Background = Colors.Black, Width = 400, },
-                            NamedList.Create("Software stats", UICache.SoftwareStats, softToControl),
+                            NamedList.Create("Software stats", NodeGlobalState.Instance.SoftwareStats, softToControl),
                             NamedList.Create("Our plugins", NodeGlobalState.Instance.InstalledPlugins, pluginToControl),
                         },
                     },
@@ -182,7 +182,7 @@ namespace NodeUI.Pages
                 Children.Add(scroll);
 
 
-                IControl softToControl(KeyValuePair<PluginType, SoftwareStats> value)
+                IControl softToControl(KeyValuePair<string, SoftwareStats> value)
                 {
                     var (type, stat) = value;
 
@@ -209,13 +209,13 @@ namespace NodeUI.Pages
                     versionslist.SelectedIndex = 0;
 
                     var pluginslist = TypedComboBox.Create(Array.Empty<string>());
-                    pluginslist.SelectionChanged += (obj, e) => versionslist.Items = UICache.SoftwareStats[Enum.Parse<PluginType>(pluginslist.SelectedItem ?? PluginType.FFmpeg.ToString())].ByVersion.Select(x => x.Key).ToArray();
+                    pluginslist.SelectionChanged += (obj, e) => versionslist.Items = NodeGlobalState.Instance.SoftwareStats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.ByVersion.Keys.ToArray() ?? Array.Empty<string>();
                     pluginslist.SelectedIndex = 0;
 
-                    var cp = UICache.SoftwareStats.GetBoundCopy();
+                    var cp = NodeGlobalState.Instance.SoftwareStats.GetBoundCopy();
                     cp.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
                     {
-                        pluginslist.Items = UICache.SoftwareStats.Select(x => x.Key.ToString()).ToArray();
+                        pluginslist.Items = NodeGlobalState.Instance.SoftwareStats.Value.Keys.ToArray();
                         pluginslist.SelectedIndex = pluginslist.SelectedIndex;
                     }), true);
                     Bindable = cp;
@@ -262,7 +262,7 @@ namespace NodeUI.Pages
 
                                 if (allplaced.Children.Count > 1)
                                     allplaced.Children.RemoveAt(1);
-                                allplaced.Children.Add(NamedList.Create("ALL active placed tasks", tasks.ThrowIfError(), placedTasksCreate));
+                                allplaced.Children.Add(NamedList.CreateRaw("ALL active placed tasks", tasks.ThrowIfError(), placedTasksCreate));
                             },
                         },
                     },

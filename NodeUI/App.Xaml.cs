@@ -32,7 +32,6 @@ namespace NodeUI
                 else UISettings.Language = LocalizedString.Locale;
 
                 this.InitializeTrayIndicator();
-                UICache.StartUpdatingStats();
                 NodeStateUpdater.Start();
 
                 MainTheme.Apply(Resources, Styles);

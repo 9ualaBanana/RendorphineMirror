@@ -29,6 +29,8 @@ public static class NodeStateUpdater
                 File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, JsonSettings.Typed)));
         }
 
+        Software.StartUpdating(IsConnectedToNode, default);
+
         var cancel = false;
         var consecutive = 0;
         while (true)
