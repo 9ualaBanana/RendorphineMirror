@@ -33,9 +33,9 @@ public static class PowerShellInvoker
 
             prox.SetVariable("PLTORRENT", plugintype + "." + pluginver);
 
-            var pldownload = Path.Combine(prox.GetVariable("DOWNLOADS").ToString()!, plugintype, pluginver);
+            var pldownload = Directories.Created(Path.Combine(prox.GetVariable("DOWNLOADS").ToString()!, plugintype, pluginver));
             prox.SetVariable("PLDOWNLOAD", pldownload);
-            prox.SetVariable("PLINSTALL", Path.Combine(prox.GetVariable("PLUGINS").ToString()!, plugintype, pluginver));
+            prox.SetVariable("PLINSTALL", Directories.Created(Path.Combine(prox.GetVariable("PLUGINS").ToString()!, plugintype, pluginver)));
 
             return pldownload;
         }
@@ -83,19 +83,10 @@ public static class PowerShellInvoker
     {
         var prox = runspace.SessionStateProxy;
 
-        prox.SetVariable("PLUGINS", created(Path.GetFullPath("plugins")));
+        prox.SetVariable("PLUGINS", Directories.Created(Path.GetFullPath("plugins")));
 
-        prox.SetVariable("DOWNLOADS", created(Path.Combine(Init.ConfigDirectory, "downloads")));
-        prox.SetVariable("LOCALAPPDATA", created(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
+        prox.SetVariable("DOWNLOADS", Directories.Created(Path.Combine(Init.ConfigDirectory, "downloads")));
+        prox.SetVariable("LOCALAPPDATA", Directories.Created(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
         // TODO: other
-
-
-        string created(string path)
-        {
-            try { Directory.CreateDirectory(path); }
-            catch { }
-
-            return path;
-        }
     }
 }
