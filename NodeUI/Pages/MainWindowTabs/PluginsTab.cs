@@ -75,11 +75,7 @@ public class PluginsTab : Panel
             pluginslist.SelectionChanged += (obj, e) => versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.Versions.Keys.ToArray() ?? Array.Empty<string>();
             pluginslist.SelectedIndex = 0;
 
-            stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
-            {
-                pluginslist.Items = stats.Value.Keys.ToArray();
-                pluginslist.SelectedIndex = pluginslist.SelectedIndex;
-            }), true);
+            stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = stats.Value.Keys.ToArray()), true);
 
             var installbtn = new MPButton()
             {
