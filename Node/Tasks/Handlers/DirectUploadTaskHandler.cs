@@ -26,13 +26,6 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
     }
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        // TODO: maybe move instead of copy? but the gallery..
-        if (task.IsFromSameNode())
-        {
-            Common.CommonExtensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
-            return;
-        }
-
         var dout = (DirectUploadTaskOutputInfo) task.Output;
         while (!dout.Uploaded)
         {
@@ -108,7 +101,10 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
         var server = state.Server;
         if (server is null) task.ThrowFailed("Could not find server in /getmytaskstate request");
-        if (task.IsFromSameNode()) return;
+
+        var host = server.Host;
+        if (task.IsFromSameNode())
+            host = $"127.0.0.1:{Settings.UPnpPort}";
 
         var info = (DirectUploadTaskOutputInfo) task.Output;
         using var result = await Api.Default.Get($"{server.Host}/rphtaskexec/downloadoutput?taskid={task.Id}");
