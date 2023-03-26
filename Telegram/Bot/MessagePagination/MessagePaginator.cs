@@ -31,20 +31,20 @@ public class MessagePaginator
         CancellationToken cancellationToken = default)
     {
         var chunkedText = new ChunkedText(text);
-        replyMarkup = ReplyMarkup();
+        replyMarkup = BuildReplyMarkupFor(chunkedText, replyMarkup);
 
         var message = await bot.SendMessageAsyncCore(chatId, chunkedText.NextChunk, replyMarkup, disableWebPagePreview, disableNotification, protectContent, cancellationToken);
         if (chunkedText.IsChunked)
             _chunkedMessagesAutoStorage.Add(new(message, chunkedText));
         return message;
+    }
 
 
-        InlineKeyboardMarkup? ReplyMarkup()
-        {
-            var controlButtons = _controlButtons.For(chunkedText);
-            return replyMarkup is null ?
-                controlButtons.ToArray() :
-                replyMarkup.InlineKeyboard.Append(controlButtons).ToArray();
-        }
+    InlineKeyboardMarkup? BuildReplyMarkupFor(ChunkedText chunkedText, InlineKeyboardMarkup? replyMarkup)
+    {
+        var controlButtons = _controlButtons.For(chunkedText);
+        return replyMarkup is null ?
+            controlButtons.ToArray() :
+            replyMarkup.InlineKeyboard.Append(controlButtons).ToArray();
     }
 }

@@ -88,7 +88,6 @@ public class ImageProcessingCallbackQueryHandler
                 .Arguments(typedRegisteredTask.Id, typedRegisteredTask.Action)
                 .Build())
             );
-
 }
 
 public record ImageProcessingCallbackQuery : MediaProcessingCallbackQuery<ImageProcessingCallbackData>

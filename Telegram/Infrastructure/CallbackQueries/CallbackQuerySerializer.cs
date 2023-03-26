@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Telegram.Bot.Types;
 using Telegram.Callbacks;
 
 namespace Telegram.Infrastructure.CallbackQueries;
@@ -27,7 +28,13 @@ public class CallbackQuerySerializer
         return serializedCallbackQuery.ToString();
     }
 
-    internal TCallbackQuery? TryDeserialize<TCallbackQuery, ECallbackData>(string callbackQuery)
+    /// <summary>
+    /// Tries to deserialize <paramref name="callbackQuery"/> that contains <see cref="CallbackQuery.Data"/> to <typeparamref name="TCallbackQuery"/>.
+    /// </summary>
+    /// <returns>
+    /// Deserialized <typeparamref name="TCallbackQuery"/> if <paramref name="callbackQuery"/> contains its serialized representation.
+    /// </returns>
+    internal TCallbackQuery? TryDeserialize<TCallbackQuery, ECallbackData>(CallbackQuery callbackQuery)
         where TCallbackQuery : CallbackQuery<ECallbackData>, new()
         where ECallbackData : struct, Enum
     {
@@ -35,11 +42,15 @@ public class CallbackQuerySerializer
         catch { return null; }
     }
 
-    internal TCallbackQuery Deserialize<TCallbackQuery, ECallbackData>(string callbackQuery)
+    /// <summary>
+    /// Deserializes <paramref name="callbackQuery"/> that contains <see cref="CallbackQuery.Data"/> to <typeparamref name="TCallbackQuery"/>.
+    /// </summary>
+    /// <returns>Deserialized <typeparamref name="TCallbackQuery"/>.</returns>
+    internal TCallbackQuery Deserialize<TCallbackQuery, ECallbackData>(CallbackQuery callbackQuery)
         where TCallbackQuery : CallbackQuery<ECallbackData>, new()
         where ECallbackData : struct, Enum
     {
-        var splitCallbackQuery = callbackQuery.Split(_options.DataAndArgumentsSeparator, StringSplitOptions.RemoveEmptyEntries);
+        var splitCallbackQuery = callbackQuery.Data!.Split(_options.DataAndArgumentsSeparator, StringSplitOptions.RemoveEmptyEntries);
 
         var data = Enum.Parse<ECallbackData>(splitCallbackQuery.First());
         var arguments = splitCallbackQuery.Length > 1 ?
@@ -47,6 +58,7 @@ public class CallbackQuerySerializer
             CallbackQuery<ECallbackData>.EmptyArguments;
 
         return new CallbackQuery<ECallbackData>.Builder<TCallbackQuery>()
+            .Prototype(callbackQuery)
             .Data(data)
             .Arguments(arguments)
             .Build();

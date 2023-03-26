@@ -10,7 +10,7 @@ namespace Telegram.Infrastructure.CallbackQueries;
 /// <see cref="CallbackQueryHandler{TCallbackQuery, ECallbackData}"/> implementations must be registered with this interface
 /// as their service type because closed generic types can't be registered as implementations of an open generic service type.
 /// </remarks>
-public interface ICallbackQueryHandler : IHttpContextHandler, ISwitchableService<ICallbackQueryHandler, string>
+public interface ICallbackQueryHandler : IHttpContextHandler, ISwitchableService<ICallbackQueryHandler, CallbackQuery>
 {
 }
 
@@ -35,14 +35,14 @@ public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : Upda
     /// <summary>
     /// The last <typeparamref name="TCallbackQuery"/> matched via this method will be handled in a call to <see cref="HandleAsync(HttpContext)"/> that may follow.
     /// </summary>
-    /// <param name="serializedCallbackQuery">
+    /// <param name="callbackQuery">
     /// Serialized <typeparamref name="TCallbackQuery"/> that may be handled in a call to <see cref="HandleAsync(HttpContext)"/> if this handler is appropriate for it.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if this handler is appropriate for <paramref name="serializedCallbackQuery"/>; <see langword="false"/> otherwise.
+    /// <see langword="true"/> if this handler is appropriate for <paramref name="callbackQuery"/>; <see langword="false"/> otherwise.
     /// </returns>
-    public bool Matches(string serializedCallbackQuery)
-        => (_callbackQuery = Serializer.TryDeserialize<TCallbackQuery, ECallbackData>(serializedCallbackQuery)) is not null;
+    public bool Matches(CallbackQuery callbackQuery)
+        => (_callbackQuery = Serializer.TryDeserialize<TCallbackQuery, ECallbackData>(callbackQuery)) is not null;
 
     TCallbackQuery? _callbackQuery;
 
@@ -54,7 +54,7 @@ public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : Upda
     /// </exception>
     public override async Task HandleAsync(HttpContext context)
     {
-        if (_callbackQuery is not null)
+        if (_callbackQuery is not null && _callbackQuery.Prototype is not null)
         {
             await Bot.AnswerCallbackQueryAsync(Update.CallbackQuery!.Id, cancellationToken: context.RequestAborted);
             await HandleAsync(_callbackQuery, context);
