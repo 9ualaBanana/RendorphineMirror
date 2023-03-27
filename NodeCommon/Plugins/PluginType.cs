@@ -16,7 +16,7 @@ public enum PluginType
     Python,
     Python_Esrgan,
 
-    CUDA,
+    NvidiaDriver,
     Conda,
 }
 
@@ -29,6 +29,8 @@ public static class PluginTypeExtensions
         PluginType.DaVinciResolve => "DaVinci Resolve",
 
         PluginType.Python_Esrgan => "ESRGAN",
+
+        PluginType.NvidiaDriver => "Nvidia driver",
 
         _ => type.ToString(),
     };
