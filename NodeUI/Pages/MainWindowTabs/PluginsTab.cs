@@ -72,7 +72,7 @@ public class PluginsTab : Panel
             versionslist.SelectedIndex = 0;
 
             var pluginslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
-            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.Versions.Keys.ToArray() ?? Array.Empty<string>();
+            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem ?? "")?.Versions.Keys.ToArray() ?? Array.Empty<string>();
             pluginslist.SelectedIndex = 0;
 
             stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = stats.Value.Keys.ToArray()), true);
