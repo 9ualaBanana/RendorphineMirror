@@ -17,6 +17,7 @@ public enum PluginType
     Python_Esrgan,
 
     CUDA,
+    Conda,
 }
 
 public static class PluginTypeExtensions

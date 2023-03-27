@@ -9,7 +9,7 @@ public class PythonPluginDiscoverer : PluginDiscoverer
         $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\Programs\Python",
     };
     protected override string ParentDirectoryRegex => @"Python\d*";
-    protected override string ExecutableRegex => @"^python(\.exe|[\d.]*)$";
+    protected override string ExecutableRegex => @"python(\.exe|[\d.]*)";
     protected override PluginType PluginType => PluginType.Python;
 
     protected override string DetermineVersion(string exepath)
