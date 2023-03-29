@@ -14,7 +14,7 @@ public enum PluginType
     VeeeVectorizer,
 
     Python,
-    Python_Esrgan,
+    Esrgan,
 
     NvidiaDriver,
     Conda,
@@ -28,7 +28,7 @@ public static class PluginTypeExtensions
         PluginType.TopazGigapixelAI => "Topaz Gigapixel AI",
         PluginType.DaVinciResolve => "DaVinci Resolve",
 
-        PluginType.Python_Esrgan => "ESRGAN",
+        PluginType.Esrgan => "ESRGAN",
 
         PluginType.NvidiaDriver => "Nvidia driver",
 

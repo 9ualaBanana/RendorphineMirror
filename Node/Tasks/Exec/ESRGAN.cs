@@ -20,7 +20,7 @@ public static class EsrganTasks
     class UpscaleEsrgan : InputOutputPluginAction<UpscaleEsrganInfo>
     {
         public override TaskAction Name => TaskAction.EsrganUpscale;
-        public override PluginType Type => PluginType.Python_Esrgan;
+        public override PluginType Type => PluginType.Esrgan;
 
         public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements()
             .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Mov));
