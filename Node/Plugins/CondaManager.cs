@@ -25,18 +25,18 @@ public static class CondaManager
 
         return $"""
             # initialize conda
-            (& "{conda.Path}" "shell.powershell" "hook") | Out-String | ?{"{$_}"} | Invoke-Expression
+            (& "{conda.Path}" "shell" "hook" "--shell=powershell") | Out-String | ?{"{$_}"} | Invoke-Expression
 
             {(envcreated ? string.Empty : createEnvFunc(envdir))}
-            conda activate '{envdir}'
+            micromamba activate '{envdir}'
             """;
     }
 
     public static void Initialize(PluginType type, string pyversion, IEnumerable<string> requirements, IEnumerable<string> channels)
     {
         var script = $"""
-            {GetInitEnvScript(type, envdir => $"conda create -y -p '{envdir}' python={pyversion} {string.Join(' ', channels.Select(c => $"-c '{c}'"))}")}
-            conda install -y {string.Join(' ', requirements.Select(r => $"'{r}'"))} {string.Join(' ', channels.Select(c => $"-c '{c}'"))}
+            {GetInitEnvScript(type, envdir => $"micromamba create -y -p '{envdir}' python={pyversion} {string.Join(' ', channels.Select(c => $"-c '{c}'"))}")}
+            micromamba install -y {string.Join(' ', requirements.Select(r => $"'{r}'"))} {string.Join(' ', channels.Select(c => $"-c '{c}'"))}
             """;
 
         try
