@@ -48,12 +48,22 @@ public class PluginsTab : Panel
                     Orientation = Orientation.Vertical,
                     Children =
                     {
-                        stat.Parents.Length == 0 ? new Control() : new TextBlock() { Text = "Parents: " + string.Join(", ", stat.Parents) },
-                        stat.Requirements is null ? new Control() : new TextBlock() { Text = "Requirements: " + "Windows " + stat.Requirements.WindowsVersion },
-                        stat.Versions.Count == 0 ? new Control() : new TextBlock() { Text = "Versions: " + string.Join(", ", stat.Versions.Keys) },
+                        // stat.SoftRequirements.Parents.Length == 0 ? new Control() : new TextBlock() { Text = "Parents: " + string.Join(", ", stat.SoftRequirements.Parents) },
+                        // stat.SoftRequirements.Platforms.Count == 0 ? new Control() : new TextBlock() { Text = "Requirements: " + string.Join(", ", stat.SoftRequirements.Platforms)  },
+                        stat.Versions.Count == 0 ? new Control() : new TextBlock()
+                        {
+                            Text = $"Versions: {string.Join(", ", stat.Versions.Select(v=>v.Key + "\n"+versionToString(v.Value)))}",
+                        },
                     },
                 },
             };
+
+
+            string versionToString(SoftwareVersionDefinition version) => $"""
+                    Requirements:
+                        {string.Join(", ", version.Requirements.Platforms)}
+                        {string.Join(", ", version.Requirements.Parents)}
+                """;
         }
         IControl pluginToControl(Plugin plugin) => new TextBlock() { Text = $"{plugin.Type} {plugin.Version}: {plugin.Path}" };
     }
@@ -72,7 +82,7 @@ public class PluginsTab : Panel
             versionslist.SelectedIndex = 0;
 
             var pluginslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
-            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.Versions.Keys.ToArray() ?? Array.Empty<string>();
+            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem ?? "")?.Versions.Keys.ToArray() ?? Array.Empty<string>();
             pluginslist.SelectedIndex = 0;
 
             stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = stats.Value.Keys.ToArray()), true);

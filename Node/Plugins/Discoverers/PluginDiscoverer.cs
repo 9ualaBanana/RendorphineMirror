@@ -24,7 +24,7 @@ public abstract class PluginDiscoverer : IPluginDiscoverer
     public PluginDiscoverer()
     {
         RegexParentDirectory = ParentDirectoryRegex is null ? null : new Regex(ParentDirectoryRegex, RegexOptions.Compiled);
-        RegexExecutable = ExecutableRegex is null ? null : new Regex(ExecutableRegex, RegexOptions.Compiled);
+        RegexExecutable = ExecutableRegex is null ? null : new Regex($"^{ExecutableRegex}$", RegexOptions.Compiled);
     }
 
     public ValueTask<IEnumerable<Plugin>> Discover() => ValueTask.FromResult(GetPluginsInDirectories(GetPossiblePluginDirectories()));

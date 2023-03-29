@@ -50,7 +50,7 @@ public static class PluginsManager
 
     #region Discovering
     /// <summary> Discovers installed plugins. Returns already cached result if available. </summary>
-    static async ValueTask<HashSet<Plugin>> GetInstalledPluginsAsync() => _installedPlugins ??= await DiscoverInstalledPluginsAsync();
+    public static async ValueTask<HashSet<Plugin>> GetInstalledPluginsAsync() => _installedPlugins ??= await DiscoverInstalledPluginsAsync();
 
     public static async ValueTask<HashSet<Plugin>> DiscoverInstalledPluginsAsync()
     {

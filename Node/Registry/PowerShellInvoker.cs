@@ -49,7 +49,7 @@ public static class PowerShellInvoker
 
 
         runspace.Open();
-        AddVariables(runspace);
+        addvariables(runspace);
 
         var psh = PowerShell.Create(runspace);
 
@@ -61,10 +61,21 @@ public static class PowerShellInvoker
             .AddScript(script);
 
         return psh;
+
+
+        static void addvariables(Runspace runspace)
+        {
+            var prox = runspace.SessionStateProxy;
+
+            prox.SetVariable("PLUGINS", Directories.Created(Path.GetFullPath("plugins")));
+            prox.SetVariable("DOWNLOADS", Directories.Created(Path.Combine(Init.ConfigDirectory, "downloads")));
+
+            prox.SetVariable("LOCALAPPDATA", Directories.Created(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
+        }
     }
-    public static Collection<PSObject> Invoke(PowerShell psh)
+    public static Collection<T> Invoke<T>(PowerShell psh)
     {
-        var result = psh.Invoke(Enumerable.Empty<object>(), new PSInvocationSettings() { ErrorActionPreference = ActionPreference.Stop });
+        var result = psh.Invoke<T>(Enumerable.Empty<object>(), new PSInvocationSettings() { ErrorActionPreference = ActionPreference.Stop });
         if (psh.InvocationStateInfo.Reason is not null)
             throw psh.InvocationStateInfo.Reason;
 
@@ -73,20 +84,45 @@ public static class PowerShellInvoker
 
         return result;
     }
+    public static Collection<PSObject> Invoke(PowerShell psh) => Invoke<PSObject>(psh);
+
     public static Collection<PSObject> Invoke(string script) => Invoke(Initialize(script));
 
-    public static Collection<PSObject> JustInvoke(string script) => PowerShell.Create().AddScript(script).Invoke();
-    public static Collection<T> JustInvoke<T>(string script) => PowerShell.Create().AddScript(script).Invoke<T>();
+    public static Collection<PSObject> JustInvoke(string script) => Invoke(PowerShell.Create().AddScript(script));
+    public static Collection<T> JustInvoke<T>(string script) => Invoke<T>(PowerShell.Create().AddScript(script));
 
 
-    static void AddVariables(Runspace runspace)
+    public static Collection<PSObject> Invoke(string script, Action<PSObject, Action>? onRead, Action<object, Action>? onErr, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null)
     {
-        var prox = runspace.SessionStateProxy;
+        var session = InitialSessionState.CreateDefault();
+        session.Variables.Add(new SessionStateVariableEntry(nameof(PSInvocationSettings.ErrorActionPreference), nameof(ActionPreference.Stop), "Error action preference"));
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            session.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.Unrestricted;
 
-        prox.SetVariable("PLUGINS", Directories.Created(Path.GetFullPath("plugins")));
+        using var runspace = RunspaceFactory.CreateRunspace(session);
+        runspace.Open();
 
-        prox.SetVariable("DOWNLOADS", Directories.Created(Path.Combine(Init.ConfigDirectory, "downloads")));
-        prox.SetVariable("LOCALAPPDATA", Directories.Created(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
-        // TODO: other
+        using var pipeline = runspace.CreatePipeline();
+
+        void process<T>(T item, LogLevel level, Action<T, Action>? action) =>
+            action?.Invoke(item, () => logobj?.Log(level, $"[PowerShell {pipeline.GetHashCode()}] {item}"));
+        pipeline.Output.DataReady += (obj, e) =>
+        {
+            foreach (var item in pipeline.Output.NonBlockingRead())
+                process(item, stdout ?? LogLevel.Info, onRead);
+        };
+        pipeline.Error.DataReady += (obj, e) =>
+        {
+            foreach (var item in pipeline.Error.NonBlockingRead())
+                process(item, stderr ?? LogLevel.Error, onErr);
+        };
+
+        pipeline.Commands.AddScript(script);
+        var result = pipeline.Invoke();
+
+        if (pipeline.PipelineStateInfo.Reason is not null)
+            throw pipeline.PipelineStateInfo.Reason;
+
+        return result;
     }
 }

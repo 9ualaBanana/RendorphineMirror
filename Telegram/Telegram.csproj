@@ -15,10 +15,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.9" />
-    <PackageReference Include="NLog" Version="5.1.1">
+    <PackageReference Include="NLog" Version="5.1.2">
       <TreatAsUsed>true</TreatAsUsed>
     </PackageReference>
-    <PackageReference Include="NLog.Schema" Version="5.1.1" />
+    <PackageReference Include="NLog.Schema" Version="5.1.2" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.2.1" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />

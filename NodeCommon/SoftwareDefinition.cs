@@ -1,6 +1,8 @@
 namespace NodeCommon;
 
-public record SoftwareDefinition(string VisualName, ImmutableDictionary<string, SoftwareVersionDefinition> Versions, SoftwareRequirements? Requirements, ImmutableArray<string> Parents);
-public record SoftwareVersionDefinition(string InstallScript);
+public record SoftwareDefinition(string VisualName, ImmutableDictionary<string, SoftwareVersionDefinition> Versions);
+public record SoftwareVersionDefinition(string InstallScript, SoftwareRequirements Requirements);
 
-public record SoftwareRequirements(string? WindowsVersion);
+public record SoftwareRequirements(ImmutableDictionary<PlatformID, SoftwareSupportedPlatform> Platforms, ImmutableArray<SoftwareParent> Parents);
+public record SoftwareSupportedPlatform(string? MinVersion);
+public record SoftwareParent(string Type, string Version);

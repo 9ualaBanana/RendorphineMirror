@@ -1,4 +1,4 @@
-﻿global using System.Collections.Immutable;
+global using System.Collections.Immutable;
 global using Common;
 global using Machine;
 global using NLog;
@@ -223,13 +223,14 @@ async Task InitializePlugins()
         new PythonPluginDiscoverer(),
         new PythonEsrganPluginDiscoverer(),
         new VeeeVectorizerPluginDiscoverer(),
-        new CUDAPluginDiscoverer()
+        new NvidiaDriverPluginDiscoverer(),
+        new CondaPluginDiscoverer()
     );
 
     TaskHandler.AutoInitializeHandlers();
 
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
-    Task.Run(() => logger.Info($"Found {{Plugins}} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {Path.GetFullPath(x.Path)}"))}", plugins.Count)).Consume();
+    Task.Run(() => logger.Info($"Found {{Plugins}} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {(x.Path.Length == 0 ? "<nopath>" : Path.GetFullPath(x.Path))}"))}", plugins.Count)).Consume();
 }
 async ValueTask WaitForAuth()
 {
