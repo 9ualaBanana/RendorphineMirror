@@ -17,9 +17,12 @@ public class RegistryTab : Panel
             DefaultKeyValue = JToken.FromObject("NewSoft"),
             DefaultValueValue = JToken.FromObject(new SoftwareDefinition(
                 "New Mega Super Software",
-                new Dictionary<string, SoftwareVersionDefinition>() { ["0.1"] = new SoftwareVersionDefinition("") }.ToImmutableDictionary(),
-                null,
-                ImmutableArray<string>.Empty
+                new Dictionary<string, SoftwareVersionDefinition>()
+                {
+                    ["0.1"] = new SoftwareVersionDefinition("",
+                        new SoftwareRequirements(ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
+                        ImmutableArray<SoftwareParent>.Empty))
+                }.ToImmutableDictionary()
             ), JsonSettings.LowercaseS)
         };
         var setting = JsonUISetting.Create(new JProperty("_", JObject.FromObject(softlist, JsonSettings.LowercaseS)), describer);

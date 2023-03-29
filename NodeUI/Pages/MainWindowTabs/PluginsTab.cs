@@ -48,12 +48,22 @@ public class PluginsTab : Panel
                     Orientation = Orientation.Vertical,
                     Children =
                     {
-                        stat.Parents.Length == 0 ? new Control() : new TextBlock() { Text = "Parents: " + string.Join(", ", stat.Parents) },
-                        stat.Requirements is null ? new Control() : new TextBlock() { Text = "Requirements: " + "Windows " + stat.Requirements.WindowsVersion },
-                        stat.Versions.Count == 0 ? new Control() : new TextBlock() { Text = "Versions: " + string.Join(", ", stat.Versions.Keys) },
+                        // stat.SoftRequirements.Parents.Length == 0 ? new Control() : new TextBlock() { Text = "Parents: " + string.Join(", ", stat.SoftRequirements.Parents) },
+                        // stat.SoftRequirements.Platforms.Count == 0 ? new Control() : new TextBlock() { Text = "Requirements: " + string.Join(", ", stat.SoftRequirements.Platforms)  },
+                        stat.Versions.Count == 0 ? new Control() : new TextBlock()
+                        {
+                            Text = $"Versions: {string.Join(", ", stat.Versions.Select(v=>v.Key + "\n"+versionToString(v.Value)))}",
+                        },
                     },
                 },
             };
+
+
+            string versionToString(SoftwareVersionDefinition version) => $"""
+                    Requirements:
+                        {string.Join(", ", version.Requirements.Platforms)}
+                        {string.Join(", ", version.Requirements.Parents)}
+                """;
         }
         IControl pluginToControl(Plugin plugin) => new TextBlock() { Text = $"{plugin.Type} {plugin.Version}: {plugin.Path}" };
     }
