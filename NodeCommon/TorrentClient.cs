@@ -76,7 +76,7 @@ public class TorrentClient
 
         Logger.Info($"Adding magnet {magnet.ToV1String()}");
 
-        var manager = TryGetManager(magnet.InfoHash) ?? await Client.AddAsync(magnet, targetdir);
+        var manager = TryGetManager(magnet.InfoHash) ?? await Client.AddAsync(magnet, targetdir, new TorrentSettingsBuilder() { CreateContainingDirectory = false }.ToSettings());
         AddLoggers(manager);
 
         if (manager.State is not (TorrentState.Starting or TorrentState.Seeding or TorrentState.Downloading))
@@ -97,16 +97,9 @@ public class TorrentClient
     {
         var data = await CreateTorrent(path).ConfigureAwait(false);
         var torrent = await Torrent.LoadAsync(data).ConfigureAwait(false);
-
         Logger.Info($"Added torrent for {(File.Exists(path) ? "file" : "directory")} {path}: {torrent.InfoHash.ToHex()}");
 
-        // i don't know why this behaves differently but it does
-        var target = path;
-        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-            target = Path.Combine(path, "..");
-        else target = File.Exists(path) ? Path.Combine(path, "..") : path;
-
-        var manager = await AddOrGetTorrent(torrent, target).ConfigureAwait(false);
+        var manager = await AddOrGetTorrent(torrent, path).ConfigureAwait(false);
         return (data, manager);
     }
 
@@ -123,7 +116,7 @@ public class TorrentClient
 
         Logger.Info($"Adding torrent {torrent.InfoHash.ToHex()}");
 
-        manager = TryGetManager(torrent.InfoHash) ?? await Client.AddAsync(torrent, targetdir);
+        manager = TryGetManager(torrent.InfoHash) ?? await Client.AddAsync(torrent, targetdir, new TorrentSettingsBuilder() { CreateContainingDirectory = false }.ToSettings());
         AddLoggers(manager);
 
         await manager.HashCheckAsync(autoStart: true).ConfigureAwait(false);
