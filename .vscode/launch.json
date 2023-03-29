@@ -19,9 +19,7 @@
             "request": "launch",
             "preLaunchTask": "buildnode",
             "program": "${workspaceFolder}/Node/bin/Debug/net7.0/Node.dll",
-            "args": [
-                "release"
-            ],
+            "args": [ "release" ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
@@ -45,9 +43,7 @@
             "request": "launch",
             "preLaunchTask": "buildnodeui",
             "program": "${workspaceFolder}/NodeUI/bin/Debug/net7.0/NodeUI.dll",
-            "args": [
-                "hidden"
-            ],
+            "args": [ "hidden" ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
@@ -107,9 +103,7 @@
             "request": "launch",
             "preLaunchTask": "buildupdater",
             "program": "${workspaceFolder}/Updater/bin/Debug/net7.0/Updater.dll",
-            "args": [
-                "debug"
-            ],
+            "args": [ "debug" ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
