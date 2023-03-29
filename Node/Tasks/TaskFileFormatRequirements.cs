@@ -8,7 +8,7 @@ public interface IHasRequirements<T> where T : IHasRequirements<T>
 }
 public static class RequirementsExtensions
 {
-    public static T Either<T>(this IHasRequirements<T> req, Action<TaskFileFormatRequirements.EitherRequirement> func) where T : IHasRequirements<T> => req.With(new TaskFileFormatRequirements.EitherRequirement().With(func));
+    public static T Either<T>(this IHasRequirements<T> req, Func<TaskFileFormatRequirements.EitherRequirement, TaskFileFormatRequirements.EitherRequirement> func) where T : IHasRequirements<T> => req.With(func(new()));
 
     public static T RequiredOne<T>(this IHasRequirements<T> req, FileFormat format) where T : IHasRequirements<T> => req.Required(format, 1);
     public static T Required<T>(this IHasRequirements<T> req, FileFormat format, uint amount) where T : IHasRequirements<T> => req.Required(format, amount, amount);
