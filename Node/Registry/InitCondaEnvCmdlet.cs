@@ -7,7 +7,7 @@ namespace Node.Registry;
 public class InitCondaEnvCmdlet : PSCmdlet
 {
     [Parameter(Position = 0, Mandatory = true)]
-    public PluginType Type { get; set; }
+    public string Name { get; set; } = null!;
 
     [Parameter(Position = 1, Mandatory = true)]
     public string PythonVersion { get; set; } = null!;
@@ -23,8 +23,8 @@ public class InitCondaEnvCmdlet : PSCmdlet
         base.ProcessRecord();
 
         LogManager.GetCurrentClassLogger().Info(
-            $"Initializing conda environment {Type} with python={PythonVersion}; requirements {string.Join(' ', Requirements)}; channels {string.Join(' ', Channels)}");
+            $"Initializing conda environment {Name} with python={PythonVersion}; requirements {string.Join(' ', Requirements)}; channels {string.Join(' ', Channels)}");
 
-        CondaManager.Initialize(Type, PythonVersion, Requirements, Channels);
+        CondaManager.Initialize(Name, PythonVersion, Requirements, Channels);
     }
 }

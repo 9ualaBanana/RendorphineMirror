@@ -46,7 +46,8 @@ public static class EsrganTasks
                 {pylaunch}
                 """;
 
-            pylaunch = CondaManager.WrapWithInitEnv(Type, script);
+            // TODO: environment name version get somewhere
+            pylaunch = CondaManager.WrapWithInitEnv($"{Type}_1.0.1", script);
             await Task.Run(() => ExecutePowerShell(pylaunch, false, onRead, task));
 
             if (data.X2)
