@@ -1,7 +1,13 @@
 ﻿namespace Node.Plugins.Discoverers;
 
-public class PythonEsrganPluginDiscoverer : PluginDiscoverer
+public class PythonEsrganPluginDiscoverer : LocalPluginDiscoverer
 {
+    protected override string ParentDirectoryPattern => "esrgan";
+    protected override string ExecutableName => "test.py";
+    protected override PluginType PluginType => PluginType.Esrgan;
+
+    /* delete
+
     protected override IEnumerable<string> InstallationPathsImpl => new string[] { Path.Combine("plugins", "python") };
     protected override string ParentDirectoryPattern => "esrgan";
     protected override string ExecutableName => "test.py";
@@ -13,5 +19,5 @@ public class PythonEsrganPluginDiscoverer : PluginDiscoverer
         if (!File.Exists(verfile)) return base.DetermineVersion(exepath);
 
         return File.ReadAllText(verfile).Trim();
-    }
+    }*/
 }
