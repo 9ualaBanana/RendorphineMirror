@@ -93,7 +93,7 @@ public static class Processes
     static async Task<string> FullExecute(string exepath, string args, IEnumerable<string> argsarr, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null)
     {
         var sdtr = new StringBuilder();
-        await Execute(exepath, args, argsarr, (err, data) => { if (!err) sdtr.Append(data); }, logobj, stdout, stderr);
+        await Execute(exepath, args, argsarr, (err, data) => { if (!err) sdtr.AppendLine(data); }, logobj, stdout, stderr);
 
         return sdtr.ToString();
     }

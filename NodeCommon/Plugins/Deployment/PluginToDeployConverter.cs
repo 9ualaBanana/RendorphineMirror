@@ -39,6 +39,7 @@ public class PluginToDeployConverter : JsonConverter<PluginToDeploy>
     public static HashSet<PluginToDeploy> ReadSubpluginsFrom(JToken pluginVersion)
     {
         return ((JObject)pluginVersion).Properties()
+            .Where(subPluginProperty => Enum.TryParse<PluginType>(subPluginProperty.Name, true, out _))
             .Select(subPluginProperty => new PluginToDeploy()
             {
                 Type = Enum.Parse<PluginType>(subPluginProperty.Name, true),

@@ -2,7 +2,7 @@
 
 public class CondaPluginDiscoverer : PluginDiscoverer
 {
-    protected override IEnumerable<string> InstallationPathsImpl => Enumerable.Empty<string>();
+    protected override IEnumerable<string> InstallationPathsImpl => new[] { "plugins" };
     protected override string ParentDirectoryPattern => "mamba";
     protected override string ExecutableRegex => @"micromamba(\.exe)?";
     protected override PluginType PluginType => PluginType.Conda;
