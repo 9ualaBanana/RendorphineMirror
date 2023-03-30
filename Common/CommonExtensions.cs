@@ -38,6 +38,13 @@ namespace Common
             }
         }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
 
+        public static T ThrowIfValueNull<T>([NotNull] this T? value, string? message = null, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : struct
+        {
+            if (value is null)
+                throw new NullReferenceException(message ?? $"{expression ?? "Value"} is null");
+
+            return value.Value;
+        }
         public static T ThrowIfNull<T>([NotNull] this T? value, string? message = null, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
         {
             if (value is null)

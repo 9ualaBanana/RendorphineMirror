@@ -30,10 +30,11 @@ namespace NodeUI.Controls
             if (opres) return Task.FromResult(false);
             return FlashError(opres.Message!, duration).ContinueWith(_ => true);
         }
+        public Task<bool> Flash<T>(OperationResult<T> opres, int duration = 2000) => Flash(opres.GetResult(), duration);
         public Task<bool> Flash(OperationResult opres, int duration = 2000)
         {
-            if (opres) return FlashOk("ok", duration).ContinueWith(_ => false);
-            return FlashError(opres.Message!, duration).ContinueWith(_ => true);
+            if (opres) return FlashOk("ok", duration).ContinueWith(_ => true);
+            return FlashError(opres.Message!, duration).ContinueWith(_ => false);
         }
 
         public Task FlashError(string text, int duration = 2000) => Flash(Brushes.Red, text, duration);

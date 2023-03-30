@@ -362,4 +362,10 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
 
     public ValueTask<OperationResult> SetSettingsAsync(UserSettings userSettings) =>
         Api.ApiPost($"{TaskManagerEndpoint}/setusersettings", "Setting user settings", AddSessionId(("settings", JsonConvert.SerializeObject(userSettings))));
+
+
+    public ValueTask<OperationResult<UserSettings2>> GetSettings2Async() =>
+        Api.ApiGet<UserSettings2>($"{TaskManagerEndpoint}/getmysettings", "settings", "Getting user settings", AddSessionId());
+    public ValueTask<OperationResult> SetSettingsAsync(UserSettings2 userSettings) =>
+        Api.ApiPost($"{TaskManagerEndpoint}/setusersettings", "Setting user settings", AddSessionId(("settings", JsonConvert.SerializeObject(userSettings, JsonSettings.LowercaseIgnoreNull))));
 }

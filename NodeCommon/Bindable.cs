@@ -15,6 +15,7 @@ namespace NodeCommon
         void LoadFromJson(JToken json, JsonSerializer? serializer);
 
         void SubscribeChanged(Action action, bool executeImmediately = false);
+        void TriggerValueChanged();
     }
     public interface IReadOnlyBindable<out T> : IBindable
     {

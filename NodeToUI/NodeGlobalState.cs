@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NodeCommon.NodeUserSettings;
 using NodeToUI.Requests;
 
 namespace NodeToUI;
@@ -17,6 +18,7 @@ public class NodeGlobalState
     public readonly Bindable<TasksFullDescriber> TaskDefinitions = new();
     public readonly Bindable<ImmutableDictionary<string, SoftwareDefinition>> Software = new(ImmutableDictionary<string, SoftwareDefinition>.Empty);
     public readonly Bindable<ImmutableDictionary<string, SoftwareStats>> SoftwareStats = new(ImmutableDictionary<string, SoftwareStats>.Empty);
+    public readonly Bindable<UserSettings2> UserSettings = new(new(null, null));
 
     public readonly BindableList<Plugin> InstalledPlugins = new();
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
