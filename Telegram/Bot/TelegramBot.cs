@@ -90,6 +90,26 @@ public class TelegramBot : TelegramBotClient
             replyMarkup: replyMarkup,
             cancellationToken: cancellationToken);
 
+    /// <remarks>
+    /// If <paramref name="caption"/> is not <see langword="null"/>,
+    /// it becomes the caption for the album and all captions of its individual media files are removed.
+    /// </remarks>
+    internal async Task<Message[]> SendAlbumAsync_(
+        ChatId chatId,
+        IEnumerable<IAlbumInputMedia> media,
+        string? caption = null,
+        bool? disableNotification = default,
+        bool? protectContent = default,
+        int? replyToMessageId = null,
+        bool? allowSendingWithoutReply = default,
+        CancellationToken cancellationToken = default)
+    {
+        if (caption is not null)
+            media.Caption(caption);
+            
+        return await this.SendMediaGroupAsync(chatId, media, disableNotification, protectContent, replyToMessageId, allowSendingWithoutReply, cancellationToken);
+    }
+
     internal async Task<Message> SendMessageAsync_(
         ChatId chatId,
         string text,
@@ -174,4 +194,25 @@ public static class TelegramHelperExtensions
         => builder
         .AppendLine(header)
         .AppendLine(HorizontalDelimeter);
+
+    /// <summary>
+    /// Sets <paramref name="caption"/> of the <paramref name="album"/>
+    /// also removing captions from individual media files constituting it.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="album"/> caption is set via the first media file constituting it.
+    /// If any other constituent media files have their <see cref="InputMediaBase.Caption"/> set,
+    /// then they are treated as captions of individual media files and not the <paramref name="album"/>.
+    /// </remarks>
+    internal static IEnumerable<IAlbumInputMedia> Caption(this IEnumerable<IAlbumInputMedia> album, string caption)
+    {
+        if (album.FirstOrDefault() is InputMediaBase album_)
+        {
+            album_.Caption = caption;
+            foreach (var mediaFile in album.Skip(1))
+                (mediaFile as InputMediaBase)!.Caption = null;
+        }
+
+        return album;
+    }
 }
