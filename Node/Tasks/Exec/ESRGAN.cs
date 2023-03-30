@@ -76,6 +76,8 @@ public static class EsrganTasks
 
             void onRead(bool err, object obj)
             {
+                if (err) throw new Exception(obj.ToString());
+
                 var line = obj.ToString()!;
                 if (!line.StartsWith("Progress:")) return;
 
