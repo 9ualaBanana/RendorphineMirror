@@ -131,7 +131,7 @@ public class TelegramBot : TelegramBotClient
         var editedMessage = await this.EditMessageTextAsync(
             chatId,
             messageId,
-            text,
+            text.Sanitize(),
             ParseMode.MarkdownV2,
             entities: null,
             disableWebPagePreview,
