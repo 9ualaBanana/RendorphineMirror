@@ -1,4 +1,5 @@
 ﻿using Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
+using Telegram.Infrastructure.LinguisticAnalysis;
 
 namespace Telegram.Infrastructure.Commands.LexicalAnalysis;
 

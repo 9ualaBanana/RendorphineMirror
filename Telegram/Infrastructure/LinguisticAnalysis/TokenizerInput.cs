@@ -1,6 +1,4 @@
-﻿using Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
-
-namespace Telegram.Infrastructure.Commands.LexicalAnalysis;
+﻿namespace Telegram.Infrastructure.LinguisticAnalysis;
 
 internal class TokenizerInput
 {

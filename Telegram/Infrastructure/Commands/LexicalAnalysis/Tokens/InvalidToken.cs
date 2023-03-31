@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Telegram.Infrastructure.LinguisticAnalysis;
 
 namespace Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
 
