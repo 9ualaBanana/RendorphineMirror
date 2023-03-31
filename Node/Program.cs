@@ -210,6 +210,7 @@ async Task InitializePlugins()
     {
         FFMpegTasks.CreateTasks(),
         EsrganTasks.CreateTasks(),
+        RobustVideoMatting.CreateTasks(),
         VectorizerTasks.CreateTasks(),
         GenerateQSPreviewTasks.CreateTasks(),
     });
