@@ -88,7 +88,7 @@ public abstract class PluginAction<T> : IPluginAction
                 var logstr = $"[PowerShell {pipeline.GetHashCode()}] {item}";
                 logobj?.LogInfo(logstr);
 
-                onRead?.Invoke(false, item.ToString()!);
+                onRead?.Invoke(false, item);
             }
         };
         pipeline.Error.DataReady += (obj, e) =>
@@ -99,7 +99,7 @@ public abstract class PluginAction<T> : IPluginAction
                 if (stderrToStdout) logobj?.LogInfo(logstr);
                 else logobj?.LogErr(logstr);
 
-                onRead?.Invoke(!stderrToStdout, item.ToString()!);
+                onRead?.Invoke(!stderrToStdout, item);
             }
         };
 
