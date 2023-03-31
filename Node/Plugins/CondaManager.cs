@@ -83,11 +83,12 @@ public static class CondaManager
             """;
     }
 
-    public static void Initialize(string name, string pyversion, IEnumerable<string> requirements, IEnumerable<string> channels)
+    public static void Initialize(string name, string pyversion, IEnumerable<string> requirements, IEnumerable<string> channels, IEnumerable<string>? piprequirements)
     {
         var script = $"""
             {GetInitEnvScript(name, envdir => $"micromamba create -y -p '{envdir}' python={pyversion} {string.Join(' ', channels.Select(c => $"-c '{c}'"))}")}
             micromamba install -y --json {string.Join(' ', requirements.Select(r => $"'{r}'"))} {string.Join(' ', channels.Select(c => $"-c '{c}'"))}
+            {(piprequirements is null ? null : $"pip install {string.Join(' ', piprequirements.Select(r => $"'{r}'"))}")}
             """;
 
         try
