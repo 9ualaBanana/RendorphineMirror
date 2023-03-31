@@ -21,7 +21,7 @@ public class InitCondaEnvCmdlet : PSCmdlet
     {
         base.ProcessRecord();
 
-        var name = $"{(string) GetVariableValue("PLUGIN")}_{ (string) GetVariableValue("PLUGINVER")}";
+        var name = $"{GetVariableValue("PLUGIN").ToString()!}_{GetVariableValue("PLUGINVER").ToString()!}";
 
         var log = $"Initializing conda environment {name} with python={PythonVersion}";
         log += $"; requirements {string.Join(' ', Requirements)}";

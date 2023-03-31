@@ -57,6 +57,18 @@ public abstract class PluginAction<T> : IPluginAction
     }
 
 
+    protected static Task ExecutePowerShellAtWithCondaEnvAsync(ReceivedTask task, string script, bool stderrToStdout, Action<bool, object>? onRead) =>
+        Task.Run(() => ExecutePowerShellAtWithCondaEnv(task, script, stderrToStdout, onRead));
+    protected static void ExecutePowerShellAtWithCondaEnv(ReceivedTask task, string script, bool stderrToStdout, Action<bool, object>? onRead)
+    {
+        var plugin = task.GetPlugin().GetInstance();
+        script = $"""
+            Set-Location '{Path.GetFullPath(Path.GetDirectoryName(plugin.Path)!)}'
+            {CondaManager.WrapWithInitEnv($"{plugin.Type}_{plugin.Version}", script)}
+            """;
+
+        ExecutePowerShell(script, stderrToStdout, onRead, task);
+    }
     protected static void ExecutePowerShell(string script, bool stderrToStdout, Action<bool, object>? onRead, ILoggable? logobj)
     {
         var session = InitialSessionState.CreateDefault();
