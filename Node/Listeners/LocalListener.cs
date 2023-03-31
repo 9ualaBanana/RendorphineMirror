@@ -56,7 +56,10 @@ public class LocalListener : ExecutableListenerBase
         {
             return await Test(request, response, "type", "version", async (type, version) =>
             {
-                new ScriptPluginDeploymentInfo(new PluginToDeploy() { Type = Enum.Parse<PluginType>(type, true), Version = version }).DeployAsync().Consume();
+                new ScriptPluginDeploymentInfo(new PluginToDeploy() { Type = Enum.Parse<PluginType>(type, true), Version = version }).DeployAsync()
+                    .ContinueWith(async _ => await PluginsManager.DiscoverInstalledPluginsAsync())
+                    .Consume();
+
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
