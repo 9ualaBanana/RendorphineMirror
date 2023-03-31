@@ -23,19 +23,6 @@ public enum PluginType
 
 public static class PluginTypeExtensions
 {
-    public static string? GetName(this PluginType type) => type switch
-    {
-        PluginType.Autodesk3dsMax => "Autodesk 3ds Max",
-        PluginType.TopazGigapixelAI => "Topaz Gigapixel AI",
-        PluginType.DaVinciResolve => "DaVinci Resolve",
-
-        PluginType.Esrgan => "ESRGAN",
-
-        PluginType.NvidiaDriver => "Nvidia driver",
-
-        _ => type.ToString(),
-    };
-
     public static bool IsPlugin(this PluginType type) => !type.ToString().Contains('_');
 
     public static bool IsChildOf(this PluginType type, PluginType parent)
