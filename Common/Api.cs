@@ -165,7 +165,7 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
             try
             {
                 var result = await func().ConfigureAwait(false);
-                if (result.EString.HttpData is { } httperr && !httperr.IsSuccessStatusCode)
+                if (result.EString.HttpData is { } httperr && !httperr.IsSuccessStatusCode && httperr.StatusCode != System.Net.HttpStatusCode.BadRequest)
                 {
                     await Task.Delay(1000).ConfigureAwait(false);
                     continue;
