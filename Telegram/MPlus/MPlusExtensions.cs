@@ -6,6 +6,7 @@ static class MPlusExtensions
     {
         services.AddHttpClient<MPlusTaskManagerClient>();
         services.AddHttpClient<MPlusTaskLauncherClient>();
+        services.AddHttpClient<StockSubmitterClient>();
         return services.AddScoped<MPlusClient>();
     }
 }
