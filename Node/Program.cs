@@ -222,6 +222,7 @@ async Task InitializePlugins()
         new FFmpegPluginDiscoverer(),
         new PythonPluginDiscoverer(),
         new PythonEsrganPluginDiscoverer(),
+        new RobustVideoMattingPluginDiscoverer(),
         new VeeeVectorizerPluginDiscoverer(),
         new NvidiaDriverPluginDiscoverer(),
         new CondaPluginDiscoverer()

@@ -10,7 +10,7 @@ public abstract class LocalPluginDiscoverer : PluginDiscoverer
     protected sealed override string? ExecutableRegex => null;
     protected sealed override string? ParentDirectoryRegex => null;
 
-    protected override abstract string ParentDirectoryPattern { get; }
+    protected override string ParentDirectoryPattern => PluginType.ToString().ToLowerInvariant();
     protected override abstract string ExecutableName { get; }
 
     protected override IEnumerable<string> GetPossiblePluginDirectories()
