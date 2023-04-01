@@ -31,8 +31,8 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
             asTask(() => FileFormatExtensions.FromMime(data.Content.Headers.ContentType!.ToString())),
             asTask(() => FileFormatExtensions.FromFilename(data.Content.Headers.ContentDisposition!.FileName!)),
             asTask(() => FileFormatExtensions.FromFilename(info.Url.Split('?')[0])),
-            asTask(() => task.GetAction().InputRequirements.Single(x => x.Required).DistinctFormats.Max()),
             tryFFProbe
+            // TODO: ffprobe doesnt know about EPS, so do something custom
         );
 
         File.Move(tempfile, task.FSNewInputFile(format));

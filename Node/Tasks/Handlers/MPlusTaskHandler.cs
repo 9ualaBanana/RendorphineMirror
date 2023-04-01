@@ -9,14 +9,8 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
     public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
     {
-        foreach (var requirement in task.GetAction().InputRequirements)
-        {
-            try { await Task.WhenAll(requirement.DistinctFormats.Select(download)); }
-            catch { }
-        }
-
-        task.GetAction().InputRequirements.Check(task).ThrowIfError();
-
+        try { await Task.WhenAll(task.GetAction().InputFileFormats.SelectMany(f => f).Distinct().Select(download)); }
+        catch { }
 
         async Task download(FileFormat format)
         {

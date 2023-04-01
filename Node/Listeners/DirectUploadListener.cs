@@ -39,14 +39,7 @@ public class DirectUploadListener : MultipartListenerBase
         using (var resultfile = File.OpenWrite(filename))
             await file.Body.CopyToAsync(resultfile);
 
-        if (last)
-        {
-            var check = task.GetAction().InputRequirements.Check(task);
-            if (!check) return await WriteJson(context.Response, check);
-
-            dinput.Downloaded = true;
-        }
-
+        if (last) dinput.Downloaded = true;
         return await WriteSuccess(context.Response);
     }
 }

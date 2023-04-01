@@ -199,8 +199,20 @@ public static class FFMpegTasks
     class FFMpegEditVideo : FFMpegMediaEditAction<EditVideoInfo>
     {
         public override TaskAction Name => TaskAction.EditVideo;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Mov);
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Mov);
+
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Mov } };
+
+        protected override OperationResult ValidateOutputFiles(ReceivedTask task, EditVideoInfo data) =>
+            TaskRequirement.EnsureSingleInputFile(task)
+            .Next(input => TaskRequirement.EnsureSingleOutputFile(task)
+            .Next(output =>
+            {
+                if (data.CutFrameAt is not (null or -1))
+                    return TaskRequirement.EnsureFormat(output, FileFormat.Jpeg);
+
+                return TaskRequirement.EnsureSameFormat(output, input);
+            }));
 
         protected override void ConstructFFMpegArguments(ReceivedTask task, EditVideoInfo data, in FFMpegArgsHolder args)
         {
@@ -239,10 +251,14 @@ public static class FFMpegTasks
     class FFMpegEditRaster : FFMpegMediaEditAction<EditRasterInfo>
     {
         public override TaskAction Name => TaskAction.EditRaster;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements()
-            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Png));
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements()
-            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Png));
+
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Jpeg, FileFormat.Png } };
+
+        protected override OperationResult ValidateOutputFiles(ReceivedTask task, EditRasterInfo data) =>
+            TaskRequirement.EnsureSingleInputFile(task)
+            .Next(input => TaskRequirement.EnsureSingleOutputFile(task)
+            .Next(output => TaskRequirement.EnsureSameFormat(output, input)));
     }
 
 

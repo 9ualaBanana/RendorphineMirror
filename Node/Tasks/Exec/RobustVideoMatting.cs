@@ -19,10 +19,18 @@ public static class RobustVideoMatting
         public override TaskAction Name => TaskAction.GreenscreenBackground;
         public override PluginType Type => PluginType.RobustVideoMatting;
 
-        public override TaskFileFormatRequirements InputRequirements =>
-            new TaskFileFormatRequirements().Either(e => e.RequiredOne(FileFormat.Mov).RequiredOne(FileFormat.Png).RequiredOne(FileFormat.Jpeg));
-        public override TaskFileFormatRequirements OutputRequirements =>
-            new TaskFileFormatRequirements().Either(e => e.RequiredOne(FileFormat.Mov).RequiredOne(FileFormat.Png).RequiredOne(FileFormat.Jpeg));
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Jpeg, FileFormat.Png, FileFormat.Mov } };
+
+        protected override OperationResult ValidateOutputFiles(ReceivedTask task, RobustVideoMattingInfo data) =>
+            TaskRequirement.EnsureSingleInputFile(task)
+            .Next(input => TaskRequirement.EnsureSingleOutputFile(task)
+            .Next(output =>
+            {
+                if (input.Format == FileFormat.Jpeg && data.Color is null)
+                    return TaskRequirement.EnsureFormat(output, FileFormat.Png);
+                return TaskRequirement.EnsureSameFormat(output, input);
+            }));
 
         protected override async Task ExecuteImpl(ReceivedTask task, RobustVideoMattingInfo data)
         {

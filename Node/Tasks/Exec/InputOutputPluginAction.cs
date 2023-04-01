@@ -28,6 +28,8 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
             task.LogInfo($"Downloading input... (wh {InputSemaphore.CurrentCount})");
             await task.GetInputHandler().Download(task).ConfigureAwait(false);
             task.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}");
+            task.LogInfo($"Validating downloaded files...");
+            ValidateInputFilesThrow(task);
 
             await task.ChangeStateAsync(TaskState.Active);
             NodeSettings.QueuedTasks.Save(task);
@@ -38,8 +40,8 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         {
             using var _ = await WaitDisposed("active", task, TaskWaitHandle);
 
-            task.LogInfo($"Checking input files... (wh {TaskWaitHandle.CurrentCount})");
-            task.GetAction().InputRequirements.Check(task).ThrowIfError();
+            task.LogInfo($"Validating input files...");
+            ValidateInputFilesThrow(task);
 
             task.LogInfo($"Executing task...");
             await ExecuteImpl(task, data).ConfigureAwait(false);
@@ -53,6 +55,9 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
         if (task.State <= TaskState.Output)
         {
             using var _ = await WaitDisposed("output", task, OutputSemaphore);
+
+            task.LogInfo($"Validating output files...");
+            ValidateOutputFiles(task, data);
 
             task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
             await task.GetOutputHandler().UploadResult(task).ConfigureAwait(false);

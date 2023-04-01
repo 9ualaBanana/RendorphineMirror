@@ -12,12 +12,18 @@ public static class VectorizerTasks
     {
         public override TaskAction Name => TaskAction.VeeeVectorize;
         public override PluginType Type => PluginType.VeeeVectorizer;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements()
-            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Png));
 
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements()
-            .RequiredAtLeast(FileFormat.Jpeg, 2)
-            .RequiredAtLeast(FileFormat.Eps, 2);
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Jpeg, FileFormat.Png } };
+
+        protected override OperationResult ValidateOutputFiles(ReceivedTask task, VeeeVectorizeInfo data)
+        {
+            // 2x jpg and 2x eps per LOD
+            var amount = data.Lods.Length * 2;
+            var formats = Enumerable.Repeat(new[] { FileFormat.Jpeg, FileFormat.Jpeg, FileFormat.Eps, FileFormat.Eps }, data.Lods.Length).SelectMany(a => a).ToArray();
+
+            return TaskRequirement.EnsureOutputFormats(task, formats);
+        }
 
         protected override async Task ExecuteImpl(ReceivedTask task, VeeeVectorizeInfo data)
         {

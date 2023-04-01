@@ -10,8 +10,12 @@ public static class GenerateQSPreviewTasks
     class GenerateQSPreview : FFMpegTasks.FFMpegAction<QSPreviewInfo>
     {
         public override TaskAction Name => TaskAction.GenerateQSPreview;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg).MaybeOne(FileFormat.Mov);
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg).MaybeOne(FileFormat.Mov);
+
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Jpeg, FileFormat.Mov } };
+
+        protected override OperationResult ValidateOutputFiles(ReceivedTask task, QSPreviewInfo data) =>
+            TaskRequirement.EnsureSameFormats(task);
 
         protected override void ConstructFFMpegArguments(ReceivedTask task, QSPreviewInfo data, in FFMpegArgsHolder args)
         {

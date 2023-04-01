@@ -8,8 +8,7 @@ public interface IPluginAction
     Type DataType { get; }
     PluginType Type { get; }
     TaskAction Name { get; }
-    TaskFileFormatRequirements InputRequirements { get; }
-    TaskFileFormatRequirements OutputRequirements { get; }
+    IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
 
     Task Execute(ReceivedTask task);
 }
@@ -19,8 +18,13 @@ public abstract class PluginAction<T> : IPluginAction
 
     public abstract TaskAction Name { get; }
     public abstract PluginType Type { get; }
-    public abstract TaskFileFormatRequirements InputRequirements { get; }
-    public abstract TaskFileFormatRequirements OutputRequirements { get; }
+
+    public abstract IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
+    protected abstract OperationResult ValidateOutputFiles(ReceivedTask task, T data);
+
+    protected void ValidateInputFilesThrow(ReceivedTask task) =>
+        ValidateInputFiles(task).ThrowIfError($"Task {task.Id} input file validation failed: {{0}}");
+    OperationResult ValidateInputFiles(ReceivedTask task) => TaskRequirement.EnsureInputFormats(task, InputFileFormats);
 
     public async Task Execute(ReceivedTask task)
     {
