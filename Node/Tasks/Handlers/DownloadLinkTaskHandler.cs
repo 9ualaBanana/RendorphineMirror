@@ -78,4 +78,15 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
             throw new Exception("Could not find a valid file format");
         }
     }
+
+    public async ValueTask<OperationResult<TaskObject>> GetTaskObject(ITaskInputInfo input)
+    {
+        var dinput = (DownloadLinkTaskInputInfo) input;
+
+        var headers = await Api.Client.GetAsync(dinput.Url, HttpCompletionOption.ResponseHeadersRead);
+        if (!headers.IsSuccessStatusCode)
+            return OperationResult.Err() with { HttpData = new(headers, null) };
+
+        return new TaskObject(Path.GetFileName(dinput.Url), headers.Content.Headers.ContentLength!.Value);
+    }
 }

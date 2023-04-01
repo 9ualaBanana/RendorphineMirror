@@ -15,7 +15,7 @@ public class TaskCreationInfo
     public ImmutableArray<TaskSoftwareRequirement>? SoftwareRequirements;
 
     [JsonConstructor]
-    public TaskCreationInfo() { }
+    protected TaskCreationInfo() { }
 
     public TaskCreationInfo(TaskAction action, ITaskInputInfo input, ITaskOutputInfo output, TaskObject taskobj)
         : this(action.ToString(), input, output, new { }, TaskPolicy.AllNodes, taskobj)

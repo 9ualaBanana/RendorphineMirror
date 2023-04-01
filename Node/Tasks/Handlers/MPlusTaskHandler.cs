@@ -55,4 +55,5 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     }
 
     public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(task.State == TaskState.Validation && ((MPlusTaskOutputInfo) task.Output).IngesterHost is not null);
+    public ValueTask<OperationResult<TaskObject>> GetTaskObject(ITaskInputInfo input) => ((MPlusTaskInputInfo) input).GetFileInfo(Settings.SessionId, Settings.UserId);
 }

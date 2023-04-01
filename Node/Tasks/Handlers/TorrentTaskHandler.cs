@@ -104,4 +104,6 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     }
 
     public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(((TorrentTaskOutputInfo) task.Output).Link is not null);
+
+    public ValueTask<OperationResult<TaskObject>> GetTaskObject(ITaskInputInfo input) => ((ILocalTaskInputInfo) input).GetTaskObject();
 }

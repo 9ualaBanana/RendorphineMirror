@@ -133,4 +133,6 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
             File.Move(zipfile, Path.Combine(task.FSPlacedResultsDirectory(), file));
         }
     }
+
+    public ValueTask<OperationResult<TaskObject>> GetTaskObject(ITaskInputInfo input) => ((ILocalTaskInputInfo) input).GetTaskObject();
 }

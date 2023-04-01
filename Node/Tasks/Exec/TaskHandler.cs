@@ -16,7 +16,7 @@ public static class TaskHandler
 
     public static async Task InitializePlacedTasksAsync()
     {
-        TaskRegistration.TaskRegistered += task => UploadInputFiles(task).Consume();
+        NodeCommon.Tasks.TaskRegistration.TaskRegistered += task => UploadInputFiles(task).Consume();
         await Task.WhenAll(NodeSettings.PlacedTasks.Values.ToArray().Select(UploadInputFiles));
 
 
@@ -333,7 +333,9 @@ public static class TaskHandler
     }
 
 
-    public static ITaskInputHandler GetInputHandler(this TaskBase task) => InputHandlers[task.Input.Type];
-    public static ITaskOutputHandler GetOutputHandler(this TaskBase task) => OutputHandlers[task.Output.Type];
+    public static ITaskInputHandler GetInputHandler(this TaskBase task) => task.Input.Type.GetHandler();
+    public static ITaskOutputHandler GetOutputHandler(this TaskBase task) => task.Output.Type.GetHandler();
+    public static ITaskInputHandler GetHandler(this TaskInputType type) => InputHandlers[type];
+    public static ITaskOutputHandler GetHandler(this TaskOutputType type) => OutputHandlers[type];
     public static IWatchingTaskInputHandler CreateWatchingHandler(this WatchingTask task) => WatchingHandlers[task.Source.Type](task);
 }

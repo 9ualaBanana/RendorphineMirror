@@ -138,7 +138,7 @@ logger.Info(@$"Tasks found
 ".TrimLines().Replace("\n", "; ").Replace("\r", string.Empty));
 
 
-TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;
+NodeCommon.Tasks.TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;
 
 TaskHandler.InitializePlacedTasksAsync().Consume();
 TaskHandler.StartUpdatingPlacedTasks();

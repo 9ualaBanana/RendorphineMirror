@@ -36,7 +36,7 @@ public static class WatchingTaskExtensions
     public static async ValueTask<DbTaskFullState> RegisterTask(this WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output, TaskObject tobj)
     {
         var taskinfo = task.CreateTaskInfo(input, output, tobj);
-        var register = await TaskRegistration.TaskRegisterAsync(taskinfo, Settings.SessionId, task).ConfigureAwait(false);
+        var register = await NodeTaskRegistration.TaskRegisterAsync(taskinfo, task).ConfigureAwait(false);
         var newtask = register.ThrowIfError().ThrowIfNull();
         NodeSettings.WatchingTasks.Save(task);
 

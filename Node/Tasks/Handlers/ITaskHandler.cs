@@ -10,6 +10,7 @@ public interface ITaskInputHandler : ITaskHandler
 
     /// <summary> Initialize placed task (e.g. start torrent seeding for uploading source files) </summary>
     ValueTask UploadInputFiles(DbTaskFullState task) => ValueTask.CompletedTask;
+    ValueTask<OperationResult<TaskObject>> GetTaskObject(ITaskInputInfo input);
 }
 public interface ITaskOutputHandler : ITaskHandler
 {
