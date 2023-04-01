@@ -64,8 +64,9 @@ public abstract class PluginAction<T> : IPluginAction
         var plugin = task.GetPlugin().GetInstance();
         script = $"""
             Set-Location '{Path.GetFullPath(Path.GetDirectoryName(plugin.Path)!)}'
-            {CondaManager.WrapWithInitEnv($"{plugin.Type}_{plugin.Version}", script)}
+            {script}
             """;
+        script = CondaManager.WrapWithInitEnv($"{plugin.Type}_{plugin.Version}", script);
 
         ExecutePowerShell(script, stderrToStdout, onRead, task);
     }
@@ -104,6 +105,7 @@ public abstract class PluginAction<T> : IPluginAction
         };
 
         pipeline.Commands.AddScript(script);
+        LogManager.GetLogger("amogus").Trace(script);
         var invoke = pipeline.Invoke();
 
         if (pipeline.PipelineStateInfo.Reason is not null)

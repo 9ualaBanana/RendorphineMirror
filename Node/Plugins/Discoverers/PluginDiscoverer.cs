@@ -65,7 +65,7 @@ public abstract class PluginDiscoverer : IPluginDiscoverer
             .DistinctBy(plugin => plugin.Version == "Unknown" ? Guid.NewGuid().ToString() : plugin.Version);
     }
 
-    Plugin GetDiscoveredPlugin(string executablePath) => new Plugin(PluginType, DetermineVersion(executablePath), executablePath);
+    Plugin GetDiscoveredPlugin(string executablePath) => new Plugin(PluginType, DetermineVersion(executablePath), Path.GetFullPath(executablePath));
     protected virtual string DetermineVersion(string exepath) => "Unknown";
 
 
