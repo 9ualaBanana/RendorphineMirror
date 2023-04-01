@@ -2,6 +2,7 @@ global using System.Collections.Immutable;
 global using Common;
 global using Machine;
 global using NLog;
+global using Node.Plugins;
 global using Node.Plugins.Deployment;
 global using Node.Registry;
 global using Node.Tasks.Exec;
@@ -20,7 +21,6 @@ using Newtonsoft.Json.Linq;
 using Node;
 using Node.Heartbeat;
 using Node.Listeners;
-using Node.Plugins;
 using Node.Plugins.Discoverers;
 using Node.Profiling;
 
@@ -210,6 +210,7 @@ async Task InitializePlugins()
     {
         FFMpegTasks.CreateTasks(),
         EsrganTasks.CreateTasks(),
+        RobustVideoMatting.CreateTasks(),
         VectorizerTasks.CreateTasks(),
         GenerateQSPreviewTasks.CreateTasks(),
     });
@@ -222,6 +223,7 @@ async Task InitializePlugins()
         new FFmpegPluginDiscoverer(),
         new PythonPluginDiscoverer(),
         new PythonEsrganPluginDiscoverer(),
+        new RobustVideoMattingPluginDiscoverer(),
         new VeeeVectorizerPluginDiscoverer(),
         new NvidiaDriverPluginDiscoverer(),
         new CondaPluginDiscoverer()

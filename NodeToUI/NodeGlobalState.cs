@@ -63,5 +63,7 @@ public class NodeGlobalState
 
     public PluginType GetPluginTypeFromAction(string action) => TaskDefinitions.Value.Actions.First(x => x.Name == action).Type;
     public PluginType GetPluginType(ReceivedTask task) => GetPluginTypeFromAction(task.Info.TaskType);
-    public Plugin GetPluginInstance(PluginType type) => InstalledPlugins.First(x => x.Type == type);
+    public IEnumerable<Plugin> GetPluginInstances(PluginType type) => InstalledPlugins.Where(x => x.Type == type);
+    public Plugin GetPluginInstance(PluginType type) => GetPluginInstances(type).OrderByDescending(PluginVersion.From).First();
+    public Plugin GetPluginInstance(PluginType type, string version) => GetPluginInstances(type).First(x => x.Version == version);
 }

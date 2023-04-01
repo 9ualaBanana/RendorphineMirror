@@ -26,6 +26,9 @@ public static class PowerShellInvoker
             var prox = psh.Runspace.SessionStateProxy;
             var plugintype = plugin.Type.ToString().ToLowerInvariant();
             var pluginver = plugin.Version;
+            if (pluginver.Length == 0 && NodeGlobalState.Instance.Software.Value.TryGetValue(plugintype, out var vers))
+                pluginver = vers.Versions.Keys.MaxBy(PluginVersion.Parse) ?? pluginver;
+
             Path.GetInvalidFileNameChars().ToList().ForEach(x => pluginver = pluginver.Replace(x, '_'));
 
             prox.SetVariable("PLUGIN", plugintype);

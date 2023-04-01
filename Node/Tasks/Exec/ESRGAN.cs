@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using Node.Plugins;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -40,15 +39,7 @@ public static class EsrganTasks
                 + $"\"{outputfile}\" "          // output file
                 + $"--tile_size 384 ";          // tile size; TODO: automatically determine
 
-            var plugindir = Path.GetFullPath(Path.GetDirectoryName(task.GetPlugin().GetInstance().Path)!);
-            var script = $"""
-                Set-Location '{plugindir}'
-                {pylaunch}
-                """;
-
-            // TODO: environment name version get somewhere
-            pylaunch = CondaManager.WrapWithInitEnv($"{Type}_1.0.1", script);
-            await Task.Run(() => ExecutePowerShell(pylaunch, false, onRead, task));
+            await ExecutePowerShellAtWithCondaEnvAsync(task, pylaunch, false, onRead);
 
             if (data.X2)
             {

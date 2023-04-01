@@ -57,6 +57,19 @@ public abstract class PluginAction<T> : IPluginAction
     }
 
 
+    protected static Task ExecutePowerShellAtWithCondaEnvAsync(ReceivedTask task, string script, bool stderrToStdout, Action<bool, object>? onRead) =>
+        Task.Run(() => ExecutePowerShellAtWithCondaEnv(task, script, stderrToStdout, onRead));
+    protected static void ExecutePowerShellAtWithCondaEnv(ReceivedTask task, string script, bool stderrToStdout, Action<bool, object>? onRead)
+    {
+        var plugin = task.GetPlugin().GetInstance();
+        script = $"""
+            Set-Location '{Path.GetFullPath(Path.GetDirectoryName(plugin.Path)!)}'
+            {script}
+            """;
+        script = CondaManager.WrapWithInitEnv($"{plugin.Type}_{plugin.Version}", script);
+
+        ExecutePowerShell(script, stderrToStdout, onRead, task);
+    }
     protected static void ExecutePowerShell(string script, bool stderrToStdout, Action<bool, object>? onRead, ILoggable? logobj)
     {
         var session = InitialSessionState.CreateDefault();
@@ -76,7 +89,7 @@ public abstract class PluginAction<T> : IPluginAction
                 var logstr = $"[PowerShell {pipeline.GetHashCode()}] {item}";
                 logobj?.LogInfo(logstr);
 
-                onRead?.Invoke(false, item.ToString()!);
+                onRead?.Invoke(false, item);
             }
         };
         pipeline.Error.DataReady += (obj, e) =>
@@ -87,11 +100,12 @@ public abstract class PluginAction<T> : IPluginAction
                 if (stderrToStdout) logobj?.LogInfo(logstr);
                 else logobj?.LogErr(logstr);
 
-                onRead?.Invoke(!stderrToStdout, item.ToString()!);
+                onRead?.Invoke(!stderrToStdout, item);
             }
         };
 
         pipeline.Commands.AddScript(script);
+        LogManager.GetLogger("amogus").Trace(script);
         var invoke = pipeline.Invoke();
 
         if (pipeline.PipelineStateInfo.Reason is not null)

@@ -7,4 +7,5 @@ public enum TaskAction
     EditRaster,
     GenerateQSPreview,
     VeeeVectorize,
+    GreenscreenBackground,
 }
