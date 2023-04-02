@@ -13,6 +13,7 @@ public class TaskCreationInfo
     public TaskObject TaskObject = default!;
     public decimal PriceMultiplication = 1;
     public ImmutableArray<TaskSoftwareRequirement>? SoftwareRequirements;
+    public ImmutableArray<JObject>? Next;
 
     [JsonConstructor]
     protected TaskCreationInfo() { }

@@ -43,6 +43,10 @@ public static class TaskRegistration
             ("origin", string.Empty),
             ("pricemul", ((decimal)info.PriceMultiplication - ((decimal)info.PriceMultiplication % .1m)).ToString()),
         };
+    
+        if (info.Next?.IsDefaultOrEmpty == false)
+            values.Add(("next", JsonConvert.SerializeObject(info.Next.Value)));
+
         if (info.SoftwareRequirements?.IsDefaultOrEmpty == false)
             values.Add(("software", JsonConvert.SerializeObject(info.SoftwareRequirements.Value, JsonSettings.LowercaseIgnoreNull)));
 
