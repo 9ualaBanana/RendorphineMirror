@@ -24,10 +24,9 @@ namespace NodeUI.Pages
 
 
             var tabs = new TabbedControl();
-            tabs.Add("tasks2", new TasksTab2());
+            tabs.Add("tasks", new TasksTab2());
             tabs.Add("tab.dashboard", new DashboardTab());
             tabs.Add("tab.plugins", new PluginsTab());
-            tabs.Add("tasks", new TasksTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
             if (Init.DebugFeatures) tabs.Add("registry", new RegistryTab());

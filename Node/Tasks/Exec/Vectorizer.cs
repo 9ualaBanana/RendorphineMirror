@@ -30,7 +30,7 @@ public static class VectorizerTasks
             var inputfile = task.FSInputFile();
             var outputdir = task.FSOutputDirectory();
 
-            var exepath = task.GetPlugin().GetInstance().Path;
+            var exepath = PluginPath;
 
             // quotes are important here, ddo not remove
             var args = "\"" + await GetWinPath(inputfile) + "\"";

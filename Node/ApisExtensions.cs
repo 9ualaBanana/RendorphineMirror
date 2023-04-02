@@ -16,7 +16,14 @@ public static class ApisExtensions
     public static ValueTask<OperationResult<ServerTaskState>> GetTaskStateAsyncOrThrow(this IRegisteredTaskApi task) => Apis.GetTaskStateAsyncOrThrow(task);
     public static ValueTask<OperationResult<ServerTaskState?>> GetTaskStateAsync(this IRegisteredTaskApi task) => Apis.GetTaskStateAsync(task);
 
-    public static ValueTask<OperationResult> ChangeStateAsync(this IRegisteredTaskApi task, TaskState state) => Apis.ChangeStateAsync(task, state);
+    public static ValueTask<OperationResult> ChangeStateAsync(this IRegisteredTaskApi task, TaskState state) =>
+        Apis.ChangeStateAsync(task, state)
+        .Next(() =>
+        {
+            if (task is ReceivedTask rtask)
+                NodeSettings.QueuedTasks.Save(rtask);
+            return true;
+        });
     public static async ValueTask<OperationResult> FailTaskAsync(this IRegisteredTaskApi task, string errorMessage)
     {
         var fail = await Apis.FailTaskAsync(task, errorMessage);

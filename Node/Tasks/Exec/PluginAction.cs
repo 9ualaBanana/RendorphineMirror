@@ -18,6 +18,8 @@ public abstract class PluginAction<T> : IPluginAction
 
     public abstract TaskAction Name { get; }
     public abstract PluginType Type { get; }
+    protected Plugin PluginInstance => Type.GetInstance();
+    protected string PluginPath => PluginInstance.Path;
 
     public abstract IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
     protected abstract OperationResult ValidateOutputFiles(ReceivedTask task, T data);
@@ -61,11 +63,11 @@ public abstract class PluginAction<T> : IPluginAction
     }
 
 
-    protected static Task ExecutePowerShellAtWithCondaEnvAsync(ReceivedTask task, string script, bool stderrToStdout, Action<bool, object>? onRead) =>
+    protected Task ExecutePowerShellAtWithCondaEnvAsync(ReceivedTask task, string script, bool stderrToStdout, Action<bool, object>? onRead) =>
         Task.Run(() => ExecutePowerShellAtWithCondaEnv(task, script, stderrToStdout, onRead));
-    protected static void ExecutePowerShellAtWithCondaEnv(ReceivedTask task, string script, bool stderrToStdout, Action<bool, object>? onRead)
+    protected void ExecutePowerShellAtWithCondaEnv(ReceivedTask task, string script, bool stderrToStdout, Action<bool, object>? onRead)
     {
-        var plugin = task.GetPlugin().GetInstance();
+        var plugin = PluginInstance;
         script = $"""
             Set-Location '{Path.GetFullPath(Path.GetDirectoryName(plugin.Path)!)}'
             {script}

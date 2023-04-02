@@ -1,9 +1,14 @@
 using System.Web;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Exec;
 
-public abstract class InputOutputPluginAction<T> : PluginAction<T>
+public interface IInputOutputPluginAction
+{
+    Task JustExecute(ReceivedTask task, JObject data);
+}
+public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutputPluginAction
 {
     static readonly SemaphoreSlim InputSemaphore = new SemaphoreSlim(5);
     static readonly SemaphoreSlim TaskWaitHandle = new SemaphoreSlim(1);
@@ -32,23 +37,27 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
             ValidateInputFilesThrow(task);
 
             await task.ChangeStateAsync(TaskState.Active);
-            NodeSettings.QueuedTasks.Save(task);
         }
         else task.LogInfo($"Input seems to be already downloaded");
 
         if (task.State <= TaskState.Active)
         {
             using var _ = await WaitDisposed("active", task, TaskWaitHandle);
+            await JustExecute(task, data);
 
-            task.LogInfo($"Validating input files...");
-            ValidateInputFilesThrow(task);
+            foreach (var next in task.Info.Next ?? ImmutableArray<Newtonsoft.Json.Linq.JObject>.Empty)
+            {
+                var action = TaskList.GetAction(TaskInfo.GetTaskType(next));
+                if (action is not IInputOutputPluginAction ioaction)
+                {
+                    task.ThrowFailed($"Invalid next task action type {action.Name} {action.GetType().Name}");
+                    throw null;
+                }
 
-            task.LogInfo($"Executing task...");
-            await ExecuteImpl(task, data).ConfigureAwait(false);
-            task.LogInfo($"Task executed");
+                await ioaction.JustExecute(task, next);
+            }
 
             await task.ChangeStateAsync(TaskState.Output);
-            NodeSettings.QueuedTasks.Save(task);
         }
         else task.LogInfo($"Task execution seems to be already finished");
 
@@ -64,21 +73,43 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>
             task.LogInfo($"Result uploaded");
 
             await task.ChangeStateAsync(TaskState.Validation);
-            NodeSettings.QueuedTasks.Save(task);
         }
         else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
 
-        if (task.Output.Type is TaskOutputType.MPlus && task.Action is ("VeeeVectorize" or "EsrganUpscale"))
-            await NotifyTelegramBotOfTaskCompletion(task);
+        await MaybeNotifyTelegramBotOfTaskCompletion(task);
     }
 
+    Task IInputOutputPluginAction.JustExecute(ReceivedTask task, JObject data) => JustExecute(task, data.ToObject<T>().ThrowIfNull());
+    async Task JustExecute(ReceivedTask task, T data)
+    {
+        task.LogInfo($"Executing {Name} {JsonConvert.SerializeObject(data)}");
+
+        task.LogInfo($"Validating input files");
+        ValidateInputFilesThrow(task);
+
+        task.LogInfo($"Executing");
+        await ExecuteImpl(task, data).ConfigureAwait(false);
+
+        task.LogInfo($"Task executed, validating result");
+        ValidateOutputFiles(task, data);
+    }
+
+
+    static async ValueTask MaybeNotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
+    {
+        if (task.Output.Type != TaskOutputType.MPlus) return;
+        if (task.Info.Next is not null) return;
+        if (task.FirstAction is not ("VeeeVectorize" or "EsrganUpscale")) return;
+
+        await NotifyTelegramBotOfTaskCompletion(task, cancellationToken);
+    }
     static async Task NotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         var endpoint = new Uri(new Uri(Settings.ServerUrl), "tasks/result").ToString();
         var uploadedFiles = string.Join('&', task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(fileInfo => $"uploadedfiles={fileInfo.Iid}"));
         var queryString =
             $"id={task.Id}&" +
-            $"action={task.Info.TaskType}&" +
+            $"action={task.Info.FirstTaskType}&" +
             $"{uploadedFiles}&" +
             $"hostshard={HttpUtility.UrlDecode(task.HostShard)}&" +
             $"executor={HttpUtility.UrlDecode(Settings.NodeName)}";

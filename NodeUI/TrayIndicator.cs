@@ -154,7 +154,7 @@ namespace NodeUI
 
                     icon.ToolTipText = $@"
                         {task.Id}
-                        {NodeGlobalState.Instance.GetPluginType(task)} {task.Info.TaskType}
+                        {string.Join('-', task.Actions)}
                         {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}
                         ".TrimLines();
 

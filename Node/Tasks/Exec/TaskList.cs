@@ -31,9 +31,11 @@ public static class TaskList
     }
 
 
+    public static IPluginAction GetFirstAction(this ReceivedTask task) => task.Info.GetFirstAction();
+    public static IPluginAction GetFirstAction(this TaskInfo task) => GetAction(task.FirstTaskType);
+    public static IPluginAction GetAction(string action) => TryGet(action) ?? throw new Exception($"Got an unknown task type: {action}");
+
     public static IEnumerable<IPluginAction> Get(PluginType type) => Actions.Where(x => x.Type == type);
-    public static IPluginAction GetAction(this ReceivedTask task) => task.Info.GetAction();
-    public static IPluginAction GetAction(this TaskInfo task) => TryGet(task.TaskType) ?? throw new Exception($"Got an unknown task type: {task.TaskType}");
     public static IPluginAction Get(string name) => Actions.First(x => x.Name.ToString().Equals(name, StringComparison.OrdinalIgnoreCase));
     public static IPluginAction? TryGet(string name) => Actions.FirstOrDefault(x => x.Name.ToString().Equals(name, StringComparison.OrdinalIgnoreCase));
     public static IPluginAction? TryGet(PluginType type, string name) => Actions.FirstOrDefault(x => x.Type == type && x.Name.ToString().Equals(name, StringComparison.OrdinalIgnoreCase));

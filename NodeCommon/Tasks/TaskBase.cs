@@ -13,7 +13,8 @@ public abstract record TaskBase(string Id, TaskInfo Info) : IRegisteredTaskApi, 
     public TaskState State { get; set; } = TaskState.Queued;
     public TaskTimes Times { get; set; } = new();
 
-    [JsonIgnore] public string Action => Info.TaskType;
+    [JsonIgnore] public string FirstAction => Info.FirstTaskType;
+    [JsonIgnore] public IEnumerable<string> Actions => (Info.Next ?? ImmutableArray<Newtonsoft.Json.Linq.JObject>.Empty).Select(TaskInfo.GetTaskType).Prepend(FirstAction);
     [JsonIgnore] public ITaskInputInfo Input => Info.Input;
     [JsonIgnore] public ITaskOutputInfo Output => Info.Output;
 
