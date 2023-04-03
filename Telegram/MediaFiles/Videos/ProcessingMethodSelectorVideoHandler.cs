@@ -6,7 +6,7 @@ using Telegram.Infrastructure.MediaFiles;
 
 namespace Telegram.MediaFiles.Videos;
 
-public class ProcessingMethodSelectorVideoHandler : UpdateHandler
+public class ProcessingMethodSelectorVideoHandler : MessageHandler
 {
     readonly MediaFilesCache _mediaFilesCache;
     readonly CallbackQuerySerializer _callbackQuerySerializer;
@@ -23,11 +23,11 @@ public class ProcessingMethodSelectorVideoHandler : UpdateHandler
         _callbackQuerySerializer = callbackQuerySerializer;
     }
 
-    public override async Task HandleAsync(HttpContext context)
+    public override async Task HandleAsync()
         => await Bot.SendMessageAsync_(
             Update.Message!.Chat.Id,
             "*Choose how to process the video*",
-            await BuildReplyMarkupAsyncFor(MediaFile.From(Update.Message), context.RequestAborted));
+            await BuildReplyMarkupAsyncFor(MediaFile.From(Message), RequestAborted));
 
     async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedVideo, CancellationToken cancellationToken)
     {

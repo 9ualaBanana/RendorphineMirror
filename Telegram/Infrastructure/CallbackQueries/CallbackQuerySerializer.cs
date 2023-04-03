@@ -58,7 +58,6 @@ public class CallbackQuerySerializer
             CallbackQuery<ECallbackData>.EmptyArguments;
 
         return new CallbackQuery<ECallbackData>.Builder<TCallbackQuery>()
-            .Prototype(callbackQuery)
             .Data(data)
             .Arguments(arguments)
             .Build();

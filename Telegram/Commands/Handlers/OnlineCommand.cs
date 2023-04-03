@@ -28,14 +28,14 @@ public partial class OnlineCommand : CommandHandler, IAuthorizationRequirementsP
 
     internal override Command Target => "online";
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
+    protected override async Task HandleAsync(ParsedCommand receivedCommand)
     {
-        if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(context.User), out var userNodesSupervisor, Bot, Update.Message!.Chat.Id))
+        if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(User), out var userNodesSupervisor, Bot, ChatId))
             return;
 
         var message = BuildMessage(userNodesSupervisor.NodesOnline.Count, userNodesSupervisor.NodesOffline.Count);
 
-        await Bot.SendMessageAsync_(Update.Message!.Chat.Id, message);
+        await Bot.SendMessageAsync_(ChatId, message);
     }
 
     static string BuildMessage(int onlineNodes, int offlineNodes) =>

@@ -24,7 +24,7 @@ public class CallbackQueriesController : ControllerBase
         var callbackQuery = HttpContext.GetUpdate().CallbackQuery!;
         if (callbackQuery.Data is not null)
             if (callbackQueryHandlers.Switch(callbackQuery) is ICallbackQueryHandler callbackQueryHandler)
-            { await callbackQueryHandler.HandleAsync(HttpContext); return; }
+            { await callbackQueryHandler.HandleAsync(); return; }
 
             else exception = new NotImplementedException(
                 $"None of registered implementations of {nameof(ICallbackQueryHandler)} matched received callback query: {callbackQuery.Data}"

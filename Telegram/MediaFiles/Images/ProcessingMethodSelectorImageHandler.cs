@@ -7,7 +7,7 @@ using Telegram.MPlus;
 
 namespace Telegram.MediaFiles.Images;
 
-public class ProcessingMethodSelectorImageHandler : UpdateHandler
+public class ProcessingMethodSelectorImageHandler : MessageHandler
 {
     readonly MPlusTaskLauncherClient _taskLauncherClient;
     readonly MediaFilesCache _mediaFilesCache;
@@ -27,25 +27,23 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
         _serializer = serializer;
     }
 
-    public override async Task HandleAsync(HttpContext context)
+    public override async Task HandleAsync()
     {
-        var message = Update.Message!;
-
         try
         {
-            var receivedImage = MediaFile.From(message);
+            var receivedImage = MediaFile.From(Message);
             await Bot.SendMessageAsync_(
-                message.Chat.Id,
+                ChatId,
                 "*Choose how to process the image*",
-                await BuildReplyMarkupAsyncFor(receivedImage, context.RequestAborted));
+                await BuildReplyMarkupAsyncFor(receivedImage, RequestAborted));
         }
         catch (ArgumentException ex) when (ex.ParamName is not null)
         {
             await Bot.SendMessageAsync_(
-                message.Chat.Id,
+                ChatId,
                 $"{ex.Message}\n" +
                 $"Specify an extension as the caption of the document.",
-                cancellationToken: context.RequestAborted);
+                cancellationToken: RequestAborted);
         }
     }
 

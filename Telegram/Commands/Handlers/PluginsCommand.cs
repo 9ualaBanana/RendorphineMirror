@@ -30,16 +30,16 @@ public partial class PluginsCommand : CommandHandler, IAuthorizationRequirements
 
     internal override Command Target => "plugins";
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
+    protected override async Task HandleAsync(ParsedCommand receivedCommand)
     {
-        if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(context.User), out var userNodesSupervisor, Bot, Update.Message!.Chat.Id))
+        if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(User), out var userNodesSupervisor, Bot, ChatId))
             return;
 
         var nodeNamesWhosePluginsToShow = receivedCommand.QuotedArguments;
 
         var message = ListInstalledPluginsFor(nodeNamesWhosePluginsToShow, userNodesSupervisor).ToString();
 
-        await Bot.SendMessageAsync_(Update.Message.Chat.Id, message);
+        await Bot.SendMessageAsync_(ChatId, message);
     }
 
     static StringBuilder ListInstalledPluginsFor(IEnumerable<string> nodeNames, NodeSupervisor nodeSupervisor)

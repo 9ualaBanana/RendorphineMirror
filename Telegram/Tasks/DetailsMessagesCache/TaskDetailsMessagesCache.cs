@@ -15,7 +15,7 @@ public class TaskDetailsMessagesCache
         _cache[key].Add(details);
     }
 
-    internal Message? TryRetrieve(Message callbackQuerySource)
+    internal Message? TryRetrieveBy(Message callbackQuerySource)
         // Likely auto storage is needed only to support auto removal, cachedMessages will always contain only one element, right?
         => _cache.TryGetValue(UniqueMessage.From(callbackQuerySource), out var cachedMessages) ?
         cachedMessages.SingleOrDefault() : null;

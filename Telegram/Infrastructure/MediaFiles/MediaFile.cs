@@ -90,7 +90,7 @@ public sealed class MediaFile
 
         throw new ArgumentException("Extension of the document can't be deduced.", nameof(extension));
     }
-    // Resource URL can point only to an image.
+    /// <remarks>Resource URL can point only to an image.</remarks>
     internal static MediaFile From(Uri imageUrl) => new(Extension.jpeg, imageUrl);
 
     #endregion

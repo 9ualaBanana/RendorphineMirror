@@ -13,5 +13,5 @@ public class VideosController : ControllerBase
     [HttpPost]
     [Authorize]
     public async Task Handle([FromServices] ProcessingMethodSelectorVideoHandler videoHandler)
-        => await videoHandler.HandleAsync(HttpContext);
+        => await videoHandler.HandleAsync();
 }

@@ -22,16 +22,16 @@ public class TaskCallbackQueryHandler : CallbackQueryHandler<TaskCallbackQuery, 
         _taskDetailsMessagesCache = taskDetailsMessagesCache;
     }
 
-    public override async Task HandleAsync(TaskCallbackQuery callbackQuery, HttpContext context)
+    public override async Task HandleAsync(TaskCallbackQuery callbackQuery)
         => await (callbackQuery.Data switch
         {
-            TaskCallbackData.Details => ShowDetailsAsync(callbackQuery, context),
+            TaskCallbackData.Details => ShowDetailsAsync(callbackQuery),
             _ => HandleUnknownCallbackData()
         });
 
-    async Task ShowDetailsAsync(TaskCallbackQuery callbackQuery, HttpContext context)
+    async Task ShowDetailsAsync(TaskCallbackQuery callbackQuery)
     {
-        var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(context.User));
+        var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(User));
 
         try { await ShowDetailsAsyncCore(); }
         catch { await Bot.SendMessageAsync_(ChatId, "Task details are currently unavailable."); }
@@ -63,20 +63,12 @@ public class TaskCallbackQueryHandler : CallbackQueryHandler<TaskCallbackQuery, 
 
             async Task SendDetailsMessageAsync()
             {
-                if (callbackQuery.Prototype!.Message is Message callbackQuerySource) // Only supports non-inline messages.
-                    if (_taskDetailsMessagesCache.TryRetrieve(callbackQuerySource) is Message cachedTaskDetails)
-                        await Bot.EditMessageAsync_(ChatId, cachedTaskDetails.MessageId, details, cancellationToken: context.RequestAborted);
-                    else
-                    {
-                        Message taskDetails = await Bot.SendMessageAsync_(ChatId, details, cancellationToken: context.RequestAborted);
-                        _taskDetailsMessagesCache.Add(callbackQuerySource, taskDetails);
-                    }
+                if (_taskDetailsMessagesCache.TryRetrieveBy(Message) is Message cachedTaskDetails)
+                    await Bot.EditMessageAsync_(ChatId, cachedTaskDetails.MessageId, details, cancellationToken: RequestAborted);
                 else
                 {
-                    var exception = new ArgumentNullException(nameof(CallbackQuery.Message),
-                        $"{nameof(CallbackQuery)} {nameof(callbackQuery.Prototype)} must be originated from non-inline message.");
-                    Logger.LogCritical(exception, message: default);
-                    throw exception;
+                    Message taskDetails = await Bot.SendMessageAsync_(ChatId, details, cancellationToken: RequestAborted);
+                    _taskDetailsMessagesCache.Add(Message, taskDetails);
                 }
             }
         }

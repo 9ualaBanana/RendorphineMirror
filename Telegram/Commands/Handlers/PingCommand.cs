@@ -30,9 +30,9 @@ public partial class PingCommand : CommandHandler, IAuthorizationRequirementsPro
 
     internal override Command Target => "ping";
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
+    protected override async Task HandleAsync(ParsedCommand receivedCommand)
     {
-        if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(context.User), out var userNodesSupervisor, Bot, Update.Message!.Chat.Id))
+        if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(User), out var userNodesSupervisor, Bot, ChatId))
             return;
 
         var messageBuilder = new StringBuilder().AppendHeader(Header);
@@ -40,7 +40,7 @@ public partial class PingCommand : CommandHandler, IAuthorizationRequirementsPro
         var nodeNames = receivedCommand.QuotedArguments.Select(nodeName => nodeName.CaseInsensitive()).ToHashSet();
         messageBuilder.AppendLine(ListOnlineNodes(userNodesSupervisor, nodeNames).ToString());
 
-        await Bot.SendMessageAsync_(Update.Message.Chat.Id, messageBuilder.ToString());
+        await Bot.SendMessageAsync_(ChatId, messageBuilder.ToString());
     }
 
     const string Header = "*Node* | *Uptime*";

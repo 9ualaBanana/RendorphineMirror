@@ -1,5 +1,4 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
+﻿using Telegram.Bot.Types.Enums;
 using Telegram.Infrastructure.CallbackQueries;
 
 namespace Telegram.Bot.MessagePagination;
@@ -22,9 +21,9 @@ public class MessagePaginatorCallbackQueryHandler : CallbackQueryHandler<Message
         _controlButtons = controlButtons;
     }
 
-    public override async Task HandleAsync(MessagePaginatorCallbackQuery callbackQuery, HttpContext context)
+    public override async Task HandleAsync(MessagePaginatorCallbackQuery callbackQuery)
     {
-        if (_chunkedMessagesAutoStorage.TryGet(Update.CallbackQuery!.Message!, out var paginatedMessage))
+        if (_chunkedMessagesAutoStorage.TryGet(Message, out var paginatedMessage))
         {
             if (callbackQuery.Data is MessagePaginatorCallbackData.Previous)
                 paginatedMessage.Content.MovePointerToBeginningOfPreviousChunk();

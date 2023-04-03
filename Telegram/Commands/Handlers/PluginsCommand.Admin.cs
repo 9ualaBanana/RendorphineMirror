@@ -33,7 +33,7 @@ public partial class PluginsCommand
 
         internal override Command Target => "adminplugins";
 
-        protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
+        protected override async Task HandleAsync(ParsedCommand receivedCommand)
         {
             var messageBuilder = new StringBuilder();
 
@@ -44,7 +44,7 @@ public partial class PluginsCommand
 
             if (messageBuilder.Length == 0) messageBuilder.AppendLine("No plugins are installed on the specified nodes.");
 
-            await Bot.SendMessageAsync_(Update.Message!.Chat.Id, messageBuilder.ToString());
+            await Bot.SendMessageAsync_(ChatId, messageBuilder.ToString());
         }
     }
 }

@@ -13,5 +13,5 @@ public class ImagesController : ControllerBase
     [HttpPost]
     [Authorize]
     public async Task Handle([FromServices] ProcessingMethodSelectorImageHandler imageHandler)
-      => await imageHandler.HandleAsync(HttpContext);
+      => await imageHandler.HandleAsync();
 }

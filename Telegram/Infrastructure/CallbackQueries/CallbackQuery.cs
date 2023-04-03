@@ -21,7 +21,6 @@ public abstract record CallbackQuery<ECallbackData>
     internal const int MaxLength = 64;
     internal static object[] EmptyArguments = Array.Empty<object>();
 
-    internal CallbackQuery? Prototype { get; private set; }
     internal ECallbackData Data { get; private set; }
     internal object[] Arguments { get; private set; } = EmptyArguments;
 
@@ -43,9 +42,6 @@ public abstract record CallbackQuery<ECallbackData>
         where TCallbackQuery : CallbackQuery<ECallbackData>, new()
     {
         readonly TCallbackQuery _callbackQuery = new();
-
-        internal Builder<TCallbackQuery> Prototype(CallbackQuery _)
-        { _callbackQuery.Prototype = _; return this; }
 
         internal Builder<TCallbackQuery> Data(ECallbackData _)
         { _callbackQuery.Data = _; return this; }
