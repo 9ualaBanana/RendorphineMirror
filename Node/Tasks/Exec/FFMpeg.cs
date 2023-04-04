@@ -104,7 +104,7 @@ public static class FFMpegTasks
     public static IEnumerable<IPluginAction> CreateTasks() => new IPluginAction[] { new FFMpegEditVideo(), new FFMpegEditRaster() };
 
 
-    public abstract class FFMpegAction<T> : InputOutputPluginAction<T>
+    public abstract class FFMpegActionBase<T> : InputOutputPluginAction<T>
     {
         protected static readonly NumberFormatInfo NumberFormat = new()
         {
@@ -121,43 +121,45 @@ public static class FFMpegTasks
 
         public override PluginType Type => PluginType.FFmpeg;
 
+        protected delegate void ConstructFFMpegArgumentsDelegate(ReceivedTask task, T data, in FFMpegArgsHolder args);
+        protected async Task ExecuteFFMpeg(ReceivedTask task, T data, FileWithFormat file, ConstructFFMpegArgumentsDelegate argfunc)
+        {
+            var inputfile = file.Path;
+            var ffprobe = await FFProbe.Get(inputfile, task) ?? throw new Exception();
+            var argholder = new FFMpegArgsHolder(file.Format, ffprobe);
+            argfunc(task, data, argholder);
 
+            var outputfile = task.FSNewOutputFile(argholder.OutputFileFormat);
+            var args = FFMpegExec.GetFFMpegArgs(inputfile, outputfile, task, data is EditVideoInfo, argholder);
+
+            var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
+            task.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
+            duration /= argholder.Rate;
+
+            await Processes.Execute(task.GetPlugin().GetInstance().Path, args, onRead, task, stderr: LogLevel.Trace);
+
+
+            void onRead(bool err, string line)
+            {
+                // frame=  502 fps=0.0 q=29.0 size=     256kB time=00:00:14.84 bitrate= 141.3kbits/s speed=29.5x
+                if (!line.StartsWith("frame=")) return;
+
+                var spt = line.AsSpan(line.IndexOf("time=", StringComparison.Ordinal) + "time=".Length).TrimStart();
+                spt = spt.Slice(0, spt.IndexOf(' '));
+                if (!TimeSpan.TryParse(spt, out var time))
+                    time = TimeSpan.Zero;
+
+                task.Progress = Math.Clamp(time / duration, 0, 1);
+                NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
+            }
+        }
+    }
+    public abstract class FFMpegAction<T> : FFMpegActionBase<T>
+    {
         protected sealed override async Task ExecuteImpl(ReceivedTask task, T data)
         {
             foreach (var file in task.InputFiles)
-                await execute(file);
-
-
-            async Task execute(FileWithFormat file)
-            {
-                var inputfile = file.Path;
-                var ffprobe = await FFProbe.Get(inputfile, task) ?? throw new Exception();
-                var argholder = new FFMpegArgsHolder(file.Format, ffprobe);
-                ConstructFFMpegArguments(task, data, argholder);
-
-                var outputfile = task.FSNewOutputFile(argholder.OutputFileFormat);
-                var args = FFMpegExec.GetFFMpegArgs(inputfile, outputfile, task, data is EditVideoInfo, argholder);
-
-                var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
-                task.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
-                duration /= argholder.Rate;
-
-                await Processes.Execute(task.GetPlugin().GetInstance().Path, args, onRead, task, stderr: LogLevel.Trace);
-
-
-                void onRead(bool err, string line)
-                {
-                    // frame=  502 fps=0.0 q=29.0 size=     256kB time=00:00:14.84 bitrate= 141.3kbits/s speed=29.5x
-                    if (!line.StartsWith("frame=")) return;
-
-                    var spt = line.AsSpan(line.IndexOf("time=", StringComparison.Ordinal) + "time=".Length).TrimStart();
-                    spt = spt.Slice(0, spt.IndexOf(' '));
-                    var time = TimeSpan.Parse(spt);
-
-                    task.Progress = Math.Clamp(time / duration, 0, 1);
-                    NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
-                }
-            }
+                await ExecuteFFMpeg(task, data, file, ConstructFFMpegArguments);
         }
 
         protected abstract void ConstructFFMpegArguments(ReceivedTask task, T data, in FFMpegArgsHolder args);
