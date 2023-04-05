@@ -150,7 +150,7 @@ public static class TaskHandler
                 if (task.State == TaskState.Validation)
                     task.Populate(await task.GetTaskStateAsyncOrThrow().ThrowIfError());
 
-                try { await check(task, null); }
+                try { await check(task, (state as TMOldTaskStateInfo)?.ErrMsg); }
                 catch (NodeTaskFailedException ex)
                 {
                     await task.ChangeStateAsync(TaskState.Canceled).ThrowIfError();
@@ -227,6 +227,7 @@ public static class TaskHandler
         using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
         task.LogInfo($"Execution started");
 
+        var lastexception = null as Exception;
         int attempt;
         for (attempt = 0; attempt < maxattempts; attempt++)
         {
@@ -258,10 +259,12 @@ public static class TaskHandler
             {
                 task.LogErr(ex);
                 task.LogInfo($"Failed to execute task, retrying... ({attempt + 1}/{maxattempts})");
+
+                lastexception = ex;
             }
         }
 
-        await fail("Ran out of attempts");
+        await fail("Ran out of attempts" + (lastexception is null ? null : $": {lastexception.Message}"));
 
 
         async ValueTask fail(string message)
