@@ -9,13 +9,12 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
 
     public MPlusAllFilesWatchingTaskHandler(WatchingTask task) : base(task) { }
 
-    protected override async ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync()
+    protected override ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync()
     {
         var qwertykey = File.ReadAllText("qwertykey").Trim();
         var mpluskey = File.ReadAllText("mpluskey").Trim();
 
-        return await getUsers()
-            .Next(users => getQSItems(users))
+        return getQSItems()
             .Next(qitems =>
             {
                 var items = qitems.Where(qitem => !ProcessedIids.Contains(qitem.Iid)).ToArray();
@@ -30,12 +29,9 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
             .Next(result => result.SelectMany(i => i.Values).ToImmutableArray().AsOpResult());
 
 
-        ValueTask<OperationResult<ImmutableArray<string>>> getUsers() =>
-            Api.Default.ApiGet<ImmutableArray<string>>($"{Api.ContentDBEndpoint}/users/getqwertystockusers", "users", "Getting sale content without preview",
-                Api.SignRequest(qwertykey, ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString())));
-        ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> getQSItems(IEnumerable<string> userids) =>
-            Api.Default.ApiGet<ImmutableArray<QwertyStockItem>>($"{Api.TaskManagerEndpoint}/getcontentonsalewithoutpv", "list", "Getting sale content without preview",
-                ("sessionid", Settings.SessionId), ("userids", JsonConvert.SerializeObject(userids)), ("minver", QSPreviewTaskHandler.Version));
+        ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> getQSItems() =>
+            Api.Default.ApiGet<ImmutableArray<QwertyStockItem>>($"{Api.ContentDBEndpoint}/content/getonsalewithoutpv", "list", "Getting sale content without preview",
+                Api.SignRequest(qwertykey, ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString()), ("minver", QSPreviewTaskHandler.Version)));
         ValueTask<OperationResult<ImmutableDictionary<string, MPlusNewItem>>> getMPItems(string userid, IEnumerable<string> iids) =>
             Api.Default.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.ContentDBEndpoint}/content/getitems", "items", "Getting m+ items info",
                 Api.SignRequest(mpluskey, ("userid", userid), ("iids", JsonConvert.SerializeObject(iids))));
