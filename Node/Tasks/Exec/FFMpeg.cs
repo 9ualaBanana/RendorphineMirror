@@ -275,7 +275,14 @@ public static class FFMpegTasks
         public record FFProbeInfo(ImmutableArray<FFProbeStreamInfo> Streams, FFProbeFormatInfo Format)
         {
             // die if there are multiple video streams
-            public FFProbeStreamInfo VideoStream => Streams.Single(x => x.CodecType.Equals("video", StringComparison.OrdinalIgnoreCase));
+            public FFProbeStreamInfo VideoStream
+            {
+                get
+                {
+                    try { return Streams.Single(x => x.CodecType.Equals("video", StringComparison.OrdinalIgnoreCase)); }
+                    catch (Exception ex) { throw new Exception($"Found more than one video stream: {string.Join("; ", Streams)}", ex); }
+                }
+            }
         };
 
         public record FFProbeStreamInfo(
