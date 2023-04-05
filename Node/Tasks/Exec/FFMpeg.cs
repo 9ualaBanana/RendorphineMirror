@@ -279,7 +279,7 @@ public static class FFMpegTasks
             {
                 get
                 {
-                    try { return Streams.Single(x => x.CodecType.Equals("video", StringComparison.OrdinalIgnoreCase)); }
+                    try { return Streams.Single(x => x.CodecType.Equals("video", StringComparison.OrdinalIgnoreCase) && x.FrameRate < 10000); }
                     catch (Exception ex) { throw new Exception($"Found more than one video stream: {string.Join("; ", Streams)}", ex); }
                 }
             }
