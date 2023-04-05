@@ -189,7 +189,17 @@ public static class TaskHandler
             NodeSettings.PlacedTasks.Remove(task);
             foreach (var wtask in NodeSettings.WatchingTasks.Values.ToArray())
                 if (wtask.PlacedNonCompletedTasks.Remove(task.Id))
+                {
+                    if (errmsg?.Contains("There is not such user.", StringComparison.Ordinal) == true)
+                        if (wtask.Source is MPlusAllFilesWatchingTaskHandler handler)
+                            if ((task.Output as MPlusTaskOutputInfo)?.TUid is string tuid)
+                            {
+                                task.LogWarn($"Found nonexistent user {tuid}, hiding");
+                                handler?.NonexistentUsers.Add(tuid);
+                            }
+
                     NodeSettings.WatchingTasks.Save(wtask);
+                }
 
             return true;
         }

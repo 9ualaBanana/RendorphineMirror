@@ -6,6 +6,7 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
 {
     public override WatchingTaskInputType Type => WatchingTaskInputType.MPlusAllFiles;
     readonly HashSet<string> ProcessedIids = new();
+    public readonly HashSet<string> NonexistentUsers = new();
     int Index = -1;
 
     public MPlusAllFilesWatchingTaskHandler(WatchingTask task) : base(task) { }
@@ -42,6 +43,8 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
 
         ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> getQSItems(IEnumerable<string>? userids)
         {
+            userids = userids?.Except(NonexistentUsers);
+
             (string, string)[] data;
             if (userids is null)
                 data = new[]
