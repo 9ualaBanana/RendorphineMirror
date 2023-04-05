@@ -18,6 +18,12 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
 
         foreach (var item in items)
         {
+            if (!taskobjs.ContainsKey(item.Iid))
+            {
+                Task.LogWarn($"Task objects does not contain item {item.Iid} {item}");
+                continue;
+            }
+
             await TickItem(item, taskobjs[item.Iid]);
 
             if (Input is MPlusWatchingTaskInputInfo mpinfo)
