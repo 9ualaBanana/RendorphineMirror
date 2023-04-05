@@ -2,6 +2,8 @@ namespace Node.Tasks.Handlers;
 
 public class QSPreviewTaskHandler : ITaskOutputHandler
 {
+    public const string Version = "2";
+
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.QSPreview;
 
     public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
@@ -18,7 +20,10 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
         }
 
         var result = res.ThrowIfError();
-        using var content = new MultipartFormDataContent() { { new StringContent(result.UploadId), "uploadid" }, };
+        using var content = new MultipartFormDataContent() {
+            { new StringContent(result.UploadId), "uploadid" },
+            { new StringContent(Version), "version" },
+        };
 
         content.Add(new StreamContent(File.OpenRead(jpeg))
         {

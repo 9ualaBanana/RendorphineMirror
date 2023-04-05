@@ -35,7 +35,7 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
                 Api.SignRequest(qwertykey, ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString())));
         ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> getQSItems(IEnumerable<string> userids) =>
             Api.Default.ApiGet<ImmutableArray<QwertyStockItem>>($"{Api.TaskManagerEndpoint}/getcontentonsalewithoutpv", "list", "Getting sale content without preview",
-                ("sessionid", Settings.SessionId), ("userids", JsonConvert.SerializeObject(userids)));
+                ("sessionid", Settings.SessionId), ("userids", JsonConvert.SerializeObject(userids)), ("minver", QSPreviewTaskHandler.Version));
         ValueTask<OperationResult<ImmutableDictionary<string, MPlusNewItem>>> getMPItems(string userid, IEnumerable<string> iids) =>
             Api.Default.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.ContentDBEndpoint}/content/getitems", "items", "Getting m+ items info",
                 Api.SignRequest(mpluskey, ("userid", userid), ("iids", JsonConvert.SerializeObject(iids))));
