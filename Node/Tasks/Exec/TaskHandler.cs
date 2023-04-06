@@ -282,9 +282,11 @@ public static class TaskHandler
             task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {message}");
             await task.FailTaskAsync(message).ThrowIfError();
 
+            /*
             task.LogInfo($"Deleting {task.FSInputDirectory()} {task.FSOutputDirectory()}");
             Directory.Delete(task.FSInputDirectory(), true);
             Directory.Delete(task.FSOutputDirectory(), true);
+            */
 
             NodeSettings.QueuedTasks.Remove(task);
         }
