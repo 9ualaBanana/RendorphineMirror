@@ -93,6 +93,12 @@ public static class GenerateQSPreviewTasks
             // no audio
             args.Args.Add("-an");
 
+            // enable streaming
+            args.Args.Add("-movflags", "faststart");
+
+            // decrease bitrate
+            args.Args.Add("-cq:v", "25");
+
 
             var graph = "";
 

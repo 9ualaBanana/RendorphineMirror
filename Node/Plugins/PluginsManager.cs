@@ -49,6 +49,8 @@ public static class PluginsManager
 
 
     #region Discovering
+    public static IReadOnlyCollection<Plugin>? GetInstalledPluginsCache() => _installedPlugins;
+
     /// <summary> Discovers installed plugins. Returns already cached result if available. </summary>
     public static async ValueTask<HashSet<Plugin>> GetInstalledPluginsAsync() => _installedPlugins ??= await DiscoverInstalledPluginsAsync();
 
