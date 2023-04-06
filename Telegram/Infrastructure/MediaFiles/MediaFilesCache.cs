@@ -28,7 +28,7 @@ public class MediaFilesCache
         _cachedMediaFiles.ItemStorageTimeElapsed += (_, expiredMediaFile) =>
         {
             File.Delete(expiredMediaFile.Value.Path);
-            _logger.LogTrace($"Media file with index {expiredMediaFile.Value.Index} has expired");
+            _logger.LogTrace("Media file with index {Index} has expired", expiredMediaFile.Value.Index);
         };
     }
 
