@@ -7,22 +7,23 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
     public override WatchingTaskInputType Type => WatchingTaskInputType.MPlusAllFiles;
     readonly HashSet<string> ProcessedIids = new();
     public readonly HashSet<string> NonexistentUsers = new();
-    int Index = -1;
 
     public MPlusAllFilesWatchingTaskHandler(WatchingTask task) : base(task) { }
 
-    protected override ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync()
+    protected override async ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync()
     {
         var qwertykey = File.ReadAllText("qwertykey").Trim();
         var mpluskey = File.ReadAllText("mpluskey").Trim();
 
-        Index++;
+        var items = await process(getUsers().Next(users => getQSItems(users)));
+        if (!items.Success) return items;
+        if (items.Value.Length != 0) return items;
 
-        ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> qitems;
-        if (Index % 10 == 0) qitems = getUsers().Next(users => getQSItems(users));
-        else qitems = getQSItems(null);
+        return await process(getQSItems(null));
 
-        return qitems
+
+        ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> process(ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> qitems) =>
+            qitems
             .Next(qitems =>
             {
                 var items = qitems.Where(qitem => !ProcessedIids.Contains(qitem.Iid)).ToArray();
@@ -35,7 +36,6 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
             .Next(qitems => qitems.GroupBy(i => i.UserId).AsOpResult())
             .Next(qitems => qitems.Select(async i => await getMPItems(i.Key, i.Select(i => i.Iid))).MergeResults())
             .Next(result => result.SelectMany(i => i.Values).ToImmutableArray().AsOpResult());
-
 
         ValueTask<OperationResult<ImmutableArray<string>>> getUsers() =>
             Api.Default.ApiGet<ImmutableArray<string>>($"{Api.ContentDBEndpoint}/users/getqwertystockusers", "users", "Getting sale content without preview",
