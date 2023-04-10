@@ -130,7 +130,7 @@ public static class FFMpegTasks
             argfunc(task, data, argholder);
 
             var outputfile = task.FSNewOutputFile(argholder.OutputFileFormat);
-            var args = FFMpegExec.GetFFMpegArgs(inputfile, outputfile, task, file.Format == FileFormat.Mov, argholder);
+            var args = FFMpegExec.GetFFMpegArgs(inputfile, outputfile, task, argholder);
 
             var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
             task.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
