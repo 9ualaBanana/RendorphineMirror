@@ -22,17 +22,16 @@ public class TaskReceiver : ListenerBase
         _logger.Info("@rphtaskexec/launchtask received " + HttpUtility.UrlDecode(querystr));
 
         var values = ReadQueryString(query, "taskid")
-            .Next(taskid => ReadQueryString(query, "sign")
-            .Next(sign => ReadQueryString(query, "task")
+            .Next(taskid => ReadQueryString(query, "task")
             .Next(task => ReadQueryString(query, "tlhost")
-            .Next(host => (taskid, sign, task, host).AsOpResult()))));
+            .Next(host => (taskid, task, host).AsOpResult())));
         if (!values) return;
 
-        var (taskid, sign, task, host) = values.Result;
+        var (taskid, task, host) = values.Result;
         var json = JObject.Parse(task)!;
 
         var taskinfo = JsonConvert.DeserializeObject<TaskInfo>(task)!;
-        _logger.Info($"Received a new task: id: {taskid}; sign: {sign}; data {task}");
+        _logger.Info($"Received a new task: id: {taskid}; data {task}");
 
         response.StatusCode = (int) await WriteText(response, "{\"ok\":1}");
         response.Close();

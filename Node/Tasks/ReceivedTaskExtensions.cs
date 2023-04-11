@@ -19,7 +19,7 @@ public static class ReceivedTaskExtensions
 
     static string Added(this ReceivedTask task, ICollection<FileWithFormat> dict, FileFormat format, string path, string loginfo)
     {
-        task.LogTrace($"New input file: {format} {path}");
+        task.LogTrace($"New {loginfo} file: {format} {path}");
         dict.Add(new(format, path));
         NodeSettings.QueuedTasks.Save(task);
 

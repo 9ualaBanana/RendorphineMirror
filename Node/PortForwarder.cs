@@ -4,7 +4,7 @@ namespace Node
 {
     public static class PortForwarder
     {
-        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+        readonly static Logger Logger = LogManager.GetCurrentClassLogger();
 
         public static void Initialize() { }
         static PortForwarder()
@@ -32,7 +32,7 @@ namespace Node
                 {
                     consec++;
                     if (consec <= 3)
-                        _logger.Error($"[UPnP] Could not create mapping: {ex.Message}");
+                        Logger.Error($"[UPnP] Could not create mapping: {ex}");
 
                     await Task.Delay(5000);
                     await found(args);
@@ -45,14 +45,14 @@ namespace Node
                     var mapping = mappings.FirstOrDefault(x => x.Description == name);
                     if (mapping is not null)
                     {
-                        _logger.Info($"[UPnP] Found already existing mapping {mapping}. Remapping...");
+                        Logger.Info($"[UPnP] Found already existing mapping {mapping}. Remapping...");
 
                         device.DeletePortMap(mapping);
                         device.CreatePortMap(new Mapping(Protocol.Tcp, portb.Value, portb.Value, 0, name));
                     }
                     else
                     {
-                        _logger.Info("[UPnP] Could not find valid existing mapping");
+                        Logger.Info("[UPnP] Could not find valid existing mapping");
 
                         try
                         {
@@ -60,14 +60,14 @@ namespace Node
                             {
                                 if (mappings.Any(x => x.PublicPort == port)) continue;
 
-                                _logger.Info("[UPnP] Creating mapping {Name} on port {Port}", name, port);
+                                Logger.Info($"[UPnP] Creating mapping {name} on port {port}");
                                 portb.Value = port;
                                 device.CreatePortMap(new Mapping(Protocol.Tcp, port, port, 0, name));
 
                                 break;
                             }
                         }
-                        catch (MappingException ex) { _logger.Error(ex.Message); }
+                        catch (MappingException ex) { Logger.Error(ex); }
                     }
                 }
             }

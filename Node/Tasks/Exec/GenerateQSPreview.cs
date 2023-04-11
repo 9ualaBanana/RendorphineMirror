@@ -1,3 +1,8 @@
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
 namespace Node.Tasks.Exec;
 
 public class QSPreviewInfo { }
@@ -7,8 +12,15 @@ public static class GenerateQSPreviewTasks
     public static IEnumerable<IPluginAction> CreateTasks() => new IPluginAction[] { new GenerateQSPreview() };
 
 
-    class GenerateQSPreview : FFMpegTasks.FFMpegAction<QSPreviewInfo>
+    class GenerateQSPreview : FFMpegTasks.FFMpegActionBase<QSPreviewInfo>
     {
+        const int MaximumPixels = 129600;
+        const double MaxByWidth = .6;
+        const double MaxByHeight = .3;
+
+        double? CachedWatermarkAspectRatio;
+        Image<Rgba32>? AdressImage, LogoImage;
+
         public override TaskAction Name => TaskAction.GenerateQSPreview;
 
         public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
@@ -17,49 +29,116 @@ public static class GenerateQSPreviewTasks
         protected override OperationResult ValidateOutputFiles(ReceivedTask task, QSPreviewInfo data) =>
             TaskRequirement.EnsureSameFormats(task);
 
-        protected override void ConstructFFMpegArguments(ReceivedTask task, QSPreviewInfo data, in FFMpegArgsHolder args)
+        protected override async Task ExecuteImpl(ReceivedTask task, QSPreviewInfo data)
         {
-            var watermarkFile = cacheRepeateWatermark().GetAwaiter().GetResult();
+            foreach (var file in task.InputFiles)
+            {
+                if (file.Format == FileFormat.Jpeg)
+                    ProcessJpeg(file.Path, task.FSNewOutputFile(FileFormat.Jpeg));
+                else if (file.Format == FileFormat.Mov)
+                    await ExecuteFFMpeg(task, data, file, ConstructFFMpegArguments);
+            }
+        }
+
+        // TODO: caching images
+        void ProcessJpeg(string input, string output)
+        {
+            AdressImage ??= Image.Load<Rgba32>("assets/qswatermark/adress.png");
+            LogoImage ??= Image.Load<Rgba32>("assets/qswatermark/logo.png");
+
+            using var image = Image.Load<Rgba32>(input);
+            var (outwidth, outheight) = Scale(image.Width, image.Height);
+
+            image.Mutate(ctx => ctx
+                .Resize(outwidth, outheight)
+                .Resize(new ResizeOptions()
+                {
+                    Size = new(outwidth, outheight + 20),
+                    PadColor = Color.FromRgb(25, 21, 52),
+                    Mode = ResizeMode.Pad,
+                    Sampler = KnownResamplers.NearestNeighbor,
+                    Position = AnchorPositionMode.TopLeft,
+                })
+                .DrawImage(AdressImage, new Point(outwidth - 10 - AdressImage.Width, outheight + 20 / 2 - AdressImage.Height / 2), 1)
+                .DrawImage(LogoImage, new Point(10, outheight + 20 / 2 - LogoImage.Height / 2), 1)
+            );
+
+            image.SaveAsJpeg(output, new JpegEncoder() { Quality = 90 });
+        }
+
+        void ConstructFFMpegArguments(ReceivedTask task, QSPreviewInfo data, in FFMpegArgsHolder args)
+        {
+            var watermarkFile = Path.GetFullPath("assets/qswatermark/watermark.png");
+
+            var video = args.FFProbe.ThrowIfNull().VideoStream;
+            var (outwidth, outheight) = Scale(video.Width, video.Height);
+
+
+            if (CachedWatermarkAspectRatio is null)
+            {
+                using var water = Image.Load<Rgba32>(watermarkFile);
+                CachedWatermarkAspectRatio = water.Width / water.Height;
+            }
+
+            var waterw = outwidth * MaxByWidth;
+            var waterh = waterw / CachedWatermarkAspectRatio.Value;
+            if (waterh > outheight * MaxByHeight)
+            {
+                waterh = outheight * MaxByHeight;
+                waterw = waterh * CachedWatermarkAspectRatio.Value;
+            }
+            waterw += waterw % 2;
+            waterh += waterh % 2;
+
+
+            // input watermark file
             args.Args.Add("-i", watermarkFile);
+
+            // no audio
+            args.Args.Add("-an");
+
+            // enable streaming
+            args.Args.Add("-movflags", "faststart");
+
+            // decrease bitrate
+            args.Args.Add("-cq:v", "25");
+
 
             var graph = "";
 
-            // scale video to 640px by width
-            graph += "scale= w=ceil(in_w/in_h*640/2)*2:h=640 [v];";
+            // scale video to maximum of MaximumPixels
+            graph += $"[0] scale= w={(int) outwidth}:h={(int) outheight} [v];";
 
-            // add watermark onto the base video/image
-            graph += "[v][1] overlay= (main_w-overlay_w)/2:(main_h-overlay_h)/2:format=auto,";
+            // scale watermark
+            graph += $"[1] scale= w={(int) waterw}:h={(int) waterh},";
+
+            // set watermark transparency to 60%
+            graph += $"format=rgba, colorchannelmixer=aa=0.6 [o];";
+
+            // overlay watermark
+            graph += $"[v][o] overlay= (main_w-overlay_w)/2:((main_h-main_h/3)-overlay_h/2):format=auto,";
 
             // set the color format
             graph += "format= yuv420p";
 
             args.Filtergraph.AddLast(graph);
-            args.Args.Add("-an");
+        }
 
-
-            async Task<string> cacheRepeateWatermark()
+        static (int width, int height) Scale(int width, int height)
+        {
+            var pixels = width * height;
+            var outwidth = width;
+            if (MaximumPixels < pixels)
             {
-                var watermarkFile = "assets/qs_watermark.png";
-                var repeatedWatermarkFile = Path.Combine(Init.RuntimeCacheDirectory("ffmpeg"), Path.GetFileName(watermarkFile));
-                if (File.Exists(repeatedWatermarkFile)) return repeatedWatermarkFile;
-
-
-                var graph = "";
-
-                // repeat watermark several times vertically and horizontally
-                graph += "[0][0] hstack, split, vstack," + string.Join(string.Empty, Enumerable.Repeat("split, hstack, split, vstack,", 2));
-
-                // rotate watermark -20 deg
-                graph += "rotate= -20*PI/180:fillcolor=none:ow=rotw(iw):oh=roth(ih), format= rgba";
-
-                var argholder = new FFMpegArgsHolder(FileFormat.Png, null);
-                argholder.Filtergraph.Add(graph);
-
-                var ffargs = FFMpegExec.GetFFMpegArgs(watermarkFile, repeatedWatermarkFile, task, false, argholder);
-                await Processes.Execute(PluginPath, ffargs, delegate { }, task, stderr: LogLevel.Trace);
-
-                return repeatedWatermarkFile;
+                var scale = MaximumPixels / (double) pixels;
+                outwidth = (int) (width * Math.Sqrt(scale));
             }
+
+            var outheight = (int) ((double) height / width * outwidth);
+
+            outwidth += outwidth % 2;
+            outheight += outheight % 2;
+            return (outwidth, outheight);
         }
     }
 }

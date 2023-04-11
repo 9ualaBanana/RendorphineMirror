@@ -150,7 +150,7 @@ public static class TaskHandler
                 if (task.State == TaskState.Validation)
                     task.Populate(await task.GetTaskStateAsyncOrThrow().ThrowIfError());
 
-                try { await check(task, null); }
+                try { await check(task, (state as TMOldTaskStateInfo)?.ErrMsg); }
                 catch (NodeTaskFailedException ex)
                 {
                     await task.ChangeStateAsync(TaskState.Canceled).ThrowIfError();
@@ -189,7 +189,17 @@ public static class TaskHandler
             NodeSettings.PlacedTasks.Remove(task);
             foreach (var wtask in NodeSettings.WatchingTasks.Values.ToArray())
                 if (wtask.PlacedNonCompletedTasks.Remove(task.Id))
+                {
+                    if (errmsg?.Contains("There is not such user.", StringComparison.Ordinal) == true)
+                        if (wtask.Source is MPlusAllFilesWatchingTaskHandler handler)
+                            if ((task.Output as MPlusTaskOutputInfo)?.TUid is string tuid)
+                            {
+                                task.LogWarn($"Found nonexistent user {tuid}, hiding");
+                                handler?.NonexistentUsers.Add(tuid);
+                            }
+
                     NodeSettings.WatchingTasks.Save(wtask);
+                }
 
             return true;
         }
@@ -272,9 +282,11 @@ public static class TaskHandler
             task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {message}");
             await task.FailTaskAsync(message).ThrowIfError();
 
+            /*
             task.LogInfo($"Deleting {task.FSInputDirectory()} {task.FSOutputDirectory()}");
             Directory.Delete(task.FSInputDirectory(), true);
             Directory.Delete(task.FSOutputDirectory(), true);
+            */
 
             NodeSettings.QueuedTasks.Remove(task);
         }
