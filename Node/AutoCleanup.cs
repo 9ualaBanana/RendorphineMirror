@@ -4,16 +4,20 @@ public static class AutoCleanup
 {
     readonly static Logger Logger = LogManager.GetCurrentClassLogger();
 
-    public static void Start()
+    public static void Start(bool cleanAllCompleted = false)
     {
         var now = DateTimeOffset.Now;
-        Logger.Info($"[Cleanup] Started");
+        Logger.Info($"[Cleanup] Started ({(cleanAllCompleted ? "complete" : "partial")})");
 
         Logger.Info($"[Cleanup] Checking completed tasks in db");
         foreach (var completed in NodeSettings.CompletedTasks.ToArray())
         {
-            var days = (now - completed.Value.FinishTime).TotalDays;
-            if (days < NodeSettings.TaskAutoDeletionDelayDays.Value) continue;
+            if (!cleanAllCompleted)
+            {
+                var days = (now - completed.Value.FinishTime).TotalDays;
+                if (days < NodeSettings.TaskAutoDeletionDelayDays.Value)
+                    continue;
+            }
 
             Logger.Info($"[Cleanup] Removing expired completed task {completed.Key}");
             NodeSettings.CompletedTasks.Remove(completed.Key);

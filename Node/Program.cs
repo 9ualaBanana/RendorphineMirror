@@ -149,8 +149,26 @@ new Thread(() =>
 {
     while (true)
     {
-        OperationResult.WrapException(AutoCleanup.Start).LogIfError();
+        OperationResult.WrapException(() => AutoCleanup.Start()).LogIfError();
         Thread.Sleep(60 * 60 * 24 * 1000);
+    }
+})
+{ IsBackground = true }.Start();
+
+new Thread(() =>
+{
+    while (true)
+    {
+        var root = Path.GetPathRoot(ReceivedTask.FSTaskDataDirectory());
+        var drive = DriveInfo.GetDrives().First(d => d.RootDirectory.Name == root);
+
+        if (drive.AvailableFreeSpace < 8L * 1024 * 1024 * 1024)
+        {
+            logger.Info($"Low free space ({drive.AvailableFreeSpace / 1024 / 1024f} MB), starting a cleanup..");
+            OperationResult.WrapException(() => AutoCleanup.Start()).LogIfError();
+        }
+
+        Thread.Sleep(60 * 1000);
     }
 })
 { IsBackground = true }.Start();
