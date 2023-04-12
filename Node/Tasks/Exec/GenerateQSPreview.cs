@@ -26,17 +26,17 @@ public static class GenerateQSPreviewTasks
         public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
             new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Jpeg, FileFormat.Mov } };
 
-        protected override OperationResult ValidateOutputFiles(ReceivedTask task, QSPreviewInfo data) =>
-            TaskRequirement.EnsureSameFormats(task);
+        protected override OperationResult ValidateOutputFiles(IOTaskCheckData files, QSPreviewInfo data) =>
+            files.EnsureSameFormats();
 
-        protected override async Task ExecuteImpl(ReceivedTask task, QSPreviewInfo data)
+        protected override async Task ExecuteImpl(ReceivedTask task, IOTaskExecutionData files, QSPreviewInfo data)
         {
-            foreach (var file in task.InputFiles)
+            foreach (var file in files.InputFiles)
             {
                 if (file.Format == FileFormat.Jpeg)
-                    ProcessJpeg(file.Path, task.FSNewOutputFile(FileFormat.Jpeg));
+                    ProcessJpeg(file.Path, files.OutputFiles.FSNewFile(FileFormat.Jpeg));
                 else if (file.Format == FileFormat.Mov)
-                    await ExecuteFFMpeg(task, data, file, ConstructFFMpegArguments);
+                    await ExecuteFFMpeg(task, data, file, files.OutputFiles, ConstructFFMpegArguments);
             }
         }
 

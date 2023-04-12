@@ -22,8 +22,8 @@ public class NodeGlobalState
 
     public readonly BindableList<Plugin> InstalledPlugins = new();
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
-    public readonly BindableList<ReceivedTask> QueuedTasks = new();
-    public readonly BindableList<ReceivedTask> ExecutingTasks = new();
+    public readonly BindableList<TaskBase> QueuedTasks = new();
+    public readonly BindableList<TaskBase> ExecutingTasks = new();
     public readonly BindableList<DbTaskFullState> PlacedTasks = new();
     public readonly BindableList<WatchingTask> WatchingTasks = new();
     public readonly Bindable<JObject?> BenchmarkResult = new();
@@ -60,9 +60,6 @@ public class NodeGlobalState
             .ForEach(x => x.Item1.Changed += () => AnyChanged.Invoke(x.Name));
     }
 
-
-    public PluginType GetPluginType(string action) => TaskDefinitions.Value.Actions.First(x => x.Name == action).Type;
-    public PluginType GetFirstPluginType(ReceivedTask task) => GetPluginType(task.Info.FirstTaskType);
 
     public IEnumerable<Plugin> GetPluginInstances(PluginType type) => InstalledPlugins.Where(x => x.Type == type);
     public Plugin GetPluginInstance(PluginType type) => GetPluginInstances(type).OrderByDescending(PluginVersion.From).First();

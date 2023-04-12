@@ -7,10 +7,14 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     TaskInputType ITaskInputHandler.Type => TaskInputType.MPlus;
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.MPlus;
 
-    public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask<TaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
+        var files = new TaskFileList(task.FSInputDirectory());
         try { await Task.WhenAll(task.GetFirstAction().InputFileFormats.SelectMany(f => f).Distinct().Select(download)); }
         catch { }
+
+        return files;
+
 
         async Task download(FileFormat format)
         {
@@ -18,24 +22,20 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
                 ("taskid", task.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"));
 
             using var inputStream = await Api.Default.Download(downloadLink.ThrowIfError());
-            using var file = File.Open(task.FSNewInputFile(format), FileMode.Create, FileAccess.Write);
+            using var file = File.Open(files.FSNewFile(format), FileMode.Create, FileAccess.Write);
             await inputStream.CopyToAsync(file, cancellationToken);
         }
     }
-    public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask UploadResult(ReceivedTask task, IReadOnlyTaskFileList files, CancellationToken cancellationToken)
     {
-        var files = Directory.GetFiles(task.FSOutputDirectory());
-        if (task.OutputFiles.Count != 0)
-            files = task.OutputFiles.OrderByDescending(x => x.Format).Select(x => x.Path).ToArray();
-
         // example: files=["input.g.jpg", "input.t.jpg"] returns "input."
-        var commonprefix = files.Select(Path.GetFileNameWithoutExtension).Cast<string>().Aggregate((seed, z) => string.Join("", seed.TakeWhile((v, i) => z.Length > i && v == z[i])));
+        var commonprefix = files.Paths.Select(Path.GetFileNameWithoutExtension).Cast<string>().Aggregate((seed, z) => string.Join("", seed.TakeWhile((v, i) => z.Length > i && v == z[i])));
         if (commonprefix.EndsWith('.'))
             commonprefix = commonprefix[..^1];
 
-        task.LogInfo($"[MPlus] Uploading {files.Length} files with common prefix '{commonprefix}': {string.Join(", ", files.Select(Path.GetFileName))}");
+        task.LogInfo($"[MPlus] Uploading {files.Count} files with common prefix '{commonprefix}': {string.Join(", ", files.Paths.Select(Path.GetFileName))}");
 
-        foreach (var file in files)
+        foreach (var file in files.Paths)
         {
             var postfix = Path.GetFileNameWithoutExtension(file);
             if (postfix.StartsWith("output", StringComparison.Ordinal))

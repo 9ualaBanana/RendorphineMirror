@@ -5,7 +5,7 @@ public interface ITaskInputHandler : ITaskHandler
 {
     TaskInputType Type { get; }
 
-    ValueTask Download(ReceivedTask task, CancellationToken cancellationToken = default);
+    ValueTask<TaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken = default);
 
 
     /// <summary> Initialize placed task (e.g. start torrent seeding for uploading source files) </summary>
@@ -16,7 +16,7 @@ public interface ITaskOutputHandler : ITaskHandler
 {
     TaskOutputType Type { get; }
 
-    ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default);
+    ValueTask UploadResult(ReceivedTask task, IReadOnlyTaskFileList files, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Check tasks for completion and returns true if task needs to be set to Finished.

@@ -17,7 +17,7 @@ public static class ReceivedTaskExtensions
     static string? AsExtension(FileFormat format) => AsExtension("." + format.ToString().ToLowerInvariant());
 
 
-    static string Added(this ReceivedTask task, ICollection<FileWithFormat> dict, FileFormat format, string path, string loginfo)
+    /*static string Added(this ReceivedTask task, ICollection<FileWithFormat> dict, FileFormat format, string path, string loginfo)
     {
         task.LogTrace($"New {loginfo} file: {format} {path}");
         dict.Add(new(format, path));
@@ -56,7 +56,7 @@ public static class ReceivedTaskExtensions
 
             files.Add(new(FileFormatExtensions.FromFilename(file), file));
         }
-    }
+    }*/
 
 
     public static bool IsFromSameNode(this TaskBase task) => NodeSettings.QueuedTasks.ContainsKey(task.Id) && NodeSettings.PlacedTasks.ContainsKey(task.Id);

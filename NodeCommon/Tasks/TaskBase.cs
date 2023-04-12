@@ -41,7 +41,7 @@ public abstract record TaskBase(string Id, TaskInfo Info) : IRegisteredTaskApi, 
 
 
     public string FSDataDirectory() => FSDataDirectory(Id);
-    public string FSOutputDirectory() => FSOutputDirectory(Id);
+    public string FSOutputDirectory(string? add = null) => FSOutputDirectory(Id, add);
     public string FSInputDirectory() => FSInputDirectory(Id);
 
     public string FSPlacedDataDirectory() => FSPlacedDataDirectory(Id);
@@ -50,7 +50,7 @@ public abstract record TaskBase(string Id, TaskInfo Info) : IRegisteredTaskApi, 
 
     public static string FSTaskDataDirectory() => DirectoryCreated(Path.Combine(Init.ConfigDirectory, "tasks"));
     public static string FSDataDirectory(string id) => DirectoryCreated(Path.Combine(FSTaskDataDirectory(), id));
-    public static string FSOutputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "output"));
+    public static string FSOutputDirectory(string id, string? add = null) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "output" + add));
     public static string FSInputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "input"));
 
     public static string FSPlacedTaskDataDirectory() => DirectoryCreated(Path.Combine(Init.ConfigDirectory, "ptasks"));

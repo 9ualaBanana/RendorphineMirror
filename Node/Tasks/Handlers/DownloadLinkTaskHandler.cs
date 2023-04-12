@@ -6,7 +6,7 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
 {
     TaskInputType ITaskInputHandler.Type => TaskInputType.DownloadLink;
 
-    public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask<TaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (DownloadLinkTaskInputInfo) task.Input;
 
@@ -35,7 +35,10 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
             asTask(() => FileFormatExtensions.FromFilename(task.Info.Object.FileName))
         );
 
-        File.Move(tempfile, task.FSNewInputFile(format));
+        var files = new TaskFileList(task.FSInputDirectory());
+        File.Move(tempfile, files.FSNewFile(format));
+
+        return files;
 
 
         Func<ValueTask<FileFormat>> asTask(Func<FileFormat> func) => () => ValueTask.FromResult(func());

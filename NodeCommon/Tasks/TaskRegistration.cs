@@ -28,9 +28,11 @@ public static class TaskRegistration
         var input = TaskModels.DeserializeInput(info.Input);
         var output = TaskModels.DeserializeOutput(info.Output);
         var taskobj = info.TaskObject.ThrowIfNull("Task object was not provided");
+        var pricemul = Math.Floor(info.PriceMultiplication * 10) / 10; // intervals of 0.1
 
         await input.InitializeAsync();
         await output.InitializeAsync();
+
 
         var values = new List<(string, string)>()
         {
@@ -41,9 +43,9 @@ public static class TaskRegistration
             ("data", data.ToString(Formatting.None)),
             ("policy", info.Policy.ToString()),
             ("origin", string.Empty),
-            ("pricemul", ((decimal)info.PriceMultiplication - ((decimal)info.PriceMultiplication % .1m)).ToString()),
+            ("pricemul", pricemul.ToString()),
         };
-    
+
         if (info.Next?.IsDefaultOrEmpty == false)
             values.Add(("next", JsonConvert.SerializeObject(info.Next.Value)));
 

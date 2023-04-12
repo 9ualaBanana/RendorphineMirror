@@ -5,18 +5,38 @@ namespace Node.Listeners;
 
 public class DirectDownloadListener : ExecutableListenerBase
 {
+    static Dictionary<string, TaskCompletionSource> TasksToReceive = new();
+
     protected override ListenTypes ListenType => ListenTypes.Public;
     protected override string? Prefix => "rphtaskexec/downloadoutput";
+
+    public static async Task WaitForUpload(ReceivedTask task, CancellationToken token)
+    {
+        var taskcs = new TaskCompletionSource();
+        TasksToReceive.Add(task.Id, taskcs);
+
+        var ttoken = new TimeoutCancellationToken(token, TimeSpan.FromHours(2));
+
+        while (true)
+        {
+            if (taskcs.Task.IsCompleted)
+                break;
+
+            ttoken.ThrowIfCancellationRequested();
+            ttoken.ThrowIfStuck($"Could not upload result");
+            await Task.Delay(2000);
+        }
+    }
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
         var response = context.Response;
         var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
 
-        NodeSettings.QueuedTasks.TryGetValue(taskid, out var task);
-        if (task is null || task.Output is not DirectUploadTaskOutputInfo doutput)
+        if (!TasksToReceive.TryGetValue(taskid, out var taskcs))
             return await WriteErr(response, "No task found with such id");
 
+        // TODO: fix uploading FSOutputDirectory instead of outputfiles
         var taskdir = ReceivedTask.FSOutputDirectory(taskid);
         if (!Directory.Exists(taskdir)) return HttpStatusCode.NotFound;
 
@@ -48,7 +68,8 @@ public class DirectDownloadListener : ExecutableListenerBase
 
             using (var reader = File.OpenRead(zipfile))
                 await reader.CopyToAsync(response.OutputStream);
-            doutput.Uploaded = true;
+
+            taskcs.SetResult();
         }
         catch { return HttpStatusCode.InternalServerError; }
         finally { File.Delete(zipfile); }

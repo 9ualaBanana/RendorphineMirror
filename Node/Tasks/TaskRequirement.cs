@@ -3,7 +3,7 @@ namespace Node.Tasks;
 public static class TaskRequirement
 {
     /// <summary> Ensure input and output files have the same formats </summary>
-    public static OperationResult EnsureSameFormats(ReceivedTask task) => EnsureOutputFormats(task, task.InputFiles.Select(f => f.Format).ToArray());
+    public static OperationResult EnsureSameFormats(this IOTaskCheckData data) => EnsureOutputFormats(data, data.InputFiles.Select(f => f.Format).ToArray());
     public static OperationResult EnsureSameFormat(FileWithFormat output, FileWithFormat input) => EnsureFormat(output, input.Format);
 
     /// <summary> Ensure file format is either one from the expected array </summary>
@@ -15,17 +15,17 @@ public static class TaskRequirement
         return true;
     }
 
-    public static OperationResult EnsureInputFormats(ReceivedTask task, IEnumerable<IReadOnlyCollection<FileFormat>> formats) => EnsureFormats(task.InputFiles, "input", formats);
-    public static OperationResult EnsureOutputFormats(ReceivedTask task, IEnumerable<IReadOnlyCollection<FileFormat>> formats) => EnsureFormats(task.OutputFiles, "output", formats);
-    public static OperationResult EnsureInputFormats(ReceivedTask task, params FileFormat[][] formats) => EnsureFormats(task.InputFiles, "input", formats);
-    public static OperationResult EnsureOutputFormats(ReceivedTask task, params FileFormat[][] formats) => EnsureFormats(task.OutputFiles, "output", formats);
-    static OperationResult EnsureFormats(HashSet<FileWithFormat> files, string info, IEnumerable<IReadOnlyCollection<FileFormat>> formats)
+    public static OperationResult EnsureInputFormats(this IOTaskCheckData files, IReadOnlyCollection<IReadOnlyCollection<FileFormat>> formats) => EnsureFormats(files.InputFiles, "input", formats);
+    public static OperationResult EnsureOutputFormats(this IOTaskCheckData files, IReadOnlyCollection<IReadOnlyCollection<FileFormat>> formats) => EnsureFormats(files.OutputFiles, "output", formats);
+    public static OperationResult EnsureInputFormats(this IOTaskCheckData files, params FileFormat[][] formats) => EnsureFormats(files.InputFiles, "input", formats);
+    public static OperationResult EnsureOutputFormats(this IOTaskCheckData files, params FileFormat[][] formats) => EnsureFormats(files.OutputFiles, "output", formats);
+    public static OperationResult EnsureFormats(IReadOnlyTaskFileList files, string info, IReadOnlyCollection<IReadOnlyCollection<FileFormat>> expected)
     {
-        foreach (var format in formats.OrderByDescending(f => f.Count))
+        foreach (var format in expected.OrderByDescending(f => f.Count))
             if (check(format.ToList())) //.ToList() to create a copy
                 return true;
 
-        return ErrorFormats(files, info);
+        return ErrorFormats(files, expected, info);
 
 
         bool check(List<FileFormat> formats)
@@ -41,19 +41,23 @@ public static class TaskRequirement
             return formats.Count == 0;
         }
     }
-    public static OperationResult ErrorInputFormats(ReceivedTask task) => ErrorFormats(task.InputFiles, "input");
-    public static OperationResult ErrorOutputFormats(ReceivedTask task) => ErrorFormats(task.OutputFiles, "output");
-    static OperationResult ErrorFormats(HashSet<FileWithFormat> files, string info) =>
+    public static OperationResult ErrorInputFormats(this IOTaskCheckData task) => ErrorFormats(task.InputFiles, "input");
+    public static OperationResult ErrorOutputFormats(this IOTaskCheckData task) => ErrorFormats(task.OutputFiles, "output");
+    static OperationResult ErrorFormats(IReadOnlyTaskFileList files, string info) =>
         OperationResult.Err($"Invalid {info} file formats ({string.Join(", ", files.Select(f => f.Format))})");
+    static OperationResult ErrorFormats(IReadOnlyTaskFileList files, IEnumerable<IReadOnlyCollection<FileFormat>> expected, string info) =>
+        OperationResult.Err($"{ErrorFormats(files, info).Message}; Expected: ({string.Join(", ", expected.Select(f => $"({string.Join(", ", f)})"))})");
 
-    public static OperationResult<FileWithFormat> EnsureSingleInputFile(ReceivedTask task) => EnsureInputFileCount(task, 1);
-    public static OperationResult<FileWithFormat> EnsureSingleOutputFile(ReceivedTask task) => EnsureOutputFileCount(task, 1);
-    public static OperationResult<FileWithFormat> EnsureInputFileCount(ReceivedTask task, int count) => EnsureInputFileCount(task, count, count);
-    public static OperationResult<FileWithFormat> EnsureOutputFileCount(ReceivedTask task, int count) => EnsureOutputFileCount(task, count, count);
-    public static OperationResult<FileWithFormat> EnsureInputFileCount(ReceivedTask task, int min, int max) => EnsureFileCount(task.InputFiles, "input", min, max);
-    public static OperationResult<FileWithFormat> EnsureOutputFileCount(ReceivedTask task, int min, int max) => EnsureFileCount(task.OutputFiles, "output", min, max);
+    public static OperationResult<FileWithFormat> EnsureSingleInputFile(this IOTaskCheckData task) => EnsureInputFileCount(task, 1);
+    public static OperationResult<FileWithFormat> EnsureSingleOutputFile(this IOTaskCheckData task) => EnsureOutputFileCount(task, 1);
+    public static OperationResult<FileWithFormat> EnsureInputFileCount(this IOTaskCheckData task, int count) => EnsureInputFileCount(task, count, count);
+    public static OperationResult<FileWithFormat> EnsureOutputFileCount(this IOTaskCheckData task, int count) => EnsureOutputFileCount(task, count, count);
+    public static OperationResult<FileWithFormat> EnsureInputFileCount(this IOTaskCheckData task, int min, int max) => EnsureFileCount(task.InputFiles, "input", min, max);
+    public static OperationResult<FileWithFormat> EnsureOutputFileCount(this IOTaskCheckData task, int min, int max) => EnsureFileCount(task.OutputFiles, "output", min, max);
 
-    static OperationResult<FileWithFormat> EnsureFileCount(HashSet<FileWithFormat> files, string info, int min, int max)
+    public static OperationResult<FileWithFormat> EnsureSingle(IReadOnlyTaskFileList files, string info) => EnsureFileCount(files, info, 1, 1);
+
+    static OperationResult<FileWithFormat> EnsureFileCount(IReadOnlyTaskFileList files, string info, int min, int max)
     {
         if (files.Count < min)
             return OperationResult.Err($"Not enough {info} files: {files.Count}; should be at least {min}");

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Management.Automation.Runspaces;
 
 namespace Node.Tasks.Exec;
@@ -22,11 +21,6 @@ public abstract class PluginAction<T> : IPluginAction
     protected string PluginPath => PluginInstance.Path;
 
     public abstract IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
-    protected abstract OperationResult ValidateOutputFiles(ReceivedTask task, T data);
-
-    protected void ValidateInputFilesThrow(ReceivedTask task) =>
-        ValidateInputFiles(task).ThrowIfError($"Task {task.Id} input file validation failed: {{0}}");
-    OperationResult ValidateInputFiles(ReceivedTask task) => TaskRequirement.EnsureInputFormats(task, InputFileFormats);
 
     public async Task Execute(ReceivedTask task)
     {

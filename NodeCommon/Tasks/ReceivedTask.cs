@@ -83,18 +83,3 @@ public record ExecutedTaskApi : ExecutedTask, IRegisteredTaskApi
 
     public string? HostShard { get; set; }
 }
-
-public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info), ILoggable
-{
-    string ILoggable.LogName => $"Task {Id}";
-
-    public readonly HashSet<FileWithFormat> InputFiles = new();
-    public readonly HashSet<FileWithFormat> OutputFiles = new();
-    public readonly HashSet<IUploadedFileInfo> UploadedFiles = new();
-
-
-    public string FSInputFile() => InputFiles.Single().Path;
-    public string FSInputFile(FileFormat format) => InputFiles.First(x => x.Format == format).Path;
-    public string FSOutputFile(FileFormat format) => OutputFiles.First(x => x.Format == format).Path;
-    public string? TryFSOutputFile(FileFormat format) => OutputFiles.FirstOrDefault(x => x.Format == format)?.Path;
-}

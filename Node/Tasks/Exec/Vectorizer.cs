@@ -14,20 +14,20 @@ public static class VectorizerTasks
         public override PluginType Type => PluginType.VeeeVectorizer;
 
         public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
-            new[] { new[] { FileFormat.Jpeg, FileFormat.Png } };
+            new[] { new[] { FileFormat.Jpeg },  new[] { FileFormat.Png } };
 
-        protected override OperationResult ValidateOutputFiles(ReceivedTask task, VeeeVectorizeInfo data)
+        protected override OperationResult ValidateOutputFiles(IOTaskCheckData files, VeeeVectorizeInfo data)
         {
             // 2x jpg and 2x eps per LOD
             var amount = data.Lods.Length * 2;
             var formats = Enumerable.Repeat(new[] { FileFormat.Jpeg, FileFormat.Jpeg, FileFormat.Eps, FileFormat.Eps }, data.Lods.Length).SelectMany(a => a).ToArray();
 
-            return TaskRequirement.EnsureOutputFormats(task, formats);
+            return files.EnsureOutputFormats(formats);
         }
 
-        protected override async Task ExecuteImpl(ReceivedTask task, VeeeVectorizeInfo data)
+        protected override async Task ExecuteImpl(ReceivedTask task, IOTaskExecutionData files, VeeeVectorizeInfo data)
         {
-            var inputfile = task.FSInputFile();
+            var inputfile = files.InputFiles.Single().Path;
             var outputdir = task.FSOutputDirectory();
 
             var exepath = PluginPath;
@@ -48,7 +48,7 @@ public static class VectorizerTasks
             Directory.Delete(outputdir, true);
             Directory.Move(veeeoutdir, outputdir);
 
-            task.AddOutputFromLocalPath(outputdir);
+            files.OutputFiles.AddFromLocalPath(outputdir);
         }
 
 

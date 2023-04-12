@@ -302,7 +302,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     }
 
     /// <summary> Send current task progress to the server </summary>
-    public ValueTask<OperationResult> SendTaskProgressAsync(ReceivedTask task) =>
+    public ValueTask<OperationResult> SendTaskProgressAsync(TaskBase task) =>
         ShardGet(task, "mytaskprogress", "Sending task progress",
             AddSessionId(("taskid", task.Id), ("curstate", task.State.ToString().ToLowerInvariant()), ("progress", task.Progress.ToString())));
 
