@@ -19,14 +19,22 @@ public static class RobustVideoMatting
         public override TaskAction Name => TaskAction.GreenscreenBackground;
         public override PluginType Type => PluginType.RobustVideoMatting;
 
-        public override TaskFileFormatRequirements InputRequirements =>
-            new TaskFileFormatRequirements().Either(e => e.RequiredOne(FileFormat.Mov).RequiredOne(FileFormat.Png).RequiredOne(FileFormat.Jpeg));
-        public override TaskFileFormatRequirements OutputRequirements =>
-            new TaskFileFormatRequirements().Either(e => e.RequiredOne(FileFormat.Mov).RequiredOne(FileFormat.Png).RequiredOne(FileFormat.Jpeg));
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Png }, new[] { FileFormat.Mov } };
 
-        protected override async Task ExecuteImpl(ReceivedTask task, RobustVideoMattingInfo data)
+        protected override OperationResult ValidateOutputFiles(IOTaskCheckData files, RobustVideoMattingInfo data) =>
+            files.EnsureSingleInputFile()
+            .Next(input => files.EnsureSingleOutputFile()
+            .Next(output =>
+            {
+                if (input.Format == FileFormat.Jpeg && data.Color is null)
+                    return TaskRequirement.EnsureFormat(output, FileFormat.Png);
+                return TaskRequirement.EnsureSameFormat(output, input);
+            }));
+
+        protected override async Task ExecuteImpl(ReceivedTask task,IOTaskExecutionData files, RobustVideoMattingInfo data)
         {
-            var input = task.InputFiles.MaxBy(f => f.Format).ThrowIfNull("Could not find input file");
+            var input = files.InputFiles.MaxBy(f => f.Format).ThrowIfNull("Could not find input file");
 
             var outputformat = input.Format;
             if (input.Format == FileFormat.Jpeg && data.Color is null)
@@ -38,7 +46,7 @@ public static class RobustVideoMatting
                 + $" inference.py"
                 + $" --device cuda"
                 + $" --input-source '{input.Path}'"
-                + $" --output-composition '{task.FSNewOutputFile(outputformat)}'"
+                + $" --output-composition '{files.OutputFiles.FSNewFile(outputformat)}'"
                 + $" --checkpoint 'models/mobilenetv3/rvm_mobilenetv3.pth'"
                 + $" --variant mobilenetv3"
                 + $" --output-type file"

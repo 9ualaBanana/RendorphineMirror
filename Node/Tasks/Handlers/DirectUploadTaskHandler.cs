@@ -9,30 +9,11 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
     TaskInputType ITaskInputHandler.Type => TaskInputType.DirectUpload;
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.DirectDownload;
 
-    public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
-    {
-        var info = (DirectDownloadTaskInputInfo) task.Input;
-        var token = new TimeoutCancellationToken(cancellationToken, TimeSpan.FromHours(1));
+    public async ValueTask<TaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken) =>
+        await Listeners.DirectUploadListener.WaitForFiles(task, cancellationToken);
 
-        while (!info.Downloaded)
-        {
-            token.ThrowIfCancellationRequested();
-            token.ThrowIfStuck($"Did not receive input files");
-            await Task.Delay(2000);
-        }
-
-        if (task.IsFromSameNode())
-            task.AddInputFromLocalPath(info.Path);
-    }
-    public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken = default)
-    {
-        var dout = (DirectUploadTaskOutputInfo) task.Output;
-        while (!dout.Uploaded)
-        {
-            if (cancellationToken.IsCancellationRequested) return;
-            await Task.Delay(2_000);
-        }
-    }
+    public async ValueTask UploadResult(ReceivedTask task, IReadOnlyTaskFileList files, CancellationToken cancellationToken = default) =>
+        await Listeners.DirectDownloadListener.WaitForUpload(task, cancellationToken);
 
     public async ValueTask UploadInputFiles(DbTaskFullState task)
     {
@@ -61,26 +42,16 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
                 var files = File.Exists(info.Path) ? new[] { info.Path } : Directory.GetFiles(info.Path);
                 foreach (var file in files)
                 {
-                    if (task.IsFromSameNode() && NodeSettings.QueuedTasks.TryGetValue(task.Id, out var queued))
+                    using var content = new MultipartFormDataContent()
                     {
-                        ((DirectDownloadTaskInputInfo) queued.Input).Path = file;
-                        ((DirectDownloadTaskInputInfo) queued.Input).Downloaded = true;
-                    }
-                    else
-                    {
-                        using var content = new MultipartFormDataContent()
-                        {
-                            { new StringContent(task.Id), "taskid" },
-                            { new StreamContent(File.OpenRead(file)) { Headers = { ContentType = new(MimeTypes.GetMimeType(file)), ContentLength = new FileInfo(file).Length } }, "file", Path.GetFileName(file) },
-                            { new StringContent(file == files[^1] ? "1" : "0"), "last" },
-                        };
+                        { new StringContent(task.Id), "taskid" },
+                        { new StreamContent(File.OpenRead(file)) { Headers = { ContentType = new(MimeTypes.GetMimeType(file)), ContentLength = new FileInfo(file).Length } }, "file", Path.GetFileName(file) },
+                        { new StringContent(file == files[^1] ? "1" : "0"), "last" },
+                    };
 
-                        var post = await Api.Default.ApiPost($"{server.Host}/rphtaskexec/uploadinput", $"Uploading input files for task {task.Id}", content);
-                        post.ThrowIfError();
-                        task.LogInfo($"Task files uploaded");
-                    }
-
-                    break;
+                    var post = await Api.Default.ApiPost($"{server.Host}/rphtaskexec/uploadinput", $"Uploading input files for task {task.Id}", content);
+                    post.ThrowIfError();
+                    task.LogInfo($"Task files uploaded");
                 }
 
                 return;
@@ -133,4 +104,6 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
             File.Move(zipfile, Path.Combine(task.FSPlacedResultsDirectory(), file));
         }
     }
+
+    public ValueTask<OperationResult<TaskObject>> GetTaskObject(ITaskInputInfo input) => ((ILocalTaskInputInfo) input).GetTaskObject();
 }

@@ -11,14 +11,11 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     static TorrentClient TorrentClient => TorrentClientInstance.Instance;
     readonly Dictionary<string, TorrentManager> InputTorrents = new();
 
-    public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask<TaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (TorrentTaskInputInfo) task.Input;
         if (task.IsFromSameNode())
-        {
-            task.AddInputFromLocalPath(info.Path);
-            return;
-        }
+            return TaskFileList.FromLocalPath(info.Path);
 
 
         info.Link.ThrowIfNull();
@@ -27,11 +24,13 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
         await TorrentClient.AddTrackers(manager, true);
         await TorrentClient.WaitForCompletion(manager, new(cancellationToken, TimeSpan.FromMinutes(5)));
-        task.AddInputFromLocalPath(dir);
+        return TaskFileList.FromLocalPath(dir);
     }
 
-    public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask UploadResult(ReceivedTask task, IReadOnlyTaskFileList files, CancellationToken cancellationToken)
     {
+        // TODO: fix uploading FSOutputDirectory instead of outputfiles
+
         if (task.IsFromSameNode())
         {
             CommonExtensions.CopyDirectory(task.FSOutputDirectory(), task.FSPlacedResultsDirectory());
@@ -104,4 +103,6 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     }
 
     public ValueTask<bool> CheckCompletion(DbTaskFullState task) => ValueTask.FromResult(((TorrentTaskOutputInfo) task.Output).Link is not null);
+
+    public ValueTask<OperationResult<TaskObject>> GetTaskObject(ITaskInputInfo input) => ((ILocalTaskInputInfo) input).GetTaskObject();
 }

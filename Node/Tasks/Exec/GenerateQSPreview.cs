@@ -22,17 +22,21 @@ public static class GenerateQSPreviewTasks
         Image<Rgba32>? AdressImage, LogoImage;
 
         public override TaskAction Name => TaskAction.GenerateQSPreview;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg).MaybeOne(FileFormat.Mov);
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Jpeg).MaybeOne(FileFormat.Mov);
 
-        protected override async Task ExecuteImpl(ReceivedTask task, QSPreviewInfo data)
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Jpeg, FileFormat.Mov } };
+
+        protected override OperationResult ValidateOutputFiles(IOTaskCheckData files, QSPreviewInfo data) =>
+            files.EnsureSameFormats();
+
+        protected override async Task ExecuteImpl(ReceivedTask task, IOTaskExecutionData files, QSPreviewInfo data)
         {
-            foreach (var file in task.InputFiles)
+            foreach (var file in files.InputFiles)
             {
                 if (file.Format == FileFormat.Jpeg)
-                    ProcessJpeg(file.Path, task.FSNewOutputFile(FileFormat.Jpeg));
+                    ProcessJpeg(file.Path, files.OutputFiles.FSNewFile(FileFormat.Jpeg));
                 else if (file.Format == FileFormat.Mov)
-                    await ExecuteFFMpeg(task, data, file, ConstructFFMpegArguments);
+                    await ExecuteFFMpeg(task, data, file, files.OutputFiles, ConstructFFMpegArguments);
             }
         }
 

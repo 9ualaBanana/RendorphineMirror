@@ -1,4 +1,4 @@
-namespace NodeCommon.Tasks;
+namespace Node.Tasks;
 
 public record CompletedTask(DateTimeOffset StartTime, DateTimeOffset FinishTime, ReceivedTask TaskInfo)
 {

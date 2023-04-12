@@ -6,10 +6,10 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
 
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.QSPreview;
 
-    public async ValueTask UploadResult(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask UploadResult(ReceivedTask task, IReadOnlyTaskFileList files, CancellationToken cancellationToken)
     {
-        var jpeg = task.FSOutputFile(FileFormat.Jpeg);
-        var mov = task.TryFSOutputFile(FileFormat.Mov);
+        var jpeg = files.Single(FileFormat.Jpeg);
+        var mov = files.TrySingle(FileFormat.Mov);
 
         var res = await task.ShardPost<InitOutputResult>("initqspreviewoutput", null, "Initializing qs preview result upload", ("taskid", task.Id));
         if (!res && res.Message?.Contains("There is no such user", StringComparison.OrdinalIgnoreCase) == true)

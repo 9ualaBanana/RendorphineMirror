@@ -2,9 +2,10 @@ using MonoTorrent;
 
 namespace NodeCommon.Tasks.Model;
 
-public class TorrentTaskInputInfo : ITaskInputFileInfo
+public class TorrentTaskInputInfo : ILocalTaskInputInfo
 {
     public TaskInputType Type => TaskInputType.Torrent;
+    string ILocalTaskInputInfo.Path => Path;
 
     [Hidden] public string? Link;
     [LocalFile, NonSerializableForTasks] public readonly string Path;
@@ -22,15 +23,6 @@ public class TorrentTaskInputInfo : ITaskInputFileInfo
         var torrent = await Torrent.LoadAsync(await TorrentClient.CreateTorrent(Path));
         var magnet = new MagnetLink(torrent.InfoHash, torrent.Name, size: torrent.Size);
         Link = magnet.ToV1String();
-    }
-
-    public ValueTask<TaskObject> GetFileInfo()
-    {
-        if (File.Exists(Path)) return get(Path).AsVTask();
-        return get(Directory.GetFiles(Path, "*", SearchOption.AllDirectories).First()).AsVTask();
-
-
-        TaskObject get(string file) => new TaskObject(System.IO.Path.GetFileName(file), new FileInfo(file).Length);
     }
 }
 public class TorrentTaskOutputInfo : ITaskOutputInfo

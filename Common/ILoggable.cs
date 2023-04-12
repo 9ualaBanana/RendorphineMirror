@@ -1,8 +1,8 @@
-namespace NodeCommon;
+namespace Common;
 
 public interface ILoggable
 {
-    string LogName { get; }
+    string? LogName { get; }
 }
 public class LoggableLogger : ILoggable
 {

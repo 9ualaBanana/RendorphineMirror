@@ -12,19 +12,25 @@ public static class VectorizerTasks
     {
         public override TaskAction Name => TaskAction.VeeeVectorize;
         public override PluginType Type => PluginType.VeeeVectorizer;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements()
-            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Png));
 
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements()
-            .RequiredAtLeast(FileFormat.Jpeg, 2)
-            .RequiredAtLeast(FileFormat.Eps, 2);
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Jpeg },  new[] { FileFormat.Png } };
 
-        protected override async Task ExecuteImpl(ReceivedTask task, VeeeVectorizeInfo data)
+        protected override OperationResult ValidateOutputFiles(IOTaskCheckData files, VeeeVectorizeInfo data)
         {
-            var inputfile = task.FSInputFile();
+            // 2x jpg and 2x eps per LOD
+            var amount = data.Lods.Length * 2;
+            var formats = Enumerable.Repeat(new[] { FileFormat.Jpeg, FileFormat.Jpeg, FileFormat.Eps, FileFormat.Eps }, data.Lods.Length).SelectMany(a => a).ToArray();
+
+            return files.EnsureOutputFormats(formats);
+        }
+
+        protected override async Task ExecuteImpl(ReceivedTask task, IOTaskExecutionData files, VeeeVectorizeInfo data)
+        {
+            var inputfile = files.InputFiles.Single().Path;
             var outputdir = task.FSOutputDirectory();
 
-            var exepath = task.GetPlugin().GetInstance().Path;
+            var exepath = PluginPath;
 
             // quotes are important here, ddo not remove
             var args = "\"" + await GetWinPath(inputfile) + "\"";
@@ -42,7 +48,7 @@ public static class VectorizerTasks
             Directory.Delete(outputdir, true);
             Directory.Move(veeeoutdir, outputdir);
 
-            task.AddOutputFromLocalPath(outputdir);
+            files.OutputFiles.AddFromLocalPath(outputdir);
         }
 
 

@@ -21,16 +21,18 @@ public static class EsrganTasks
         public override TaskAction Name => TaskAction.EsrganUpscale;
         public override PluginType Type => PluginType.Esrgan;
 
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements()
-            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Mov));
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov } };
 
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements()
-            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Mov));
+        protected override OperationResult ValidateOutputFiles(IOTaskCheckData files, UpscaleEsrganInfo data) =>
+            files.EnsureSingleInputFile()
+            .Next(input => files.EnsureSingleOutputFile()
+            .Next(output => TaskRequirement.EnsureSameFormat(output, input)));
 
-        protected override async Task ExecuteImpl(ReceivedTask task, UpscaleEsrganInfo data)
+        protected override async Task ExecuteImpl(ReceivedTask task, IOTaskExecutionData files, UpscaleEsrganInfo data)
         {
-            var inputfile = task.FSInputFile();
-            var outputfile = task.FSNewOutputFile(FileFormat.Jpeg);
+            var inputfile = files.InputFiles.Single().Path;
+            var outputfile = files.OutputFiles.FSNewFile(FileFormat.Jpeg);
 
             var pylaunch = $"python "
                 + $"-u "                        // unbuffered output, for progress tracking

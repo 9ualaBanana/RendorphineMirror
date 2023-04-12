@@ -6,7 +6,7 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
 {
     TaskInputType ITaskInputHandler.Type => TaskInputType.DownloadLink;
 
-    public async ValueTask Download(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask<TaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (DownloadLinkTaskInputInfo) task.Input;
 
@@ -31,11 +31,14 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
             asTask(() => FileFormatExtensions.FromMime(data.Content.Headers.ContentType!.ToString())),
             asTask(() => FileFormatExtensions.FromFilename(data.Content.Headers.ContentDisposition!.FileName!)),
             asTask(() => FileFormatExtensions.FromFilename(info.Url.Split('?')[0])),
-            asTask(() => task.GetAction().InputRequirements.Single(x => x.Required).DistinctFormats.Max()),
-            tryFFProbe
+            tryFFProbe,
+            asTask(() => FileFormatExtensions.FromFilename(task.Info.Object.FileName))
         );
 
-        File.Move(tempfile, task.FSNewInputFile(format));
+        var files = new TaskFileList(task.FSInputDirectory());
+        File.Move(tempfile, files.FSNewFile(format));
+
+        return files;
 
 
         Func<ValueTask<FileFormat>> asTask(Func<FileFormat> func) => () => ValueTask.FromResult(func());
@@ -77,5 +80,16 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
 
             throw new Exception("Could not find a valid file format");
         }
+    }
+
+    public async ValueTask<OperationResult<TaskObject>> GetTaskObject(ITaskInputInfo input)
+    {
+        var dinput = (DownloadLinkTaskInputInfo) input;
+
+        var headers = await Api.Client.GetAsync(dinput.Url, HttpCompletionOption.ResponseHeadersRead);
+        if (!headers.IsSuccessStatusCode)
+            return OperationResult.Err() with { HttpData = new(headers, null) };
+
+        return new TaskObject(Path.GetFileName(dinput.Url), headers.Content.Headers.ContentLength!.Value);
     }
 }

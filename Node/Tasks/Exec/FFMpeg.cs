@@ -122,21 +122,21 @@ public static class FFMpegTasks
         public override PluginType Type => PluginType.FFmpeg;
 
         protected delegate void ConstructFFMpegArgumentsDelegate(ReceivedTask task, T data, in FFMpegArgsHolder args);
-        protected async Task ExecuteFFMpeg(ReceivedTask task, T data, FileWithFormat file, ConstructFFMpegArgumentsDelegate argfunc)
+        protected async Task ExecuteFFMpeg(ReceivedTask task, T data, FileWithFormat file, TaskFileList outfiles, ConstructFFMpegArgumentsDelegate argfunc)
         {
             var inputfile = file.Path;
             var ffprobe = await FFProbe.Get(inputfile, task) ?? throw new Exception();
             var argholder = new FFMpegArgsHolder(file.Format, ffprobe);
             argfunc(task, data, argholder);
 
-            var outputfile = task.FSNewOutputFile(argholder.OutputFileFormat);
+            var outputfile = outfiles.FSNewFile(argholder.OutputFileFormat);
             var args = FFMpegExec.GetFFMpegArgs(inputfile, outputfile, task, argholder);
 
             var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
             task.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
             duration /= argholder.Rate;
 
-            await Processes.Execute(task.GetPlugin().GetInstance().Path, args, onRead, task, stderr: LogLevel.Trace);
+            await Processes.Execute(PluginPath, args, onRead, task, stderr: LogLevel.Trace);
 
 
             void onRead(bool err, string line)
@@ -156,10 +156,10 @@ public static class FFMpegTasks
     }
     public abstract class FFMpegAction<T> : FFMpegActionBase<T>
     {
-        protected sealed override async Task ExecuteImpl(ReceivedTask task, T data)
+        protected sealed override async Task ExecuteImpl(ReceivedTask task, IOTaskExecutionData files, T data)
         {
-            foreach (var file in task.InputFiles)
-                await ExecuteFFMpeg(task, data, file, ConstructFFMpegArguments);
+            foreach (var file in files.InputFiles)
+                await ExecuteFFMpeg(task, data, file, files.OutputFiles, ConstructFFMpegArguments);
         }
 
         protected abstract void ConstructFFMpegArguments(ReceivedTask task, T data, in FFMpegArgsHolder args);
@@ -201,8 +201,20 @@ public static class FFMpegTasks
     class FFMpegEditVideo : FFMpegMediaEditAction<EditVideoInfo>
     {
         public override TaskAction Name => TaskAction.EditVideo;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Mov);
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements(FileFormat.Mov);
+
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Mov } };
+
+        protected override OperationResult ValidateOutputFiles(IOTaskCheckData files, EditVideoInfo data) =>
+            files.EnsureSingleInputFile()
+            .Next(input => files.EnsureSingleOutputFile()
+            .Next(output =>
+            {
+                if (data.CutFrameAt is not (null or -1))
+                    return TaskRequirement.EnsureFormat(output, FileFormat.Jpeg);
+
+                return TaskRequirement.EnsureSameFormat(output, input);
+            }));
 
         protected override void ConstructFFMpegArguments(ReceivedTask task, EditVideoInfo data, in FFMpegArgsHolder args)
         {
@@ -241,10 +253,14 @@ public static class FFMpegTasks
     class FFMpegEditRaster : FFMpegMediaEditAction<EditRasterInfo>
     {
         public override TaskAction Name => TaskAction.EditRaster;
-        public override TaskFileFormatRequirements InputRequirements { get; } = new TaskFileFormatRequirements()
-            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Png));
-        public override TaskFileFormatRequirements OutputRequirements { get; } = new TaskFileFormatRequirements()
-            .Either(e => e.RequiredOne(FileFormat.Jpeg).RequiredOne(FileFormat.Png));
+
+        public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+            new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Png } };
+
+        protected override OperationResult ValidateOutputFiles(IOTaskCheckData files, EditRasterInfo data) =>
+            files.EnsureSingleInputFile()
+            .Next(input => files.EnsureSingleOutputFile()
+            .Next(output => TaskRequirement.EnsureSameFormat(output, input)));
     }
 
 

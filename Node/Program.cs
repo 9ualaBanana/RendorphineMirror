@@ -5,6 +5,7 @@ global using NLog;
 global using Node.Plugins;
 global using Node.Plugins.Deployment;
 global using Node.Registry;
+global using Node.Tasks;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Handlers;
 global using Node.Tasks.Watching;
@@ -138,7 +139,7 @@ logger.Info(@$"Tasks found
 ".TrimLines().Replace("\n", "; ").Replace("\r", string.Empty));
 
 
-TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;
+NodeCommon.Tasks.TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;
 
 TaskHandler.InitializePlacedTasksAsync().Consume();
 TaskHandler.StartUpdatingPlacedTasks();
@@ -183,8 +184,8 @@ void InitializeSettings()
 
     state.WatchingTasks.Bind(NodeSettings.WatchingTasks.Bindable);
     state.PlacedTasks.Bind(NodeSettings.PlacedTasks.Bindable);
-    state.QueuedTasks.Bind(NodeSettings.QueuedTasks.Bindable);
-    NodeSettings.BenchmarkResult.Bindable.SubscribeChanged(() => NodeGlobalState.Instance.BenchmarkResult.Value = NodeSettings.BenchmarkResult.Value is null ? null : JObject.FromObject(NodeSettings.BenchmarkResult.Value), true);
+    NodeSettings.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(NodeSettings.QueuedTasks.Values), true);
+    NodeSettings.BenchmarkResult.Bindable.SubscribeChanged(() => state.BenchmarkResult.Value = NodeSettings.BenchmarkResult.Value is null ? null : JObject.FromObject(NodeSettings.BenchmarkResult.Value), true);
     state.TaskAutoDeletionDelayDays.Bind(NodeSettings.TaskAutoDeletionDelayDays.Bindable);
 
     state.BServerUrl.Bind(Settings.BServerUrl.Bindable);

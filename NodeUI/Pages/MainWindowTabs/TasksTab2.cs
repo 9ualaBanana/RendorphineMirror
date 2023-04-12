@@ -65,9 +65,9 @@ public class TasksTab2 : Panel
     {
         protected override void CreateColumns(DataGrid data)
         {
-            data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(ReceivedTask.Id)) });
-            data.Columns.Add(new DataGridTextColumn() { Header = "State", Binding = new Binding(nameof(ReceivedTask.State)) });
-            data.Columns.Add(new DataGridTextColumn() { Header = "Action", Binding = new Binding(nameof(ReceivedTask.Action)) });
+            data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(TaskBase.Id)) });
+            data.Columns.Add(new DataGridTextColumn() { Header = "State", Binding = new Binding(nameof(TaskBase.State)) });
+            data.Columns.Add(new DataGridTextColumn() { Header = "FirstAction", Binding = new Binding(nameof(TaskBase.FirstAction)) });
             data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding("Input.Type") });
             data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding("Output.Type") });
 
