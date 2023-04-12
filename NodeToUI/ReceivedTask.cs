@@ -1,4 +1,4 @@
-namespace Node.Tasks;
+namespace NodeToUI;
 
 public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info), ILoggable
 {

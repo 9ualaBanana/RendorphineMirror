@@ -1,13 +1,13 @@
 using System.Collections;
 using Newtonsoft.Json;
 
-namespace Node.Tasks.Exec;
+namespace NodeToUI;
 
 [JsonObject]
 public interface IReadOnlyTaskFileList : IEnumerable<FileWithFormat>
 {
-    int Count { get; }
-    IEnumerable<string> Paths { get; }
+    [JsonIgnore] int Count { get; }
+    [JsonIgnore] IEnumerable<string> Paths { get; }
 
     public string First(FileFormat format);
     public string? TryFirst(FileFormat format);
@@ -16,11 +16,11 @@ public interface IReadOnlyTaskFileList : IEnumerable<FileWithFormat>
 }
 public class TaskFileList : IReadOnlyTaskFileList
 {
-    public IEnumerable<string> Paths => this.Select(f => f.Path);
-    public int Count => Files.Count;
+    [JsonIgnore] public IEnumerable<string> Paths => this.Select(f => f.Path);
+    [JsonIgnore] public int Count => Files.Count;
 
-    readonly HashSet<FileWithFormat> Files = new();
-    readonly string Directory;
+    [JsonProperty("Files")] readonly HashSet<FileWithFormat> Files = new();
+    [JsonProperty("Directory")] readonly string Directory;
 
     public TaskFileList(string directory) => Directory = directory;
 

@@ -1,4 +1,4 @@
-namespace Node.Tasks;
+namespace NodeToUI;
 
 public record FileWithFormat(FileFormat Format, string Path)
 {
