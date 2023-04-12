@@ -49,7 +49,11 @@ internal class Profile
     public static async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes()
     {
         var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
-        return plugins.SelectMany(x => TaskList.Get(x.Type)).DistinctBy(x => x.Name).ToDictionary(x => x.Name.ToString(), _ => 1);
+        return plugins
+            .SelectMany(x => TaskList.Get(x.Type))
+            .DistinctBy(x => x.Name)
+            .Where(x => !Settings.DisabledTaskTypes.Value.Contains(x.Name))
+            .ToDictionary(x => x.Name.ToString(), _ => 1);
     }
 
     // Ridiculous.

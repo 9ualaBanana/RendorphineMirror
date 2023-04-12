@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using _3DProductsPublish;
 using _3DProductsPublish._3DModelDS;
 using _3DProductsPublish.CGTrader._3DModelComponents;
@@ -124,6 +125,24 @@ public class LocalListener : ExecutableListenerBase
         {
             var resp = await SessionManager.WebAuthAsync();
             return await WriteJson(response, resp).ConfigureAwait(false);
+        }
+
+        if (path == "setsetting")
+        {
+            return await TestPost(await CreateCached(request), response, "key", "value", async (key, value) =>
+            {
+                var field = new[] { typeof(Settings), typeof(NodeSettings) }
+                    .SelectMany(type => type.GetFields(BindingFlags.Public | BindingFlags.Static))
+                    .Where(f => f.FieldType.IsAssignableTo(typeof(IDatabaseBindable)))
+                    .FirstOrDefault(t => t.Name == "B" + key || t.Name == key);
+
+                if (field is null) return await WriteErr(response, "Unknown key");
+
+                var json = JToken.Parse(value);
+                ((IDatabaseBindable) field.GetValue(null).ThrowIfNull()).Bindable.LoadFromJson(json, null);
+
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
 
 

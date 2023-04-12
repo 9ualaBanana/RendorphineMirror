@@ -9,6 +9,8 @@ namespace NodeCommon;
 
 public interface IDatabaseBindable
 {
+    IBindable Bindable { get; }
+
     void Reload();
 }
 public interface IDatabaseBindable<T> : IDatabaseBindable { }
@@ -25,6 +27,7 @@ public abstract class DatabaseValueBase<T, TBindable> : IDatabaseBindable<T> whe
     public T Value => Bindable.Value;
 
     public string Name { get; }
+    IBindable IDatabaseBindable.Bindable => Bindable;
     public readonly TBindable Bindable;
     readonly Database Database;
 
@@ -93,6 +96,7 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
     public IEnumerable<TValue> Values => Items.Values;
     public int Count => Items.Count;
 
+    IBindable IDatabaseBindable.Bindable => Bindable;
     public BindableBase<IReadOnlyList<TValue>> Bindable => ItemsList;
     readonly BindableList<TValue> ItemsList = new();
     readonly Dictionary<TKey, TValue> Items;

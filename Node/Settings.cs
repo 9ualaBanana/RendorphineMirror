@@ -24,6 +24,8 @@ public static class Settings
     public static readonly DatabaseValue<string?> BNodeName;
     public static readonly DatabaseValue<AuthInfo?> BAuthInfo;
 
+    public static readonly DatabaseValue<ImmutableArray<TaskAction>> DisabledTaskTypes;
+
     static Settings()
     {
         static ushort randomized(ushort port) => (ushort) (port + Random.Shared.Next(80));
@@ -38,6 +40,9 @@ public static class Settings
         BTorrentPort = new(db, nameof(TorrentPort), randomized(6323));
         BAuthInfo = new(db, nameof(AuthInfo), default);
         BNodeName = new(db, nameof(NodeName), null);
+
+        DisabledTaskTypes = new(db, nameof(DisabledTaskTypes), ImmutableArray<TaskAction>.Empty);
+
 
         typeof(Settings).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)
             .Where(x => x.FieldType.IsAssignableTo(typeof(IBindable)))
