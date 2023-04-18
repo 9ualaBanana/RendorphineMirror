@@ -14,6 +14,7 @@ static class CommandsExtensions
         => services
         .AddScoped<CommandHandler, LoginCommand>()
         .AddScoped<CommandHandler, LogoutCommand>()
+        .AddScoped<CommandHandler, PromptCommand>()
         .AddScoped<CommandHandler, OnlineCommand>()
         .AddScoped<CommandHandler, OnlineCommand.Admin>()
         .AddScoped<CommandHandler, OfflineCommand>()
