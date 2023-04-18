@@ -29,16 +29,16 @@ public partial class OfflineCommand : CommandHandler, IAuthorizationRequirements
 
     internal override Command Target => "offline";
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
+    protected override async Task HandleAsync(ParsedCommand receivedCommand)
     {
-        if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(context.User), out var userNodesSupervisor, Bot, Update.Message!.Chat.Id))
+        if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(User), out var userNodesSupervisor, Bot, ChatId))
             return;
 
         var messageBuilder = new StringBuilder().AppendHeader(Header);
 
         messageBuilder.AppendLine(ListOfflineNodes(userNodesSupervisor).ToString());
 
-        await Bot.SendMessageAsync_(Update.Message.Chat.Id, messageBuilder.ToString());
+        await Bot.SendMessageAsync_(ChatId, messageBuilder.ToString());
     }
 
     const string Header = "*Offline Nodes*";

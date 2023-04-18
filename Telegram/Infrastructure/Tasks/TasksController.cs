@@ -1,3 +1,4 @@
+using HeyRed.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Tasks.ResultPreview;
@@ -12,13 +13,13 @@ public class TasksController : ControllerBase
     public async Task Handle(
         [FromQuery] ExecutedTaskApi executedTaskApi,
         [FromServices] TelegramPreviewTaskResultHandler taskResultHandler)
-            => await taskResultHandler.SendPreviewAsyncUsing(executedTaskApi, HttpContext.RequestAborted);
+        => await taskResultHandler.SendPreviewAsyncUsing(executedTaskApi, HttpContext.RequestAborted);
 
     [HttpGet("getinput/{index}")]
     public ActionResult GetInput([FromRoute] Guid index, [FromServices] MediaFilesCache mediaFilesCache)
     {
-        if (mediaFilesCache.TryRetrieveMediaFileWith(index) is CachedMediaFile cachedTaskInputFile)
-            return PhysicalFile(cachedTaskInputFile.Path, MimeTypes.GetMimeType(cachedTaskInputFile.File.Extension.ToString()));
+        if (mediaFilesCache.TryRetrieveMediaFileWith(index) is MediaFilesCache.Entry cachedTaskInputFile)
+            return PhysicalFile(cachedTaskInputFile.File.FullName, MimeTypesMap.GetMimeType(cachedTaskInputFile.File.Extension));
         else return NotFound();
     }
 }

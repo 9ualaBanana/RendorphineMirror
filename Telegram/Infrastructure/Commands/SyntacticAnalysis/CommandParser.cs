@@ -1,5 +1,5 @@
-﻿using Telegram.Infrastructure.Commands.LexicalAnalysis;
-using Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
+﻿using Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
+using Telegram.Infrastructure.Tokenization;
 
 namespace Telegram.Infrastructure.Commands.SyntacticAnalysis;
 
@@ -9,31 +9,33 @@ namespace Telegram.Infrastructure.Commands.SyntacticAnalysis;
 /// </summary>
 public class CommandParser
 {
-    readonly CommandTokenizer _tokenizer;
+    readonly Tokenizer<CommandToken_> _tokenizer;
 
-    public CommandParser(CommandTokenizer tokenizer)
+    public CommandParser(Tokenizer<CommandToken_> tokenizer)
     {
         _tokenizer = tokenizer;
     }
 
     /// <summary>
-    /// Uses <see cref="CommandTokenizer"/> to make an attempt in constructing <see cref="ParsedCommand"/>
+    /// Uses <see cref="Tokenizer{TToken}"/> to make an attempt in constructing <see cref="ParsedCommand"/>
     /// from <paramref name="rawCommand"/> if it is a syntactically correct command.
     /// </summary>
     /// <param name="rawCommand"><see cref="string"/> that should represent a command.</param>
-    /// <returns><see cref="ParsedCommand"/> if <paramref name="rawCommand"/> is a syntactically correct command.</returns>
+    /// <returns>
+    /// <see cref="ParsedCommand"/> if <paramref name="rawCommand"/> is a syntactically correct command.
+    /// </returns>
     internal ParsedCommand? TryParse(string rawCommand)
     {
-        var tokensEnumerator = _tokenizer.Tokenize(rawCommand).GetEnumerator();
+        var tokens = _tokenizer.Tokenize(rawCommand).GetEnumerator();
 
-        if (tokensEnumerator.MoveNext() && tokensEnumerator.Current is CommandToken commandToken)
+        if (tokens.MoveNext() && tokens.Current is CommandToken commandToken)
         {
             var command = Command.From(commandToken);
 
             List<Token> arguments = new();
-            while (tokensEnumerator.MoveNext())
-                if (tokensEnumerator.Current is UnquotedCommandArgumentToken || tokensEnumerator.Current is QuotedCommandArgumentToken)
-                    arguments.Add(tokensEnumerator.Current);
+            while (tokens.MoveNext())
+                if (tokens.Current is UnquotedCommandArgumentToken || tokens.Current is QuotedCommandArgumentToken)
+                    arguments.Add(tokens.Current);
             var unquotedArguments = arguments.OfType<UnquotedCommandArgumentToken>().Select(arg => arg.Value);
             var quotedArguments = arguments.OfType<QuotedCommandArgumentToken>().Select(arg => arg.Value);
 

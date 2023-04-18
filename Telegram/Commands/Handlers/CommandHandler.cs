@@ -1,4 +1,5 @@
 ﻿using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Infrastructure;
 using Telegram.Infrastructure.Commands;
 using Telegram.Infrastructure.Commands.SyntacticAnalysis;
@@ -8,12 +9,17 @@ namespace Telegram.Commands.Handlers;
 /// <summary>
 /// Base class for <see cref="CommandHandler"/>s that should be used to handle <see cref="Target"/> and
 /// also provides access to received <see cref="ParsedCommand"/> to its children by calling abstract
-/// <see cref="HandleAsync(ParsedCommand, HttpContext)"/>
-/// via publicly available <see cref="HandleAsync(HttpContext)"/>.
+/// <see cref="HandleAsync(ParsedCommand)"/>
+/// via publicly available <see cref="HandleAsync()"/>.
 /// </summary>
-public abstract class CommandHandler : UpdateHandler, ISwitchableService<CommandHandler, Command>
+public abstract class CommandHandler : MessageHandler, ISwitchableService<CommandHandler, Command>
 {
     readonly CommandParser _parser;
+
+    /// <summary>
+    /// The <see cref="Bot.Types.Message"/> which contains the command being handled.
+    /// </summary>
+    protected override Message Message => Update.Message!;
 
     protected CommandHandler(
         CommandParser parser,
@@ -40,10 +46,10 @@ public abstract class CommandHandler : UpdateHandler, ISwitchableService<Command
 
     ParsedCommand? _receivedCommand;
 
-    public override async Task HandleAsync(HttpContext context)
+    public override async Task HandleAsync()
     {
         if (_receivedCommand is not null)
-            await HandleAsync(_receivedCommand, context);
+            await HandleAsync(_receivedCommand);
         else
         {
             var exception = new InvalidOperationException(
@@ -55,5 +61,5 @@ public abstract class CommandHandler : UpdateHandler, ISwitchableService<Command
         }
     }
 
-    protected abstract Task HandleAsync(ParsedCommand receivedCommand, HttpContext context);
+    protected abstract Task HandleAsync(ParsedCommand receivedCommand);
 }

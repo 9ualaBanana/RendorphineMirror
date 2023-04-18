@@ -21,12 +21,13 @@ public class CallbackQueriesController : ControllerBase
     {
         Exception? exception = null;
 
-        if (HttpContext.GetUpdate().CallbackQuery!.Data is string serializedCallbackQuery)
-            if (callbackQueryHandlers.Switch(serializedCallbackQuery) is ICallbackQueryHandler callbackQueryHandler)
-            { await callbackQueryHandler.HandleAsync(HttpContext); return; }
+        var callbackQuery = HttpContext.GetUpdate().CallbackQuery!;
+        if (callbackQuery.Data is not null)
+            if (callbackQueryHandlers.Switch(callbackQuery) is ICallbackQueryHandler callbackQueryHandler)
+            { await callbackQueryHandler.HandleAsync(); return; }
 
             else exception = new NotImplementedException(
-                $"None of registered implementations of {nameof(ICallbackQueryHandler)} matched received callback query: {serializedCallbackQuery}"
+                $"None of registered implementations of {nameof(ICallbackQueryHandler)} matched received callback query: {callbackQuery.Data}"
                 );
         else exception = new ArgumentNullException(
             $"{nameof(CallbackQuery.Data)} must contain a serialized {typeof(CallbackQuery<>)}"

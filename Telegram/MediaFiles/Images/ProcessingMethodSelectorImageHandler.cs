@@ -3,15 +3,18 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure;
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.MediaFiles;
+using Telegram.MPlus;
 
 namespace Telegram.MediaFiles.Images;
 
-public class ProcessingMethodSelectorImageHandler : UpdateHandler
+public class ProcessingMethodSelectorImageHandler : MessageHandler
 {
+    readonly MPlusTaskLauncherClient _taskLauncherClient;
     readonly MediaFilesCache _mediaFilesCache;
     readonly CallbackQuerySerializer _serializer;
 
     public ProcessingMethodSelectorImageHandler(
+        MPlusTaskLauncherClient taskLauncherClient,
         MediaFilesCache mediaFilesCache,
         CallbackQuerySerializer serializer,
         TelegramBot bot,
@@ -19,40 +22,38 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
         ILogger<ProcessingMethodSelectorImageHandler> logger)
         : base(bot, httpContextAccessor, logger)
     {
+        _taskLauncherClient = taskLauncherClient;
         _mediaFilesCache = mediaFilesCache;
         _serializer = serializer;
     }
 
-    public override async Task HandleAsync(HttpContext context)
+    public override async Task HandleAsync()
     {
-        var message = Update.Message!;
-
         try
         {
-            var receivedImage = MediaFile.From(message);
-            await Bot.SendMessageAsync_(
-                message.Chat.Id,
-                "*Choose how to process the image*",
-                await BuildReplyMarkupAsyncFor(receivedImage, context.RequestAborted));
+            var receivedImage = MediaFile.From(Message);
+            await Bot.SendMessageAsync_(ChatId, "*Choose how to process the image*",
+                await BuildReplyMarkupAsyncFor(receivedImage, RequestAborted)
+                );
         }
         catch (ArgumentException ex) when (ex.ParamName is not null)
         {
-            await Bot.SendMessageAsync_(
-                message.Chat.Id,
+            await Bot.SendMessageAsync_(ChatId,
                 $"{ex.Message}\n" +
                 $"Specify an extension as the caption of the document.",
-                cancellationToken: context.RequestAborted);
+                cancellationToken: RequestAborted);
         }
     }
 
     async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedImage, CancellationToken cancellationToken)
     {
-        var cachedImage = await _mediaFilesCache.CacheAsync(receivedImage, cancellationToken);
+        var cachedImage = await _mediaFilesCache.AddAsync(receivedImage, cancellationToken);
+        var prices = await _taskLauncherClient.RequestTaskPricesAsync(cancellationToken);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithCallbackData("Upload to M+",
+                InlineKeyboardButton.WithCallbackData($"Upload to M+ | Free",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)
@@ -60,7 +61,7 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
             },
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithCallbackData("Upscale and upload to M+",
+                InlineKeyboardButton.WithCallbackData($"Upscale and upload to M+ | {prices[TaskAction.EsrganUpscale]}€",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.UpscaleImage | ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)
@@ -68,7 +69,7 @@ public class ProcessingMethodSelectorImageHandler : UpdateHandler
             },
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithCallbackData("Vectorize and upload to M+",
+                InlineKeyboardButton.WithCallbackData($"Vectorize and upload to M+ | {prices[TaskAction.VeeeVectorize]}€",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.VectorizeImage | ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)

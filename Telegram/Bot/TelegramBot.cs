@@ -38,7 +38,7 @@ public class TelegramBot : TelegramBotClient
         Logger.LogTrace("Webhook is set", webhookUrl);
     }
 
-    internal async Task NotifySubscribersAsync(string text, IReplyMarkup? replyMarkup = null)
+    internal async Task NotifySubscribersAsync(string text, InlineKeyboardMarkup? replyMarkup = null)
     {
         foreach (var subscriber in Subscriptions)
             await SendMessageAsync_(subscriber, text, replyMarkup: replyMarkup);
@@ -56,7 +56,7 @@ public class TelegramBot : TelegramBotClient
             image,
             caption?.Sanitize(),
             ParseMode.MarkdownV2,
-            default,
+            captionEntities: null,
             disableNotification,
             protectContent,
             replyMarkup: replyMarkup,
@@ -83,23 +83,46 @@ public class TelegramBot : TelegramBotClient
             thumb,
             caption?.Sanitize(),
             ParseMode.MarkdownV2,
-            null,
+            captionEntities: null,
             supportsStreaming,
             disableNotification,
             protectContent,
             replyMarkup: replyMarkup,
             cancellationToken: cancellationToken);
 
+    /// <remarks>
+    /// If <paramref name="caption"/> is not <see langword="null"/>,
+    /// it becomes the caption for the album and all captions of its individual media files are removed.
+    /// </remarks>
+    internal async Task<Message[]> SendAlbumAsync_(
+        ChatId chatId,
+        IEnumerable<IAlbumInputMedia> media,
+        string? caption = null,
+        bool? disableNotification = default,
+        bool? protectContent = default,
+        int? replyToMessageId = null,
+        bool? allowSendingWithoutReply = default,
+        CancellationToken cancellationToken = default)
+    {
+        if (caption is not null)
+            media.Caption(caption);
+            
+        return await this.SendMediaGroupAsync(chatId, media, disableNotification, protectContent, replyToMessageId, allowSendingWithoutReply, cancellationToken);
+    }
+
     internal async Task<Message> SendMessageAsync_(
         ChatId chatId,
         string text,
-        IReplyMarkup? replyMarkup = null,
+        InlineKeyboardMarkup? replyMarkup = null,
         bool? disableWebPagePreview = default,
         bool? disableNotification = default,
         bool? protectContent = default,
-        CancellationToken cancellationToken = default) => await (MessagePaginator.MustBeUsedToSend(text) && replyMarkup is null ?
-        _messagePaginator.SendPaginatedMessageAsyncUsing(this, chatId, text, disableWebPagePreview, disableNotification, protectContent, cancellationToken) :
-        SendMessageAsyncCore(chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, cancellationToken));
+        int? replyToMessageId = null,
+        bool? allowSendingWithoutReply = default,
+        CancellationToken cancellationToken = default)
+        => await (MessagePaginator.MustBeUsedToSend(text) ?
+        _messagePaginator.SendPaginatedMessageAsyncUsing(this, chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, replyToMessageId, allowSendingWithoutReply, cancellationToken) :
+        SendMessageAsyncCore(chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, replyToMessageId, allowSendingWithoutReply, cancellationToken));
 
     internal async Task<Message> SendMessageAsyncCore(
         ChatId chatId,
@@ -108,16 +131,47 @@ public class TelegramBot : TelegramBotClient
         bool? disableWebPagePreview = default,
         bool? disableNotification = default,
         bool? protectContent = default,
+        int? replyToMessageId = null,
+        bool? allowSendingWithoutReply = default,
         CancellationToken cancellationToken = default) => await this.SendTextMessageAsync(
             chatId,
             text.Sanitize(),
             ParseMode.MarkdownV2,
-            null,
+            entities: null,
             disableWebPagePreview,
             disableNotification,
             protectContent,
-            replyMarkup: replyMarkup,
-            cancellationToken: cancellationToken);
+            replyToMessageId,
+            allowSendingWithoutReply,
+            replyMarkup,
+            cancellationToken);
+
+    internal async Task<Message> EditMessageAsync_(
+        ChatId chatId,
+        int messageId,
+        string text,
+        InlineKeyboardMarkup? replyMarkup = null,
+        bool? disableWebPagePreview = default,
+        CancellationToken cancellationToken = default)
+    {
+        var editedMessage = await this.EditMessageTextAsync(
+            chatId,
+            messageId,
+            text.Sanitize(),
+            ParseMode.MarkdownV2,
+            entities: null,
+            disableWebPagePreview,
+            replyMarkup,
+            cancellationToken);
+        if (replyMarkup is not null)
+            editedMessage = await this.EditMessageReplyMarkupAsync(
+                chatId,
+                messageId,
+                replyMarkup,
+                cancellationToken);
+
+        return editedMessage;
+    }
 }
 
 public static class TelegramHelperExtensions
@@ -146,4 +200,25 @@ public static class TelegramHelperExtensions
         => builder
         .AppendLine(header)
         .AppendLine(HorizontalDelimeter);
+
+    /// <summary>
+    /// Sets <paramref name="caption"/> of the <paramref name="album"/>
+    /// also removing captions from individual media files constituting it.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="album"/> caption is set via the first media file constituting it.
+    /// If any other constituent media files have their <see cref="InputMediaBase.Caption"/> set,
+    /// then they are treated as captions of individual media files and not the <paramref name="album"/>.
+    /// </remarks>
+    internal static IEnumerable<IAlbumInputMedia> Caption(this IEnumerable<IAlbumInputMedia> album, string caption)
+    {
+        if (album.FirstOrDefault() is InputMediaBase album_)
+        {
+            album_.Caption = caption;
+            foreach (var mediaFile in album.Skip(1))
+                (mediaFile as InputMediaBase)!.Caption = null;
+        }
+
+        return album;
+    }
 }

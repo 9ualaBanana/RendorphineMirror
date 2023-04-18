@@ -1,19 +1,19 @@
 ﻿using System.Text.RegularExpressions;
+using Telegram.Infrastructure.Tokenization;
 
 namespace Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
 
-internal class UnquotedCommandArgumentLexemeScanner : LexemeScanner
+internal class UnquotedCommandArgumentToken : CommandToken_
 {
-    internal static LexemeScanner Instance = new UnquotedCommandArgumentLexemeScanner();
+    internal class LexemeScanner : LexemeScanner<CommandToken_>
+    {
+        internal override Regex Pattern => new("^[^/\"\\s][^\\s]*", RegexOptions.Compiled);
 
-    internal override Regex Pattern => new("^[^/\"\\s][^\\s]*", RegexOptions.Compiled);
+        protected override CommandToken_ Token(string lexeme) => new UnquotedCommandArgumentToken(lexeme);
+    }
 
-    protected override Token Token(string lexeme) => new UnquotedCommandArgumentToken(lexeme);
-}
-
-internal class UnquotedCommandArgumentToken : Token
-{
-    internal UnquotedCommandArgumentToken(string lexeme) : base(lexeme)
+    UnquotedCommandArgumentToken(string lexeme)
+        : base(lexeme)
     {
     }
 }

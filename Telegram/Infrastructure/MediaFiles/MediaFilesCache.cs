@@ -1,39 +1,21 @@
-﻿using System.Collections.Specialized;
-using Telegram.Bot.Types;
-using File = System.IO.File;
+﻿using HeyRed.Mime;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Telegram.Infrastructure.MediaFiles;
 
-/// <summary>
-/// Enables file processing that spans over multiple <see cref="Update"/> requests.
-/// </summary>
 public class MediaFilesCache
 {
-    internal const int CachingTime = 300_000;
+    TimeSpan Expiration => TimeSpan.FromMilliseconds(_expiration);
+    const int _expiration = 300_000;
 
-    readonly AutoStorage<CachedMediaFile> _cachedMediaFiles;
     readonly MediaFileDownloader _mediaFileDownloader;
+    readonly IMemoryCache _cache;
     readonly IWebHostEnvironment _environment;
 
     readonly ILogger<MediaFilesCache> _logger;
 
-    public MediaFilesCache(MediaFileDownloader mediaFileDownloader, IWebHostEnvironment environment, ILogger<MediaFilesCache> logger)
-    {
-        _cachedMediaFiles = new(new CachedMediaFile.IndexEqualityComparer(), (StorageTime)CachingTime);
-        _mediaFileDownloader = mediaFileDownloader;
-        _environment = environment;
-        _location = Rooted("cached_media");
-        _logger = logger;
-
-        _cachedMediaFiles.ItemStorageTimeElapsed += (_, expiredMediaFile) =>
-        {
-            File.Delete(expiredMediaFile.Value.Path);
-            _logger.LogTrace($"Media file with index {expiredMediaFile.Value.Index} has expired");
-        };
-    }
-
     /// <summary>
-    /// Path where <see cref="MediaFilesCache"/> is locally stored.
+    /// Local path to the directory that represents <see cref="MediaFilesCache"/>.
     /// </summary>
     /// <remarks>
     /// Accessing this property creates a corresponding directory if it doesn't exist yet.
@@ -49,44 +31,123 @@ public class MediaFilesCache
     }
     readonly string _location;
 
-    internal async Task<CachedMediaFile> CacheAsync(MediaFile mediaFile, CancellationToken cancellationToken)
-        => await CacheAsync(mediaFile, StorageTime.Default, cancellationToken);
-
-    /// <returns>
-    /// <see cref="CachedMediaFile"/> physically stored inside <see cref="Location"/>
-    /// whose <see cref="CachedMediaFile.Index"/> can be used to <see cref="TryRetrieveMediaFileWith(Guid)"/> it.
-    /// </returns>
-    internal async Task<CachedMediaFile> CacheAsync(MediaFile mediaFile, StorageTime cachingTime, CancellationToken cancellationToken)
+    public MediaFilesCache(
+        MediaFileDownloader mediaFileDownloader,
+        IMemoryCache cache,
+        IWebHostEnvironment environment,
+        ILogger<MediaFilesCache> logger)
     {
-        var cachedMediaFile = await CacheAsyncCore();
-        _logger.LogTrace("Media file with index {Index} was added to the cache", cachedMediaFile.Index);
-        return cachedMediaFile;
+        _mediaFileDownloader = mediaFileDownloader;
+        _cache = cache;
+        _environment = environment;
+        _location = RootedPath("cache");
+        _logger = logger;
+    }
+
+    #region MediaFile
+
+    internal async Task<Entry> AddAsync(MediaFile mediaFile, CancellationToken cancellationToken)
+        => await AddAsync(mediaFile, Expiration, cancellationToken);
+
+    internal async Task<Entry> AddAsync(MediaFile mediaFile, TimeSpan expiration, CancellationToken cancellationToken)
+    {
+        var entry = Entry.Of(this, mediaFile.Extension.ToString());
+        await _mediaFileDownloader.UseAsyncToDownload(mediaFile, entry.File.FullName, cancellationToken);
+        return Cache(entry, expiration);
+    }
+
+    #endregion
+
+    #region IFormFile
+
+    internal async Task<Entry> AddAsync(IFormFile mediaFile, CancellationToken cancellationToken)
+        => await AddAsync(mediaFile, Expiration, cancellationToken);
+
+    internal async Task<Entry> AddAsync(IFormFile mediaFile, TimeSpan expiration, CancellationToken cancellationToken)
+    {
+        var entry = Entry.Of(this, MimeTypesMap.GetExtension(mediaFile.ContentType));
+        await DownloadAsync(mediaFile);
+        return Cache(entry, expiration);
 
 
-        async Task<CachedMediaFile> CacheAsyncCore()
+        async Task<FileInfo> DownloadAsync(IFormFile mediaFile)
         {
-            var index = Guid.NewGuid();
-            string cachedMediaFilePath = RootedPathFor(mediaFile, index.ToString());
-            await _mediaFileDownloader.UseAsyncToDownload(mediaFile, cachedMediaFilePath, cancellationToken);
-            var cachedMediaFile = new CachedMediaFile(mediaFile, index, cachedMediaFilePath);
-            _cachedMediaFiles.Add(cachedMediaFile, cachingTime);
-            return cachedMediaFile;
+            using var downloadedMediaFile = entry.File.OpenWrite();
+            await mediaFile.CopyToAsync(downloadedMediaFile, cancellationToken);
+
+            return new FileInfo(downloadedMediaFile.Name);
         }
     }
 
-    /// <remarks>
-    /// Physical copy of <see cref="CachedMediaFile"/> stored under the <paramref name="index"/> will be deleted after <see cref="CachingTime"/>.
-    /// </remarks>
-    internal CachedMediaFile? TryRetrieveMediaFileWith(Guid index)
+    #endregion
+
+    Entry Cache(Entry entry, TimeSpan expiration)
     {
-        if (_cachedMediaFiles.TryGetValue(CachedMediaFile.WithIndex(index), out var cachedMediaFile))
-            return cachedMediaFile;
-        else return null;
+        using var _ = _cache.Create(entry)
+            .SetAbsoluteExpiration(expiration)
+            .RegisterPostEvictionCallback((index, cachedMediaFile, _, _) =>
+            {
+                (cachedMediaFile as Entry)!.File.Delete();
+                _logger.LogTrace("Media file with index {Index} has expired", index);
+            });
+
+        _logger.LogTrace("Media file with index {Index} was added to the cache", entry.Index);
+
+        return entry;
     }
 
-    string RootedPathFor(MediaFile mediaFile, string name)
-        => Path.ChangeExtension(Rooted(Location, name), mediaFile.Extension.ToString());
+    internal Entry? TryRetrieveMediaFileWith(Guid index)
+        => _cache.TryGetValue(index, out Entry cachedMediaFileEntry) ?
+        cachedMediaFileEntry : null;
 
-    string Rooted(params string[] paths)
+    string CachedPath(params string[] paths)
+        => RootedPath(paths.Prepend(Location).ToArray());
+
+    string RootedPath(params string[] paths)
         => Path.Combine(paths.Prepend(_environment.ContentRootPath).ToArray());
+
+
+    /// <summary>
+    /// Represents <see cref="MediaFilesCache"/> entry stored at <see cref="CachedPath(string[])"/> and backed by <see cref="File"/>.
+    /// </summary>
+    public record Entry
+    {
+        internal readonly FileInfo File;
+
+        /// <summary>
+        /// Creates <see cref="Entry"/> of <paramref name="cache"/> stored at <see cref="CachedPath(string[])"/> and
+        /// backed by <see cref="File"/> with <paramref name="extension"/>.
+        /// </summary>
+        /// <param name="cache"><see cref="MediaFilesCache"/> for which <see cref="Entry"/> will be created.</param>
+        /// <param name="extension">Extension of the <see cref="File"/> by which resulting <see cref="Entry"/> will be backed.</param>
+        /// <returns>
+        /// <see cref="Entry"/> stored at <see cref="CachedPath(string[])"/> that is backed by <see cref="File"/> with <paramref name="extension"/>.
+        /// </returns>
+        internal static Entry Of(MediaFilesCache cache, string extension)
+        {
+            if (!extension.StartsWith('.'))
+                extension = $".{extension}";
+
+            return new Entry(
+                new FileInfo(cache.CachedPath(Guid.NewGuid().ToString()) + extension)
+                );
+        }
+
+        Entry(FileInfo file)
+        {
+            File = file;
+        }
+
+        /// <summary>
+        /// Instances of <see cref="Entry"/> are stored under a unique <see cref="Index"/>
+        /// which is also a name of <see cref="File"/> by which they are backed.
+        /// </summary>
+        internal Guid Index => Guid.Parse(Path.GetFileNameWithoutExtension(File.Name));
+    }
+}
+
+static class MediaFilesCacheExtensions
+{
+    internal static ICacheEntry Create(this IMemoryCache cache, MediaFilesCache.Entry entry)
+        => cache.CreateEntry(entry.Index).SetValue(entry);
 }

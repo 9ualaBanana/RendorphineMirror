@@ -1,5 +1,5 @@
-﻿using NLog;
-using System.Net.Mime;
+﻿using HeyRed.Mime;
+using NLog;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.InputFiles;
 using ILogger = NLog.ILogger;
@@ -18,7 +18,7 @@ public sealed class MediaFile
 
     internal Extension Extension { get; }
 
-    internal string? MimeType { get; }
+    internal string MimeType { get; }
 
     /// <summary>
     /// Identifier for the file stored on Telegram servers which can be used to download or reuse this file.
@@ -34,20 +34,20 @@ public sealed class MediaFile
 
     #region Initialization
 
-    MediaFile(long? size, Extension extension, string? mimeType, string fileId)
+    MediaFile(long? size, Extension extension, string fileId)
     {
         Size = size;
         Extension = extension;
-        MimeType = mimeType;
+        MimeType = MimeTypesMap.GetMimeType(extension.ToString());
         FileId = fileId;
         Location = null;
     }
 
-    MediaFile(Extension extension, string? mimeType, Uri location)
+    MediaFile(Extension extension, Uri location)
     {
         Size = null;
         Extension = extension;
-        MimeType = mimeType;
+        MimeType = MimeTypesMap.GetMimeType(extension.ToString());
         FileId = null;
         Location = location;
     }
@@ -74,8 +74,8 @@ public sealed class MediaFile
         }
     }
 
-    static MediaFile From(PhotoSize image) => new(image.FileSize, Extension.jpeg, MediaTypeNames.Image.Jpeg, image.FileId);
-    static MediaFile From(Video video) => new(video.FileSize, Extension.mp4, "video/mp4", video.FileId);
+    static MediaFile From(PhotoSize image) => new(image.FileSize, Extension.jpeg, image.FileId);
+    static MediaFile From(Video video) => new(video.FileSize, Extension.mp4, video.FileId);
     /// <exception cref="ArgumentException">Extension of the document can't be deduced.</exception>
     static MediaFile FromDocumentAttachedTo(Message message)
     {
@@ -86,12 +86,12 @@ public sealed class MediaFile
             if (Enum.TryParse(Path.GetExtension(fileName).TrimStart('.'), ignoreCase: true, out extension) ||
                 Enum.TryParse(Path.GetExtension(message.Caption?.Trim(' ', '.')), ignoreCase: true, out extension)
                 )
-                return new(document.FileSize, extension, document.MimeType, document.FileId);
+                return new(document.FileSize, extension, document.FileId);
 
         throw new ArgumentException("Extension of the document can't be deduced.", nameof(extension));
     }
-    // Resource URL can point only to an image.
-    internal static MediaFile From(Uri imageUrl) => new(Extension.jpeg, MediaTypeNames.Image.Jpeg, imageUrl);
+    /// <remarks>Resource URL can point only to an image.</remarks>
+    internal static MediaFile From(Uri imageUrl) => new(Extension.jpeg, imageUrl);
 
     #endregion
 

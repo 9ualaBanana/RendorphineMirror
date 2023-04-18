@@ -15,38 +15,44 @@ internal abstract record TaskResultFromMPlus
     internal readonly MPlusFileInfo FileInfo;
 
     /// <summary>
-    /// ID of the task that was responsible for producing the task result that this <see cref="TaskResultFromMPlus"/> represents.
+    /// ID of the task that was responsible for producing this <see cref="TaskResultFromMPlus"/>.
     /// </summary>
     internal readonly string Id;
 
     internal readonly TaskAction Action;
 
     /// <summary>
-    /// Name of the node that was responsible for producing the task result that this <see cref="TaskResultFromMPlus"/> represents.
+    /// Name of the node that was responsible for producing this <see cref="TaskResultFromMPlus"/>.
     /// </summary>
     internal readonly string Executor;
 
     internal readonly Uri FileDownloadLink;
 
+    internal readonly Uri PreviewDownloadLink;
+
     /// <summary>
     /// Static factory for constructing <see cref="TaskResultFromMPlus"/> instances.
     /// </summary>
-    internal static TaskResultFromMPlus Create(MPlusFileInfo mPlusFileInfo, TaskAction taskAction, string taskExecutor, Uri downloadLink)
-        => mPlusFileInfo.Type switch
+    internal static TaskResultFromMPlus Create(
+        ExecutedTask executedTask,
+        MPlusFileInfo fileInfo,
+        Uri downloadLink,
+        Uri previewDownloadLink) => fileInfo.Type switch
         {
-            MPlusFileType.Raster or MPlusFileType.Vector => new ImageTaskResultFromMPlus(mPlusFileInfo, taskAction, taskExecutor, downloadLink),
-            MPlusFileType.Video => new VideoTaskResultFromMPlus(mPlusFileInfo, taskAction, taskExecutor, downloadLink),
+            MPlusFileType.Raster or MPlusFileType.Vector => new ImageTaskResultFromMPlus(fileInfo, executedTask, downloadLink, previewDownloadLink),
+            MPlusFileType.Video => new VideoTaskResultFromMPlus(fileInfo, executedTask, downloadLink, previewDownloadLink),
             _ => throw new NotImplementedException()
         };
 
-    protected TaskResultFromMPlus(MPlusFileInfo mPlusFileInfo, TaskAction taskAction, string taskExecutor, Uri downloadLink)
+    protected TaskResultFromMPlus(MPlusFileInfo fileInfo, ExecutedTask executedTask, Uri downloadLink, Uri previewDownloadLink)
     {
-        FileInfo = mPlusFileInfo;
+        FileInfo = fileInfo;
         Id = (string)FileInfo["extid"]!;
-        Action = taskAction;
-        Executor = taskExecutor;
+        Action = executedTask.Action;
+        Executor = executedTask.Executor;
         FileDownloadLink = downloadLink;
+        PreviewDownloadLink = previewDownloadLink;
     }
 
-    public static implicit operator InputOnlineFile(TaskResultFromMPlus this_) => new(this_.FileDownloadLink);
+    public static implicit operator InputOnlineFile(TaskResultFromMPlus this_) => new(this_.PreviewDownloadLink);
 }

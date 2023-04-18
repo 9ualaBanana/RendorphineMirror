@@ -26,7 +26,7 @@ public abstract record CallbackQuery<ECallbackData>
 
     protected object ArgumentAt(int index)
     {
-        if (Arguments[index] is object argument)
+        if (Arguments.ElementAtOrDefault(index) is object argument)
             return argument;
         else
         {

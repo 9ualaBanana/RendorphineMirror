@@ -13,19 +13,29 @@ public class MessagePaginatorControlButtons
     }
 
     /// <inheritdoc cref="For(ChunkedText)"/>
-    internal InlineKeyboardMarkup? For(ChunkedMessage chunkedMessage) => For(chunkedMessage.Content);
+    internal InlineKeyboardMarkup For(ChunkedMessage chunkedMessage)
+    {
+        var controlButtons = For(chunkedMessage.Content);
+        return NonControlButtonsOf(chunkedMessage).Append(controlButtons).ToArray();
+
+
+        static IEnumerable<IEnumerable<InlineKeyboardButton>> NonControlButtonsOf(ChunkedMessage chunkedMessage)
+            => chunkedMessage.Content.IsChunked ?
+            chunkedMessage.Message.ReplyMarkup!.InlineKeyboard.SkipLast(1) : // Exclude control buttons.
+            chunkedMessage.Message.ReplyMarkup?.InlineKeyboard ?? Enumerable.Empty<IEnumerable<InlineKeyboardButton>>(); // Has no control buttons.
+    }
+
     /// <remarks>
     /// Make sure to call it before <see cref="ChunkedText.NextChunk"/> but after <see cref="ChunkedText.MovePointerToBeginningOfPreviousChunk"/> to avoid logical errors.
     /// </remarks>
-    /// <param name="chunkedText"></param>
     /// <returns>Paginator control buttons that depend on current position of <see cref="ChunkedText._pointer"/>.</returns>
-    internal InlineKeyboardMarkup? For(ChunkedText chunkedText) =>
-        !chunkedText.IsChunked ? null :
-        chunkedText.IsAtFirstChunk ? Next :
-        chunkedText.IsAtLastChunk ? Previous :
+    internal IEnumerable<InlineKeyboardButton> For(ChunkedText chunkedText) =>
+        !chunkedText.IsChunked ? Enumerable.Empty<InlineKeyboardButton>() :
+        chunkedText.IsAtFirstChunk ? new InlineKeyboardButton[] { Next } :
+        chunkedText.IsAtLastChunk ? new InlineKeyboardButton[] { Previous } :
         PreviousAndNext;
 
-    InlineKeyboardMarkup PreviousAndNext => new(new InlineKeyboardButton[] { Previous, Next });
+    InlineKeyboardButton[] PreviousAndNext => new InlineKeyboardButton[] { Previous, Next };
 
     internal InlineKeyboardButton Previous
         => InlineKeyboardButton.WithCallbackData("<",

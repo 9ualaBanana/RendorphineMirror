@@ -33,7 +33,7 @@ public partial class PingCommand
 
         internal override Command Target => "adminping";
 
-        protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
+        protected override async Task HandleAsync(ParsedCommand receivedCommand)
         {
             var messageBuilder = new StringBuilder().AppendHeader(Header);
 
@@ -41,7 +41,7 @@ public partial class PingCommand
             foreach (var theUserNodes in _userNodes)
                 messageBuilder.AppendLine(ListOnlineNodes(theUserNodes.Value, nodeNames).ToString());
 
-            await Bot.SendMessageAsync_(Update.Message!.Chat.Id, messageBuilder.ToString());
+            await Bot.SendMessageAsync_(ChatId, messageBuilder.ToString());
         }
     }
 }

@@ -35,7 +35,7 @@ public class CommandsController : ControllerBase
         {
             var authorizationResult = await UserIsAuthorizedToCall(command);
             if (authorizationResult.Succeeded)
-                await command.HandleAsync(HttpContext);
+                await command.HandleAsync();
             else
             {
                 _logger.LogTrace("User is not authorized to use {Command} command", rawCommand);

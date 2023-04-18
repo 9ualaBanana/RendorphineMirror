@@ -32,14 +32,14 @@ public partial class OnlineCommand
 
         internal override Command Target => "adminonline";
 
-        protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
+        protected override async Task HandleAsync(ParsedCommand receivedCommand)
         {
             var nodesOnline = _userNodes.Aggregate(0, (nodesOnline, theUserNodes) => nodesOnline += theUserNodes.Value.NodesOnline.Count);
             var nodesOffline = _userNodes.Aggregate(0, (nodesOffline, theUserNodes) => nodesOffline += theUserNodes.Value.NodesOffline.Count);
 
             var message = BuildMessage(nodesOnline, nodesOffline);
 
-            await Bot.SendMessageAsync_(Update.Message!.Chat.Id, message);
+            await Bot.SendMessageAsync_(ChatId, message);
         }
     }
 }

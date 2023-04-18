@@ -1,23 +1,27 @@
-﻿using Telegram.Bot;
+﻿using System.Security.Claims;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 
 namespace Telegram.Infrastructure;
 
-public abstract class UpdateHandler : IHttpContextHandler
+public abstract class UpdateHandler : IHandler
 {
     protected readonly TelegramBot Bot;
     protected readonly ILogger Logger;
 
-    protected Update Update => _httpContextAccessor.HttpContext!.GetUpdate();
+    protected Update Update => Context.GetUpdate();
+    protected ClaimsPrincipal User => Context.User;
+    protected CancellationToken RequestAborted => Context.RequestAborted;
+    protected HttpContext Context => _httpContextAccessor.HttpContext!;
 
     readonly IHttpContextAccessor _httpContextAccessor;
 
     protected UpdateHandler(TelegramBot bot, IHttpContextAccessor httpContextAccessor, ILogger logger)
     {
         Bot = bot;
-        _httpContextAccessor = httpContextAccessor;
         Logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
-    public abstract Task HandleAsync(HttpContext context);
+    public abstract Task HandleAsync();
 }

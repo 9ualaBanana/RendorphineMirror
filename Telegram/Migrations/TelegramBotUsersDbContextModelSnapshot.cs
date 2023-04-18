@@ -17,10 +17,10 @@ namespace Telegram.Migrations.TelegramBotUsersDb
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.9");
 
-            modelBuilder.Entity("Telegram.Security.Authentication.Persistence.MPlusIdentityEntity", b =>
+            modelBuilder.Entity("Telegram.Persistence.MPlusIdentityEntity", b =>
                 {
-                    b.Property<string>("UserId")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("TelegramBotUserChatId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AccessLevel")
                         .HasColumnType("INTEGER");
@@ -29,18 +29,16 @@ namespace Telegram.Migrations.TelegramBotUsersDb
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<long?>("TelegramBotUserChatId")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
-                    b.HasKey("UserId");
-
-                    b.HasIndex("TelegramBotUserChatId")
-                        .IsUnique();
+                    b.HasKey("TelegramBotUserChatId");
 
                     b.ToTable("MPlusIdentityEntity");
                 });
 
-            modelBuilder.Entity("Telegram.Security.Authentication.Persistence.TelegramBotUserEntity", b =>
+            modelBuilder.Entity("Telegram.Persistence.TelegramBotUserEntity", b =>
                 {
                     b.Property<long>("ChatId")
                         .HasColumnType("INTEGER");
@@ -50,16 +48,18 @@ namespace Telegram.Migrations.TelegramBotUsersDb
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Telegram.Security.Authentication.Persistence.MPlusIdentityEntity", b =>
+            modelBuilder.Entity("Telegram.Persistence.MPlusIdentityEntity", b =>
                 {
-                    b.HasOne("Telegram.Security.Authentication.Persistence.TelegramBotUserEntity", "TelegramBotUser")
+                    b.HasOne("Telegram.Persistence.TelegramBotUserEntity", "TelegramBotUser")
                         .WithOne("MPlusIdentity")
-                        .HasForeignKey("Telegram.Security.Authentication.Persistence.MPlusIdentityEntity", "TelegramBotUserChatId");
+                        .HasForeignKey("Telegram.Persistence.MPlusIdentityEntity", "TelegramBotUserChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("TelegramBotUser");
                 });
 
-            modelBuilder.Entity("Telegram.Security.Authentication.Persistence.TelegramBotUserEntity", b =>
+            modelBuilder.Entity("Telegram.Persistence.TelegramBotUserEntity", b =>
                 {
                     b.Navigation("MPlusIdentity");
                 });

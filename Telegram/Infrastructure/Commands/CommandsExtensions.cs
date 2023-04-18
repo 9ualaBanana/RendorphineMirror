@@ -9,7 +9,7 @@ static class CommandsExtensions
     internal static IServiceCollection AddCommandsCore(this IServiceCollection services)
         => services
         .AddScoped<IUpdateTypeRouter, MessageRouterMiddleware>()
-        .AddScoped<IMessageRouter, CommandRouterMiddleware>()
+        .AddScoped<MessageRouter, CommandRouterMiddleware>()
         .AddCommandParsing();
 
     internal static string CaseInsensitive(this string value) => value.ToLowerInvariant();

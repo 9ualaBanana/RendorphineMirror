@@ -1,6 +1,4 @@
-﻿using Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
-
-namespace Telegram.Infrastructure.Commands.LexicalAnalysis;
+﻿namespace Telegram.Infrastructure.Tokenization;
 
 internal class TokenizerInput
 {
@@ -10,7 +8,7 @@ internal class TokenizerInput
 
     internal bool IsExhausted => Untokenized.Length == 0;
 
-    internal int _pointer;
+    int _pointer;
 
     internal TokenizerInput(string value)
     {
@@ -18,6 +16,6 @@ internal class TokenizerInput
         _pointer = 0;
     }
 
-    internal Token Tokenize(Token token)
+    internal Token Consume(Token token)
     { _pointer += token.Lexeme.Length; return token; }
 }

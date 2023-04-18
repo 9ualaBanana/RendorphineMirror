@@ -28,16 +28,16 @@ public class LogoutCommand : CommandHandler, IAuthorizationRequirementsProvider
     public IEnumerable<IAuthorizationRequirement> Requirements { get; }
         = IAuthorizationRequirementsProvider.Provide(MPlusAuthenticationRequirement.Instance);
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
+    protected override async Task HandleAsync(ParsedCommand receivedCommand)
     {
-        if (await _database.FindAsync<TelegramBotUserEntity>(Update.ChatId()) is TelegramBotUserEntity user && user.MPlusIdentity is not null)
+        if (await _database.FindAsync<TelegramBotUserEntity>(ChatId) is TelegramBotUserEntity user && user.MPlusIdentity is not null)
         {
             _database.Remove(user.MPlusIdentity);
-            await _database.SaveChangesAsync(context.RequestAborted);
+            await _database.SaveChangesAsync(RequestAborted);
 
-            await Bot.SendMessageAsync_(Update.ChatId(),
+            await Bot.SendMessageAsync_(ChatId,
                 "You are logged out now.",
-                cancellationToken: context.RequestAborted);
+                cancellationToken: RequestAborted);
         }
         // Unauthenticated users shall not be able to call this method due to the authorization requirements.
     }

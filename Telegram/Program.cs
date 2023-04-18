@@ -15,6 +15,7 @@ using Telegram.Security.Authentication;
 using Telegram.Security.Authorization;
 using Telegram.Services.GitHub;
 using Telegram.Services.Node;
+using Telegram.StableDiffusion;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +40,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<UserNodes>();
 builder.Services.AddScoped<GitHubEventForwarder>();
+builder.Services.AddStableDiffusion();
 
 var app = builder.Build();
 

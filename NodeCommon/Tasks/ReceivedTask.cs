@@ -1,9 +1,11 @@
-﻿namespace NodeCommon.Tasks;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace NodeCommon.Tasks;
 
 /// <summary>
 /// Task that has a unique <see cref="Id"/>.
 /// </summary>
-public interface IRegisteredTask : IEquatable<IRegisteredTask>
+public interface IRegisteredTask
 {
     public string Id { get; }
 }
@@ -28,7 +30,14 @@ public record RegisteredTask(string Id) : IRegisteredTask
 {
     public static RegisteredTask With(string id) => new(id);
 
-    public bool Equals(IRegisteredTask? other) => Id == other?.Id;
+    public class IdEqualityComparer : IEqualityComparer<IRegisteredTask>
+    {
+        public bool Equals(IRegisteredTask? x, IRegisteredTask? y)
+            => x?.Id == y?.Id;
+
+        public int GetHashCode([DisallowNull] IRegisteredTask obj)
+            => obj.Id.GetHashCode();
+    }
 }
 
 /// <summary>
@@ -37,17 +46,6 @@ public record RegisteredTask(string Id) : IRegisteredTask
 public record TypedRegisteredTask(string Id, TaskAction Action) : ITypedRegisteredTask
 {
     public static TypedRegisteredTask With(string id, TaskAction action) => new(id, action);
-
-    public bool Equals(IRegisteredTask? other) => Id == other?.Id;
-
-    public class IdEqualityComparer : IEqualityComparer<TypedRegisteredTask>
-    {
-        bool IEqualityComparer<TypedRegisteredTask>.Equals(TypedRegisteredTask? x, TypedRegisteredTask? y)
-            => x?.Id == y?.Id;
-
-        int IEqualityComparer<TypedRegisteredTask>.GetHashCode(TypedRegisteredTask obj)
-            => obj.Id.GetHashCode();
-    }
 }
 
 public record ExecutedTask : TypedRegisteredTask

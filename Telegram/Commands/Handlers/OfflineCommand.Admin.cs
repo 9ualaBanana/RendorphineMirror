@@ -33,14 +33,14 @@ public partial class OfflineCommand
 
         internal override Command Target => "adminoffline";
 
-        protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
+        protected override async Task HandleAsync(ParsedCommand receivedCommand)
         {
             var messageBuilder = new StringBuilder().AppendHeader(Header);
 
             foreach (var theUserNodes in _userNodes)
                 messageBuilder.AppendLine(ListOfflineNodes(theUserNodes.Value).ToString());
 
-            await Bot.SendMessageAsync_(Update.Message!.Chat.Id, messageBuilder.ToString());
+            await Bot.SendMessageAsync_(ChatId, messageBuilder.ToString());
         }
     }
 }

@@ -29,13 +29,16 @@ internal class ChunkedMessage : IEquatable<ChunkedMessage>
         Content = sentMessageContent;
     }
 
+    // We don't need a constructor that defines single Message parameter because we always
+    // preinitialize an instance of ChunkedText to send as the content of that Message.
+
     #region Equaity
 
     public static bool operator ==(ChunkedMessage this_, ChunkedMessage that) => this_.Equals(that);
     public static bool operator !=(ChunkedMessage this_, ChunkedMessage that) => !this_.Equals(that);
     public override bool Equals(object? obj) => Equals(obj as ChunkedMessage);
-    public bool Equals(ChunkedMessage? other) =>
-        Message.MessageId == other?.Message.MessageId && Message.Chat.Id == other.Message.Chat.Id;
+    public bool Equals(ChunkedMessage? other)
+        => other is not null && UniqueMessage.From(Message) == UniqueMessage.From(other.Message);
     /// <summary>
     /// Same as <see cref="MessageExtensions.HashCode(Message)"/>
     /// </summary>
@@ -43,8 +46,12 @@ internal class ChunkedMessage : IEquatable<ChunkedMessage>
 
     #endregion
 
-    // We don't need a constructor that defines single Message parameter because we always
-    // preinitialize an instance of ChunkedText to send as the content of that Message.
+    #region Conversions
+
+    public static implicit operator Message(ChunkedMessage this_)
+        => this_.Message;
+
+    #endregion
 }
 
 internal static class MessageExtensions
@@ -52,5 +59,5 @@ internal static class MessageExtensions
     /// <summary>
     /// Hash code based on ID of the <see cref="Chat"/> where the <paramref name="message"/> came from and the ID of the message itself.
     /// </summary>
-    internal static int HashCode(this Message message) => message.MessageId.GetHashCode() ^ message.Chat.Id.GetHashCode();
+    internal static int HashCode(this Message message) => UniqueMessage.From(message).GetHashCode();
 }

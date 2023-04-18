@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using System.Text;
 using Telegram.Bot;
-using Telegram.Bot.Types;
 using Telegram.Infrastructure.Commands;
 using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.MPlus;
@@ -30,16 +29,16 @@ public class RemoveCommand : CommandHandler, IAuthorizationRequirementsProvider
 
     internal override Command Target => "remove";
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand, HttpContext context)
+    protected override async Task HandleAsync(ParsedCommand receivedCommand)
     {
         var nodeNames = receivedCommand.QuotedArguments.ToArray();
-        if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(context.User), out var userNodesSupervisor, Bot, Update.Message!.Chat.Id))
+        if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(User), out var userNodesSupervisor, Bot, ChatId))
             return;
         int nodesRemoved = userNodesSupervisor.TryRemoveNodesWithNames(nodeNames);
 
         var message = new StringBuilder().Append($"{nodesRemoved} nodes were removed.");
         if (nodesRemoved > 0) message.Append("Nodes with specified names are either online or not found.");
 
-        await Bot.SendMessageAsync_(Update.Message.Chat.Id, message.ToString());
+        await Bot.SendMessageAsync_(ChatId, message.ToString());
     }
 }

@@ -3,11 +3,10 @@ using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
 
 namespace Telegram.Infrastructure.Commands;
 
-public class CommandRouterMiddleware : IMessageRouter
+public class CommandRouterMiddleware : MessageRouter
 {
-    public bool Matches(Message message)
-        => message.Text is not null && message.Text.StartsWith(Command.Prefix) && message.Text.Length > 1;
+    protected override string PathFragment => CommandsController.PathFragment;
 
-    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
-    { context.Request.Path += $"/{CommandsController.PathFragment}"; await next(context); }
+    public override bool Matches(Message message)
+        => message.Text is not null && message.Text.StartsWith(Command.Prefix) && message.Text.Length > 1;
 }

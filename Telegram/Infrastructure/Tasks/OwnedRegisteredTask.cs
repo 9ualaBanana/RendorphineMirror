@@ -1,5 +1,4 @@
-﻿using System.Collections.Specialized;
-using Telegram.Bot;
+﻿using Telegram.Bot;
 
 namespace Telegram.Infrastructure.Tasks;
 

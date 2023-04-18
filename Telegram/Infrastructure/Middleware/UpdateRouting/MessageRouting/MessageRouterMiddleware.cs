@@ -6,11 +6,11 @@ namespace Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
 
 public class MessageRouterMiddleware : IUpdateTypeRouter
 {
-    readonly IEnumerable<IMessageRouter> _messageRouters;
+    readonly IEnumerable<MessageRouter> _messageRouters;
 
     readonly ILogger _logger;
 
-    public MessageRouterMiddleware(IEnumerable<IMessageRouter> messageRouters, ILogger<MessageRouterMiddleware> logger)
+    public MessageRouterMiddleware(IEnumerable<MessageRouter> messageRouters, ILogger<MessageRouterMiddleware> logger)
     {
         _messageRouters = messageRouters;
         _logger = logger;

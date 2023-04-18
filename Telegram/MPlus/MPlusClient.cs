@@ -5,25 +5,35 @@ namespace Telegram.MPlus;
 public class MPlusClient
 {
     internal readonly MPlusTaskManagerClient TaskManager;
+    internal readonly MPlusTaskLauncherClient TaskLauncher;
 
-    public MPlusClient(MPlusTaskManagerClient taskManager)
+    public MPlusClient(MPlusTaskManagerClient taskManager, MPlusTaskLauncherClient taskLauncher)
     {
         TaskManager = taskManager;
+        TaskLauncher = taskLauncher;
     }
 
     internal async Task<TaskResultFromMPlus> RequestTaskResultAsyncUsing(
-        ExecutedTaskApi executedTask,
+        ExecutedTaskApi executedTaskApi,
+        MPlusFileAccessor fileAccessor,
+        CancellationToken cancellationToken)
+        => await RequestTaskResultAsyncUsing(Apis.DefaultWithSessionId(fileAccessor.SessionId), executedTaskApi, fileAccessor, cancellationToken);
+
+    internal async Task<TaskResultFromMPlus> RequestTaskResultAsyncUsing(
+        Apis api,
+        ExecutedTaskApi executedTaskApi,
         MPlusFileAccessor fileAccessor,
         CancellationToken cancellationToken)
     {
-        var api = Apis.DefaultWithSessionId(fileAccessor.SessionId);
-        var mPlusFileInfo = await TaskManager.RequestFileInfoAsyncUsing(fileAccessor, cancellationToken);
-        var downloadLink = await RequestFileDownloadLinkUsing(fileAccessor, executedTask.Action is TaskAction.VeeeVectorize ? Extension.eps : Extension.jpeg);
-        return TaskResultFromMPlus.Create(mPlusFileInfo, executedTask.Action, executedTask.Executor, downloadLink);
-        
+        var fileInfo = await TaskManager.RequestFileInfoAsyncUsing(fileAccessor, cancellationToken);
+        var previewDownloadLink = await RequestFileDownloadLinkUsing(api, executedTaskApi, fileAccessor, Extension.jpeg);
+        var downloadLink = executedTaskApi.Action is not TaskAction.VeeeVectorize ?
+            previewDownloadLink :
+            await RequestFileDownloadLinkUsing(api, executedTaskApi, fileAccessor, Extension.eps);
 
-
-        async Task<Uri> RequestFileDownloadLinkUsing(MPlusFileAccessor fileAccessor, Extension extension)
-            => new Uri((await api.GetMPlusItemDownloadLinkAsync(executedTask, fileAccessor.Iid, extension)).ThrowIfError());
+        return TaskResultFromMPlus.Create(executedTaskApi, fileInfo, downloadLink, previewDownloadLink);
     }
+
+    internal async Task<Uri> RequestFileDownloadLinkUsing(Apis api, ExecutedTaskApi executedTaskApi, MPlusFileAccessor fileAccessor, Extension extension)
+        => new Uri((await api.GetMPlusItemDownloadLinkAsync(executedTaskApi, fileAccessor.Iid, extension)).ThrowIfError());
 }

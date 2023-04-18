@@ -20,7 +20,7 @@ public class TelegramBotDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite(@"DataSource=botUsers.db");
+        optionsBuilder.UseSqlite(@"DataSource=bot.db");
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -49,8 +49,9 @@ class MPlusIdentityEntityConfiguration : IEntityTypeConfiguration<MPlusIdentityE
 {
     public void Configure(EntityTypeBuilder<MPlusIdentityEntity> entity)
     {
-        entity.HasKey(i => i.UserId);
-        entity.HasOne(i => i.TelegramBotUser).WithOne(u => u.MPlusIdentity).HasForeignKey<MPlusIdentityEntity>();
+        entity.HasKey(i => i.TelegramBotUserChatId);
+        entity.HasOne(i => i.TelegramBotUser).WithOne(u => u.MPlusIdentity)
+            .HasForeignKey<MPlusIdentityEntity>(i => i.TelegramBotUserChatId);
     }
 }
 

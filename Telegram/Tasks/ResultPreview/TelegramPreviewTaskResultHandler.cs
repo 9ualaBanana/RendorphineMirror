@@ -4,6 +4,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
+using Telegram.Models;
 using Telegram.MPlus;
 using File = System.IO.File;
 
@@ -40,7 +41,7 @@ public class TelegramPreviewTaskResultHandler
         try { await SendPreviewsAsyncCore(); }
         catch (Exception ex)
         {
-            var exception = new Exception($"Task result preview failed.", ex);
+            var exception = new Exception(LogId.Formatted("Task result preview failed.", executedTaskApi.Id, "TaskID"), ex);
             _logger.LogError(exception, message: default);
             throw exception;
         }
@@ -51,39 +52,45 @@ public class TelegramPreviewTaskResultHandler
             var taskOwner = _ownedRegisteredTasksCache.Retrieve(TypedRegisteredTask.With(executedTaskApi.Id, executedTaskApi.Action)).Owner;
             var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(taskOwner.User));
 
-            var taskResults = new List<TaskResultFromMPlus>(executedTaskApi.UploadedFiles.Count);
-            foreach (var iid in executedTaskApi.UploadedFiles)
-            {
-                var fileAccessor = new MPlusFileAccessor(iid, MPlusIdentity.SessionIdOf(taskOwner.User));
-                taskResults.Add(await _mPlusClient.RequestTaskResultAsyncUsing(executedTaskApi, fileAccessor, cancellationToken));
-            }
-
-            foreach (var taskResult in taskResults)
+            foreach (var taskResult in await RequestTaskResultsAsyncFor(executedTaskApi.UploadedFiles).ToArrayAsync(cancellationToken))
                 await SendPreviewAsyncUsing(api, taskResult, taskOwner, cancellationToken);
 
             await api.ChangeStateAsync(executedTaskApi, TaskState.Finished).ThrowIfError();
+
+
+            async IAsyncEnumerable<TaskResultFromMPlus> RequestTaskResultsAsyncFor(IEnumerable<string> uploadedFiles)
+            {
+                foreach (var iid in uploadedFiles)
+                {
+                    var fileAccessor = new MPlusFileAccessor(iid, MPlusIdentity.SessionIdOf(taskOwner.User));
+                    yield return await _mPlusClient.RequestTaskResultAsyncUsing(api, executedTaskApi, fileAccessor, cancellationToken);
+                };
+            }
         }
     }
 
     async Task<Message> SendPreviewAsyncUsing(Apis api, TaskResultFromMPlus taskResult, TelegramBotUser user, CancellationToken cancellationToken)
     {
-        try { return await SendPreviewAsyncCore(); }
+        try { return await SendPreviewAsync(); }
         catch (Exception ex)
         {
-            var exception = new Exception($"IID {taskResult.FileInfo.Iid}: Sending task result preview failed.", ex);
+            var errorMessage = "Task result preview could not be sent.";
+            var exception = new Exception(LogId.Formatted(errorMessage, taskResult.FileInfo.Iid, "IID"), ex);
             _logger.LogError(exception, message: default);
             throw exception;
         }
 
 
-        async Task<Message> SendPreviewAsyncCore()
+        async Task<Message> SendPreviewAsync()
         {
-            var cachedTaskResult = await _mediaFilesCache.CacheAsync(MediaFile.From(taskResult.FileDownloadLink), 1_800_000, cancellationToken);
+            var cachedTaskResult = await _mediaFilesCache.AddAsync(MediaFile.From(taskResult.FileDownloadLink), TimeSpan.FromMinutes(30), cancellationToken);
+            var cachedTaskPreview = taskResult.Action is not TaskAction.VeeeVectorize ?
+                cachedTaskResult : await _mediaFilesCache.AddAsync(MediaFile.From(taskResult.PreviewDownloadLink), cancellationToken);
 
             var caption = await BuildCaptionAsync();
-            var replyMarkup = BuildReplyMarkup();
+            var replyMarkup = BuildReplyMarkupAsync();
 
-            return await SendPreviewAsyncCore_();
+            return await SendPreviewAsyncCore();
 
 
             async Task<string> BuildCaptionAsync()
@@ -92,12 +99,14 @@ public class TelegramPreviewTaskResultHandler
 
                 var taskExecutionTime = await RequestTaskExecutionTime();
 
-                if (!string.IsNullOrWhiteSpace(taskResult.FileInfo.Title))
-                    caption.AppendLine(taskResult.FileInfo.Title);
                 caption
-                    .AppendLine($"{taskResult.Action} action has completed.")
-                    .AppendLine($"*Duration*: `{taskExecutionTime}`")
-                    .AppendLine($"*Size*: `{cachedTaskResult.Size / 1024 / 1024}` *MB*");
+                    .AppendLine($"*{taskResult.Action}* action has completed.")
+                    .AppendLine();
+                if (!string.IsNullOrWhiteSpace(taskResult.FileInfo.Title))
+                    caption.AppendLine($"*Title* : {taskResult.FileInfo.Title}");
+                caption
+                    .AppendLine($"*Size*: `{cachedTaskResult.File.Length / 1024 / 1024}` *MB*")
+                    .AppendLine($"*Execution Time*: `{taskExecutionTime}`");
 
                 if (MPlusIdentity.AccessLevelOf(user.User) is AccessLevel.Admin)
                     caption
@@ -106,6 +115,7 @@ public class TelegramPreviewTaskResultHandler
                         .AppendLine($"*M+ IID* : `{taskResult.FileInfo.Iid}`");
 
                 return caption.ToString();
+
 
                 async Task<TimeSpan> RequestTaskExecutionTime()
                 {
@@ -130,17 +140,18 @@ public class TelegramPreviewTaskResultHandler
                 }
             }
 
-            InlineKeyboardMarkup BuildReplyMarkup()
+            InlineKeyboardMarkup BuildReplyMarkupAsync()
             {
                 var downloadButton = InlineKeyboardButton.WithUrl("Download", taskResult.FileDownloadLink.ToString());
                 return new InlineKeyboardMarkup(new InlineKeyboardButton[] { downloadButton });
             }
 
-            async Task<Message> SendPreviewAsyncCore_()
+            async Task<Message> SendPreviewAsyncCore()
             {
                 if (taskResult is ImageTaskResultFromMPlus)
                 {
-                    var taskResultPreviewPath = await Downscaled(cachedTaskResult);
+                    var taskResultPreviewPath = taskResult.Action is not TaskAction.VeeeVectorize ?
+                        await PathToDownscaled(cachedTaskPreview.File) : cachedTaskPreview.File.FullName;
                     try
                     {
                         using var taskResultPreview = File.OpenRead(taskResultPreviewPath);
@@ -149,7 +160,7 @@ public class TelegramPreviewTaskResultHandler
                     finally { File.Delete(taskResultPreviewPath); }
                 }
                 else if (taskResult is VideoTaskResultFromMPlus video)
-                    return await _bot.SendVideoAsync_(user.ChatId, cachedTaskResult.File!,
+                    return await _bot.SendVideoAsync_(user.ChatId, cachedTaskResult.File.OpenRead()!,
                         replyMarkup,
                         null, video.Width, video.Height,
                         taskResult.FileInfo.MediumThumbnailUrl.ToString(),
@@ -158,12 +169,14 @@ public class TelegramPreviewTaskResultHandler
                 else throw new NotImplementedException();
 
 
-                async Task<string> Downscaled(CachedMediaFile cachedImage)
+                async Task<string> PathToDownscaled(FileInfo cachedImage)
                 {
-                    string downscaledImagePath = Path.ChangeExtension(Guid.NewGuid().ToString(), cachedImage.File.Extension.ToString());
-                    using var cachedImageToDownscale = Image.Load(cachedImage.Path);
+                    string downscaledImagePath = Path.ChangeExtension(
+                        $"{Path.GetFileNameWithoutExtension(cachedImage.FullName)}_downscaled", cachedImage.Extension.ToString()
+                        );
+                    using var cachedImageToDownscale = Image.Load(cachedImage.FullName);
                     await cachedImageToDownscale
-                        .Clone(x => x.Resize(cachedImageToDownscale.Width / 2, cachedImageToDownscale.Height / 2, KnownResamplers.Lanczos3))
+                        .Clone(image => image.Resize(cachedImageToDownscale.Width / 2, cachedImageToDownscale.Height / 2, KnownResamplers.Lanczos3))
                         .SaveAsync(downscaledImagePath, cancellationToken);
                     return downscaledImagePath;
                 }

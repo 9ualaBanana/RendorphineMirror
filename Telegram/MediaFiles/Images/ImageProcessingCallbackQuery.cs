@@ -30,56 +30,52 @@ public class ImageProcessingCallbackQueryHandler
         _hostUrl = botOptions.Value.Host;
     }
 
-    protected override async Task HandleAsync(
-        ImageProcessingCallbackQuery callbackQuery,
-        CachedMediaFile cachedImage,
-        HttpContext context) => await (callbackQuery.Data switch
+    protected override async Task HandleAsync(ImageProcessingCallbackQuery callbackQuery, MediaFilesCache.Entry cachedImage)
+        => await (callbackQuery.Data switch
         {
             ImageProcessingCallbackData.UploadImage
-                => UploadToMPlusAsync(cachedImage, context),
+                => UploadToMPlusAsync(cachedImage),
             ImageProcessingCallbackData.UpscaleImage | ImageProcessingCallbackData.UploadImage
-                => UpscaleAndUploadToMPlusAsync(callbackQuery, cachedImage, context),
+                => UpscaleAndUploadToMPlusAsync(cachedImage),
             ImageProcessingCallbackData.VectorizeImage | ImageProcessingCallbackData.UploadImage
-                => VectorizeAndUploadToMPlusAsync(callbackQuery, cachedImage, context),
+                => VectorizeAndUploadToMPlusAsync(cachedImage),
             _ => HandleUnknownCallbackData()
         });
 
-    async Task UpscaleAndUploadToMPlusAsync(ImageProcessingCallbackQuery callbackQuery, CachedMediaFile cachedImage, HttpContext context)
+    async Task UpscaleAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
     {
         var registeredTask = (await TaskRegistration.RegisterAsync(
             new TaskCreationInfo(
                 TaskAction.EsrganUpscale,
-                new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{callbackQuery.CachedMediaFileIndex}")),
-                new MPlusTaskOutputInfo(callbackQuery.CachedMediaFileIndex.ToString(), "upscaled"),
-                TaskObjectFor(cachedImage)),
-            MPlusIdentity.SessionIdOf(context.User))).Result;
+                new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
+                new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "upscaled"),
+                TaskObject.From(cachedImage.File)),
+            MPlusIdentity.SessionIdOf(User))).Result;
 
-        _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBotUser(ChatId, context.User)));
+        _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBotUser(ChatId, User)));
 
         await Bot.SendMessageAsync_(ChatId, "Resulting image will be sent back to you as soon as it's ready.",
             new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
             );
     }
 
-    async Task VectorizeAndUploadToMPlusAsync(ImageProcessingCallbackQuery callbackQuery, CachedMediaFile cachedImage, HttpContext context)
+    async Task VectorizeAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
     {
         var registeredTask = (await TaskRegistration.RegisterAsync(
             new TaskCreationInfo(
                 TaskAction.VeeeVectorize,
-                new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{callbackQuery.CachedMediaFileIndex}")),
-                new MPlusTaskOutputInfo(callbackQuery.CachedMediaFileIndex.ToString(), "vectorized"),
+                new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
+                new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "vectorized"),
                 new VeeeVectorizeInfo() { Lods = new int[] { 8500 } },
-                TaskObjectFor(cachedImage)),
-            MPlusIdentity.SessionIdOf(context.User))).Result;
+                TaskObject.From(cachedImage.File)),
+            MPlusIdentity.SessionIdOf(User))).Result;
 
-        _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBotUser(ChatId, context.User)));
+        _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBotUser(ChatId, User)));
 
         await Bot.SendMessageAsync_(ChatId, "Resulting images will be sent back to you as soon as they are ready.",
             new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
             );
     }
-    static TaskObject TaskObjectFor(CachedMediaFile cachedImage)
-        => new(Path.GetFileName(cachedImage.Path), new FileInfo(cachedImage.Path).Length);
 
     InlineKeyboardButton DetailsButtonFor(ITypedRegisteredTask typedRegisteredTask)
         => InlineKeyboardButton.WithCallbackData("Details",
@@ -88,7 +84,6 @@ public class ImageProcessingCallbackQueryHandler
                 .Arguments(typedRegisteredTask.Id, typedRegisteredTask.Action)
                 .Build())
             );
-
 }
 
 public record ImageProcessingCallbackQuery : MediaProcessingCallbackQuery<ImageProcessingCallbackData>
