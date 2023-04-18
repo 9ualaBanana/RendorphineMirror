@@ -17,14 +17,25 @@ namespace Node
             async Task found(DeviceEventArgs args)
             {
                 var device = args.Device;
+                Logger.Info($"[UPnP] Found device ip {device.DeviceEndpoint}");
 
                 try
                 {
-                    var mappings = await device.GetAllMappingsAsync();
-                    map(mappings, "renderphine", Settings.BUPnpPort);
-                    map(mappings, "renderphine-srv", Settings.BUPnpServerPort);
-                    map(mappings, "renderphine-dht", Settings.BDhtPort);
-                    map(mappings, "renderphine-trt", Settings.BTorrentPort);
+                    /*
+                        Mono.Nat GetAllMappingsAsync() uses this abomination
+                        for (int i = 0; i < 1000; i++)
+                            var message = new GetGenericPortMappingEntry (i, this);
+
+                        And then catches error 713 SpecifiedArrayIndexInvalid to know it got to the end
+                        But, some routers return 501 ActionFailed instead
+                        And, apparently, error that *should* be catched is 714 NoSuchEntryInArray (as per RFC 6970 5.7)
+                        So idk whats going on, dont use this method
+                    */
+
+                    await map(device, "renderphine", Settings.BUPnpPort);
+                    await map(device, "renderphine-srv", Settings.BUPnpServerPort);
+                    await map(device, "renderphine-dht", Settings.BDhtPort);
+                    await map(device, "renderphine-trt", Settings.BTorrentPort);
 
                     consec = 0;
                 }
@@ -39,11 +50,16 @@ namespace Node
                 }
 
 
-                void map(Mapping[] mappings, string name, IDatabaseValueBindable<ushort> portb)
+                async Task map(INatDevice device, string name, IDatabaseValueBindable<ushort> portb)
                 {
                     name += "-" + Environment.MachineName;
-                    var mapping = mappings.FirstOrDefault(x => x.Description == name);
-                    if (mapping is not null)
+
+                    var mapping = null as Mapping;
+                    try { mapping = await device.GetSpecificMappingAsync(Protocol.Tcp, portb.Value); }
+                    catch (MappingException) { }
+
+                    // var mapping = mappings.FirstOrDefault(x => x.Description == name);
+                    if (mapping?.Description == name)
                     {
                         Logger.Info($"[UPnP] Found already existing mapping {mapping}. Remapping...");
 
@@ -58,7 +74,12 @@ namespace Node
                         {
                             for (ushort port = portb.Value; port < ushort.MaxValue; port++)
                             {
-                                if (mappings.Any(x => x.PublicPort == port)) continue;
+                                try
+                                {
+                                    await device.GetSpecificMappingAsync(Protocol.Tcp, port);
+                                    continue;
+                                }
+                                catch (MappingException) { }
 
                                 Logger.Info($"[UPnP] Creating mapping {name} on port {port}");
                                 portb.Value = port;

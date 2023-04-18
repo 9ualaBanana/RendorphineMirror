@@ -1,7 +1,4 @@
 using Newtonsoft.Json;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 
 namespace Node.Tasks.Exec;
 
@@ -22,7 +19,7 @@ public static class EsrganTasks
         public override PluginType Type => PluginType.Esrgan;
 
         public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
-            new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov } };
+            new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov }, new[] { FileFormat.Jpeg, FileFormat.Mov } };
 
         protected override OperationResult ValidateOutputFiles(IOTaskCheckData files, UpscaleEsrganInfo data) =>
             files.EnsureSingleInputFile()
@@ -31,58 +28,87 @@ public static class EsrganTasks
 
         protected override async Task ExecuteImpl(ReceivedTask task, IOTaskExecutionData files, UpscaleEsrganInfo data)
         {
-            var inputfile = files.InputFiles.Single().Path;
-            var outputfile = files.OutputFiles.FSNewFile(FileFormat.Jpeg);
-
-            var pylaunch = $"python "
-                + $"-u "                        // unbuffered output, for progress tracking
-                + $"test.py "                   // esrgan start file
-                + $"\"{inputfile}\" "           // input file
-                + $"\"{outputfile}\" "          // output file
-                + $"--tile_size 384 ";          // tile size; TODO: automatically determine
-
-            await ExecutePowerShellAtWithCondaEnvAsync(task, pylaunch, false, onRead);
-
-            if (data.X2)
+            foreach (var file in files.InputFiles)
             {
-                task.LogInfo("Downscaling the result to x2..");
+                var outputfile = files.OutputFiles.FSNewFile(file.Format);
+                await upscale(file.Path, outputfile);
 
-                using var image = Image.Load<Rgba32>(outputfile);
-                image.Mutate(img => img.Resize(image.Width / 2, image.Height / 2));
-                await image.SaveAsJpegAsync(outputfile);
-
-                /*
-                    or use ffmpeg, aka:
-
-                    var downscale = "";
-                    if (data.X2)
-                    {
-                        var tempfile = task.GetTempFileName("jpg");
-                        downscale = $@"
-                            {PluginType.FFmpeg.GetInstance().Path.Replace(" ", "' '")} -i '{outputfile}' -filter_complex 'scale=iw/2:ih/2' '{tempfile}'
-                            mv '{tempfile}' '{outputfile}'
-                        ";
-                    }
-                */
+                if (data.X2)
+                    await downscale(new FileWithFormat(file.Format, outputfile));
             }
 
-
-            void onRead(bool err, object obj)
+            async Task<string> upscale(string inputfile, string outputfile)
             {
-                if (err) throw new Exception(obj.ToString());
+                var pylaunch = $"python "
+                    + $"-u "                        // unbuffered output, for progress tracking
+                    + $"test.py "                   // esrgan start file
+                    + $"\"{inputfile}\" "           // input file
+                    + $"\"{outputfile}\" "          // output file
+                    + $"--tile_size 384 ";          // tile size; TODO: automatically determine
 
-                var line = obj.ToString()!;
-                if (!line.StartsWith("Progress:")) return;
+                await ExecutePowerShellAtWithCondaEnvAsync(task, pylaunch, false, onRead);
+                return outputfile;
 
-                // Progress: 1/20
-                var spt = line.AsSpan("Progress: ".Length);
-                var slashidx = spt.IndexOf('/');
-                var num1 = double.Parse(spt.Slice(0, slashidx));
-                var num2 = double.Parse(spt.Slice(slashidx + 1));
 
-                task.Progress = num1 / num2;
-                NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
+                void onRead(bool err, object obj)
+                {
+                    if (err) throw new Exception(obj.ToString());
+
+                    var line = obj.ToString()!;
+                    if (!line.StartsWith("Progress:", StringComparison.Ordinal)) return;
+
+                    // Progress: 1/20
+                    var spt = line.AsSpan("Progress: ".Length);
+                    var slashidx = spt.IndexOf('/');
+                    var num1 = double.Parse(spt.Slice(0, slashidx));
+                    var num2 = double.Parse(spt.Slice(slashidx + 1));
+
+                    task.Progress = num1 / num2;
+                    NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
+                }
+            }
+            async Task downscale(FileWithFormat file)
+            {
+                // ESRGAN can upscale only to x4, so for x2 we just downscale x4 by half
+                task.LogInfo($"Downscaling {file.Path} to x2..");
+
+                var outpath = Path.Combine(Init.TempDirectory(task.Id), "out." + file.Format.ToString().ToLowerInvariant());
+                await FFMpegTasks.ExecuteFFMpeg(task, file, outpath, args => args.Filtergraph.Add("scale=iw/2:ih/2"));
+                File.Move(outpath, file.Path, true);
             }
         }
+
+
+        /* unused code for splitting and combining video frames
+        Task splitImages() =>
+            FFMpegTasks.ExecuteFFMpeg(task, file, Path.Combine(inputdir, "out_%03d.jpg"), args =>
+            {
+                args.OutputFileFormat = FileFormat.Jpeg;
+                args.Args.Add("-q:v", "2"); // (almost) best jpeg quality
+            });
+        async Task combineImages()
+        {
+            void cargs(FFMpegArgsHolder args)
+            {
+                args.FFProbe.ThrowIfNull();
+
+                args.Args.Add("-pattern_type", "glob"); // enable glob (*) for input images
+                args.Args.Add("-i", Path.Combine(inputdir, "out_*.jpg"));
+
+                args.Args.Add("-r", args.FFProbe.VideoStream.FrameRateString); // preserve framerate
+
+                var hasaudio = args.FFProbe.Streams.Any(s => s.CodecType == "audio");
+
+                // copy metadata from input file to output file
+                args.Args.Add("-map", "1");
+                if (hasaudio) args.Args.Add("-map", "0:a");
+                args.Args.Add("-map_metadata", "0");
+                args.Args.Add("-map_metadata:s:v", "0:s:v");
+                if (hasaudio) args.Args.Add("-map_metadata:s:a", "0:s:a");
+            }
+
+            await FFMpegTasks.ExecuteFFMpeg(task, file, outputfile, cargs);
+        }
+        */
     }
 }

@@ -83,7 +83,9 @@ namespace NodeCommon
 
         public void Execute(Action action)
         {
-            action();
+            lock (References)
+                action();
+
             TriggerValueChanged();
         }
 
