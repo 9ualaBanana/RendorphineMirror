@@ -190,7 +190,7 @@ public static class TaskHandler
             foreach (var wtask in NodeSettings.WatchingTasks.Values.ToArray())
                 if (wtask.PlacedNonCompletedTasks.Remove(task.Id))
                 {
-                    if (errmsg?.Contains("There is not such user.", StringComparison.Ordinal) == true)
+                    if (errmsg?.Contains("There is no such user.", StringComparison.Ordinal) == true)
                         if (wtask.Source is MPlusAllFilesWatchingTaskHandler handler)
                             if ((task.Output as MPlusTaskOutputInfo)?.TUid is string tuid)
                             {
