@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.CallbackQueries;
+using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
 using Telegram.MPlus;

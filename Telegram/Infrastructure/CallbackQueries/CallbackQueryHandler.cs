@@ -1,5 +1,6 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Infrastructure.CallbackQueries.Serialization;
 
 namespace Telegram.Infrastructure.CallbackQueries;
 

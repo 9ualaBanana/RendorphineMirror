@@ -1,5 +1,6 @@
 ﻿using Telegram.Bot.Types.Enums;
 using Telegram.Infrastructure.CallbackQueries;
+using Telegram.Infrastructure.CallbackQueries.Serialization;
 
 namespace Telegram.Bot.MessagePagination;
 
