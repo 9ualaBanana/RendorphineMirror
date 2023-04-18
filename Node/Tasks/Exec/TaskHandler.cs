@@ -163,7 +163,7 @@ public static class TaskHandler
         {
             if (task.State.IsFinished())
             {
-                remove(task);
+                remove(task, errmsg);
                 return;
             }
 
@@ -180,26 +180,29 @@ public static class TaskHandler
 
             await handler.OnPlacedTaskCompleted(task);
             await task.ChangeStateAsync(TaskState.Finished).ThrowIfError();
-            remove(task);
+            remove(task, errmsg);
         }
-        bool remove(DbTaskFullState task, string? errmsg = null)
+        bool remove(DbTaskFullState task, string? errmsg)
         {
             task.LogInfo($"{task.State}, removing" + (errmsg is null ? null : $" ({errmsg})"));
-
             NodeSettings.PlacedTasks.Remove(task);
-            foreach (var wtask in NodeSettings.WatchingTasks.Values.ToArray())
-                if (wtask.PlacedNonCompletedTasks.Remove(task.Id))
-                {
-                    if (errmsg?.Contains("There is no such user.", StringComparison.Ordinal) == true)
-                        if (wtask.Source is MPlusAllFilesWatchingTaskHandler handler)
-                            if ((task.Output as MPlusTaskOutputInfo)?.TUid is string tuid)
-                            {
-                                task.LogWarn($"Found nonexistent user {tuid}, hiding");
-                                handler?.NonexistentUsers.Add(tuid);
-                            }
 
-                    NodeSettings.WatchingTasks.Save(wtask);
+            if (errmsg?.Contains("There is no such user.", StringComparison.Ordinal) == true)
+            {
+                var tuid = (task.Output as MPlusTaskOutputInfo)?.TUid ?? (task.Output as QSPreviewOutputInfo)?.TUid;
+                if (tuid is not null)
+                {
+                    task.LogWarn($"Found nonexistent user {tuid}, hiding");
+
+                    foreach (var wtask in NodeSettings.WatchingTasks.Values.ToArray())
+                    {
+                        if (wtask.Source is MPlusAllFilesWatchingTaskHandler handler)
+                            handler.NonexistentUsers.Add(tuid);
+
+                        NodeSettings.WatchingTasks.Save(wtask);
+                    }
                 }
+            }
 
             return true;
         }
