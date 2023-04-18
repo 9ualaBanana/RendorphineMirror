@@ -39,7 +39,7 @@ public class DeployCommand : CommandHandler, IAuthorizationRequirementsProvider
         var plugins = pluginTypes.Where(type => type.IsPlugin())
             .Select(type => new PluginToDeploy() { Type = type, Version = string.Empty }).ToHashSet();
         
-        var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(context.User));
+        var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(User));
 
         var userSettingsManager = new UserSettingsManager(_httpClient);
         var userSettings = await userSettingsManager.TryFetchAsync(MPlusIdentity.SessionIdOf(User));
