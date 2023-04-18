@@ -117,10 +117,12 @@ public class TelegramBot : TelegramBotClient
         bool? disableWebPagePreview = default,
         bool? disableNotification = default,
         bool? protectContent = default,
+        int? replyToMessageId = null,
+        bool? allowSendingWithoutReply = default,
         CancellationToken cancellationToken = default)
         => await (MessagePaginator.MustBeUsedToSend(text) ?
-        _messagePaginator.SendPaginatedMessageAsyncUsing(this, chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, cancellationToken) :
-        SendMessageAsyncCore(chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, cancellationToken));
+        _messagePaginator.SendPaginatedMessageAsyncUsing(this, chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, replyToMessageId, allowSendingWithoutReply, cancellationToken) :
+        SendMessageAsyncCore(chatId, text, replyMarkup, disableWebPagePreview, disableNotification, protectContent, replyToMessageId, allowSendingWithoutReply, cancellationToken));
 
     internal async Task<Message> SendMessageAsyncCore(
         ChatId chatId,
@@ -129,6 +131,8 @@ public class TelegramBot : TelegramBotClient
         bool? disableWebPagePreview = default,
         bool? disableNotification = default,
         bool? protectContent = default,
+        int? replyToMessageId = null,
+        bool? allowSendingWithoutReply = default,
         CancellationToken cancellationToken = default) => await this.SendTextMessageAsync(
             chatId,
             text.Sanitize(),
@@ -137,8 +141,10 @@ public class TelegramBot : TelegramBotClient
             disableWebPagePreview,
             disableNotification,
             protectContent,
-            replyMarkup: replyMarkup,
-            cancellationToken: cancellationToken);
+            replyToMessageId,
+            allowSendingWithoutReply,
+            replyMarkup,
+            cancellationToken);
 
     internal async Task<Message> EditMessageAsync_(
         ChatId chatId,

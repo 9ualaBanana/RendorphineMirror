@@ -28,14 +28,20 @@ public class MessagePaginator
         bool? disableWebPagePreview = default,
         bool? disableNotification = default,
         bool? protectContent = default,
+        int? replyToMessageId = null,
+        bool? allowSendingWithoutReply = default,
         CancellationToken cancellationToken = default)
     {
         var chunkedText = new ChunkedText(text);
         replyMarkup = BuildReplyMarkupFor(chunkedText, replyMarkup);
 
-        var message = await bot.SendMessageAsyncCore(chatId, chunkedText.NextChunk, replyMarkup, disableWebPagePreview, disableNotification, protectContent, cancellationToken);
+        var message = await bot.SendMessageAsyncCore(chatId, chunkedText.NextChunk,
+            replyMarkup,
+            disableWebPagePreview, disableNotification, protectContent, replyToMessageId, allowSendingWithoutReply, cancellationToken);
+
         if (chunkedText.IsChunked)
             _chunkedMessagesAutoStorage.Add(new(message, chunkedText));
+
         return message;
     }
 
