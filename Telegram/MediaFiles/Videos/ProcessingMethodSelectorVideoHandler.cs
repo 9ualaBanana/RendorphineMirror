@@ -24,14 +24,13 @@ public class ProcessingMethodSelectorVideoHandler : MessageHandler
     }
 
     public override async Task HandleAsync()
-        => await Bot.SendMessageAsync_(
-            Update.Message!.Chat.Id,
-            "*Choose how to process the video*",
-            await BuildReplyMarkupAsyncFor(MediaFile.From(Message), RequestAborted));
+        => await Bot.SendMessageAsync_(ChatId, "*Choose how to process the video*",
+            await BuildReplyMarkupAsyncFor(MediaFile.From(Message), RequestAborted)
+            );
 
     async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedVideo, CancellationToken cancellationToken)
     {
-        var cachedVideo = await _mediaFilesCache.CacheAsync(receivedVideo, cancellationToken);
+        var cachedVideo = await _mediaFilesCache.AddAsync(receivedVideo, cancellationToken);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]

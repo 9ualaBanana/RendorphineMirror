@@ -32,15 +32,13 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
         try
         {
             var receivedImage = MediaFile.From(Message);
-            await Bot.SendMessageAsync_(
-                ChatId,
-                "*Choose how to process the image*",
-                await BuildReplyMarkupAsyncFor(receivedImage, RequestAborted));
+            await Bot.SendMessageAsync_(ChatId, "*Choose how to process the image*",
+                await BuildReplyMarkupAsyncFor(receivedImage, RequestAborted)
+                );
         }
         catch (ArgumentException ex) when (ex.ParamName is not null)
         {
-            await Bot.SendMessageAsync_(
-                ChatId,
+            await Bot.SendMessageAsync_(ChatId,
                 $"{ex.Message}\n" +
                 $"Specify an extension as the caption of the document.",
                 cancellationToken: RequestAborted);
@@ -49,7 +47,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
 
     async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedImage, CancellationToken cancellationToken)
     {
-        var cachedImage = await _mediaFilesCache.CacheAsync(receivedImage, cancellationToken);
+        var cachedImage = await _mediaFilesCache.AddAsync(receivedImage, cancellationToken);
         var prices = await _taskLauncherClient.RequestTaskPricesAsync(cancellationToken);
         return new(new InlineKeyboardButton[][]
         {

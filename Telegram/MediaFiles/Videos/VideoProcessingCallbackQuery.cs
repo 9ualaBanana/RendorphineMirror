@@ -18,7 +18,7 @@ public class VideoProcessingCallbackQueryHandler
     {
     }
 
-    protected override async Task HandleAsync(VideoProcessingCallbackQuery callbackQuery, CachedMediaFile cachedVideo)
+    protected override async Task HandleAsync(VideoProcessingCallbackQuery callbackQuery, MediaFilesCache.Entry cachedVideo)
         => await (callbackQuery.Data switch
         {
             VideoProcessingCallbackData.UploadVideo
