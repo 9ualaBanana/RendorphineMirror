@@ -53,9 +53,11 @@ public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : Mess
     /// <see langword="true"/> if this handler is appropriate for <paramref name="callbackQuery"/>; <see langword="false"/> otherwise.
     /// </returns>
     public bool Matches(CallbackQuery callbackQuery)
-        => (_callbackQuery = Serializer.TryDeserialize<TCallbackQuery, ECallbackData>(callbackQuery)) is not null;
-
-    TCallbackQuery? _callbackQuery;
+    {
+        if (Serializer.TryDeserialize<TCallbackQuery, ECallbackData>(callbackQuery) is TCallbackQuery callbackQuery_)
+        { Context.Items[MatchedCallbackQuery] = callbackQuery_; return true; }
+        else return false;
+    }
 
     /// <summary>
     /// Handles the last <typeparamref name="TCallbackQuery"/> that matched this handler in a call to <see cref="Matches(CallbackQuery)"/> or throws an exception if none matched.
@@ -65,21 +67,26 @@ public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : Mess
     /// </exception>
     public override async Task HandleAsync()
     {
-        if (_callbackQuery is not null)
+        if (Context.Items[MatchedCallbackQuery] is TCallbackQuery callbackQuery)
         {
             await Bot.AnswerCallbackQueryAsync(CallbackQuery.Id, cancellationToken: RequestAborted);
-            await HandleAsync(_callbackQuery);
+            await HandleAsync(callbackQuery);
         }
         else
         {
             var exception = new InvalidOperationException(
                 $"{nameof(HandleAsync)} can be called only after this {nameof(CallbackQueryHandler<TCallbackQuery, ECallbackData>)} matched the callback query.",
-                new ArgumentNullException(nameof(_callbackQuery))
+                new ArgumentNullException(nameof(callbackQuery))
                 );
             Logger.LogCritical(exception, message: default);
             throw exception;
         }
     }
+
+    /// <summary>
+    /// Key which maps to deserialized <typeparamref name="TCallbackQuery"/>.
+    /// </summary>
+    string MatchedCallbackQuery => GetType().FullName!;
 
     public abstract Task HandleAsync(TCallbackQuery callbackQuery);
 
