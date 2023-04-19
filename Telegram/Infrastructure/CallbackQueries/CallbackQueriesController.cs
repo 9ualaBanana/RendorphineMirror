@@ -21,7 +21,7 @@ public class CallbackQueriesController : ControllerBase
     {
         try { await Handle(); }
         catch (Exception exception)
-        { _logger.LogCritical(exception, message: default); throw; }
+        { _logger.LogCritical(exception, "Callback query wasn't handled."); throw; }
 
 
         async Task Handle()
@@ -36,7 +36,7 @@ public class CallbackQueriesController : ControllerBase
                     $"None of registered implementations of {nameof(ICallbackQueryHandler)} matched received callback query: {callbackQuery.Data}"
                     );
 
-            else throw new ArgumentNullException(
+            else throw new ArgumentNullException(nameof(callbackQuery.Data),
                 $"{nameof(CallbackQuery.Data)} must contain a serialized {typeof(CallbackQuery<>)}"
                 );
         }
