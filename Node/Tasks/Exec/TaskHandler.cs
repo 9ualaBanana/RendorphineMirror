@@ -187,6 +187,12 @@ public static class TaskHandler
             task.LogInfo($"{task.State}, removing" + (errmsg is null ? null : $" ({errmsg})"));
             NodeSettings.PlacedTasks.Remove(task);
 
+            foreach (var wtask in NodeSettings.WatchingTasks.Values.ToArray())
+            {
+                wtask.PlacedNonCompletedTasks.Remove(task.Id);
+                NodeSettings.WatchingTasks.Save(wtask);
+            }
+
             if (errmsg?.Contains("There is no such user.", StringComparison.Ordinal) == true)
             {
                 var tuid = (task.Output as MPlusTaskOutputInfo)?.TUid ?? (task.Output as QSPreviewOutputInfo)?.TUid;
