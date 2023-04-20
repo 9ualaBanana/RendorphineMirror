@@ -8,13 +8,13 @@ public class VideoProcessingCallbackQueryHandler
     : MediaProcessingCallbackQueryHandler<VideoProcessingCallbackQuery, VideoProcessingCallbackData>
 {
     public VideoProcessingCallbackQueryHandler(
-        MediaFilesManager mediaFilesManager,
+        MediaFilesCache mediaFilesCache,
         IHttpClientFactory httpClientFactory,
         CallbackQuerySerializer serializer,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<VideoProcessingCallbackQueryHandler> logger)
-        : base(mediaFilesManager, httpClientFactory, serializer, bot, httpContextAccessor, logger)
+        : base(mediaFilesCache, httpClientFactory, serializer, bot, httpContextAccessor, logger)
     {
     }
 

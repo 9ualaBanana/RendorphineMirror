@@ -9,10 +9,12 @@ namespace Telegram.MediaFiles.Videos;
 public class ProcessingMethodSelectorVideoHandler : MessageHandler
 {
     readonly MediaFilesCache _mediaFilesCache;
+    readonly MediaFile.Factory _mediaFileFactory;
     readonly CallbackQuerySerializer _callbackQuerySerializer;
 
     public ProcessingMethodSelectorVideoHandler(
         MediaFilesCache mediaFilesCache,
+        MediaFile.Factory mediaFileFactory,
         CallbackQuerySerializer callbackQuerySerializer,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
@@ -20,12 +22,13 @@ public class ProcessingMethodSelectorVideoHandler : MessageHandler
         : base(bot, httpContextAccessor, logger)
     {
         _mediaFilesCache = mediaFilesCache;
+        _mediaFileFactory = mediaFileFactory;
         _callbackQuerySerializer = callbackQuerySerializer;
     }
 
     public override async Task HandleAsync()
         => await Bot.SendMessageAsync_(ChatId, "*Choose how to process the video*",
-            await BuildReplyMarkupAsyncFor(MediaFile.From(Message), RequestAborted)
+            await BuildReplyMarkupAsyncFor(await _mediaFileFactory.CreateAsyncFrom(Message, RequestAborted), RequestAborted)
             );
 
     async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedVideo, CancellationToken cancellationToken)

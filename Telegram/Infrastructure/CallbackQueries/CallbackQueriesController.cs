@@ -21,7 +21,7 @@ public class CallbackQueriesController : ControllerBase
     {
         try { await Handle(); }
         catch (Exception exception)
-        { _logger.LogCritical(exception, "Callback query wasn't handled."); throw; }
+        { _logger.LogCritical(exception, "Callback query wasn't handled"); throw; }
 
 
         async Task Handle()
