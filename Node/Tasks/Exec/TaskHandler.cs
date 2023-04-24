@@ -223,6 +223,13 @@ public static class TaskHandler
 
     static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
+        if (task is null)
+        {
+            // i dont even know
+            NodeGlobalState.Instance.QueuedTasks.Remove(task!);
+            return;
+        }
+
         if (NodeGlobalState.Instance.ExecutingTasks.Contains(task))
             return;
 
