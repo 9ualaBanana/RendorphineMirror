@@ -103,7 +103,7 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
 
     readonly Func<TValue, TKey> KeyFunc;
     readonly string TableName;
-    readonly Database Database;
+    public readonly Database Database;
 
     public DatabaseValueDictionary(Database database, string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null, JsonSerializer? serializer = null)
     {

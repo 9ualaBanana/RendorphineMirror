@@ -163,10 +163,14 @@ new Thread(() =>
         var root = Path.GetPathRoot(ReceivedTask.FSTaskDataDirectory());
         var drive = DriveInfo.GetDrives().First(d => d.RootDirectory.Name == root);
 
-        if (drive.AvailableFreeSpace < 8L * 1024 * 1024 * 1024)
+        if (drive.AvailableFreeSpace < 16L * 1024 * 1024 * 1024)
         {
-            logger.Info($"Low free space ({drive.AvailableFreeSpace / 1024 / 1024f} MB), starting a cleanup..");
-            OperationResult.WrapException(() => AutoCleanup.Start()).LogIfError();
+            // creating new thread for logging in case of 0 bytes free space available
+            // because then the logger wouldn't be able to write into log file and might just freeze
+            // and not let the cleanup happen
+            new Thread(() => logger.Info($"Low free space ({drive.AvailableFreeSpace / 1024 / 1024f} MB), starting a cleanup..")) { IsBackground = true }.Start();
+
+            OperationResult.WrapException(() => AutoCleanup.CleanForLowFreeSpace()).LogIfError();
         }
 
         Thread.Sleep(60 * 1000);

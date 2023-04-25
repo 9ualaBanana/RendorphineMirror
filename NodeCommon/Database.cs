@@ -53,6 +53,8 @@ public class Database
         return cmd.ExecuteReader();
     }
 
+    public DbTransaction BeginTransaction() => Connection.BeginTransaction();
+
 
 
     readonly List<WeakReference<IDatabaseBindable>> TrackedBindables = new();
