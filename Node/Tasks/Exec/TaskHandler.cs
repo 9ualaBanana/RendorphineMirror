@@ -270,8 +270,8 @@ public static class TaskHandler
 
                 task.LogInfo($"Completed, removing");
 
-                task.LogInfo($"Deleting {task.FSInputDirectory()}");
-                Directory.Delete(task.FSInputDirectory(), true);
+                task.LogInfo($"Deleting {task.FSDataDirectory()}");
+                Directory.Delete(task.FSDataDirectory(), true);
 
                 NodeSettings.QueuedTasks.Remove(task);
                 return;
