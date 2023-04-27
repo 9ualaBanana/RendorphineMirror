@@ -48,7 +48,7 @@ public static class VectorizerTasks
             Directory.Delete(outputdir, true);
             Directory.Move(veeeoutdir, outputdir);
 
-            files.OutputFiles.AddFromLocalPath(outputdir);
+            files.OutputFiles.New().AddFromLocalPath(outputdir);
         }
 
 

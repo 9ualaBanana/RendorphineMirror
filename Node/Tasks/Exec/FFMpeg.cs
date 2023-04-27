@@ -63,6 +63,9 @@ public class EditVideoInfo : MediaEditInfo
 
     [JsonProperty("cutframeat")]
     public double? CutFrameAt;
+
+    [JsonProperty("cutframesat")]
+    public double[]? CutFramesAt;
 }
 public class EditRasterInfo : MediaEditInfo { }
 
@@ -72,6 +75,7 @@ public class FFMpegArgsHolder
     public double Rate = 1;
 
     public FileFormat OutputFileFormat;
+    public string? OutputFileName;
     public readonly ArgList Args = new();
     public readonly OrderList<string> AudioFilers = new();
     public readonly OrderList<string> Filtergraph = new();
@@ -102,20 +106,52 @@ public class FFMpegArgsHolder
 public static class FFMpegTasks
 {
     public static IEnumerable<IPluginAction> CreateTasks() => new IPluginAction[] { new FFMpegEditVideo(), new FFMpegEditRaster() };
-    public static async Task ExecuteFFMpeg(ReceivedTask task, FileWithFormat file, string outputfile, Action<FFMpegArgsHolder> argfunc)
+    public static async Task ExecuteFFMpeg(ReceivedTask task, FileWithFormat file, Func<FFMpegArgsHolder, string> argfunc)
     {
         var inputfile = file.Path;
         var ffprobe = await FFProbe.Get(inputfile, task) ?? throw new Exception();
         var argholder = new FFMpegArgsHolder(file.Format, ffprobe);
-        argfunc(argholder);
+        var outputfilename = argfunc(argholder);
 
-        var args = FFMpegExec.GetFFMpegArgs(inputfile, outputfile, task, argholder);
+        var args = FFMpegExec.GetFFMpegArgs(inputfile, outputfilename, task, argholder);
 
         var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
         task.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
         duration /= argholder.Rate;
 
         await Processes.Execute(PluginType.FFmpeg.GetInstance().Path, args, onRead, task, stderr: LogLevel.Trace);
+
+
+
+        void onRead(bool err, string line)
+        {
+            // frame=  502 fps=0.0 q=29.0 size=     256kB time=00:00:14.84 bitrate= 141.3kbits/s speed=29.5x
+            if (!line.StartsWith("frame=", StringComparison.Ordinal)) return;
+
+            var spt = line.AsSpan(line.IndexOf("time=", StringComparison.Ordinal) + "time=".Length).TrimStart();
+            spt = spt.Slice(0, spt.IndexOf(' '));
+            if (!TimeSpan.TryParse(spt, out var time))
+                time = TimeSpan.Zero;
+
+            task.Progress = Math.Clamp(time / duration, 0, 1);
+            NodeGlobalState.Instance.ExecutingTasks.TriggerValueChanged();
+        }
+    }
+    public static async Task ExecuteFFMpeg(ReceivedTask task, FileWithFormat file, TaskFileListList outfiles, Func<FFMpegArgsHolder, string> argfunc)
+    {
+        var inputfile = file.Path;
+        var ffprobe = await FFProbe.Get(inputfile, task) ?? throw new Exception();
+        var argholder = new FFMpegArgsHolder(file.Format, ffprobe);
+        var outputfilename = argfunc(argholder);
+
+        var args = FFMpegExec.GetFFMpegArgs(inputfile, outputfilename, task, argholder);
+
+        var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
+        task.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
+        duration /= argholder.Rate;
+
+        await Processes.Execute(PluginType.FFmpeg.GetInstance().Path, args, onRead, task, stderr: LogLevel.Trace);
+        outfiles.AddFromLocalPath(Path.GetDirectoryName(outputfilename).ThrowIfNull());
 
 
         void onRead(bool err, string line)
@@ -151,14 +187,25 @@ public static class FFMpegTasks
 
         public override PluginType Type => PluginType.FFmpeg;
 
-        protected delegate void ConstructFFMpegArgumentsDelegate(ReceivedTask task, T data, in FFMpegArgsHolder args);
+        protected delegate void ConstructFFMpegArgumentsDelegate(ReceivedTask task, T data, FFMpegArgsHolder args);
+        protected static async Task ExecuteFFMpeg(ReceivedTask task, T data, FileWithFormat file, TaskFileListList outfiles, ConstructFFMpegArgumentsDelegate argfunc)
+        {
+            await FFMpegTasks.ExecuteFFMpeg(task, file, outfiles, args =>
+            {
+                argfunc(task, data, args);
+
+                var dir = Path.Combine(outfiles.Directory, "ffmpeg_" + Guid.NewGuid());
+                Directory.CreateDirectory(dir);
+                return Path.Combine(dir, args.OutputFileName ?? $"out.{args.OutputFileFormat.ToString().ToLowerInvariant()}");
+            });
+        }
         protected static async Task ExecuteFFMpeg(ReceivedTask task, T data, FileWithFormat file, TaskFileList outfiles, ConstructFFMpegArgumentsDelegate argfunc)
         {
-            var inputfile = file.Path;
-            var ffprobe = await FFProbe.Get(inputfile, task) ?? throw new Exception();
-            var argholder = new FFMpegArgsHolder(file.Format, ffprobe);
-
-            await FFMpegTasks.ExecuteFFMpeg(task, file, outfiles.FSNewFile(argholder.OutputFileFormat), args => argfunc(task, data, args));
+            await FFMpegTasks.ExecuteFFMpeg(task, file, args =>
+            {
+                argfunc(task, data, args);
+                return outfiles.FSNewFile(args.OutputFileFormat, args.OutputFileName);
+            });
         }
     }
     public abstract class FFMpegAction<T> : FFMpegActionBase<T>
@@ -169,12 +216,12 @@ public static class FFMpegTasks
                 await ExecuteFFMpeg(task, data, file, files.OutputFiles, ConstructFFMpegArguments);
         }
 
-        protected abstract void ConstructFFMpegArguments(ReceivedTask task, T data, in FFMpegArgsHolder args);
+        protected abstract void ConstructFFMpegArguments(ReceivedTask task, T data, FFMpegArgsHolder args);
     }
 
     abstract class FFMpegMediaEditAction<T> : FFMpegAction<T> where T : MediaEditInfo
     {
-        protected override void ConstructFFMpegArguments(ReceivedTask task, T data, in FFMpegArgsHolder args)
+        protected override void ConstructFFMpegArguments(ReceivedTask task, T data, FFMpegArgsHolder args)
         {
             var filters = args.Filtergraph;
 
@@ -223,11 +270,25 @@ public static class FFMpegTasks
                 return TaskRequirement.EnsureSameFormat(output, input);
             }));
 
-        protected override void ConstructFFMpegArguments(ReceivedTask task, EditVideoInfo data, in FFMpegArgsHolder args)
+        protected override void ConstructFFMpegArguments(ReceivedTask task, EditVideoInfo data, FFMpegArgsHolder args)
         {
             var filters = args.Filtergraph;
             base.ConstructFFMpegArguments(task, data, args);
 
+            if (data.CutFramesAt is not (null or { Length: 0 }))
+            {
+                args.OutputFileFormat = FileFormat.Jpeg;
+                args.OutputFileName = "output_%3d.jpeg";
+
+                // i dont know why but this is needed
+                args.Args.Add("-vsync", "0");
+
+                // select only needed frames
+                var frames = data.CutFramesAt.Select(f => $@"eq(n\,{(int) (args.FFProbe.ThrowIfNull().VideoStream.FrameRate * f)})");
+                args.Filtergraph.Add($@"select='{string.Join('+', frames)}'");
+
+                return;
+            }
             if (data.CutFrameAt is not (null or -1))
             {
                 args.OutputFileFormat = FileFormat.Jpeg;

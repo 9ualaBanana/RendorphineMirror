@@ -9,6 +9,6 @@ public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info), ILogg
     [Newtonsoft.Json.JsonConverter(typeof(JsonSettings.ConcreteConverter<TaskFileList, IReadOnlyTaskFileList>))]
     public IReadOnlyTaskFileList? InputFileList;
 
-    [Newtonsoft.Json.JsonConverter(typeof(JsonSettings.ConcreteConverter<TaskFileList, IReadOnlyTaskFileList>))]
-    public IReadOnlyTaskFileList? OutputFileList;
+    [Newtonsoft.Json.JsonConverter(typeof(JsonSettings.ConcreteConverter<TaskFileListList, IReadOnlyTaskFileListList>))]
+    public IReadOnlyTaskFileListList? OutputFileListList;
 }

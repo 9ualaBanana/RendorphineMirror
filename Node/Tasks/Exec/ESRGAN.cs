@@ -30,7 +30,7 @@ public static class EsrganTasks
         {
             foreach (var file in files.InputFiles)
             {
-                var outputfile = files.OutputFiles.FSNewFile(file.Format);
+                var outputfile = files.OutputFiles.New().FSNewFile(file.Format);
                 await upscale(file.Path, outputfile);
 
                 if (data.X2)
@@ -73,7 +73,7 @@ public static class EsrganTasks
                 task.LogInfo($"Downscaling {file.Path} to x2..");
 
                 var outpath = Path.Combine(Init.TempDirectory(task.Id), "out." + file.Format.ToString().ToLowerInvariant());
-                await FFMpegTasks.ExecuteFFMpeg(task, file, outpath, args => args.Filtergraph.Add("scale=iw/2:ih/2"));
+                await FFMpegTasks.ExecuteFFMpeg(task, file, args => { args.Filtergraph.Add("scale=iw/2:ih/2"); return outpath; });
                 File.Move(outpath, file.Path, true);
             }
         }

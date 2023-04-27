@@ -31,12 +31,13 @@ public static class GenerateQSPreviewTasks
 
         protected override async Task ExecuteImpl(ReceivedTask task, IOTaskExecutionData files, QSPreviewInfo data)
         {
+            var outputlist = files.OutputFiles.New();
             foreach (var file in files.InputFiles)
             {
                 if (file.Format == FileFormat.Jpeg)
-                    ProcessJpeg(file.Path, files.OutputFiles.FSNewFile(FileFormat.Jpeg));
+                    ProcessJpeg(file.Path, outputlist.FSNewFile(FileFormat.Jpeg));
                 else if (file.Format == FileFormat.Mov)
-                    await ExecuteFFMpeg(task, data, file, files.OutputFiles, ConstructFFMpegArguments);
+                    await ExecuteFFMpeg(task, data, file, outputlist, ConstructFFMpegArguments);
             }
         }
 
@@ -66,7 +67,7 @@ public static class GenerateQSPreviewTasks
             image.SaveAsJpeg(output, new JpegEncoder() { Quality = 90 });
         }
 
-        void ConstructFFMpegArguments(ReceivedTask task, QSPreviewInfo data, in FFMpegArgsHolder args)
+        void ConstructFFMpegArguments(ReceivedTask task, QSPreviewInfo data, FFMpegArgsHolder args)
         {
             var watermarkFile = Path.GetFullPath("assets/qswatermark/watermark.png");
 

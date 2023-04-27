@@ -18,11 +18,18 @@ public class TaskFileList : IReadOnlyTaskFileList
 {
     [JsonIgnore] public IEnumerable<string> Paths => this.Select(f => f.Path);
     [JsonIgnore] public int Count => Files.Count;
+    [JsonIgnore] public IReadOnlyTaskFileList? InputFiles;
 
-    [JsonProperty("Files")] readonly HashSet<FileWithFormat> Files = new();
-    [JsonProperty("Directory")] readonly string Directory;
+    [JsonProperty(nameof(Files))] readonly HashSet<FileWithFormat> Files = new();
+    [JsonProperty(nameof(Directory))] readonly string Directory;
 
+    [JsonConstructor]
     public TaskFileList(string directory) => Directory = directory;
+    public TaskFileList(string directory, IEnumerable<FileWithFormat> files) : this(directory)
+    {
+        foreach (var file in files)
+            Add(file);
+    }
 
 
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull("extension")]
@@ -39,7 +46,8 @@ public class TaskFileList : IReadOnlyTaskFileList
     public void Add(FileWithFormat file) => Files.Add(file);
     public string FSNewFile(FileFormat format, string? filename = null)
     {
-        filename ??= ("file" + AsExtension(format));
+        // use input file name if there is only one input file
+        filename ??= ((InputFiles is { Count: 1 } ? Path.GetFileNameWithoutExtension(InputFiles.Single().Path) : "file") + AsExtension(format));
         filename = Path.Combine(Directory, Path.GetFileName(filename));
 
         Files.Add(new FileWithFormat(format, filename));

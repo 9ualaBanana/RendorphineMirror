@@ -401,7 +401,7 @@ public static class JsonUISetting
                     {
                         if (type == typeof(string)) return "";
 
-                        try { return JObject.FromObject(Activator.CreateInstance(type)!); }
+                        try { return JToken.FromObject(Activator.CreateInstance(type)!); }
                         catch { }
 
                         return new JObject();

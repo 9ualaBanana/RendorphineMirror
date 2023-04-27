@@ -4,7 +4,9 @@ using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Exec;
 
-public record IOTaskExecutionData(IReadOnlyTaskFileList InputFiles, TaskFileList OutputFiles);
+public record IOTaskExecutionLayerData(IReadOnlyTaskFileListList InputFiles, TaskFileListList OutputFiles);
+
+public record IOTaskExecutionData(IReadOnlyTaskFileList InputFiles, TaskFileListList OutputFiles);
 public record IOTaskCheckData(IReadOnlyTaskFileList InputFiles, IReadOnlyTaskFileList OutputFiles);
 public interface IInputOutputPluginAction
 {
@@ -56,8 +58,8 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
             checkFileList(task.InputFileList, "input");
             using var _ = await WaitDisposed("active", task, TaskWaitHandle);
 
-            var taskdata = new IOTaskExecutionData(task.InputFileList, new(task.FSOutputDirectory()));
-            await JustExecute(task, taskdata, data);
+            var outputs = new TaskFileListList(task.FSOutputDirectory());
+            await JustExecute(task, new IOTaskExecutionData(task.InputFileList, outputs), data);
 
             int index = 0;
             foreach (var next in task.Info.Next ?? ImmutableArray<Newtonsoft.Json.Linq.JObject>.Empty)
@@ -71,12 +73,18 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
                     throw null;
                 }
 
-                taskdata = new(taskdata.OutputFiles, new(task.FSOutputDirectory(index.ToString())));
-                await ioaction.JustExecute(task, taskdata, next);
+                var prevoutput = outputs;
+                outputs = new TaskFileListList(task.FSOutputDirectory(index.ToString()));
+
+                foreach (var input in prevoutput)
+                {
+                    outputs.InputFiles = input;
+                    await ioaction.JustExecute(task, new IOTaskExecutionData(input, outputs), next);
+                }
             }
 
             await task.ChangeStateAsync(TaskState.Output);
-            task.OutputFileList = taskdata.OutputFiles;
+            task.OutputFileListList = outputs;
             NodeSettings.QueuedTasks.Save(task);
         }
         else task.LogInfo($"Task execution seems to be already finished");
@@ -84,14 +92,11 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
         if (task.State <= TaskState.Output)
         {
             checkFileList(task.InputFileList, "input");
-            checkFileList(task.OutputFileList, "output");
+            checkFileListList(task.OutputFileListList, "output");
             using var _ = await WaitDisposed("output", task, OutputSemaphore);
 
-            task.LogInfo($"Validating output files...");
-            ValidateOutputFiles(new(task.InputFileList, task.OutputFileList), data);
-
             task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
-            await task.GetOutputHandler().UploadResult(task, task.OutputFileList).ConfigureAwait(false);
+            await task.GetOutputHandler().UploadResult(task, new TaskFileList("/does/not/exists", task.OutputFileListList.SelectMany(l => l))).ConfigureAwait(false);
             task.LogInfo($"Result uploaded");
 
             await task.ChangeStateAsync(TaskState.Validation);
@@ -101,6 +106,14 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
         await MaybeNotifyTelegramBotOfTaskCompletion(task);
 
 
+        void checkFileListList([System.Diagnostics.CodeAnalysis.NotNull] IReadOnlyTaskFileListList? lists, string type)
+        {
+            if (lists is null)
+                task.ThrowFailed($"Task {type} file list list was null or empty");
+
+            foreach (var list in lists)
+                checkFileList(list, type);
+        }
         void checkFileList([System.Diagnostics.CodeAnalysis.NotNull] IReadOnlyTaskFileList? files, string type)
         {
             if (files is (null or { Count: 0 }))
@@ -124,7 +137,8 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
         await ExecuteImpl(task, files, data).ConfigureAwait(false);
 
         task.LogInfo($"Task executed, validating result");
-        ValidateOutputFiles(new(files.InputFiles, files.OutputFiles), data);
+        foreach (var outputlist in files.OutputFiles)
+            ValidateOutputFiles(new(files.InputFiles, outputlist), data);
     }
 
 

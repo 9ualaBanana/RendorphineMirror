@@ -46,7 +46,7 @@ public static class RobustVideoMatting
                 + $" inference.py"
                 + $" --device cuda"
                 + $" --input-source '{input.Path}'"
-                + $" --output-composition '{files.OutputFiles.FSNewFile(outputformat)}'"
+                + $" --output-composition '{files.OutputFiles.New().FSNewFile(outputformat)}'"
                 + $" --checkpoint 'models/mobilenetv3/rvm_mobilenetv3.pth'"
                 + $" --variant mobilenetv3"
                 + $" --output-type file"

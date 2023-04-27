@@ -13,7 +13,7 @@ public class DirectUploadListener : MultipartListenerBase
 
         public FileList(ReceivedTask task)
         {
-            Files = new(task.FSOutputDirectory());
+            Files = new(task.FSInputDirectory());
             Task = task;
         }
     }
