@@ -1,20 +1,19 @@
 using System.Collections;
-using Newtonsoft.Json;
 
-namespace NodeToUI;
+namespace Node.Tasks.Models;
 
 [JsonObject]
-public interface IReadOnlyTaskFileListList : IEnumerable<IReadOnlyTaskFileList>
+public interface IReadOnlyTaskFileListList : IEnumerable<ReadOnlyTaskFileList>
 {
     string Directory { get; }
 }
 [JsonObject]
 public class TaskFileListList : IReadOnlyTaskFileListList
 {
-    [JsonIgnore] public IReadOnlyTaskFileList? InputFiles;
+    [JsonIgnore] public ReadOnlyTaskFileList? InputFiles;
 
-    [JsonProperty(nameof(Lists))] readonly List<TaskFileList> Lists = new();
-    [JsonProperty(nameof(Directory))] public string Directory { get; }
+    [JsonProperty] readonly List<TaskFileList> Lists = new();
+    [JsonProperty] public string Directory { get; }
 
     public TaskFileListList(string directory) => Directory = directory;
 
@@ -35,13 +34,13 @@ public class TaskFileListList : IReadOnlyTaskFileListList
     }
 
 
-    public IEnumerator<IReadOnlyTaskFileList> GetEnumerator() => Lists.GetEnumerator();
+    public IEnumerator<ReadOnlyTaskFileList> GetEnumerator() => Lists.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 
-    public void AddFromLocalPath(string path)
+    public void AddFromLocalPathFileSeparated(string path)
     {
-        var files = TaskFileList.FromLocalPath(path);
+        var files = FileWithFormat.FromLocalPath(path);
         foreach (var file in files)
             New().Add(file);
     }

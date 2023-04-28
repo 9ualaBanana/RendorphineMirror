@@ -1,4 +1,3 @@
-global using NLog;
 using System.Diagnostics;
 
 namespace Common;
@@ -10,7 +9,7 @@ public static class Initializer
     public static readonly bool UseAdminRights = true;
 
 
-    public static string ConfigDirectory = "renderfin";
+    public static string AppName = Path.GetFileNameWithoutExtension(Environment.ProcessPath).ThrowIfNull();
 }
 public static class Init
 {
@@ -18,13 +17,11 @@ public static class Init
 
     public static readonly bool IsDebug = false;
     public static readonly bool DebugFeatures = false;
-    public static readonly string Version, ConfigDirectory, LogDirectory;
+    public static readonly string Version;
 
     public static void Initialize() { }
     static Init()
     {
-        ConfigDirectory = NewDirectory(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), Initializer.ConfigDirectory);
-        LogDirectory = NewDirectory(typeof(Init).Assembly.Location, "..", "logs");
         Version = GetVersion();
         static string GetVersion()
         {
@@ -32,7 +29,7 @@ public static class Init
 
             try
             {
-                var assembly = typeof(Init).Assembly.Location ?? Environment.ProcessPath!;
+                var assembly = typeof(Initializer).Assembly.Location ?? Environment.ProcessPath!;
                 if (FileVersionInfo.GetVersionInfo(assembly).ProductVersion is { } ver && ver != "1.0.0")
                     return ver;
 
@@ -64,10 +61,6 @@ public static class Init
             }
             catch { }
         }
-
-        Directory.CreateDirectory(ConfigDirectory);
-        if (Directory.Exists(RuntimeCacheDirectory()))
-            Directory.Delete(RuntimeCacheDirectory(), true);
 
 
         ConfigureLogging();
@@ -101,8 +94,8 @@ public static class Init
                 try
                 {
                     const long gig = 1024 * 1024 * 1024;
-                    var drive = DriveInfo.GetDrives().First(x => Init.ConfigDirectory.StartsWith(x.RootDirectory.FullName));
-                    _logger.Info(@$"Config dir: {Init.ConfigDirectory} on drive {drive.Name} (totalfree {drive.TotalFreeSpace / gig}G; availfree {drive.AvailableFreeSpace / gig}G; total {drive.TotalSize / gig}G)");
+                    var drive = DriveInfo.GetDrives().First(x => Directories.Data.StartsWith(x.RootDirectory.FullName, StringComparison.OrdinalIgnoreCase));
+                    _logger.Info(@$"Config dir: {Directories.Data} on drive {drive.Name} (totalfree {drive.TotalFreeSpace / gig}G; availfree {drive.AvailableFreeSpace / gig}G; total {drive.TotalSize / gig}G)");
                 }
                 catch { }
             }
@@ -118,16 +111,4 @@ public static class Init
             catch { }
         }
     }
-
-
-    static string NewDirectory(params string?[] dirs)
-    {
-        var dir = Path.GetFullPath(Path.Combine(dirs.Where(x => x is not null).ToArray()!));
-        Directory.CreateDirectory(dir);
-
-        return dir;
-    }
-
-    public static string RuntimeCacheDirectory(string? subdir = null) => NewDirectory(ConfigDirectory, Path.GetFileNameWithoutExtension(Environment.ProcessPath) + "_cache", subdir);
-    public static string TempDirectory(string? subdir = null) => NewDirectory(ConfigDirectory, "temp", subdir);
 }
