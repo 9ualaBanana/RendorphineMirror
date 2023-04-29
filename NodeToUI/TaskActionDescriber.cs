@@ -2,13 +2,13 @@ namespace NodeToUI;
 
 public class TaskActionDescriber
 {
-    public readonly PluginType Type;
+    public readonly ImmutableArray<PluginType> RequiredPlugins;
     public readonly string Name;
     public readonly ObjectDescriber DataDescriber;
 
-    public TaskActionDescriber(PluginType type, string name, ObjectDescriber dataDescriber)
+    public TaskActionDescriber(ImmutableArray<PluginType> requiredPlugins, string name, ObjectDescriber dataDescriber)
     {
-        Type = type;
+        RequiredPlugins = requiredPlugins;
         Name = name;
         DataDescriber = dataDescriber;
     }

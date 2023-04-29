@@ -13,15 +13,14 @@
     <PackageReference Include="TaskScheduler" Version="2.10.1" />
     <PackageReference Include="MonoTorrent" Version="2.0.7" />
     <PackageReference Include="System.Data.SQLite" Version="1.0.117" />
-    <PackageReference Include="MimeTypes" Version="2.4.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\NewNode\Common\Node.Common.csproj" />
+    <ProjectReference Include="..\NewNode\Common.Models\Node.Common.Models.csproj" />
+    <ProjectReference Include="..\NewNode\Tasks.Models\Node.Tasks.Models.csproj" />
+    <ProjectReference Include="..\NewNode\Plugins.Models\Node.Plugins.Models.csproj" />
   </ItemGroup>
 
 </Project>

@@ -291,7 +291,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
         var result = await ShardGet(task, "mytaskstatechanged", "Changing task state", data).ConfigureAwait(false);
 
 
-        result.LogIfError($"[{(task as ILoggable)?.LogName ?? task.Id}] Error while changing task state: {{0}}");
+        result.LogIfError("Error while changing task state: {0}", task);
         if (result && task is TaskBase rtask)
         {
             rtask.State = state;

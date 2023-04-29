@@ -1,26 +1,9 @@
 using System.Web;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Node.Tasks.Exec;
 
-public record IOTaskExecutionLayerData(IReadOnlyTaskFileListList InputFiles, TaskFileListList OutputFiles);
-
-public record IOTaskExecutionData(IReadOnlyTaskFileList InputFiles, TaskFileListList OutputFiles);
-public record IOTaskCheckData(IReadOnlyTaskFileList InputFiles, IReadOnlyTaskFileList OutputFiles);
-public interface IInputOutputPluginAction
+public static class TaskExecutor
 {
-    Task JustExecute(ReceivedTask task, IOTaskExecutionData files, JObject data);
-}
-public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutputPluginAction
-{
-    protected abstract OperationResult ValidateOutputFiles(IOTaskCheckData files, T data);
-
-    protected void ValidateInputFilesThrow(ReceivedTask task, IReadOnlyTaskFileList files) =>
-        ValidateInputFiles(files).ThrowIfError($"Task {task.Id} input file validation failed: {{0}}");
-    OperationResult ValidateInputFiles(IReadOnlyTaskFileList files) => TaskRequirement.EnsureFormats(files, "input", InputFileFormats);
-
-
     static readonly SemaphoreSlim InputSemaphore = new SemaphoreSlim(5);
     static readonly SemaphoreSlim TaskWaitHandle = new SemaphoreSlim(1);
     static readonly SemaphoreSlim OutputSemaphore = new SemaphoreSlim(5);
@@ -33,9 +16,12 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
         return FuncDispose.Create(semaphore.Release);
     }
 
-    protected sealed override async Task Execute(ReceivedTask task, T data)
+
+    [Obsolete("Use TaskHandler instead")]
+    public static async Task Execute(ReceivedTask task)
     {
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.None)}");
+        var context = new TaskExecutionContext(task);
 
         if (task.State <= TaskState.Input)
         {
@@ -45,7 +31,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
             var inputfiles = await task.GetInputHandler().Download(task).ConfigureAwait(false);
             task.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}");
             task.LogInfo($"Validating downloaded files...");
-            ValidateInputFilesThrow(task, inputfiles);
+            task.GetFirstAction().ValidateInputFilesThrow(context, inputfiles);
 
             await task.ChangeStateAsync(TaskState.Active);
             task.InputFileList = inputfiles;
@@ -59,7 +45,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
             using var _ = await WaitDisposed("active", task, TaskWaitHandle);
 
             var outputs = new TaskFileListList(task.FSOutputDirectory());
-            await JustExecute(task, new IOTaskExecutionData(task.InputFileList, outputs), data);
+            await task.GetFirstAction().Execute(context, new TaskFiles(task.InputFileList, outputs), task.Info.Data);
 
             int index = 0;
             foreach (var next in task.Info.Next ?? ImmutableArray<Newtonsoft.Json.Linq.JObject>.Empty)
@@ -67,11 +53,6 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
                 index++;
 
                 var action = TaskList.GetAction(TaskInfo.GetTaskType(next));
-                if (action is not IInputOutputPluginAction ioaction)
-                {
-                    task.ThrowFailed($"Invalid next task action type {action.Name} {action.GetType().Name}");
-                    throw null;
-                }
 
                 var prevoutput = outputs;
                 outputs = new TaskFileListList(task.FSOutputDirectory(index.ToString()));
@@ -79,7 +60,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
                 foreach (var input in prevoutput)
                 {
                     outputs.InputFiles = input;
-                    await ioaction.JustExecute(task, new IOTaskExecutionData(input, outputs), next);
+                    await action.Execute(context, new TaskFiles(input, outputs), next);
                 }
             }
 
@@ -96,7 +77,7 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
             using var _ = await WaitDisposed("output", task, OutputSemaphore);
 
             task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
-            await task.GetOutputHandler().UploadResult(task, new TaskFileList("/does/not/exists", task.OutputFileListList.SelectMany(l => l))).ConfigureAwait(false);
+            await task.GetOutputHandler().UploadResult(task, new ReadOnlyTaskFileList(task.OutputFileListList.SelectMany(l => l))).ConfigureAwait(false);
             task.LogInfo($"Result uploaded");
 
             await task.ChangeStateAsync(TaskState.Validation);
@@ -114,31 +95,15 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
             foreach (var list in lists)
                 checkFileList(list, type);
         }
-        void checkFileList([System.Diagnostics.CodeAnalysis.NotNull] IReadOnlyTaskFileList? files, string type)
+        void checkFileList([System.Diagnostics.CodeAnalysis.NotNull] ReadOnlyTaskFileList? files, string type)
         {
-            if (files is (null or { Count: 0 }))
+            if (files is null or { Count: 0 })
                 task.ThrowFailed($"Task {type} file list was null or empty");
 
             foreach (var file in files)
                 if (!File.Exists(file.Path))
                     task.ThrowFailed($"Task {type} file {file} does not exists");
         }
-    }
-
-    Task IInputOutputPluginAction.JustExecute(ReceivedTask task, IOTaskExecutionData files, JObject data) => JustExecute(task, files, data.ToObject<T>().ThrowIfNull());
-    async Task JustExecute(ReceivedTask task, IOTaskExecutionData files, T data)
-    {
-        task.LogInfo($"Executing {Name} {JsonConvert.SerializeObject(data)}");
-
-        task.LogInfo($"Validating input files");
-        ValidateInputFilesThrow(task, files.InputFiles);
-
-        task.LogInfo($"Executing");
-        await ExecuteImpl(task, files, data).ConfigureAwait(false);
-
-        task.LogInfo($"Task executed, validating result");
-        foreach (var outputlist in files.OutputFiles)
-            ValidateOutputFiles(new(files.InputFiles, outputlist), data);
     }
 
 
@@ -165,5 +130,17 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
         catch (Exception ex) { task.LogErr("Error sending result to Telegram bot: " + ex); }
     }
 
-    protected abstract Task ExecuteImpl(ReceivedTask task, IOTaskExecutionData files, T data);
+
+    record TaskExecutionContext(ReceivedTask Task) : ITaskExecutionContext
+    {
+        public IReadOnlyCollection<Plugin> Plugins => PluginsManager.GetInstalledPluginsCache().ThrowIfNull("Could not launch the task without plugin list being cached");
+
+        public void Log(LogLevel level, string text) => Task.Log(level, text);
+
+        public void SetProgress(double progress)
+        {
+            Task.Progress = progress;
+            // TODO: send to server
+        }
+    }
 }

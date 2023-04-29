@@ -37,7 +37,7 @@ public static class FFMpegExec
     public static async Task ExecuteFFMpeg(ITaskExecutionContext context, FileWithFormat file, TaskFileListList outfiles, Func<FFMpegArgsHolder, string> argfunc)
     {
         var outputfilename = await JustExecuteFFMpeg(context, file, argfunc);
-        outfiles.AddFromLocalPath(Path.GetDirectoryName(outputfilename).ThrowIfNull());
+        outfiles.AddFromLocalPathFileSeparated(Path.GetDirectoryName(outputfilename).ThrowIfNull());
     }
 
     public static IEnumerable<string> GetFFMpegArgs(string inputfile, string outputfile, ITaskExecutionContext context, FFMpegArgsHolder argholder)

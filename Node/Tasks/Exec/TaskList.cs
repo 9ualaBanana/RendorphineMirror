@@ -24,7 +24,7 @@ public static class TaskList
             );
 
 
-            static TaskActionDescriber serializeaction(IPluginAction action) => new TaskActionDescriber(action.Type, action.Name.ToString(), new ObjectDescriber(action.DataType));
+            static TaskActionDescriber serializeaction(IPluginAction action) => new TaskActionDescriber(action.RequiredPlugins, action.Name.ToString(), new ObjectDescriber(action.DataType));
             static ImmutableArray<TaskInputOutputDescriber> serialize<T>(ImmutableDictionary<T, Type> dict) where T : struct, Enum =>
                 dict.Select(x => new TaskInputOutputDescriber(x.Key.ToString(), new ObjectDescriber(x.Value))).ToImmutableArray();
         }
@@ -35,8 +35,7 @@ public static class TaskList
     public static IPluginAction GetFirstAction(this TaskInfo task) => GetAction(task.FirstTaskType);
     public static IPluginAction GetAction(string action) => TryGet(action) ?? throw new Exception($"Got an unknown task type: {action}");
 
-    public static IEnumerable<IPluginAction> Get(PluginType type) => Actions.Where(x => x.Type == type);
+    public static IEnumerable<IPluginAction> Get(PluginType type) => Actions.Where(x => x.RequiredPlugins.Contains(type));
     public static IPluginAction Get(string name) => Actions.First(x => x.Name.ToString().Equals(name, StringComparison.OrdinalIgnoreCase));
     public static IPluginAction? TryGet(string name) => Actions.FirstOrDefault(x => x.Name.ToString().Equals(name, StringComparison.OrdinalIgnoreCase));
-    public static IPluginAction? TryGet(PluginType type, string name) => Actions.FirstOrDefault(x => x.Type == type && x.Name.ToString().Equals(name, StringComparison.OrdinalIgnoreCase));
 }

@@ -1,10 +1,10 @@
-using Newtonsoft.Json;
-
 namespace NodeCommon.Tasks;
 
 public abstract record TaskBase(string Id, TaskInfo Info) : IRegisteredTaskApi, ILoggable
 {
-    string ILoggable.LogName => $"{GetType().Name} {Id}";
+    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    protected virtual string LogName => GetType().Name;
+    public void Log(LogLevel level, string text) => Logger.Log(level, $"[{LogName} {Id}] {text}");
 
     public string? HostShard { get; set; }
 
@@ -48,12 +48,12 @@ public abstract record TaskBase(string Id, TaskInfo Info) : IRegisteredTaskApi, 
     public string FSPlacedResultsDirectory() => FSPlacedResultsDirectory(Id);
     public string FSPlacedSourcesDirectory() => FSPlacedSourcesDirectory(Id);
 
-    public static string FSTaskDataDirectory() => DirectoryCreated(Path.Combine(Init.ConfigDirectory, "tasks"));
+    public static string FSTaskDataDirectory() => DirectoryCreated(Path.Combine(Directories.Data, "tasks"));
     public static string FSDataDirectory(string id) => DirectoryCreated(Path.Combine(FSTaskDataDirectory(), id));
     public static string FSOutputDirectory(string id, string? add = null) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "output" + add));
     public static string FSInputDirectory(string id) => DirectoryCreated(Path.Combine(FSDataDirectory(id), "input"));
 
-    public static string FSPlacedTaskDataDirectory() => DirectoryCreated(Path.Combine(Init.ConfigDirectory, "ptasks"));
+    public static string FSPlacedTaskDataDirectory() => DirectoryCreated(Path.Combine(Directories.Data, "ptasks"));
     public static string FSPlacedDataDirectory(string id) => DirectoryCreated(Path.Combine(FSPlacedTaskDataDirectory(), id));
     public static string FSPlacedResultsDirectory(string id) => DirectoryCreated(Path.Combine(FSPlacedDataDirectory(id), "results"));
     public static string FSPlacedSourcesDirectory(string id) => DirectoryCreated(Path.Combine(FSPlacedDataDirectory(id), "sources"));
@@ -63,7 +63,7 @@ public abstract record TaskBase(string Id, TaskInfo Info) : IRegisteredTaskApi, 
     {
         if (!extension.StartsWith('.')) extension = "." + extension;
 
-        var tempdir = Init.TempDirectory(Id);
+        var tempdir = Directories.Temp(Id);
         while (true)
         {
             var file = Path.Combine(tempdir, Guid.NewGuid().ToString() + extension);

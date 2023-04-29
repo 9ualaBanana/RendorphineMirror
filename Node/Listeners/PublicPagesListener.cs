@@ -89,7 +89,7 @@ namespace Node.Listeners
 
             if (path == "logs")
             {
-                string logDir = Init.LogDirectory;
+                string logDir = "logs";
                 string? q = context.Request.QueryString["id"];
                 string info = "";
 

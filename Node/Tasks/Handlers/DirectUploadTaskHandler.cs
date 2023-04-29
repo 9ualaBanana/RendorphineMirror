@@ -9,10 +9,10 @@ public class DirectUploadTaskHandler : ITaskInputHandler, ITaskOutputHandler
     TaskInputType ITaskInputHandler.Type => TaskInputType.DirectUpload;
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.DirectDownload;
 
-    public async ValueTask<TaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken) =>
+    public async ValueTask<ReadOnlyTaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken) =>
         await Listeners.DirectUploadListener.WaitForFiles(task, cancellationToken);
 
-    public async ValueTask UploadResult(ReceivedTask task, IReadOnlyTaskFileList files, CancellationToken cancellationToken = default) =>
+    public async ValueTask UploadResult(ReceivedTask task, ReadOnlyTaskFileList files, CancellationToken cancellationToken = default) =>
         await Listeners.DirectDownloadListener.WaitForUpload(task, cancellationToken);
 
     public async ValueTask UploadInputFiles(DbTaskFullState task)

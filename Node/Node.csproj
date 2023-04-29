@@ -25,6 +25,7 @@
     <ProjectReference Include="..\_3DProductsPublish\_3DProductsPublish.csproj" />
 
     <ProjectReference Include="..\NewNode\Tasks\Node.Tasks.csproj" />
+    <ProjectReference Include="..\NewNode\Plugins\Node.Plugins.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release'">

@@ -66,8 +66,8 @@ public class DirectUploadListener : MultipartListenerBase
 
         using var _ = file.Body;
 
-        var filename = filelist.Files.FSNewFile(format, GetQueryPart(file.Headers["Content-Disposition"], "filename"));
-        using (var resultfile = File.OpenWrite(filename))
+        var filename = filelist.Files.New(format, GetQueryPart(file.Headers["Content-Disposition"], "filename"));
+        using (var resultfile = File.OpenWrite(filename.Path))
             await file.Body.CopyToAsync(resultfile);
 
 

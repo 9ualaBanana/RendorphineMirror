@@ -12,12 +12,4 @@
     <PackageReference Include="MonoTorrent" Version="2.0.7" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!--
-    <ProjectReference Include="..\IO.Abstractions\Node.IO.Abstractions.csproj" />
-    <ProjectReference Include="..\Tasks.Abstractions\Node.Tasks.Abstractions.csproj" />
-    <ProjectReference Include="..\Plugins.Abstractions\Node.Plugins.Abstractions.csproj" />
-    -->
-  </ItemGroup>
-
 </Project>

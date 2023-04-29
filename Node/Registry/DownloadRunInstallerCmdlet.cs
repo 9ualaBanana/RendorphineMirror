@@ -20,12 +20,12 @@ public class DownloadRunInstallerCmdlet : PSCmdlet
         var downloaddir = this.GetVariableValue("PLDOWNLOAD").ToString()!;
         var installer = Path.Combine(downloaddir, "install.exe");
 
-        PowerShellInvoker.Logger.Info($"Downloading {Url} into {installer}");
+        PowerShellPluginInstaller.Logger.Info($"Downloading {Url} into {installer}");
         using (var stream = new HttpClient().GetStreamAsync(Url).Result)
         using (var installfile = File.OpenWrite(installer))
             stream.CopyTo(installfile);
 
-        PowerShellInvoker.Logger.Info($"Installer downloaded, executing with args '{Args}'");
+        PowerShellPluginInstaller.Logger.Info($"Installer downloaded, executing with args '{Args}'");
         var process = Process.Start(new ProcessStartInfo(installer, Args ?? string.Empty) { RedirectStandardOutput = true })
             .ThrowIfNull("Could not start the process");
 
@@ -35,7 +35,7 @@ public class DownloadRunInstallerCmdlet : PSCmdlet
             while (!process.HasExited)
             {
                 var line = reader.ReadLine();
-                PowerShellInvoker.Logger.Info($"[{process.Id}] {line}");
+                PowerShellPluginInstaller.Logger.Info($"[{process.Id}] {line}");
             }
         })
         { IsBackground = true }.Start();

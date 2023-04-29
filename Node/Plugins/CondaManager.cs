@@ -3,7 +3,7 @@ using System.Management.Automation;
 
 namespace Node.Plugins;
 
-public static class CondaManager
+public static class CondaManager_
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
@@ -18,7 +18,7 @@ public static class CondaManager
         var conda = PluginType.Conda.GetInstance();
         if (conda is null) throw new Exception("Could not find conda plugin");
 
-        var envdir = Path.Combine(Init.ConfigDirectory, "conda", name.ToLowerInvariant());
+        var envdir = Path.Combine(Directories.Data, "conda", name.ToLowerInvariant());
         var envcreated =
             File.Exists(Path.Combine(envdir, "python.exe")) || File.Exists(Path.Combine(envdir, "python"))
             || File.Exists(Path.Combine(envdir, "bin", "python.exe")) || File.Exists(Path.Combine(envdir, "bin", "python"));

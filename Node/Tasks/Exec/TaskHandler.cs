@@ -260,7 +260,7 @@ public static class TaskHandler
             try
             {
                 var starttime = DateTimeOffset.Now;
-                await TaskList.GetFirstAction(task.Info).Execute(task).ConfigureAwait(false);
+                await TaskExecutor.Execute(task).ConfigureAwait(false);
 
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");

@@ -36,6 +36,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\NewNode\Tasks.Models\Node.Tasks.Models.csproj" />
     <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
     <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
     <ProjectReference Include="..\UpdaterCommon\UpdaterCommon.csproj" />

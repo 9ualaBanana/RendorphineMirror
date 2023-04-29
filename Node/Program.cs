@@ -2,12 +2,16 @@ global using System.Collections.Immutable;
 global using Common;
 global using Machine;
 global using NLog;
+global using Node.Common;
+global using Node.Common.Models;
 global using Node.Plugins;
 global using Node.Plugins.Deployment;
+global using Node.Plugins.Models;
 global using Node.Registry;
 global using Node.Tasks;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Handlers;
+global using Node.Tasks.Models;
 global using Node.Tasks.Watching;
 global using NodeCommon;
 global using NodeCommon.ApiModel;
@@ -24,7 +28,7 @@ using Node.Heartbeat;
 using Node.Listeners;
 using Node.Plugins.Discoverers;
 using Node.Profiling;
-
+using Node.Tasks.Exec.Actions;
 
 ConsoleHide.Hide();
 
@@ -203,7 +207,7 @@ void InitializeSettings()
 
 
     Software.StartUpdating(null, default);
-    Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Init.ConfigDirectory, "lport"), Settings.LocalListenPort.ToString()), true);
+    Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Directories.Data, "lport"), Settings.LocalListenPort.ToString()), true);
 }
 
 /// <summary> Try to connect to the port and change it if someone is already listening there </summary>
@@ -229,14 +233,13 @@ async Task InitializePlugins()
     Directory.CreateDirectory("plugins");
 
 
-    TaskList.Add(new[]
-    {
-        FFMpegTasks.CreateTasks(),
-        EsrganTasks.CreateTasks(),
-        RobustVideoMatting.CreateTasks(),
-        VectorizerTasks.CreateTasks(),
-        GenerateQSPreviewTasks.CreateTasks(),
-    });
+    TaskList.Add(
+        new EditRaster(), new EditVideo(),
+        new EsrganUpscale(),
+        new GreenscreenBackground(),
+        new VeeeVectorize(),
+        new GenerateQSPreview()
+    );
 
     PluginsManager.RegisterPluginDiscoverers(
         new BlenderPluginDiscoverer(),

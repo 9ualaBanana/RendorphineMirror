@@ -32,7 +32,7 @@ public class SoftList
 
     void Backup()
     {
-        var bkppath = Path.Combine(Init.ConfigDirectory, "bkp");
+        var bkppath = Path.Combine(Directories.Data, "bkp");
         Directory.CreateDirectory(bkppath);
 
         File.Copy(Database.Instance.DbPath, Path.Combine(bkppath, DateTimeOffset.Now.ToUnixTimeSeconds().ToString() + ".db"), true);

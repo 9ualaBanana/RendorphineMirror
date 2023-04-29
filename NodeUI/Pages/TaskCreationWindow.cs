@@ -231,7 +231,7 @@ namespace NodeUI.Pages
 
             public override void Initialize()
             {
-                var list = CreateListBox(NodeGlobalState.Instance.TaskDefinitions.Value.Actions.Where(x => x.Type == Builder.Type).ToArray(), action => new TextBlock() { Text = action.Name });
+                var list = CreateListBox(NodeGlobalState.Instance.TaskDefinitions.Value.Actions.Where(x => x.RequiredPlugins.Contains(Builder.Type)).ToArray(), action => new TextBlock() { Text = action.Name });
                 list.SelectionChanged += (obj, e) =>
                 {
                     Builder.Action = list.SelectedItem.Name;

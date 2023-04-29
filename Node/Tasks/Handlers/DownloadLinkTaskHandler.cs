@@ -6,7 +6,7 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
 {
     TaskInputType ITaskInputHandler.Type => TaskInputType.DownloadLink;
 
-    public async ValueTask<TaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask<ReadOnlyTaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (DownloadLinkTaskInputInfo) task.Input;
 
@@ -17,7 +17,7 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
         if (data.StatusCode != HttpStatusCode.OK)
             throw new HttpRequestException($"Download link `{info.Url}` request returned status code {data.StatusCode}", null, data.StatusCode);
 
-        var tempfile = Path.Combine(Init.TempDirectory(), Guid.NewGuid().ToString());
+        var tempfile = Directories.Temp(Guid.NewGuid().ToString());
         using var _ = new FuncDispose(() =>
         {
             if (File.Exists(tempfile))
@@ -36,7 +36,7 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
         );
 
         var files = new TaskFileList(task.FSInputDirectory());
-        File.Move(tempfile, files.FSNewFile(format));
+        File.Move(tempfile, files.New(format).Path);
 
         return files;
 
@@ -46,14 +46,14 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
         {
             task.LogInfo("Trying to determine file type using ffprobe");
 
-            var ffprobe = await FFMpegTasks.FFProbe.Get(tempfile, task);
+            var ffprobe = await FFProbe.Get(tempfile, task);
             var format = toformat(ffprobe.Streams[0]);
             task.LogInfo($"File format determined to be {format}");
 
             return format;
 
 
-            FileFormat toformat(FFMpegTasks.FFProbe.FFProbeStreamInfo codec)
+            FileFormat toformat(FFProbe.FFProbeStreamInfo codec)
             {
                 if (codec.CodecName.Contains("jpeg", StringComparison.Ordinal) || codec.CodecName.Contains("jpg", StringComparison.Ordinal))
                     return FileFormat.Jpeg;

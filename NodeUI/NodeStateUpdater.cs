@@ -1,6 +1,3 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 namespace NodeUI;
 
 public static class NodeStateUpdater
@@ -12,7 +9,7 @@ public static class NodeStateUpdater
 
     static NodeStateUpdater()
     {
-        try { NodeHost.Value = "127.0.0.1:" + ushort.Parse(File.ReadAllText(Path.Combine(Init.ConfigDirectory, "lport")).Trim()); }
+        try { NodeHost.Value = "127.0.0.1:" + ushort.Parse(File.ReadAllText(Path.Combine(Directories.Data, "lport")).Trim()); }
         catch { }
     }
 
@@ -22,7 +19,7 @@ public static class NodeStateUpdater
         var loadcache = Init.IsDebug;
         var cacheloaded = !loadcache;
 
-        var cachefile = Path.Combine(Init.ConfigDirectory, "nodeinfocache");
+        var cachefile = Path.Combine(Directories.Data, "nodeinfocache");
         if (loadcache)
         {
             NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>

@@ -2,12 +2,15 @@ namespace Node.Tasks.Exec;
 
 public interface IPluginAction
 {
+    Type DataType { get; }
     TaskAction Name { get; }
     ImmutableArray<PluginType> RequiredPlugins { get; }
 
     IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
 
     Task Execute(ITaskExecutionContext context, TaskFiles files, JObject jsondata);
+
+    void ValidateInputFilesThrow(ITaskExecutionContext context, ReadOnlyTaskFileList files);
 }
 public interface IPluginAction<T> : IPluginAction
 {
@@ -15,6 +18,7 @@ public interface IPluginAction<T> : IPluginAction
 }
 public abstract class PluginAction<T> : IPluginAction<T>
 {
+    Type IPluginAction.DataType => typeof(T);
     public abstract TaskAction Name { get; }
     public abstract ImmutableArray<PluginType> RequiredPlugins { get; }
 
@@ -28,7 +32,7 @@ public abstract class PluginAction<T> : IPluginAction<T>
     public async Task Execute(ITaskExecutionContext context, TaskFiles files, T data)
     {
         context.LogInfo($"Validating input files");
-        validateInputFilesThrow(context, files.InputFiles);
+        ValidateInputFilesThrow(context, files.InputFiles);
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
         context.LogInfo($"Executing {Name}");
@@ -36,19 +40,18 @@ public abstract class PluginAction<T> : IPluginAction<T>
         context.LogInfo($"Execution {Name} completed in {sw.Elapsed}");
 
         context.LogInfo($"Validating result");
-        validateOutputFilesThrow(context, files, data);
+        ValidateOutputFilesThrow(context, new TaskFilesCheckData(files.InputFiles, new ReadOnlyTaskFileList(files.OutputFiles.SelectMany(f => f))), data);
 
         context.LogInfo($"Completed");
-
-
-        void validateOutputFilesThrow(ITaskExecutionContext context, TaskFilesCheckData files, T data) =>
-            ValidateOutputFiles(files, data)
-                .Next(() => OperationResult.WrapException(() => files.OutputFiles.ValidateFileList("output")))
-                .ThrowIfError(message => new TaskFailedException($"Output file validation failed: {message}"));
-
-        void validateInputFilesThrow(ITaskExecutionContext context, ReadOnlyTaskFileList files) =>
-            TaskRequirement.EnsureFormats(files, "input", InputFileFormats)
-                .Next(() => OperationResult.WrapException(() => files.ValidateFileList("input")))
-                .ThrowIfError(message => new TaskFailedException($"Input file validation failed: {message}"));
     }
+
+    void ValidateOutputFilesThrow(ITaskExecutionContext context, TaskFilesCheckData files, T data) =>
+        ValidateOutputFiles(files, data)
+            .Next(() => OperationResult.WrapException(() => files.OutputFiles.ValidateFileList("output")))
+            .ThrowIfError(message => new TaskFailedException($"Output file validation failed: {message}"));
+
+    public void ValidateInputFilesThrow(ITaskExecutionContext context, ReadOnlyTaskFileList files) =>
+        TaskRequirement.EnsureFormats(files, "input", InputFileFormats)
+            .Next(() => OperationResult.WrapException(() => files.ValidateFileList("input")))
+            .ThrowIfError(message => new TaskFailedException($"Input file validation failed: {message}"));
 }

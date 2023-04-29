@@ -7,7 +7,7 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     TaskInputType ITaskInputHandler.Type => TaskInputType.MPlus;
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.MPlus;
 
-    public async ValueTask<TaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask<ReadOnlyTaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var files = new TaskFileList(task.FSInputDirectory());
         try { await Task.WhenAll(task.GetFirstAction().InputFileFormats.SelectMany(f => f).Distinct().Select(download)); }
@@ -22,11 +22,11 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
                 ("taskid", task.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"));
 
             using var inputStream = await Api.Default.Download(downloadLink.ThrowIfError());
-            using var file = File.Open(files.FSNewFile(format), FileMode.Create, FileAccess.Write);
+            using var file = File.Open(files.New(format).Path, FileMode.Create, FileAccess.Write);
             await inputStream.CopyToAsync(file, cancellationToken);
         }
     }
-    public async ValueTask UploadResult(ReceivedTask task, IReadOnlyTaskFileList files, CancellationToken cancellationToken)
+    public async ValueTask UploadResult(ReceivedTask task, ReadOnlyTaskFileList files, CancellationToken cancellationToken)
     {
         // example: files=["input.g.jpg", "input.t.jpg"] returns "input."
         var commonprefix = files.Paths.Select(Path.GetFileNameWithoutExtension).Cast<string>().Aggregate((seed, z) => string.Join("", seed.TakeWhile((v, i) => z.Length > i && v == z[i])));

@@ -6,7 +6,7 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
 
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.QSPreview;
 
-    public async ValueTask UploadResult(ReceivedTask task, IReadOnlyTaskFileList files, CancellationToken cancellationToken)
+    public async ValueTask UploadResult(ReceivedTask task, ReadOnlyTaskFileList files, CancellationToken cancellationToken)
     {
         var jpeg = files.Single(FileFormat.Jpeg);
         var mov = files.TrySingle(FileFormat.Mov);
@@ -25,23 +25,23 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
             { new StringContent(Version), "version" },
         };
 
-        content.Add(new StreamContent(File.OpenRead(jpeg))
+        content.Add(new StreamContent(File.OpenRead(jpeg.Path))
         {
             Headers =
             {
                 { "Content-Type", "image/jpeg" },
-                { "Content-Disposition", $"form-data; name=jpeg; filename={Path.GetFileName(jpeg)}" },
+                { "Content-Disposition", $"form-data; name=jpeg; filename={Path.GetFileName(jpeg.Path)}" },
             },
         });
 
         if (mov is not null)
         {
-            content.Add(new StreamContent(File.OpenRead(mov))
+            content.Add(new StreamContent(File.OpenRead(mov.Path))
             {
                 Headers =
                 {
                     { "Content-Type", "video/mp4" },
-                    { "Content-Disposition", $"form-data; name=mp4; filename={Path.GetFileName(mov)}" },
+                    { "Content-Disposition", $"form-data; name=mp4; filename={Path.GetFileName(mov.Path)}" },
                 },
             });
         }

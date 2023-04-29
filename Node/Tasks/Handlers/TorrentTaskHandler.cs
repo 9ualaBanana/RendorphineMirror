@@ -11,11 +11,11 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
     static TorrentClient TorrentClient => TorrentClientInstance.Instance;
     readonly Dictionary<string, TorrentManager> InputTorrents = new();
 
-    public async ValueTask<TaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
+    public async ValueTask<ReadOnlyTaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var info = (TorrentTaskInputInfo) task.Input;
         if (task.IsFromSameNode())
-            return TaskFileList.FromLocalPath(info.Path);
+            return new ReadOnlyTaskFileList(FileWithFormat.FromLocalPath(info.Path));
 
 
         info.Link.ThrowIfNull();
@@ -24,10 +24,10 @@ public class TorrentTaskHandler : ITaskInputHandler, ITaskOutputHandler
 
         await TorrentClient.AddTrackers(manager, true);
         await TorrentClient.WaitForCompletion(manager, new(cancellationToken, TimeSpan.FromMinutes(5)));
-        return TaskFileList.FromLocalPath(dir);
+        return new ReadOnlyTaskFileList(FileWithFormat.FromLocalPath(dir));
     }
 
-    public async ValueTask UploadResult(ReceivedTask task, IReadOnlyTaskFileList files, CancellationToken cancellationToken)
+    public async ValueTask UploadResult(ReceivedTask task, ReadOnlyTaskFileList files, CancellationToken cancellationToken)
     {
         // TODO: fix uploading FSOutputDirectory instead of outputfiles
 

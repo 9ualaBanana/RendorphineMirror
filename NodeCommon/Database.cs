@@ -13,7 +13,7 @@ public class Database
 
     public Database(string? dbpath = null)
     {
-        DbPath = dbpath ?? Path.Combine(Init.ConfigDirectory, "config.db");
+        DbPath = dbpath ?? Path.Combine(Directories.Data, "config.db");
         Connection = new SQLiteConnection("Data Source=" + DbPath + ";Version=3;cache=shared");
         if (!File.Exists(DbPath)) SQLiteConnection.CreateFile(DbPath);
 

@@ -55,6 +55,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Plugins.Models", "NewN
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Common", "NewNode\Common\Node.Common.csproj", "{E103A85B-9A17-479F-9023-BA49FD45A193}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Common.Models", "NewNode\Common.Models\Node.Common.Models.csproj", "{8B05CB69-9390-4458-BF9D-B17B2D0DF911}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -161,6 +163,10 @@ Global
 		{E103A85B-9A17-479F-9023-BA49FD45A193}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E103A85B-9A17-479F-9023-BA49FD45A193}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E103A85B-9A17-479F-9023-BA49FD45A193}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B05CB69-9390-4458-BF9D-B17B2D0DF911}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B05CB69-9390-4458-BF9D-B17B2D0DF911}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B05CB69-9390-4458-BF9D-B17B2D0DF911}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B05CB69-9390-4458-BF9D-B17B2D0DF911}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -175,5 +181,6 @@ Global
 		{1394EF9D-78E8-4C91-A4C2-6EF8D157C326} = {25B3A566-73F6-45AD-9EDD-382745A0F793}
 		{315651D6-D91C-4C74-8A08-F5841368F750} = {25B3A566-73F6-45AD-9EDD-382745A0F793}
 		{E103A85B-9A17-479F-9023-BA49FD45A193} = {25B3A566-73F6-45AD-9EDD-382745A0F793}
+		{8B05CB69-9390-4458-BF9D-B17B2D0DF911} = {25B3A566-73F6-45AD-9EDD-382745A0F793}
 	EndGlobalSection
 EndGlobal
