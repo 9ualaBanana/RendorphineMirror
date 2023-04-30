@@ -1,6 +1,14 @@
 namespace Node.Tasks.Models;
 
-public enum FileFormat { Jpeg, Png, Mov, Eps }
+[JsonConverter(typeof(StringEnumConverter))]
+public enum FileFormat
+{
+    Jpeg,
+    Png,
+    Mov,
+    Eps,
+}
+
 public static class FileFormatExtensions
 {
     public static FileFormat FromFilename(string path) => FromMime(MimeTypes.GetMimeType(path));

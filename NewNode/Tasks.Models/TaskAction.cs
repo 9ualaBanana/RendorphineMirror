@@ -1,5 +1,6 @@
 namespace Node.Tasks.Models;
 
+[JsonConverter(typeof(StringEnumConverter))]
 public enum TaskAction
 {
     EsrganUpscale,
