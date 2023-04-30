@@ -7,9 +7,17 @@ public static class Initializer
     // should the node to be launched with admin rights?
     // always true, keeping just in case we'd want to change this
     public static readonly bool UseAdminRights = true;
+    public static string AppName;
 
 
-    public static string AppName = Path.GetFileNameWithoutExtension(Environment.ProcessPath).ThrowIfNull();
+    static Initializer()
+    {
+        var appname = Path.GetFileNameWithoutExtension(Environment.ProcessPath);
+        if (appname is null or "dotnet")
+            appname = System.Reflection.Assembly.GetEntryAssembly().ThrowIfNull().GetName().Name.ThrowIfNull();
+
+        AppName = appname;
+    }
 }
 public static class Init
 {

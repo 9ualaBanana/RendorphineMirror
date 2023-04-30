@@ -9,7 +9,13 @@ public static class NodeStateUpdater
 
     static NodeStateUpdater()
     {
-        try { NodeHost.Value = "127.0.0.1:" + ushort.Parse(File.ReadAllText(Path.Combine(Directories.Data, "lport")).Trim()); }
+        var portfile = new[] { Directories.DataFor("renderfin"), Directories.Data, }
+            .Select(p => Path.Combine(p, "lport"))
+            .First(File.Exists);
+
+        var port = ushort.Parse(File.ReadAllText(portfile));
+
+        try { NodeHost.Value = $"127.0.0.1:{port}"; }
         catch { }
     }
 

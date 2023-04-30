@@ -18,12 +18,10 @@ global using Avalonia.Threading;
 global using Avalonia.VisualTree;
 global using Common;
 global using NLog;
-global using Node.Common.Models;
 global using Node.Plugins.Models;
 global using Node.Tasks.Models;
 global using NodeCommon;
 global using NodeCommon.ApiModel;
-global using NodeCommon.Plugins;
 global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
@@ -42,6 +40,7 @@ static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        Initializer.AppName = "renderfin-ui";
         Init.Initialize();
         ConsoleHide.Hide();
 

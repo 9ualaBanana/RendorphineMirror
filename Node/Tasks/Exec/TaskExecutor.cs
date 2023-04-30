@@ -8,7 +8,7 @@ public static class TaskExecutor
     static readonly SemaphoreSlim TaskWaitHandle = new SemaphoreSlim(1);
     static readonly SemaphoreSlim OutputSemaphore = new SemaphoreSlim(5);
 
-    static async Task<FuncDispose> WaitDisposed(string info, ReceivedTask task, SemaphoreSlim semaphore)
+    static async Task<FuncDispose> WaitDisposed(string info, ILoggable task, SemaphoreSlim semaphore)
     {
         task.LogInfo($"Waiting for the {info} handle: (wh {semaphore.CurrentCount})");
 

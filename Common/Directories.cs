@@ -6,7 +6,8 @@ public static class Directories
 
 
     /// <summary> Application data; %appdata%/{appname} or ~/.config/{appname} </summary>
-    public static string Data = Created(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), Initializer.AppName);
+    public static string Data = DataFor(Initializer.AppName);
+    public static string DataFor(string appname) => Created(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), appname);
 
     /// <summary> Temp directory; {datadir}/temp/[...subdirs]. Cleaned every launch </summary>
     public static string Temp(params string[] subdirs) => Created(new[] { Data, "temp" }.Concat(subdirs).ToArray());

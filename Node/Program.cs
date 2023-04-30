@@ -16,13 +16,11 @@ global using Node.Tasks.Watching;
 global using NodeCommon;
 global using NodeCommon.ApiModel;
 global using NodeCommon.NodeUserSettings;
-global using NodeCommon.Plugins;
 global using NodeCommon.Plugins.Deployment;
 global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
 global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
-using Newtonsoft.Json.Linq;
 using Node;
 using Node.Heartbeat;
 using Node.Listeners;
@@ -30,6 +28,8 @@ using Node.Plugins.Discoverers;
 using Node.Profiling;
 using Node.Tasks.Exec.Actions;
 
+
+Initializer.AppName = "renderfin";
 ConsoleHide.Hide();
 
 if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
