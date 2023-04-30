@@ -40,6 +40,7 @@ public class GenerateQSPreview : FFMpegActionBase<QSPreviewInfo>
         LogoImage ??= Image.Load<Rgba32>("assets/qswatermark/logo.png");
 
         using var image = Image.Load<Rgba32>(input);
+        image.Mutate(ctx => ctx.AutoOrient());
         var (outwidth, outheight) = Scale(image.Width, image.Height);
 
         image.Mutate(ctx => ctx
