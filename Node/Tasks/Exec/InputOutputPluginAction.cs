@@ -1,6 +1,11 @@
 using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace Node.Tasks.Exec;
 
@@ -44,6 +49,17 @@ public abstract class InputOutputPluginAction<T> : PluginAction<T>, IInputOutput
             task.LogInfo($"Downloading input... (wh {InputSemaphore.CurrentCount})");
             var inputfiles = await task.GetInputHandler().Download(task).ConfigureAwait(false);
             task.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}");
+
+            foreach (var jpeg in inputfiles.Where(f => f.Format == FileFormat.Jpeg).ToArray())
+            {
+                using var img = Image.Load<Rgba32>(jpeg.Path);
+                if (img.Metadata.ExifProfile?.GetValue(ExifTag.Orientation) is not null)
+                {
+                    img.Mutate(ctx => ctx.AutoOrient());
+                    await img.SaveAsJpegAsync(jpeg.Path, new JpegEncoder() { Quality = 100 });
+                }
+            }
+
             task.LogInfo($"Validating downloaded files...");
             ValidateInputFilesThrow(task, inputfiles);
 
