@@ -1,5 +1,3 @@
-using Node.Profiling;
-
 namespace Node;
 
 public static class NodeSettings
@@ -8,29 +6,12 @@ public static class NodeSettings
     public static readonly DatabaseValueDictionary<string, WatchingTask> WatchingTasks;
     public static readonly DatabaseValueDictionary<string, DbTaskFullState> PlacedTasks;
     public static readonly DatabaseValueDictionary<string, CompletedTask> CompletedTasks;
-    public static readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
-    public static readonly DatabaseValue<bool> AcceptTasks;
-
-    public static readonly DatabaseValue<uint> TaskAutoDeletionDelayDays;
 
     static NodeSettings()
     {
-        var db = Database.Instance;
-        QueuedTasks = new(db, nameof(QueuedTasks), t => t.Id, serializer: JsonSettings.Default);
-        WatchingTasks = new(db, nameof(WatchingTasks), t => t.Id, serializer: JsonSettings.Default);
-        PlacedTasks = new(db, nameof(PlacedTasks), t => t.Id, serializer: JsonSettings.Default);
-        CompletedTasks = new(db, nameof(CompletedTasks), t => t.TaskInfo.Id, serializer: JsonSettings.Default);
-        AcceptTasks = new(db, nameof(AcceptTasks), true);
-        TaskAutoDeletionDelayDays = new(db, nameof(TaskAutoDeletionDelayDays), 4);
-
-        try { BenchmarkResult = new(db, nameof(BenchmarkResult), default); }
-        catch
-        {
-            new DatabaseValue<object?>(db, nameof(BenchmarkResult), default).Delete();
-            BenchmarkResult = new(db, nameof(BenchmarkResult), default);
-        }
+        QueuedTasks = new(new Database(Path.Combine(Directories.Data, "queued.db")), nameof(QueuedTasks), t => t.Id, serializer: JsonSettings.Default);
+        WatchingTasks = new(new Database(Path.Combine(Directories.Data, "watching.db")), nameof(WatchingTasks), t => t.Id, serializer: JsonSettings.Default);
+        PlacedTasks = new(new Database(Path.Combine(Directories.Data, "placed.db")), nameof(PlacedTasks), t => t.Id, serializer: JsonSettings.Default);
+        CompletedTasks = new(new Database(Path.Combine(Directories.Data, "completed.db")), nameof(CompletedTasks), t => t.TaskInfo.Id, serializer: JsonSettings.Default);
     }
-
-
-    public readonly record struct BenchmarkInfo(Version Version, BenchmarkData Data);
 }

@@ -1,5 +1,3 @@
-using Node.Plugins;
-
 namespace Node.Profiling;
 
 internal class Profile
@@ -42,7 +40,7 @@ internal class Profile
                 minbwprice = -1,
                 minstorageprice = -1,
             },
-            Hardware = NodeSettings.BenchmarkResult.Value?.Data ?? throw new Exception("Could not create Profile without benchmark data"),
+            Hardware = Settings.BenchmarkResult.Value?.Data ?? throw new Exception("Could not create Profile without benchmark data"),
         };
     }
 

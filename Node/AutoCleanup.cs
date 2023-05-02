@@ -13,16 +13,11 @@ public static class AutoCleanup
     }
     public static void Start()
     {
-        var now = DateTimeOffset.Now;
         Info($"[Cleanup] Started");
 
         CleanCompletedTasks();
         CleanQueuedTasks();
         CleanPlacedTasks();
-
-        Info($"[Cleanup] Optimizing database");
-        OperationResult.WrapException(() => Database.Instance.ExecuteNonQuery("PRAGMA optimize;")).LogIfError();
-        OperationResult.WrapException(() => Database.Instance.ExecuteNonQuery("vacuum;")).LogIfError();
 
         Info($"[Cleanup] Completed");
     }
@@ -36,7 +31,7 @@ public static class AutoCleanup
         foreach (var completed in NodeSettings.CompletedTasks.ToArray())
         {
             var days = (now - completed.Value.FinishTime).TotalDays;
-            if (days < NodeSettings.TaskAutoDeletionDelayDays.Value)
+            if (days < Settings.TaskAutoDeletionDelayDays.Value)
                 continue;
 
             Info($"[Cleanup] Removing expired completed task {completed.Key}");

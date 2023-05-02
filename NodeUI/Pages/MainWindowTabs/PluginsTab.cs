@@ -177,7 +177,7 @@ public class PluginsTab : Panel
                                 Text = "Install (this node)",
                                 OnClickSelf = async self =>
                                 {
-                                    Settings.Value.Install(NodeGlobalState.Instance.AuthInfo.ThrowIfValueNull().Guid, Enum.Parse<PluginType>(pluginslist.SelectedItem, true), versionslist.SelectedItem);
+                                    Settings.Value.Install(NodeGlobalState.Instance.AuthInfo.ThrowIfNull().Guid, Enum.Parse<PluginType>(pluginslist.SelectedItem, true), versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
                                     var set = await Apis.Default.SetSettingsAsync(Settings.Value);
@@ -189,7 +189,7 @@ public class PluginsTab : Panel
                                 Text = "Uninstall (this node)",
                                 OnClickSelf = async self =>
                                 {
-                                    Settings.Value.Uninstall(NodeGlobalState.Instance.AuthInfo.ThrowIfValueNull().Guid, Enum.Parse<PluginType>(pluginslist.SelectedItem, true), versionslist.SelectedItem);
+                                    Settings.Value.Uninstall(NodeGlobalState.Instance.AuthInfo.ThrowIfNull().Guid, Enum.Parse<PluginType>(pluginslist.SelectedItem, true), versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
                                     var set = await Apis.Default.SetSettingsAsync(Settings.Value);

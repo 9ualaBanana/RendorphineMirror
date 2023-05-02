@@ -1,5 +1,4 @@
 ﻿using Benchmark;
-using Newtonsoft.Json;
 
 namespace Node.Profiling;
 
@@ -36,7 +35,7 @@ internal static class Profiler
         _cachedProfile ??= await Profile.CreateDefault();
         Benchmark.UpdateValues(_cachedProfile.Hardware);
 
-        if (NodeSettings.AcceptTasks.Value)
+        if (Settings.AcceptTasks.Value)
         {
             if (_cachedProfile.AllowedTypes.Count == 0)
                 _cachedProfile.AllowedTypes = await Profile.BuildDefaultAllowedTypes();

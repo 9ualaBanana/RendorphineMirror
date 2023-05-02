@@ -1,11 +1,8 @@
 using System.Collections;
 using System.Data.SQLite;
 using System.Diagnostics.CodeAnalysis;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
-namespace NodeCommon;
-
+namespace Node.Common;
 
 public interface IDatabaseBindable
 {
@@ -35,7 +32,6 @@ public abstract class DatabaseValueBase<T, TBindable> : IDatabaseBindable<T> whe
     public DatabaseValueBase(Database database, string name, TBindable bindable)
     {
         Database = database;
-        database.Track(this);
 
         Name = name;
         Bindable = bindable;
@@ -108,7 +104,6 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
     public DatabaseValueDictionary(Database database, string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null, JsonSerializer? serializer = null)
     {
         Database = database;
-        database.Track(this);
 
         if (serializer is not null) ItemsList.JsonSerializer = serializer;
         Items = new(comparer);

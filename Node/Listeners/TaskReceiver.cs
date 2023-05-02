@@ -1,7 +1,5 @@
 using System.Net;
 using System.Web;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Node.Listeners;
 
@@ -12,7 +10,7 @@ public class TaskReceiver : ListenerBase
 
     protected override async ValueTask Execute(HttpListenerContext context)
     {
-        if (!NodeSettings.AcceptTasks.Value) return;
+        if (!Settings.AcceptTasks.Value) return;
         if (context.Request.HttpMethod != "POST") return;
 
         using var response = context.Response;

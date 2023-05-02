@@ -23,10 +23,10 @@ internal static class Benchmark
     {
         get
         {
-            try { return NodeSettings.BenchmarkResult.Value?.Version?.Equals(BenchmarkMetadata.Version) != true; }
+            try { return Settings.BenchmarkResult.Value?.Version?.Equals(BenchmarkMetadata.Version) != true; }
             catch
             {
-                NodeSettings.BenchmarkResult.Delete();
+                Settings.BenchmarkResult.Delete();
                 return true;
             }
         }
@@ -35,7 +35,7 @@ internal static class Benchmark
     internal static async Task<BenchmarkData> RunAsync(int testDataSize)
     {
         var result = await RunAsyncCore(testDataSize);
-        NodeSettings.BenchmarkResult.Value = new(BenchmarkMetadata.Version, result);
+        Settings.BenchmarkResult.Value = new(BenchmarkMetadata.Version, result);
         UpdateValues(result);
 
         isCompleted = true;

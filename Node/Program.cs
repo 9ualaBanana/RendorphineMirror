@@ -193,8 +193,8 @@ void InitializeSettings()
     state.WatchingTasks.Bind(NodeSettings.WatchingTasks.Bindable);
     state.PlacedTasks.Bind(NodeSettings.PlacedTasks.Bindable);
     NodeSettings.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(NodeSettings.QueuedTasks.Values), true);
-    NodeSettings.BenchmarkResult.Bindable.SubscribeChanged(() => state.BenchmarkResult.Value = NodeSettings.BenchmarkResult.Value is null ? null : JObject.FromObject(NodeSettings.BenchmarkResult.Value), true);
-    state.TaskAutoDeletionDelayDays.Bind(NodeSettings.TaskAutoDeletionDelayDays.Bindable);
+    Settings.BenchmarkResult.Bindable.SubscribeChanged(() => state.BenchmarkResult.Value = Settings.BenchmarkResult.Value is null ? null : JObject.FromObject(Settings.BenchmarkResult.Value), true);
+    state.TaskAutoDeletionDelayDays.Bind(Settings.TaskAutoDeletionDelayDays.Bindable);
 
     state.BServerUrl.Bind(Settings.BServerUrl.Bindable);
     state.BLocalListenPort.Bind(Settings.BLocalListenPort.Bindable);

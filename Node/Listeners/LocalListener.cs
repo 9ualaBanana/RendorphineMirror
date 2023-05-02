@@ -24,12 +24,6 @@ public class LocalListener : ExecutableListenerBase
 
         var query = request.QueryString;
 
-        if (path == "reloadcfg")
-        {
-            Database.Instance.ReloadAllBindables();
-            return await WriteSuccess(response).ConfigureAwait(false);
-        }
-
         if (path == "logout")
         {
             Settings.AuthInfo = null;

@@ -1,4 +1,6 @@
-﻿namespace Node;
+﻿using Node.Profiling;
+
+namespace Node;
 
 public static class Settings
 {
@@ -25,12 +27,15 @@ public static class Settings
     public static readonly DatabaseValue<AuthInfo?> BAuthInfo;
 
     public static readonly DatabaseValue<ImmutableArray<TaskAction>> DisabledTaskTypes;
+    public static readonly DatabaseValue<bool> AcceptTasks;
+    public static readonly DatabaseValue<uint> TaskAutoDeletionDelayDays;
+    public static readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
 
     static Settings()
     {
         static ushort randomized(ushort port) => (ushort) (port + Random.Shared.Next(80));
 
-        var db = Database.Instance;
+        var db = new Database(Path.Combine(Directories.Data, "config.db"));
 
         BServerUrl = new(db, nameof(ServerUrl), "https://t.microstock.plus:8443");
         BLocalListenPort = new(db, nameof(LocalListenPort), randomized(5123));
@@ -42,6 +47,9 @@ public static class Settings
         BNodeName = new(db, nameof(NodeName), null);
 
         DisabledTaskTypes = new(db, nameof(DisabledTaskTypes), ImmutableArray<TaskAction>.Empty);
+        AcceptTasks = new(db, nameof(AcceptTasks), true);
+        TaskAutoDeletionDelayDays = new(db, nameof(TaskAutoDeletionDelayDays), 4);
+        BenchmarkResult = new(db, nameof(BenchmarkResult), default);
 
 
         typeof(Settings).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)
@@ -53,4 +61,7 @@ public static class Settings
         foreach (var bindable in new[] { BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort })
             bindable.Save();
     }
+
+
+    public readonly record struct BenchmarkInfo(Version Version, BenchmarkData Data);
 }
