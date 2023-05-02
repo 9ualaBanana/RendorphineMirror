@@ -4,20 +4,44 @@ namespace Node
 {
     public static class PortForwarder
     {
-        readonly static Logger Logger = LogManager.GetCurrentClassLogger();
+        static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         public static void Initialize() { }
         static PortForwarder()
         {
+            const int mapTimeSec = 60 * 30;
+
             int consec = 0;
-            NatUtility.DeviceFound += (_, args) => found(args).Consume();
+            var devices = new List<INatDevice>();
+
+            NatUtility.DeviceFound += (_, args) => found(args);
             NatUtility.StartDiscovery(NatProtocol.Upnp);
 
 
-            async Task found(DeviceEventArgs args)
+            void found(DeviceEventArgs args)
             {
                 var device = args.Device;
-                Logger.Info($"[UPnP] Found device ip {device.DeviceEndpoint}");
+                if (devices.Contains(device) || devices.Any(d => d.DeviceEndpoint == device.DeviceEndpoint))
+                    return;
+
+                devices.Add(device);
+                Logger.Info($"[UPnP] Found device ip {device.DeviceEndpoint} ({device.GetExternalIP()})");
+
+                new Thread(async () =>
+                {
+                    while (true)
+                    {
+                        try { await mapDevice(device); }
+                        catch (Exception ex) { Logger.Error($"[UPnP] Exception while mapping device {device.DeviceEndpoint}: {ex}"); }
+
+                        Thread.Sleep((mapTimeSec - (60 * 10)) * 1000);
+                    }
+                })
+                { IsBackground = true }.Start();
+            }
+            async Task mapDevice(INatDevice device)
+            {
+                Logger.Trace($"[UPnP] Remapping {device.DeviceEndpoint} ({device.GetExternalIP()})");
 
                 try
                 {
@@ -32,10 +56,10 @@ namespace Node
                         So idk whats going on, dont use this method
                     */
 
-                    await map(device, "renderphine", Settings.BUPnpPort);
-                    await map(device, "renderphine-srv", Settings.BUPnpServerPort);
-                    await map(device, "renderphine-dht", Settings.BDhtPort);
-                    await map(device, "renderphine-trt", Settings.BTorrentPort);
+                    await mapPort(device, "renderphine", Settings.BUPnpPort);
+                    await mapPort(device, "renderphine-srv", Settings.BUPnpServerPort);
+                    await mapPort(device, "renderphine-dht", Settings.BDhtPort);
+                    await mapPort(device, "renderphine-trt", Settings.BTorrentPort);
 
                     consec = 0;
                 }
@@ -46,11 +70,11 @@ namespace Node
                         Logger.Error($"[UPnP] Could not create mapping: {ex}");
 
                     await Task.Delay(5000);
-                    await found(args);
+                    await mapDevice(device);
                 }
 
 
-                async Task map(INatDevice device, string name, IDatabaseValueBindable<ushort> portb)
+                async Task mapPort(INatDevice device, string name, IDatabaseValueBindable<ushort> portb)
                 {
                     name += "-" + Environment.MachineName;
 
@@ -64,7 +88,7 @@ namespace Node
                         Logger.Info($"[UPnP] Found already existing mapping {mapping}. Remapping...");
 
                         device.DeletePortMap(mapping);
-                        device.CreatePortMap(new Mapping(Protocol.Tcp, portb.Value, portb.Value, 0, name));
+                        device.CreatePortMap(new Mapping(Protocol.Tcp, portb.Value, portb.Value, mapTimeSec, name));
                     }
                     else
                     {
