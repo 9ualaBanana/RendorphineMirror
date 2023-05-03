@@ -9,7 +9,7 @@ using Telegram.Services.Node;
 
 namespace Telegram.Commands.Handlers;
 
-public class RemoveCommand : CommandHandler, IAuthorizationRequirementsProvider
+public class RemoveCommand : CommandHandler, IAuthorizationPolicyProtected
 {
     readonly UserNodes _userNodes;
 
@@ -24,10 +24,9 @@ public class RemoveCommand : CommandHandler, IAuthorizationRequirementsProvider
         _userNodes = userNodes;
     }
 
-    public IEnumerable<IAuthorizationRequirement> Requirements { get; }
-        = IAuthorizationRequirementsProvider.Provide(MPlusAuthenticationRequirement.Instance);
-
     internal override Command Target => "remove";
+
+    public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 
     protected override async Task HandleAsync(ParsedCommand receivedCommand)
     {

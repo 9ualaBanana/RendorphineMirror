@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Telegram.Security.Authorization;
 using Telegram.Commands.Handlers;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 
 namespace Telegram.Infrastructure.Commands;
 
@@ -39,7 +40,7 @@ public class CommandsController : ControllerBase
             else
             {
                 _logger.LogTrace("User is not authorized to use {Command} command", rawCommand);
-                if (authorizationResult.Failure!.FailedRequirements.Any(requirement => requirement is MPlusAuthenticationRequirement))
+                if (authorizationResult.Failure!.FailedRequirements.Any(requirement => requirement is DenyAnonymousAuthorizationRequirement))
                     await HttpContext.ChallengeAsync();
             }
         }
@@ -48,12 +49,8 @@ public class CommandsController : ControllerBase
 
     async Task<AuthorizationResult> UserIsAuthorizedToCall(CommandHandler command)
     {
-        AuthorizationResult authorizationResult = AuthorizationResult.Success();
-
-        if (command is IAuthorizationRequirementsProvider command_ && command_.Requirements.Any())
-            authorizationResult = await _authorizationService
-                .AuthorizeAsync(User, command_, command_.Requirements);
-
-        return authorizationResult;
+        if (command is IAuthorizationPolicyProtected command_)
+            return await _authorizationService.AuthorizeAsync(User, command_, command_.AuthorizationPolicy);
+        else return AuthorizationResult.Success();
     }
 }

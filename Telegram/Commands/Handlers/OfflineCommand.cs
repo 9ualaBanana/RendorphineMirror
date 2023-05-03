@@ -9,7 +9,7 @@ using Telegram.Services.Node;
 
 namespace Telegram.Commands.Handlers;
 
-public partial class OfflineCommand : CommandHandler, IAuthorizationRequirementsProvider
+public partial class OfflineCommand : CommandHandler, IAuthorizationPolicyProtected
 {
     readonly UserNodes _userNodes;
 
@@ -24,10 +24,9 @@ public partial class OfflineCommand : CommandHandler, IAuthorizationRequirements
         _userNodes = userNodes;
     }
 
-    public IEnumerable<IAuthorizationRequirement> Requirements { get; }
-        = IAuthorizationRequirementsProvider.Provide(MPlusAuthenticationRequirement.Instance);
-
     internal override Command Target => "offline";
+
+    public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 
     protected override async Task HandleAsync(ParsedCommand receivedCommand)
     {

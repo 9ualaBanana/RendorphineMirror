@@ -19,18 +19,15 @@ using Telegram.StableDiffusion;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Logging.ClearProviders();
-builder.Host.UseNLog();
-
-builder.Services.AddTelegramBotUsing(builder.Configuration).AddCommands();
-builder.Services.AddUpdateRouting();
-builder.Services.AddAuthentication(MPlusViaTelegramChatDefaults.AuthenticationScheme)
-    .AddMPlusViaTelegramChat();
-builder.Services.AddAuthorizationWithHandlers();
-
-builder.Services
-    .AddImages()
-    .AddVideos();
+builder.WebHost
+    .UseNLog_()
+    .AddTelegramBot().ConfigureServices(_ => _
+        .AddCommands()
+        .AddUpdateRouting()
+        .AddImages()
+        .AddVideos()
+        .AddMPlusAuthorization()
+        .AddAuthentication(MPlusAuthenticationDefaults.AuthenticationScheme).AddMPlus());
 
 // Telegram.Bot works only with Newtonsoft.
 builder.Services.AddControllers().AddNewtonsoftJson();
@@ -58,3 +55,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.Run();
+
+
+static class Startup
+{
+    internal static IWebHostBuilder UseNLog_(this IWebHostBuilder builder)
+        => builder.UseNLog(new() { ReplaceLoggerFactory = true });
+}

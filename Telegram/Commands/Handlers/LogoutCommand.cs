@@ -8,7 +8,7 @@ using Telegram.Security.Authorization;
 
 namespace Telegram.Commands.Handlers;
 
-public class LogoutCommand : CommandHandler, IAuthorizationRequirementsProvider
+public class LogoutCommand : CommandHandler, IAuthorizationPolicyProtected
 {
     readonly TelegramBotDbContext _database;
 
@@ -25,8 +25,7 @@ public class LogoutCommand : CommandHandler, IAuthorizationRequirementsProvider
 
     internal override Command Target => "logout";
 
-    public IEnumerable<IAuthorizationRequirement> Requirements { get; }
-        = IAuthorizationRequirementsProvider.Provide(MPlusAuthenticationRequirement.Instance);
+    public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 
     protected override async Task HandleAsync(ParsedCommand receivedCommand)
     {

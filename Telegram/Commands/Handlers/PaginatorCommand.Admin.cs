@@ -4,12 +4,13 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.Commands;
 using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.Security.Authorization;
+using static Telegram.Security.Authorization.MPlusAuthorizationPolicyBuilder;
 
 namespace Telegram.Commands.Handlers;
 
 public class PaginatorCommand
 {
-    public class Admin : CommandHandler, IAuthorizationRequirementsProvider
+    public class Admin : CommandHandler, IAuthorizationPolicyProtected
     {
         public Admin(
             CommandParser parser,
@@ -20,13 +21,11 @@ public class PaginatorCommand
             {
             }
 
-        public IEnumerable<IAuthorizationRequirement> Requirements { get; } 
-            = IAuthorizationRequirementsProvider.Provide(
-                MPlusAuthenticationRequirement.Instance,
-                AccessLevelRequirement.Admin
-                );
-
         internal override Command Target => "adminpaginator";
+
+        public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder()
+            .Add(AccessLevelRequirement.Admin)
+            .Build();
 
         protected override async Task HandleAsync(ParsedCommand receivedCommand)
         {

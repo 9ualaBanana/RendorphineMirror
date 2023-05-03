@@ -5,12 +5,13 @@ using Telegram.Infrastructure.Commands;
 using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.Security.Authorization;
 using Telegram.Services.Node;
+using static Telegram.Security.Authorization.MPlusAuthorizationPolicyBuilder;
 
 namespace Telegram.Commands.Handlers;
 
 public partial class PingCommand
 {
-    public class Admin : CommandHandler, IAuthorizationRequirementsProvider
+    public class Admin : CommandHandler, IAuthorizationPolicyProtected
     {
         readonly UserNodes _userNodes;
 
@@ -25,13 +26,11 @@ public partial class PingCommand
             _userNodes = userNodes;
         }
 
-        public IEnumerable<IAuthorizationRequirement> Requirements { get; }
-            = IAuthorizationRequirementsProvider.Provide(
-                MPlusAuthenticationRequirement.Instance,
-                AccessLevelRequirement.Admin
-                );
-
         internal override Command Target => "adminping";
+
+        public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder()
+            .Add(AccessLevelRequirement.Admin)
+            .Build();
 
         protected override async Task HandleAsync(ParsedCommand receivedCommand)
         {

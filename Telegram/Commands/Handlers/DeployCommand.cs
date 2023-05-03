@@ -8,7 +8,7 @@ using Telegram.Services.Node;
 
 namespace Telegram.Commands.Handlers;
 
-public class DeployCommand : CommandHandler, IAuthorizationRequirementsProvider
+public class DeployCommand : CommandHandler, IAuthorizationPolicyProtected
 {
     readonly UserNodes _userNodes;
     readonly HttpClient _httpClient;
@@ -26,10 +26,9 @@ public class DeployCommand : CommandHandler, IAuthorizationRequirementsProvider
         _httpClient = httpClientFactory.CreateClient();
     }
 
-    public IEnumerable<IAuthorizationRequirement> Requirements { get; }
-        = IAuthorizationRequirementsProvider.Provide(MPlusAuthenticationRequirement.Instance);
-
     internal override Command Target => "deploy";
+
+    public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 
     protected override async Task HandleAsync(ParsedCommand receivedCommand)
     {

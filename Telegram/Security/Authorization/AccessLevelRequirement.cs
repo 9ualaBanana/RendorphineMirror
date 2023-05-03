@@ -3,14 +3,17 @@ using Telegram.MPlus;
 
 namespace Telegram.Security.Authorization;
 
-public class AccessLevelRequirement : IAuthorizationRequirement
+public partial class MPlusAuthorizationPolicyBuilder
 {
-    internal readonly AccessLevel AccessLevel;
-
-    internal static AccessLevelRequirement Admin = new(AccessLevel.Admin);
-
-    internal AccessLevelRequirement(AccessLevel accessLevel)
+    public class AccessLevelRequirement : IAuthorizationRequirement
     {
-        AccessLevel = accessLevel;
+        internal readonly AccessLevel AccessLevel;
+
+        internal AccessLevelRequirement(AccessLevel accessLevel)
+        {
+            AccessLevel = accessLevel;
+        }
+
+        internal static AccessLevelRequirement Admin = new(AccessLevel.Admin);
     }
 }

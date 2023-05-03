@@ -37,11 +37,11 @@ class TelegramBotUserEntityConfiguration : IEntityTypeConfiguration<TelegramBotU
 {
     public void Configure(EntityTypeBuilder<TelegramBotUserEntity> entity)
     {
-        entity.HasKey(u => u.ChatId);
-        entity.Property(u => u.ChatId)
+        entity.HasKey(_ => _.ChatId);
+        entity.Property(_ => _.ChatId)
             .HasConversion(chatId => chatId.Identifier, identifier => new ChatId((long)identifier!))
             .ValueGeneratedNever();
-        entity.Navigation(u => u.MPlusIdentity).AutoInclude();
+        entity.Navigation(_ => _.MPlusIdentity).AutoInclude();
     }
 }
 
@@ -49,9 +49,9 @@ class MPlusIdentityEntityConfiguration : IEntityTypeConfiguration<MPlusIdentityE
 {
     public void Configure(EntityTypeBuilder<MPlusIdentityEntity> entity)
     {
-        entity.HasKey(i => i.TelegramBotUserChatId);
-        entity.HasOne(i => i.TelegramBotUser).WithOne(u => u.MPlusIdentity)
-            .HasForeignKey<MPlusIdentityEntity>(i => i.TelegramBotUserChatId);
+        entity.HasKey(_ => _.TelegramBotUserChatId);
+        entity.HasOne(_ => _.TelegramBotUser).WithOne(_ => _.MPlusIdentity)
+            .HasForeignKey<MPlusIdentityEntity>(_ => _.TelegramBotUserChatId);
     }
 }
 
