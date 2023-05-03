@@ -1,7 +1,7 @@
 ﻿using Telegram.Bot;
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
+using Telegram.Infrastructure.Commands;
 
 namespace Telegram.StableDiffusion;
 
@@ -9,12 +9,12 @@ public class StableDiffusionCallbackQueryHandler : CallbackQueryHandler<StableDi
 {
     readonly StableDiffusionPrompt _midjourneyPromptManager;
     readonly StableDiffusionPrompt.CachedMessages _cachedPromptMessages;
-    readonly CommandParser _commandParser;
+    readonly Command.Parser _commandParser;
 
     public StableDiffusionCallbackQueryHandler(
         StableDiffusionPrompt midjourneyPromptManager,
         StableDiffusionPrompt.CachedMessages cachedPromptMessages,
-        CommandParser commandParser,
+        Command.Parser commandParser,
         CallbackQuerySerializer serializer,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Telegram.Bot;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.MPlus;
 using Telegram.Security.Authorization;
 using Telegram.Services.Node;
@@ -16,21 +15,22 @@ public class DeployCommand : CommandHandler, IAuthorizationPolicyProtected
     public DeployCommand(
         UserNodes userNodes,
         IHttpClientFactory httpClientFactory,
-        CommandParser parser,
+        Command.Factory commandFactory,
+        Command.Received receivedCommand,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<DeployCommand> logger)
-        : base(parser, bot, httpContextAccessor, logger)
+        : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
         _userNodes = userNodes;
         _httpClient = httpClientFactory.CreateClient();
     }
 
-    internal override Command Target => "deploy";
+    internal override Command Target => CommandFactory.Create("deploy");
 
     public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand)
+    protected override async Task HandleAsync(Command receivedCommand)
     {
         var pluginTypes = receivedCommand.UnquotedArguments.Select(type => Enum.Parse<PluginType>(type, true));
         var nodeNames = receivedCommand.QuotedArguments;

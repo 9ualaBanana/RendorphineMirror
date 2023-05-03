@@ -1,4 +1,5 @@
-﻿using Telegram.Infrastructure.Commands.SyntacticAnalysis;
+﻿using Telegram.Infrastructure.Commands.LexicalAnalysis;
+using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
 using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
 
@@ -10,7 +11,9 @@ static class CommandsExtensions
         => services
         .AddScoped<IUpdateTypeRouter, MessageRouterMiddleware>()
         .AddScoped<MessageRouter, CommandRouterMiddleware>()
-        .AddCommandParsing();
+        .AddSingleton<Command.Received>()
+        .AddCommandsParsing()
+        .AddCommandsTokenization();
 
     internal static string CaseInsensitive(this string value) => value.ToLowerInvariant();
 }

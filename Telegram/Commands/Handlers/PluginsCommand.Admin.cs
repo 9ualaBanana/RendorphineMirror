@@ -2,7 +2,6 @@
 using System.Text;
 using Telegram.Bot;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.Security.Authorization;
 using Telegram.Services.Node;
 using static Telegram.Security.Authorization.MPlusAuthorizationPolicyBuilder;
@@ -17,11 +16,12 @@ public partial class PluginsCommand
 
         public Admin(
             UserNodes userNodes,
-            CommandParser parser,
+            Command.Factory commandFactory,
+            Command.Received receivedCommand,
             TelegramBot bot,
             IHttpContextAccessor httpContextAccessor,
             ILogger<Admin> logger)
-            : base(parser, bot, httpContextAccessor, logger)
+            : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
         {
             _userNodes = userNodes;
         }
@@ -30,9 +30,9 @@ public partial class PluginsCommand
             .Add(AccessLevelRequirement.Admin)
             .Build();
 
-        internal override Command Target => "adminplugins";
+        internal override Command Target => CommandFactory.Create("adminplugins");
 
-        protected override async Task HandleAsync(ParsedCommand receivedCommand)
+        protected override async Task HandleAsync(Command receivedCommand)
         {
             var messageBuilder = new StringBuilder();
 

@@ -1,6 +1,5 @@
 ﻿using Telegram.Bot;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.MPlus;
 using Telegram.StableDiffusion;
 
@@ -12,18 +11,19 @@ public class PromptCommand : CommandHandler
 
     public PromptCommand(
         StableDiffusionPrompt midjourneyPrompt,
-        CommandParser parser,
+        Command.Factory commandFactory,
+        Command.Received receivedCommand,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<PromptCommand> logger)
-        : base(parser, bot, httpContextAccessor, logger)
+        : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
         _midjourneyPrompt = midjourneyPrompt;
     }
 
-    internal override Command Target => "prompt";
+    internal override Command Target => CommandFactory.Create("prompt");
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand)
+    protected override async Task HandleAsync(Command receivedCommand)
     {
         var prompt = await _midjourneyPrompt.NormalizeAsync(receivedCommand.UnquotedArguments, MPlusIdentity.UserIdOf(User), RequestAborted);
         await _midjourneyPrompt.SendAsync(new(prompt, Message), RequestAborted);

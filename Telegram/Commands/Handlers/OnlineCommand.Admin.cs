@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Telegram.Bot;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.Security.Authorization;
 using Telegram.Services.Node;
 using static Telegram.Security.Authorization.MPlusAuthorizationPolicyBuilder;
@@ -16,11 +15,12 @@ public partial class OnlineCommand
 
         public Admin(
             UserNodes userNodes,
-            CommandParser parser,
+            Command.Factory commandFactory,
+            Command.Received receivedCommand,
             TelegramBot bot,
             IHttpContextAccessor httpContextAccessor,
             ILogger<Admin> logger)
-            : base(parser, bot, httpContextAccessor, logger)
+            : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
         {
             _userNodes = userNodes;
         }
@@ -29,9 +29,9 @@ public partial class OnlineCommand
             .Add(AccessLevelRequirement.Admin)
             .Build();
 
-        internal override Command Target => "adminonline";
+        internal override Command Target => CommandFactory.Create("adminonline");
 
-        protected override async Task HandleAsync(ParsedCommand receivedCommand)
+        protected override async Task HandleAsync(Command receivedCommand)
         {
             var nodesOnline = _userNodes.Aggregate(0, (nodesOnline, theUserNodes) => nodesOnline += theUserNodes.Value.NodesOnline.Count);
             var nodesOffline = _userNodes.Aggregate(0, (nodesOffline, theUserNodes) => nodesOffline += theUserNodes.Value.NodesOffline.Count);

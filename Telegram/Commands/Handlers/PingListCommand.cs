@@ -2,7 +2,6 @@
 using System.Text;
 using Telegram.Bot;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.Models;
 using Telegram.MPlus;
 using Telegram.Security.Authorization;
@@ -16,20 +15,21 @@ public partial class PingListCommand : CommandHandler, IAuthorizationPolicyProte
 
     public PingListCommand(
         UserNodes userNodes,
-        CommandParser parser,
+        Command.Factory commandFactory,
+        Command.Received receivedCommand,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<PingListCommand> logger)
-        : base(parser, bot, httpContextAccessor, logger)
+        : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
         _userNodes = userNodes;
     }
 
-    internal override Command Target => "pinglist";
+    internal override Command Target => CommandFactory.Create("pinglist");
 
     public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand)
+    protected override async Task HandleAsync(Command receivedCommand)
     {
         if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(User), out var userNodesSupervisor, Bot, ChatId))
             return;

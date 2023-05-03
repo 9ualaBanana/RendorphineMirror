@@ -2,7 +2,6 @@
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.MPlus;
 using Telegram.Persistence;
 using Telegram.Security.Authentication;
@@ -23,19 +22,20 @@ public class LoginCommand : CommandHandler
     public LoginCommand(
         MPlusClient mPlusClient,
         TelegramBotDbContext database,
-        CommandParser parser,
+        Command.Factory commandFactory,
+        Command.Received receivedCommand,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<LoginCommand> logger)
-        : base(parser, bot, httpContextAccessor, logger)
+        : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
         _mPlusClient = mPlusClient;
         _database = database;
     }
 
-    internal override Command Target => "login";
+    internal override Command Target => CommandFactory.Create("login");
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand)
+    protected override async Task HandleAsync(Command receivedCommand)
     {
         // `save: true` persists ChatId of the current user even if M+ authentication fails.
         var user = await PersistTelegramUserAsync(save: true);
@@ -71,7 +71,7 @@ public class LoginCommand : CommandHandler
             }
             else await Bot.SendMessageAsync_(ChatId,
                 $"Login must be performed like the following:\n" +
-                $"`{Target.PrefixedCommandText} <email> <password>`",
+                $"`{Target.Prefixed} <email> <password>`",
                 cancellationToken: RequestAborted);
 
 
