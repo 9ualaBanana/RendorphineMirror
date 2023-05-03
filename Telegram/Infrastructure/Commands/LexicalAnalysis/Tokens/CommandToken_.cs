@@ -2,7 +2,7 @@
 
 namespace Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
 
-public abstract class CommandToken_ : Token
+public abstract record CommandToken_ : Token
 {
     protected CommandToken_(string lexeme)
         : base(lexeme)

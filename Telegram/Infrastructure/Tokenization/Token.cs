@@ -1,6 +1,6 @@
 ﻿namespace Telegram.Infrastructure.Tokenization;
 
-public abstract class Token
+public abstract record Token
 {
     internal readonly string Lexeme;
     internal readonly string Value;

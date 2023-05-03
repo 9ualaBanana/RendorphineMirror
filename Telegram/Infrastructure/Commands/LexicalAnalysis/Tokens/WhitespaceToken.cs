@@ -3,7 +3,7 @@ using Telegram.Infrastructure.Tokenization;
 
 namespace Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
 
-internal class WhitespaceToken : CommandToken_
+internal record WhitespaceToken : CommandToken_
 {
     internal class LexemeScanner : LexemeScanner<CommandToken_>
     {
