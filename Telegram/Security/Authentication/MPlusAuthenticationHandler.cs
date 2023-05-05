@@ -12,51 +12,47 @@ public class MPlusAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 {
     readonly TelegramBot _bot;
     readonly TelegramBotDbContext _database;
-    readonly IHttpContextAccessor _httpContextAccessor;
 
     public MPlusAuthenticationHandler(
         TelegramBot bot,
         TelegramBotDbContext database,
-        IHttpContextAccessor httpContextAccessor,
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        ISystemClock clock) : base(options, logger, encoder, clock)
+        ISystemClock clock)
+        : base(options, logger, encoder, clock)
     {
         _bot = bot;
         _database = database;
-        _httpContextAccessor = httpContextAccessor;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var context = _httpContextAccessor.HttpContext!;
-
-        // Authentication middleware is invoked regardless of the current middleware pipeline so Update might have been not read.
-        if (context.ContainsUpdate())
+        // Authentication middleware is invoked regardless of the current middleware pipeline so Update might not have been read.
+        if (Context.ContainsUpdate())
             if (await User() is TelegramBotUserEntity loggedInUser)
             {
-                context.User.AddIdentity(loggedInUser.MPlusIdentity!.ToClaimsIdentity(Options.ClaimsIssuer));
-                return AuthenticateResult.Success(new(context.User, MPlusAuthenticationDefaults.AuthenticationScheme));
+                Context.User.AddIdentity(loggedInUser.MPlusIdentity!.ToClaimsIdentity(ClaimsIssuer));
+                return AuthenticateResult.Success(new(Context.User, MPlusAuthenticationDefaults.AuthenticationScheme));
             }
 
         return AuthenticateResult.NoResult();
 
 
         async Task<TelegramBotUserEntity?> User()
-            => await _database.FindAsync<TelegramBotUserEntity>(context.GetUpdate().ChatId()) is TelegramBotUserEntity user
+            => await _database.FindAsync<TelegramBotUserEntity>(Context.GetUpdate().ChatId()) is TelegramBotUserEntity user
             && user.MPlusIdentity is not null ?
             user : null;
     }
 
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        await _bot.SendMessageAsync_(_httpContextAccessor.HttpContext!.GetUpdate().ChatId(), "You must be logged in.");
+        await _bot.SendMessageAsync_(Context.GetUpdate().ChatId(), "You must be logged in.");
     }
 }
 
 static class TelegramChatAuthenticationHandlerHelpers
 {
     internal static ChatId ChatId(this Update update) =>
-        update.Message?.Chat.Id ?? update.CallbackQuery?.Message!.Chat.Id;
+        update.Message?.Chat.Id ?? update.CallbackQuery?.Message?.Chat.Id;
 }

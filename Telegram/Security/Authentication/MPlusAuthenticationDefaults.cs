@@ -1,6 +1,6 @@
 ﻿namespace Telegram.Security.Authentication;
 
-internal static class MPlusAuthenticationDefaults
+static class MPlusAuthenticationDefaults
 {
     internal const string AuthenticationScheme = "MPlus";
 }
