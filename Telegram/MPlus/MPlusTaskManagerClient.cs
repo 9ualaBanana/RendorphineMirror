@@ -63,4 +63,34 @@ public class MPlusTaskManagerClient
             throw exception;
         }
     }
+
+    internal async Task<MPlusPublicSessionInfo> GetPublicSessionInfoAsync(string sessionId, CancellationToken cancellationToken)
+    {
+        var requestUri = QueryHelpers.AddQueryString("checkmysession", "sessionid", sessionId);
+
+        if (await TryGetPublicSessionInfoAsync() is MPlusPublicSessionInfo publicSessionInfo)
+            return publicSessionInfo;
+        else
+        {
+            var exception = new InvalidDataException("Public session info request returned data in an unknow format.");
+            _logger.LogCritical(exception, "Public session info request failed.");
+            throw exception;
+        }
+
+
+        async Task<MPlusPublicSessionInfo?> TryGetPublicSessionInfoAsync()
+        {
+            try
+            {
+                return (await (await _httpClient.GetAsync(requestUri, cancellationToken)).GetJsonIfSuccessfulAsync())
+                    ["session"]!.ToObject<MPlusPublicSessionInfo>();
+            }
+            catch (Exception ex)
+            {
+                var exception = new HttpRequestException($"{nameof(MPlusPublicSessionInfo)} request failed.", ex);
+                _logger.LogCritical(exception, exception.Message);
+                throw exception;
+            }
+        }
+    }
 }
