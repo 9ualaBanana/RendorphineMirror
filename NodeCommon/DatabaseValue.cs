@@ -95,6 +95,7 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
     public IEnumerable<TKey> Keys => Items.Keys;
     public IEnumerable<TValue> Values => Items.Values;
     public int Count => Items.Count;
+    readonly object LockObject = new();
 
     IBindable IDatabaseBindable.Bindable => Bindable;
     public BindableBase<IReadOnlyList<TValue>> Bindable => ItemsList;
@@ -129,53 +130,66 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
     public TValue this[TKey key] => Items[key];
     public void Add(TValue value)
     {
-        var key = KeyFunc(value);
-        ItemsList.Add(value);
-        Items.Add(key, value);
+        lock (LockObject)
+        {
+            var key = KeyFunc(value);
+            ItemsList.Add(value);
+            Items.Add(key, value);
 
-        Database.ExecuteNonQuery(@$"insert into {TableName}(key, value) values (@key, @value)",
-            Parameter("key", key),
-            Parameter("value", value)
-        );
+            Database.ExecuteNonQuery(@$"insert into {TableName}(key, value) values (@key, @value)",
+                Parameter("key", key),
+                Parameter("value", value)
+            );
+        }
     }
     public void AddRange(IEnumerable<TValue> values)
     {
-        foreach (var value in values)
-            Add(value);
+        lock (LockObject)
+            foreach (var value in values)
+                Add(value);
     }
 
     public void Remove(TValue value) => Remove(KeyFunc(value));
     public void Remove(TKey key)
     {
-        if (Items.TryGetValue(key, out var value))
-            ItemsList.Remove(value);
-        Items.Remove(key);
+        lock (LockObject)
+        {
+            if (Items.TryGetValue(key, out var value))
+                ItemsList.Remove(value);
+            Items.Remove(key);
 
-        Database.ExecuteNonQuery(@$"delete from {TableName} where key=@key", Parameter("key", key));
+            Database.ExecuteNonQuery(@$"delete from {TableName} where key=@key", Parameter("key", key));
+        }
     }
 
     public void Clear()
     {
-        ItemsList.Clear();
-        Items.Clear();
-        Database.ExecuteNonQuery(@$"delete from {TableName}");
+        lock (LockObject)
+        {
+            ItemsList.Clear();
+            Items.Clear();
+            Database.ExecuteNonQuery(@$"delete from {TableName}");
+        }
     }
 
     public void Reload()
     {
-        Items.Clear();
-        ItemsList.Clear();
-
-        Database.ExecuteNonQuery($"create table if not exists {TableName} (key text primary key unique not null, value text null);");
-        var reader = Database.ExecuteQuery($"select * from {TableName} order by rowid");
-
-        while (reader.Read())
+        lock (LockObject)
         {
-            var valuejson = reader.GetString(reader.GetOrdinal("value"));
-            var item = JToken.Parse(valuejson).ToObject<TValue>(Bindable.JsonSerializer)!;
+            Items.Clear();
+            ItemsList.Clear();
 
-            Items.Add(KeyFunc(item), item);
-            ItemsList.Add(item);
+            Database.ExecuteNonQuery($"create table if not exists {TableName} (key text primary key unique not null, value text null);");
+            var reader = Database.ExecuteQuery($"select * from {TableName} order by rowid");
+
+            while (reader.Read())
+            {
+                var valuejson = reader.GetString(reader.GetOrdinal("value"));
+                var item = JToken.Parse(valuejson).ToObject<TValue>(Bindable.JsonSerializer)!;
+
+                Items.Add(KeyFunc(item), item);
+                ItemsList.Add(item);
+            }
         }
     }
     public void Save(TValue value)
