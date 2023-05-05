@@ -8,7 +8,7 @@ public abstract class MessageHandler : UpdateHandler
     /// <summary>
     /// Unique identifier for the chat where the <see cref="Bot.Types.Message"/> being handled came from.
     /// </summary>
-    protected long ChatId => Message.Chat.Id;
+    protected ChatId ChatId => Message.Chat.Id;
 
     /// <summary>
     /// The <see cref="Bot.Types.Message"/> being handled.

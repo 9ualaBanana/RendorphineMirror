@@ -16,6 +16,7 @@ namespace Telegram.Tasks.ResultPreview;
 public class TelegramPreviewTaskResultHandler
 {
     readonly MediaFilesCache _mediaFilesCache;
+    readonly MediaFile.Factory _mediaFileFactory;
     readonly OwnedRegisteredTasksCache _ownedRegisteredTasksCache;
     readonly MPlusClient _mPlusClient;
     readonly TelegramBot _bot;
@@ -24,12 +25,14 @@ public class TelegramPreviewTaskResultHandler
 
     public TelegramPreviewTaskResultHandler(
         MediaFilesCache mediaFilesCache,
+        MediaFile.Factory mediaFileFactory,
         OwnedRegisteredTasksCache ownedRegisteredTasksCache,
         MPlusClient mPlusClient,
         TelegramBot bot,
         ILogger<TelegramPreviewTaskResultHandler> logger)
     {
         _mediaFilesCache = mediaFilesCache;
+        _mediaFileFactory = mediaFileFactory;
         _ownedRegisteredTasksCache = ownedRegisteredTasksCache;
         _mPlusClient = mPlusClient;
         _bot = bot;
@@ -83,9 +86,11 @@ public class TelegramPreviewTaskResultHandler
 
         async Task<Message> SendPreviewAsync()
         {
-            var cachedTaskResult = await _mediaFilesCache.AddAsync(MediaFile.From(taskResult.FileDownloadLink), TimeSpan.FromMinutes(30), cancellationToken);
+            var cachedTaskResult = await _mediaFilesCache.AddAsync(
+                await _mediaFileFactory.CreateAsyncFrom(taskResult.FileDownloadLink, cancellationToken), TimeSpan.FromMinutes(30), cancellationToken);
             var cachedTaskPreview = taskResult.Action is not TaskAction.VeeeVectorize ?
-                cachedTaskResult : await _mediaFilesCache.AddAsync(MediaFile.From(taskResult.PreviewDownloadLink), cancellationToken);
+                cachedTaskResult : await _mediaFilesCache.AddAsync(
+                    await _mediaFileFactory.CreateAsyncFrom(taskResult.PreviewDownloadLink, cancellationToken), cancellationToken);
 
             var caption = await BuildCaptionAsync();
             var replyMarkup = BuildReplyMarkupAsync();

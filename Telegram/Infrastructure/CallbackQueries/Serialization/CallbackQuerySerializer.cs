@@ -2,7 +2,7 @@
 using Telegram.Bot.Types;
 using Telegram.Callbacks;
 
-namespace Telegram.Infrastructure.CallbackQueries;
+namespace Telegram.Infrastructure.CallbackQueries.Serialization;
 
 public class CallbackQuerySerializer
 {

@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.CallbackQueries;
+using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
 using Telegram.MPlus;
@@ -18,13 +18,13 @@ public class ImageProcessingCallbackQueryHandler
     public ImageProcessingCallbackQueryHandler(
         OwnedRegisteredTasksCache ownedRegisteredTasksCache,
         IOptions<TelegramBotOptions> botOptions,
-        MediaFilesManager mediaFilesManager,
+        MediaFilesCache mediaFilesCache,
         IHttpClientFactory httpClientFactory,
         CallbackQuerySerializer serializer,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<ImageProcessingCallbackQueryHandler> logger)
-        : base(mediaFilesManager, httpClientFactory, serializer, bot, httpContextAccessor, logger)
+        : base(mediaFilesCache, httpClientFactory, serializer, bot, httpContextAccessor, logger)
     {
         _ownedRegisteredTasksCache = ownedRegisteredTasksCache;
         _hostUrl = botOptions.Value.Host;

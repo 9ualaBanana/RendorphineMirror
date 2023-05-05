@@ -1,14 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Telegram.Bot;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.MPlus;
 using Telegram.Security.Authorization;
 using Telegram.Services.Node;
 
 namespace Telegram.Commands.Handlers;
 
-public class DeployCommand : CommandHandler, IAuthorizationRequirementsProvider
+public class DeployCommand : CommandHandler, IAuthorizationPolicyProtected
 {
     readonly UserNodes _userNodes;
     readonly HttpClient _httpClient;
@@ -16,22 +15,22 @@ public class DeployCommand : CommandHandler, IAuthorizationRequirementsProvider
     public DeployCommand(
         UserNodes userNodes,
         IHttpClientFactory httpClientFactory,
-        CommandParser parser,
+        Command.Factory commandFactory,
+        Command.Received receivedCommand,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<DeployCommand> logger)
-        : base(parser, bot, httpContextAccessor, logger)
+        : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
         _userNodes = userNodes;
         _httpClient = httpClientFactory.CreateClient();
     }
 
-    public IEnumerable<IAuthorizationRequirement> Requirements { get; }
-        = IAuthorizationRequirementsProvider.Provide(MPlusAuthenticationRequirement.Instance);
+    internal override Command Target => CommandFactory.Create("deploy");
 
-    internal override Command Target => "deploy";
+    public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 
-    protected override async Task HandleAsync(ParsedCommand receivedCommand)
+    protected override async Task HandleAsync(Command receivedCommand)
     {
         var pluginTypes = receivedCommand.UnquotedArguments.Select(type => Enum.Parse<PluginType>(type, true));
         var nodeNames = receivedCommand.QuotedArguments;

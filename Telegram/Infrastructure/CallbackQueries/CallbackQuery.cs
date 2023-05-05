@@ -1,5 +1,6 @@
 ﻿using NLog;
 using Telegram.Bot.Types;
+using Telegram.Infrastructure.CallbackQueries.Serialization;
 using ILogger = NLog.ILogger;
 
 namespace Telegram.Infrastructure.CallbackQueries;
