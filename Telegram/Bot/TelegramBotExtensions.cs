@@ -5,16 +5,13 @@ namespace Telegram.Bot;
 
 internal static class TelegramBotExtensions
 {
-    internal static IServiceCollection AddTelegramBotUsing(this IServiceCollection services, ConfigurationManager configuration)
-    {
-        configuration
+    internal static IWebHostBuilder AddTelegramBot(this IWebHostBuilder builder)
+        => builder
+        .ConfigureAppConfiguration(_ => _
             .AddJsonFile("botsettings.json", optional: false, reloadOnChange: false)
-            .AddJsonFile($"botsettings.{Environments.Development}.json", optional: true, reloadOnChange: false);
-
-        return services
-            .ConfigureTelegramBotOptionsUsing(configuration)
-            .AddSingleton<TelegramBot>()
-                .AddMessagePagination()
-            .AddDbContext<TelegramBotDbContext>();
-    }
+            .AddJsonFile($"botsettings.{Environments.Development}.json", optional: true, reloadOnChange: false))
+        .ConfigureServices(_ => _
+            .AddSingleton<TelegramBot>().AddMessagePagination()
+                .ConfigureTelegramBotOptions()
+            .AddDbContext<TelegramBotDbContext>());
 }
