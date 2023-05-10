@@ -11,7 +11,8 @@ namespace Telegram.Commands.Handlers;
 /// Each invocation of <see cref="LoginCommand"/> results in persisting <see cref="ChatId"/>
 /// of the user who invoked it, if hasn't been persisted yet. Resulting <see cref="TelegramBotUserEntity"/>
 /// will contain <see cref="TelegramBotUserEntity.MPlusIdentity"/> if the user is already logged in.
-/// Otherwise, a login attempt is made using credentials provided by the user and 
+/// Otherwise, a login attempt is made using credentials provided by the user and <see cref="TelegramBotUserEntity"/>
+/// will contain <see cref="TelegramBotUserEntity"/> if the attempt was successful.
 /// </remarks>
 public class LoginCommand : CommandHandler
 {
@@ -33,14 +34,14 @@ public class LoginCommand : CommandHandler
 
     protected override async Task HandleAsync(Command receivedCommand)
     {
-        // `save: true` persists ChatId of the current user even if M+ authentication fails.
         var user = await _loginManager.PersistTelegramUserAsync(ChatId, save: true, RequestAborted);
 
-        if (user.MPlusIdentity is null)
-            await TryLogInAsync(user);
-        else await Bot.SendMessageAsync_(ChatId,
-            $"You are already logged in.",
-            cancellationToken: RequestAborted);
+        if (user.MPlusIdentity is not null) 
+            await Bot.SendMessageAsync_(ChatId,
+                $"You are already logged in.",
+                cancellationToken: RequestAborted
+                );
+        else await TryLogInAsync(user);
 
 
         async Task TryLogInAsync(TelegramBotUserEntity user)
