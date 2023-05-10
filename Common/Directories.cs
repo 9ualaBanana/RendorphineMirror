@@ -9,8 +9,33 @@ public static class Directories
     public static string Data = DataFor(Initializer.AppName);
     public static string DataFor(string appname) => Created(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), appname);
 
+    public static string DataDir(params string[] subdirs) => Created(new[] { Data }.Concat(subdirs).ToArray());
+    public static string DataFile(string file) => Path.Combine(Data, file);
+
     /// <summary> Temp directory; {datadir}/temp/[...subdirs]. Cleaned every launch </summary>
     public static string Temp(params string[] subdirs) => Created(new[] { Data, "temp" }.Concat(subdirs).ToArray());
+
+    /// <inheritdoc cref="TempFile(string, out string)"/>
+    public static FuncDispose TempFile(out string tempfile) => TempFile(Temp(), out tempfile);
+
+    /// <summary> Temp file; {datadir}/temp/{directory}/{randomname} </summary>
+    /// <returns> Struct that will delete the file when disposed </returns>
+    public static FuncDispose TempFile(string directory, out string tempfile)
+    {
+        do { tempfile = Path.Combine(Created(directory), Guid.NewGuid().ToString()); }
+        while (File.Exists(tempfile));
+
+        var delfile = tempfile;
+        return new FuncDispose(() =>
+        {
+            try
+            {
+                if (File.Exists(delfile))
+                    File.Delete(delfile);
+            }
+            catch { }
+        });
+    }
 
 
     /// <summary> Deletes a file or directory when disposed </summary>
