@@ -290,7 +290,15 @@ public static class TaskHandler
             }
         }
 
-        await fail("Ran out of attempts" + (lastexception is null ? null : $": {lastexception.Message}"));
+        var exstr = null as string;
+        if (lastexception is not null)
+        {
+            exstr = $": [{lastexception.GetType().Name}] {lastexception.Message}";
+            if (lastexception.TargetSite is not null)
+                exstr += $"; at [{lastexception.TargetSite.DeclaringType}] {lastexception.TargetSite}";
+        }
+
+        await fail($"Ran out of attempts{exstr}");
 
 
         async ValueTask fail(string message)
