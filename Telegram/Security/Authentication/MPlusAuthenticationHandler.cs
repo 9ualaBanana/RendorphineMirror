@@ -50,9 +50,3 @@ public class MPlusAuthenticationHandler : AuthenticationHandler<AuthenticationSc
         await _bot.SendMessageAsync_(Context.GetUpdate().ChatId(), "You must be logged in.");
     }
 }
-
-static class TelegramChatAuthenticationHandlerHelpers
-{
-    internal static ChatId ChatId(this Update update) =>
-        update.Message?.Chat.Id ?? update.CallbackQuery?.Message?.Chat.Id;
-}

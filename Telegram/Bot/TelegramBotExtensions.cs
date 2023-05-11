@@ -1,4 +1,5 @@
 ﻿using Telegram.Bot.MessagePagination;
+using Telegram.Bot.Types;
 using Telegram.Persistence;
 
 namespace Telegram.Bot;
@@ -14,4 +15,14 @@ internal static class TelegramBotExtensions
             .AddSingleton<TelegramBot>().AddMessagePagination()
                 .ConfigureTelegramBotOptions()
             .AddDbContext<TelegramBotDbContext>());
+
+    internal static ChatId ChatId(this Update update) =>
+        update.Message?.Chat.Id ??
+        update.CallbackQuery?.Message?.Chat.Id ??
+        update.InlineQuery?.From.Id ??
+        update.ChosenInlineResult?.From.Id ??
+        update.ChannelPost?.Chat.Id ??
+        update.EditedChannelPost?.Chat.Id ??
+        update.ShippingQuery?.From.Id ??
+        update.PreCheckoutQuery?.From.Id!;
 }
