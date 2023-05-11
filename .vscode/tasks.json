@@ -8,6 +8,12 @@
             "args": [ "build", "${workspaceFolder}/Node/Node.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
+            "label": "buildnodetests",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "build", "${workspaceFolder}/NewNode/Tests/Node.Tests.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
+        },
+        {
             "label": "buildnodeui",
             "command": "dotnet",
             "type": "process",

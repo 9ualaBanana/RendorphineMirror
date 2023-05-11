@@ -26,6 +26,18 @@
             "stopAtEntry": false
         },
         {
+            "name": "Node-Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildnodetests",
+            "program": "${workspaceFolder}/NewNode/Tests/bin/Debug/net7.0/Node.Tests.dll",
+            "args": [ "release" ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
             "name": "NodeUI",
             "type": "coreclr",
             "request": "launch",
