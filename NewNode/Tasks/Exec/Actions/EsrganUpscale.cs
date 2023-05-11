@@ -57,7 +57,7 @@ public class EsrganUpscale : PluginAction<UpscaleEsrganInfo>
                 var num1 = double.Parse(spt.Slice(0, slashidx));
                 var num2 = double.Parse(spt.Slice(slashidx + 1));
 
-                context.SetProgress(num1 / num2);
+                context.SetProgress(Math.Min(num1 / num2, .99));
             }
         }
         async Task downscale(FileWithFormat file)

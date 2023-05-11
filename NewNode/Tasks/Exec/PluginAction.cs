@@ -37,6 +37,7 @@ public abstract class PluginAction<T> : IPluginAction<T>
         var sw = System.Diagnostics.Stopwatch.StartNew();
         context.LogInfo($"Executing {Name}");
         await ExecuteUnchecked(context, files, data).ConfigureAwait(false);
+        context.SetProgress(1);
         context.LogInfo($"Execution {Name} completed in {sw.Elapsed}");
 
         context.LogInfo($"Validating result");
