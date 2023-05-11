@@ -9,8 +9,8 @@ internal static class CommandsLexicalAnalysisExtensions
         => services
         .AddScoped<Tokenizer<CommandToken_>>()
         .AddScoped<LexemeScanner<CommandToken_>, CommandToken.LexemeScanner>()
-        .AddScoped<LexemeScanner<CommandToken_>, UnquotedCommandArgumentToken.LexemeScanner>()
         .AddScoped<LexemeScanner<CommandToken_>, QuotedCommandArgumentToken.LexemeScanner>()
+        .AddScoped<LexemeScanner<CommandToken_>, UnquotedCommandArgumentToken.LexemeScanner>()
         .AddScoped<LexemeScanner<CommandToken_>, WhitespaceToken.LexemeScanner>()
         .AddScoped<LexemeScanner<CommandToken_>, InvalidToken.LexemeScanner>();
 }

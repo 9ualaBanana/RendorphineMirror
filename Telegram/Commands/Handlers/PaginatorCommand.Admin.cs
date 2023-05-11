@@ -2,33 +2,32 @@
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 using Telegram.Security.Authorization;
+using static Telegram.Security.Authorization.MPlusAuthorizationPolicyBuilder;
 
 namespace Telegram.Commands.Handlers;
 
 public class PaginatorCommand
 {
-    public class Admin : CommandHandler, IAuthorizationRequirementsProvider
+    public class Admin : CommandHandler, IAuthorizationPolicyProtected
     {
         public Admin(
-            CommandParser parser,
+            Command.Factory commandFactory,
+            Command.Received receivedCommand,
             TelegramBot bot,
             IHttpContextAccessor httpContextAccessor,
             ILogger<Admin> logger)
-            : base(parser, bot, httpContextAccessor, logger)
+            : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
             {
             }
 
-        public IEnumerable<IAuthorizationRequirement> Requirements { get; } 
-            = IAuthorizationRequirementsProvider.Provide(
-                MPlusAuthenticationRequirement.Instance,
-                AccessLevelRequirement.Admin
-                );
+        internal override Command Target => CommandFactory.Create("adminpaginator");
 
-        internal override Command Target => "adminpaginator";
+        public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder()
+            .Add(AccessLevelRequirement.Admin)
+            .Build();
 
-        protected override async Task HandleAsync(ParsedCommand receivedCommand)
+        protected override async Task HandleAsync(Command receivedCommand)
         {
             await Bot.SendMessageAsync_(ChatId, @"UN Climate Change News, 27 September 2022 -  Momentum is building for a strong political outcome relating to oceans at the UN Climate Change Conference COP27 in Sharm el-Sheikh, Egypt, in November, including greater ambition to cut greenhouse gas emissions, strengthened measures to build the resilience of coastal communities to climate change impacts and the financing needed for this.
 

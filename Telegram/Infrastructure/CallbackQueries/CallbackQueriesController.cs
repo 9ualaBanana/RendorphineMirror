@@ -19,21 +19,26 @@ public class CallbackQueriesController : ControllerBase
     [HttpPost]
     public async Task Handle([FromServices] IEnumerable<ICallbackQueryHandler> callbackQueryHandlers)
     {
-        Exception? exception = null;
+        try { await Handle(); }
+        catch (Exception exception)
+        { _logger.LogCritical(exception, "Callback query wasn't handled"); throw; }
 
-        var callbackQuery = HttpContext.GetUpdate().CallbackQuery!;
-        if (callbackQuery.Data is not null)
-            if (callbackQueryHandlers.Switch(callbackQuery) is ICallbackQueryHandler callbackQueryHandler)
-            { await callbackQueryHandler.HandleAsync(); return; }
 
-            else exception = new NotImplementedException(
-                $"None of registered implementations of {nameof(ICallbackQueryHandler)} matched received callback query: {callbackQuery.Data}"
+        async Task Handle()
+        {
+            var callbackQuery = HttpContext.GetUpdate().CallbackQuery!;
+
+            if (callbackQuery.Data is not null)
+
+                if (callbackQueryHandlers.Switch(callbackQuery) is ICallbackQueryHandler callbackQueryHandler)
+                    await callbackQueryHandler.HandleAsync();
+                else throw new NotImplementedException(
+                    $"None of registered implementations of {nameof(ICallbackQueryHandler)} matched received callback query: {callbackQuery.Data}"
+                    );
+
+            else throw new ArgumentNullException(nameof(callbackQuery.Data),
+                $"{nameof(CallbackQuery.Data)} must contain a serialized {typeof(CallbackQuery<>)}"
                 );
-        else exception = new ArgumentNullException(
-            $"{nameof(CallbackQuery.Data)} must contain a serialized {typeof(CallbackQuery<>)}"
-            );
-
-        _logger.LogCritical(exception, message: default);
-        throw exception;
+        }
     }
 }

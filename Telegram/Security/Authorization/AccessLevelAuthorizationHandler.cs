@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Telegram.MPlus;
+using static Telegram.Security.Authorization.MPlusAuthorizationPolicyBuilder;
 
 namespace Telegram.Security.Authorization;
 
@@ -12,10 +13,10 @@ public class AccessLevelAuthorizationHandler : AuthorizationHandler<AccessLevelR
             var userAccessLevel = MPlusIdentity.AccessLevelOf(context.User);
             if (userAccessLevel >= requirement.AccessLevel)
                 context.Succeed(requirement);
-            else context.Fail(new(handler: this, $"User doesn't have required {nameof(AccessLevel)}."));
+            else context.Fail(new(handler: this,
+                $"User doesn't have required {nameof(AccessLevel)} ({userAccessLevel}:{(int)userAccessLevel}).")
+                );
         }
-        else context.Fail(new(handler: this, context.FailureReasons.Last().Message));
-        
 
         return Task.CompletedTask;
     }

@@ -1,5 +1,6 @@
 ﻿using Telegram.Bot;
 using Telegram.Infrastructure.CallbackQueries;
+using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.MPlus;
 using Transport.Upload;
 
@@ -10,11 +11,11 @@ public abstract class MediaProcessingCallbackQueryHandler<TCallbackQuery, ECallb
     where TCallbackQuery : MediaProcessingCallbackQuery<ECallbackData>, new()
     where ECallbackData : struct, Enum
 {
-    readonly MediaFilesManager _mediaFilesManager;
+    readonly MediaFilesCache _mediaFilesCache;
     readonly HttpClient _httpClient;
 
     protected MediaProcessingCallbackQueryHandler(
-        MediaFilesManager mediaFilesManager,
+        MediaFilesCache mediaFilesCache,
         IHttpClientFactory httpClientFactory,
         CallbackQuerySerializer serializer,
         TelegramBot bot,
@@ -22,13 +23,13 @@ public abstract class MediaProcessingCallbackQueryHandler<TCallbackQuery, ECallb
         ILogger logger)
         : base(serializer, bot, httpContextAccessor, logger)
     {
-        _mediaFilesManager = mediaFilesManager;
+        _mediaFilesCache = mediaFilesCache;
         _httpClient = httpClientFactory.CreateClient();
     }
 
     public override async Task HandleAsync(TCallbackQuery callbackQuery)
     {
-        if (_mediaFilesManager.Cache.TryRetrieveMediaFileWith(callbackQuery.CachedMediaFileIndex) is MediaFilesCache.Entry cachedMediaFile)
+        if (_mediaFilesCache.TryRetrieveMediaFileWith(callbackQuery.CachedMediaFileIndex) is MediaFilesCache.Entry cachedMediaFile)
             await HandleAsync(callbackQuery, cachedMediaFile);
         else await Bot.SendMessageAsync_(ChatId, "Media file is expired. Try to send it again.");
     }

@@ -1,7 +1,7 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure;
-using Telegram.Infrastructure.CallbackQueries;
+using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.MPlus;
 
@@ -11,11 +11,13 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
 {
     readonly MPlusTaskLauncherClient _taskLauncherClient;
     readonly MediaFilesCache _mediaFilesCache;
+    readonly MediaFile.Factory _mediaFileFactory;
     readonly CallbackQuerySerializer _serializer;
 
     public ProcessingMethodSelectorImageHandler(
         MPlusTaskLauncherClient taskLauncherClient,
         MediaFilesCache mediaFilesCache,
+        MediaFile.Factory mediaFileFactory,
         CallbackQuerySerializer serializer,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
@@ -24,6 +26,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
     {
         _taskLauncherClient = taskLauncherClient;
         _mediaFilesCache = mediaFilesCache;
+        _mediaFileFactory = mediaFileFactory;
         _serializer = serializer;
     }
 
@@ -31,7 +34,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
     {
         try
         {
-            var receivedImage = MediaFile.From(Message);
+            var receivedImage = await _mediaFileFactory.CreateAsyncFrom(Message, RequestAborted);
             await Bot.SendMessageAsync_(ChatId, "*Choose how to process the image*",
                 await BuildReplyMarkupAsyncFor(receivedImage, RequestAborted)
                 );

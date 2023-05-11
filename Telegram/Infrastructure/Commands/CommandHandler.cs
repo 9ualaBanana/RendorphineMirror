@@ -1,20 +1,19 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Infrastructure;
-using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
 
-namespace Telegram.Commands.Handlers;
+namespace Telegram.Infrastructure.Commands;
 
 /// <summary>
 /// Base class for <see cref="CommandHandler"/>s that should be used to handle <see cref="Target"/> and
-/// also provides access to received <see cref="ParsedCommand"/> to its children by calling abstract
-/// <see cref="HandleAsync(ParsedCommand)"/>
+/// also provides access to received <see cref="Command"/> to its children by calling abstract
+/// <see cref="HandleAsync(Command)"/>
 /// via publicly available <see cref="HandleAsync()"/>.
 /// </summary>
 public abstract class CommandHandler : MessageHandler, ISwitchableService<CommandHandler, Command>
 {
-    readonly CommandParser _parser;
+    protected readonly Command.Factory CommandFactory;
+
+    readonly Command.Received _receivedCommand;
 
     /// <summary>
     /// The <see cref="Bot.Types.Message"/> which contains the command being handled.
@@ -22,13 +21,15 @@ public abstract class CommandHandler : MessageHandler, ISwitchableService<Comman
     protected override Message Message => Update.Message!;
 
     protected CommandHandler(
-        CommandParser parser,
+        Command.Factory commandFactory,
+        Command.Received receivedCommand,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger logger)
         : base(bot, httpContextAccessor, logger)
     {
-        _parser = parser;
+        _receivedCommand = receivedCommand;
+        CommandFactory = commandFactory;
     }
 
     internal abstract Command Target { get; }
@@ -42,24 +43,32 @@ public abstract class CommandHandler : MessageHandler, ISwitchableService<Comman
     /// to handle the <paramref name="command"/>; <see langword="false"/> otherwise.
     /// </returns>
     public bool Matches(Command command)
-        => (_receivedCommand = _parser.TryParse(command)) is not null && _receivedCommand.Command == Target;
+    {
+        var receivedCommand = _receivedCommand.Get();
 
-    ParsedCommand? _receivedCommand;
+        if (receivedCommand == Target)
+        { Context.Items[MatchedCommand] = receivedCommand; return true; }
+        else return false;
+    }
 
     public override async Task HandleAsync()
     {
-        if (_receivedCommand is not null)
-            await HandleAsync(_receivedCommand);
+        if (Context.Items[MatchedCommand] is Command matchedCommand)
+            await HandleAsync(matchedCommand);
         else
         {
             var exception = new InvalidOperationException(
-                $"{nameof(HandleAsync)} can be called only after this {nameof(CommandHandler)} matched the received command.",
-                new ArgumentNullException(nameof(_receivedCommand))
+                $"{nameof(HandleAsync)} can be called only after this {nameof(CommandHandler)} matched the received command."
                 );
             Logger.LogCritical(exception, message: default);
             throw exception;
         }
     }
 
-    protected abstract Task HandleAsync(ParsedCommand receivedCommand);
+    /// <summary>
+    /// Key which maps to the <see cref="Command"/> that matched this <see cref="CommandHandler"/>.
+    /// </summary>
+    string MatchedCommand => GetType().FullName!;
+
+    protected abstract Task HandleAsync(Command receivedCommand);
 }
