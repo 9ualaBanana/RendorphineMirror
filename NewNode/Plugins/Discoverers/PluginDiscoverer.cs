@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Node.Plugins.Discoverers;
 
-public abstract class PluginDiscoverer : IPluginDiscoverer
+internal abstract class PluginDiscoverer : IPluginDiscoverer
 {
     public static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 

@@ -24,7 +24,6 @@ global using NodeToUI;
 using Node;
 using Node.Heartbeat;
 using Node.Listeners;
-using Node.Plugins.Discoverers;
 using Node.Profiling;
 using Node.Tasks.Exec.Actions;
 
@@ -241,20 +240,7 @@ async Task InitializePlugins()
         new GenerateQSPreview()
     );
 
-    PluginsManager.RegisterPluginDiscoverers(
-        new BlenderPluginDiscoverer(),
-        new Autodesk3dsMaxPluginDiscoverer(),
-        new TopazGigapixelAIPluginDiscoverer(),
-        new DaVinciResolvePluginDiscoverer(),
-        new FFmpegPluginDiscoverer(),
-        new PythonPluginDiscoverer(),
-        new PythonEsrganPluginDiscoverer(),
-        new RobustVideoMattingPluginDiscoverer(),
-        new VeeeVectorizerPluginDiscoverer(),
-        new NvidiaDriverPluginDiscoverer(),
-        new CondaPluginDiscoverer()
-    );
-
+    PluginsManager.RegisterPluginDiscoverers(PluginDiscoverers.GetAll());
     TaskHandler.AutoInitializeHandlers();
 
     var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();

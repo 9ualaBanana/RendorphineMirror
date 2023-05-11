@@ -1,6 +1,6 @@
 ﻿namespace Node.Plugins.Discoverers;
 
-public class DaVinciResolvePluginDiscoverer : PluginDiscoverer
+internal class DaVinciResolvePluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {

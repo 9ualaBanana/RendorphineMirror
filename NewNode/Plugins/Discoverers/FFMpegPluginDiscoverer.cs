@@ -1,6 +1,6 @@
 ﻿namespace Node.Plugins.Discoverers;
 
-public class FFmpegPluginDiscoverer : PluginDiscoverer
+internal class FFmpegPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {

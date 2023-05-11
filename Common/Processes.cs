@@ -1,26 +1,10 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace Node;
+namespace Common;
 
 public static class Processes
 {
-    /// <summary> Finds file in PATH and returns the full path, e.g. "python" => "/bin/python" </summary>
-    public static OperationResult<string> FindFileInPath(string file)
-    {
-        try
-        {
-            var path = PowerShellInvoker.JustInvoke<string>($"(Get-Command '{file}').Path")[0];
-            if (string.IsNullOrWhiteSpace(path)) return err();
-
-            return path;
-        }
-        catch { return err(); }
-
-        OperationResult err() => OperationResult.Err("Command not found");
-    }
-
-
     static Process Start(string exepath, string args, IEnumerable<string> argsarr, ILoggable? logobj)
     {
         logobj?.LogInfo($"Starting {exepath} {args}{string.Join(' ', argsarr)}");

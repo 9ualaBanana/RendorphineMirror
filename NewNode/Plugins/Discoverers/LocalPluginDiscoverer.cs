@@ -4,7 +4,7 @@ namespace Node.Plugins.Discoverers;
 /// <see cref="PluginDiscoverer"/> for plugins in plugins/ directory.
 /// Plugins must be versioned, e.g. plugins/esrgan/0.2/
 /// </summary>
-public abstract class LocalPluginDiscoverer : PluginDiscoverer
+internal abstract class LocalPluginDiscoverer : PluginDiscoverer
 {
     protected sealed override IEnumerable<string> InstallationPathsImpl => new[] { "plugins" };
     protected sealed override string? ExecutableRegex => null;

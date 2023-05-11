@@ -1,6 +1,4 @@
-﻿using Node.Plugins.Discoverers;
-
-namespace Node.Plugins;
+﻿namespace Node.Plugins;
 
 public static class PluginsManager
 {

@@ -1,6 +1,6 @@
 ﻿namespace Node.Plugins.Discoverers;
 
-public class PythonPluginDiscoverer : PluginDiscoverer
+internal class PythonPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new List<string>
     {

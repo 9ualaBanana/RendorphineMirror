@@ -1,6 +1,6 @@
 ﻿namespace Node.Plugins.Discoverers;
 
-public class CondaPluginDiscoverer : PluginDiscoverer
+internal class CondaPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new[] { "plugins" };
     protected override string ParentDirectoryPattern => "mamba";

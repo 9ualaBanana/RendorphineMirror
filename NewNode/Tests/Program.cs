@@ -1,5 +1,4 @@
 ﻿using Node.Plugins;
-using Node.Plugins.Discoverers;
 using Node.Plugins.Models;
 using Node.Tasks;
 using Node.Tasks.Exec.Actions;
@@ -7,19 +6,7 @@ using Node.Tasks.Models;
 
 Initializer.AppName = "renderfin";
 
-PluginsManager.RegisterPluginDiscoverers(
-    new BlenderPluginDiscoverer(),
-    new Autodesk3dsMaxPluginDiscoverer(),
-    new TopazGigapixelAIPluginDiscoverer(),
-    new DaVinciResolvePluginDiscoverer(),
-    new FFmpegPluginDiscoverer(),
-    new PythonPluginDiscoverer(),
-    new PythonEsrganPluginDiscoverer(),
-    new RobustVideoMattingPluginDiscoverer(),
-    new VeeeVectorizerPluginDiscoverer(),
-    new NvidiaDriverPluginDiscoverer(),
-    new CondaPluginDiscoverer()
-);
+PluginsManager.RegisterPluginDiscoverers(PluginDiscoverers.GetAll());
 await PluginsManager.DiscoverInstalledPluginsAsync();
 
 

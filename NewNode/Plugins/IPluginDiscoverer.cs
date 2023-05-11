@@ -1,4 +1,4 @@
-namespace Node.Plugins.Discoverers;
+namespace Node.Plugins;
 
 public interface IPluginDiscoverer
 {

@@ -1,6 +1,6 @@
 ﻿namespace Node.Plugins.Discoverers;
 
-public class TopazGigapixelAIPluginDiscoverer : PluginDiscoverer
+internal class TopazGigapixelAIPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new string[]
     {

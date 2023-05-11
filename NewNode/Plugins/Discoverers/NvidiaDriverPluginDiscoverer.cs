@@ -2,7 +2,7 @@
 
 namespace Node.Plugins.Discoverers;
 
-public class NvidiaDriverPluginDiscoverer : IPluginDiscoverer
+internal class NvidiaDriverPluginDiscoverer : IPluginDiscoverer
 {
     public async ValueTask<IEnumerable<Plugin>> Discover()
     {

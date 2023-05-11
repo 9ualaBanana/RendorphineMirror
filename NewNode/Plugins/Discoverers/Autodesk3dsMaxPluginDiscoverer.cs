@@ -1,6 +1,6 @@
 ﻿namespace Node.Plugins.Discoverers;
 
-public class Autodesk3dsMaxPluginDiscoverer : PluginDiscoverer
+internal class Autodesk3dsMaxPluginDiscoverer : PluginDiscoverer
 {
     protected override IEnumerable<string> InstallationPathsImpl => new List<string>
     {
