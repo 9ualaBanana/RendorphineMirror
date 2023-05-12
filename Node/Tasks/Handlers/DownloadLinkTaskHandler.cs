@@ -17,13 +17,7 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
         if (data.StatusCode != HttpStatusCode.OK)
             throw new HttpRequestException($"Download link `{info.Url}` request returned status code {data.StatusCode}", null, data.StatusCode);
 
-        var tempfile = Directories.Temp(Guid.NewGuid().ToString());
-        using var _ = new FuncDispose(() =>
-        {
-            if (File.Exists(tempfile))
-                File.Delete(tempfile);
-        });
-
+        using var _ = Directories.TempFile(out var tempfile);
         using (var file = File.Open(tempfile, FileMode.Create, FileAccess.Write))
             await data.Content.CopyToAsync(file, cancellationToken);
 
