@@ -1,6 +1,14 @@
 namespace Node.Tasks.Exec.Actions;
 
-public record VeeeVectorizeInfo(ImmutableArray<int> Lods);
+public class VeeeVectorizeInfo
+{
+    [JsonProperty("lod")]
+    [ArrayRanged(min: 1), Ranged(1, 10_000)]
+    public ImmutableArray<int> Lod;
+
+    public VeeeVectorizeInfo(ImmutableArray<int> lods) => Lod = lods;
+}
+
 public class VeeeVectorize : PluginAction<VeeeVectorizeInfo>
 {
     public override TaskAction Name => TaskAction.VeeeVectorize;
@@ -12,7 +20,7 @@ public class VeeeVectorize : PluginAction<VeeeVectorizeInfo>
     protected override OperationResult ValidateOutputFiles(TaskFilesCheckData files, VeeeVectorizeInfo data)
     {
         // 2x jpg and 2x eps per LOD
-        var formats = Enumerable.Repeat(new[] { FileFormat.Jpeg, FileFormat.Jpeg, FileFormat.Eps, FileFormat.Eps }, data.Lods.Length).SelectMany(a => a).ToArray();
+        var formats = Enumerable.Repeat(new[] { FileFormat.Jpeg, FileFormat.Jpeg, FileFormat.Eps, FileFormat.Eps }, data.Lod.Length).SelectMany(a => a).ToArray();
 
         return files.EnsureOutputFormats(formats);
     }
@@ -31,7 +39,7 @@ public class VeeeVectorize : PluginAction<VeeeVectorizeInfo>
         // assuming we aren't executing several of veee.exe simultaneously
         if (Directory.Exists(veeeoutdir)) Directory.Delete(veeeoutdir, true);
         Directory.CreateDirectory(veeeoutdir);
-        File.WriteAllText(Path.Combine(plugindir, "config.xml"), GetConfig(inputfile, data.Lods, context));
+        File.WriteAllText(Path.Combine(plugindir, "config.xml"), GetConfig(inputfile, data.Lod, context));
 
         await new NodeProcess(exepath, args, context).WithWineSupport().Execute();
 
