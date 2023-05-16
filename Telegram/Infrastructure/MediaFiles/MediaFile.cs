@@ -138,7 +138,7 @@ public sealed class MediaFile
 
                 if (ImagesHelper.IsImageMimeType(resourceMimeType))
 
-                    if (Enum.TryParse(resourceMimeType, ignoreCase: true, out Extension extension))
+                    if (Enum.TryParse(MimeTypesMap.GetExtension(resourceMimeType), ignoreCase: true, out Extension extension))
                         return new MediaFile(extension, imageUri);
                     else throw new ArgumentOutOfRangeException(nameof(imageUri),
                         $"{nameof(imageUri)} refers to a resource with unknown extension based on its MIME type: {resourceMimeType}."

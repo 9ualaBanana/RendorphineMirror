@@ -12,7 +12,8 @@ static class CommandsExtensions
 
     static IServiceCollection AddCommandHandlers(this IServiceCollection services)
         => services
-        .AddScoped<CommandHandler, LoginCommand>()
+        .AddScoped<CommandHandler, StartCommand>()
+        .AddScoped<CommandHandler, LoginCommand>().AddScoped<LoginCommand>()
         .AddScoped<CommandHandler, LogoutCommand>()
         .AddScoped<CommandHandler, PromptCommand>()
         .AddScoped<CommandHandler, OnlineCommand>()

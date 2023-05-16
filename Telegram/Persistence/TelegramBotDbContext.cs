@@ -29,6 +29,10 @@ public class TelegramBotDbContext : DbContext
             .ApplyConfiguration(new TelegramBotUserEntityConfiguration())
             .ApplyConfiguration(new MPlusIdentityEntityConfiguration());
     }
+
+    internal async Task<TelegramBotUserEntity> FindOrAddUserAsyncWith(ChatId chatId, CancellationToken cancellationToken)
+        => await FindAsync<TelegramBotUserEntity>(chatId) ??
+        (await Users.AddAsync(new(chatId), cancellationToken)).Entity;
 }
 
 #region EntityTypeConfiguration

@@ -27,7 +27,8 @@ builder.WebHost
         .AddImages()
         .AddVideos()
         .AddMPlusAuthorization()
-        .AddAuthentication(MPlusAuthenticationDefaults.AuthenticationScheme).AddMPlus());
+        .AddAuthentication(MPlusAuthenticationDefaults.AuthenticationScheme).AddMPlus()
+            .Services.AddScoped<LoginManager>());
 
 // Telegram.Bot works only with Newtonsoft.
 builder.Services.AddControllers().AddNewtonsoftJson();

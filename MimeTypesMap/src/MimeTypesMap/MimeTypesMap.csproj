@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Simple dictionary provides a few methods to lookup mime type/extension, generated From Apache's mime.types.</Description>
+    <Authors>red</Authors>
+    <TargetFrameworks>net7.0</TargetFrameworks>
+    <AssemblyName>MimeTypesMap</AssemblyName>
+    <PackageId>MimeTypesMap</PackageId>
+    <PackageTags>mime;mimetype</PackageTags>
+    <PackageReleaseNotes>Use ignore case for file extensions</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/hey-red/MimeTypesMap</PackageProjectUrl>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/hey-red/MimeTypesMap/master/LICENSE</PackageLicenseUrl>
+    <RepositoryType>git</RepositoryType>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <Version>1.0.8</Version>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <None Update="MimeTypesMap.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>MimeTypesMap.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="MimeTypesMap.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MimeTypesMap.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  
+</Project>
