@@ -61,10 +61,14 @@ public static class TaskExecutor
             using var _ = await WaitDisposed("active", task, TaskWaitHandle);
 
             var outputs = new TaskFileListList(task.FSOutputDirectory());
-            await task.GetFirstAction().Execute(context, new TaskFiles(task.InputFileList, outputs), task.Info.Data);
+            await task.GetFirstAction().Execute(
+                new TaskExecutionContextSubtaskOverlay(0, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Length + 1, context),
+                new TaskFiles(task.InputFileList, outputs),
+                task.Info.Data
+            );
 
             int index = 0;
-            foreach (var next in task.Info.Next ?? ImmutableArray<Newtonsoft.Json.Linq.JObject>.Empty)
+            foreach (var next in task.Info.Next ?? ImmutableArray<JObject>.Empty)
             {
                 index++;
 
@@ -76,7 +80,11 @@ public static class TaskExecutor
                 foreach (var input in prevoutput)
                 {
                     outputs.InputFiles = input;
-                    await action.Execute(context, new TaskFiles(input, outputs), next);
+                    await action.Execute(
+                        new TaskExecutionContextSubtaskOverlay(index, task.Info.Next!.Value.Length + 1, context),
+                        new TaskFiles(input, outputs),
+                        next
+                    );
                 }
             }
 
@@ -147,16 +155,36 @@ public static class TaskExecutor
     }
 
 
+    record TaskExecutionContextSubtaskOverlay(int Subtask, int MaxSubtasks, ITaskExecutionContext Context) : ITaskExecutionContext
+    {
+        public IReadOnlyCollection<Plugin> Plugins => Context.Plugins;
+
+        public void Log(LogLevel level, string text) => Context.Log(level, text);
+
+        public void SetProgress(double progress)
+        {
+            var subtaskpart = 1d / MaxSubtasks;
+            Context.SetProgress((progress * subtaskpart) + (subtaskpart * Subtask));
+        }
+    }
     record TaskExecutionContext(ReceivedTask Task) : ITaskExecutionContext
     {
         public IReadOnlyCollection<Plugin> Plugins => PluginsManager.GetInstalledPluginsCache().ThrowIfNull("Could not launch the task without plugin list being cached");
 
         public void Log(LogLevel level, string text) => Task.Log(level, text);
 
+        const int ProgressSendDelaySec = 5;
+        DateTime ProgressWriteTime = DateTime.MinValue;
         public void SetProgress(double progress)
         {
+            var now = DateTime.Now;
+            if (progress >= .98 || ProgressWriteTime < now)
+            {
+                Apis.Default.SendTaskProgressAsync(Task).Consume();
+                ProgressWriteTime = DateTime.Now.AddSeconds(ProgressSendDelaySec);
+            }
+
             Task.Progress = progress;
-            // TODO: send to server
         }
     }
 }
