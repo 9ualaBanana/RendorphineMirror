@@ -26,7 +26,7 @@ public class Database : IDisposable
                 OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA optimize;")).LogIfError();
                 OperationResult.WrapException(() => ExecuteNonQuery("vacuum;")).LogIfError();
 
-                Thread.Sleep(60 * 60 * 24);
+                Thread.Sleep(60 * 60 * 24 * 1000);
             }
         })
         { IsBackground = true }.Start();
