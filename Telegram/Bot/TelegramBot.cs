@@ -194,7 +194,8 @@ public static class TelegramHelperExtensions
             .Replace("(", @"\(")
             .Replace(")", @"\)")
             .Replace("=", @"\=")
-            .Replace("!", @"\!");
+            .Replace("!", @"\!")
+            .Replace("#", @"\#");
     }
 
     public static StringBuilder AppendHeader(this StringBuilder builder, string header)
