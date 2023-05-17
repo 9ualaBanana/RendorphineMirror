@@ -5,7 +5,8 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
 using Telegram.Models;
-using Telegram.MPlus;
+using Telegram.MPlus.Clients;
+using Telegram.MPlus.Security;
 using File = System.IO.File;
 
 namespace Telegram.Tasks.ResultPreview;

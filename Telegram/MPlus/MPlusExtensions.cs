@@ -1,4 +1,6 @@
-﻿namespace Telegram.MPlus;
+﻿using Telegram.MPlus.Clients;
+
+namespace Telegram.MPlus;
 
 static class MPlusExtensions
 {

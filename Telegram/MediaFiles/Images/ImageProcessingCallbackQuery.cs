@@ -4,7 +4,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
-using Telegram.MPlus;
+using Telegram.MPlus.Security;
 using Telegram.Tasks;
 
 namespace Telegram.MediaFiles.Images;

@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
+using Telegram.MPlus.Files;
+using Telegram.MPlus.Security;
 
-namespace Telegram.MPlus;
+namespace Telegram.MPlus.Clients;
 
 public class MPlusTaskManagerClient
 {

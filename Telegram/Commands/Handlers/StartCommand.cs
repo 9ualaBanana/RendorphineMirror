@@ -1,7 +1,8 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.Commands;
-using Telegram.MPlus;
+using Telegram.MPlus.Clients;
+using Telegram.MPlus.Security;
 using Telegram.Security.Authentication;
 
 namespace Telegram.Commands.Handlers;

@@ -1,7 +1,7 @@
 ﻿using Telegram.Bot;
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.MPlus;
+using Telegram.MPlus.Security;
 using Transport.Upload;
 
 namespace Telegram.Infrastructure.MediaFiles;

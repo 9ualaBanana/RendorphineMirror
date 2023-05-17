@@ -1,6 +1,6 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.MPlus;
+using Telegram.MPlus.Clients;
 using Telegram.Persistence;
 
 namespace Telegram.Security.Authentication;
