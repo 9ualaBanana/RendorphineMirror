@@ -22,112 +22,181 @@ public static class TaskExecutor
     }
 
 
+
+    interface ITaskInputExecutionContext : ILoggable
+    {
+        ITaskInputInfo Input { get; }
+        ITaskInputHandler Handler { get; }
+
+        Task SetActiveAsync(ReadOnlyTaskFileList files);
+    }
+    record TaskInputExecutionContext(ReceivedTask Task, NodeCommon.Apis Apis) : ApiTaskContextBase(Task, Apis), ITaskInputExecutionContext
+    {
+        public ITaskInputInfo Input => Task.Info.Input;
+        public ITaskInputHandler Handler => Task.Info.Input.Type.GetHandler();
+
+        public async Task SetActiveAsync(ReadOnlyTaskFileList files)
+        {
+            Task.InputFileList = files;
+            await ChangeStateAsync(TaskState.Active);
+        }
+    }
+
+    static async Task DownloadInput(ITaskInputExecutionContext context)
+    {
+        using var _ = await WaitDisposed("input", context, InputSemaphore);
+
+        // TODO:: delete
+        var task = ((TaskInputExecutionContext) context).Task;
+
+        context.LogInfo($"Downloading input... (wh {InputSemaphore.CurrentCount})");
+        var inputfiles = await context.Handler.Download(task).ConfigureAwait(false);
+        context.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(context.Input, Newtonsoft.Json.Formatting.None)}");
+
+        // fix jpegs that are rotated using metadata which doesn't do well with some tools
+        foreach (var jpeg in inputfiles.Where(f => f.Format == FileFormat.Jpeg).ToArray())
+        {
+            using var img = Image.Load<Rgba32>(jpeg.Path);
+            if (img.Metadata.ExifProfile?.TryGetValue(ExifTag.Orientation, out var exif) == true && exif is not null)
+            {
+                img.Mutate(ctx => ctx.AutoOrient());
+                await img.SaveAsJpegAsync(jpeg.Path, new JpegEncoder() { Quality = 100 });
+            }
+        }
+
+        await context.SetActiveAsync(inputfiles);
+    }
+
+
+
+    interface ITaskExecutionExecutionContext : ILoggable
+    {
+        IReadOnlyCollection<JObject> Datas { get; }
+
+        Task SetOutputAsync(IReadOnlyTaskFileListList files);
+        string NewTaskResultDirectory(string addition);
+    }
+    record TaskExecutionExecutionContext(ReceivedTask Task, NodeCommon.Apis Apis) : ApiTaskContextBase(Task, Apis), ITaskExecutionExecutionContext
+    {
+        public IReadOnlyCollection<JObject> Datas { get; } = (Task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(Task.Info.Data).ToArray();
+
+        public async Task SetOutputAsync(IReadOnlyTaskFileListList files)
+        {
+            Task.OutputFileListList = files;
+            await ChangeStateAsync(TaskState.Output);
+        }
+        public string NewTaskResultDirectory(string add) => Task.FSOutputDirectory(add);
+    }
+
+    static async Task Execute(ITaskExecutionExecutionContext context, ReadOnlyTaskFileList? inputfiles)
+    {
+        // TODO:: delete
+        var task = ((TaskExecutionExecutionContext) context).Task;
+
+        var econtext = new TaskExecutionContext(task);
+
+        CheckFileList(inputfiles, "input");
+        using var _ = await WaitDisposed("active", context, TaskWaitHandle);
+
+        var outputs = null as TaskFileListList;
+        var index = 0;
+        foreach (var data in context.Datas)
+        {
+            var prevoutput = outputs ?? new TaskFileListList("/does/not/exists") { inputfiles };
+            outputs = new TaskFileListList(context.NewTaskResultDirectory(index.ToString()));
+
+            foreach (var input in prevoutput)
+            {
+                outputs.InputFiles = input;
+                await TaskList.GetAction(TaskInfo.GetTaskType(data)).Execute(
+                    new TaskExecutionContextSubtaskOverlay(index, context.Datas.Count, econtext),
+                    new TaskFiles(input, outputs),
+                    data
+                );
+            }
+
+            index++;
+        }
+
+        outputs.ThrowIfNull("No task result (what?)");
+        await context.SetOutputAsync(outputs);
+    }
+
+
+
+    interface ITaskOutputExecutionContext : ILoggable
+    {
+        ITaskOutputInfo Output { get; }
+        ITaskOutputHandler Handler { get; }
+
+        Task SetValidationAsync();
+    }
+    record TaskOutputExecutionContext(ReceivedTask Task, NodeCommon.Apis Apis) : ApiTaskContextBase(Task, Apis), ITaskOutputExecutionContext
+    {
+        public ITaskOutputInfo Output => Task.Info.Output;
+        public ITaskOutputHandler Handler => Task.Info.Output.Type.GetHandler();
+
+        public async Task SetValidationAsync() => await ChangeStateAsync(TaskState.Validation);
+    }
+
+    static async Task UploadResult(ITaskOutputExecutionContext context)
+    {
+        // TODO:: delete
+        var task = ((TaskOutputExecutionContext) context).Task;
+
+        CheckFileList(task.InputFileList, "input");
+        CheckFileListList(task.OutputFileListList, "output");
+        using var _ = await WaitDisposed("output", context, OutputSemaphore);
+
+        context.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(context.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
+        await context.Handler.UploadResult(task, new ReadOnlyTaskFileList(task.OutputFileListList.SelectMany(l => l))).ConfigureAwait(false);
+        context.LogInfo($"Result uploaded");
+
+        await context.SetValidationAsync();
+    }
+
+
+
     [Obsolete("Use TaskHandler instead")]
     public static async Task Execute(ReceivedTask task)
     {
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.None)}");
-        var context = new TaskExecutionContext(task);
+        var apis = Apis.Default;
 
         if (task.State <= TaskState.Input)
-        {
-            using var _ = await WaitDisposed("input", task, InputSemaphore);
-
-            task.LogInfo($"Downloading input... (wh {InputSemaphore.CurrentCount})");
-            var inputfiles = await task.GetInputHandler().Download(task).ConfigureAwait(false);
-            task.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}");
-
-            foreach (var jpeg in inputfiles.Where(f => f.Format == FileFormat.Jpeg).ToArray())
-            {
-                using var img = Image.Load<Rgba32>(jpeg.Path);
-                if (img.Metadata.ExifProfile?.TryGetValue(ExifTag.Orientation, out var exif) == true && exif is not null)
-                {
-                    img.Mutate(ctx => ctx.AutoOrient());
-                    await img.SaveAsJpegAsync(jpeg.Path, new JpegEncoder() { Quality = 100 });
-                }
-            }
-
-            task.LogInfo($"Validating downloaded files...");
-            task.GetFirstAction().ValidateInputFilesThrow(context, inputfiles);
-
-            await task.ChangeStateAsync(TaskState.Active);
-            task.InputFileList = inputfiles;
-            NodeSettings.QueuedTasks.Save(task);
-        }
+            await DownloadInput(new TaskInputExecutionContext(task, apis));
         else task.LogInfo($"Input seems to be already downloaded");
 
         if (task.State <= TaskState.Active)
-        {
-            checkFileList(task.InputFileList, "input");
-            using var _ = await WaitDisposed("active", task, TaskWaitHandle);
-
-            var outputs = new TaskFileListList(task.FSOutputDirectory());
-            await task.GetFirstAction().Execute(
-                new TaskExecutionContextSubtaskOverlay(0, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Length + 1, context),
-                new TaskFiles(task.InputFileList, outputs),
-                task.Info.Data
-            );
-
-            int index = 0;
-            foreach (var next in task.Info.Next ?? ImmutableArray<JObject>.Empty)
-            {
-                index++;
-
-                var action = TaskList.GetAction(TaskInfo.GetTaskType(next));
-
-                var prevoutput = outputs;
-                outputs = new TaskFileListList(task.FSOutputDirectory(index.ToString()));
-
-                foreach (var input in prevoutput)
-                {
-                    outputs.InputFiles = input;
-                    await action.Execute(
-                        new TaskExecutionContextSubtaskOverlay(index, task.Info.Next!.Value.Length + 1, context),
-                        new TaskFiles(input, outputs),
-                        next
-                    );
-                }
-            }
-
-            await task.ChangeStateAsync(TaskState.Output);
-            task.OutputFileListList = outputs;
-            NodeSettings.QueuedTasks.Save(task);
-        }
+            await Execute(new TaskExecutionExecutionContext(task, apis), task.InputFileList);
         else task.LogInfo($"Task execution seems to be already finished");
 
         if (task.State <= TaskState.Output)
-        {
-            checkFileList(task.InputFileList, "input");
-            checkFileListList(task.OutputFileListList, "output");
-            using var _ = await WaitDisposed("output", task, OutputSemaphore);
-
-            task.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
-            await task.GetOutputHandler().UploadResult(task, new ReadOnlyTaskFileList(task.OutputFileListList.SelectMany(l => l))).ConfigureAwait(false);
-            task.LogInfo($"Result uploaded");
-
-            await task.ChangeStateAsync(TaskState.Validation);
-        }
+            await UploadResult(new TaskOutputExecutionContext(task, apis));
         else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
 
         await MaybeNotifyTelegramBotOfTaskCompletion(task);
+    }
 
+    /// <summary> Asserts that the provided list isn't empty and all files are present </summary>
+    static void CheckFileListList([System.Diagnostics.CodeAnalysis.NotNull] IReadOnlyTaskFileListList? lists, string type)
+    {
+        if (lists is null)
+            throw new NodeTaskFailedException($"Task {type} file list list was null or empty");
 
-        void checkFileListList([System.Diagnostics.CodeAnalysis.NotNull] IReadOnlyTaskFileListList? lists, string type)
-        {
-            if (lists is null)
-                task.ThrowFailed($"Task {type} file list list was null or empty");
+        foreach (var list in lists)
+            CheckFileList(list, type);
+    }
 
-            foreach (var list in lists)
-                checkFileList(list, type);
-        }
-        void checkFileList([System.Diagnostics.CodeAnalysis.NotNull] ReadOnlyTaskFileList? files, string type)
-        {
-            if (files is null or { Count: 0 })
-                task.ThrowFailed($"Task {type} file list was null or empty");
+    /// <inheritdoc cref="CheckFileListList"/>
+    static void CheckFileList([System.Diagnostics.CodeAnalysis.NotNull] ReadOnlyTaskFileList? files, string type)
+    {
+        if (files is null or { Count: 0 })
+            throw new NodeTaskFailedException($"Task {type} file list was null or empty");
 
-            foreach (var file in files)
-                if (!File.Exists(file.Path))
-                    task.ThrowFailed($"Task {type} file {file} does not exists");
-        }
+        foreach (var file in files)
+            if (!File.Exists(file.Path))
+                throw new NodeTaskFailedException($"Task {type} file {file} does not exists");
     }
 
 
@@ -153,6 +222,21 @@ public static class TaskExecutor
         try { await Api.Client.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to Telegram bot: " + ex); }
     }
+
+
+    abstract record TaskContextBase(ReceivedTask Task) : ILoggable
+    {
+        public void Log(LogLevel level, string text) => Task.Log(level, text);
+    }
+    abstract record ApiTaskContextBase(ReceivedTask Task, NodeCommon.Apis Apis) : TaskContextBase(Task)
+    {
+        protected async Task ChangeStateAsync(TaskState state)
+        {
+            await Apis.ChangeStateAsync(Task, state).ThrowIfError();
+            NodeSettings.QueuedTasks.Save(Task);
+        }
+    }
+
 
 
     record TaskExecutionContextSubtaskOverlay(int Subtask, int MaxSubtasks, ITaskExecutionContext Context) : ITaskExecutionContext

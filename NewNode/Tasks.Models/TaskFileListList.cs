@@ -12,12 +12,12 @@ public class TaskFileListList : IReadOnlyTaskFileListList
 {
     [JsonIgnore] public ReadOnlyTaskFileList? InputFiles;
 
-    [JsonProperty] readonly List<TaskFileList> Lists = new();
+    [JsonProperty] readonly List<ReadOnlyTaskFileList> Lists = new();
     [JsonProperty] public string Directory { get; }
 
     public TaskFileListList(string directory) => Directory = directory;
 
-    public void Add(TaskFileList list) => Lists.Add(list);
+    public void Add(ReadOnlyTaskFileList list) => Lists.Add(list);
     public TaskFileList New()
     {
         int index = 0;
