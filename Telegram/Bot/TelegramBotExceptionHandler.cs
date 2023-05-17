@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
+using NLog;
 using Telegram.Bot.Types;
+using ILogger = NLog.ILogger;
 
 namespace Telegram.Bot;
 
@@ -18,6 +20,8 @@ public record TelegramBotExceptionHandlerOptions(HashSet<long> Subscribers)
 
 static class TelegramBotExceptionHandler
 {
+    readonly static ILogger _logger = LogManager.GetCurrentClassLogger();
+
     internal static IServiceCollection ConfigureTelegramBotExceptionHandlerOptions(this IServiceCollection services)
         => services.AddOptions<TelegramBotExceptionHandlerOptions>()
         .BindConfiguration($"{TelegramBotOptions.Configuration}:{TelegramBotExceptionHandlerOptions.Configuration}")
@@ -25,18 +29,23 @@ static class TelegramBotExceptionHandler
 
     internal static async Task InvokeAsync(HttpContext context)
     {
-        var exception = context.Features.GetRequiredFeature<IExceptionHandlerFeature>();
-        var exceptionDetails =
-            $"{exception.Error.Message}\n" +
-            $"{exception.Error.StackTrace?.Replace(@"\", @"\\").Replace("`", @"\`")}";
+        try
+        {
+            var exception = context.Features.GetRequiredFeature<IExceptionHandlerFeature>();
+            var exceptionDetails =
+                $"{exception.Error.Message}\n" +
+                $"{exception.Error.StackTrace?.Replace(@"\", @"\\").Replace("`", @"\`")}";
 
-        var bot = context.RequestServices.GetRequiredService<TelegramBot>();
-        var subscribers = context.RequestServices.GetRequiredService<IOptionsSnapshot<TelegramBotExceptionHandlerOptions>>().Value.Subscribers;
+            var bot = context.RequestServices.GetRequiredService<TelegramBot>();
+            var subscribers = context.RequestServices.GetRequiredService<IOptionsSnapshot<TelegramBotExceptionHandlerOptions>>().Value.Subscribers;
 
-        foreach (var subscriber in subscribers)
-            await bot.SendMessageAsync_(subscriber,
-                $"`{exception.Path}` handler thrown an unhandled exception.\n\n{exceptionDetails}",
-                disableNotification: true,
-                cancellationToken: context.RequestAborted);
+            foreach (var subscriber in subscribers)
+                await bot.SendMessageAsync_(subscriber,
+                    $"`{exception.Path}` handler thrown an unhandled exception.\n\n{exceptionDetails}",
+                    disableNotification: true,
+                    cancellationToken: context.RequestAborted);
+        }
+        catch (Exception ex)
+        { _logger.Error(ex, $"{nameof(TelegramBotExceptionHandler)} must not throw"); }
     }
 }
