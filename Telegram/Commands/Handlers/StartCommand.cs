@@ -2,7 +2,6 @@
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.Commands;
 using Telegram.MPlus;
-using Telegram.Persistence;
 using Telegram.Security.Authentication;
 
 namespace Telegram.Commands.Handlers;
@@ -10,15 +9,13 @@ namespace Telegram.Commands.Handlers;
 public class StartCommand : CommandHandler
 {
     readonly LoginCommand _loginCommandHandler;
-    readonly LoginManager _loginManager;
+    readonly AuthenticationManager _authenticationManager;
     readonly MPlusClient _mPlusClient;
-    readonly TelegramBotDbContext _database;
 
     public StartCommand(
         LoginCommand loginCommandHandler,
-        LoginManager loginManager,
+        AuthenticationManager authenticationManager,
         MPlusClient mPlusClient,
-        TelegramBotDbContext database,
         Command.Factory commandFactory,
         Command.Received receivedCommand,
         TelegramBot bot,
@@ -27,9 +24,8 @@ public class StartCommand : CommandHandler
         : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
         _loginCommandHandler = loginCommandHandler;
-        _loginManager = loginManager;
+        _authenticationManager = authenticationManager;
         _mPlusClient = mPlusClient;
-        _database = database;
     }
 
     internal override Command Target => CommandFactory.Create("start");
@@ -39,7 +35,7 @@ public class StartCommand : CommandHandler
         if (!receivedCommand.UnquotedArguments.Any())
             await SendStartMessageAsync();
         else if (receivedCommand.UnquotedArguments.FirstOrDefault() is string sessionId)
-            await AuthenticateViaBrowserAsync(sessionId);
+            await AuthenticateByMPlusViaBrowserAsyncWith(sessionId);
         else
         {
             var exception = new ArgumentNullException(nameof(sessionId),
@@ -58,20 +54,21 @@ public class StartCommand : CommandHandler
                 disableWebPagePreview: true, cancellationToken: RequestAborted);
         }
 
-        async Task AuthenticateViaBrowserAsync(string sessionId)
+        async Task AuthenticateByMPlusViaBrowserAsyncWith(string sessionId)
         {
-            var publicSessionInfo = await _mPlusClient.TaskManager.GetPublicSessionInfoAsync(sessionId, RequestAborted);
+            var user = await _authenticationManager.PersistTelegramUserAsyncWith(ChatId, save: false, RequestAborted);
 
-            var user = await _database.FindOrAddUserAsyncWith(ChatId, RequestAborted);
+            if (!user.IsAuthenticatedByMPlus)
+                await AuthenticateByMPlusAsyncWith(sessionId);
+            else await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, RequestAborted);
 
-            if (user.MPlusIdentity is null)
+
+            async Task AuthenticateByMPlusAsyncWith(string sessionId)
             {
-                await _loginManager.PersistMPlusUserIdentityAsync(user, new(publicSessionInfo.ToMPlusIdentity()), save: true, RequestAborted);
-                await _loginManager.SendSuccessfulLogInMessageAsync(ChatId, sessionId, RequestAborted);
+                var publicSessionInfo = await _mPlusClient.TaskManager.GetPublicSessionInfoAsync(sessionId, RequestAborted);
+                await _authenticationManager.PersistMPlusUserIdentityAsync(user, new(publicSessionInfo.ToMPlusIdentity()), RequestAborted);
+                await _authenticationManager.SendSuccessfulLogInMessageAsync(ChatId, sessionId, RequestAborted);
             }
-            else await Bot.SendMessageAsync_(ChatId,
-                "You are already logged in.",
-                cancellationToken: RequestAborted);
         }
     }
 }

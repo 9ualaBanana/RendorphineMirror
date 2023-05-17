@@ -1,4 +1,5 @@
-﻿using Telegram.Bot.Types;
+﻿using System.Diagnostics.CodeAnalysis;
+using Telegram.Bot.Types;
 
 namespace Telegram.Persistence;
 
@@ -7,5 +8,8 @@ namespace Telegram.Persistence;
 /// </summary>
 public record TelegramBotUserEntity(ChatId ChatId)
 {
+    [MemberNotNullWhen(true, nameof(MPlusIdentity))]
+    internal bool IsAuthenticatedByMPlus => MPlusIdentity is not null;
+
     public MPlusIdentityEntity? MPlusIdentity { get; set; }
 }
