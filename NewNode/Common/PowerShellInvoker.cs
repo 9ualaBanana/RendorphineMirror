@@ -73,7 +73,7 @@ public static class PowerShellInvoker
         pipeline.Output.DataReady += (obj, e) =>
         {
             foreach (var item in pipeline.Output.NonBlockingRead())
-                process(item, stdout ?? LogLevel.Info, onRead);
+                process(item, stdout ?? LogLevel.Trace, onRead);
         };
         pipeline.Error.DataReady += (obj, e) =>
         {
