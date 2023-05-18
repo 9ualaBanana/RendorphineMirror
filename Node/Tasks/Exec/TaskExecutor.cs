@@ -120,6 +120,7 @@ public static class TaskExecutor
 
         outputs.ThrowIfNull("No task result (what?)");
         await context.SetOutputAsync(outputs);
+        econtext.SetProgress(1);
     }
 
 
@@ -261,14 +262,14 @@ public static class TaskExecutor
         DateTime ProgressWriteTime = DateTime.MinValue;
         public void SetProgress(double progress)
         {
+            Task.Progress = progress;
+
             var now = DateTime.Now;
             if (progress >= .98 || ProgressWriteTime < now)
             {
                 Apis.Default.SendTaskProgressAsync(Task).Consume();
                 ProgressWriteTime = DateTime.Now.AddSeconds(ProgressSendDelaySec);
             }
-
-            Task.Progress = progress;
         }
     }
 }
