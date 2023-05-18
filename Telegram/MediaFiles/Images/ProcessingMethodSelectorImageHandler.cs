@@ -3,19 +3,20 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
-using Telegram.MPlus.Clients;
+using Telegram.MPlus.Security;
+using Telegram.Tasks;
 
 namespace Telegram.MediaFiles.Images;
 
 public class ProcessingMethodSelectorImageHandler : MessageHandler
 {
-    readonly MPlusTaskLauncherClient _taskLauncherClient;
+    readonly TaskPrice _taskPrice;
     readonly MediaFilesCache _mediaFilesCache;
     readonly MediaFile.Factory _mediaFileFactory;
     readonly CallbackQuerySerializer _serializer;
 
     public ProcessingMethodSelectorImageHandler(
-        MPlusTaskLauncherClient taskLauncherClient,
+        TaskPrice taskPrice,
         MediaFilesCache mediaFilesCache,
         MediaFile.Factory mediaFileFactory,
         CallbackQuerySerializer serializer,
@@ -24,7 +25,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
         ILogger<ProcessingMethodSelectorImageHandler> logger)
         : base(bot, httpContextAccessor, logger)
     {
-        _taskLauncherClient = taskLauncherClient;
+        _taskPrice = taskPrice;
         _mediaFilesCache = mediaFilesCache;
         _mediaFileFactory = mediaFileFactory;
         _serializer = serializer;
@@ -35,8 +36,10 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
         try
         {
             var receivedImage = await _mediaFileFactory.CreateAsyncFrom(Message, RequestAborted);
+            var cachedImage = await _mediaFilesCache.AddAsync(receivedImage, RequestAborted);
+
             await Bot.SendMessageAsync_(ChatId, "*Choose how to process the image*",
-                await BuildReplyMarkupAsyncFor(receivedImage, RequestAborted)
+                await BuildReplyMarkupAsyncFor(cachedImage)
                 );
         }
         catch (ArgumentException ex) when (ex.ParamName is not null)
@@ -48,15 +51,13 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
         }
     }
 
-    async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedImage, CancellationToken cancellationToken)
+    async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFilesCache.Entry cachedImage)
     {
-        var cachedImage = await _mediaFilesCache.AddAsync(receivedImage, cancellationToken);
-        var prices = await _taskLauncherClient.RequestTaskPricesAsync(cancellationToken);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithCallbackData($"Upload to M+ | Free",
+                InlineKeyboardButton.WithCallbackData($"Upload to M+",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)
@@ -64,7 +65,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
             },
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithCallbackData($"Upscale and upload to M+ | {prices[TaskAction.EsrganUpscale]}€",
+                InlineKeyboardButton.WithCallbackData($"Upscale and upload to M+{await PriceFor(TaskAction.EsrganUpscale)}",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.UpscaleImage | ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)
@@ -72,12 +73,19 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
             },
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithCallbackData($"Vectorize and upload to M+ | {prices[TaskAction.VeeeVectorize]}€",
+                InlineKeyboardButton.WithCallbackData($"Vectorize and upload to M+{await PriceFor(TaskAction.VeeeVectorize)}",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.VectorizeImage | ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)
                 .Build()))
             }
         });
+
+
+        async Task<string?> PriceFor(TaskAction taskAction)
+        {
+            var price = await _taskPrice.CalculateConsideringBonusBalanceAsyncFor(taskAction, MPlusIdentity.SessionIdOf(User), RequestAborted);
+            return price is 0 ? null : $" | {price}€";
+        }
     }
 }

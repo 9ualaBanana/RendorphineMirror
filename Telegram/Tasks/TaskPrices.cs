@@ -18,15 +18,15 @@ internal class TaskPrices
         _prices = prices;
     }
 
-    internal double this[TaskAction action]
+    internal double this[TaskAction taskAction]
     {
         get
         {
-            if (_prices[action.ToString()]?.Value<double>() is double price)
+            if (_prices[taskAction.ToString()]?.Value<double>() is double price)
                 return price / 100; // Prices are returned in euro cents so we convert them to euro.
             else
             {
-                var exception = new ArgumentException($"Price for {action} task is not available.", nameof(action));
+                var exception = new ArgumentException($"Price for {taskAction} task is not available.", nameof(taskAction));
                 _logger.Fatal(exception);
                 throw exception;
             }

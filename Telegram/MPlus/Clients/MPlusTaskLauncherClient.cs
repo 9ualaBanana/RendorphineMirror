@@ -25,7 +25,7 @@ public class MPlusTaskLauncherClient
         else
         {
             var exception = new InvalidDataException(LogId.Formatted("Balance request returned data in an unknown format.", sessionId, "SID"));
-            _logger.LogCritical(exception, message: default);
+            _logger.LogCritical(exception.Message);
             throw exception;
         }
 
@@ -38,7 +38,7 @@ public class MPlusTaskLauncherClient
             catch (Exception ex)
             {
                 var exception = new HttpRequestException(LogId.Formatted("Balance request failed.", sessionId, "SID"), ex);
-                _logger.LogError(exception, message: default);
+                _logger.LogError(exception.Message);
                 throw exception;
             }
         }
@@ -51,7 +51,7 @@ public class MPlusTaskLauncherClient
         else
         {
             var exception = new InvalidDataException("Task prices request returned data in an unknow format.");
-            _logger.LogCritical(exception, message: default);
+            _logger.LogCritical(exception.Message);
             throw exception;
         }
 
@@ -62,7 +62,7 @@ public class MPlusTaskLauncherClient
             catch (Exception ex)
             {
                 var exception = new HttpRequestException("Task prices request failed.", ex);
-                _logger.LogCritical(exception, message: default);
+                _logger.LogCritical(exception.Message);
                 throw exception;
             }
         }
