@@ -20,8 +20,8 @@ public class NodeGlobalState
 
     public readonly BindableList<Plugin> InstalledPlugins = new();
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
-    public readonly BindableList<TaskBase> QueuedTasks = new();
-    public readonly BindableList<TaskBase> ExecutingTasks = new();
+    public readonly BindableList<ReceivedTask> QueuedTasks = new();
+    public readonly BindableList<ReceivedTask> ExecutingTasks = new();
     public readonly BindableList<DbTaskFullState> PlacedTasks = new();
     public readonly BindableList<WatchingTask> WatchingTasks = new();
     public readonly Bindable<JObject?> BenchmarkResult = new();

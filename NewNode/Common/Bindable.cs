@@ -156,6 +156,8 @@ public class BindableList<T> : BindableBase<IReadOnlyList<T>>, IReadOnlyBindable
     public void Remove(T value) => Execute(() => Value.Remove(value));
     public void Clear() => Execute(Value.Clear);
 
+    public bool Contains(T value) => Value.Contains(value);
+
     public override JToken AsJson(JsonSerializer? serializer) => JToken.FromObject(Value.ToArray(), serializer ?? JsonSerializer);
     public override void LoadFromJson(JToken json, JsonSerializer? serializer) => SetRange(json.ToObject<T[]>(serializer ?? JsonSerializer)!);
     protected override void CopyValueFrom(BindableBase<IReadOnlyList<T>> other) => SetRange(other.Value);
