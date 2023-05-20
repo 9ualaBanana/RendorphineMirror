@@ -144,7 +144,7 @@ logger.Info(@$"Tasks found
 
 NodeCommon.Tasks.TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;
 
-var taskhandler = new TaskHandler2(NodeSettings.QueuedTasks.Bindable, NodeGlobalState.Instance.ExecutingTasks, NodeSettings.CompletedTasks.Bindable);
+//var taskhandler = new TaskHandler2(NodeSettings.QueuedTasks.Bindable, NodeGlobalState.Instance.ExecutingTasks, NodeSettings.CompletedTasks.Bindable);
 
 TaskHandler.InitializePlacedTasksAsync().Consume();
 TaskHandler.StartUpdatingPlacedTasks();

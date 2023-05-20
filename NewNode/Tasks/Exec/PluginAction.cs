@@ -41,7 +41,9 @@ public abstract class PluginAction<T> : IPluginAction<T>
         context.LogInfo($"Execution {Name} completed in {sw.Elapsed}");
 
         context.LogInfo($"Validating result");
-        ValidateOutputFilesThrow(context, new TaskFilesCheckData(files.InputFiles, new ReadOnlyTaskFileList(files.OutputFiles.SelectMany(f => f))), data);
+
+        foreach (var outfiles in files.OutputFiles)
+            ValidateOutputFilesThrow(context, new TaskFilesCheckData(files.InputFiles, outfiles), data);
 
         context.LogInfo($"Completed");
     }

@@ -24,11 +24,15 @@ public class EsrganUpscale : PluginAction<UpscaleEsrganInfo>
     {
         foreach (var file in files.InputFiles)
         {
-            var outputfile = files.OutputFiles.New().New(file.Format);
+            var fs = files.OutputFiles.New();
+            var outputfile = fs.New(file.Format);
             await upscale(file.Path, outputfile.Path);
 
             if (data.X2)
+            {
+                files.OutputFiles.Remove(fs);
                 await downscale(outputfile);
+            }
         }
 
 
@@ -66,8 +70,7 @@ public class EsrganUpscale : PluginAction<UpscaleEsrganInfo>
             context.LogInfo($"Downscaling {file.Path} to x2..");
 
             var outpath = Path.Combine(files.OutputFiles.Directory, "out_downscaled" + file.Format.AsExtension());
-            await FFMpegExec.ExecuteFFMpeg(context, file, args => { args.Filtergraph.Add("scale=iw/2:ih/2"); return outpath; });
-            File.Move(outpath, file.Path, true);
+            await FFMpegExec.ExecuteFFMpeg(context, file, files.OutputFiles, args => { args.Filtergraph.Add("scale=iw/2:ih/2"); return outpath; });
         }
     }
 

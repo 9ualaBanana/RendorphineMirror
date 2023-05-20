@@ -2,7 +2,7 @@ namespace Node.Tasks.Exec.Actions;
 
 public static class FFMpegExec
 {
-    static async Task<string> JustExecuteFFMpeg(ITaskExecutionContext context, FileWithFormat file, Func<FFMpegArgsHolder, string> argfunc)
+    static async Task<ReadOnlyTaskFileList> JustExecuteFFMpeg(ITaskExecutionContext context, FileWithFormat file, Func<FFMpegArgsHolder, string> argfunc)
     {
         var inputfile = file.Path;
         var ffprobe = await FFProbe.Get(inputfile, context) ?? throw new Exception();
@@ -15,8 +15,11 @@ public static class FFMpegExec
         context.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
         duration /= argholder.Rate;
 
+        var prevfiles = Directory.GetFiles(Path.GetDirectoryName(outputfilename)!);
         await new NodeProcess(context.GetPlugin(PluginType.FFmpeg).Path, args, context, onRead, stderr: LogLevel.Trace).Execute();
-        return outputfilename;
+        var newfiles = Directory.GetFiles(Path.GetDirectoryName(outputfilename)!).Except(prevfiles);
+
+        return new ReadOnlyTaskFileList(newfiles.Select(FileWithFormat.FromFile));
 
 
 
@@ -33,11 +36,19 @@ public static class FFMpegExec
             context.SetProgress(Math.Clamp(time / duration, 0, 1));
         }
     }
-    public static Task ExecuteFFMpeg(ITaskExecutionContext context, FileWithFormat file, Func<FFMpegArgsHolder, string> argfunc) => JustExecuteFFMpeg(context, file, argfunc);
+    public static async Task ExecuteFFMpeg(ITaskExecutionContext context, FileWithFormat file, TaskFileList outfiles, Func<FFMpegArgsHolder, string> argfunc)
+    {
+        var result = await JustExecuteFFMpeg(context, file, argfunc);
+
+        foreach (var res in result)
+            outfiles.Add(res);
+    }
     public static async Task ExecuteFFMpeg(ITaskExecutionContext context, FileWithFormat file, TaskFileListList outfiles, Func<FFMpegArgsHolder, string> argfunc)
     {
-        var outputfilename = await JustExecuteFFMpeg(context, file, argfunc);
-        outfiles.AddFromLocalPathFileSeparated(Path.GetDirectoryName(outputfilename).ThrowIfNull());
+        var result = await JustExecuteFFMpeg(context, file, argfunc);
+
+        foreach (var res in result)
+            outfiles.New().Add(res);
     }
 
     public static IEnumerable<string> GetFFMpegArgs(string inputfile, string outputfile, ITaskExecutionContext context, FFMpegArgsHolder argholder)

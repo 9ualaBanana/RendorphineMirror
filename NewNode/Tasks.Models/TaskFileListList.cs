@@ -18,6 +18,7 @@ public class TaskFileListList : IReadOnlyTaskFileListList
     public TaskFileListList(string directory) => Directory = directory;
 
     public void Add(ReadOnlyTaskFileList list) => Lists.Add(list);
+    public void Remove(ReadOnlyTaskFileList list) => Lists.Remove(list);
     public TaskFileList New()
     {
         int index = 0;
