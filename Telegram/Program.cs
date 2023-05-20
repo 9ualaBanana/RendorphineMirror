@@ -64,14 +64,4 @@ static class Startup
 {
     internal static IWebHostBuilder UseNLog_(this IWebHostBuilder builder)
         => builder.UseNLog(new() { ReplaceLoggerFactory = true });
-
-    internal static IApplicationBuilder UseExceptionHandler_(this IApplicationBuilder app)
-        => app.UseExceptionHandler(_ => _.Run(async context =>
-        {
-            await TelegramBotExceptionHandler.InvokeAsync(context);
-
-            // We tell Telegram the Update is handled.
-            context.Response.StatusCode = 200;
-            await context.Response.StartAsync();
-        }));
 }

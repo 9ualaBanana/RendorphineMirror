@@ -27,6 +27,16 @@ static class TelegramBotExceptionHandler
         .BindConfiguration($"{TelegramBotOptions.Configuration}:{TelegramBotExceptionHandlerOptions.Configuration}")
         .Services;
 
+    internal static IApplicationBuilder UseExceptionHandler_(this IApplicationBuilder app)
+        => app.UseExceptionHandler(_ => _.Run(async context =>
+        {
+            await TelegramBotExceptionHandler.InvokeAsync(context);
+
+            // We tell Telegram the Update is handled.
+            context.Response.StatusCode = 200;
+            await context.Response.StartAsync();
+        }));
+
     internal static async Task InvokeAsync(HttpContext context)
     {
         try
