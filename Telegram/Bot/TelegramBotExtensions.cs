@@ -29,7 +29,7 @@ internal static class TelegramBotExtensions
 
     internal static User From(this Update update) =>
         update.Message?.From ??
-        update.CallbackQuery?.Message?.From ??
+        update.CallbackQuery?.From ??
         update.InlineQuery?.From ??
         update.ChosenInlineResult?.From ??
         update.ChannelPost?.From ??
