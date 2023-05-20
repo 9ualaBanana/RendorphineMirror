@@ -26,4 +26,14 @@ internal static class TelegramBotExtensions
         update.EditedChannelPost?.Chat.Id ??
         update.ShippingQuery?.From.Id ??
         update.PreCheckoutQuery?.From.Id!;
+
+    internal static User From(this Update update) =>
+        update.Message?.From ??
+        update.CallbackQuery?.Message?.From ??
+        update.InlineQuery?.From ??
+        update.ChosenInlineResult?.From ??
+        update.ChannelPost?.From ??
+        update.EditedChannelPost?.From ??
+        update.ShippingQuery?.From ??
+        update.PreCheckoutQuery?.From!;
 }
