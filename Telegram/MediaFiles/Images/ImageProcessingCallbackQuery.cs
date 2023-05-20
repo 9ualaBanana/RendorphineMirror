@@ -4,6 +4,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
+using Telegram.Localization.Resources;
 using Telegram.MPlus.Security;
 using Telegram.Tasks;
 
@@ -19,12 +20,13 @@ public class ImageProcessingCallbackQueryHandler
         OwnedRegisteredTasksCache ownedRegisteredTasksCache,
         IOptions<TelegramBotOptions> botOptions,
         MediaFilesCache mediaFilesCache,
+        LocalizedText.Media localizedMediaText,
         IHttpClientFactory httpClientFactory,
         CallbackQuerySerializer serializer,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<ImageProcessingCallbackQueryHandler> logger)
-        : base(mediaFilesCache, httpClientFactory, serializer, bot, httpContextAccessor, logger)
+        : base(localizedMediaText, mediaFilesCache, httpClientFactory, serializer, bot, httpContextAccessor, logger)
     {
         _ownedRegisteredTasksCache = ownedRegisteredTasksCache;
         _hostUrl = botOptions.Value.Host;
@@ -54,7 +56,7 @@ public class ImageProcessingCallbackQueryHandler
 
         _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBotUser(ChatId, User)));
 
-        await Bot.SendMessageAsync_(ChatId, "Resulting image will be sent back to you as soon as it's ready.",
+        await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
             new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
             );
     }
@@ -72,7 +74,7 @@ public class ImageProcessingCallbackQueryHandler
 
         _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBotUser(ChatId, User)));
 
-        await Bot.SendMessageAsync_(ChatId, "Resulting images will be sent back to you as soon as they are ready.",
+        await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
             new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
             );
     }

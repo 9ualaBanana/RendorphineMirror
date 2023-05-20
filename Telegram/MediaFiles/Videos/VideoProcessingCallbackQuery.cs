@@ -1,6 +1,7 @@
 ﻿using Telegram.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
+using Telegram.Localization.Resources;
 
 namespace Telegram.MediaFiles.Videos;
 
@@ -9,12 +10,13 @@ public class VideoProcessingCallbackQueryHandler
 {
     public VideoProcessingCallbackQueryHandler(
         MediaFilesCache mediaFilesCache,
+        LocalizedText.Media localizedMediaText,
         IHttpClientFactory httpClientFactory,
         CallbackQuerySerializer serializer,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<VideoProcessingCallbackQueryHandler> logger)
-        : base(mediaFilesCache, httpClientFactory, serializer, bot, httpContextAccessor, logger)
+        : base(localizedMediaText, mediaFilesCache, httpClientFactory, serializer, bot, httpContextAccessor, logger)
     {
     }
 

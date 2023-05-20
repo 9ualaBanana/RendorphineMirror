@@ -3,6 +3,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
+using Telegram.Localization.Resources;
 using Telegram.MPlus.Security;
 using Telegram.Tasks;
 
@@ -14,12 +15,14 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
     readonly MediaFilesCache _mediaFilesCache;
     readonly MediaFile.Factory _mediaFileFactory;
     readonly CallbackQuerySerializer _serializer;
+    readonly LocalizedText.Media _localizedMediaText;
 
     public ProcessingMethodSelectorImageHandler(
         TaskPrice taskPrice,
         MediaFilesCache mediaFilesCache,
         MediaFile.Factory mediaFileFactory,
         CallbackQuerySerializer serializer,
+        LocalizedText.Media localizedMediaText,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<ProcessingMethodSelectorImageHandler> logger)
@@ -29,6 +32,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
         _mediaFilesCache = mediaFilesCache;
         _mediaFileFactory = mediaFileFactory;
         _serializer = serializer;
+        _localizedMediaText = localizedMediaText;
     }
 
     public override async Task HandleAsync()
@@ -38,7 +42,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
             var receivedImage = await _mediaFileFactory.CreateAsyncFrom(Message, RequestAborted);
             var cachedImage = await _mediaFilesCache.AddAsync(receivedImage, RequestAborted);
 
-            await Bot.SendMessageAsync_(ChatId, "*Choose how to process the image*",
+            await Bot.SendMessageAsync_(ChatId, $"*{_localizedMediaText.ChooseHowToProcess}*",
                 await BuildReplyMarkupAsyncFor(cachedImage)
                 );
         }
@@ -46,7 +50,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
         {
             await Bot.SendMessageAsync_(ChatId,
                 $"{ex.Message}\n" +
-                $"Specify an extension as the caption of the document.",
+                _localizedMediaText.SpecifyExtensionAsCaption,
                 cancellationToken: RequestAborted);
         }
     }
@@ -57,7 +61,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
         {
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithCallbackData($"Upload to M+",
+                InlineKeyboardButton.WithCallbackData(_localizedMediaText.UploadButton,
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)
@@ -65,7 +69,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
             },
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithCallbackData($"Upscale and upload to M+{await PriceFor(TaskAction.EsrganUpscale)}",
+                InlineKeyboardButton.WithCallbackData($"{_localizedMediaText.UpscaleButton}{await PriceFor(TaskAction.EsrganUpscale)}",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.UpscaleImage | ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)
@@ -73,7 +77,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler
             },
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithCallbackData($"Vectorize and upload to M+{await PriceFor(TaskAction.VeeeVectorize)}",
+                InlineKeyboardButton.WithCallbackData($"{_localizedMediaText.VectorizeButton}{await PriceFor(TaskAction.VeeeVectorize)}",
                 _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.VectorizeImage | ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)

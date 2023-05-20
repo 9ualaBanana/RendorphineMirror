@@ -3,6 +3,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
+using Telegram.Localization.Resources;
 
 namespace Telegram.MediaFiles.Videos;
 
@@ -11,11 +12,13 @@ public class ProcessingMethodSelectorVideoHandler : MessageHandler
     readonly MediaFilesCache _mediaFilesCache;
     readonly MediaFile.Factory _mediaFileFactory;
     readonly CallbackQuerySerializer _callbackQuerySerializer;
+    readonly LocalizedText.Media _localizedMediaText;
 
     public ProcessingMethodSelectorVideoHandler(
         MediaFilesCache mediaFilesCache,
         MediaFile.Factory mediaFileFactory,
         CallbackQuerySerializer callbackQuerySerializer,
+        LocalizedText.Media localizedMediaText,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<ProcessingMethodSelectorVideoHandler> logger)
@@ -24,10 +27,11 @@ public class ProcessingMethodSelectorVideoHandler : MessageHandler
         _mediaFilesCache = mediaFilesCache;
         _mediaFileFactory = mediaFileFactory;
         _callbackQuerySerializer = callbackQuerySerializer;
+        _localizedMediaText = localizedMediaText;
     }
 
     public override async Task HandleAsync()
-        => await Bot.SendMessageAsync_(ChatId, "*Choose how to process the video*",
+        => await Bot.SendMessageAsync_(ChatId, $"*{_localizedMediaText.ChooseHowToProcess}*",
             await BuildReplyMarkupAsyncFor(await _mediaFileFactory.CreateAsyncFrom(Message, RequestAborted), RequestAborted)
             );
 
@@ -38,7 +42,7 @@ public class ProcessingMethodSelectorVideoHandler : MessageHandler
         {
             new InlineKeyboardButton[]
             {
-                InlineKeyboardButton.WithCallbackData("Upload to M+",
+                InlineKeyboardButton.WithCallbackData(_localizedMediaText.UploadButton,
                 _callbackQuerySerializer.Serialize(new VideoProcessingCallbackQuery.Builder<VideoProcessingCallbackQuery>()
                 .Data(VideoProcessingCallbackData.UploadVideo)
                 .Arguments(cachedVideo.Index)
