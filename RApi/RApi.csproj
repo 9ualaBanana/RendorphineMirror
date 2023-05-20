@@ -2,7 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
-    <ProjectReference Include="..\NewNode\Tasks.Models\Node.Tasks.Models.csproj" />
+    <ProjectReference Include="..\Node\Node.Tasks.Models\Node.Tasks.Models.csproj" />
   </ItemGroup>
 
   <ItemGroup>

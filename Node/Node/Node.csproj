@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <SelfContained>true</SelfContained>
+    <!--<PublishReadyToRun>true</PublishReadyToRun>-->
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.PowerShell.Sdk" Version="7.3.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\NodeCommon\NodeCommon.csproj" />
+    <ProjectReference Include="..\..\Benchmark\Benchmark.csproj" />
+    <ProjectReference Include="..\..\Machine\Machine.csproj" />
+    <ProjectReference Include="..\..\Transport\Transport.csproj" />
+    <ProjectReference Include="..\..\_3DProductsPublish\_3DProductsPublish.csproj" />
+
+    <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
+    <ProjectReference Include="..\Node.Tasks\Node.Tasks.csproj" />
+    <ProjectReference Include="..\Node.Plugins\Node.Plugins.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <ProjectReference Include="..\Node.UI\Node.UI.csproj" />
+    <ProjectReference Include="..\..\Pinger\Pinger.csproj" />
+  </ItemGroup>
+
+</Project>

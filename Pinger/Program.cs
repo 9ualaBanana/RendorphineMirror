@@ -2,7 +2,7 @@ using UpdaterCommon;
 
 
 Init.Initialize();
-var updater = UpdateChecker.LoadFromJsonOrDefault(args: new Dictionary<string, string>() { ["NodeUI"] = "hidden" });
+var updater = UpdateChecker.LoadFromJsonOrDefault(args: new Dictionary<string, string>() { ["Node.UI"] = "hidden" });
 await updater.Update().ThrowIfError();
 
 
