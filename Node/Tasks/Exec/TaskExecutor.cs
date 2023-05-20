@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Web;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -9,13 +10,14 @@ namespace Node.Tasks.Exec;
 
 public static class TaskExecutor
 {
-    static readonly SemaphoreSlim InputSemaphore = new SemaphoreSlim(5);
-    static readonly SemaphoreSlim TaskWaitHandle = new SemaphoreSlim(1);
+    static readonly SemaphoreSlim QSPreviewInputSemaphore = new SemaphoreSlim(3);
+    static readonly SemaphoreSlim NonQSPreviewInputSemaphore = new SemaphoreSlim(2);
+    static readonly SemaphoreSlim ActiveSemaphore = new SemaphoreSlim(1);
     static readonly SemaphoreSlim OutputSemaphore = new SemaphoreSlim(5);
 
-    static async Task<FuncDispose> WaitDisposed(string info, ILoggable task, SemaphoreSlim semaphore)
+    static async Task<FuncDispose> WaitDisposed(SemaphoreSlim semaphore, ILoggable task, [CallerArgumentExpression(nameof(semaphore))] string? info = null)
     {
-        task.LogInfo($"Waiting for the {info} handle: (wh {semaphore.CurrentCount})");
+        task.LogInfo($"Waiting for {info} lock ({semaphore.CurrentCount})");
 
         await semaphore.WaitAsync();
         return FuncDispose.Create(semaphore.Release);
@@ -44,12 +46,10 @@ public static class TaskExecutor
 
     static async Task DownloadInput(ITaskInputExecutionContext context)
     {
-        using var _ = await WaitDisposed("input", context, InputSemaphore);
-
         // TODO:: delete
         var task = ((TaskInputExecutionContext) context).Task;
 
-        context.LogInfo($"Downloading input... (wh {InputSemaphore.CurrentCount})");
+        context.LogInfo($"Downloading input");
         var inputfiles = await context.Handler.Download(task).ConfigureAwait(false);
         context.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(context.Input, Newtonsoft.Json.Formatting.None)}");
 
@@ -96,7 +96,6 @@ public static class TaskExecutor
         var econtext = new TaskExecutionContext(task);
 
         CheckFileList(inputfiles, "input");
-        using var _ = await WaitDisposed("active", context, TaskWaitHandle);
 
         var outputs = null as TaskFileListList;
         var index = 0;
@@ -147,7 +146,6 @@ public static class TaskExecutor
 
         CheckFileList(task.InputFileList, "input");
         CheckFileListList(task.OutputFileListList, "output");
-        using var _ = await WaitDisposed("output", context, OutputSemaphore);
 
         context.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(context.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
         await context.Handler.UploadResult(task, new ReadOnlyTaskFileList(task.OutputFileListList.SelectMany(l => l))).ConfigureAwait(false);
@@ -165,15 +163,28 @@ public static class TaskExecutor
         var apis = Apis.Default;
 
         if (task.State <= TaskState.Input)
+        {
+            var isqspreview = task.GetFirstAction().Name == TaskAction.GenerateQSPreview;
+            var semaphore = isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore;
+            var info = isqspreview ? "qspinput" : "input";
+            using var _ = await WaitDisposed(semaphore, task, info);
+
             await DownloadInput(new TaskInputExecutionContext(task, apis));
+        }
         else task.LogInfo($"Input seems to be already downloaded");
 
         if (task.State <= TaskState.Active)
+        {
+            using var _ = await WaitDisposed(ActiveSemaphore, task);
             await Execute(new TaskExecutionExecutionContext(task, apis), task.InputFileList);
+        }
         else task.LogInfo($"Task execution seems to be already finished");
 
         if (task.State <= TaskState.Output)
+        {
+            using var _ = await WaitDisposed(OutputSemaphore, task);
             await UploadResult(new TaskOutputExecutionContext(task, apis));
+        }
         else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
 
         await MaybeNotifyTelegramBotOfTaskCompletion(task);
