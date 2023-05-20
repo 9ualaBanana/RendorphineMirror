@@ -1,6 +1,7 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.Commands;
+using Telegram.Localization.Resources;
 using Telegram.MPlus.Clients;
 using Telegram.MPlus.Security;
 using Telegram.Security.Authentication;
@@ -12,11 +13,13 @@ public class StartCommand : CommandHandler
     readonly LoginCommand _loginCommandHandler;
     readonly AuthenticationManager _authenticationManager;
     readonly MPlusClient _mPlusClient;
+    readonly LocalizedText.Authentication _localizedAuthenticationText;
 
     public StartCommand(
         LoginCommand loginCommandHandler,
         AuthenticationManager authenticationManager,
         MPlusClient mPlusClient,
+        LocalizedText.Authentication localizedAuthenticationMessage,
         Command.Factory commandFactory,
         Command.Received receivedCommand,
         TelegramBot bot,
@@ -27,6 +30,7 @@ public class StartCommand : CommandHandler
         _loginCommandHandler = loginCommandHandler;
         _authenticationManager = authenticationManager;
         _mPlusClient = mPlusClient;
+        _localizedAuthenticationText = localizedAuthenticationMessage;
     }
 
     internal override Command Target => CommandFactory.Create("start");
@@ -50,8 +54,10 @@ public class StartCommand : CommandHandler
         {
             string loginCommand = _loginCommandHandler.Target.Prefixed;
             await Bot.SendMessageAsync_(ChatId,
-                $"To authenticate with M+ use {loginCommand} followed by email and password separated by space or the button below to authenticate via browser.",
-                InlineKeyboardButton.WithUrl("Authenticate via browser", "https://microstock.plus/oauth2/authorize?clientid=003&state=_"),
+                _localizedAuthenticationText.Start(loginCommand),
+                InlineKeyboardButton.WithUrl(
+                    _localizedAuthenticationText.BrowserAuthenticationButton,
+                    "https://microstock.plus/oauth2/authorize?clientid=003&state=_"),
                 disableWebPagePreview: true, cancellationToken: RequestAborted);
         }
 

@@ -1,5 +1,6 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Localization.Resources;
 using Telegram.MPlus.Clients;
 using Telegram.Persistence;
 
@@ -10,12 +11,18 @@ public class AuthenticationManager
     readonly MPlusClient _mPlusClient;
     readonly TelegramBot _bot;
 	readonly TelegramBotDbContext _database;
+    readonly LocalizedText.Authentication _localiedAuthenticationMessage;
 
-	public AuthenticationManager(MPlusClient mPlusClient, TelegramBot bot, TelegramBotDbContext database)
+	public AuthenticationManager(
+        MPlusClient mPlusClient,
+        TelegramBot bot,
+        TelegramBotDbContext database,
+        LocalizedText.Authentication localizedAuthenticationMessage)
 	{
         _mPlusClient = mPlusClient;
         _bot = bot;
 		_database = database;
+        _localiedAuthenticationMessage = localizedAuthenticationMessage;
 	}
 
     internal async Task TryAuthenticateByMPlusAsync(TelegramBotUserEntity user, string email, string password, CancellationToken cancellationToken)
@@ -33,7 +40,7 @@ public class AuthenticationManager
             catch (Exception ex)
             {
                 await _bot.SendMessageAsync_(user.ChatId,
-                    "Authentication attempt failed:\n" +
+                    $"{_localiedAuthenticationMessage.Failure}:\n" +
                 ex.Message,
                     cancellationToken: cancellationToken);
                 return null;
@@ -77,18 +84,17 @@ public class AuthenticationManager
     {
         var balance = await _mPlusClient.TaskLauncher.RequestBalanceAsync(sessionId, cancellationToken);
         await _bot.SendMessageAsync_(chatId,
-            "You are logged in now.\n\n" +
-            $"*Balance* : `{balance.RealBalance}`",
+            _localiedAuthenticationMessage.Success(balance.RealBalance),
             cancellationToken: cancellationToken);
     }
 
     internal async Task SendAlreadyLoggedInMessageAsync(ChatId chatId, CancellationToken cancellationToken)
         => await _bot.SendMessageAsync_(chatId,
-            $"You are already logged in.",
+            _localiedAuthenticationMessage.AlreadyLoggedIn,
             cancellationToken: cancellationToken);
 
     internal async Task SendSuccessfullLogOutMessageAsync(ChatId chatId, CancellationToken cancellationToken)
         => await _bot.SendMessageAsync_(chatId,
-            "You are logged out now.",
+            _localiedAuthenticationMessage.LoggedOut,
             cancellationToken: cancellationToken);
 }

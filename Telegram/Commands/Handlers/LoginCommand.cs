@@ -2,6 +2,7 @@
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Infrastructure.Commands;
+using Telegram.Localization.Resources;
 using Telegram.Persistence;
 using Telegram.Security.Authentication;
 
@@ -17,9 +18,11 @@ namespace Telegram.Commands.Handlers;
 public class LoginCommand : CommandHandler
 {
     readonly AuthenticationManager _authenticationManager;
+    readonly LocalizedText.Authentication _localizedAuthenticationMessage;
 
     public LoginCommand(
         AuthenticationManager authenticationManager,
+        LocalizedText.Authentication localizedAuthenticationMessage,
         Command.Factory commandFactory,
         Command.Received receivedCommand,
         TelegramBot bot,
@@ -28,6 +31,7 @@ public class LoginCommand : CommandHandler
         : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
         _authenticationManager = authenticationManager;
+        _localizedAuthenticationMessage = localizedAuthenticationMessage;
     }
 
     internal override Command Target => CommandFactory.Create("login");
@@ -50,8 +54,7 @@ public class LoginCommand : CommandHandler
                 await _authenticationManager.TryAuthenticateByMPlusAsync(user, email, password, RequestAborted);
             }
             else await Bot.SendMessageAsync_(ChatId,
-                $"Login must be performed in the following way:\n" +
-                $"`{Target.Prefixed} <email> <password>`",
+                _localizedAuthenticationMessage.WrongSyntax(Target.Prefixed, correctSyntax: $"{Target.Prefixed} email password"),
                 cancellationToken: RequestAborted);
         }
     }
