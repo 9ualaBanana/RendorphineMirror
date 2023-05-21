@@ -8,6 +8,7 @@ public static class Initializer
     // always true, keeping just in case we'd want to change this
     public static readonly bool UseAdminRights = true;
     public static string AppName;
+    public static bool LogToFile = true;
 
 
     static Initializer()
