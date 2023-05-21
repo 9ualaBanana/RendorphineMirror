@@ -27,7 +27,7 @@ internal abstract class PluginDiscoverer : IPluginDiscoverer
         RegexExecutable = ExecutableRegex is null ? null : new Regex($"^{ExecutableRegex}$", RegexOptions.Compiled);
     }
 
-    public ValueTask<IEnumerable<Plugin>> Discover() => ValueTask.FromResult(GetPluginsInDirectories(GetPossiblePluginDirectories()));
+    public Task<IEnumerable<Plugin>> DiscoverAsync() => Task.FromResult(GetPluginsInDirectories(GetPossiblePluginDirectories()));
     protected virtual IEnumerable<string> GetPossiblePluginDirectories()
     {
         var directories = InstallationPaths

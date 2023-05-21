@@ -20,7 +20,6 @@ public record MachineInfo
     }
     readonly public static string Port = Settings.UPnpPort.ToString();
     readonly public static string WebServerPort = Settings.UPnpServerPort.ToString();
-    public static ValueTask<HashSet<Plugin>> DiscoverInstalledPluginsInBackground() => PluginsManager.DiscoverInstalledPluginsAsync();
     public static async Task<string> GetBriefInfoAsync() => $"{NodeName} {PCName} (v.{Version}) | {await GetPublicIPAsync()}:{Port}";
 
     //public static async Task<string> ToTelegramMessageAsync(bool verbose = false)
@@ -31,7 +30,7 @@ public record MachineInfo
     //    throw new PlatformNotSupportedException();
     //}
 
-    public static async Task<JsonContent> AsJsonContentAsync() => JsonContent.Create(new
+    public static async Task<JsonContent> AsJsonContentAsync(PluginManager pluginManager) => JsonContent.Create(new
     {
         UserId,
         NodeName,
@@ -42,6 +41,6 @@ public record MachineInfo
         IP = (await GetPublicIPAsync()).ToString(),
         Port,
         WebServerPort,
-        InstalledPlugins = await DiscoverInstalledPluginsInBackground(),
+        InstalledPlugins = await pluginManager.GetInstalledPluginsAsync(),
     });
 }

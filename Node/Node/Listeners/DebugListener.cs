@@ -7,6 +7,10 @@ public class DebugListener : ExecutableListenerBase
     protected override ListenTypes ListenType => ListenTypes.Local;
     protected override string Prefix => "debug";
 
+    readonly PluginManager PluginManager;
+
+    public DebugListener(PluginManager pluginManager) => PluginManager = pluginManager;
+
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
         var response = context.Response;
@@ -62,7 +66,7 @@ public class DebugListener : ExecutableListenerBase
 
                 var taskid = Guid.NewGuid().ToString();
                 var context = new LocalTaskExecutionContext(
-                    PluginsManager.GetInstalledPluginsCache().ThrowIfNull("Could not launch the task without plugin list being cached"),
+                    await PluginManager.GetInstalledPluginsAsync(),
                     new LoggableLogger($"LTask {taskid}", LogManager.GetCurrentClassLogger())
                 );
 

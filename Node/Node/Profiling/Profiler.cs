@@ -16,7 +16,7 @@ internal static class Profiler
         return new FuncDispose(() => HeartbeatLocked = false);
     }
 
-    internal static async Task<HttpContent> GetAsync()
+    internal static async Task<HttpContent> GetAsync(PluginManager pluginManager)
     {
         if (Benchmark.ShouldBeRun)
         {
@@ -27,18 +27,18 @@ internal static class Profiler
         while (HeartbeatLocked)
             await Task.Delay(100);
 
-        return await BuildProfileAsync();
+        return await BuildProfileAsync(pluginManager);
     }
 
-    static async Task<FormUrlEncodedContent> BuildProfileAsync()
+    static async Task<FormUrlEncodedContent> BuildProfileAsync(PluginManager pluginManager)
     {
-        _cachedProfile ??= await Profile.CreateDefault();
+        _cachedProfile ??= await Profile.CreateDefault(pluginManager);
         Benchmark.UpdateValues(_cachedProfile.Hardware);
 
         if (Settings.AcceptTasks.Value)
         {
             if (_cachedProfile.AllowedTypes.Count == 0)
-                _cachedProfile.AllowedTypes = await Profile.BuildDefaultAllowedTypes();
+                _cachedProfile.AllowedTypes = await Profile.BuildDefaultAllowedTypes(pluginManager);
         }
         else
         {

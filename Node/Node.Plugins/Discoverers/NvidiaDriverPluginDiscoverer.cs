@@ -4,7 +4,7 @@ namespace Node.Plugins.Discoverers;
 
 internal class NvidiaDriverPluginDiscoverer : IPluginDiscoverer
 {
-    public async ValueTask<IEnumerable<Plugin>> Discover()
+    public async Task<IEnumerable<Plugin>> DiscoverAsync()
     {
         var nvidiasmi = await Processes.FullExecute("nvidia-smi", "-q -x", PluginDiscoverer.Logger.AsLoggable(), LogLevel.Off);
         var xml = new XmlDocument().With(xml => xml.LoadXml(nvidiasmi));

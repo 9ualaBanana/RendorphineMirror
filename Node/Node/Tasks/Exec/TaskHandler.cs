@@ -58,7 +58,7 @@ public static class TaskHandler
     }
 
     /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
-    public static void StartListening()
+    public static void StartListening(PluginManager pluginManager)
     {
         new Thread(async () =>
         {
@@ -68,7 +68,7 @@ public static class TaskHandler
                 if (NodeSettings.QueuedTasks.Count == 0) continue;
 
                 foreach (var task in NodeSettings.QueuedTasks.Values.ToArray())
-                    HandleAsync(task).Consume();
+                    HandleAsync(task, pluginManager).Consume();
             }
         })
         { IsBackground = true }.Start();
@@ -221,7 +221,7 @@ public static class TaskHandler
     }
 
 
-    static async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
+    static async Task HandleAsync(ReceivedTask task, PluginManager pluginManager, CancellationToken cancellationToken = default)
     {
         if (task is null)
         {
@@ -260,7 +260,7 @@ public static class TaskHandler
             try
             {
                 var starttime = DateTimeOffset.Now;
-                await TaskExecutor.Execute(task).ConfigureAwait(false);
+                await TaskExecutor.Execute(task, pluginManager).ConfigureAwait(false);
 
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");

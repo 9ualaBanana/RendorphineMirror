@@ -72,11 +72,12 @@ public static class TaskExecutor
     interface ITaskExecutionExecutionContext : ILoggable
     {
         IReadOnlyCollection<JObject> Datas { get; }
+        IReadOnlyCollection<Plugin> Plugins { get; }
 
         Task SetOutputAsync(IReadOnlyTaskFileListList files);
         string NewTaskResultDirectory(string addition);
     }
-    record TaskExecutionExecutionContext(ReceivedTask Task, NodeCommon.Apis Apis) : ApiTaskContextBase(Task, Apis), ITaskExecutionExecutionContext
+    record TaskExecutionExecutionContext(ReceivedTask Task, NodeCommon.Apis Apis, IReadOnlyCollection<Plugin> Plugins) : ApiTaskContextBase(Task, Apis), ITaskExecutionExecutionContext
     {
         public IReadOnlyCollection<JObject> Datas { get; } = (Task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(Task.Info.Data).ToArray();
 
@@ -93,7 +94,7 @@ public static class TaskExecutor
         // TODO:: delete
         var task = ((TaskExecutionExecutionContext) context).Task;
 
-        var econtext = new TaskExecutionContext(task);
+        var econtext = new TaskExecutionContext(task, context.Plugins);
 
         CheckFileList(inputfiles, "input");
 
@@ -155,9 +156,8 @@ public static class TaskExecutor
     }
 
 
-
     [Obsolete("Use TaskHandler instead")]
-    public static async Task Execute(ReceivedTask task)
+    public static async Task Execute(ReceivedTask task, PluginManager pluginManager)
     {
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.None)}");
         var apis = Apis.Default;
@@ -176,7 +176,7 @@ public static class TaskExecutor
         if (task.State <= TaskState.Active)
         {
             using var _ = await WaitDisposed(ActiveSemaphore, task);
-            await Execute(new TaskExecutionExecutionContext(task, apis), task.InputFileList);
+            await Execute(new TaskExecutionExecutionContext(task, apis, await pluginManager.GetInstalledPluginsAsync()), task.InputFileList);
         }
         else task.LogInfo($"Task execution seems to be already finished");
 
@@ -263,10 +263,8 @@ public static class TaskExecutor
             Context.SetProgress((progress * subtaskpart) + (subtaskpart * Subtask));
         }
     }
-    record TaskExecutionContext(ReceivedTask Task) : ITaskExecutionContext
+    record TaskExecutionContext(ReceivedTask Task, IReadOnlyCollection<Plugin> Plugins) : ITaskExecutionContext
     {
-        public IReadOnlyCollection<Plugin> Plugins => PluginsManager.GetInstalledPluginsCache().ThrowIfNull("Could not launch the task without plugin list being cached");
-
         public void Log(LogLevel level, string text) => Task.Log(level, text);
 
         const int ProgressSendDelaySec = 5;

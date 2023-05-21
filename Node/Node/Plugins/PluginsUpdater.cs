@@ -26,17 +26,23 @@ internal class PluginsUpdater : IHeartbeatGenerator
         _deploymentInProcess = false;
     };
 
+    readonly PluginManager PluginManager;
+
+    public PluginsUpdater(PluginManager pluginManager) => PluginManager = pluginManager;
+
     async Task TryDeployUninstalledPluginsAsync(HttpResponseMessage response)
     {
         try { await DeployUninstalledPluginsAsync(response); }
         catch (Exception ex) { _logger.Error(ex, "{Service} was unable to deploy uninstalled plugins", "UserSettingsManager"); }
     }
 
-    static async Task DeployUninstalledPluginsAsync(HttpResponseMessage response)
+    async Task DeployUninstalledPluginsAsync(HttpResponseMessage response)
     {
         var userSettings = await UserSettings.ReadOrThrowAsync(response);
         userSettings.Guid = Settings.Guid;
-        await PluginsManager.TryDeployUninstalledPluginsAsync(userSettings);
+        await PluginDeployer.TryDeployUninstalledPluginsAsync(userSettings, await PluginManager.GetInstalledPluginsAsync());
+
+        await PluginManager.RediscoverPluginsAsync();
     }
     #endregion
 }

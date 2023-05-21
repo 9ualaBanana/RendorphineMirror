@@ -15,6 +15,10 @@ public class LocalListener : ExecutableListenerBase
     readonly HttpClient Client = new();
     protected override ListenTypes ListenType => ListenTypes.Local;
 
+    readonly PluginManager PluginManager;
+
+    public LocalListener(PluginManager pluginManager) => PluginManager = pluginManager;
+
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
         var request = context.Request;
@@ -52,7 +56,7 @@ public class LocalListener : ExecutableListenerBase
             return await Test(request, response, "type", "version", async (type, version) =>
             {
                 new ScriptPluginDeploymentInfo(new PluginToDeploy() { Type = Enum.Parse<PluginType>(type, true), Version = version }).DeployAsync()
-                    .ContinueWith(async _ => await PluginsManager.DiscoverInstalledPluginsAsync())
+                    .ContinueWith(async _ => await PluginManager.GetInstalledPluginsAsync())
                     .Consume();
 
                 return await WriteSuccess(response).ConfigureAwait(false);

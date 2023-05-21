@@ -18,11 +18,11 @@ internal class Profile
     public BenchmarkData Hardware { get; set; }
 #pragma warning restore
 
-    public static async ValueTask<Profile> CreateDefault()
+    public static async ValueTask<Profile> CreateDefault(PluginManager pluginManager)
     {
         var ip = MachineInfo.GetPublicIPAsync();
-        var software = BuildSoftwarePayloadAsync();
-        var types = BuildDefaultAllowedTypes();
+        var software = BuildSoftwarePayloadAsync(pluginManager);
+        var types = BuildDefaultAllowedTypes(pluginManager);
 
         return new()
         {
@@ -44,9 +44,9 @@ internal class Profile
         };
     }
 
-    public static async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes()
+    public static async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes(PluginManager pluginManager)
     {
-        var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
+        var plugins = await pluginManager.GetInstalledPluginsAsync();
         return plugins
             .SelectMany(x => TaskList.Get(x.Type))
             .DistinctBy(x => x.Name)
@@ -55,10 +55,10 @@ internal class Profile
     }
 
     // Ridiculous.
-    static async Task<Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>> BuildSoftwarePayloadAsync()
+    static async Task<Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>> BuildSoftwarePayloadAsync(PluginManager pluginManager)
     {
         var result = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>();
-        foreach (var softwareGroup in (await PluginsManager.DiscoverInstalledPluginsAsync()).GroupBy(software => software.Type))
+        foreach (var softwareGroup in (await pluginManager.GetInstalledPluginsAsync()).GroupBy(software => software.Type))
         {
             var softwareName = Enum.GetName(softwareGroup.Key)!.ToLower();
             result.Add(softwareName, new Dictionary<string, Dictionary<string, Dictionary<string, string>>>());

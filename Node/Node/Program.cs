@@ -39,12 +39,13 @@ var halfrelease = args.Contains("release");
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
 InitializeSettings();
+var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
 {
     var localport = UpdatePort("127.0.0.1", Settings.BLocalListenPort, "Local")
-        .ContinueWith(_ => new LocalListener().Start());
+        .ContinueWith(_ => new LocalListener(pluginManager).Start());
 
     var publicports = PortForwarding.GetPublicIPAsync()
         .ContinueWith(ip => Task.WhenAll(
@@ -53,9 +54,11 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
         )).Unwrap();
 
     var pluginsinit = InitializePlugins();
+    var plugindiscover = pluginManager.GetInstalledPluginsAsync();
 
     await Task.WhenAll(
         pluginsinit,
+        plugindiscover,
         publicports,
         localport
     );
@@ -85,7 +88,7 @@ if (!Init.IsDebug || halfrelease)
         SystemService.Start();
 
         var reepoHeartbeat = new Heartbeat(
-            new HttpRequestMessage(HttpMethod.Post, $"{Settings.ServerUrl}/node/ping") { Content = await MachineInfo.AsJsonContentAsync() },
+            new HttpRequestMessage(HttpMethod.Post, $"{Settings.ServerUrl}/node/ping") { Content = await MachineInfo.AsJsonContentAsync(pluginManager) },
             TimeSpan.FromMinutes(5), Api.Client);
         _ = reepoHeartbeat.StartAsync();
 
@@ -94,12 +97,12 @@ if (!Init.IsDebug || halfrelease)
         //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
     }
 
-    var mPlusTaskManagerHeartbeat = new Heartbeat(new MPlusHeartbeatGenerator(), TimeSpan.FromMinutes(1), Api.Client);
+    var mPlusTaskManagerHeartbeat = new Heartbeat(new MPlusHeartbeatGenerator(pluginManager), TimeSpan.FromMinutes(1), Api.Client);
     _ = mPlusTaskManagerHeartbeat.StartAsync();
 
     captured.Add(mPlusTaskManagerHeartbeat);
 
-    var userSettingsHeartbeat = new Heartbeat(new PluginsUpdater(), TimeSpan.FromMinutes(1), Api.Client);
+    var userSettingsHeartbeat = new Heartbeat(new PluginsUpdater(pluginManager), TimeSpan.FromMinutes(1), Api.Client);
     _ = userSettingsHeartbeat.StartAsync();
 
     captured.Add(userSettingsHeartbeat);
@@ -115,7 +118,7 @@ new DirectoryDiffListener().Start();
 new DownloadListener().Start();
 new PublicPagesListener().Start();
 
-if (Init.DebugFeatures) new DebugListener().Start();
+if (Init.DebugFeatures) new DebugListener(pluginManager).Start();
 
 PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
 {
@@ -149,7 +152,7 @@ NodeCommon.Tasks.TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add
 TaskHandler.InitializePlacedTasksAsync().Consume();
 TaskHandler.StartUpdatingPlacedTasks();
 TaskHandler.StartWatchingTasks();
-TaskHandler.StartListening();
+TaskHandler.StartListening(pluginManager);
 
 new Thread(() =>
 {
@@ -242,11 +245,7 @@ async Task InitializePlugins()
         new GenerateQSPreview()
     );
 
-    PluginsManager.RegisterPluginDiscoverers(PluginDiscoverers.GetAll());
     TaskHandler.AutoInitializeHandlers();
-
-    var plugins = await MachineInfo.DiscoverInstalledPluginsInBackground();
-    Task.Run(() => logger.Info($"Found {{Plugins}} installed plugins:\n{string.Join(Environment.NewLine, plugins.Select(x => $"{x.Type} {x.Version}: {(x.Path.Length == 0 ? "<nopath>" : Path.GetFullPath(x.Path))}"))}", plugins.Count)).Consume();
 }
 async ValueTask WaitForAuth()
 {
