@@ -2,7 +2,7 @@
 using Telegram.Bot;
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.MPlus;
+using Telegram.MPlus.Security;
 
 namespace Telegram.Tasks;
 
@@ -48,8 +48,7 @@ public class TaskCallbackQueryHandler : CallbackQueryHandler<TaskCallbackQuery, 
                 var details = new StringBuilder()
                     .AppendLine($"*Action* : `{callbackQuery.Action}`")
                     .AppendLine($"*Task ID* : `{callbackQuery.TaskId}`")
-                    .AppendLine($"*State* : `{taskState.State}`")
-                    .AppendLine($"*Progress* : `{taskState.Progress}`");
+                    .AppendLine($"*State* : `{taskState.State}`");
                 if (taskState.Times.Exist)
                 {
                     details.AppendLine($"*Duration* : `{taskState.Times.Total}`");

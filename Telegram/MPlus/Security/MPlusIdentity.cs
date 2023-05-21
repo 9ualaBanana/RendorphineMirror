@@ -2,7 +2,7 @@
 using System.Security.Claims;
 using Telegram.Security.Authentication;
 
-namespace Telegram.MPlus;
+namespace Telegram.MPlus.Security;
 
 /// <summary>
 /// Helper for working with M+ <see cref="ClaimsIdentity"/>.

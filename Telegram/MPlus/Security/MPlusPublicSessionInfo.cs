@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
-using Telegram.MPlus;
 
-namespace NodeCommon;
+namespace Telegram.MPlus.Security;
 
 internal record MPlusPublicSessionInfo(
     [JsonProperty(PropertyName = "sid")] string SessionId,

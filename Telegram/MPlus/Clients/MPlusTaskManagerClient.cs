@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
+using Telegram.MPlus.Files;
+using Telegram.MPlus.Security;
 
-namespace Telegram.MPlus;
+namespace Telegram.MPlus.Clients;
 
 public class MPlusTaskManagerClient
 {
@@ -18,7 +20,7 @@ public class MPlusTaskManagerClient
 
     /// <exception cref="InvalidDataException">M+ server returned authentication result in a wrong format.</exception>
     /// <exception cref="HttpRequestException">Exception occured on the M+ server.</exception>
-    internal async Task<MPlusIdentity> LogInAsyncUsing(string email, string password)
+    internal async Task<MPlusIdentity> AuthenticateAsyncUsing(string email, string password)
     {
         var credentialsForm = new FormUrlEncodedContent(new Dictionary<string, string>()
         {

@@ -1,6 +1,7 @@
-﻿using Telegram.Tasks.ResultPreview;
+﻿using Telegram.MPlus.Files;
+using Telegram.Tasks.ResultPreview;
 
-namespace Telegram.MPlus;
+namespace Telegram.MPlus.Clients;
 
 public class MPlusClient
 {

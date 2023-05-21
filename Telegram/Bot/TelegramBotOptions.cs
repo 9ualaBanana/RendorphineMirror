@@ -14,9 +14,9 @@ public record TelegramBotOptions
     string _Host { get; init; } = null!;
 }
 
-internal static class TelegramBotOptionsConfigurationExtension
+internal static class TelegramBotOptionsExtensions
 {
-    public static IServiceCollection ConfigureTelegramBotOptions(this IServiceCollection services)
+    internal static IServiceCollection ConfigureTelegramBotOptions(this IServiceCollection services)
         => services.AddOptions<TelegramBotOptions>()
             .BindConfiguration(TelegramBotOptions.Configuration, _ => _.BindNonPublicProperties = true)
         .Services;

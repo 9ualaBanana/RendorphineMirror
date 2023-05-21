@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
-using Telegram.MPlus;
+using Telegram.MPlus.Clients;
 
 namespace Telegram.StableDiffusion;
 

@@ -6,7 +6,7 @@ namespace Telegram.Infrastructure.MediaFiles;
 public class MediaFilesCache
 {
     TimeSpan Expiration => TimeSpan.FromMilliseconds(_expiration);
-    const int _expiration = 300_000;
+    const int _expiration = 3_600_000;
 
     readonly MediaFileDownloader _mediaFileDownloader;
     readonly IMemoryCache _cache;

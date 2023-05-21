@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Telegram.MPlus;
+using Telegram.MPlus.Security;
 
 namespace Telegram.Security.Authorization;
 

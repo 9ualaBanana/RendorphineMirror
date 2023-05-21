@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 
-namespace Telegram.MPlus;
+namespace Telegram.MPlus.Files;
 
 /// <summary>Represents info for a file stored on M+.</summary>
 /// <remarks>Unserialized info can be accessed via indexer.</remarks>

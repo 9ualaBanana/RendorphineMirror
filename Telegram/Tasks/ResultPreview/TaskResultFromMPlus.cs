@@ -1,5 +1,5 @@
 ﻿using Telegram.Bot.Types.InputFiles;
-using Telegram.MPlus;
+using Telegram.MPlus.Files;
 
 namespace Telegram.Tasks.ResultPreview;
 

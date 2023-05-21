@@ -9,11 +9,12 @@ internal static class TelegramBotExtensions
     internal static IWebHostBuilder AddTelegramBot(this IWebHostBuilder builder)
         => builder
         .ConfigureAppConfiguration(_ => _
-            .AddJsonFile("botsettings.json", optional: false, reloadOnChange: false)
-            .AddJsonFile($"botsettings.{Environments.Development}.json", optional: true, reloadOnChange: false))
+            .AddJsonFile("botsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile($"botsettings.{Environments.Development}.json", optional: true, reloadOnChange: true))
         .ConfigureServices(_ => _
             .AddSingleton<TelegramBot>().AddMessagePagination()
                 .ConfigureTelegramBotOptions()
+                .ConfigureTelegramBotExceptionHandlerOptions()
             .AddDbContext<TelegramBotDbContext>());
 
     internal static ChatId ChatId(this Update update) =>
@@ -25,4 +26,14 @@ internal static class TelegramBotExtensions
         update.EditedChannelPost?.Chat.Id ??
         update.ShippingQuery?.From.Id ??
         update.PreCheckoutQuery?.From.Id!;
+
+    internal static User From(this Update update) =>
+        update.Message?.From ??
+        update.CallbackQuery?.From ??
+        update.InlineQuery?.From ??
+        update.ChosenInlineResult?.From ??
+        update.ChannelPost?.From ??
+        update.EditedChannelPost?.From ??
+        update.ShippingQuery?.From ??
+        update.PreCheckoutQuery?.From!;
 }

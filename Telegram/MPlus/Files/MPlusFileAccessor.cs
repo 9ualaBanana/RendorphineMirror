@@ -1,4 +1,4 @@
-﻿namespace Telegram.MPlus;
+﻿namespace Telegram.MPlus.Files;
 
 /// <summary>
 /// Unique
