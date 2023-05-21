@@ -44,8 +44,12 @@ public class CommandsController : ControllerBase
             else
             {
                 _logger.LogTrace("User is not authorized to use {Command} command", receivedCommand);
-                if (authorizationResult.Failure!.FailedRequirements.Any(requirement => requirement is DenyAnonymousAuthorizationRequirement))
+                if (UserIsNotAuthenticatedByMPlus())
                     await HttpContext.ChallengeAsync();
+
+
+                bool UserIsNotAuthenticatedByMPlus()
+                    => authorizationResult.Failure!.FailedRequirements.Any(requirement => requirement is DenyAnonymousAuthorizationRequirement);
             }
         }
         else _logger.LogTrace("{Command} command is unknown", receivedCommand);

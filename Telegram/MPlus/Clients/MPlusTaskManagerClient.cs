@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
+using Telegram.MPlus.Files;
+using Telegram.MPlus.Security;
 
-namespace Telegram.MPlus;
+namespace Telegram.MPlus.Clients;
 
 public class MPlusTaskManagerClient
 {
@@ -18,7 +20,7 @@ public class MPlusTaskManagerClient
 
     /// <exception cref="InvalidDataException">M+ server returned authentication result in a wrong format.</exception>
     /// <exception cref="HttpRequestException">Exception occured on the M+ server.</exception>
-    internal async Task<MPlusIdentity> LogInAsyncUsing(string email, string password)
+    internal async Task<MPlusIdentity> AuthenticateAsyncUsing(string email, string password)
     {
         var credentialsForm = new FormUrlEncodedContent(new Dictionary<string, string>()
         {
@@ -61,6 +63,36 @@ public class MPlusTaskManagerClient
             var exception = new Exception($"IID {fileAccessor.Iid}: {nameof(MPlusFileInfo)} request failed.");
             _logger.LogError(exception, message: default);
             throw exception;
+        }
+    }
+
+    internal async Task<MPlusPublicSessionInfo> GetPublicSessionInfoAsync(string sessionId, CancellationToken cancellationToken)
+    {
+        var requestUri = QueryHelpers.AddQueryString("checkmysession", "sessionid", sessionId);
+
+        if (await TryGetPublicSessionInfoAsync() is MPlusPublicSessionInfo publicSessionInfo)
+            return publicSessionInfo;
+        else
+        {
+            var exception = new InvalidDataException("Public session info request returned data in an unknow format.");
+            _logger.LogCritical(exception, "Public session info request failed.");
+            throw exception;
+        }
+
+
+        async Task<MPlusPublicSessionInfo?> TryGetPublicSessionInfoAsync()
+        {
+            try
+            {
+                return (await (await _httpClient.GetAsync(requestUri, cancellationToken)).GetJsonIfSuccessfulAsync())
+                    ["session"]!.ToObject<MPlusPublicSessionInfo>();
+            }
+            catch (Exception ex)
+            {
+                var exception = new HttpRequestException($"{nameof(MPlusPublicSessionInfo)} request failed.", ex);
+                _logger.LogCritical(exception, exception.Message);
+                throw exception;
+            }
         }
     }
 }

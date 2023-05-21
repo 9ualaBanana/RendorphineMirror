@@ -32,5 +32,6 @@ static class ImagesHelper
     internal static bool IsImage(this Document? document)
         => document is not null && IsImageMimeType(document.MimeType);
 
-    internal static bool IsImageMimeType(string? mimeType) => mimeType is not null && mimeType.StartsWith("image");
+    internal static bool IsImageMimeType(string? mimeType) => mimeType is not null &&
+        (mimeType.StartsWith("image") || mimeType.Equals("application/postscript"));
 }

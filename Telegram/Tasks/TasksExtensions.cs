@@ -9,6 +9,7 @@ static class TasksExtensions
     internal static IServiceCollection AddTasks(this IServiceCollection services)
         => services
         .AddSingleton<ICallbackQueryHandler, TaskCallbackQueryHandler>()
+        .AddScoped<TaskPrice>()
         .AddSingleton<TaskDetails>().AddSingleton<TaskDetails.CachedMessages>().AddMemoryCache()
         .AddScoped<TelegramPreviewTaskResultHandler>()
         .AddTasksCore();

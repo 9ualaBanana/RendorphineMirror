@@ -1,16 +1,20 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Telegram.Bot;
+using Telegram.Infrastructure;
 using Telegram.Infrastructure.Commands;
 using Telegram.Persistence;
+using Telegram.Security.Authentication;
 using Telegram.Security.Authorization;
 
 namespace Telegram.Commands.Handlers;
 
 public class LogoutCommand : CommandHandler, IAuthorizationPolicyProtected
 {
+    readonly AuthenticationManager _authenticationManager;
     readonly TelegramBotDbContext _database;
 
     public LogoutCommand(
+        AuthenticationManager authenticationManager,
         TelegramBotDbContext database,
         Command.Factory commandFactory,
         Command.Received receivedCommand,
@@ -19,6 +23,7 @@ public class LogoutCommand : CommandHandler, IAuthorizationPolicyProtected
         ILogger<LogoutCommand> logger)
         : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
+        _authenticationManager = authenticationManager;
         _database = database;
     }
 
@@ -28,15 +33,17 @@ public class LogoutCommand : CommandHandler, IAuthorizationPolicyProtected
 
     protected override async Task HandleAsync(Command receivedCommand)
     {
-        if (await _database.FindAsync<TelegramBotUserEntity>(ChatId) is TelegramBotUserEntity user && user.MPlusIdentity is not null)
+        if (await PersistedTelegramUser() is var user && user.IsAuthenticatedByMPlus)
         {
             _database.Remove(user.MPlusIdentity);
             await _database.SaveChangesAsync(RequestAborted);
 
-            await Bot.SendMessageAsync_(ChatId,
-                "You are logged out now.",
-                cancellationToken: RequestAborted);
+            await _authenticationManager.SendSuccessfullLogOutMessageAsync(ChatId, RequestAborted);
         }
-        // Unauthenticated users shall not be able to call this method due to the authorization requirements.
+
+
+        async Task<TelegramBotUserEntity> PersistedTelegramUser()
+            => await _authenticationManager.PersistTelegramUserAsyncWith(Context.GetUpdate().ChatId(),
+            save: false, Context.RequestAborted);
     }
 }

@@ -1,6 +1,6 @@
 ﻿using Telegram.Bot;
 using Telegram.Infrastructure.Commands;
-using Telegram.MPlus;
+using Telegram.MPlus.Security;
 using Telegram.StableDiffusion;
 
 namespace Telegram.Commands.Handlers;

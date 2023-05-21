@@ -3,7 +3,7 @@ using System.Text;
 using Telegram.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Models;
-using Telegram.MPlus;
+using Telegram.MPlus.Security;
 using Telegram.Security.Authorization;
 using Telegram.Services.Node;
 

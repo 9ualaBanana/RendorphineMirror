@@ -11,6 +11,8 @@ using NLog.Web;
 using Telegram.Bot;
 using Telegram.Commands;
 using Telegram.Infrastructure.Middleware.UpdateRouting;
+using Telegram.Localization;
+using Telegram.Localization.Resources;
 using Telegram.MediaFiles.Images;
 using Telegram.MediaFiles.Videos;
 using Telegram.Security.Authentication;
@@ -29,10 +31,12 @@ builder.WebHost
         .AddImages()
         .AddVideos()
         .AddMPlusAuthorization()
-        .AddAuthentication(MPlusAuthenticationDefaults.AuthenticationScheme).AddMPlus());
+        .AddAuthentication(MPlusAuthenticationDefaults.AuthenticationScheme).AddMPlus()
+            .Services.AddScoped<AuthenticationManager>());
 
 // Telegram.Bot works only with Newtonsoft.
 builder.Services.AddControllers().AddNewtonsoftJson();
+builder.Services.AddLocalization_();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpClient();
 builder.Services.AddSwaggerGen();
@@ -45,7 +49,9 @@ var app = builder.Build();
 
 await app.Services.GetRequiredService<TelegramBot>().InitializeAsync();
 
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsDevelopment())
+    app.UseExceptionHandler_();
+else
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -55,6 +61,7 @@ app.UseUpdateRouting();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRequestLocalization();
 
 app.Run();
 
