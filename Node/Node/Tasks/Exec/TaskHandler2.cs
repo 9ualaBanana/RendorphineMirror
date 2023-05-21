@@ -5,11 +5,13 @@ public class TaskHandler2
     static class NodeSettings { } // to not use accidentally; TODO:: remove whenif this class is moved outside
 
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    readonly PluginManager PluginManager;
     readonly BindableList<ReceivedTask> QueuedTasks, RunningTasks;
     readonly BindableDictionary<string, CompletedTask> CompletedTasks;
 
-    public TaskHandler2(BindableList<ReceivedTask> queuedTasks, BindableList<ReceivedTask> runningTasks, BindableDictionary<string, CompletedTask> completedTasks)
+    public TaskHandler2(PluginManager pluginManager, BindableList<ReceivedTask> queuedTasks, BindableList<ReceivedTask> runningTasks, BindableDictionary<string, CompletedTask> completedTasks)
     {
+        PluginManager = pluginManager;
         QueuedTasks = queuedTasks;
         RunningTasks = runningTasks;
         CompletedTasks = completedTasks;
@@ -57,7 +59,7 @@ public class TaskHandler2
             try
             {
                 var starttime = DateTimeOffset.Now;
-                await TaskExecutor.Execute(task).ConfigureAwait(false);
+                await TaskExecutor.Execute(task, PluginManager).ConfigureAwait(false);
 
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {endtime - starttime} and {attempt}/{maxattempts} attempts");
