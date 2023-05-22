@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
+using System.Reflection;
 
 namespace Node.Common;
 
@@ -17,9 +18,13 @@ public static class PowerShellInvoker
 
         var psh = PowerShell.Create(runspace);
 
+        // TODO:: do somenthing about imports
         psh.AddStatement()
             .AddCommand("Import-Module")
             .AddParameter("Name", typeof(PowerShellInvoker).Assembly.Location);
+        psh.AddStatement()
+            .AddCommand("Import-Module")
+            .AddParameter("Name", Assembly.GetEntryAssembly().ThrowIfNull().Location);
 
         psh.AddStatement()
             .AddScript(script);
