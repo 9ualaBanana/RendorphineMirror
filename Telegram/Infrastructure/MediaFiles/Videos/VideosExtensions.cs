@@ -9,7 +9,7 @@ static class VideosExtensions
 {
     internal static IServiceCollection AddVideosCore(this IServiceCollection services)
         => services
-        .AddScoped<MessageRouter, VideoRouterMiddleware>()
+        .AddScoped<IMessageRouter, VideoRouterMiddleware>()
         .AddMediaFiles()
         .AddTasks();
 

@@ -10,7 +10,6 @@ using Telegram.Bot;
 using Telegram.Commands;
 using Telegram.Infrastructure.Middleware.UpdateRouting;
 using Telegram.Localization;
-using Telegram.Localization.Resources;
 using Telegram.MediaFiles.Images;
 using Telegram.MediaFiles.Videos;
 using Telegram.Security.Authentication;
@@ -28,6 +27,7 @@ builder.WebHost
         .AddUpdateRouting()
         .AddImages()
         .AddVideos()
+        .AddMessageAuthentication()
         .AddMPlusAuthorization()
         .AddAuthentication(MPlusAuthenticationDefaults.AuthenticationScheme).AddMPlus()
             .Services.AddScoped<AuthenticationManager>());

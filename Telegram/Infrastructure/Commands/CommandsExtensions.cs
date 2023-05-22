@@ -10,7 +10,7 @@ static class CommandsExtensions
     internal static IServiceCollection AddCommandsCore(this IServiceCollection services)
         => services
         .AddScoped<IUpdateTypeRouter, MessageRouterMiddleware>()
-        .AddScoped<MessageRouter, CommandRouterMiddleware>()
+        .AddScoped<IMessageRouter, CommandRouterMiddleware>()
         .AddSingleton<Command.Received>()
         .AddCommandsParsing()
         .AddCommandsTokenization();

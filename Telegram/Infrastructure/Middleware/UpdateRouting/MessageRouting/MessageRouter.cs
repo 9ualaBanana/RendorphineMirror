@@ -2,7 +2,11 @@
 
 namespace Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
 
-public abstract class MessageRouter : ISwitchableMiddleware<MessageRouter, Message>
+public interface IMessageRouter : ISwitchableMiddleware<IMessageRouter, Message>
+{
+}
+
+public abstract class MessageRouter : IMessageRouter
 {
     protected abstract string PathFragment { get; }
 
