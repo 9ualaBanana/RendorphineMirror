@@ -6,23 +6,21 @@ public static class Directories
 
 
     /// <summary> Application data; %appdata%/{appname} or ~/.config/{appname} </summary>
-    public static string Data = DataFor(Initializer.AppName);
+    public static readonly string Data = DataFor(Initializer.AppName);
     public static string DataFor(string appname) => Created(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), appname);
 
     public static string DataDir(params string[] subdirs) => Created(new[] { Data }.Concat(subdirs).ToArray());
     public static string DataFile(string file) => Path.Combine(Data, file);
 
-    /// <summary> Temp directory; {datadir}/temp/[...subdirs]. Cleaned every launch </summary>
-    public static string Temp(params string[] subdirs) => Created(new[] { Data, "temp" }.Concat(subdirs).ToArray());
 
-    /// <inheritdoc cref="TempFile(string, out string)"/>
-    public static FuncDispose TempFile(out string tempfile) => TempFile(Temp(), out tempfile);
+    /// <summary> Temp directory; {<see cref="Data"/>}/temp/[...<paramref name="subdirs"/>]. Cleaned every launch </summary>
+    public static string Temp(params string[] subdirs) => Created(Data, "temp", Path.Combine(subdirs));
 
-    /// <summary> Temp file; {datadir}/temp/{directory}/{randomname} </summary>
+    /// <summary> Temp file; {<see cref="Data"/>}/temp/[...<paramref name="subdirs"/>]/{randomname} </summary>
     /// <returns> Struct that will delete the file when disposed </returns>
-    public static FuncDispose TempFile(string directory, out string tempfile)
+    public static FuncDispose TempFile(out string tempfile, params string[] subdirs)
     {
-        do { tempfile = Path.Combine(Created(directory), Guid.NewGuid().ToString()); }
+        do { tempfile = Path.Combine(Temp(subdirs), Guid.NewGuid().ToString()); }
         while (File.Exists(tempfile));
 
         var delfile = tempfile;
@@ -35,6 +33,23 @@ public static class Directories
             }
             catch { }
         });
+    }
+
+    /// <summary> Temp files; {<see cref="Data"/>}/temp/[...<paramref name="subdirs"/>]/{randomname} * <paramref name="count"/> </summary>
+    /// <returns> Struct that will delete the files when disposed </returns>
+    public static FuncDispose TempFiles(int count, out IReadOnlyList<string> tempfiles, params string[] subdirs)
+    {
+        var disposes = new List<FuncDispose>();
+        var files = new List<string>();
+
+        for (int i = 0; i < count; i++)
+        {
+            disposes.Add(TempFile(out var file, subdirs));
+            files.Add(file);
+        }
+
+        tempfiles = files;
+        return FuncDispose.Create(disposes);
     }
 
 
