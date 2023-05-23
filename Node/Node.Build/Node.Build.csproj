@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>
+      Project to easily build the node, gui and pinger for publish
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Node\Node.csproj" />
+    <ProjectReference Include="..\Node.UI\Node.UI.csproj" />
+    <ProjectReference Include="..\..\Pinger\Pinger.csproj" />
+  </ItemGroup>
+
+</Project>

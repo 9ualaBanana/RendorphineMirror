@@ -43,9 +43,5 @@
       <DependentUpon>MimeTypesMap.tt</DependentUpon>
     </Compile>
   </ItemGroup>
-
-  <ItemGroup>
-    <MyProjectReferences Remove="Directory.Build.props" />
-  </ItemGroup>
   
 </Project>

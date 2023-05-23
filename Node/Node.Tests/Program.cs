@@ -10,6 +10,10 @@ using Node.Tasks.Models;
                         actual testing stuff will come later
 */
 
+
+File.WriteAllText("/temp/vvv", "i am here");
+return;
+
 Initializer.AppName = "renderfin";
 Init.Initialize();
 

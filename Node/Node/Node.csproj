@@ -24,9 +24,4 @@
     <ProjectReference Include="..\Node.Plugins\Node.Plugins.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <ProjectReference Include="..\Node.UI\Node.UI.csproj" />
-    <ProjectReference Include="..\..\Pinger\Pinger.csproj" />
-  </ItemGroup>
-
 </Project>

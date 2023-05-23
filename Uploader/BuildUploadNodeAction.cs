@@ -2,7 +2,7 @@ namespace Uploader;
 
 public record BuildUploadNodeAction(string AppType, ProjectType Type, string Identifier, string Dest, ImmutableArray<string> Args = default) : IAction
 {
-    readonly DotnetBuildAction BuildAction = new DotnetBuildAction(Type, "Node/Node", Identifier, ImmutableArray.Create("Updater"), Args: Args);
+    readonly DotnetBuildAction BuildAction = new DotnetBuildAction(Type, "Node/Node.Build", Identifier, ImmutableArray.Create("Updater"), Args: Args);
 
     public void Invoke()
     {
@@ -17,7 +17,7 @@ public record BuildUploadNodeAction(string AppType, ProjectType Type, string Ide
         // workaround for https://github.com/dotnet/runtime/issues/3828
         if (Identifier.Contains("win", StringComparison.OrdinalIgnoreCase) && Environment.OSVersion.Platform == PlatformID.Unix)
         {
-            var winexes = Directory.GetFiles("Node/Node/bin/Release/", "*.exe", SearchOption.AllDirectories)
+            var winexes = Directory.GetFiles(Path.Combine(BuildAction.Name, "bin/Release/"), "*.exe", SearchOption.AllDirectories)
                 .Where(e => !e.EndsWith("Updater.exe", StringComparison.OrdinalIgnoreCase));
 
             using var proc = Process.Start(new ProcessStartInfo("wine", $"editbin/editbin.exe /subsystem:windows {string.Join(' ', winexes)}"))!;
