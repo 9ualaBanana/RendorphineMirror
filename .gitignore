@@ -17,6 +17,7 @@ assets/*.version
 assets/cef/
 /plugins/
 /torrents/
+/temp/
 debug.log
 GPUCache/
 Main.log

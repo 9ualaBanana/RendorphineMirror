@@ -5,13 +5,19 @@
             "label": "buildnode",
             "command": "dotnet",
             "type": "process",
-            "args": [ "build", "${workspaceFolder}/Node/Node.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
+            "args": [ "build", "${workspaceFolder}/Node/Node/Node.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
+        },
+        {
+            "label": "buildnodetests",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "build", "${workspaceFolder}/Node/Node.Tests/Node.Tests.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "buildnodeui",
             "command": "dotnet",
             "type": "process",
-            "args": [ "build", "${workspaceFolder}/NodeUI/NodeUI.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
+            "args": [ "build", "${workspaceFolder}/Node/Node.UI/Node.UI.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "buildregistry",

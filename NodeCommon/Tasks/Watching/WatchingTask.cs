@@ -1,11 +1,9 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 namespace NodeCommon.Tasks.Watching;
 
 public class WatchingTask : ILoggable
 {
-    string ILoggable.LogName => $"WTask {Id}";
+    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    void ILoggable.Log(LogLevel level, string text) => Logger.Log(level, $"[WTask {Id}] {text}");
 
     public string Id { get; init; }
     public IWatchingTaskInputInfo Source { get; init; }
@@ -36,10 +34,5 @@ public class WatchingTask : ILoggable
     }
 
 
-    public string FSDataDirectory() => DirectoryCreated(Path.Combine(Init.ConfigDirectory, "watchingtasks", Id));
-    static string DirectoryCreated(string dir)
-    {
-        Directory.CreateDirectory(dir);
-        return dir;
-    }
+    public string FSDataDirectory() => Directories.Created(Path.Combine(Directories.Data, "watchingtasks", Id));
 }

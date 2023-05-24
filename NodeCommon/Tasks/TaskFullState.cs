@@ -1,6 +1,3 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 namespace NodeCommon.Tasks;
 
 public record TaskInfo(TaskObject Object, ITaskInputInfo Input, ITaskOutputInfo Output, JObject Data, TaskPolicy LaunchPolicy = TaskPolicy.AllNodes, string OriginGuid = "", ImmutableArray<JObject>? Next = default)
@@ -12,7 +9,7 @@ public record TaskInfo(TaskObject Object, ITaskInputInfo Input, ITaskOutputInfo 
 public record TaskServer(string Host, string Userid, string Nickname);
 public record DbTaskFullState(string Id, TaskInfo Info) : TaskBase(Id, Info), ILoggable
 {
-    string ILoggable.LogName => $"PTask {Id}";
+    protected override string LogName => $"PTask";
 
     public long Registered { get; set; } = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 }

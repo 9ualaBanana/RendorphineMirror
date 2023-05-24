@@ -12,6 +12,6 @@ public static class PackageExtensions
         if (!Path.HasExtension(partUri.ToString())) throw new ArgumentException(
             "Uri must have an extension specified in its name.", nameof(partUri));
 
-        return package.CreatePart(partUri, NodeCommon.MimeTypes.GetMimeType(partUri.ToString()), compressionOption);
+        return package.CreatePart(partUri, MimeTypes.GetMimeType(partUri.ToString()), compressionOption);
     }
 }

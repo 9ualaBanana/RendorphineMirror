@@ -2,17 +2,16 @@ global using System.Collections.Immutable;
 global using Common;
 global using NLog;
 global using NodeCommon;
+global using Node.Common;
 using Microsoft.AspNetCore.Mvc;
 using MonoTorrent;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using NLog.Web;
 using SoftwareRegistry;
 using Body = Microsoft.AspNetCore.Mvc.FromBodyAttribute;
 using Query = Microsoft.AspNetCore.Mvc.FromQueryAttribute;
 using Srv = Microsoft.AspNetCore.Mvc.FromServicesAttribute;
 
-Initializer.ConfigDirectory = "renderfin_registry";
+Initializer.AppName = "renderfin_registry";
 Init.Initialize();
 
 var client = new TorrentClient(6229, 6230);

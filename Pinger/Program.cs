@@ -1,16 +1,17 @@
-using Common;
-using NLog;
 using UpdaterCommon;
 
 
 Init.Initialize();
-var updater = UpdateChecker.LoadFromJsonOrDefault(args: new Dictionary<string, string>() { ["NodeUI"] = "hidden" });
+var updater = UpdateChecker.LoadFromJsonOrDefault(args: new Dictionary<string, string>() { ["Node.UI"] = "hidden" });
 await updater.Update().ThrowIfError();
 
 
 try
 {
-    var portfile = Path.Combine(Init.ConfigDirectory, "lport");
+    var portfile = new[] { Directories.DataFor("renderfin"), Directories.Data, }
+        .Select(p => Path.Combine(p, "lport"))
+        .First(File.Exists);
+
     var port = ushort.Parse(await File.ReadAllTextAsync(portfile));
 
     var msg = await new HttpClient().GetAsync($"http://127.0.0.1:{port}/ping");

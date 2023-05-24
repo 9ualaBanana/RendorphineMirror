@@ -29,6 +29,9 @@ namespace Common
             return string.Join(Environment.NewLine, spt.Select(x => x.Length < min ? x : x.Substring(min).TrimEnd()).Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
         }
 
+        public static void Consume<T>(this ValueTask<T> task) => task.AsTask().Consume();
+        public static void Consume<T>(this Task<T> task) => ((Task) task).Consume();
+        public static void Consume(this ValueTask task) => task.AsTask().Consume();
         public static void Consume(this Task task) => task.ContinueWith(t =>
         {
             if (t.Exception is not null)
@@ -59,21 +62,8 @@ namespace Common
             return jobj;
         }
 
-
-        static void ForEachFile(string source, string destination, Action<string, string> func)
-        {
-            source = Path.GetFullPath(source);
-            destination = Path.GetFullPath(destination);
-
-            Directory.GetDirectories(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => Directory.CreateDirectory(x.Replace(source, destination)));
-            Directory.GetFiles(source, "*", SearchOption.AllDirectories).AsParallel().ForAll(x => func(x, x.Replace(source, destination)));
-        }
-        public static void CopyDirectory(string source, string destination) => ForEachFile(source, destination, (s, d) => File.Copy(s, d, true));
-        public static void MergeDirectories(string source, string destination)
-        {
-            ForEachFile(source, destination, (s, d) => File.Move(s, d, true));
-            Directory.Delete(source, true);
-        }
+        public static void CopyDirectory(string source, string destination) => Directories.Copy(source, destination);
+        public static void MergeDirectories(string source, string destination) => Directories.Merge(source, destination);
 
         public static void MakeExecutable(params string[] paths)
         {

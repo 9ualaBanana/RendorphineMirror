@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Node.Tasks.Models\Node.Tasks.Models.csproj" />
+    <ProjectReference Include="..\Node.Plugins.Models\Node.Plugins.Models.csproj" />
+    <ProjectReference Include="..\..\NodeCommon\NodeCommon.csproj" />
+  </ItemGroup>
+
+</Project>
