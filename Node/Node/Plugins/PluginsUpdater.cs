@@ -40,9 +40,10 @@ internal class PluginsUpdater : IHeartbeatGenerator
     {
         var userSettings = await UserSettings.ReadOrThrowAsync(response);
         userSettings.Guid = Settings.Guid;
-        await PluginDeployer.TryDeployUninstalledPluginsAsync(userSettings, await PluginManager.GetInstalledPluginsAsync());
+        var haduninstalled = await PluginDeployer.TryDeployUninstalledPluginsAsync(userSettings, await PluginManager.GetInstalledPluginsAsync());
 
-        await PluginManager.RediscoverPluginsAsync();
+        if (haduninstalled)
+            await PluginManager.RediscoverPluginsAsync();
     }
     #endregion
 }

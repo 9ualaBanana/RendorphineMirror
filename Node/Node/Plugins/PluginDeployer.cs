@@ -4,18 +4,29 @@ public static class PluginDeployer
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    public static async Task TryDeployUninstalledPluginsAsync(UserSettings userSettings, IReadOnlyCollection<Plugin> installedPlugins)
+    public static async Task<bool> TryDeployUninstalledPluginsAsync(UserSettings userSettings, IReadOnlyCollection<Plugin> installedPlugins)
     {
+        var hadUninstalled = false;
+
         Logger.Trace("Trying to deploy uninstalled plugins from {List}", nameof(userSettings.NodeInstallSoftware));
-        await DeployUninstalledPluginsAsync(userSettings.ThisNodeInstallSoftware, installedPlugins);
+        hadUninstalled |= await DeployUninstalledPluginsAsync(userSettings.ThisNodeInstallSoftware, installedPlugins);
         Logger.Trace("Trying to deploy uninstalled plugins from {List}", nameof(userSettings.InstallSoftware));
-        await DeployUninstalledPluginsAsync(userSettings.InstallSoftware, installedPlugins);
+        hadUninstalled |= await DeployUninstalledPluginsAsync(userSettings.InstallSoftware, installedPlugins);
+
+        return hadUninstalled;
     }
 
-    static async Task DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, IReadOnlyCollection<Plugin> installedPlugins)
+    static async Task<bool> DeployUninstalledPluginsAsync(IEnumerable<PluginToDeploy> plugins, IReadOnlyCollection<Plugin> installedPlugins)
     {
+        var hadUninstalled = false;
+
         foreach (var plugin in LeaveOnlyUninstalled(plugins, installedPlugins))
+        {
+            hadUninstalled = true;
             await DeployUninstalledPluginAsync(plugin);
+        }
+
+        return hadUninstalled;
 
 
         static IEnumerable<PluginToDeploy> LeaveOnlyUninstalled(IEnumerable<PluginToDeploy> plugins, IReadOnlyCollection<Plugin> installedPlugins)
