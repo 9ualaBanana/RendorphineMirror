@@ -1,6 +1,8 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
+using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
 
 namespace Telegram.Infrastructure.CallbackQueries;
 
@@ -79,7 +81,7 @@ public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : Mess
                 $"{nameof(HandleAsync)} can be called only after this {nameof(CallbackQueryHandler<TCallbackQuery, ECallbackData>)} matched the callback query.",
                 new ArgumentNullException(nameof(callbackQuery))
                 );
-            Logger.LogCritical(exception, message: default);
+            Logger.LogCritical(exception.Message);
             throw exception;
         }
     }
@@ -94,7 +96,19 @@ public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : Mess
     protected Task HandleUnknownCallbackData()
     {
         var exception = new ArgumentException($"Unknown {nameof(ECallbackData)}.");
-        Logger.LogCritical(exception, message: default);
+        Logger.LogCritical(exception.Message);
         throw exception;
+    }
+}
+
+static class CallbackQueryHandlerExtensions
+{
+    internal static ITelegramBotBuilder AddCallbackQueryHandler<TCallbackQueryHandler>(this ITelegramBotBuilder builder)
+        where TCallbackQueryHandler : class, ICallbackQueryHandler
+    {
+        builder.Services
+            .AddScoped<IUpdateTypeRouter, CallbackQueryRouterMiddleware>()
+            .AddScoped<ICallbackQueryHandler, TCallbackQueryHandler>();
+        return builder;
     }
 }

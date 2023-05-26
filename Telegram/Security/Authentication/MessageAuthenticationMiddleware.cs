@@ -1,5 +1,6 @@
 ﻿using Telegram.Bot.Types;
 using Telegram.Infrastructure;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
 
 namespace Telegram.Security.Authentication;
@@ -34,7 +35,8 @@ public class MessageAuthenticationMiddleware : IMessageRouter
 
 static class MessageAuthenticationMiddlewareExtensions
 {
-    internal static IServiceCollection AddMessageAuthentication(this IServiceCollection services)
-        => services
-        .AddScoped<IMessageRouter, MessageAuthenticationMiddleware>();
+    internal static ITelegramBotBuilder AddMessageAuthentication(this ITelegramBotBuilder builder)
+        => builder
+            .AddMessageRouter<MessageAuthenticationMiddleware>()
+            .AddAuthenticationManager();
 }

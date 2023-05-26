@@ -1,5 +1,5 @@
-﻿using Telegram.Bot;
-using Telegram.Bot.Types.ReplyMarkups;
+﻿using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Localization.Resources;
 using Telegram.MPlus.Clients;
@@ -10,7 +10,7 @@ namespace Telegram.Commands.Handlers;
 
 public class StartCommand : CommandHandler
 {
-    readonly LoginCommand _loginCommandHandler;
+    readonly string _loginCommand;
     readonly AuthenticationManager _authenticationManager;
     readonly MPlusClient _mPlusClient;
     readonly LocalizedText.Authentication _localizedAuthenticationText;
@@ -27,7 +27,7 @@ public class StartCommand : CommandHandler
         ILogger<StartCommand> logger)
         : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
-        _loginCommandHandler = loginCommandHandler;
+        _loginCommand = loginCommandHandler.Target.Prefixed;
         _authenticationManager = authenticationManager;
         _mPlusClient = mPlusClient;
         _localizedAuthenticationText = localizedAuthenticationMessage;
@@ -45,20 +45,28 @@ public class StartCommand : CommandHandler
         {
             var exception = new ArgumentNullException(nameof(sessionId),
                 $"Required {nameof(sessionId)} argument to {Target.Prefixed} is missing.");
-            Logger.LogCritical(exception, "M+ authentication via browser failed.");
+            Logger.LogCritical("M+ authentication via browser failed.");
             throw exception;
         }
 
 
         async Task SendStartMessageAsync()
         {
-            string loginCommand = _loginCommandHandler.Target.Prefixed;
-            await Bot.SendMessageAsync_(ChatId,
-                _localizedAuthenticationText.Start(loginCommand),
-                InlineKeyboardButton.WithUrl(
-                    _localizedAuthenticationText.BrowserAuthenticationButton,
-                    "https://microstock.plus/oauth2/authorize?clientid=003&state=_"),
-                disableWebPagePreview: true, cancellationToken: RequestAborted);
+            var user = await _authenticationManager.PersistTelegramUserAsyncWith(ChatId, save: false, RequestAborted);
+
+            if (user.IsAuthenticatedByMPlus)
+                await Bot.SendMessageAsync_(ChatId,
+                    _localizedAuthenticationText.HowToUse,
+                    cancellationToken: RequestAborted);
+            else
+            {
+                await Bot.SendMessageAsync_(ChatId,
+                    _localizedAuthenticationText.Start(_loginCommand),
+                    InlineKeyboardButton.WithUrl(
+                        _localizedAuthenticationText.BrowserAuthenticationButton,
+                        "https://microstock.plus/oauth2/authorize?clientid=003&state=_"),
+                    disableWebPagePreview: true, cancellationToken: RequestAborted);
+            }
         }
 
         async Task AuthenticateByMPlusViaBrowserAsyncWith(string sessionId)

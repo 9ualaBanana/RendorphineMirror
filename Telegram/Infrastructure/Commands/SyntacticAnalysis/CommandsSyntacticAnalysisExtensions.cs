@@ -6,7 +6,6 @@ internal static class CommandsSyntacticAnalysisExtensions
 {
     internal static IServiceCollection AddCommandsParsing(this IServiceCollection services)
         => services
-        .AddScoped<Command.Factory>()
         .AddScoped<Command.Parser>()
         .AddCommandsTokenization();
 }

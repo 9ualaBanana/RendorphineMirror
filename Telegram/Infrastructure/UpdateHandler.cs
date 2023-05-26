@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
-using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Infrastructure;
 

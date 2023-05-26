@@ -1,17 +1,15 @@
 ﻿using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
-using Telegram.MediaFiles;
-using Telegram.Tasks;
 
 namespace Telegram.Infrastructure.MediaFiles.Videos;
 
-static class VideosExtensions
+static class VideosHelper
 {
-    internal static IServiceCollection AddVideosCore(this IServiceCollection services)
-        => services
-        .AddScoped<IMessageRouter, VideoRouterMiddleware>()
-        .AddMediaFiles()
-        .AddTasks();
+    internal static ITelegramBotBuilder AddVideosCore(this ITelegramBotBuilder builder)
+        => builder
+            .AddMessageRouter<VideosRouterMiddleware>()
+            .AddMediaFilesCore();
 
     internal static bool IsVideo(this Message message)
         => message.Document.IsVideo() || message.Video is not null;

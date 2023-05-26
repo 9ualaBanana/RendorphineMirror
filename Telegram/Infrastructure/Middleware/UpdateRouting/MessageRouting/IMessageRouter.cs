@@ -1,4 +1,6 @@
 ﻿using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
+using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
 
 namespace Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
 
@@ -17,4 +19,16 @@ public abstract class MessageRouter : IMessageRouter
     }
 
     public abstract bool Matches(Message message);
+}
+
+static class MessageRouterExtensions
+{
+    internal static ITelegramBotBuilder AddMessageRouter<TMessageRouter>(this ITelegramBotBuilder builder)
+        where TMessageRouter : class, IMessageRouter
+    {
+        builder.Services
+            .AddScoped<IUpdateTypeRouter, MessageRouterMiddleware>()
+            .AddScoped<IMessageRouter, TMessageRouter>();
+        return builder;
+    }
 }

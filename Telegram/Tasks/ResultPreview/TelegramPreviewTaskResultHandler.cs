@@ -1,7 +1,7 @@
 ﻿using System.Text;
-using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
 using Telegram.Models;
@@ -55,7 +55,7 @@ public class TelegramPreviewTaskResultHandler
         async Task SendPreviewsAsyncCore()
         {
             var taskOwner = _ownedRegisteredTasksCache.Retrieve(TypedRegisteredTask.With(executedTaskApi.Id, executedTaskApi.Action)).Owner;
-            var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(taskOwner.User));
+            var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(taskOwner._));
 
             foreach (var taskResult in await RequestTaskResultsAsyncFor(executedTaskApi.UploadedFiles).ToArrayAsync(cancellationToken))
                 await SendPreviewAsyncUsing(api, taskResult, taskOwner, cancellationToken);
@@ -67,14 +67,14 @@ public class TelegramPreviewTaskResultHandler
             {
                 foreach (var iid in uploadedFiles)
                 {
-                    var fileAccessor = new MPlusFileAccessor(iid, MPlusIdentity.SessionIdOf(taskOwner.User));
+                    var fileAccessor = new MPlusFileAccessor(iid, MPlusIdentity.SessionIdOf(taskOwner._));
                     yield return await _mPlusClient.RequestTaskResultAsyncUsing(api, executedTaskApi, fileAccessor, cancellationToken);
                 };
             }
         }
     }
 
-    async Task<Message> SendPreviewAsyncUsing(Apis api, TaskResultFromMPlus taskResult, TelegramBotUser user, CancellationToken cancellationToken)
+    async Task<Message> SendPreviewAsyncUsing(Apis api, TaskResultFromMPlus taskResult, TelegramBot.User user, CancellationToken cancellationToken)
     {
         try { return await SendPreviewAsync(); }
         catch (Exception ex)
@@ -115,7 +115,7 @@ public class TelegramPreviewTaskResultHandler
                     .AppendLine($"*Size*: `{cachedTaskResult.File.Length / 1024 / 1024}` *MB*")
                     .AppendLine($"*Execution Time*: `{taskExecutionTime}`");
 
-                if (MPlusIdentity.AccessLevelOf(user.User) is AccessLevel.Admin)
+                if (MPlusIdentity.AccessLevelOf(user._) is AccessLevel.Admin)
                     caption
                         .AppendLine($"*Task Executor* : `{taskResult.Executor}`")
                         .AppendLine($"*Task ID* : `{taskResult.Id}`")

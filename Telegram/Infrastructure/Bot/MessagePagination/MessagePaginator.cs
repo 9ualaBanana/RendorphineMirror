@@ -1,7 +1,7 @@
 ﻿using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace Telegram.Bot.MessagePagination;
+namespace Telegram.Infrastructure.Bot.MessagePagination;
 
 public class MessagePaginator
 {

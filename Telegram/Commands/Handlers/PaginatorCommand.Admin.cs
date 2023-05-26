@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Security.Authorization;
 using static Telegram.Security.Authorization.MPlusAuthorizationPolicyBuilder;

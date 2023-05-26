@@ -1,6 +1,6 @@
 ﻿using Telegram.Bot.Types;
 
-namespace Telegram.Bot.MessagePagination;
+namespace Telegram.Infrastructure.Bot.MessagePagination;
 
 /// <summary>
 /// Represents a sent <see cref="Types.Message"/> with its content as <see cref="ChunkedText"/>.

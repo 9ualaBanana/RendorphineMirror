@@ -1,4 +1,4 @@
-﻿using Telegram.Bot;
+﻿using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.MPlus.Security;
 using Telegram.StableDiffusion;

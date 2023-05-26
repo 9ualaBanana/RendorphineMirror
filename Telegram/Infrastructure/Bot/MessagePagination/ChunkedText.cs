@@ -1,4 +1,4 @@
-﻿namespace Telegram.Bot.MessagePagination;
+﻿namespace Telegram.Infrastructure.Bot.MessagePagination;
 
 /// <summary>
 /// Represents a <see cref="string"/> that can be manipulated as chunks of specified size.

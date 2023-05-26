@@ -3,7 +3,7 @@ using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
 
 namespace Telegram.Infrastructure.MediaFiles.Videos;
 
-public class VideoRouterMiddleware : MessageRouter
+public class VideosRouterMiddleware : MessageRouter
 {
     protected override string PathFragment => VideosController.PathFragment;
 

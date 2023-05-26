@@ -1,8 +1,9 @@
-﻿using Telegram.Bot;
-using Telegram.Bot.Types;
+﻿using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
+using Telegram.Infrastructure.Persistence;
 using Telegram.Localization.Resources;
+using Telegram.MPlus;
 using Telegram.MPlus.Clients;
-using Telegram.Persistence;
 
 namespace Telegram.Security.Authentication;
 
@@ -84,7 +85,9 @@ public class AuthenticationManager
     {
         var balance = await _mPlusClient.TaskLauncher.RequestBalanceAsync(sessionId, cancellationToken);
         await _bot.SendMessageAsync_(chatId,
-            _localiedAuthenticationMessage.Success(balance.RealBalance),
+            $"{_localiedAuthenticationMessage.LoggedIn}\n\n" +
+            $"{_localiedAuthenticationMessage.Balance(balance.RealBalance)}\n\n" +
+            $"{_localiedAuthenticationMessage.HowToUse}",
             cancellationToken: cancellationToken);
     }
 
@@ -97,4 +100,18 @@ public class AuthenticationManager
         => await _bot.SendMessageAsync_(chatId,
             _localiedAuthenticationMessage.LoggedOut,
             cancellationToken: cancellationToken);
+}
+
+static class AuthenticationManagerExtensions
+{
+    internal static ITelegramBotBuilder AddAuthenticationManager(this ITelegramBotBuilder builder)
+    {
+        builder
+            .AddPersistence()
+
+            .Services
+            .AddScoped<AuthenticationManager>()
+            .AddMPlusClient();
+        return builder;
+    }
 }

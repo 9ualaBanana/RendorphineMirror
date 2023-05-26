@@ -1,7 +1,7 @@
 ﻿using Telegram.Bot.Types;
 using Telegram.MPlus.Security;
 
-namespace Telegram.Persistence;
+namespace Telegram.Infrastructure.Persistence;
 
 /// <summary>
 /// Entity representing <see cref="MPlusIdentity"/> of the user represented by <see cref="TelegramBotUserEntity"/>.

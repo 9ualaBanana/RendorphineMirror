@@ -1,15 +1,16 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
 
 namespace Telegram.Infrastructure.MediaFiles.Images;
 
 static class ImagesHelper
 {
-    internal static IServiceCollection AddImagesCore(this IServiceCollection services)
-        => services
-        .AddScoped<IMessageRouter, ImagesRouterMiddleware>()
-        .AddMediaFiles();
+    internal static ITelegramBotBuilder AddImagesCore(this ITelegramBotBuilder builder)
+        => builder
+            .AddMessageRouter<ImagesRouterMiddleware>()
+            .AddMediaFilesCore();
 
     internal static async Task<bool> IsImageAsync(this Message message, HttpClient httpClient, CancellationToken cancellationToken)
         => message.Document.IsImage() ||

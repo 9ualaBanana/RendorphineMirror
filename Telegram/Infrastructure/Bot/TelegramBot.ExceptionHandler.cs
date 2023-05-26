@@ -2,32 +2,23 @@
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 using NLog;
-using Telegram.Bot.Types;
 using ILogger = NLog.ILogger;
 
-namespace Telegram.Bot;
+namespace Telegram.Infrastructure.Bot;
 
-/// <param name="Subscribers"><see cref="ChatId"/>s of users that should be notified about unhandled exceptions.</param>
-public record TelegramBotExceptionHandlerOptions(HashSet<long> Subscribers)
-{
-    internal const string Configuration = "Exceptions";
-
-    public TelegramBotExceptionHandlerOptions()
-        : this((HashSet<long>)null!)
-    {
-    }
-}
-
-static class TelegramBotExceptionHandler
+static partial class TelegramBotExceptionHandler
 {
     readonly static ILogger _logger = LogManager.GetCurrentClassLogger();
 
-    internal static IServiceCollection ConfigureTelegramBotExceptionHandlerOptions(this IServiceCollection services)
-        => services.AddOptions<TelegramBotExceptionHandlerOptions>()
-        .BindConfiguration($"{TelegramBotOptions.Configuration}:{TelegramBotExceptionHandlerOptions.Configuration}")
-        .Services;
+    internal static ITelegramBotBuilder ConfigureExceptionHandlerOptions(this ITelegramBotBuilder builder)
+    {
+        builder.Services.AddOptions<Options>()
+            .BindConfiguration($"{TelegramBot.Options.Configuration}:{Options.Configuration}");
+        return builder;
+    }
 
-    internal static IApplicationBuilder UseExceptionHandler_(this IApplicationBuilder app)
+
+    internal static IApplicationBuilder UseTelegramBotExceptionHandler(this IApplicationBuilder app)
         => app.UseExceptionHandler(_ => _.Run(async context =>
         {
             await TelegramBotExceptionHandler.InvokeAsync(context);
@@ -47,7 +38,7 @@ static class TelegramBotExceptionHandler
                 $"{exception.Error.StackTrace?.Replace(@"\", @"\\").Replace("`", @"\`")}";
 
             var bot = context.RequestServices.GetRequiredService<TelegramBot>();
-            var subscribers = context.RequestServices.GetRequiredService<IOptionsSnapshot<TelegramBotExceptionHandlerOptions>>().Value.Subscribers;
+            var subscribers = context.RequestServices.GetRequiredService<IOptionsSnapshot<Options>>().Value.Subscribers;
 
             foreach (var subscriber in subscribers)
                 await bot.SendMessageAsync_(subscriber,

@@ -1,7 +1,7 @@
 ﻿using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 
-namespace Telegram.Bot.MessagePagination;
+namespace Telegram.Infrastructure.Bot.MessagePagination;
 
 public class MessagePaginatorControlButtons
 {

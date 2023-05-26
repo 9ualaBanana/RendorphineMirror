@@ -1,8 +1,8 @@
 ﻿using Telegram.Models;
 using System.Collections.Specialized;
-using Telegram.Bot;
-using Telegram.Persistence;
 using Telegram.Infrastructure.Commands;
+using Telegram.Infrastructure.Persistence;
+using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Services.Node;
 
@@ -67,7 +67,7 @@ public class NodeSupervisor
     void OnNodeWentOffline(object? sender, AutoStorageItem<MachineInfo> e)
     {
         _logger.LogWarning("{Node} went offline after {Time} ms since the last ping.",
-            e.Value.BriefInfoMDv2, e.Timer.Interval);
+            e.Value.BriefInfoMDv2, (double?)e.Timer.Interval);
     }
 
     /// <returns>

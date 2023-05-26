@@ -1,31 +1,41 @@
 ﻿using Telegram.Commands.Handlers;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 
 namespace Telegram.Commands;
 
 static class CommandsExtensions
 {
-    internal static IServiceCollection AddCommands(this IServiceCollection services)
-        => services
+    internal static ITelegramBotBuilder AddCommands(this ITelegramBotBuilder builder)
+        => builder
         .AddCommandsCore()
         .AddCommandHandlers();
 
-    static IServiceCollection AddCommandHandlers(this IServiceCollection services)
-        => services
-        .AddScoped<CommandHandler, StartCommand>().AddScoped<StartCommand>()
-        .AddScoped<CommandHandler, LoginCommand>().AddScoped<LoginCommand>()
-        .AddScoped<CommandHandler, LogoutCommand>()
-        .AddScoped<CommandHandler, PromptCommand>()
-        .AddScoped<CommandHandler, OnlineCommand>()
-        .AddScoped<CommandHandler, OnlineCommand.Admin>()
-        .AddScoped<CommandHandler, OfflineCommand>()
-        .AddScoped<CommandHandler, OfflineCommand.Admin>()
-        .AddScoped<CommandHandler, PingCommand>()
-        .AddScoped<CommandHandler, PingCommand.Admin>()
-        .AddScoped<CommandHandler, PingListCommand>()
-        .AddScoped<CommandHandler, PingListCommand.Admin>()
-        .AddScoped<CommandHandler, PaginatorCommand.Admin>()
-        .AddScoped<CommandHandler, RemoveCommand>()
-        .AddScoped<CommandHandler, PluginsCommand>()
-        .AddScoped<CommandHandler, DeployCommand>();
+    static ITelegramBotBuilder AddCommandHandlers(this ITelegramBotBuilder builder)
+        => builder
+        .AddCommandHandler<StartCommand>()
+        .AddCommandHandler<LoginCommand>()
+        .AddCommandHandler<LogoutCommand>()
+        .AddCommandHandler<PromptCommand>()
+        .AddCommandHandler<OnlineCommand>()
+        .AddCommandHandler<OnlineCommand.Admin>()
+        .AddCommandHandler<OfflineCommand>()
+        .AddCommandHandler<OfflineCommand.Admin>()
+        .AddCommandHandler<PingCommand>()
+        .AddCommandHandler<PingCommand.Admin>()
+        .AddCommandHandler<PingListCommand>()
+        .AddCommandHandler<PingListCommand.Admin>()
+        .AddCommandHandler<PaginatorCommand.Admin>()
+        .AddCommandHandler<RemoveCommand>()
+        .AddCommandHandler<PluginsCommand>()
+        .AddCommandHandler<DeployCommand>();
+
+    static ITelegramBotBuilder AddCommandHandler<TCommandHandler>(this ITelegramBotBuilder builder)
+        where TCommandHandler : CommandHandler
+    {
+        builder.Services
+            .AddScoped<CommandHandler, TCommandHandler>()
+            .AddScoped<TCommandHandler>();
+        return builder;
+    }
 }

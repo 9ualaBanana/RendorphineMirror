@@ -1,9 +1,9 @@
 ﻿using System.Collections.Immutable;
-using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
+using Telegram.Infrastructure.Persistence;
 using Telegram.Localization.Resources;
-using Telegram.Persistence;
 using Telegram.Security.Authentication;
 
 namespace Telegram.Commands.Handlers;

@@ -3,7 +3,7 @@ using Telegram.Infrastructure.Tokenization;
 
 namespace Telegram.Infrastructure.Commands.LexicalAnalysis;
 
-internal static class CommandsLexicalAnalysisExtensions
+static class CommandsLexicalAnalysisExtensions
 {
     internal static IServiceCollection AddCommandsTokenization(this IServiceCollection services)
         => services

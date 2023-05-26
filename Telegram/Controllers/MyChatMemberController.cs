@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Telegram.Bot;
 using Telegram.Infrastructure;
+using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Controllers;
 

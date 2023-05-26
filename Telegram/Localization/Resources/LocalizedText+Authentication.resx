@@ -120,11 +120,20 @@
   <data name="AlreadyLoggedIn" xml:space="preserve">
     <value>You are already logged in.</value>
   </data>
+  <data name="Balance" xml:space="preserve">
+    <value>*Balance* : {0}</value>
+  </data>
   <data name="BrowserAuthenticationButton" xml:space="preserve">
     <value>Authenticate via browser</value>
   </data>
   <data name="Failure" xml:space="preserve">
     <value>Authentication attempt failed</value>
+  </data>
+  <data name="HowToUse" xml:space="preserve">
+    <value>This bot can work with images and videos. Send the bot some media file you would like to process and follow further instructions.</value>
+  </data>
+  <data name="LoggedIn" xml:space="preserve">
+    <value>You are logged in now.</value>
   </data>
   <data name="LoggedOut" xml:space="preserve">
     <value>You are logged out now.</value>
@@ -132,17 +141,10 @@
   <data name="Start" xml:space="preserve">
     <value>Welcome!
 You need to have a registered M+ account to proceed.
-Use {0} command followed by your email and password separated by space (`{0} email password`) to authenticate with M+ via bot or click the button below to authenticate with M+ via browser (browser authentication doesn't work for IPhone).</value>
-  </data>
-  <data name="Success" xml:space="preserve">
-    <value>You are logged in now.
-
-*Balance* : {0}
-
-This bot can work with images and videos. Send the bot some media file you would like to process and follow further instructions.</value>
+Use your email and password separated by space and optionally prepended by {0} command ('`email password`' / '`{0} email password`') to authenticate with M+ via bot or click the button below to authenticate with M+ via browser (browser authentication doesn't work for IPhone).</value>
   </data>
   <data name="WrongSyntax" xml:space="preserve">
     <value>{0} command must have the following syntax:
-`{1}`</value>
+'`{1}`'</value>
   </data>
 </root>

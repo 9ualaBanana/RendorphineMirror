@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
-using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Infrastructure.Middleware.UpdateRouting;
 
@@ -9,11 +9,11 @@ namespace Telegram.Infrastructure.Middleware.UpdateRouting;
 /// </summary>
 public class UpdateRoutingBranchingMiddleware : IMiddleware
 {
-    readonly TelegramBotOptions _botOptions;
+    readonly TelegramBot.Options _botOptions;
     readonly UpdateReaderMiddleware _updateReaderMiddleware;
 
     public UpdateRoutingBranchingMiddleware(
-        IOptions<TelegramBotOptions> botOptions,
+        IOptions<TelegramBot.Options> botOptions,
         UpdateReaderMiddleware updateReaderMiddleware)
     {
         _botOptions = botOptions.Value;

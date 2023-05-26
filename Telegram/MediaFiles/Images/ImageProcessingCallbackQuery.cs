@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
-using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
@@ -18,7 +18,7 @@ public class ImageProcessingCallbackQueryHandler
 
     public ImageProcessingCallbackQueryHandler(
         OwnedRegisteredTasksCache ownedRegisteredTasksCache,
-        IOptions<TelegramBotOptions> botOptions,
+        IOptions<TelegramBot.Options> botOptions,
         MediaFilesCache mediaFilesCache,
         LocalizedText.Media localizedMediaText,
         IHttpClientFactory httpClientFactory,
@@ -54,7 +54,7 @@ public class ImageProcessingCallbackQueryHandler
                 TaskObject.From(cachedImage.File)),
             MPlusIdentity.SessionIdOf(User))).Result;
 
-        _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBotUser(ChatId, User)));
+        _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBot.User(ChatId, User)));
 
         await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
             new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
@@ -72,7 +72,7 @@ public class ImageProcessingCallbackQueryHandler
                 TaskObject.From(cachedImage.File)),
             MPlusIdentity.SessionIdOf(User))).Result;
 
-        _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBotUser(ChatId, User)));
+        _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBot.User(ChatId, User)));
 
         await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
             new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))

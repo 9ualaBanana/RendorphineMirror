@@ -1,5 +1,5 @@
 ﻿using NLog;
-using Telegram.Bot;
+using Telegram.Infrastructure.Bot;
 using ILogger = NLog.ILogger;
 
 namespace Telegram.Infrastructure.Tasks;
@@ -10,7 +10,7 @@ namespace Telegram.Infrastructure.Tasks;
 /// </summary>
 public class OwnedRegisteredTasksCache
 {
-    readonly Dictionary<TypedRegisteredTask, TelegramBotUser> _ownedRegisteredTasksCache
+    readonly Dictionary<TypedRegisteredTask, TelegramBot.User> _ownedRegisteredTasksCache
         = new(new RegisteredTask.IdEqualityComparer());
 
     readonly static ILogger _logger = LogManager.GetCurrentClassLogger();

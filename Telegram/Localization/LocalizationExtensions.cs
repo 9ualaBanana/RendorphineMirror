@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Localization;
-using Telegram.Bot;
 using Telegram.Infrastructure;
+using Telegram.Infrastructure.Bot;
 using Telegram.Localization.Resources;
 
 namespace Telegram.Localization;

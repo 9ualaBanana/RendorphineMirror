@@ -1,5 +1,5 @@
-﻿using Telegram.Bot;
-using Telegram.Bot.Types;
+﻿using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Infrastructure.Commands;
 
