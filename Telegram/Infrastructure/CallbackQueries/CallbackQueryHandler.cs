@@ -17,7 +17,7 @@ public interface ICallbackQueryHandler : IHandler, ISwitchableService<ICallbackQ
 {
 }
 
-public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : MessageHandler, ICallbackQueryHandler
+public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : MessageHandler_, ICallbackQueryHandler
     where TCallbackQuery : CallbackQuery<ECallbackData>, new()
     where ECallbackData : struct, Enum
 {

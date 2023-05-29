@@ -4,7 +4,7 @@ using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Infrastructure;
 
-public abstract class UpdateHandler : IHandler
+public abstract class UpdateHandler_ : IHandler
 {
     protected readonly TelegramBot Bot;
     protected readonly ILogger Logger;
@@ -16,7 +16,7 @@ public abstract class UpdateHandler : IHandler
 
     readonly IHttpContextAccessor _httpContextAccessor;
 
-    protected UpdateHandler(TelegramBot bot, IHttpContextAccessor httpContextAccessor, ILogger logger)
+    protected UpdateHandler_(TelegramBot bot, IHttpContextAccessor httpContextAccessor, ILogger logger)
     {
         Bot = bot;
         Logger = logger;

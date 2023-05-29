@@ -9,7 +9,7 @@ using Telegram.Tasks;
 
 namespace Telegram.MediaFiles.Images;
 
-public class ProcessingMethodSelectorImageHandler : MessageHandler
+public class ProcessingMethodSelectorImageHandler : MessageHandler_
 {
     readonly TaskPrice _taskPrice;
     readonly MediaFilesCache _mediaFilesCache;
