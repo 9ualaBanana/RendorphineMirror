@@ -1,7 +1,7 @@
 ﻿using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
 
-namespace Telegram.Infrastructure;
+namespace Telegram.Infrastructure.Messages;
 
 public abstract class MessageHandler_ : UpdateHandler_
 {

@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Telegram.Infrastructure;
 
-namespace Telegram.Security.Authentication;
+namespace Telegram.Infrastructure.Messages;
 
 [ApiController]
 [Route($"telegram/{{token}}/{PathFragment}")]
-public class MessageController : ControllerBase
+public class MessagesController : ControllerBase
 {
     internal const string PathFragment = "message";
 
