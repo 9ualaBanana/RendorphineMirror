@@ -25,7 +25,6 @@ builder.WebHost
         .AddCommands()
         .AddImages()
         .AddVideos()
-        .AddMessageAuthentication()
         .AddMPlusAuthentication()
         .AddMPlusAuthorization()
         .ConfigureExceptionHandlerOptions())

@@ -2,7 +2,9 @@
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.Commands;
 using Telegram.Infrastructure.Middleware.UpdateRouting;
+using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
 using Telegram.Infrastructure.Persistence;
+using Telegram.Security.Authentication;
 
 namespace Telegram.Infrastructure.Bot;
 
@@ -24,6 +26,7 @@ public partial class TelegramBot
                 .AddUpdateRouting()
                 .AddCommandsCore()
                 .AddCallbackQueries()
+                .AddMessageRouter<UnspecificMessageRouterMiddleware>()
                 .AddMessagePagination()
                 .AddPersistence();
 

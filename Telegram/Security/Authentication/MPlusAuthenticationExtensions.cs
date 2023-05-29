@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Telegram.Infrastructure;
 using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Security.Authentication;
@@ -15,6 +16,7 @@ internal static class MPlusAuthenticationExtensions
             .AddAuthenticationManager()
 
             .Services
+            .AddScoped<MessageHandler, AuthenticationMessageHandler>()
             .AddAuthentication(authenticationScheme)
                 .AddScheme<AuthenticationSchemeOptions, MPlusAuthenticationHandler>
                 (authenticationScheme, default);
