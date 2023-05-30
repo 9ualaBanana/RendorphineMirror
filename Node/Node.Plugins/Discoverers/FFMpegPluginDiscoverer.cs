@@ -7,6 +7,7 @@ internal class FFmpegPluginDiscoverer : PluginDiscoverer
         @"assets/",
     };
     protected override string ExecutableName => "ffmpeg*";
+    protected override string? ExecutableRegex => @"^ffmpeg(\.exe)?$";
     protected override PluginType PluginType => PluginType.FFmpeg;
 
     protected override string DetermineVersion(string exepath)
