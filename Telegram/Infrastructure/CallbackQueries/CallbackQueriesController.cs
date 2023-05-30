@@ -4,7 +4,7 @@ using Telegram.Bot.Types;
 namespace Telegram.Infrastructure.CallbackQueries;
 
 [ApiController]
-[Route($"telegram/{{token}}/{PathFragment}")]
+[Route($"/{PathFragment}")]
 public class CallbackQueriesController : ControllerBase
 {
     internal const string PathFragment = "callback_query";

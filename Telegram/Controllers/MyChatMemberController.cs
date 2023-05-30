@@ -5,7 +5,7 @@ using Telegram.Infrastructure.Bot;
 namespace Telegram.Controllers;
 
 [ApiController]
-[Route($"telegram/{{token}}/{PathFragment}")]
+[Route($"/{PathFragment}")]
 public class MyChatMemberController : ControllerBase
 {
     internal const string PathFragment = "my_chat_member";

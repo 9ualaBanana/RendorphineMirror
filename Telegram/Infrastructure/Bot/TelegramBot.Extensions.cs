@@ -14,7 +14,7 @@ static class TelegramBotExtensions
                 .AddJsonFile("botsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"botsettings.{Environments.Development}.json", optional: true, reloadOnChange: true));
 
-        configureTelegramBot(TelegramBot.Builder.Default(builder.Services()));
+        TelegramBot.Builder.Default(builder.Services(), configureTelegramBot);
 
         return builder;
     }

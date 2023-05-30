@@ -3,7 +3,7 @@
 namespace Telegram.Infrastructure.Messages;
 
 [ApiController]
-[Route($"telegram/{{token}}/{PathFragment}")]
+[Route($"/{PathFragment}")]
 public class MessagesController : ControllerBase
 {
     internal const string PathFragment = "message";
