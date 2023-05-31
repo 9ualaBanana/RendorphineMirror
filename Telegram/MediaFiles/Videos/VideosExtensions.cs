@@ -1,4 +1,6 @@
-﻿using Telegram.Infrastructure.Bot;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Infrastructure;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.MediaFiles.Videos;
 using Telegram.Tasks;
@@ -9,14 +11,13 @@ static class VideosExtensions
 {
     internal static ITelegramBotBuilder AddVideos(this ITelegramBotBuilder builder)
     {
+        builder.AddCallbackQueries();
+        builder.Services.TryAddScoped_<ICallbackQueryHandler, VideoProcessingCallbackQueryHandler>();
+        builder.Services.TryAddScoped<ProcessingMethodSelectorVideoHandler>();
         builder
-            .AddCallbackQueryHandler<VideoProcessingCallbackQueryHandler>()
-            .AddCallbackQueries()
             .AddVideosCore()
-            .AddTasks()
+            .AddTasks();
 
-            .Services
-            .AddScoped<ProcessingMethodSelectorVideoHandler>();
         return builder;
     }
 }

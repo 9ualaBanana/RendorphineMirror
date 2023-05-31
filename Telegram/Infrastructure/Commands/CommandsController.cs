@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Telegram.Security.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace Telegram.Infrastructure.Commands;
 

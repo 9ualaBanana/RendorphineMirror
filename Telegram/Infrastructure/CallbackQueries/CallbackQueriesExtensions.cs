@@ -1,4 +1,5 @@
-﻿using Telegram.Callbacks;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Callbacks;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
@@ -11,14 +12,13 @@ static class CallbackQueriesExtensions
         this ITelegramBotBuilder builder,
         CallbackQuerySerializerOptions? options = default)
     {
-        builder.Services
-            .AddScoped<IUpdateTypeRouter, CallbackQueryRouterMiddleware>()
-            .AddSingleton(services => new CallbackQuerySerializer(
-                options ??
-                services.GetService<CallbackQuerySerializerOptions>() ??
-                new CallbackQuerySerializerOptions.Builder().BuildDefault()
-                )
-            );
+        builder.Services.TryAddScoped_<IUpdateTypeRouter, CallbackQueryRouterMiddleware>();
+        builder.Services.TryAddSingleton(services => new CallbackQuerySerializer(
+            options ??
+            services.GetService<CallbackQuerySerializerOptions>() ??
+            new CallbackQuerySerializerOptions.Builder().BuildDefault())
+        );
+
         return builder;
     }
 }

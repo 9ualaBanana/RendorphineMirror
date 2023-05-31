@@ -1,4 +1,5 @@
-﻿using Telegram.Infrastructure.CallbackQueries;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Infrastructure.CallbackQueries;
 
 namespace Telegram.Infrastructure.Bot.MessagePagination;
 
@@ -6,14 +7,12 @@ static class MessagePaginationExtensions
 {
     internal static ITelegramBotBuilder AddMessagePagination(this ITelegramBotBuilder builder)
     {
-        builder
-            .AddCallbackQueryHandler<MessagePaginatorCallbackQueryHandler>()
-            .AddCallbackQueries()
+        builder.AddCallbackQueries();
+        builder.Services.TryAddScoped_<ICallbackQueryHandler, MessagePaginatorCallbackQueryHandler>();
+        builder.Services.TryAddSingleton<MessagePaginator>();
+        builder.Services.TryAddSingleton<ChunkedMessagesAutoStorage>();
+        builder.Services.TryAddSingleton<MessagePaginatorControlButtons>();
 
-            .Services
-            .AddSingleton<MessagePaginator>()
-            .AddSingleton<ChunkedMessagesAutoStorage>()
-            .AddSingleton<MessagePaginatorControlButtons>();
         return builder;
     }
 }

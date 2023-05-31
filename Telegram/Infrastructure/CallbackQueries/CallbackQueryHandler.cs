@@ -3,7 +3,6 @@ using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.Messages;
-using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
 
 namespace Telegram.Infrastructure.CallbackQueries;
 
@@ -99,17 +98,5 @@ public abstract class CallbackQueryHandler<TCallbackQuery, ECallbackData> : Mess
         var exception = new ArgumentException($"Unknown {nameof(ECallbackData)}.");
         Logger.LogCritical(exception.Message);
         throw exception;
-    }
-}
-
-static class CallbackQueryHandlerExtensions
-{
-    internal static ITelegramBotBuilder AddCallbackQueryHandler<TCallbackQueryHandler>(this ITelegramBotBuilder builder)
-        where TCallbackQueryHandler : class, ICallbackQueryHandler
-    {
-        builder.Services
-            .AddScoped<IUpdateTypeRouter, CallbackQueryRouterMiddleware>()
-            .AddScoped<ICallbackQueryHandler, TCallbackQueryHandler>();
-        return builder;
     }
 }

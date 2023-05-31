@@ -1,4 +1,5 @@
-﻿using Telegram.MPlus.Clients;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.MPlus.Clients;
 
 namespace Telegram.MPlus;
 
@@ -9,6 +10,8 @@ static class MPlusExtensions
         services.AddHttpClient<MPlusTaskManagerClient>();
         services.AddHttpClient<MPlusTaskLauncherClient>();
         services.AddHttpClient<StockSubmitterClient>();
-        return services.AddScoped<MPlusClient>();
+        services.TryAddScoped<MPlusClient>();
+
+        return services;
     }
 }

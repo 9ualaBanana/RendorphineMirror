@@ -8,7 +8,6 @@ global using NodeCommon.Tasks.Model;
 using NLog.Web;
 using Telegram.Commands;
 using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Middleware.UpdateRouting;
 using Telegram.Localization;
 using Telegram.MediaFiles.Images;
 using Telegram.MediaFiles.Videos;
@@ -30,38 +29,32 @@ builder.WebHost
         .ConfigureExceptionHandlerOptions())
 
     .ConfigureServices(_ => _
-        .AddLocalization_())
+        .AddRequestLocalization_()
+        .AddSwaggerGen()
+        .AddStableDiffusion()
+
+        .AddSingleton<UserNodes>()
+        .AddScoped<GitHubEventForwarder>())
 
     .UseNLog_();
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddSingleton<UserNodes>();
-builder.Services.AddScoped<GitHubEventForwarder>();
-builder.Services.AddStableDiffusion();
-
 var app = builder.Build();
 
-await app.Services.GetRequiredService<TelegramBot>().InitializeAsync();
-
+app.UseTelegramBot()
+    .UseAuthentication()
+    .UseAuthorization()
+    .UseRequestLocalization();
 if (!app.Environment.IsDevelopment())
     app.UseTelegramBotExceptionHandler();
-else
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-app.UseUpdateRouting();
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseRequestLocalization();
+else app.UseDeveloperExceptionPage()
+        .UseSwagger().UseSwaggerUI();
 
-app.Run();
+await app.RunAsync_();
 
 
 static class Startup
 {
+    /// <inheritdoc cref="AspNetExtensions.UseNLog(IHostBuilder)"/>
     internal static IWebHostBuilder UseNLog_(this IWebHostBuilder builder)
         => builder.UseNLog(new() { ReplaceLoggerFactory = true });
 }

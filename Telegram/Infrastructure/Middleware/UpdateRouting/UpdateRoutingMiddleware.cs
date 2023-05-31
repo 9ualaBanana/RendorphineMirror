@@ -11,12 +11,12 @@ namespace Telegram.Infrastructure.Middleware.UpdateRouting;
 /// Abstracts routing by rewriting the request path to remove <see cref="TelegramBot.Options.Token"/>
 /// and move the rest to <see cref="HttpRequest.PathBase"/> which is not considered in routing.
 /// </remarks>
-public class UpdateRoutingBranchingMiddleware : IMiddleware
+public class UpdateRoutingMiddleware : IMiddleware
 {
     readonly TelegramBot.Options _botOptions;
     readonly UpdateReaderMiddleware _updateReaderMiddleware;
 
-    public UpdateRoutingBranchingMiddleware(
+    public UpdateRoutingMiddleware(
         IOptions<TelegramBot.Options> botOptions,
         UpdateReaderMiddleware updateReaderMiddleware)
     {

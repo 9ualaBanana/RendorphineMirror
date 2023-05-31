@@ -1,4 +1,5 @@
-﻿using Telegram.Infrastructure.Bot;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Infrastructure.Bot;
 using Telegram.MPlus;
 using Telegram.Tasks;
 
@@ -8,10 +9,10 @@ static class TasksExtensions
 {
     internal static ITelegramBotBuilder AddTasksCore(this ITelegramBotBuilder builder)
     {
-        builder.Services
-            .AddScoped<TaskPrice>()
-            .AddSingleton<OwnedRegisteredTasksCache>()
-            .AddMPlusClient();
+        builder.Services.TryAddScoped<TaskPrice>();
+        builder.Services.TryAddSingleton<OwnedRegisteredTasksCache>();
+        builder.Services.AddMPlusClient();
+
         return builder;
     }
 }

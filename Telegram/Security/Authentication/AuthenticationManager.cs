@@ -1,4 +1,5 @@
-﻿using Telegram.Bot.Types;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Persistence;
 using Telegram.Localization.Resources;
@@ -106,12 +107,10 @@ static class AuthenticationManagerExtensions
 {
     internal static ITelegramBotBuilder AddAuthenticationManager(this ITelegramBotBuilder builder)
     {
-        builder
-            .AddPersistence()
+        builder.AddPersistence();
+        builder.Services.TryAddScoped<AuthenticationManager>();
+        builder.Services.AddMPlusClient();
 
-            .Services
-            .AddScoped<AuthenticationManager>()
-            .AddMPlusClient();
         return builder;
     }
 }

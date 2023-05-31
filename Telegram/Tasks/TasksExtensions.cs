@@ -1,4 +1,6 @@
-﻿using Telegram.Infrastructure.Bot;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Infrastructure;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
@@ -10,18 +12,23 @@ static class TasksExtensions
 {
     internal static ITelegramBotBuilder AddTasks(this ITelegramBotBuilder builder)
     {
+        builder.AddCallbackQueries();
+        builder.Services.TryAddSingleton_<ICallbackQueryHandler, TaskCallbackQueryHandler>();
         builder
-            .AddTasksCore()
-            .AddMediaFilesCore()
-            .AddCallbackQueries()
-
-            .Services
-            .AddSingleton<ICallbackQueryHandler, TaskCallbackQueryHandler>()
             .AddTaskDetails()
-            .AddScoped<TelegramPreviewTaskResultHandler>();
+            .AddTasksCore()
+            .AddMediaFilesCore();
+        builder.Services.TryAddScoped<TelegramPreviewTaskResultHandler>();
+
         return builder;
     }
 
-    static IServiceCollection AddTaskDetails(this IServiceCollection services)
-        => services.AddSingleton<TaskDetails>().AddSingleton<TaskDetails.CachedMessages>().AddMemoryCache();
+    static ITelegramBotBuilder AddTaskDetails(this ITelegramBotBuilder builder)
+    {
+        builder.Services.TryAddSingleton<TaskDetails>();
+        builder.Services.TryAddSingleton<TaskDetails.CachedMessages>();
+        builder.Services.AddMemoryCache();
+
+        return builder;
+    }
 }

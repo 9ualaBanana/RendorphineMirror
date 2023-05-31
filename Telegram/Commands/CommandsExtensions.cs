@@ -1,4 +1,6 @@
-﻿using Telegram.Commands.Handlers;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Commands.Handlers;
+using Telegram.Infrastructure;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 
@@ -33,9 +35,9 @@ static class CommandsExtensions
     static ITelegramBotBuilder AddCommandHandler<TCommandHandler>(this ITelegramBotBuilder builder)
         where TCommandHandler : CommandHandler
     {
-        builder.Services
-            .AddScoped<CommandHandler, TCommandHandler>()
-            .AddScoped<TCommandHandler>();
+        builder.Services.TryAddScoped_<CommandHandler, TCommandHandler>();
+        builder.Services.TryAddScoped<TCommandHandler>();
+
         return builder;
     }
 }

@@ -7,7 +7,7 @@ namespace Telegram.Localization;
 
 static class LocalizationExtensions
 {
-    internal static IServiceCollection AddLocalization_(this IServiceCollection services)
+    internal static IServiceCollection AddRequestLocalization_(this IServiceCollection services)
     {
         var supportedCultures = new string[] { "en", "ru" };
         return services

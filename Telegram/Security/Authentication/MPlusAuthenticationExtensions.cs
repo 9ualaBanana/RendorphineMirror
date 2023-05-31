@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Telegram.Infrastructure;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Messages;
 
@@ -12,14 +13,22 @@ internal static class MPlusAuthenticationExtensions
     {
         authenticationScheme ??= MPlusAuthenticationDefaults.AuthenticationScheme;
 
-        builder
-            .AddAuthenticationManager()
+        builder.Services.TryAddScoped_<MessageHandler, AuthenticationMessageHandler>();
+        builder.AddMPlusAuthenticationCore(authenticationScheme);
 
-            .Services
-            .AddScoped<MessageHandler, AuthenticationMessageHandler>()
-            .AddAuthentication(authenticationScheme)
-                .AddScheme<AuthenticationSchemeOptions, MPlusAuthenticationHandler>
-                (authenticationScheme, default);
+        return builder;
+    }
+
+    internal static ITelegramBotBuilder AddMPlusAuthenticationCore(
+        this ITelegramBotBuilder builder,
+        string? authenticationScheme = default)
+    {
+        authenticationScheme ??= MPlusAuthenticationDefaults.AuthenticationScheme;
+
+        builder.AddAuthenticationManager();
+        builder.Services.AddAuthentication(authenticationScheme)
+            .AddScheme<AuthenticationSchemeOptions, MPlusAuthenticationHandler>
+            (authenticationScheme, default);
 
         return builder;
     }

@@ -1,4 +1,6 @@
-﻿using Telegram.Infrastructure.Bot;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Infrastructure;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.MediaFiles.Images;
 using Telegram.Tasks;
@@ -9,14 +11,13 @@ static class ImagesExtensions
 {
     internal static ITelegramBotBuilder AddImages(this ITelegramBotBuilder builder)
     {
+        builder.AddCallbackQueries();
+        builder.Services.TryAddScoped_<ICallbackQueryHandler, ImageProcessingCallbackQueryHandler>();
+        builder.Services.TryAddScoped<ProcessingMethodSelectorImageHandler>();
         builder
-            .AddCallbackQueryHandler<ImageProcessingCallbackQueryHandler>()
-            .AddCallbackQueries()
             .AddImagesCore()
-            .AddTasks()
+            .AddTasks();
 
-            .Services
-            .AddScoped<ProcessingMethodSelectorImageHandler>();
         return builder;
     }
 }

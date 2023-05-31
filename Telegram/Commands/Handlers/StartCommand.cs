@@ -62,9 +62,10 @@ public class StartCommand : CommandHandler
             {
                 await Bot.SendMessageAsync_(ChatId,
                     _localizedAuthenticationText.Start(_loginCommand),
-                    InlineKeyboardButton.WithUrl(
-                        _localizedAuthenticationText.BrowserAuthenticationButton,
-                        "https://microstock.plus/oauth2/authorize?clientid=003&state=_"),
+                    InlineKeyboardButton.WithLoginUrl("Login", new() { BotUsername = "testMicrostockPlusBot", Url = "https://3f61-82-211-155-73.ngrok-free.app/authenticate/result", RequestWriteAccess = true }),
+                    //InlineKeyboardButton.WithUrl(
+                    //    _localizedAuthenticationText.BrowserAuthenticationButton,
+                    //    "https://microstock.plus/oauth2/authorize?clientid=003&state=_"),
                     disableWebPagePreview: true, cancellationToken: RequestAborted);
             }
         }

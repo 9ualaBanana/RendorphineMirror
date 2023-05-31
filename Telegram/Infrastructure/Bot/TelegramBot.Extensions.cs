@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Telegram.Bot.Types;
+using Telegram.Infrastructure.Middleware.UpdateRouting;
 
 namespace Telegram.Infrastructure.Bot;
 
@@ -18,6 +19,12 @@ static class TelegramBotExtensions
 
         return builder;
     }
+
+    internal static WebApplication UseTelegramBot(this WebApplication app)
+        => app.UseUpdateRouting();
+
+    internal static async Task RunAsync_(this WebApplication app)
+    { await app.Services.GetRequiredService<TelegramBot>().InitializeAsync(); app.Run(); }
 
     #region Properties
 
