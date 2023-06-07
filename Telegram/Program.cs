@@ -16,6 +16,7 @@ using Telegram.Security.Authorization;
 using Telegram.Services.GitHub;
 using Telegram.Services.Node;
 using Telegram.StableDiffusion;
+using Telegram.TrialUsers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,9 +30,10 @@ builder.WebHost
         .ConfigureExceptionHandlerOptions())
 
     .ConfigureServices(_ => _
+        .AddTrialUsers()
+        .AddStableDiffusion()
         .AddRequestLocalization_()
         .AddSwaggerGen()
-        .AddStableDiffusion()
 
         .AddSingleton<UserNodes>()
         .AddScoped<GitHubEventForwarder>())
