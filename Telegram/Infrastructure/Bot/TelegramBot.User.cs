@@ -8,7 +8,7 @@ public partial class TelegramBot
     /// <summary>
     /// Represents <see cref="ClaimsPrincipal"/> that belong to a Telegram bot user uniquely identified by <see cref="ChatId"/>.
     /// </summary>
-    internal record User(ChatId ChatId, ClaimsPrincipal _)
+    public partial record User(ChatId ChatId, ClaimsPrincipal _)
     {
     }
 }
