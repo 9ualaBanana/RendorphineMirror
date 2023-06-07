@@ -31,11 +31,10 @@ public partial class TelegramBot : TelegramBotClient
     /// </summary>
     internal async Task InitializeAsync()
     {
-        string webhookUrl = new Uri(_options.Host, $"telegram/{_options.Token}").ToString();
-        await this.SetWebhookAsync(webhookUrl,
+        await this.SetWebhookAsync(_options.WebhookUri.ToString(),
             allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery },
             dropPendingUpdates: true);
-        Logger.LogTrace("Webhook is set", webhookUrl);
+        Logger.LogTrace("Webhook is set for {Host}", _options.WebhookUri);
     }
 
     internal async Task NotifySubscribersAsync(string text, InlineKeyboardMarkup? replyMarkup = null)
