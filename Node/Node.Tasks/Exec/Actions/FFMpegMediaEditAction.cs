@@ -70,7 +70,7 @@ public abstract class FFMpegMediaEditAction<T> : FFMpegAction<T> where T : Media
             var outw = w * absCosRA + h * absSinRA;
             var outh = w * absSinRA + h * absCosRA;
 
-            filters.Add($"rotate={data.RotationRadians.Value.ToString(NumberFormat)}:ow={outw.ToString(NumberFormat)}:oh={outh.ToString(NumberFormat)}");
+            filters.Add($"rotate={data.RotationRadians.Value.ToString(NumberFormat)}:ow={((int) outw).ToString(NumberFormat)}:oh={((int) outh).ToString(NumberFormat)}");
         }
 
         if (data.Crop is not null) filters.AddFirst($"crop={data.Crop.W.ToString(NumberFormat)}:{data.Crop.H.ToString(NumberFormat)}:{data.Crop.X.ToString(NumberFormat)}:{data.Crop.Y.ToString(NumberFormat)}");
