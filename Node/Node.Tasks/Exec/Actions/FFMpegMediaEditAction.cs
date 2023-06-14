@@ -63,7 +63,7 @@ public abstract class FFMpegMediaEditAction<T> : FFMpegAction<T> where T : Media
         if (data.Vflip == true) filters.Add("vflip");
         if (data.RotationRadians is not null)
         {
-            var (w, h) = (args.FFProbe.Streams.First().Width, args.FFProbe.Streams.First().Height);
+            var (w, h) = (args.FFProbe.VideoStream.Width, args.FFProbe.VideoStream.Height);
 
             var absCosRA = Math.Abs(Math.Cos(data.RotationRadians.Value));
             var absSinRA = Math.Abs(Math.Sin(data.RotationRadians.Value));
