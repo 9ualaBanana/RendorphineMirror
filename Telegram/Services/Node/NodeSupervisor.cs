@@ -15,7 +15,7 @@ public class NodeSupervisor
     readonly object _lock = new();
     readonly ILogger<NodeSupervisor> _logger;
     readonly TelegramBot _bot;
-    readonly TelegramBotDbContext _authenticatedUsers;
+    readonly TelegramBotDbContext _database;
 
 
     public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot, TelegramBotDbContext users)
@@ -25,7 +25,7 @@ public class NodeSupervisor
         NodesOnline.ItemStorageTimeElapsed += OnNodeWentOffline;
         _logger = logger;
         _bot = bot;
-        _authenticatedUsers = users;
+        _database = users;
     }
 
 
@@ -55,7 +55,7 @@ public class NodeSupervisor
         {
             if (versionIsUpdated)
             {
-                var userChatAuthenticationTokens = _authenticatedUsers.Users.Where(user => user.MPlusIdentity.UserId == nodeInfo.UserId);
+                var userChatAuthenticationTokens = _database.Users.Where(user => user.MPlusIdentity.UserId == nodeInfo.UserId);
                 if (userChatAuthenticationTokens.Any())
                     foreach (var chatAuthenticationToken in userChatAuthenticationTokens)
                         await _bot.SendMessageAsync_(chatAuthenticationToken.ChatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline!.Version}* *=>* v.*{nodeInfo.Version}*.");

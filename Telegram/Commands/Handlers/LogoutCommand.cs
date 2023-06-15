@@ -42,7 +42,7 @@ public class LogoutCommand : CommandHandler, IAuthorizationPolicyProtected
         }
 
 
-        async Task<TelegramBotUserEntity> PersistedTelegramUser()
+        async Task<TelegramBot.User.Entity> PersistedTelegramUser()
             => await _authenticationManager.PersistTelegramUserAsyncWith(Context.GetUpdate().ChatId(),
             save: false, Context.RequestAborted);
     }

@@ -4,7 +4,6 @@ using System.Text.Encodings.Web;
 using Telegram.Commands.Handlers;
 using Telegram.Infrastructure;
 using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Persistence;
 
 namespace Telegram.Security.Authentication;
 
@@ -42,7 +41,7 @@ public class MPlusAuthenticationHandler : AuthenticationHandler<AuthenticationSc
         return AuthenticateResult.NoResult();
 
 
-        async Task<TelegramBotUserEntity> PersistedTelegramUser()
+        async Task<TelegramBot.User.Entity> PersistedTelegramUser()
             => await _authenticationManager.PersistTelegramUserAsyncWith(Context.GetUpdate().ChatId(),
             save: true, Context.RequestAborted);
     }

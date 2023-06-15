@@ -2,7 +2,6 @@
 using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Persistence;
 using Telegram.Localization.Resources;
 using Telegram.Security.Authentication;
 
@@ -10,10 +9,10 @@ namespace Telegram.Commands.Handlers;
 
 /// <remarks>
 /// Each invocation of <see cref="LoginCommand"/> results in persisting <see cref="ChatId"/>
-/// of the user who invoked it, if hasn't been persisted yet. Resulting <see cref="TelegramBotUserEntity"/>
-/// will contain <see cref="TelegramBotUserEntity.MPlusIdentity"/> if the user is already authenticated by M+.
-/// Otherwise, an authentication attempt is made using credentials provided by the user and <see cref="TelegramBotUserEntity"/>
-/// will contain <see cref="TelegramBotUserEntity.MPlusIdentity"/> if the attempt was successful.
+/// of the user who invoked it, if hasn't been persisted yet. Resulting <see cref="TelegramBot.User.Entity"/>
+/// will contain <see cref="TelegramBot.User.Entity.MPlusIdentity"/> if the user is already authenticated by M+.
+/// Otherwise, an authentication attempt is made using credentials provided by the user and <see cref="TelegramBot.User.Entity"/>
+/// will contain <see cref="TelegramBot.User.Entity.MPlusIdentity"/> if the attempt was successful.
 /// </remarks>
 public class LoginCommand : CommandHandler
 {
@@ -45,7 +44,7 @@ public class LoginCommand : CommandHandler
         else await TryAuthenticateByMPlusAsync(user);
 
 
-        async Task TryAuthenticateByMPlusAsync(TelegramBotUserEntity user)
+        async Task TryAuthenticateByMPlusAsync(TelegramBot.User.Entity user)
         {
             var arguments = receivedCommand.UnquotedArguments.ToImmutableArray();
             if (arguments.Length == 2)
