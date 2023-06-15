@@ -9,9 +9,9 @@ public record TrialUsersMediatorOptions
     string _Host { get; init; } = null!;
 }
 
-static class TrialUsersMediatorOptionsExtensions
+public static class TrialUsersMediatorOptionsExtensions
 {
-    internal static IServiceCollection ConfigureTrialUsersMediatorOptions(this IServiceCollection services)
+    public static IServiceCollection ConfigureTrialUsersMediatorOptions(this IServiceCollection services)
     {
         services.AddOptions<TrialUsersMediatorOptions>()
             .BindConfiguration(TrialUsersMediatorOptions.Configuration, _ => _.BindNonPublicProperties = true);

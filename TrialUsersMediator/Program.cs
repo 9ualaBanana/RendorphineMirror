@@ -1,4 +1,8 @@
+using TrialUsersMediator.Persistence;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<TrialUsersDbContext>();
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
