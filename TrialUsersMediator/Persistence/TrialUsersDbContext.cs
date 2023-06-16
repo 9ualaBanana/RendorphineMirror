@@ -24,6 +24,8 @@ public class TrialUsersDbContext : DbContext
     {
         modelBuilder
             .ApplyConfiguration(default(TrialUser.Entity.Configuration))
-            .ApplyConfiguration(default(TrialUser.TaskQuota.Entity.Configuration));
+            .ApplyConfiguration(default(TrialUser.TaskQuota.Entity.Configuration))
+            .ApplyConfiguration(default(TrialUser.Info.Entity.Configuration))
+            .ApplyConfiguration(default(TrialUser.Info.Telegram.Entity.Configuration));
     }
 }

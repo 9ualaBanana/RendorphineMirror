@@ -21,6 +21,10 @@ public partial class TelegramBot
             internal const string auth_date = nameof(auth_date);
             internal const string hash = nameof(hash);
 
+
+            protected LoginWidgetData()
+                : this(default!, default!, default!, default!, default!, default!) { }
+
             internal QueryString ToQueryString()
                 => QueryString.Create(new Dictionary<string, string?>
                 {
