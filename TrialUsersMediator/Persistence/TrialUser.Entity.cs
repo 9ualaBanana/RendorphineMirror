@@ -26,8 +26,8 @@ public partial record TrialUser
                 : base(trialUser)
             { _trialUserEntity = new Entity(trialUser); }
 
-            internal TrialUser.Entity With(TaskQuota quota)
-            { _trialUserEntity.Quota_ = TaskQuota.Entity.Wrapper.For(quota); return ValidatedProduct; }
+            internal Wrapper AssociatedWith(TaskQuota quota)
+            { _trialUserEntity.Quota_ = TaskQuota.Entity.Wrapper.For(quota); return this; }
 
             protected override TrialUser.Entity ValidatedProduct
             {
@@ -49,6 +49,7 @@ public partial record TrialUser
                 trialUserEntity.ToTable("TrialUsers");
 
                 trialUserEntity.HasKey(_ => new { _.Identifier, _.Platform });
+
                 trialUserEntity.HasOne(_ => _.Quota_).WithOne().HasPrincipalKey<TrialUser.Entity>().IsRequired();
                 trialUserEntity.Navigation(_ => _.Quota_).AutoInclude();
             }

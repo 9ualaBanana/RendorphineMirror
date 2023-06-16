@@ -29,6 +29,8 @@ public partial record TrialUser
             {
                 public void Configure(EntityTypeBuilder<Entity> quotaEntity)
                 {
+                    quotaEntity.ToTable("Quotas");
+
                     const string Id = nameof(Id);
                     quotaEntity.Property<int>(Id).ValueGeneratedOnAdd();
                     quotaEntity.HasKey(Id);
@@ -37,12 +39,11 @@ public partial record TrialUser
                     {
                         quotaEntry.WithOwner(_ => _.Quota);
 
+                        quotaEntry.ToTable("QuotaEntries");
+
                         quotaEntry.Property<int>(Id).ValueGeneratedOnAdd();
                         quotaEntry.HasKey(Id);
-
-                        quotaEntry.ToTable("QuotaEntries");
                     });
-                    quotaEntity.ToTable("Quotas");
                 }
             }
         }
