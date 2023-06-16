@@ -39,6 +39,11 @@ public static class Api
         return responseJson;
     }
 
+    public static (string, string)[] AddSessionId(string sessionid, params (string, string)[] values)
+    {
+        if (values.Any(x => x.Item1 == "sessionid")) return values;
+        return values.Append(("sessionid", sessionid)).ToArray();
+    }
     public static (string, string)[] SignRequest(string key, params (string, string)[] values) => ApiInstance.SignRequest(key, values);
     public static string CalculateSign(string key, params (string, string)[] values) => ApiInstance.CalculateSign(key, values);
 }

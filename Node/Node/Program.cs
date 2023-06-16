@@ -243,7 +243,8 @@ async Task InitializePlugins()
         new EsrganUpscale(),
         new GreenscreenBackground(),
         new VeeeVectorize(),
-        new GenerateQSPreview()
+        new GenerateQSPreview(),
+        new GenerateTitleKeywords()
     );
 
     TaskHandler.AutoInitializeHandlers();

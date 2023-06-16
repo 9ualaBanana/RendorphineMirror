@@ -6,6 +6,9 @@ namespace Node.Tasks.Models;
 [JsonObject]
 public class ReadOnlyTaskFileList : IEnumerable<FileWithFormat>
 {
+    // TODO:: TEMPORARY AND WILL BE REFACTORED
+    public JToken? OutputJson;
+
     [JsonIgnore] public IEnumerable<string> Paths => Files.Select(f => f.Path);
     [JsonIgnore] public int Count => Files.Count;
     [JsonProperty] protected readonly HashSet<FileWithFormat> Files;
@@ -52,8 +55,7 @@ public static class TaskFileListExtensions
     /// <summary> Ensure files exist </summary>
     public static void ValidateFileList([NotNull] this ReadOnlyTaskFileList? files, string type)
     {
-        // TODO: should 0 count check even exist?
-        if (files is null or { Count: 0 })
+        if (files is null)
             throw new Exception($"Task {type} file list was null or empty");
 
         foreach (var file in files)

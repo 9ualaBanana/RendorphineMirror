@@ -67,7 +67,8 @@ public class DebugListener : ExecutableListenerBase
                 var taskid = Guid.NewGuid().ToString();
                 var context = new LocalTaskExecutionContext(
                     await PluginManager.GetInstalledPluginsAsync(),
-                    new LoggableLogger($"LTask {taskid}", LogManager.GetCurrentClassLogger())
+                    new LoggableLogger($"LTask {taskid}", LogManager.GetCurrentClassLogger()),
+                    null
                 );
 
                 var action = TaskList.GetAction(TaskInfo.GetTaskType(data.Data));

@@ -21,6 +21,9 @@ public static class TaskRequirement
     public static OperationResult EnsureOutputFormats(this TaskFilesCheckData files, params FileFormat[][] formats) => EnsureFormats(files.OutputFiles, "output", formats);
     public static OperationResult EnsureFormats(ReadOnlyTaskFileList files, string info, IReadOnlyCollection<IReadOnlyCollection<FileFormat>> expected)
     {
+        if (expected.Count == 0)
+            return true;
+
         foreach (var format in expected.OrderByDescending(f => f.Count))
             if (check(format.ToList())) //.ToList() to create a copy
                 return true;

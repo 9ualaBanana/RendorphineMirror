@@ -1,5 +1,16 @@
 namespace Node.Tasks;
 
+// TEMPORARY; WILL BE REFACTORED
+public interface IMPlusApi
+{
+    string TaskId { get; }
+    string SessionId { get; }
+    ApiInstance Api { get; }
+}
+public record MPlusApiService(string TaskId, string SessionId, ApiInstance Api) : IMPlusApi;
+
+
+
 public interface ITaskExecutionContext : ILoggable
 {
     IReadOnlyCollection<Plugin> Plugins { get; }
@@ -7,6 +18,8 @@ public interface ITaskExecutionContext : ILoggable
     /// <summary> Set task progress </summary>
     /// <param name="progress"> Progress value, 0-1 </param>
     void SetProgress(double progress);
+
+    IMPlusApi? MPlusApi { get; }
 }
 public static class TaskExecutionContextExtensions
 {

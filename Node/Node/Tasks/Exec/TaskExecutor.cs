@@ -94,7 +94,7 @@ public static class TaskExecutor
         // TODO:: delete
         var task = ((TaskExecutionExecutionContext) context).Task;
 
-        var econtext = new TaskExecutionContext(task, context.Plugins);
+        var econtext = new TaskExecutionContext(task, context.Plugins, new MPlusApiService(task.Id, Apis.Default.SessionId, Api.Default));
 
         CheckFileList(inputfiles, "input");
 
@@ -150,7 +150,7 @@ public static class TaskExecutor
 
         context.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(context.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
         context.LogInfo($"Results: {string.Join(" | ", task.OutputFileListList.Select(l => string.Join(", ", l)))}");
-        await context.Handler.UploadResult(task, new ReadOnlyTaskFileList(task.OutputFileListList.SelectMany(l => l))).ConfigureAwait(false);
+        await context.Handler.UploadResult(task, new ReadOnlyTaskFileList(task.OutputFileListList.SelectMany(l => l)) { OutputJson = task.OutputFileListList.Select(t => t.OutputJson).SingleOrDefault(t => t is not null) }).ConfigureAwait(false);
         context.LogInfo($"Result uploaded");
 
         await context.SetValidationAsync();
@@ -204,7 +204,7 @@ public static class TaskExecutor
     /// <inheritdoc cref="CheckFileListList"/>
     static void CheckFileList([System.Diagnostics.CodeAnalysis.NotNull] ReadOnlyTaskFileList? files, string type)
     {
-        if (files is null or { Count: 0 })
+        if (files is null)
             throw new NodeTaskFailedException($"Task {type} file list was null or empty");
 
         foreach (var file in files)
@@ -254,6 +254,7 @@ public static class TaskExecutor
 
     record TaskExecutionContextSubtaskOverlay(int Subtask, int MaxSubtasks, ITaskExecutionContext Context) : ITaskExecutionContext
     {
+        public IMPlusApi? MPlusApi => Context.MPlusApi;
         public IReadOnlyCollection<Plugin> Plugins => Context.Plugins;
 
         public void Log(LogLevel level, string text) => Context.Log(level, text);
@@ -264,7 +265,7 @@ public static class TaskExecutor
             Context.SetProgress((progress * subtaskpart) + (subtaskpart * Subtask));
         }
     }
-    record TaskExecutionContext(ReceivedTask Task, IReadOnlyCollection<Plugin> Plugins) : ITaskExecutionContext
+    record TaskExecutionContext(ReceivedTask Task, IReadOnlyCollection<Plugin> Plugins, IMPlusApi? MPlusApi) : ITaskExecutionContext
     {
         public void Log(LogLevel level, string text) => Task.Log(level, text);
 

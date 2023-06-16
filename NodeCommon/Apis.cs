@@ -16,11 +16,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     public Apis WithSessionId(string sid) => this with { SessionId = sid };
     public Apis WithNoErrorLog() => this with { LogErrors = false };
 
-    (string, string)[] AddSessionId(params (string, string)[] values)
-    {
-        if (values.Any(x => x.Item1 == "sessionid")) return values;
-        return values.Append(("sessionid", SessionId)).ToArray();
-    }
+    public (string, string)[] AddSessionId(params (string, string)[] values) => Common.Api.AddSessionId(SessionId, values);
 
     public ValueTask<OperationResult> ShardPost(IRegisteredTaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
         ShardPost<JToken>(task, url, property, errorDetails, content).Next(j => true);

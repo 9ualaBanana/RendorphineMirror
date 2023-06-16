@@ -9,4 +9,5 @@ public enum TaskAction
     GenerateQSPreview,
     VeeeVectorize,
     GreenscreenBackground,
+    GenerateTitleKeywords,
 }

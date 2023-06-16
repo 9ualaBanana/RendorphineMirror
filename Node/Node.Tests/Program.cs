@@ -57,6 +57,7 @@ static async Task TestTaskExecution<T>(PluginManager pluginManager, PluginAction
 
 record TestContext(IReadOnlyCollection<Plugin> Plugins) : ITaskExecutionContext
 {
+    public IMPlusApi? MPlusApi => null;
     static readonly Logger Logger = LogManager.GetLogger("Testing");
 
     public void Log(LogLevel level, string text) => Logger.Log(level, text);

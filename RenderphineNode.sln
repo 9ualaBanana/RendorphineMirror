@@ -61,6 +61,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Build", "Node\Node.Bui
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorrentTracker", "TorrentTracker\TorrentTracker.csproj", "{AE01E8D5-8078-495E-877C-D2707691D0C2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatGptApi", "ChatGptApi\ChatGptApi.csproj", "{DBA666E5-0ACB-4BD7-955F-EBDDE557AF99}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -178,6 +180,10 @@ Global
 		{AE01E8D5-8078-495E-877C-D2707691D0C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE01E8D5-8078-495E-877C-D2707691D0C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE01E8D5-8078-495E-877C-D2707691D0C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBA666E5-0ACB-4BD7-955F-EBDDE557AF99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBA666E5-0ACB-4BD7-955F-EBDDE557AF99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBA666E5-0ACB-4BD7-955F-EBDDE557AF99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBA666E5-0ACB-4BD7-955F-EBDDE557AF99}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{22AAF815-71E7-488A-8AA9-806E0697393F} = {A9B60D91-D082-47A7-8E25-54DC20BC18E3}

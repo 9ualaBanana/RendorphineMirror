@@ -11,6 +11,7 @@ public enum TaskInputType
     Torrent,
     User,
     DirectUpload,
+    TitleKeywords,
 }
 [JsonConverter(typeof(StringEnumConverter))]
 public enum TaskOutputType
@@ -20,4 +21,5 @@ public enum TaskOutputType
     User,
     QSPreview,
     DirectDownload,
+    TitleKeywords,
 }

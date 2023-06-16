@@ -109,6 +109,13 @@
             "type": "process",
             "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "rapi" ],
             "group": { "kind": "build", }
+        },
+        {
+            "label": "Upload ChatGptApi",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "chatgptapi" ],
+            "group": { "kind": "build", }
         }
     ]
 }
