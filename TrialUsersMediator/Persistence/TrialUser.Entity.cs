@@ -46,6 +46,8 @@ public partial record TrialUser
         {
             public void Configure(EntityTypeBuilder<Entity> trialUserEntity)
             {
+                trialUserEntity.ToTable("TrialUsers");
+
                 trialUserEntity.HasKey(_ => new { _.Identifier, _.Platform });
                 trialUserEntity.HasOne(_ => _.Quota_).WithOne().HasPrincipalKey<TrialUser.Entity>().IsRequired();
                 trialUserEntity.Navigation(_ => _.Quota_).AutoInclude();
