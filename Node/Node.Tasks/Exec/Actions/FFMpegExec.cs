@@ -9,31 +9,42 @@ public static class FFMpegExec
         var argholder = new FFMpegArgsHolder(file.Format, ffprobe);
         var outputfilename = argfunc(argholder);
 
-        var args = FFMpegExec.GetFFMpegArgs(inputfile, outputfilename, context, argholder);
-
-        var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
-        context.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
-        duration /= argholder.Rate;
-
-        var prevfiles = Directory.GetFiles(Path.GetDirectoryName(outputfilename)!);
-        await new NodeProcess(context.GetPlugin(PluginType.FFmpeg).Path, args, context, onRead, stderr: LogLevel.Trace).Execute();
-        var newfiles = Directory.GetFiles(Path.GetDirectoryName(outputfilename)!).Except(prevfiles);
-
-        return new ReadOnlyTaskFileList(newfiles.Select(FileWithFormat.FromFile));
-
-
-
-        void onRead(bool err, string line)
+        try { return await start(FFMpegExec.GetFFMpegArgs(inputfile, outputfilename, context, argholder, true)); }
+        catch (NodeProcessException ex)
         {
-            // frame=  502 fps=0.0 q=29.0 size=     256kB time=00:00:14.84 bitrate= 141.3kbits/s speed=29.5x
-            if (!line.StartsWith("frame=", StringComparison.Ordinal)) return;
+            try { File.Delete(outputfilename); }
+            catch { }
 
-            var spt = line.AsSpan(line.IndexOf("time=", StringComparison.Ordinal) + "time=".Length).TrimStart();
-            spt = spt.Slice(0, spt.IndexOf(' '));
-            if (!TimeSpan.TryParse(spt, out var time))
-                time = TimeSpan.Zero;
+            context.LogErr($"{ex.Message}, restarting without hwaccel");
+            return await start(FFMpegExec.GetFFMpegArgs(inputfile, outputfilename, context, argholder, false));
+        }
 
-            context.SetProgress(Math.Clamp(time / duration, 0, 1));
+
+        async Task<ReadOnlyTaskFileList> start(IEnumerable<string> args)
+        {
+            var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
+            context.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
+            duration /= argholder.Rate;
+
+            var prevfiles = Directory.GetFiles(Path.GetDirectoryName(outputfilename)!);
+            await new NodeProcess(context.GetPlugin(PluginType.FFmpeg).Path, args, context, onRead, stderr: LogLevel.Trace).Execute();
+            var newfiles = Directory.GetFiles(Path.GetDirectoryName(outputfilename)!).Except(prevfiles);
+
+            return new ReadOnlyTaskFileList(newfiles.Select(FileWithFormat.FromFile));
+
+
+            void onRead(bool err, string line)
+            {
+                // frame=  502 fps=0.0 q=29.0 size=     256kB time=00:00:14.84 bitrate= 141.3kbits/s speed=29.5x
+                if (!line.StartsWith("frame=", StringComparison.Ordinal)) return;
+
+                var spt = line.AsSpan(line.IndexOf("time=", StringComparison.Ordinal) + "time=".Length).TrimStart();
+                spt = spt.Slice(0, spt.IndexOf(' '));
+                if (!TimeSpan.TryParse(spt, out var time))
+                    time = TimeSpan.Zero;
+
+                context.SetProgress(Math.Clamp(time / duration, 0, 1));
+            }
         }
     }
     public static async Task ExecuteFFMpeg(ITaskExecutionContext context, FileWithFormat file, TaskFileList outfiles, Func<FFMpegArgsHolder, string> argfunc)
@@ -51,7 +62,7 @@ public static class FFMpegExec
             outfiles.New().Add(res);
     }
 
-    public static IEnumerable<string> GetFFMpegArgs(string inputfile, string outputfile, ITaskExecutionContext context, FFMpegArgsHolder argholder)
+    public static IEnumerable<string> GetFFMpegArgs(string inputfile, string outputfile, ITaskExecutionContext context, FFMpegArgsHolder argholder, bool hardwareAcceleration)
     {
         var argsarr = argholder.Args;
         var audiofilters = argholder.AudioFilers;
@@ -65,7 +76,7 @@ public static class FFMpegExec
             "-hide_banner",
 
             // enable hardware acceleration if nvidia driver installed
-            nvidia ? new[] { "-hwaccel", "auto", "-threads", "1" } : null,
+            (nvidia && hardwareAcceleration) ? new[] { "-hwaccel", "auto", "-threads", "1" } : null,
 
             // force rewrite output file if exists
             "-y",
@@ -75,7 +86,9 @@ public static class FFMpegExec
             // arguments
             argsarr,
 
-            (video && nvidia) ? new[] { "-c:v", "h264_nvenc" } : null,
+            (!video || !nvidia) ? null
+            : hardwareAcceleration ? new[] { "-c:v", "h264_nvenc" }
+            : new[] { "-c:v", "h264" },
 
             // video filters
             filtergraph.Count == 0 ? null : new[] { "-filter_complex", string.Join(',', filtergraph) },

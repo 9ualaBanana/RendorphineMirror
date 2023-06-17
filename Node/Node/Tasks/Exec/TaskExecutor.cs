@@ -149,6 +149,7 @@ public static class TaskExecutor
         CheckFileListList(task.OutputFileListList, "output");
 
         context.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(context.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
+        context.LogInfo($"Results: {string.Join(" | ", task.OutputFileListList.Select(l => string.Join(", ", l)))}");
         await context.Handler.UploadResult(task, new ReadOnlyTaskFileList(task.OutputFileListList.SelectMany(l => l))).ConfigureAwait(false);
         context.LogInfo($"Result uploaded");
 

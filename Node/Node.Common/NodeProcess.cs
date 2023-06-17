@@ -97,7 +97,7 @@ public record NodeProcess(string Executable, List<string> Arguments, ILoggable? 
     static void EnsureZeroStatusCode(Process process)
     {
         if (process.ExitCode != 0)
-            throw new Exception($"Task process ended with exit code {process.ExitCode}");
+            throw new NodeProcessException(process.ExitCode, $"Task process ended with exit code {process.ExitCode}");
     }
     Task StartReadingOutput(Process process)
     {

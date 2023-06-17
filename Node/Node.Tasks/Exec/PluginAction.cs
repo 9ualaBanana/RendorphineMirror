@@ -42,8 +42,11 @@ public abstract class PluginAction<T> : IPluginAction<T>
 
         context.LogInfo($"Validating result");
 
-        foreach (var outfiles in files.OutputFiles)
-            ValidateOutputFilesThrow(context, new TaskFilesCheckData(files.InputFiles, outfiles), data);
+        if (files.OutputFiles.Count == 0)
+            ValidateOutputFilesThrow(context, new TaskFilesCheckData(files.InputFiles, new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())), data);
+        else
+            foreach (var outfiles in files.OutputFiles)
+                ValidateOutputFilesThrow(context, new TaskFilesCheckData(files.InputFiles, outfiles), data);
 
         context.LogInfo($"Completed");
     }

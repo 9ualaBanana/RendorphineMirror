@@ -6,13 +6,7 @@ using Node.Tasks.Exec;
 using Node.Tasks.Exec.Actions;
 using Node.Tasks.Models;
 
-/*
-                        actual testing stuff will come later
-*/
 
-
-File.WriteAllText("/temp/vvv", "i am here");
-return;
 
 Initializer.AppName = "renderfin";
 Init.Initialize();
@@ -20,8 +14,15 @@ Init.Initialize();
 var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
 await pluginManager.RediscoverPluginsAsync();
 
+await TestTaskExecution(
+    pluginManager,
+    new EditVideo(),
+    new EditVideoInfo() { Speed = new FFMpegSpeed() { Speed = 1.1 } },
+    new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/temp/file.mov") })
+);
 
-await TestTasksExecution(pluginManager);
+
+// await TestTasksExecution(pluginManager);
 
 Debugger.Break();
 

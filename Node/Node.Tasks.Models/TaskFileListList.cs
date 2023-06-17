@@ -5,12 +5,15 @@ namespace Node.Tasks.Models;
 [JsonObject]
 public interface IReadOnlyTaskFileListList : IEnumerable<ReadOnlyTaskFileList>
 {
+    int Count { get; }
     string Directory { get; }
 }
 [JsonObject]
 public class TaskFileListList : IReadOnlyTaskFileListList
 {
     [JsonIgnore] public ReadOnlyTaskFileList? InputFiles;
+
+    public int Count => Lists.Count;
 
     [JsonProperty] readonly List<ReadOnlyTaskFileList> Lists = new();
     [JsonProperty] public string Directory { get; }
