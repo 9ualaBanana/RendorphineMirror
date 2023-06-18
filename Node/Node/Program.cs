@@ -38,8 +38,8 @@ if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
 var halfrelease = args.Contains("release");
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
-InitializeSettings();
 var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
+InitializeSettings();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
@@ -198,6 +198,7 @@ void InitializeSettings()
     state.PlacedTasks.Bind(NodeSettings.PlacedTasks.Bindable);
     NodeSettings.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(NodeSettings.QueuedTasks.Values), true);
     Settings.BenchmarkResult.Bindable.SubscribeChanged(() => state.BenchmarkResult.Value = Settings.BenchmarkResult.Value is null ? null : JObject.FromObject(Settings.BenchmarkResult.Value), true);
+    pluginManager.CachedPluginsBindable.SubscribeChanged(() => NodeGlobalState.Instance.InstalledPlugins.SetRange(pluginManager.CachedPluginsBindable.Value ?? Array.Empty<Plugin>()), true);
     state.TaskAutoDeletionDelayDays.Bind(Settings.TaskAutoDeletionDelayDays.Bindable);
 
     state.BServerUrl.Bind(Settings.BServerUrl.Bindable);

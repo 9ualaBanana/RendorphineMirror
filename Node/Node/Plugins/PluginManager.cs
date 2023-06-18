@@ -6,8 +6,11 @@ public class PluginManager
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+    public IReadOnlyBindable<IReadOnlyList<Plugin>?> CachedPluginsBindable => CachedPlugins;
+    readonly Bindable<Plugin[]?> CachedPlugins = new();
+
     readonly ImmutableArray<IPluginDiscoverer> Discoverers = new();
-    public IReadOnlyCollection<Plugin>? CachedPlugins { get; private set; }
+    // public IReadOnlyCollection<Plugin>? CachedPlugins { get; private set; }
     TaskCompletionSource<IReadOnlyCollection<Plugin>>? CurrentDiscover;
 
     public PluginManager(IEnumerable<IPluginDiscoverer> discoverers) : this(discoverers.ToImmutableArray()) { }
@@ -15,7 +18,7 @@ public class PluginManager
 
 
     /// <summary> Discovers installed plugins. Returns already cached result if available. </summary>
-    public async Task<IReadOnlyCollection<Plugin>> GetInstalledPluginsAsync() => CachedPlugins ?? await RediscoverPluginsAsync();
+    public async Task<IReadOnlyCollection<Plugin>> GetInstalledPluginsAsync() => CachedPlugins.Value ?? await RediscoverPluginsAsync();
 
     /// <summary> Discovers installed plugins and caches them in <see cref="CachedPlugins"/> </summary>
     public async Task<IReadOnlyCollection<Plugin>> RediscoverPluginsAsync()
@@ -29,7 +32,7 @@ public class PluginManager
         var plugins = (await Task.WhenAll(Discoverers.Select(discover))).SelectMany(p => p).ToArray();
         Logger.Info($"List of installed plugins was updated ({plugins.Length}):{Environment.NewLine}{string.Join(Environment.NewLine, plugins.Select(pluginToString))}");
 
-        CachedPlugins = plugins;
+        CachedPlugins.Value = plugins;
         CurrentDiscover.SetResult(plugins);
         return plugins;
 
