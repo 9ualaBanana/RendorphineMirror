@@ -67,7 +67,7 @@ public static class FFMpegExec
         var argsarr = argholder.Args;
         var audiofilters = argholder.AudioFilers;
         var filtergraph = argholder.Filtergraph;
-        var nvidia = context.TryGetPlugin(PluginType.NvidiaDriver) is not null;
+        hardwareAcceleration &= context.TryGetPlugin(PluginType.NvidiaDriver) is not null;
         var video = argholder.OutputFileFormat == FileFormat.Mov;
 
         return new ArgList()
@@ -76,7 +76,7 @@ public static class FFMpegExec
             "-hide_banner",
 
             // enable hardware acceleration if nvidia driver installed
-            (nvidia && hardwareAcceleration) ? new[] { "-hwaccel", "auto", "-threads", "1" } : null,
+            hardwareAcceleration ? new[] { "-hwaccel", "auto", "-threads", "1" } : null,
 
             // force rewrite output file if exists
             "-y",
@@ -86,9 +86,13 @@ public static class FFMpegExec
             // arguments
             argsarr,
 
-            (!video || !nvidia) ? null
-            : hardwareAcceleration ? new[] { "-c:v", "h264_nvenc" }
-            : new[] { "-c:v", "h264" },
+            (video && hardwareAcceleration) ? new[] { "-c:v", "h264_nvenc" } : null,
+            (video && hardwareAcceleration) ? new[] { "-preset:v", "p7", "-tune:v", "hq", "-rc:v", "vbr", "-cq:v", "19" } : null,
+
+            (video && !hardwareAcceleration) ? new[] { "-c:v", "h264" } : null,
+            (video && !hardwareAcceleration) ? new[] { "-crf", "18", "-preset:v", "slow", "-tune:v", "film" } : null,
+
+            video ? new[] { "-b:v", "0", "-profile:v", "high" } : null,
 
             // video filters
             filtergraph.Count == 0 ? null : new[] { "-filter_complex", string.Join(',', filtergraph) },
