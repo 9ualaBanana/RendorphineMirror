@@ -92,7 +92,7 @@ public static class FFMpegExec
             (video && !hardwareAcceleration) ? new[] { "-c:v", "h264" } : null,
             (video && !hardwareAcceleration) ? new[] { "-crf", "18", "-preset:v", "slow", "-tune:v", "film" } : null,
 
-            video ? new[] { "-b:v", "0", "-profile:v", "high" } : null,
+            video ? new[] { "-b:v", "0" } : null,
 
             // video filters
             filtergraph.Count == 0 ? null : new[] { "-filter_complex", string.Join(',', filtergraph) },
