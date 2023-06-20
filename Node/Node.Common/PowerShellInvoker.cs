@@ -49,7 +49,10 @@ public static class PowerShellInvoker
             throw psh.InvocationStateInfo.Reason;
 
         foreach (var err in psh.Streams.Error)
+        {
+            LogManager.GetCurrentClassLogger().Trace($"Powershell ended with errors {JsonConvert.SerializeObject(err)}");
             throw err.Exception;
+        }
 
         return result;
     }

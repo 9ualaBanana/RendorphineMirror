@@ -52,8 +52,6 @@ public class GreenscreenBackground : PluginAction<GreenscreenBackgroundInfo>
 
         void onRead(bool err, object obj)
         {
-            if (err) throw new Exception(obj.ToString());
-
             // 1/1024
             var str = obj.ToString();
             if (str is null) return;
