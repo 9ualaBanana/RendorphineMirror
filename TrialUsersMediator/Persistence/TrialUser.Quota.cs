@@ -22,9 +22,6 @@ public partial record TrialUser
         protected Quota(Quota<EQuota> quota)
         { _entries = quota._entries; }
         protected Quota() { _entries = default!; }
-
-        internal Quota<EQuota>.Manager For(EQuota quota)
-            => Quota<EQuota>.Manager.For(this, quota);
     }
 
     internal record TaskQuota : Quota<TaskAction>
