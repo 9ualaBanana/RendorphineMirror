@@ -13,7 +13,7 @@ public class EsrganUpscale : PluginAction<UpscaleEsrganInfo>
     public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.Esrgan);
 
     public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
-        new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov } };
+        new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov }, new[] { FileFormat.Png } };
 
     protected override OperationResult ValidateOutputFiles(TaskFilesCheckData files, UpscaleEsrganInfo data) =>
         files.EnsureSingleInputFile()
