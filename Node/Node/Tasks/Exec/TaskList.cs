@@ -2,6 +2,7 @@ namespace Node.Tasks.Exec;
 
 public static class TaskList
 {
+    public static IReadOnlyCollection<IPluginAction> AllActions => Actions;
     static readonly List<IPluginAction> Actions = new();
 
 

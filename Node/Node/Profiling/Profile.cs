@@ -46,12 +46,14 @@ internal class Profile
 
     public static async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes(PluginManager pluginManager)
     {
-        var plugins = await pluginManager.GetInstalledPluginsAsync();
-        return plugins
-            .SelectMany(x => TaskList.Get(x.Type))
-            .DistinctBy(x => x.Name)
-            .Where(x => !Settings.DisabledTaskTypes.Value.Contains(x.Name))
-            .ToDictionary(x => x.Name.ToString(), _ => 1);
+        var installed = (await pluginManager.GetInstalledPluginsAsync())
+            .Select(p => p.Type)
+            .ToImmutableHashSet();
+
+        return TaskList.AllActions
+            .Where(a => !Settings.DisabledTaskTypes.Value.Contains(a.Name))
+            .Where(a => a.RequiredPlugins.All(installed.Contains))
+            .ToDictionary(a => a.Name.ToString(), _ => 1);
     }
 
     // Ridiculous.
