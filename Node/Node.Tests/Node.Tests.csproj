@@ -5,7 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Node\Node.csproj" />
+    <!--<ProjectReference Include="..\Node\Node.csproj" />-->
+    <ProjectReference Include="..\Node.Common\Node.Common.csproj" />
+    <ProjectReference Include="..\Node.Plugins\Node.Plugins.csproj" />
+    <ProjectReference Include="..\Node.Tasks\Node.Tasks.csproj" />
+    <ProjectReference Include="..\..\NodeCommon\NodeCommon.csproj" />
   </ItemGroup>
 
   <ItemGroup>

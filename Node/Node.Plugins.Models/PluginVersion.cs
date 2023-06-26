@@ -1,30 +1,50 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Node.Plugins.Models;
 
-/// <summary> Struct to compare plugin versions </summary>
-public readonly struct PluginVersion : IComparable<PluginVersion>
+[JsonConverter(typeof(JsonSerializer))]
+public readonly struct PluginVersion : IEquatable<PluginVersion>, IComparable<PluginVersion>
 {
-    readonly string VersionString;
-    readonly Version? Version;
+    public static PluginVersion Empty => new(string.Empty);
 
-    public PluginVersion(string versionString, Version? version)
-    {
-        VersionString = versionString;
-        Version = version;
-    }
+    [MemberNotNullWhen(false, nameof(Version))]
+    public bool IsEmpty => string.IsNullOrEmpty(Version);
 
-    public static PluginVersion From(Plugin plugin) => Parse(plugin.Version);
-    public static PluginVersion Parse(string version)
-    {
-        Version.TryParse(version, out var ver);
-        return new(version, ver);
-    }
+    readonly string Version;
 
+    public PluginVersion(string? version) => Version = version ?? string.Empty;
+
+
+    public static bool operator ==(PluginVersion left, PluginVersion right) => left.Equals(right);
+    public static bool operator !=(PluginVersion left, PluginVersion right) => !(left == right);
+    public static bool operator <(PluginVersion left, PluginVersion right) => left.CompareTo(right) < 0;
+    public static bool operator <=(PluginVersion left, PluginVersion right) => left.CompareTo(right) <= 0;
+    public static bool operator >(PluginVersion left, PluginVersion right) => left.CompareTo(right) > 0;
+    public static bool operator >=(PluginVersion left, PluginVersion right) => left.CompareTo(right) >= 0;
 
     public int CompareTo(PluginVersion other)
     {
-        if (Version is not null && other.Version is not null)
-            return Version.CompareTo(other.Version);
+        if (System.Version.TryParse(Version, out var thisver) && System.Version.TryParse(other.Version, out var otherver))
+            return thisver.CompareTo(otherver);
 
-        return VersionString.CompareTo(other.VersionString);
+        return string.CompareOrdinal(Version, other.Version);
+    }
+
+    public bool Equals(PluginVersion other) => (other.IsEmpty && IsEmpty) || (other.Version == Version);
+    public override bool Equals([NotNullWhen(true)] object? obj) => obj is PluginVersion other && Equals(other);
+    public override int GetHashCode() => IsEmpty ? 1 : Version.GetHashCode();
+
+    public override string ToString() => Version;
+
+    public static implicit operator PluginVersion(string? version) => new(version);
+
+
+    public class JsonSerializer : JsonConverter<PluginVersion>
+    {
+        public override PluginVersion ReadJson(JsonReader reader, Type objectType, PluginVersion existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer) =>
+            new(reader.ReadAsString());
+
+        public override void WriteJson(JsonWriter writer, PluginVersion value, Newtonsoft.Json.JsonSerializer serializer) =>
+            writer.WriteValue(value.Version);
     }
 }

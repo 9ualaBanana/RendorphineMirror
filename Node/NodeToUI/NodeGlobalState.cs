@@ -1,4 +1,3 @@
-using NodeCommon.NodeUserSettings;
 using NodeToUI.Requests;
 
 namespace NodeToUI;
@@ -16,7 +15,7 @@ public class NodeGlobalState
     public readonly Bindable<TasksFullDescriber> TaskDefinitions = new();
     public readonly Bindable<ImmutableDictionary<string, SoftwareDefinition>> Software = new(ImmutableDictionary<string, SoftwareDefinition>.Empty);
     public readonly Bindable<ImmutableDictionary<string, SoftwareStats>> SoftwareStats = new(ImmutableDictionary<string, SoftwareStats>.Empty);
-    public readonly Bindable<UserSettings2> UserSettings = new(new(null, null));
+    public readonly Bindable<UUserSettings> UserSettings = new(new(null, null));
 
     public readonly BindableList<Plugin> InstalledPlugins = new();
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
@@ -60,6 +59,6 @@ public class NodeGlobalState
 
 
     public IEnumerable<Plugin> GetPluginInstances(PluginType type) => InstalledPlugins.Where(x => x.Type == type);
-    public Plugin GetPluginInstance(PluginType type) => GetPluginInstances(type).OrderByDescending(PluginVersion.From).First();
-    public Plugin GetPluginInstance(PluginType type, string version) => GetPluginInstances(type).First(x => x.Version == version);
+    public Plugin GetPluginInstance(PluginType type) => GetPluginInstances(type).OrderByDescending(p => p.Version).First();
+    public Plugin GetPluginInstance(PluginType type, PluginVersion version) => GetPluginInstances(type).First(x => x.Version == version);
 }

@@ -10,6 +10,7 @@ internal class PluginsUpdater : IHeartbeatGenerator
     string BuildUrl(string? sessionId = default) => $"{_endpoint}?sessionid={sessionId ?? Settings.SessionId}";
 
 
+
     #region IHeartbeatGenerator
     public HttpRequestMessage Request => new(HttpMethod.Get, BuildUrl());
     public HttpContent? Content => null;
@@ -28,7 +29,10 @@ internal class PluginsUpdater : IHeartbeatGenerator
 
     readonly PluginManager PluginManager;
 
-    public PluginsUpdater(PluginManager pluginManager) => PluginManager = pluginManager;
+    public PluginsUpdater(PluginManager pluginManager)
+    {
+        PluginManager = pluginManager;
+    }
 
     async Task TryDeployUninstalledPluginsAsync(HttpResponseMessage response)
     {
@@ -38,12 +42,22 @@ internal class PluginsUpdater : IHeartbeatGenerator
 
     async Task DeployUninstalledPluginsAsync(HttpResponseMessage response)
     {
-        var userSettings = await UserSettings.ReadOrThrowAsync(response);
-        userSettings.Guid = Settings.Guid;
-        var haduninstalled = await PluginDeployer.TryDeployUninstalledPluginsAsync(userSettings, await PluginManager.GetInstalledPluginsAsync());
+        var settings = (await Api.GetJsonIfSuccessfulAsync(response))["settings"].ThrowIfNull().ToObject<NodeCommon.Apis.ServerUserSettings>().ThrowIfNull().ToSettings();
 
-        if (haduninstalled)
-            await PluginManager.RediscoverPluginsAsync();
+        await trydeploy(PluginManager, settings.InstallSoftware);
+        await trydeploy(PluginManager, settings.GetNodeInstallSoftware(Settings.Guid));
+
+
+        async Task trydeploy(PluginManager pluginManager, UUserSettings.TMServerSoftware? software)
+        {
+            if (software is null) return;
+
+            var installed = await pluginManager.GetInstalledPluginsAsync();
+            var newcount = await PluginDeployer2.DeployUninstalledAsync(PluginChecker.GetInstallationTree(UUserSettings.ToDeploy(software), NodeGlobalState.Instance.Software.Value), installed);
+
+            if (newcount != 0)
+                await pluginManager.RediscoverPluginsAsync();
+        }
     }
     #endregion
 }

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Node.Common\Node.Common.csproj" />
     <ProjectReference Include="..\Node.Plugins.Models\Node.Plugins.Models.csproj" />
   </ItemGroup>
 

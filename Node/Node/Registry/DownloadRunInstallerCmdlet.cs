@@ -6,6 +6,8 @@ namespace Node.Registry;
 [Cmdlet("Download", "Run-Installer")]
 public class DownloadRunInstallerCmdlet : PSCmdlet
 {
+    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
     [Parameter(Position = 0, Mandatory = true)]
     public string Url { get; set; } = null!;
 
@@ -20,12 +22,12 @@ public class DownloadRunInstallerCmdlet : PSCmdlet
         var downloaddir = this.GetVariableValue("PLDOWNLOAD").ToString()!;
         var installer = Path.Combine(downloaddir, "install.exe");
 
-        PowerShellPluginInstaller.Logger.Info($"Downloading {Url} into {installer}");
+        Logger.Info($"Downloading {Url} into {installer}");
         using (var stream = new HttpClient().GetStreamAsync(Url).Result)
         using (var installfile = File.OpenWrite(installer))
             stream.CopyTo(installfile);
 
-        PowerShellPluginInstaller.Logger.Info($"Installer downloaded, executing with args '{Args}'");
+        Logger.Info($"Installer downloaded, executing with args '{Args}'");
         var process = Process.Start(new ProcessStartInfo(installer, Args ?? string.Empty) { RedirectStandardOutput = true })
             .ThrowIfNull("Could not start the process");
 
@@ -35,7 +37,7 @@ public class DownloadRunInstallerCmdlet : PSCmdlet
             while (!process.HasExited)
             {
                 var line = reader.ReadLine();
-                PowerShellPluginInstaller.Logger.Info($"[{process.Id}] {line}");
+                Logger.Info($"[{process.Id}] {line}");
             }
         })
         { IsBackground = true }.Start();

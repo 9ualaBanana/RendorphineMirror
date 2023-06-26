@@ -1,8 +1,9 @@
 global using System.Collections.Immutable;
 global using Common;
 global using NLog;
-global using NodeCommon;
 global using Node.Common;
+global using Node.Plugins.Models;
+global using NodeCommon;
 using Microsoft.AspNetCore.Mvc;
 using MonoTorrent;
 using NLog.Web;

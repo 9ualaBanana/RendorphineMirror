@@ -1,8 +1,4 @@
 using System.Diagnostics;
-using Common;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using NodeCommon.NodeUserSettings;
 
 namespace NodeCommon;
 
@@ -12,7 +8,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     const string TaskManagerEndpoint = Common.Api.TaskManagerEndpoint;
 
 
-    public static Apis DefaultWithSessionId(string sid) => new(Common.Api.Default, sid);
+    public static Apis DefaultWithSessionId(string sid, CancellationToken token = default) => new(Common.Api.Default with { CancellationToken = token }, sid);
     public Apis WithSessionId(string sid) => this with { SessionId = sid };
     public Apis WithNoErrorLog() => this with { LogErrors = false };
 
@@ -30,7 +26,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     public ValueTask<OperationResult<T>> ShardGet<T>(IRegisteredTaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
         ShardSend(task, url, url => Api.ApiGet<T>(url, property, errorDetails, AddSessionId(values)));
     public ValueTask<OperationResult<T>> ShardPost<T>(IRegisteredTaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
-        ShardSend(task, url, url => Api.ApiPost<T>(url, property, errorDetails, Api.ToContent(AddSessionId(values))));
+        ShardSend(task, url, url => Api.ApiPost<T>(url, property, errorDetails, AddSessionId(values)));
 
     async ValueTask<OperationResult<T>> ShardSend<T>(IRegisteredTaskApi task, string url, Func<string, ValueTask<OperationResult<T>>> func)
     {
@@ -353,15 +349,120 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
             AddSessionId(("iid", iid), ("format", extension.ToString().ToLower()), ("original", extension == Extension.jpeg ? "1" : "0")));
 
 
-    public ValueTask<OperationResult<UserSettings>> GetSettingsAsync() =>
-        Api.ApiGet<UserSettings>($"{TaskManagerEndpoint}/getmysettings", "settings", "Getting user settings", AddSessionId());
+    public ValueTask<OperationResult<UUserSettings>> GetSettingsAsync() =>
+        Api.ApiGet<ServerUserSettings>($"{TaskManagerEndpoint}/getmysettings", "settings", "Getting user settings", AddSessionId())
+            .Next(settings => settings.ToSettings().AsOpResult());
 
-    public ValueTask<OperationResult> SetSettingsAsync(UserSettings userSettings) =>
-        Api.ApiPost($"{TaskManagerEndpoint}/setusersettings", "Setting user settings", AddSessionId(("settings", JsonConvert.SerializeObject(userSettings))));
+    public ValueTask<OperationResult> SetSettingsAsync(UUserSettings userSettings) =>
+        Api.ApiPost($"{TaskManagerEndpoint}/setusersettings", "Setting user settings",
+            AddSessionId(("settings", JsonConvert.SerializeObject(ServerUserSettings.FromSettings(userSettings), JsonSettings.LowercaseIgnoreNull)))
+        );
 
 
-    public ValueTask<OperationResult<UserSettings2>> GetSettings2Async() =>
-        Api.ApiGet<UserSettings2>($"{TaskManagerEndpoint}/getmysettings", "settings", "Getting user settings", AddSessionId());
-    public ValueTask<OperationResult> SetSettingsAsync(UserSettings2 userSettings) =>
-        Api.ApiPost($"{TaskManagerEndpoint}/setusersettings", "Setting user settings", AddSessionId(("settings", JsonConvert.SerializeObject(userSettings, JsonSettings.LowercaseIgnoreNull))));
+    /*
+    Actual TMServerSoftware schema:
+    {
+        [plugin_name]: {
+            [plugin_version]: {
+                plugins: {
+                    [subplugin_name]: {
+                        version: [subplugin_version],
+                        subplugins: {
+                            [subsubplugin_name]: [subsubplugin_version],
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    But since this is stupid, and the server doesn't validate software names, we can use a more flattened schema:
+    (The server still expects there to be a "plugins" object on every software version, so we need to keep it)
+    {
+        [plugin_name]: {
+            [plugin_version]: { "plugins": {} }
+        }
+    }
+    */
+    public class ServerUserSettings
+    {
+        [JsonProperty("nodeinstallsoftware")] public RNodeInstallSoftware? NodeInstallSoftware { get; private set; }
+        [JsonProperty("installsoftware")] public TMServerSoftware? InstallSoftware { get; private set; }
+
+        public ServerUserSettings(RNodeInstallSoftware? nodeInstallSoftware, TMServerSoftware? installSoftware)
+        {
+            NodeInstallSoftware = nodeInstallSoftware;
+            InstallSoftware = installSoftware;
+        }
+
+        public UUserSettings ToSettings()
+        {
+            var soft = toSoftware(InstallSoftware);
+
+            var nodesoft = new UUserSettings.RNodeInstallSoftware();
+            if (NodeInstallSoftware is not null)
+                foreach (var (node, isoft) in NodeInstallSoftware)
+                    nodesoft.Add(node, toSoftware(isoft));
+
+            return new UUserSettings(nodesoft, soft);
+
+
+            static UUserSettings.TMServerSoftware toSoftware(TMServerSoftware? software)
+            {
+                var result = new UUserSettings.TMServerSoftware();
+
+                if (software is not null)
+                    foreach (var (type, versions) in software)
+                    {
+                        if (!Enum.TryParse<PluginType>(type, out var plugintype))
+                        {
+                            // TODO: log instead of throw
+                            throw new Exception($"Unknown plugin type {type}");
+                            continue;
+                        }
+
+                        result.Add(plugintype, versions.Keys.ToHashSet());
+                    }
+
+                return result;
+            }
+        }
+        public static ServerUserSettings FromSettings(UUserSettings settings)
+        {
+            var soft = toSoftware(settings.InstallSoftware);
+
+            var nodesoft = new RNodeInstallSoftware();
+            foreach (var (node, isoft) in settings.NodeInstallSoftware)
+                nodesoft.Add(node, toSoftware(isoft));
+
+            return new ServerUserSettings(nodesoft, soft);
+
+
+            static TMServerSoftware toSoftware(UUserSettings.TMServerSoftware software)
+            {
+                var result = new TMServerSoftware();
+
+                if (software is not null)
+                    foreach (var (type, versions) in software)
+                    {
+                        var softversions = new TMServerSoftwareVersions();
+                        foreach (var version in versions)
+                            softversions.Add(version, new UserSettingsSoft());
+
+                        result.Add(type.ToString().ToLowerInvariant(), softversions);
+                    }
+
+                return result;
+            }
+        }
+
+
+        public class RNodeInstallSoftware : Dictionary<string, TMServerSoftware> { }        // <node GUID, ...>
+        public class TMServerSoftware : Dictionary<string, TMServerSoftwareVersions> { }    // <plugin, ...>
+        public class TMServerSoftwareVersions : Dictionary<PluginVersion, UserSettingsSoft> { }    // <version, ...>
+        public class UserSettingsSoft
+        {
+            [JsonProperty("plugins")] public readonly object Plugins = new();
+        }
+    }
 }

@@ -142,6 +142,15 @@ namespace Common
         public static async ValueTask ThrowIfError(this ValueTask<OperationResult> opr, Func<string, Exception> createfunc) => (await opr).ThrowIfError(createfunc);
         public static async ValueTask<T> ThrowIfError<T>(this ValueTask<OperationResult<T>> opr, Func<string, Exception> createfunc) => (await opr).ThrowIfError(createfunc);
 
+        [return: NotNullIfNotNull(nameof(def))]
+        public static T? GetValueOrDefault<T>(this OperationResult<T> opr, T? def = default)
+        {
+            if (!opr) return def;
+            return opr.Value;
+        }
+        [return: NotNullIfNotNull(nameof(def))]
+        public static async ValueTask<T?> GetValueOrDefault<T>(this ValueTask<OperationResult<T>> opr, T? def = default) => (await opr).GetValueOrDefault(def);
+
         public static OperationResult LogIfError(in this OperationResult opr, string? format = null, ILoggable? loggable = null)
         {
             if (!opr)

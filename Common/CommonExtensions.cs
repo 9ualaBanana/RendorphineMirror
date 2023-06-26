@@ -56,6 +56,9 @@ namespace Common
             return value;
         }
 
+        public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> enumerable) where T : class =>
+            enumerable.Where(item => item is not null)!;
+
         public static T WithProperty<T>(this T jobj, string key, JToken value) where T : JToken
         {
             jobj[key] = value;

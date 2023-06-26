@@ -1,4 +1,5 @@
+global using System.Diagnostics.CodeAnalysis;
+global using Node.Common;
 global using Node.Plugins.Models;
-using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Node.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Node.Tests")]

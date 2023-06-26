@@ -1,5 +1,3 @@
-using NodeCommon.NodeUserSettings;
-
 namespace Node.UI.Pages.MainWindowTabs;
 
 public class PluginsTab : Panel
@@ -85,7 +83,7 @@ public class PluginsTab : Panel
             versionslist.SelectedIndex = 0;
 
             var pluginslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
-            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem ?? "")?.Versions.Keys.ToArray() ?? Array.Empty<string>();
+            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem ?? "")?.Versions.Keys.ToArray() ?? Array.Empty<PluginVersion>();
             pluginslist.SelectedIndex = 0;
 
             stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = stats.Value.Keys.ToArray()), true);
@@ -111,7 +109,7 @@ public class PluginsTab : Panel
     }
     class UserSettingsPluginPanel : Panel
     {
-        readonly IBindable<UserSettings2> Settings;
+        readonly IBindable<UUserSettings> Settings;
         readonly IBindable<ImmutableDictionary<string, SoftwareDefinition>> Stats;
 
         public UserSettingsPluginPanel()
@@ -119,14 +117,14 @@ public class PluginsTab : Panel
             Settings = NodeGlobalState.Instance.UserSettings.GetBoundCopy();
             Stats = NodeGlobalState.Instance.Software.GetBoundCopy();
 
-            Apis.Default.GetSettings2Async()
+            Apis.Default.GetSettingsAsync()
                 .Next(s => { Settings.Value = s; return true; });
 
-            var versionslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
+            var versionslist = TypedComboBox.Create(Array.Empty<PluginVersion>()).With(c => c.MinWidth = 100);
             versionslist.SelectedIndex = 0;
 
-            var pluginslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
-            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = Stats.Value.GetValueOrDefault(pluginslist.SelectedItem ?? "")?.Versions.Keys.ToArray() ?? Array.Empty<string>();
+            var pluginslist = TypedComboBox.Create(Array.Empty<PluginType>()).With(c => c.MinWidth = 100);
+            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = Stats.Value.GetValueOrDefault(pluginslist.SelectedItem.ToString())?.Versions.Keys.ToArray() ?? Array.Empty<PluginVersion>();
             pluginslist.SelectedIndex = 0;
 
             Stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = Stats.Value.Keys.ToArray()), true);
@@ -147,8 +145,8 @@ public class PluginsTab : Panel
                                 everyone: {string.Join(", ", pluginsToString(Settings.Value.InstallSoftware ?? new()))}
                                 """;
 
-                            string pluginsToString(UserSettings2.TMServerSoftware soft) =>
-                                string.Join(", ", soft.Select(k => $"{k.Key} ({string.Join(", ", k.Value.Keys.Select(v => v.Length == 0 ? "latest" : v))})"));
+                            static string pluginsToString(UUserSettings.TMServerSoftware soft) =>
+                                string.Join(", ", soft.Select(k => $"{k.Key} ({string.Join(", ", k.Value.Select(v => v.IsEmpty ? "latest" : v))})"));
                         }), true);
                     }),
                     new StackPanel()
@@ -162,7 +160,7 @@ public class PluginsTab : Panel
                                 Text = "Reload settings",
                                 OnClickSelf = async self =>
                                 {
-                                    var settings = await Apis.Default.GetSettings2Async();
+                                    var settings = await Apis.Default.GetSettingsAsync();
                                     if (settings)
                                         Settings.Value = settings.Value;
 
@@ -177,7 +175,7 @@ public class PluginsTab : Panel
                                 Text = "Install (this node)",
                                 OnClickSelf = async self =>
                                 {
-                                    Settings.Value.Install(NodeGlobalState.Instance.AuthInfo.ThrowIfNull().Guid, Enum.Parse<PluginType>(pluginslist.SelectedItem, true), versionslist.SelectedItem);
+                                    Settings.Value.Install(NodeGlobalState.Instance.AuthInfo.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
                                     var set = await Apis.Default.SetSettingsAsync(Settings.Value);
@@ -189,7 +187,7 @@ public class PluginsTab : Panel
                                 Text = "Uninstall (this node)",
                                 OnClickSelf = async self =>
                                 {
-                                    Settings.Value.Uninstall(NodeGlobalState.Instance.AuthInfo.ThrowIfNull().Guid, Enum.Parse<PluginType>(pluginslist.SelectedItem, true), versionslist.SelectedItem);
+                                    Settings.Value.Uninstall(NodeGlobalState.Instance.AuthInfo.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
                                     var set = await Apis.Default.SetSettingsAsync(Settings.Value);
@@ -201,7 +199,7 @@ public class PluginsTab : Panel
                                 Text = "Install (all nodes)",
                                 OnClickSelf = async self =>
                                 {
-                                    Settings.Value.Install(Enum.Parse<PluginType>(pluginslist.SelectedItem, true), versionslist.SelectedItem);
+                                    Settings.Value.Install(pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
                                     var set = await Apis.Default.SetSettingsAsync(Settings.Value);
@@ -213,7 +211,7 @@ public class PluginsTab : Panel
                                 Text = "Uninstall (all nodes)",
                                 OnClickSelf = async self =>
                                 {
-                                    Settings.Value.Uninstall(Enum.Parse<PluginType>(pluginslist.SelectedItem, true), versionslist.SelectedItem);
+                                    Settings.Value.Uninstall(pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
                                     var set = await Apis.Default.SetSettingsAsync(Settings.Value);

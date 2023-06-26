@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
+    <ProjectReference Include="..\Node\Node.Plugins.Models\Node.Plugins.Models.csproj" />
   </ItemGroup>
 
   <ItemGroup>

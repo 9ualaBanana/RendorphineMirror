@@ -66,8 +66,8 @@ internal class Profile
             result.Add(softwareName, new Dictionary<string, Dictionary<string, Dictionary<string, string>>>());
             foreach (var version in softwareGroup)
             {
-                result[softwareName].Add(version.Version, new Dictionary<string, Dictionary<string, string>>());
-                result[softwareName][version.Version].Add("plugins", new Dictionary<string, string>());
+                result[softwareName].Add(version.Version.ToString(), new Dictionary<string, Dictionary<string, string>>());
+                result[softwareName][version.Version.ToString()].Add("plugins", new Dictionary<string, string>());
             }
         }
         return result;

@@ -17,7 +17,7 @@ public class RegistryTab : Panel
             DefaultKeyValue = JToken.FromObject("NewSoft"),
             DefaultValueValue = JToken.FromObject(new SoftwareDefinition(
                 "New Mega Super Software",
-                new Dictionary<string, SoftwareVersionDefinition>()
+                new Dictionary<PluginVersion, SoftwareVersionDefinition>()
                 {
                     ["0.1"] = new SoftwareVersionDefinition("",
                         new SoftwareRequirements(ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
