@@ -4,9 +4,9 @@ public class PluginChecker
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    readonly ISoftwareList SoftwareList;
+    readonly ISoftwareListProvider SoftwareList;
 
-    public PluginChecker(ISoftwareList softwareList) => SoftwareList = softwareList;
+    public PluginChecker(ISoftwareListProvider softwareList) => SoftwareList = softwareList;
 
     public IEnumerable<PluginToInstall> GetInstallationTree(IEnumerable<PluginToDeploy> plugins) =>
         plugins.SelectMany(p => GetInstallationTree(p.Type, p.Version)).Distinct();

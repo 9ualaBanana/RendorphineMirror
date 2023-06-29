@@ -1,6 +1,6 @@
 namespace Node.Plugins;
 
-public interface ISoftwareList
+public interface ISoftwareListProvider
 {
     IReadOnlyDictionary<string, SoftwareDefinition> Software { get; }
 }

@@ -63,9 +63,6 @@ public class PluginDeployerTests
         var installedNvidia = ImmutableArray<Plugin>.Empty
             .Add(new Plugin(PluginType.NvidiaDriver, "530.41.03", ""));
 
-        var t = checker.GetInstallationTree(PluginType.Esrgan, "1.0.0").ToArray();
-        var tree = gettree(PluginType.Esrgan, "1.0.0", checker, installedEsrgan).ToArray();
-
         gettree(PluginType.Esrgan, "1.0.0", checker, installedEsrgan)
             .ToArray().Should()
             .HaveCount(1, "NvidiaDriver is a parent of ESRGAN but not installed")
@@ -111,5 +108,5 @@ public class PluginDeployerTests
     }
 
 
-    record SoftwareList(IReadOnlyDictionary<string, SoftwareDefinition> Software) : ISoftwareList;
+    record SoftwareList(IReadOnlyDictionary<string, SoftwareDefinition> Software) : ISoftwareListProvider;
 }

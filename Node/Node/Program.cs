@@ -279,7 +279,7 @@ async ValueTask WaitForAuth()
 }
 
 
-class SoftwareList : ISoftwareList
+class SoftwareList : ISoftwareListProvider
 {
     public IReadOnlyDictionary<string, SoftwareDefinition> Software =>  NodeGlobalState.Instance.Software.Value;
 }
