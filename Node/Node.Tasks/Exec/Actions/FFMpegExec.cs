@@ -67,16 +67,23 @@ public static class FFMpegExec
         var argsarr = argholder.Args;
         var audiofilters = argholder.AudioFilers;
         var filtergraph = argholder.Filtergraph;
-        hardwareAcceleration &= context.TryGetPlugin(PluginType.NvidiaDriver) is not null;
         var video = argholder.OutputFileFormat == FileFormat.Mov;
+        var codec = argholder.FFProbe.VideoStream.CodecName;
+
+        hardwareAcceleration &= context.TryGetPlugin(PluginType.NvidiaDriver) is not null;
+        hardwareAcceleration &= codec != "prores";
 
         return new ArgList()
         {
             // hide useless info
             "-hide_banner",
 
-            // enable hardware acceleration if nvidia driver installed
-            hardwareAcceleration ? new[] { "-hwaccel", "auto", "-threads", "1" } : null,
+            // enable hardware acceleration
+            "-hwaccel", "auto",
+
+            // cuda hwaccel doesn't like threads more than 1
+            // TODO: recheck because it worked suddenly???
+            hardwareAcceleration ? new[] { "-threads", "1" } : null,
 
             // force rewrite output file if exists
             "-y",
@@ -86,11 +93,18 @@ public static class FFMpegExec
             // arguments
             argsarr,
 
-            (video && hardwareAcceleration) ? new[] { "-c:v", "h264_nvenc" } : null,
-            (video && hardwareAcceleration) ? new[] { "-preset:v", "p7", "-tune:v", "hq", "-rc:v", "vbr", "-cq:v", "19" } : null,
+            video
+            ? (
+                codec switch
+                {
+                    // prores does not like to be converted to h264, "non-existing PPS 0 referenced" etc
+                    "prores" => new[] { "-c:v", "prores" },
 
-            (video && !hardwareAcceleration) ? new[] { "-c:v", "h264" } : null,
-            (video && !hardwareAcceleration) ? new[] { "-crf", "18", "-preset:v", "slow", "-tune:v", "film" } : null,
+                    _ when hardwareAcceleration => new[] { "-c:v", "h264_nvenc", "-preset:v", "p7", "-tune:v", "hq", "-rc:v", "vbr", "-cq:v", "19" },
+                    _ => new[] { "-c:v", "h264", "-crf", "18", "-preset:v", "slow", "-tune:v", "film" },
+                }
+            )
+            : null,
 
             video ? new[] { "-b:v", "0" } : null,
 
