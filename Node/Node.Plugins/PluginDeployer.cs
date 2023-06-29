@@ -3,7 +3,7 @@ using System.Management.Automation;
 namespace Node.Plugins;
 
 // TODO: non static
-public class PluginDeployer2
+public class PluginDeployer
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 

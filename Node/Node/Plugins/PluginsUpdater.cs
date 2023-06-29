@@ -55,7 +55,7 @@ internal class PluginsUpdater : IHeartbeatGenerator
             if (software is null) return;
 
             var installed = await pluginManager.GetInstalledPluginsAsync();
-            var newcount = await PluginDeployer2.DeployUninstalledAsync(PluginChecker.GetInstallationTree(UUserSettings.ToDeploy(software)), installed);
+            var newcount = await PluginDeployer.DeployUninstalledAsync(PluginChecker.GetInstallationTree(UUserSettings.ToDeploy(software)), installed);
 
             if (newcount != 0)
                 await pluginManager.RediscoverPluginsAsync();
