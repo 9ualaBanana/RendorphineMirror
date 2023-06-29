@@ -55,7 +55,6 @@ public class PluginDeployerTests
             );
 
         var checker = new PluginChecker(new SoftwareList(software));
-        var deployer = new PluginDeployer();
 
 
         var installedEsrgan = ImmutableArray<Plugin>.Empty
@@ -102,11 +101,12 @@ public class PluginDeployerTests
 
 
 
-        static IEnumerable<PluginToInstall> gettree(PluginType type, string? version, PluginChecker checker, IReadOnlyCollection<Plugin> installedPlugins) =>
+        static IEnumerable<PluginToInstall> gettree(PluginType type, string? version, PluginChecker checker, IReadOnlyCollection<Plugin> installed) =>
             checker.GetInstallationTree(type, version)
-                .Where(p => !PluginDeployer.IsInstalled(p.Type, p.Version, installedPlugins));
+                .Where(p => !new PluginDeployer(new InstalledPlugins(installed)).IsInstalled(p.Type, p.Version));
     }
 
 
     record SoftwareList(IReadOnlyDictionary<string, SoftwareDefinition> Software) : ISoftwareListProvider;
+    record InstalledPlugins(IReadOnlyCollection<Plugin> Plugins) : IInstalledPluginsProvider;
 }

@@ -42,7 +42,7 @@ public readonly struct PluginVersion : IEquatable<PluginVersion>, IComparable<Pl
     public class JsonSerializer : JsonConverter<PluginVersion>
     {
         public override PluginVersion ReadJson(JsonReader reader, Type objectType, PluginVersion existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer) =>
-            new(reader.ReadAsString());
+            new(reader.Value as string);
 
         public override void WriteJson(JsonWriter writer, PluginVersion value, Newtonsoft.Json.JsonSerializer serializer) =>
             writer.WriteValue(value.Version);

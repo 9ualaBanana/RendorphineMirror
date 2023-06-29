@@ -15,11 +15,13 @@ public class LocalListener : ExecutableListenerBase
 
     readonly PluginManager PluginManager;
     readonly PluginChecker PluginChecker;
+    readonly PluginDeployer PluginDeployer;
 
-    public LocalListener(PluginManager pluginManager, PluginChecker pluginChecker)
+    public LocalListener(PluginManager pluginManager, PluginChecker pluginChecker, PluginDeployer pluginDeployer)
     {
         PluginManager = pluginManager;
         PluginChecker = pluginChecker;
+        PluginDeployer = pluginDeployer;
     }
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
@@ -60,8 +62,7 @@ public class LocalListener : ExecutableListenerBase
             {
                 Task.Run(async () =>
                 {
-                    var installed = await PluginManager.GetInstalledPluginsAsync();
-                    var newcount = await PluginDeployer.DeployUninstalledAsync(PluginChecker.GetInstallationTree(type, version), installed);
+                    var newcount = await PluginDeployer.DeployUninstalledAsync(PluginChecker.GetInstallationTree(type, version));
                     if (newcount != 0)
                         await PluginManager.RediscoverPluginsAsync();
                 }).Consume();

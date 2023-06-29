@@ -29,11 +29,13 @@ internal class PluginsUpdater : IHeartbeatGenerator
 
     readonly PluginManager PluginManager;
     readonly PluginChecker PluginChecker;
+    readonly PluginDeployer PluginDeployer;
 
-    public PluginsUpdater(PluginManager pluginManager, PluginChecker pluginChecker)
+    public PluginsUpdater(PluginManager pluginManager, PluginChecker pluginChecker, PluginDeployer pluginDeployer)
     {
         PluginManager = pluginManager;
         PluginChecker = pluginChecker;
+        PluginDeployer = pluginDeployer;
     }
 
     async Task TryDeployUninstalledPluginsAsync(HttpResponseMessage response)
@@ -46,19 +48,17 @@ internal class PluginsUpdater : IHeartbeatGenerator
     {
         var settings = (await Api.GetJsonIfSuccessfulAsync(response))["settings"].ThrowIfNull().ToObject<NodeCommon.Apis.ServerUserSettings>().ThrowIfNull().ToSettings();
 
-        await trydeploy(PluginManager, settings.InstallSoftware);
-        await trydeploy(PluginManager, settings.GetNodeInstallSoftware(Settings.Guid));
+        await trydeploy(settings.InstallSoftware);
+        await trydeploy(settings.GetNodeInstallSoftware(Settings.Guid));
 
 
-        async Task trydeploy(PluginManager pluginManager, UUserSettings.TMServerSoftware? software)
+        async Task trydeploy(UUserSettings.TMServerSoftware? software)
         {
             if (software is null) return;
 
-            var installed = await pluginManager.GetInstalledPluginsAsync();
-            var newcount = await PluginDeployer.DeployUninstalledAsync(PluginChecker.GetInstallationTree(UUserSettings.ToDeploy(software)), installed);
-
+            var newcount = await PluginDeployer.DeployUninstalledAsync(PluginChecker.GetInstallationTree(UUserSettings.ToDeploy(software)));
             if (newcount != 0)
-                await pluginManager.RediscoverPluginsAsync();
+                await PluginManager.RediscoverPluginsAsync();
         }
     }
     #endregion

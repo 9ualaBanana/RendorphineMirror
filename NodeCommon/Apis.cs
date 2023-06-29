@@ -414,7 +414,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
                 if (software is not null)
                     foreach (var (type, versions) in software)
                     {
-                        if (!Enum.TryParse<PluginType>(type, out var plugintype))
+                        if (!Enum.TryParse<PluginType>(type, true, out var plugintype))
                         {
                             // TODO: log instead of throw
                             throw new Exception($"Unknown plugin type {type}");

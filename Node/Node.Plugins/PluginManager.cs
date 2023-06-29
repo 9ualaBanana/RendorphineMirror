@@ -2,15 +2,16 @@ namespace Node.Plugins;
 
 // TODO: invalidate every day or something
 /// <summary> Stores and updates a list of installed plugins using provided discoverers </summary>
-public class PluginManager
+public class PluginManager : IInstalledPluginsProvider
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    public IReadOnlyBindable<IReadOnlyList<Plugin>?> CachedPluginsBindable => CachedPlugins;
-    readonly Bindable<Plugin[]?> CachedPlugins = new();
+    public IReadOnlyCollection<Plugin> Plugins => CachedPlugins.Value ?? GetInstalledPluginsAsync().GetAwaiter().GetResult();
+
+    public IReadOnlyBindable<IReadOnlyCollection<Plugin>?> CachedPluginsBindable => CachedPlugins;
+    readonly Bindable<IReadOnlyCollection<Plugin>?> CachedPlugins = new();
 
     readonly ImmutableArray<IPluginDiscoverer> Discoverers = new();
-    // public IReadOnlyCollection<Plugin>? CachedPlugins { get; private set; }
     TaskCompletionSource<IReadOnlyCollection<Plugin>>? CurrentDiscover;
 
     public PluginManager(IEnumerable<IPluginDiscoverer> discoverers) : this(discoverers.ToImmutableArray()) { }

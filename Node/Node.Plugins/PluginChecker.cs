@@ -13,7 +13,7 @@ public class PluginChecker
 
     public IEnumerable<PluginToInstall> GetInstallationTree(string type, PluginVersion version)
     {
-        if (!Enum.TryParse<PluginType>(type, out var ptype))
+        if (!Enum.TryParse<PluginType>(type, true, out var ptype))
         {
             Logger.Warn($"Unknown plugin type {type}, skipping");
             return Enumerable.Empty<PluginToInstall>();

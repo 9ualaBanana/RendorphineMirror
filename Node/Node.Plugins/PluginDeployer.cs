@@ -7,10 +7,14 @@ public class PluginDeployer
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+    readonly IInstalledPluginsProvider InstalledPlugins;
+
+    public PluginDeployer(IInstalledPluginsProvider installedPlugins) => InstalledPlugins = installedPlugins;
+
 
     /// <param name="version"> Plugin version or null if any </param>
-    public static bool IsInstalled(PluginType type, PluginVersion version, IReadOnlyCollection<Plugin> installedPlugins) =>
-        installedPlugins.Any(i => i.Type == type && (version.IsEmpty || i.Version == version));
+    public bool IsInstalled(PluginType type, PluginVersion version) =>
+        InstalledPlugins.Plugins.Any(i => i.Type == type && (version.IsEmpty || i.Version == version));
 
 
     /// <remarks>
@@ -19,17 +23,17 @@ public class PluginDeployer
     /// Deploys only non-installed plugins.
     /// </remarks>
     /// <returns> Amount of installed plugins </returns>
-    public static async Task<int> DeployUninstalledAsync(IEnumerable<PluginToInstall> plugins, IReadOnlyCollection<Plugin> installedPlugins)
+    public async Task<int> DeployUninstalledAsync(IEnumerable<PluginToInstall> plugins)
     {
-        var uninstalled = plugins.Where(plugin => !IsInstalled(plugin.Type, plugin.Version, installedPlugins)).ToArray();
+        var uninstalled = plugins.Where(plugin => !IsInstalled(plugin.Type, plugin.Version)).ToArray();
 
         if (uninstalled.Any(p => p.InstallScript is null))
             throw new Exception($"Plugins {string.Join(", ", uninstalled.Where(p => p.InstallScript is null))} can't be and aren't installed");
 
         var installed = 0;
-        foreach (var plugin in plugins)
+        foreach (var plugin in uninstalled)
         {
-            await DeployAsync(plugin.Type, plugin.Version, plugin.InstallScript.ThrowIfNull());
+            await DeployAsync(plugin.Type, plugin.Version, plugin.InstallScript.ThrowIfNull($"Plugin {plugin} somehow has null installScript"));
             installed++;
         }
 

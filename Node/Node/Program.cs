@@ -37,13 +37,14 @@ Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
 var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
 var pluginChecker = new PluginChecker(new SoftwareList());
+var pluginDeployer = new PluginDeployer(pluginManager);
 InitializeSettings();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
 {
     var localport = UpdatePort("127.0.0.1", Settings.BLocalListenPort, "Local")
-        .ContinueWith(_ => new LocalListener(pluginManager, pluginChecker).Start());
+        .ContinueWith(_ => new LocalListener(pluginManager, pluginChecker, pluginDeployer).Start());
 
     var publicports = PortForwarding.GetPublicIPAsync()
         .ContinueWith(ip => Task.WhenAll(
@@ -100,7 +101,7 @@ if (!Init.IsDebug || halfrelease)
 
     captured.Add(mPlusTaskManagerHeartbeat);
 
-    var userSettingsHeartbeat = new Heartbeat(new PluginsUpdater(pluginManager, pluginChecker), TimeSpan.FromMinutes(1), Api.Client);
+    var userSettingsHeartbeat = new Heartbeat(new PluginsUpdater(pluginManager, pluginChecker, pluginDeployer), TimeSpan.FromMinutes(1), Api.Client);
     _ = userSettingsHeartbeat.StartAsync();
 
     captured.Add(userSettingsHeartbeat);
@@ -281,5 +282,5 @@ async ValueTask WaitForAuth()
 
 class SoftwareList : ISoftwareListProvider
 {
-    public IReadOnlyDictionary<string, SoftwareDefinition> Software =>  NodeGlobalState.Instance.Software.Value;
+    public IReadOnlyDictionary<string, SoftwareDefinition> Software => NodeGlobalState.Instance.Software.Value;
 }
