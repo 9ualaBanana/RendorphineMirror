@@ -1,14 +1,17 @@
 namespace Node.Plugins;
 
-// TODO: non-static
-public static partial class PluginChecker
+public class PluginChecker
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    public static IEnumerable<PluginToInstall> GetInstallationTree(IEnumerable<PluginToDeploy> plugins, IReadOnlyDictionary<string, SoftwareDefinition> software) =>
-        plugins.SelectMany(p => GetInstallationTree(p.Type, p.Version, software)).Distinct();
+    readonly ISoftwareList SoftwareList;
 
-    public static IEnumerable<PluginToInstall> GetInstallationTree(string type, PluginVersion version, IReadOnlyDictionary<string, SoftwareDefinition> software)
+    public PluginChecker(ISoftwareList softwareList) => SoftwareList = softwareList;
+
+    public IEnumerable<PluginToInstall> GetInstallationTree(IEnumerable<PluginToDeploy> plugins) =>
+        plugins.SelectMany(p => GetInstallationTree(p.Type, p.Version)).Distinct();
+
+    public IEnumerable<PluginToInstall> GetInstallationTree(string type, PluginVersion version)
     {
         if (!Enum.TryParse<PluginType>(type, out var ptype))
         {
@@ -16,27 +19,23 @@ public static partial class PluginChecker
             return Enumerable.Empty<PluginToInstall>();
         }
 
-        return GetInstallationTree(ptype, version, software);
+        return GetInstallationTree(ptype, version);
     }
-    public static IEnumerable<PluginToInstall> GetInstallationTree(PluginType type, PluginVersion version, IReadOnlyDictionary<string, SoftwareDefinition> software)
+    public IEnumerable<PluginToInstall> GetInstallationTree(PluginType type, PluginVersion version)
     {
-        var versiondef = GetVersionDefinition(type, ref version, software);
+        var versiondef = GetVersionDefinition(type, ref version);
         if (versiondef is null || string.IsNullOrEmpty(versiondef.InstallScript))
             return new[] { new PluginToInstall(type, version, null) };
 
         var parents = versiondef.Requirements.Parents;
-        var newparents = parents.SelectMany(parent => GetInstallationTree(parent.Type, parent.Version, software));
+        var newparents = parents.SelectMany(parent => GetInstallationTree(parent.Type, parent.Version));
         return newparents.Append(new PluginToInstall(type, version, versiondef.InstallScript));
     }
 
-    /// <param name="version"> Plugin version or null if any </param>
-    public static bool IsInstalled(PluginType type, PluginVersion version, IReadOnlyCollection<Plugin> installedPlugins) =>
-        installedPlugins.Any(i => i.Type == type && (version.IsEmpty || i.Version == version));
 
-
-    static SoftwareVersionDefinition? GetVersionDefinition(PluginType type, ref PluginVersion version, IReadOnlyDictionary<string, SoftwareDefinition> software)
+    SoftwareVersionDefinition? GetVersionDefinition(PluginType type, ref PluginVersion version)
     {
-        var soft = software.GetValueOrDefault(type.ToString());
+        var soft = SoftwareList.Software.GetValueOrDefault(type.ToString());
         if (soft is null) return null;
 
         if (version.IsEmpty)

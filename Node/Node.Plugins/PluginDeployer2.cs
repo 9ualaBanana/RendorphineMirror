@@ -2,9 +2,15 @@ using System.Management.Automation;
 
 namespace Node.Plugins;
 
+// TODO: non static
 public class PluginDeployer2
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+
+    /// <param name="version"> Plugin version or null if any </param>
+    public static bool IsInstalled(PluginType type, PluginVersion version, IReadOnlyCollection<Plugin> installedPlugins) =>
+        installedPlugins.Any(i => i.Type == type && (version.IsEmpty || i.Version == version));
 
 
     /// <remarks>
@@ -15,7 +21,7 @@ public class PluginDeployer2
     /// <returns> Amount of installed plugins </returns>
     public static async Task<int> DeployUninstalledAsync(IEnumerable<PluginToInstall> plugins, IReadOnlyCollection<Plugin> installedPlugins)
     {
-        var uninstalled = plugins.Where(plugin => !PluginChecker.IsInstalled(plugin.Type, plugin.Version, installedPlugins)).ToArray();
+        var uninstalled = plugins.Where(plugin => !IsInstalled(plugin.Type, plugin.Version, installedPlugins)).ToArray();
 
         if (uninstalled.Any(p => p.InstallScript is null))
             throw new Exception($"Plugins {string.Join(", ", uninstalled.Where(p => p.InstallScript is null))} can't be and aren't installed");

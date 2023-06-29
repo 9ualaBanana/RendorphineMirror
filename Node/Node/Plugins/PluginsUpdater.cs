@@ -28,10 +28,12 @@ internal class PluginsUpdater : IHeartbeatGenerator
     };
 
     readonly PluginManager PluginManager;
+    readonly PluginChecker PluginChecker;
 
-    public PluginsUpdater(PluginManager pluginManager)
+    public PluginsUpdater(PluginManager pluginManager, PluginChecker pluginChecker)
     {
         PluginManager = pluginManager;
+        PluginChecker = pluginChecker;
     }
 
     async Task TryDeployUninstalledPluginsAsync(HttpResponseMessage response)
@@ -53,7 +55,7 @@ internal class PluginsUpdater : IHeartbeatGenerator
             if (software is null) return;
 
             var installed = await pluginManager.GetInstalledPluginsAsync();
-            var newcount = await PluginDeployer2.DeployUninstalledAsync(PluginChecker.GetInstallationTree(UUserSettings.ToDeploy(software), NodeGlobalState.Instance.Software.Value), installed);
+            var newcount = await PluginDeployer2.DeployUninstalledAsync(PluginChecker.GetInstallationTree(UUserSettings.ToDeploy(software)), installed);
 
             if (newcount != 0)
                 await pluginManager.RediscoverPluginsAsync();
