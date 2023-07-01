@@ -40,7 +40,9 @@ public static class FFProbe
         int Height,
         [JsonProperty("codec_name")] string CodecName,
         [JsonProperty("codec_type")] string CodecType,
-        [JsonProperty("r_frame_rate")] string FrameRateString
+        [JsonProperty("r_frame_rate")] string FrameRateString,
+        [JsonProperty("bit_rate")] string Bitrate,
+        [JsonProperty("codec_tag_string")] string? CodecTagString = null
     )
     {
         public double FrameRate => double.Parse(FrameRateString.Split('/')[0]) / double.Parse(FrameRateString.Split('/')[1]);

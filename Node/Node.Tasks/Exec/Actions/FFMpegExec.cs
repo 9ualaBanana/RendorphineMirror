@@ -97,16 +97,48 @@ public static class FFMpegExec
             ? (
                 codec switch
                 {
-                    // prores does not like to be converted to h264, "non-existing PPS 0 referenced" etc
-                    "prores" => new[] { "-c:v", "prores" },
+                    // we should probably keep the original codec but every parameter is different for every codec
+                    // and we can't trust ffmpeg to keep the same quality, so we just use h264
+                    // except prores, it does not like to be converted to h264, "non-existing PPS 0 referenced" blablabla
 
-                    _ when hardwareAcceleration => new[] { "-c:v", "h264_nvenc", "-preset:v", "p7", "-tune:v", "hq", "-rc:v", "vbr", "-cq:v", "19" },
-                    _ => new[] { "-c:v", "h264", "-crf", "18", "-preset:v", "slow", "-tune:v", "film" },
+                    "prores" => new[]
+                    {
+                        "-c:v", "prores",
+                        "-qscale:v", "1", // best quality
+
+                        // in prores profile directly affects bitrate
+                        // and we can't just use a constant value to keep bitrate the same
+                        // so we copy the profile instead
+                        "-profile:v",
+                        argholder.FFProbe.VideoStream.CodecTagString switch
+                        {
+                            "apco" or "ocpa" => "0", // 422 Proxy
+                            "apcs" or "scpa" => "1", // 422 LT
+                            "apcn" or "ncpa" => "2", // 422 Standard Definition
+                            "apch" or "hcpa" => "3", // 422 High Quality
+                            "ap4h" or "h4pa" => "5", // 4444 (we use 4444xq for better quality)
+                            _ => "3",
+                        },
+                    },
+
+                    _ when hardwareAcceleration => new[]
+                    {
+                        "-c:v", "h264_nvenc",
+                        "-preset:v", "p7",
+                        "-tune:v", "hq",
+                        "-rc:v", "cbr", // use constant bitrate
+                        "-b:v", argholder.FFProbe.VideoStream.Bitrate, // use input file bitrate
+                    },
+                    _ => new[]
+                    {
+                        "-c:v", "h264",
+                        "-preset:v", "slow",
+                        "-tune:v", "film",
+                        "-b:v", argholder.FFProbe.VideoStream.Bitrate, // use input file bitrate
+                    },
                 }
             )
             : null,
-
-            video ? new[] { "-b:v", "0" } : null,
 
             // video filters
             filtergraph.Count == 0 ? null : new[] { "-filter_complex", string.Join(',', filtergraph) },
