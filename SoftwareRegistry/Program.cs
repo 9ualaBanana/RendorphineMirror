@@ -12,7 +12,7 @@ using Body = Microsoft.AspNetCore.Mvc.FromBodyAttribute;
 using Query = Microsoft.AspNetCore.Mvc.FromQueryAttribute;
 using Srv = Microsoft.AspNetCore.Mvc.FromServicesAttribute;
 
-Initializer.AppName = "renderfin_registry";
+Initializer.AppName = "renderfin_registry2";
 Init.Initialize();
 
 var client = new TorrentClient(6229, 6230);

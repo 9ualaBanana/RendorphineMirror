@@ -30,6 +30,6 @@ public class InitCondaEnvCmdlet : PSCmdlet
             log += $"; pip {string.Join(' ', PipRequirements)}";
 
         LogManager.GetCurrentClassLogger().Info(log);
-        CondaManager.Initialize(PluginType.Conda.GetInstance().Path, name, PythonVersion, Requirements, Channels, PipRequirements);
+        CondaManager.InitializeEnvironment(PluginType.Conda.GetInstance().Path, name, PythonVersion, Requirements, Channels, PipRequirements);
     }
 }

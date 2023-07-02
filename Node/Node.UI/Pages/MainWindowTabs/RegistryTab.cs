@@ -19,7 +19,8 @@ public class RegistryTab : Panel
                 "New Mega Super Software",
                 new Dictionary<PluginVersion, SoftwareVersionDefinition>()
                 {
-                    ["0.1"] = new SoftwareVersionDefinition("",
+                    ["0.1"] = new SoftwareVersionDefinition(
+                        new SoftwareInstallation(),
                         new SoftwareRequirements(ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
                         ImmutableArray<SoftwareParent>.Empty))
                 }.ToImmutableDictionary()

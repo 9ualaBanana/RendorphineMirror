@@ -5,7 +5,7 @@ using Node.Tasks;
 using Node.Tasks.Exec;
 using Node.Tasks.Exec.Actions;
 using Node.Tasks.Models;
-
+using NodeCommon;
 
 
 Initializer.AppName = "renderfin";
@@ -14,17 +14,28 @@ Init.Initialize();
 var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
 await pluginManager.RediscoverPluginsAsync();
 
+await DeployPluginCondaOnly(pluginManager, PluginType.Esrgan, PluginVersion.Empty);
+
+/*
 await TestTaskExecution(
     pluginManager,
-    new EditVideo(),
-    new EditVideoInfo() { Speed = new FFMpegSpeed() { Speed = 1.1 } },
+    new EsrganUpscale(),
+    new UpscaleEsrganInfo(),
     new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/temp/file.mov") })
 );
-
+*/
 
 // await TestTasksExecution(pluginManager);
 
 Debugger.Break();
+
+
+static async Task DeployPluginCondaOnly(PluginManager pluginManager, PluginType type, PluginVersion version)
+{
+    var deployer = new PluginDeployer(new InstalledPluginsProvider((await pluginManager.GetInstalledPluginsAsync()).Where(t => t.Type != type).ToArray()));
+    var checker = new PluginChecker(new SoftwareListProvider(await Apis.DefaultWithSessionId("63fe288368974192c27a5388").GetSoftwareAsync().ThrowIfError()));
+    deployer.DeployUninstalled(checker.GetInstallationTree(type, version));
+}
 
 
 static async Task TestTasksExecution(PluginManager pluginManager)
@@ -63,3 +74,6 @@ record TestContext(IReadOnlyCollection<Plugin> Plugins) : ITaskExecutionContext
     public void Log(LogLevel level, string text) => Logger.Log(level, text);
     public void SetProgress(double progress) => Log(LogLevel.Info, $"Task progress: {(int) (progress * 100)}%");
 }
+
+record InstalledPluginsProvider(IReadOnlyCollection<Plugin> Plugins) : IInstalledPluginsProvider;
+record SoftwareListProvider(IReadOnlyDictionary<string, SoftwareDefinition> Software) : ISoftwareListProvider;

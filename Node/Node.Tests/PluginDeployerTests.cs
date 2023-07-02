@@ -37,21 +37,33 @@ public class PluginDeployerTests
         var software = ImmutableDictionary<string, SoftwareDefinition>.Empty
             .Add(PluginType.Esrgan.ToString(), new SoftwareDefinition("ESRGAN",
                 ImmutableDictionary<PluginVersion, SoftwareVersionDefinition>.Empty
-                    .Add("1.0.0", new SoftwareVersionDefinition("echo test", new SoftwareRequirements(
-                        ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
-                        ImmutableArray<SoftwareParent>.Empty
-                            .Add(new SoftwareParent(PluginType.NvidiaDriver.ToString(), ""))
-                    )))
-                    .Add("1.0.1", new SoftwareVersionDefinition("echo test", new SoftwareRequirements(
-                        ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
-                        ImmutableArray<SoftwareParent>.Empty
-                            .Add(new SoftwareParent(PluginType.NvidiaDriver.ToString(), ""))
-                    )))
+                    .Add("1.0.0", new SoftwareVersionDefinition(
+                        new SoftwareInstallation(),
+                        new SoftwareRequirements(
+                            ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
+                            ImmutableArray<SoftwareParent>.Empty
+                                .Add(new SoftwareParent(PluginType.NvidiaDriver.ToString(), ""))
+                        )
+                    ))
+                    .Add("1.0.1", new SoftwareVersionDefinition(
+                        new SoftwareInstallation(),
+                        new SoftwareRequirements(
+                            ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
+                            ImmutableArray<SoftwareParent>.Empty
+                                .Add(new SoftwareParent(PluginType.NvidiaDriver.ToString(), ""))
+                        )
+                    ))
                 )
             )
             .Add(PluginType.Blender.ToString(), new SoftwareDefinition("Blender",
                 ImmutableDictionary<PluginVersion, SoftwareVersionDefinition>.Empty
-                    .Add("1.0.0", new SoftwareVersionDefinition("echo test", new SoftwareRequirements(ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty, ImmutableArray<SoftwareParent>.Empty))))
+                    .Add("1.0.0", new SoftwareVersionDefinition(
+                        new SoftwareInstallation(),
+                        new SoftwareRequirements(
+                            ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
+                            ImmutableArray<SoftwareParent>.Empty
+                        )
+                    )))
             );
 
         var checker = new PluginChecker(new SoftwareList(software));

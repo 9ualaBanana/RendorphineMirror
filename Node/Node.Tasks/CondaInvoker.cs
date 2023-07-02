@@ -6,14 +6,16 @@ public static class CondaInvoker
         Task.Run(() => ExecutePowerShellAtWithCondaEnv(context, pltype, script, onRead, logobj));
     public static void ExecutePowerShellAtWithCondaEnv(ITaskExecutionContext context, PluginType pltype, string script, Action<bool, object>? onRead, ILoggable logobj)
     {
-        var condapath = context.GetPlugin(PluginType.Conda).Path;
         var plugin = context.GetPlugin(pltype);
+
+        var envname = $"{plugin.Type}_{plugin.Version}";
+        if (!CondaManager.IsEnvironmentCreated(envname))
+            throw new Exception($"Conda environment {envname} was not created");
 
         script = $"""
             Set-Location '{Path.GetFullPath(Path.GetDirectoryName(plugin.Path)!)}'
-            {script}
+            {CondaManager.GetRunInEnvironmentScript(context.GetPlugin(PluginType.Conda).Path, envname, script)}
             """;
-        script = CondaManager.WrapWithInitEnv(condapath, $"{plugin.Type}_{plugin.Version}", script);
 
         PowerShellInvoker.Invoke(
             script,

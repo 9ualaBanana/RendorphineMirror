@@ -47,7 +47,8 @@ public abstract class FieldDescriber
         if (assignableToGeneric(type, typeof(IReadOnlyCollection<>)))
             return new CollectionDescriber(prop);
 
-        if (type.IsClass) return new ObjectDescriber(prop);
+        if (type.IsClass || type.IsValueType)
+            return new ObjectDescriber(prop);
 
         throw new InvalidOperationException($"Could not find Describer for type {type}");
 

@@ -62,7 +62,7 @@ public class LocalListener : ExecutableListenerBase
             {
                 Task.Run(async () =>
                 {
-                    var newcount = await PluginDeployer.DeployUninstalledAsync(PluginChecker.GetInstallationTree(type, version));
+                    var newcount = PluginDeployer.DeployUninstalled(PluginChecker.GetInstallationTree(type, version));
                     if (newcount != 0)
                         await PluginManager.RediscoverPluginsAsync();
                 }).Consume();

@@ -24,12 +24,12 @@ public class PluginChecker
     public IEnumerable<PluginToInstall> GetInstallationTree(PluginType type, PluginVersion version)
     {
         var versiondef = GetVersionDefinition(type, ref version);
-        if (versiondef is null || string.IsNullOrEmpty(versiondef.InstallScript))
+        if (versiondef is null)
             return new[] { new PluginToInstall(type, version, null) };
 
         var parents = versiondef.Requirements.Parents;
         var newparents = parents.SelectMany(parent => GetInstallationTree(parent.Type, parent.Version));
-        return newparents.Append(new PluginToInstall(type, version, versiondef.InstallScript));
+        return newparents.Append(new PluginToInstall(type, version, versiondef.Installation));
     }
 
 

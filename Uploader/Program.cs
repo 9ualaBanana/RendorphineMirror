@@ -36,7 +36,7 @@ var defaultActions = new Dictionary<string, ImmutableArray<IAction>>()
     }.ToImmutableArray(),
     ["registry"] = new IAction[]
     {
-        new BuildUploadAction(ProjectType.Release, "SoftwareRegistry", "linux-x64", "debian@t.microstock.plus:/home/debian/registry"),
+        new BuildUploadAction(ProjectType.Release, "SoftwareRegistry", "linux-x64", "debian@t.microstock.plus:/home/debian/registry2"),
     }.ToImmutableArray(),
     ["chatgptapi"] = new IAction[]
     {

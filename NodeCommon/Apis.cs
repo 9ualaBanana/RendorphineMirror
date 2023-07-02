@@ -4,7 +4,7 @@ namespace NodeCommon;
 
 public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
 {
-    public const string RegistryUrl = "https://t.microstock.plus:7897";
+    public const string RegistryUrl = "https://t.microstock.plus:7898";
     const string TaskManagerEndpoint = Common.Api.TaskManagerEndpoint;
 
 

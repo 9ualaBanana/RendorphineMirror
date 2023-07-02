@@ -1,8 +1,8 @@
+using System.Diagnostics;
 using System.Management.Automation;
 
 namespace Node.Plugins;
 
-// TODO: non static
 public class PluginDeployer
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
@@ -23,41 +23,42 @@ public class PluginDeployer
     /// Deploys only non-installed plugins.
     /// </remarks>
     /// <returns> Amount of installed plugins </returns>
-    public async Task<int> DeployUninstalledAsync(IEnumerable<PluginToInstall> plugins)
+    public int DeployUninstalled(IEnumerable<PluginToInstall> plugins)
     {
         var uninstalled = plugins.Where(plugin => !IsInstalled(plugin.Type, plugin.Version)).ToArray();
 
-        if (uninstalled.Any(p => p.InstallScript is null))
-            throw new Exception($"Plugins {string.Join(", ", uninstalled.Where(p => p.InstallScript is null))} can't be and aren't installed");
+        if (uninstalled.Any(p => p.Installation is null))
+            throw new Exception($"Plugins {string.Join(", ", uninstalled.Where(p => p.Installation is null))} are not installed and can't be");
 
         var installed = 0;
         foreach (var plugin in uninstalled)
         {
-            await DeployAsync(plugin.Type, plugin.Version, plugin.InstallScript.ThrowIfNull($"Plugin {plugin} somehow has null installScript"));
+            Deploy(plugin.Type, plugin.Version, plugin.Installation.ThrowIfNull($"Plugin {plugin} somehow has null installScript"));
             installed++;
         }
 
         return installed;
     }
 
-    /// <remarks>
-    /// Deploys only specified plugins;
-    /// To get plugin list with parents, use <see cref="PluginChecker.GetInstallationTree(IEnumerable{PluginToDeploy}, IReadOnlyDictionary{string, SoftwareDefinition})"/>.
-    /// Deploys even if already installed.
-    /// </remarks>
-    public static async Task DeployAsync(PluginType type, PluginVersion version, string script)
+    /// <remarks> Deploys even if installed </remarks>
+    public void Deploy(PluginType type, PluginVersion version, SoftwareInstallation installation)
     {
         Logger.Info($"Installing {type} {version}");
 
-        await Task.Run(() =>
-        {
-            var pwsh = PowerShellInvoker.Initialize(script);
-            var pldownload = setVars(pwsh);
-            var result = PowerShellInvoker.Invoke(pwsh);
+        if (installation.Script is not null)
+            InstallWithPowershell(type, version, installation.Script);
+        if (installation.CondaEnvInfo is not null)
+            InstallWithConda(type, version, installation.CondaEnvInfo);
+    }
 
-            if (Directory.Exists(pldownload))
-                Directory.Delete(pldownload, true);
-        });
+    static void InstallWithPowershell(PluginType type, PluginVersion version, string script)
+    {
+        var pwsh = PowerShellInvoker.Initialize(script);
+        var pldownload = setVars(pwsh);
+        var result = PowerShellInvoker.Invoke(pwsh);
+
+        if (Directory.Exists(pldownload))
+            Directory.Delete(pldownload, true);
 
 
         /// <returns> Plugin download directory </returns>
@@ -83,5 +84,12 @@ public class PluginDeployer
 
             return pldownload;
         }
+    }
+    void InstallWithConda(PluginType type, PluginVersion version, SoftwareCondaEnvInfo info)
+    {
+        var name = $"{type}_{version}";
+        var condapath = InstalledPlugins.Plugins.First(p => p.Type == PluginType.Conda).Path;
+
+        CondaManager.InitializeEnvironment(condapath, name, info.PythonVersion, info.Requirements, info.Channels, info.PipRequirements);
     }
 }

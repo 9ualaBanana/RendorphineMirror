@@ -18,7 +18,7 @@ public static class JsonUISetting
             ObjectDescriber obj => new ObjectSetting(obj, property),
             EnumDescriber enm => new EnumSetting(enm, property),
 
-            DictionaryDescriber dic when dic.KeyType == typeof(string) || dic.KeyType.IsEnum => new DictionarySetting(dic, property),
+            DictionaryDescriber dic => new DictionarySetting(dic, property),
             CollectionDescriber col => new CollectionSetting(col, property),
 
             _ => throw new InvalidOperationException($"Could not find setting type for {describer.GetType().Name}"),
@@ -237,8 +237,8 @@ public static class JsonUISetting
         public DictionarySetting(DictionaryDescriber describer, JObject jobj) : this(describer, new JProperty("____", jobj)) { }
         public DictionarySetting(DictionaryDescriber describer, JProperty property) : base(property)
         {
-            if (describer.KeyType != typeof(string) && !describer.KeyType.IsEnum)
-                throw new NotSupportedException("Non-string/enum key dictionary describer is not supported");
+            //if (describer.KeyType != typeof(string) && !describer.KeyType.IsEnum)
+            //    throw new NotSupportedException("Non-string/enum key dictionary describer is not supported");
 
             Background = new SolidColorBrush(new Color(20, 0, 0, 0));
             Margin = new Thickness(10, 0, 0, 0);
