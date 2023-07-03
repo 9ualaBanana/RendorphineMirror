@@ -295,7 +295,7 @@ public static class TaskHandler
         {
             exstr = $": [{lastexception.GetType().Name}] {lastexception.Message}";
             if (lastexception.TargetSite is not null)
-                exstr += $"; at [{lastexception.TargetSite.DeclaringType}] {lastexception.TargetSite}";
+                exstr += $"\nat [{lastexception.TargetSite.DeclaringType}] {lastexception.TargetSite}\n{lastexception.StackTrace}";
         }
 
         await fail($"Ran out of attempts{exstr}");
