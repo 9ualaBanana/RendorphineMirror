@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using NodeCommon.Tasks;
 
-namespace TrialUsersMediator.Persistence;
+namespace TrialUsersMediator;
 
 public class TrialUsersDbContext : DbContext
 {
@@ -24,8 +25,7 @@ public class TrialUsersDbContext : DbContext
     {
         modelBuilder
             .ApplyConfiguration(default(TrialUser.Entity.Configuration))
-            .ApplyConfiguration(default(TrialUser.TaskQuota.Entity.Configuration))
-            .ApplyConfiguration(default(TrialUser.Info.Entity.Configuration))
+            .ApplyConfiguration(default(TrialUser.Quota<TaskAction>.Entity.Configuration))
             .ApplyConfiguration(default(TrialUser.Info.Telegram.Entity.Configuration));
     }
 }

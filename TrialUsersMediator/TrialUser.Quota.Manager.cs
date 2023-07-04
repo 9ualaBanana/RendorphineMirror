@@ -1,6 +1,6 @@
 ﻿using NodeCommon.Tasks;
 
-namespace TrialUsersMediator.Persistence;
+namespace TrialUsersMediator;
 
 public partial record TrialUser
 {
@@ -13,8 +13,17 @@ public partial record TrialUser
             readonly static object _managerLock = new { };
 
             internal int Value
-            { get { lock (_managerLock) { return _trialUser.Quota_._entries[_taskAction]; } } }
-                
+            {
+                get
+                {
+                    lock (_managerLock)
+                    {
+                        _trialUser.Quota_.MakeManagable();
+                        return _trialUser.Quota_._entries[_taskAction];
+                    }
+                }
+            }
+
             readonly TrialUser.Entity _trialUser;
             readonly TaskAction _taskAction;
 
@@ -30,12 +39,26 @@ public partial record TrialUser
             internal void Decrease() => DecreaseBy(1);
 
             internal void DecreaseBy(int count)
-            { lock (_managerLock) { _trialUser.Quota_._entries[_taskAction] -= count; } }
+            {
+                lock (_managerLock)
+                {
+                    _trialUser.Quota_.MakeManagable();
+                    _trialUser.Quota_._entries[_taskAction] -= count;
+                    _trialUser.Quota_.MakePersistable();
+                }
+            }
 
             internal void Increase() => IncreaseBy(1);
 
             internal void IncreaseBy(int count)
-            { lock (_managerLock) { _trialUser.Quota_._entries[_taskAction] += count; } }
+            {
+                lock (_managerLock)
+                {
+                    _trialUser.Quota_.MakeManagable();
+                    _trialUser.Quota_._entries[_taskAction] += count;
+                    _trialUser.Quota_.MakePersistable();
+                }
+            }
         }
     }
 }

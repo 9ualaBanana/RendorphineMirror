@@ -14,14 +14,6 @@ public partial class TelegramBot
             [ModelBinder(Name = LoginWidgetData.auth_date)] long AuthenticationDate,
             [ModelBinder(Name = LoginWidgetData.hash)] string Hash)
         {
-            internal const string username = nameof(username);
-            internal const string first_name = nameof(first_name);
-            internal const string last_name = nameof(last_name);
-            internal const string photo_url = nameof(photo_url);
-            internal const string auth_date = nameof(auth_date);
-            internal const string hash = nameof(hash);
-
-
             protected LoginWidgetData()
                 : this(default!, default!, default!, default!, default!, default!) { }
 
@@ -35,6 +27,13 @@ public partial class TelegramBot
                     [auth_date] = AuthenticationDate.ToString(),
                     [hash] = Hash
                 });
+
+            internal const string username = nameof(username);
+            internal const string first_name = nameof(first_name);
+            internal const string last_name = nameof(last_name);
+            internal const string photo_url = nameof(photo_url);
+            internal const string auth_date = nameof(auth_date);
+            internal const string hash = nameof(hash);
         }
     }
 }
