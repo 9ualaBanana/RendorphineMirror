@@ -50,6 +50,32 @@ public class EsrganUpscale : PluginAction<UpscaleEsrganInfo>
 
             void onRead(bool err, object obj)
             {
+                if (err)
+                {
+                    /*
+                    Upscaling prores will show an error
+                    [prores @ 0000026CC5A555C0] Specified pixel format yuv420p is invalid or not supported
+                    [ERROR:0@4.856] global cap_ffmpeg_impl.hpp:3049 CvVideoWriter_FFMPEG::open Could not open codec prores, error: Unspecified error (-22)
+                    [ERROR:0@4.856] global cap_ffmpeg_impl.hpp:3066 CvVideoWriter_FFMPEG::open VIDEOIO/FFMPEG: Failed to initialize VideoWriter
+
+                    but the file still will be succesfully upscaled, so we skip those errors
+                    BUT, only on windows. Linux does not produce the result for some reason.
+
+                    Though we won't specifically check for windows since linux shows another error that we just don't skip:
+                    [ERROR:0@0.916] global cap.cpp:595 open VIDEOIO(CV_IMAGES): raised OpenCV exception:
+                    OpenCV(4.7.0) /home/conda/feedstock_root/build_artifacts/libopencv_1675729965945/work/modules/videoio/src/cap_images.cpp:253: error: (-5:Bad argument) CAP_IMAGES: can't find starting number (in the name of file): /temp/file.mov in function 'icvExtractPattern'
+                    */
+
+                    var errstr = obj.ToString() ?? "";
+                    var skipthrow =
+                        (errstr.Contains("Specified pixel format", StringComparison.Ordinal) && errstr.Contains("is invalid or not supported", StringComparison.Ordinal))
+                        || errstr.Contains("Could not open codec prores")
+                        || errstr.Contains("VIDEOIO/FFMPEG");
+
+                    if (!skipthrow)
+                        throw new Exception(errstr);
+                }
+
                 var line = obj.ToString()!;
                 if (!line.StartsWith("Progress:", StringComparison.Ordinal)) return;
 
