@@ -13,6 +13,7 @@ public enum PluginType
     Python,
     Esrgan,
     RobustVideoMatting,
+    StableDiffusion,
 
     NvidiaDriver,
     Conda,

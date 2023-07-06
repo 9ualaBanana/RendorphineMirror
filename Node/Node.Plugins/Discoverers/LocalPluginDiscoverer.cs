@@ -7,11 +7,9 @@ namespace Node.Plugins.Discoverers;
 internal abstract class LocalPluginDiscoverer : PluginDiscoverer
 {
     protected sealed override IEnumerable<string> InstallationPathsImpl => new[] { "plugins" };
-    protected sealed override string? ExecutableRegex => null;
     protected sealed override string? ParentDirectoryRegex => null;
 
-    protected override string ParentDirectoryPattern => PluginType.ToString().ToLowerInvariant();
-    protected override abstract string ExecutableName { get; }
+    protected sealed override string ParentDirectoryPattern => PluginType.ToString().ToLowerInvariant();
 
     protected override IEnumerable<string> GetPossiblePluginDirectories()
     {
