@@ -83,6 +83,7 @@ public class GenerateQSPreview : FFMpegActionBase<QSPreviewInfo>
         waterw += waterw % 2;
         waterh += waterh % 2;
 
+        args.HighQuality = false;
 
         // input watermark file
         args.Args.Add("-i", watermarkFile);

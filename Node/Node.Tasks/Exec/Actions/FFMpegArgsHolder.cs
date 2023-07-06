@@ -6,6 +6,7 @@ public class FFMpegArgsHolder
 {
     public readonly FFProbe.FFProbeInfo FFProbe;
     public double Rate = 1;
+    public bool HighQuality = true;
 
     public FileFormat OutputFileFormat;
     public string? OutputFileName;

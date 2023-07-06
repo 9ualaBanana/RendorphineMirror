@@ -121,20 +121,38 @@ public static class FFMpegExec
                         },
                     },
 
-                    _ when hardwareAcceleration => new[]
+                    _ when hardwareAcceleration => new ArgList()
                     {
                         "-c:v", "h264_nvenc",
                         "-preset:v", "p7",
                         "-tune:v", "hq",
-                        "-rc:v", "cbr", // use constant bitrate
-                        "-b:v", argholder.FFProbe.VideoStream.Bitrate, // use input file bitrate
+
+                        argholder.HighQuality
+                        ? new[]
+                        {
+                            "-rc:v", "cbr", // use constant bitrate
+                            "-b:v", argholder.FFProbe.VideoStream.Bitrate, // use input file bitrate
+                        }
+                        : new[]
+                        {
+                            "-cq:v", "31", // low quality
+                        }
                     },
-                    _ => new[]
+                    _ => new ArgList()
                     {
                         "-c:v", "h264",
                         "-preset:v", "slow",
                         "-tune:v", "film",
-                        "-b:v", argholder.FFProbe.VideoStream.Bitrate, // use input file bitrate
+
+                        argholder.HighQuality
+                        ? new[]
+                        {
+                            "-b:v", argholder.FFProbe.VideoStream.Bitrate, // use input file bitrate
+                        }
+                        : new[]
+                        {
+                            "-crf", "24", // low quality
+                        }
                     },
                 }
             )
