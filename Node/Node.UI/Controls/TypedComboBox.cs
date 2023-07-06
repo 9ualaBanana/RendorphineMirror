@@ -19,7 +19,11 @@ public static class TypedComboBox
 public class TypedComboBox<T> : ComboBox, IStyleable
 {
     Type IStyleable.StyleKey => typeof(ComboBox);
-    public new T SelectedItem => (T) base.SelectedItem!;
+
+    public new T SelectedItem =>
+        typeof(T).IsEnum
+        ? (T) Enum.Parse(typeof(T), base.SelectedItem!.ToString()!)
+        : (T) base.SelectedItem!;
 
     public TypedComboBox(IReadOnlyCollection<T> items, Func<T, IControl>? func = null)
     {

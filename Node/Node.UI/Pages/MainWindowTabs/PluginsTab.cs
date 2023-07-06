@@ -120,11 +120,15 @@ public class PluginsTab : Panel
             Apis.Default.GetSettingsAsync()
                 .Next(s => { Settings.Value = s; return true; });
 
-            var versionslist = TypedComboBox.Create(Array.Empty<PluginVersion>()).With(c => c.MinWidth = 100);
+            var versionslist = TypedComboBox.Create(Array.Empty<PluginVersion>(), ver => new TextBlock() { Text = string.IsNullOrEmpty(ver.ToString()) ? "[latest]" : ver.ToString() }).With(c => c.MinWidth = 100);
             versionslist.SelectedIndex = 0;
 
             var pluginslist = TypedComboBox.Create(Array.Empty<PluginType>()).With(c => c.MinWidth = 100);
-            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = Stats.Value.GetValueOrDefault(pluginslist.SelectedItem.ToString())?.Versions.Keys.ToArray() ?? Array.Empty<PluginVersion>();
+            pluginslist.SelectionChanged += (obj, e) =>
+            {
+                versionslist.Items = (Stats.Value.GetValueOrDefault(pluginslist.SelectedItem.ToString())?.Versions.Keys ?? Enumerable.Empty<PluginVersion>()).Prepend(PluginVersion.Empty).ToArray();
+                versionslist.SelectedIndex = 0;
+            };
             pluginslist.SelectedIndex = 0;
 
             Stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = Stats.Value.Keys.ToArray()), true);
