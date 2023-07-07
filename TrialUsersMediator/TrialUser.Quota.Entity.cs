@@ -18,10 +18,15 @@ public partial record TrialUser
             internal Entity(Quota<EQuota> quota)
                 : base(quota)
             {
-                Entries = quota._entries.Select(_ => new Entry(_.Key, _.Value) { Quota = this }).ToList();
+                MakePersistable();
             }
 
-            internal readonly struct Configuration : IEntityTypeConfiguration<Entity>
+            internal void MakeManagable()
+                => _entries ??= Entries.ToDictionary(_ => _.Type, _ => _.Value);
+            internal void MakePersistable()
+                => Entries = _entries.Select(_ => new Entry(_.Key, _.Value) { Quota = this }).ToList();
+
+        internal readonly struct Configuration : IEntityTypeConfiguration<Entity>
             {
                 public void Configure(EntityTypeBuilder<Entity> taskQuotaEntity)
                 {
