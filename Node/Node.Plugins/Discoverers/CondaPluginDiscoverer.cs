@@ -10,6 +10,7 @@ internal class CondaPluginDiscoverer : PluginDiscoverer
     protected override string DetermineVersion(string exepath)
     {
         // 1.4.0
-        return Processes.FullExecute(exepath, "--version", Logger.AsLoggable()).Result.Trim();
+        return new ProcessLauncher(exepath, "--version")
+            .ExecuteFull();
     }
 }

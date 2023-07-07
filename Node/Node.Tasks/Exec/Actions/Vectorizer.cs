@@ -28,10 +28,11 @@ public class VeeeVectorize : PluginAction<VeeeVectorizeInfo>
     public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, VeeeVectorizeInfo data)
     {
         var inputfile = files.InputFiles.Single().Path;
+        inputfile = await ProcessLauncher.GetWinPath(inputfile);
+
         var outputdir = files.OutputFiles.Directory;
 
         var exepath = context.GetPlugin(PluginType.VeeeVectorizer).Path;
-        var args = new[] { await NodeProcess.GetWinPath(inputfile, context) };
 
         var plugindir = Path.GetDirectoryName(exepath)!;
         var veeeoutdir = Path.Combine(plugindir, "out");
@@ -41,7 +42,8 @@ public class VeeeVectorize : PluginAction<VeeeVectorizeInfo>
         Directory.CreateDirectory(veeeoutdir);
         File.WriteAllText(Path.Combine(plugindir, "config.xml"), GetConfig(inputfile, data.Lod, context));
 
-        await new NodeProcess(exepath, args, context).WithWineSupport().Execute();
+        await new ProcessLauncher(exepath, inputfile) { WineSupport = true, Logging = { Logger = context } }
+            .ExecuteAsync();
 
         Directory.Delete(outputdir, true);
         try { Directory.Move(veeeoutdir, outputdir); }

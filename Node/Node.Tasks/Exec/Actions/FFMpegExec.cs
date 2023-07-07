@@ -20,14 +20,18 @@ public static class FFMpegExec
         }
 
 
-        async Task<ReadOnlyTaskFileList> start(IEnumerable<string> args)
+        async Task<ReadOnlyTaskFileList> start(IEnumerable<string> arguments)
         {
             var duration = TimeSpan.FromSeconds(ffprobe.Format.Duration);
             context.LogInfo($"{inputfile} duration: {duration} x{argholder.Rate}");
             duration /= argholder.Rate;
 
             var prevfiles = Directory.GetFiles(Path.GetDirectoryName(outputfilename)!);
-            await new NodeProcess(context.GetPlugin(PluginType.FFmpeg).Path, args, context, onRead, stderr: LogLevel.Trace).Execute();
+
+            await new ProcessLauncher(context.GetPlugin(PluginType.FFmpeg).Path, arguments) { ThrowOnStdErr = false, Logging = { Logger = context } }
+                .AddOnRead(onRead)
+                .ExecuteAsync();
+
             var newfiles = Directory.GetFiles(Path.GetDirectoryName(outputfilename)!).Except(prevfiles);
 
             return new ReadOnlyTaskFileList(newfiles.Select(FileWithFormat.FromFile));

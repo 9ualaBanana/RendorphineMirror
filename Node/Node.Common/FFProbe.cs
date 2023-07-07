@@ -7,17 +7,17 @@ public static class FFProbe
         // TODO:: get from plugin list
         var ffprobe = File.Exists("/bin/ffprobe") ? "/bin/ffprobe" : "assets/ffprobe.exe";
 
-        var args = new[]
-        {
-            $"-hide_banner",
-            $"-v", $"quiet",
-            $"-print_format", $"json",
-            $"-show_streams",
-            $"-show_format",
-            file,
-        };
+        var str = await new ProcessLauncher(ffprobe) { Logging = { Logger = logobj } }
+            .WithArgs(args => args.Add(
+                $"-hide_banner",
+                $"-v", $"quiet",
+                $"-print_format", $"json",
+                $"-show_streams",
+                $"-show_format",
+                file
+            ))
+            .ExecuteFullAsync();
 
-        var str = await new NodeProcess(ffprobe, args, logobj).FullExecute();
         return JsonConvert.DeserializeObject<FFProbeInfo>(str) ?? throw new Exception($"Could not parse ffprobe output: {str}");
     }
 

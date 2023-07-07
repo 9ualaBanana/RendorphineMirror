@@ -4,10 +4,11 @@ namespace Node.Common;
 
 public class NodeProcessException : Exception
 {
-    public int ExitCode { get; }
+    public int ExitCode => Process.ExitCode;
+    readonly Process Process;
 
-    public NodeProcessException(int exitcode) => ExitCode = exitcode;
-    public NodeProcessException(int exitcode, string? message) : base(message) => ExitCode = exitcode;
-    public NodeProcessException(int exitcode, string? message, Exception? innerException) : base(message, innerException) => ExitCode = exitcode;
-    protected NodeProcessException(int exitcode, SerializationInfo info, StreamingContext context) : base(info, context) => ExitCode = exitcode;
+    public NodeProcessException(Process process) => Process = process;
+    public NodeProcessException(Process process, string? message) : base(message) => Process = process;
+    public NodeProcessException(Process process, string? message, Exception? innerException) : base(message, innerException) => Process = process;
+    protected NodeProcessException(Process process, SerializationInfo info, StreamingContext context) : base(info, context) => Process = process;
 }
