@@ -34,4 +34,19 @@ public class TrialUsersMediatorClient
             .Content.ReadAsStringAsync();
         return sessionId;
     }
+
+    internal async Task TryReduceQuotaAsync(string taskAction, string chatId, string userId)
+    {
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+
+            new UriBuilder()
+            {
+                Path = new PathString("/try_reduce_quota").ToUriComponent(),
+                Query = QueryString.Create(new Dictionary<string, string?>()
+                { ["taskaction"] = taskAction, ["identifier"] = chatId, ["platform"] = 0.ToString(), ["userid"] = userId }).ToUriComponent()
+            }.Uri.PathAndQuery);
+
+        await _httpClient.SendAsync(request);
+    }
 }
