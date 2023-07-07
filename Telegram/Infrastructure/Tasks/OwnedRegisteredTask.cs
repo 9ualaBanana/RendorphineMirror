@@ -1,9 +1,8 @@
-﻿using Telegram.Bot;
-using Telegram.Infrastructure.Bot;
+﻿using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Infrastructure.Tasks;
 
-internal record OwnedRegisteredTask(TypedRegisteredTask Task, TelegramBot.User Owner)
+internal record OwnedRegisteredTask(TypedRegisteredTask _, TelegramBot.User Owner)
 {
 }
 

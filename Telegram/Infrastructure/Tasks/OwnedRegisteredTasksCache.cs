@@ -6,7 +6,7 @@ namespace Telegram.Infrastructure.Tasks;
 
 /// <summary>
 /// Cache for storing instances of <see cref="TypedRegisteredTask"/> with their <see cref="OwnedRegisteredTask.Owner"/>
-/// represented as <see cref="TelegramBotUser"/>.
+/// represented as <see cref="TelegramBot.User"/>.
 /// </summary>
 public class OwnedRegisteredTasksCache
 {
@@ -16,7 +16,7 @@ public class OwnedRegisteredTasksCache
     readonly static ILogger _logger = LogManager.GetCurrentClassLogger();
 
     internal void Add(OwnedRegisteredTask ownedRegisteredTask)
-        => _ownedRegisteredTasksCache.Add(ownedRegisteredTask.Task, ownedRegisteredTask.Owner);
+        => _ownedRegisteredTasksCache.Add(ownedRegisteredTask._, ownedRegisteredTask.Owner);
 
     internal OwnedRegisteredTask Retrieve(TypedRegisteredTask registeredTask)
     {
