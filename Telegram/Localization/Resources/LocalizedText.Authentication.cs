@@ -17,6 +17,8 @@ public abstract partial class LocalizedText
 
         internal string BrowserAuthenticationButton => Localizer[nameof(BrowserAuthenticationButton)];
 
+        internal string LoginAsGuestButton => Localizer[nameof(LoginAsGuestButton)];
+
         internal string Balance(int balance) => Localizer[nameof(Balance), balance];
 
         internal string Failure => Localizer[nameof(Failure)];

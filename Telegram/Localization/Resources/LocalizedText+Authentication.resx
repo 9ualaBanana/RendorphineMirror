@@ -138,6 +138,9 @@
   <data name="LoggedOut" xml:space="preserve">
     <value>You are logged out now.</value>
   </data>
+  <data name="LoginAsGuestButton" xml:space="preserve">
+    <value>Login as Guest</value>
+  </data>
   <data name="Start" xml:space="preserve">
     <value>Welcome!
 You need to have a registered M+ account to proceed.

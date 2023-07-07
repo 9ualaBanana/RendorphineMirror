@@ -15,7 +15,8 @@ public class TrialUsersMediatorClient
         _options = options.Value;
     }
 
-    internal async Task AuthenticateAsync(
+    /// <returns>M+ session ID of a user authenticated using provided arguments.</returns>
+    internal async Task<string> AuthenticateAsync(
         string chatId,
         TelegramBot.User.LoginWidgetData telegramUserLoginWidgetData)
     {
@@ -26,8 +27,11 @@ public class TrialUsersMediatorClient
             {
                 Path = new PathString("/authenticate/telegram_user").ToUriComponent(),
                 Query = telegramUserLoginWidgetData.ToQueryString().Add("chatid", chatId).ToUriComponent(),
-            }.Uri.PathAndQuery
-            );
-        await _httpClient.SendAsync(authenticationRequest);
+            }.Uri.PathAndQuery);
+
+        string sessionId = await
+            (await _httpClient.SendAsync(authenticationRequest))
+            .Content.ReadAsStringAsync();
+        return sessionId;
     }
 }

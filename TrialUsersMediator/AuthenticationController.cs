@@ -9,14 +9,16 @@ namespace TrialUsersMediator;
 public class AuthenticationController : ControllerBase
 {
     readonly TrialUsersDbContext _database;
+    readonly TrialUser.Identity _identity;
 
-    public AuthenticationController(TrialUsersDbContext database)
+    public AuthenticationController(TrialUsersDbContext database, TrialUser.Identity identity)
     {
         _database = database;
+        _identity = identity;
     }
 
     [HttpGet("telegram_user")]
-    public async Task Authenticate(
+    public async Task<string> Authenticate(
         [FromQuery] long chatId,
         [FromQuery] TelegramBot.User.LoginWidgetData telegramLoginWidgetData)
     {
@@ -29,5 +31,7 @@ public class AuthenticationController : ControllerBase
             Quota_ = new TrialUser.Quota<TaskAction>.Entity(quota)
         });
         await _database.SaveChangesAsync();
+
+        return _identity._.SessionId;
     }
 }
