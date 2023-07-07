@@ -3,9 +3,9 @@ using Telegram.MPlus.Clients;
 
 namespace Telegram.MPlus;
 
-static class MPlusExtensions
+public static class MPlusExtensions
 {
-    internal static IServiceCollection AddMPlusClient(this IServiceCollection services)
+    public static IServiceCollection AddMPlusClient(this IServiceCollection services)
     {
         services.AddHttpClient<MPlusTaskManagerClient>();
         services.AddHttpClient<MPlusTaskLauncherClient>();

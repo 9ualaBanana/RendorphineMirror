@@ -2,7 +2,7 @@
 
 namespace Telegram.MPlus.Security;
 
-internal record MPlusPublicSessionInfo(
+public record MPlusPublicSessionInfo(
     [JsonProperty(PropertyName = "sid")] string SessionId,
     [JsonProperty(PropertyName = "guid")] string Guid,
     [JsonProperty(PropertyName = "userid")] string UserId,

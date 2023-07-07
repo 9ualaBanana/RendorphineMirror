@@ -1,8 +1,13 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.MPlus;
 using TrialUsersMediator;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<TrialUsersDbContext>();
+builder.Services.AddMPlusClient();
+builder.Services.TryAddSingleton<TrialUser.Identity>();
+builder.Services.AddScoped<TrialUserMediator.Client>();
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
@@ -15,5 +20,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+    await scope.ServiceProvider.GetRequiredService<TrialUserMediator.Client>().InitializeAsync();
 
 app.Run("https://localhost:7000");

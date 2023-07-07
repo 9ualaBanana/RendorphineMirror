@@ -4,7 +4,7 @@ namespace Telegram.MPlus.Files;
 
 /// <summary>Represents info for a file stored on M+.</summary>
 /// <remarks>Unserialized info can be accessed via indexer.</remarks>
-internal class MPlusFileInfo
+public class MPlusFileInfo
 {
     readonly JToken _json;
 

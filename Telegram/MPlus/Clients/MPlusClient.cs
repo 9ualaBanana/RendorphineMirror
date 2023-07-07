@@ -5,8 +5,8 @@ namespace Telegram.MPlus.Clients;
 
 public class MPlusClient
 {
-    internal readonly MPlusTaskManagerClient TaskManager;
-    internal readonly MPlusTaskLauncherClient TaskLauncher;
+    public readonly MPlusTaskManagerClient TaskManager;
+    public readonly MPlusTaskLauncherClient TaskLauncher;
 
     public MPlusClient(MPlusTaskManagerClient taskManager, MPlusTaskLauncherClient taskLauncher)
     {
@@ -14,13 +14,13 @@ public class MPlusClient
         TaskLauncher = taskLauncher;
     }
 
-    internal async Task<TaskResultFromMPlus> RequestTaskResultAsyncUsing(
+    public async Task<TaskResultFromMPlus> RequestTaskResultAsyncUsing(
         ExecutedTaskApi executedTaskApi,
         MPlusFileAccessor fileAccessor,
         CancellationToken cancellationToken)
         => await RequestTaskResultAsyncUsing(Apis.DefaultWithSessionId(fileAccessor.SessionId), executedTaskApi, fileAccessor, cancellationToken);
 
-    internal async Task<TaskResultFromMPlus> RequestTaskResultAsyncUsing(
+    public async Task<TaskResultFromMPlus> RequestTaskResultAsyncUsing(
         Apis api,
         ExecutedTaskApi executedTaskApi,
         MPlusFileAccessor fileAccessor,
@@ -35,6 +35,6 @@ public class MPlusClient
         return TaskResultFromMPlus.Create(executedTaskApi, fileInfo, downloadLink, previewDownloadLink);
     }
 
-    internal async Task<Uri> RequestFileDownloadLinkUsing(Apis api, ExecutedTaskApi executedTaskApi, MPlusFileAccessor fileAccessor, Extension extension)
+    public async Task<Uri> RequestFileDownloadLinkUsing(Apis api, ExecutedTaskApi executedTaskApi, MPlusFileAccessor fileAccessor, Extension extension)
         => new Uri((await api.GetMPlusItemDownloadLinkAsync(executedTaskApi, fileAccessor.Iid, extension)).ThrowIfError());
 }

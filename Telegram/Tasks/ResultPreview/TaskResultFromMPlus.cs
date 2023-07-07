@@ -9,7 +9,7 @@ namespace Telegram.Tasks.ResultPreview;
 /// <remarks>
 /// Implicitly convertible to <see cref="InputOnlineFile"/>.
 /// </remarks>
-internal abstract record TaskResultFromMPlus
+public abstract record TaskResultFromMPlus
 {
     /// <inheritdoc cref="MPlusFileInfo"/>
     internal readonly MPlusFileInfo FileInfo;
