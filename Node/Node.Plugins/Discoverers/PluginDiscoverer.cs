@@ -59,7 +59,12 @@ internal abstract class PluginDiscoverer : IPluginDiscoverer
                 )
                 .Where(file => RegexExecutable?.IsMatch(Path.GetFileName(file)) ?? true)
             )
-            .Where(path => Environment.OSVersion.Platform == PlatformID.Win32NT ? true : AllowExeOnLinux || !path.EndsWith(".exe"))
+            .Where(path =>
+            {
+                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                    return Path.GetExtension(path) != string.Empty;
+                return AllowExeOnLinux || !path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+            })
             .Select(GetDiscoveredPlugin)
             // skip same versions unless it's unknown
             .DistinctBy(plugin => plugin.Version == "Unknown" ? Guid.NewGuid().ToString() : plugin.Version);
