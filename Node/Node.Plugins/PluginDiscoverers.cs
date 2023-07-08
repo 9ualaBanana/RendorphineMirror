@@ -18,6 +18,7 @@ public static class PluginDiscoverers
             new RobustVideoMattingPluginDiscoverer(),
             new VeeeVectorizerPluginDiscoverer(),
             new NvidiaDriverPluginDiscoverer(),
+            new DotnetRuntimePluginDiscoverer(),
             new CondaPluginDiscoverer()
         };
 }
