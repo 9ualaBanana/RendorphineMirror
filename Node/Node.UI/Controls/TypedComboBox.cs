@@ -20,6 +20,8 @@ public class TypedComboBox<T> : ComboBox, IStyleable
 {
     Type IStyleable.StyleKey => typeof(ComboBox);
 
+    public new IEnumerable<T> Items { get => (IEnumerable<T>) base.Items; set => base.Items = value; }
+
     public new T SelectedItem =>
         typeof(T).IsEnum
         ? (T) Enum.Parse(typeof(T), base.SelectedItem!.ToString()!)

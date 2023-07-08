@@ -79,11 +79,15 @@ public class PluginsTab : Panel
             var stats = NodeGlobalState.Instance.Software.GetBoundCopy();
             GCBindable = stats;
 
-            var versionslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
+            var versionslist = TypedComboBox.Create(Array.Empty<PluginVersion>()).With(c => c.MinWidth = 100);
             versionslist.SelectedIndex = 0;
 
             var pluginslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
-            pluginslist.SelectionChanged += (obj, e) => versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem ?? "")?.Versions.Keys.ToArray() ?? Array.Empty<PluginVersion>();
+            pluginslist.SelectionChanged += (obj, e) =>
+            {
+                versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem ?? "")?.Versions.Keys.ToArray() ?? Array.Empty<PluginVersion>();
+                versionslist.SelectedIndex = 0;
+            };
             pluginslist.SelectedIndex = 0;
 
             stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = stats.Value.Keys.ToArray()), true);
@@ -93,7 +97,7 @@ public class PluginsTab : Panel
                 Text = "Install",
                 OnClickSelf = async self =>
                 {
-                    var res = await LocalApi.Default.Get("deploy", "Installing plugin", ("type", pluginslist.SelectedItem), ("version", versionslist.SelectedItem));
+                    var res = await LocalApi.Default.Get("deploy", "Installing plugin", ("type", pluginslist.SelectedItem), ("version", versionslist.SelectedItem.ToString()));
                     await self.FlashErrorIfErr(res);
                 },
             };
@@ -131,7 +135,7 @@ public class PluginsTab : Panel
             };
             pluginslist.SelectedIndex = 0;
 
-            Stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = Stats.Value.Keys.ToArray()), true);
+            Stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = Stats.Value.Keys.Select(Enum.Parse<PluginType>).ToArray()), true);
 
 
             var stack = new StackPanel()
