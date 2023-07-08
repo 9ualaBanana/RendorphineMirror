@@ -29,7 +29,7 @@ namespace Node.UI.Pages
             tabs.Add("tab.plugins", new PluginsTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
-            if (Init.DebugFeatures) tabs.Add("registry", new RegistryTab());
+            if (Init.DebugFeatures) tabs.Add("registry", new JsonRegistryTab());
             tabs.Add("cgtraderupload", new CGTraderUploadTab());
             tabs.Add("3dupload", new ModelUploader());
 

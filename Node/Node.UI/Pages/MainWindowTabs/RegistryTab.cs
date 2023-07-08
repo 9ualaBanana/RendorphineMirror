@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Node.UI.Pages.MainWindowTabs;
 
+[Obsolete("Disabled until stuff gets fixed")]
 public class RegistryTab : Panel
 {
     public RegistryTab() => Reload().Consume();

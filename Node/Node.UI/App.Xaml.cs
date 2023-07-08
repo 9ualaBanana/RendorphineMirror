@@ -32,11 +32,17 @@ namespace Node.UI
                 else UISettings.Language = LocalizedString.Locale;
 
                 this.InitializeTrayIndicator();
-                NodeStateUpdater.Start();
-
                 MainTheme.Apply(Resources, Styles);
 
+                if (Environment.GetCommandLineArgs().Contains("registryeditor"))
+                {
+                    desktop.MainWindow = new Window() { Content = new Pages.MainWindowTabs.JsonRegistryTab(), };
+                    return;
+                }
+
+                NodeStateUpdater.Start();
                 NodeGlobalState.Instance.BAuthInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
+
                 if (!Environment.GetCommandLineArgs().Contains("hidden"))
                     SetMainWindow(desktop);
             }

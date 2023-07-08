@@ -62,12 +62,12 @@
             "stopAtEntry": false
         },
         {
-            "name": "Node.UI_hidden",
+            "name": "Node.UI_registry",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "buildnodeui",
             "program": "${workspaceFolder}/Node/Node.UI/bin/Debug/net7.0/Node.UI.dll",
-            "args": [ "hidden" ],
+            "args": [ "registryeditor" ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
