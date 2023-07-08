@@ -10,4 +10,5 @@ public enum TaskAction
     VeeeVectorize,
     GreenscreenBackground,
     GenerateTitleKeywords,
+    GenerateImageByMeta,
 }

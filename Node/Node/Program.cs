@@ -243,7 +243,8 @@ async Task InitializePlugins()
         new GreenscreenBackground(),
         new VeeeVectorize(),
         new GenerateQSPreview(),
-        new GenerateTitleKeywords()
+        new GenerateTitleKeywords(),
+        new GenerateImageByMeta()
     );
 
     TaskHandler.AutoInitializeHandlers();

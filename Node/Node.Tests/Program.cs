@@ -14,16 +14,17 @@ Init.Initialize();
 var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
 await pluginManager.RediscoverPluginsAsync();
 
-await DeployPluginCondaOnly(pluginManager, PluginType.Esrgan, PluginVersion.Empty);
+// await DeployPluginCondaOnly(pluginManager, PluginType.Esrgan, PluginVersion.Empty);
 
-/*
 await TestTaskExecution(
     pluginManager,
-    new EsrganUpscale(),
-    new UpscaleEsrganInfo(),
-    new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/temp/file.mov") })
+    new GenerateImageByMeta(),
+    new GenerateImageByMetaInfo("StableDiffusion") { },
+    new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())
+    {
+        OutputJson = JToken.FromObject(new GenerateImageByMetaInputInfo("Heat death of the universe")),
+    }
 );
-*/
 
 // await TestTasksExecution(pluginManager);
 
