@@ -18,4 +18,5 @@ public enum PluginType
     NvidiaDriver,
     Conda,
     DotnetRuntime,
+    Git,
 }

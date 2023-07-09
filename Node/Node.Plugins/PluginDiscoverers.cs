@@ -19,6 +19,7 @@ public static class PluginDiscoverers
             new VeeeVectorizerPluginDiscoverer(),
             new NvidiaDriverPluginDiscoverer(),
             new DotnetRuntimePluginDiscoverer(),
+            new GitPluginDiscoverer(),
             new CondaPluginDiscoverer()
         };
 }
