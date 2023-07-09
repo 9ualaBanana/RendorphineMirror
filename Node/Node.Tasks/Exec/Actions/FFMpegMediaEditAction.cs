@@ -1,50 +1,5 @@
 namespace Node.Tasks.Exec.Actions;
 
-public class FFMpegCrop
-{
-    public int X, Y, W, H;
-}
-public class FFMpegSpeed
-{
-    [JsonProperty("spd")]
-    [Default(1d)]
-    public double Speed;
-
-    [JsonProperty("interp")]
-    [Default(false)]
-    public bool Interpolated;
-}
-public abstract class MediaEditInfo
-{
-    public FFMpegCrop? Crop;
-
-    [Default(false)]
-    public bool? Hflip;
-
-    [Default(false)]
-    public bool? Vflip;
-
-    [JsonProperty("bri")]
-    [Default(0), Ranged(-1, 1)]
-    public double? Brightness;
-
-    [JsonProperty("sat")]
-    [Default(1), Ranged(0, 3)]
-    public double? Saturation;
-
-    [JsonProperty("con")]
-    [Default(1), Ranged(-1000, 1000)]
-    public double? Contrast;
-
-    [JsonProperty("gam")]
-    [Default(1), Ranged(.1, 10)]
-    public double? Gamma;
-
-    [JsonProperty("rot")]
-    [Default(0), Ranged(-Math.PI * 2, Math.PI * 2)]
-    public double? RotationRadians;
-}
-
 public abstract class FFMpegMediaEditAction<T> : FFMpegAction<T> where T : MediaEditInfo
 {
     protected override void ConstructFFMpegArguments(ITaskExecutionContext context, T data, FFMpegArgsHolder args)

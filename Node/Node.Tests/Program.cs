@@ -5,6 +5,7 @@ using Node.Tasks;
 using Node.Tasks.Exec;
 using Node.Tasks.Exec.Actions;
 using Node.Tasks.Models;
+using Node.Tasks.Models.ExecInfo;
 using NodeCommon;
 
 
@@ -48,7 +49,7 @@ static async Task TestTasksExecution(PluginManager pluginManager)
 
     await TestTaskExecution(pluginManager, new GenerateQSPreview(), new QSPreviewInfo(), new(new[] { movinput, jpginput }));
     await TestTaskExecution(pluginManager, new EditVideo(), new EditVideoInfo() { CutFramesAt = new double[] { 1, 2, 3, 4 } }, new(new[] { movinput }));
-    await TestTaskExecution(pluginManager, new EsrganUpscale(), new UpscaleEsrganInfo() { X2 = true }, new(new[] { jpginput }));
+    await TestTaskExecution(pluginManager, new EsrganUpscale(), new EsrganUpscaleInfo() { X2 = true }, new(new[] { jpginput }));
 }
 
 

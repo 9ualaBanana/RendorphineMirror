@@ -1,13 +1,5 @@
 namespace Node.Tasks.Exec.Actions;
 
-public class GenerateImageByMetaInfo
-{
-    [Default(ImageGenerationSource.StableDiffusion)]
-    public ImageGenerationSource Source { get; }
-
-    public GenerateImageByMetaInfo(ImageGenerationSource source) => Source = source;
-}
-
 public class GenerateImageByMeta : PluginAction<GenerateImageByMetaInfo>
 {
     public override TaskAction Name => TaskAction.GenerateImageByMeta;

@@ -1,12 +1,5 @@
 namespace Node.Tasks.Exec.Actions;
 
-public record GreenscreenBackgroundColor(byte R, byte G, byte B);
-public class GreenscreenBackgroundInfo
-{
-    [JsonProperty("color")]
-    public GreenscreenBackgroundColor? Color;
-}
-
 public class GreenscreenBackground : PluginAction<GreenscreenBackgroundInfo>
 {
     public override TaskAction Name => TaskAction.GreenscreenBackground;

@@ -1,6 +1,5 @@
 namespace Node.Tasks.Exec.Actions;
 
-public class EditRasterInfo : MediaEditInfo { }
 public class EditRaster : FFMpegMediaEditAction<EditRasterInfo>
 {
     public override TaskAction Name => TaskAction.EditRaster;

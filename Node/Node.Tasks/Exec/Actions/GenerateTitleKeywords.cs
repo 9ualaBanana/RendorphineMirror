@@ -1,14 +1,5 @@
 namespace Node.Tasks.Exec.Actions;
 
-public class GenerateTitleKeywordsInfo
-{
-    [JsonProperty("source")]
-    [Default("ChatGPT")]
-    public string Source { get; }
-
-    public GenerateTitleKeywordsInfo(string source) => Source = source;
-}
-
 public class GenerateTitleKeywords : PluginAction<GenerateTitleKeywordsInfo>
 {
     public override TaskAction Name => TaskAction.GenerateTitleKeywords;

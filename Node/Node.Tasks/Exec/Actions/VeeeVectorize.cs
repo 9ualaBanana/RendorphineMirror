@@ -1,14 +1,5 @@
 namespace Node.Tasks.Exec.Actions;
 
-public class VeeeVectorizeInfo
-{
-    [JsonProperty("lod")]
-    [ArrayRanged(min: 1), Ranged(1, 10_000)]
-    public ImmutableArray<int> Lod;
-
-    public VeeeVectorizeInfo(ImmutableArray<int> lods) => Lod = lods;
-}
-
 public class VeeeVectorize : PluginAction<VeeeVectorizeInfo>
 {
     public override TaskAction Name => TaskAction.VeeeVectorize;

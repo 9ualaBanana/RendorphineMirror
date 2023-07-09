@@ -1,13 +1,6 @@
 namespace Node.Tasks.Exec.Actions;
 
-public class UpscaleEsrganInfo
-{
-    [JsonProperty("x2")]
-    [Default(false)]
-    public bool X2;
-}
-
-public class EsrganUpscale : PluginAction<UpscaleEsrganInfo>
+public class EsrganUpscale : PluginAction<EsrganUpscaleInfo>
 {
     public override TaskAction Name => TaskAction.EsrganUpscale;
     public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.Esrgan);
@@ -15,12 +8,12 @@ public class EsrganUpscale : PluginAction<UpscaleEsrganInfo>
     public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
         new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov }, new[] { FileFormat.Png } };
 
-    protected override OperationResult ValidateOutputFiles(TaskFilesCheckData files, UpscaleEsrganInfo data) =>
+    protected override OperationResult ValidateOutputFiles(TaskFilesCheckData files, EsrganUpscaleInfo data) =>
         files.EnsureSingleInputFile()
         .Next(input => files.EnsureSingleOutputFile()
         .Next(output => TaskRequirement.EnsureSameFormat(output, input)));
 
-    public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, UpscaleEsrganInfo data)
+    public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, EsrganUpscaleInfo data)
     {
         foreach (var file in files.InputFiles)
         {

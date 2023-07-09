@@ -2,8 +2,6 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace Node.Tasks.Exec.Actions;
 
-public class QSPreviewInfo { }
-
 public class GenerateQSPreview : FFMpegActionBase<QSPreviewInfo>
 {
     const int MaximumPixels = 129600;
