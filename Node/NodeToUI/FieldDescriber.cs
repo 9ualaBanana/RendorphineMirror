@@ -166,9 +166,11 @@ public class ObjectDescriber : FieldDescriber
 }
 public class EnumDescriber : FieldDescriber
 {
+    public Type Type { get; init; }
+
     [JsonConstructor]
-    public EnumDescriber(string name, string jsonTypeName) : base(name, jsonTypeName) { }
-    public EnumDescriber(PropInfo prop) : base(prop) { }
+    public EnumDescriber(string name, Type type, string jsonTypeName) : base(name, jsonTypeName) => Type = type;
+    public EnumDescriber(PropInfo prop) : base(prop) => Type = prop.FieldType;
 }
 
 public interface ICollectionDescriber

@@ -471,12 +471,17 @@ public static class JsonUISetting
     }
     class EnumSetting : Setting<EnumDescriber>
     {
+        readonly ComboBox ComboBox;
+
         public EnumSetting(EnumDescriber describer, JProperty property) : base(describer, property)
         {
+            Enum.TryParse(describer.Type, describer.DefaultValue?.Value<string>(), out var def);
 
+            ComboBox = new ComboBox() { Items = Enum.GetValues(describer.Type), SelectedIndex = Enum.GetValues(describer.Type).Cast<object>().ToList().IndexOf(def ?? Enum.GetValues(describer.Type).Cast<object>().First()) };
+            Children.Add(ComboBox);
         }
 
-        public override void UpdateValue() { }
+        public override void UpdateValue() => Set(ComboBox.SelectedItem.ThrowIfNull());
     }
 
     class ObjectSetting : Setting, ISettingContainer
