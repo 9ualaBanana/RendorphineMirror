@@ -11,4 +11,5 @@ public enum TaskAction
     GreenscreenBackground,
     GenerateTitleKeywords,
     GenerateImageByMeta,
+    GenerateImageByPrompt,
 }

@@ -18,12 +18,14 @@ await pluginManager.RediscoverPluginsAsync();
 
 await TestTaskExecution(
     pluginManager,
-    new GenerateImageByMeta(),
-    new GenerateImageByMetaInfo("StableDiffusion") { },
-    new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())
+    new GenerateImageByPrompt(),
+    new GenerateImageByPromptInfo(ImageGenerationSource.StableDiffusion, "White outline of a man looking up at stars standing in water, black and white") { Width = 2560 / 2, Height = 1080 / 2 },
+    // new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())
+    new ReadOnlyTaskFileList(FileWithFormat.FromLocalPath("/home/i3ym/Images/fmn.png"))
+    /*new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())
     {
-        OutputJson = JToken.FromObject(new GenerateImageByMetaInputInfo("Heat death of the universe")),
-    }
+        OutputJson = JToken.FromObject(new { Title = "Heat death of the universe", Keywords = new[] { "universe", "space" } }),
+    }*/
 );
 
 // await TestTasksExecution(pluginManager);

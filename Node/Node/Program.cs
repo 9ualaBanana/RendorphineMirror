@@ -244,7 +244,8 @@ async Task InitializePlugins()
         new VeeeVectorize(),
         new GenerateQSPreview(),
         new GenerateTitleKeywords(),
-        new GenerateImageByMeta()
+        new GenerateImageByMeta(),
+        new GenerateImageByPrompt()
     );
 
     TaskHandler.AutoInitializeHandlers();

@@ -2,11 +2,10 @@ namespace Node.Tasks.Exec.Actions;
 
 public class GenerateImageByMetaInfo
 {
-    [JsonProperty("source")]
-    [Default("StableDiffusion")]
-    public string Source { get; }
+    [Default(ImageGenerationSource.StableDiffusion)]
+    public ImageGenerationSource Source { get; }
 
-    public GenerateImageByMetaInfo(string source) => Source = source;
+    public GenerateImageByMetaInfo(ImageGenerationSource source) => Source = source;
 }
 
 public class GenerateImageByMeta : PluginAction<GenerateImageByMetaInfo>
@@ -22,42 +21,15 @@ public class GenerateImageByMeta : PluginAction<GenerateImageByMetaInfo>
 
     public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, GenerateImageByMetaInfo data)
     {
-        var sdcli = context.GetPlugin(PluginType.StableDiffusion);
-        var info = files.InputFiles.OutputJson.ThrowIfNull().ToObject<GenerateImageByMetaInputInfo>().ThrowIfNull();
+        // TODO:: TEMPORARY AND WILL BE REFACTORED
+        var title = (files.InputFiles.OutputJson?["Title"]?.Value<string>()).ThrowIfNull();
+        var keywords = (files.InputFiles.OutputJson?["Keywords"]?.ToObject<string[]>()).ThrowIfNull();
 
-        await new ProcessLauncher(sdcli.Path) { ThrowOnStdErr = false, Logging = { Logger = context } }
-            .WithArgs(args =>
-            {
-                args.Add("gen", "txt2img");
-
-                args.Add("-p", info.Prompt);
-                args.Add("-o", files.OutputFiles.New().New(FileFormat.Png).Path);
-
-                args.AddArgumentIfNotNull("-n", info.NegativePrompt);
-                args.AddArgumentIfNotNull("-w", info.Width);
-                args.AddArgumentIfNotNull("-h", info.Height);
-                args.AddArgumentIfNotNull("-s", info.Seed);
-            })
-            .AddOnOut(onread)
-            .AddOnErr(onerr)
-            .ExecuteAsync();
-
-
-        void onread(string line)
+        var launchinfo = new StableDiffusionLaunchInfo()
         {
-            if (line.StartsWith("Unhandled exception: ", StringComparison.Ordinal))
-                throw new Exception(line);
+            Prompt = $"{title}, {string.Join(", ", keywords)}",
+        };
 
-            if (!line.StartsWith("Progress: ", StringComparison.Ordinal)) return;
-
-            var progress = int.Parse(line.AsSpan()["Progress: ".Length..^"%".Length], CultureInfo.InvariantCulture) / 100d;
-            context.SetProgress(progress);
-        }
-        void onerr(string line)
-        {
-            if (line == "Process not running, starting") return;
-
-            throw new Exception(line);
-        }
+        await StableDiffusionLauncher.LaunchTxt2ImgAsync(context, launchinfo, files.OutputFiles.New());
     }
 }
