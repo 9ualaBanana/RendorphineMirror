@@ -24,7 +24,7 @@ public interface ITaskExecutionContext : ILoggable
 public static class TaskExecutionContextExtensions
 {
     public static Plugin GetPlugin(this ITaskExecutionContext context, PluginType type) =>
-        context.Plugins.First(p => p.Type == type);
+        context.TryGetPlugin(type).ThrowIfNull();
     public static Plugin? TryGetPlugin(this ITaskExecutionContext context, PluginType type) =>
-        context.Plugins.FirstOrDefault(p => p.Type == type);
+        context.Plugins.Where(p => p.Type == type).MaxBy(p => p.Version);
 }
