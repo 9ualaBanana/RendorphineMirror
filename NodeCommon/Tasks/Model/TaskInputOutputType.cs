@@ -6,6 +6,7 @@ namespace NodeCommon.Tasks.Model;
 [JsonConverter(typeof(StringEnumConverter))]
 public enum TaskInputType
 {
+    Stub,
     MPlus,
     DownloadLink,
     Torrent,
