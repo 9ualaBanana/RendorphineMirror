@@ -24,9 +24,9 @@ public static class ApisExtensions
                 NodeSettings.QueuedTasks.Save(rtask);
             return true;
         });
-    public static async ValueTask<OperationResult> FailTaskAsync(this IRegisteredTaskApi task, string errorMessage)
+    public static async ValueTask<OperationResult> FailTaskAsync(this IRegisteredTaskApi task, string errmsg, string fullerrmsg)
     {
-        var fail = await Apis.FailTaskAsync(task, errorMessage);
+        var fail = await Apis.FailTaskAsync(task, errmsg, fullerrmsg);
         if (!fail && fail.Message?.Contains("invalid old task state", StringComparison.OrdinalIgnoreCase) == true)
             return true;
 

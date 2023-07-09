@@ -264,21 +264,18 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
             .Next(state => state.ThrowIfNull($"Task {task.Id} is already completed").AsOpResult());
 
 
-    public ValueTask<OperationResult> FailTaskAsync(IRegisteredTaskApi task, string errorMessage) => ChangeStateAsync(task, TaskState.Failed, errorMessage);
-    public ValueTask<OperationResult> ChangeStateAsync(IRegisteredTaskApi task, TaskState state) => ChangeStateAsync(task, state, null);
-    async ValueTask<OperationResult> ChangeStateAsync(IRegisteredTaskApi task, TaskState state, string? errorMessage)
+    public ValueTask<OperationResult> FailTaskAsync(IRegisteredTaskApi task, string errmsg, string fullerrmsg) => ChangeStateAsync(task, TaskState.Failed, errmsg, fullerrmsg);
+    public ValueTask<OperationResult> ChangeStateAsync(IRegisteredTaskApi task, TaskState state) => ChangeStateAsync(task, state, null, null);
+    async ValueTask<OperationResult> ChangeStateAsync(IRegisteredTaskApi task, TaskState state, string? errmsg, string? fullerrmsg)
     {
         (task as ILoggable)?.LogInfo($"Changing state to {state}");
 
 
         var data = AddSessionId(("taskid", task.Id), ("newstate", state.ToString().ToLowerInvariant()));
-        if (errorMessage is not null)
-        {
-            if (state != TaskState.Failed)
-                throw new ArgumentException($"Could not provide {nameof(errorMessage)} for task state {state}");
-
-            data = data.Append(("errormessage", errorMessage)).ToArray();
-        }
+        if (errmsg is not null)
+            data = data.Append(("errormessage", errmsg)).ToArray();
+        if (fullerrmsg is not null)
+            data = data.Append(("fullerrmsg", fullerrmsg)).ToArray();
 
         var result = await ShardGet(task, "mytaskstatechanged", "Changing task state", data).ConfigureAwait(false);
 

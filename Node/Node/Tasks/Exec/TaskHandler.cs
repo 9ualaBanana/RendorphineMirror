@@ -278,7 +278,7 @@ public static class TaskHandler
             }
             catch (NodeTaskFailedException ex)
             {
-                await fail(ex.Message);
+                await fail(ex.Message, $"at {ex.TargetSite}; {ex}");
                 return;
             }
             catch (Exception ex)
@@ -290,21 +290,13 @@ public static class TaskHandler
             }
         }
 
-        var exstr = null as string;
-        if (lastexception is not null)
+        await fail($"Ran out of attempts: {lastexception?.Message}", $"at {lastexception?.TargetSite}; {lastexception}");
+
+
+        async ValueTask fail(string errmsg, string fullerrmsg)
         {
-            exstr = $": [{lastexception.GetType().Name}] {lastexception.Message}";
-            if (lastexception.TargetSite is not null)
-                exstr += $"\nat [{lastexception.TargetSite.DeclaringType}] {lastexception.TargetSite}\n{lastexception.StackTrace}";
-        }
-
-        await fail($"Ran out of attempts{exstr}");
-
-
-        async ValueTask fail(string message)
-        {
-            task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {message}");
-            await task.FailTaskAsync(message).ThrowIfError();
+            task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {fullerrmsg}");
+            await task.FailTaskAsync(errmsg, fullerrmsg).ThrowIfError();
 
             /*
             task.LogInfo($"Deleting {task.FSInputDirectory()} {task.FSOutputDirectory()}");
