@@ -105,7 +105,7 @@ public static class FFMpegExec
                     // and we can't trust ffmpeg to keep the same quality, so we just use h264
                     // except prores, it does not like to be converted to h264, "non-existing PPS 0 referenced" blablabla
 
-                    "prores" => new[]
+                    "prores" when argholder.HighQuality => new[]
                     {
                         "-c:v", "prores",
                         "-qscale:v", "1", // best quality

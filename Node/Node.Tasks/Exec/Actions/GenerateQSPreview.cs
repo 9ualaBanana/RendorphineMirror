@@ -94,8 +94,8 @@ public class GenerateQSPreview : FFMpegActionBase<QSPreviewInfo>
         // enable streaming
         args.Args.Add("-movflags", "faststart");
 
-        // decrease bitrate
-        args.Args.Add("-cq:v", "25");
+        // color format in case of conversion from prores
+        args.Args.Add("-pix_fmt", "yuv420p");
 
 
         var graph = "";
