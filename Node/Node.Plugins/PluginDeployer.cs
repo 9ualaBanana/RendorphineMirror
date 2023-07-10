@@ -49,6 +49,8 @@ public class PluginDeployer
             InstallWithPowershell(type, version, installation.Script);
         if (installation.CondaEnvInfo is not null)
             InstallWithConda(type, version, installation.CondaEnvInfo);
+
+        Logger.Info($"Installed {type} {version}");
     }
 
     static void InstallWithPowershell(PluginType type, PluginVersion version, string script)
@@ -87,7 +89,7 @@ public class PluginDeployer
     }
     void InstallWithConda(PluginType type, PluginVersion version, SoftwareCondaEnvInfo info)
     {
-        var name = $"{type}_{version}";
+        var name = $"{type.ToString().ToLowerInvariant()}_{version}";
         var condapath = InstalledPlugins.Plugins.First(p => p.Type == PluginType.Conda).Path;
 
         CondaManager.InitializeEnvironment(condapath, name, info.PythonVersion, info.Requirements, info.Channels, info.PipRequirements);

@@ -8,7 +8,7 @@ public static class CondaInvoker
     {
         var plugin = context.GetPlugin(pltype);
 
-        var envname = $"{plugin.Type}_{plugin.Version}";
+        var envname = $"{plugin.Type.ToString().ToLowerInvariant()}_{plugin.Version}";
         if (!CondaManager.IsEnvironmentCreated(envname))
             throw new Exception($"Conda environment {envname} was not created");
 
