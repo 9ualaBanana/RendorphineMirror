@@ -51,7 +51,9 @@ public class ProcessLauncher
 
     Process Start(out Task readingtask)
     {
-        var procinfo = new ProcessStartInfo(WineSupport ? "wine" : Executable)
+        var winesupport = WineSupport && Environment.OSVersion.Platform == PlatformID.Unix;
+
+        var procinfo = new ProcessStartInfo(winesupport ? "wine" : Executable)
         {
             WindowStyle = ProcessWindowStyle.Hidden,
             CreateNoWindow = true,
@@ -60,7 +62,7 @@ public class ProcessLauncher
             RedirectStandardError = true,
         };
 
-        if (WineSupport)
+        if (winesupport)
             procinfo.ArgumentList.Add(Executable);
         foreach (var arg in Arguments)
             procinfo.ArgumentList.Add(arg);
