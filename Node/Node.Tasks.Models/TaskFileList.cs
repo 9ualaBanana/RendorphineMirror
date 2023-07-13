@@ -34,6 +34,9 @@ public class TaskFileList : ReadOnlyTaskFileList
     public void Add(FileWithFormat file) => Files.Add(file);
     public FileWithFormat New(FileFormat format, string? filename = null)
     {
+        if (filename is not null && Path.GetExtension(filename) == string.Empty)
+            filename += format.AsExtension();
+
         // use input file name if there is only one input file
         filename ??= ((InputFiles is { Count: 1 } ? Path.GetFileNameWithoutExtension(InputFiles.Single().Path) : "file") + format.AsExtension());
         filename = Path.Combine(Directory, Path.GetFileName(filename));

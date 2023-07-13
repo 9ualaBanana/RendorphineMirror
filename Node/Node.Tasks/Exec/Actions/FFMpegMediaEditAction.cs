@@ -1,10 +1,35 @@
 namespace Node.Tasks.Exec.Actions;
 
-public abstract class FFMpegMediaEditAction<T> : FFMpegAction<T> where T : MediaEditInfo
+public abstract class FFMpegMediaEditAction<T> : PluginAction<T> where T : MediaEditInfo
 {
-    protected override void ConstructFFMpegArguments(ITaskExecutionContext context, T data, FFMpegArgsHolder args)
+    protected static NumberFormatInfo NumberFormat => NumberFormats.Normal;
+    protected static NumberFormatInfo NumberFormatNoDecimalLimit => NumberFormats.NoDecimalLimit;
+
+    public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.FFmpeg);
+
+    public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, T data)
     {
-        var filters = args.Filtergraph;
+        foreach (var input in files.InputFiles)
+        {
+            var ffprobe = await FFProbe.Get(input.Path, context);
+
+            var launcher = new FFmpegLauncher(context.GetPlugin(PluginType.FFmpeg).Path)
+            {
+                Logger = context,
+                ProgressSetter = new TaskExecutionContextProgressSetterAdapter(context),
+                Input = { input.Path },
+            };
+
+            AddFilters(data, files.OutputFiles, input, ffprobe, launcher);
+            await launcher.Execute();
+        }
+    }
+
+    protected virtual void AddFilters(T data, TaskFileListList output, FileWithFormat input, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
+    {
+        var filters = launcher.VideoFilters;
+
+        if (data.Crop is not null) filters.Add($"crop={data.Crop.W.ToString(NumberFormat)}:{data.Crop.H.ToString(NumberFormat)}:{data.Crop.X.ToString(NumberFormat)}:{data.Crop.Y.ToString(NumberFormat)}");
 
         var eq = new List<string>();
         if (data.Brightness is not null) eq.Add($"brightness={data.Brightness.Value.ToString(NumberFormat)}");
@@ -18,16 +43,14 @@ public abstract class FFMpegMediaEditAction<T> : FFMpegAction<T> where T : Media
         if (data.Vflip == true) filters.Add("vflip");
         if (data.RotationRadians is not null)
         {
-            var (w, h) = (args.FFProbe.VideoStream.Width, args.FFProbe.VideoStream.Height);
+            var (w, h) = (ffprobe.VideoStream.Width, ffprobe.VideoStream.Height);
 
             var absCosRA = Math.Abs(Math.Cos(data.RotationRadians.Value));
             var absSinRA = Math.Abs(Math.Sin(data.RotationRadians.Value));
-            var outw = w * absCosRA + h * absSinRA;
-            var outh = w * absSinRA + h * absCosRA;
+            var outw = (w * absCosRA) + (h * absSinRA);
+            var outh = (w * absSinRA) + (h * absCosRA);
 
             filters.Add($"rotate={data.RotationRadians.Value.ToString(NumberFormat)}:ow={((int) outw).ToString(NumberFormat)}:oh={((int) outh).ToString(NumberFormat)}");
         }
-
-        if (data.Crop is not null) filters.AddFirst($"crop={data.Crop.W.ToString(NumberFormat)}:{data.Crop.H.ToString(NumberFormat)}:{data.Crop.X.ToString(NumberFormat)}:{data.Crop.Y.ToString(NumberFormat)}");
     }
 }

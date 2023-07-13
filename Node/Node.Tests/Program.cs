@@ -1,9 +1,12 @@
 ﻿using System.Diagnostics;
+using Node.Common;
 using Node.Plugins;
 using Node.Plugins.Models;
 using Node.Tasks;
 using Node.Tasks.Exec;
 using Node.Tasks.Exec.Actions;
+using Node.Tasks.Exec.FFmpeg;
+using Node.Tasks.Exec.FFmpeg.Codecs;
 using Node.Tasks.Models;
 using Node.Tasks.Models.ExecInfo;
 using NodeCommon;
@@ -15,18 +18,44 @@ Init.Initialize();
 var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
 await pluginManager.RediscoverPluginsAsync();
 
+if (false)
+{
+    var logger = new LoggableLogger(LogManager.GetCurrentClassLogger());
+    var input = FileWithFormat.FromFile("/home/i3ym/Downloads/Telegram Desktop/61dc19f37af4207cb6fb6ebb.mov");
+    var output = new TaskFileList(TempDirFor("ffmpegtest"));
+
+    var context = new TestContext(await pluginManager.RediscoverPluginsAsync());
+
+    var ffprobe = await FFProbe.Get(input.Path, logger);
+    var launcher = new FFmpegLauncher(context.GetPlugin(PluginType.FFmpeg).Path)
+    {
+        Logger = logger,
+        ProgressSetter = new TaskExecutionContextProgressSetterAdapter(context),
+
+        Input = { input.Path },
+        VideoFilters = { "scale=iw/2:ih/2" },
+        Outputs =
+        {
+            new FFmpegLauncherOutput()
+            {
+                Codec = FFmpegLauncher.CodecFromStream(ffprobe.VideoStream),
+                Output = output.New(input.Format, "out_downscaled").Path,
+            },
+        },
+    };
+
+    await launcher.Execute();
+    Debugger.Break();
+}
+
+
 // await DeployPluginCondaOnly(pluginManager, PluginType.Esrgan, PluginVersion.Empty);
 
 await TestTaskExecution(
     pluginManager,
-    new GenerateImageByPrompt(),
-    new GenerateImageByPromptInfo(ImageGenerationSource.StableDiffusion, "White outline of a man looking up at stars standing in water, black and white") { Width = 2560 / 2, Height = 1080 / 2 },
-    // new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())
-    new ReadOnlyTaskFileList(FileWithFormat.FromLocalPath("/home/i3ym/Images/fmn.png"))
-    /*new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())
-    {
-        OutputJson = JToken.FromObject(new { Title = "Heat death of the universe", Keywords = new[] { "universe", "space" } }),
-    }*/
+    new GenerateQSPreview(),
+    new QSPreviewInfo(),
+    new ReadOnlyTaskFileList(FileWithFormat.FromLocalPath("/home/i3ym/workspace/workdir/dead/fish_grill_02.mov"))
 );
 
 // await TestTasksExecution(pluginManager);
@@ -56,16 +85,21 @@ static async Task TestTasksExecution(PluginManager pluginManager)
 // task itself validates input&output files so we don't need to do much here
 static async Task TestTaskExecution<T>(PluginManager pluginManager, PluginAction<T> action, T data, ReadOnlyTaskFileList input)
 {
-    var dir = Path.GetFullPath("temp/" + action.GetType().Name);
-    if (Directory.Exists(dir)) Directory.Delete(dir, true);
-    Directory.CreateDirectory(dir);
-
     var plugins = await pluginManager.GetInstalledPluginsAsync();
 
-    var output = new TaskFileListList(dir);
+    var output = new TaskFileListList(TempDirFor(action.Name.ToString()));
     await action.Execute(new TestContext(plugins), new TaskFiles(input, output), data);
 
     new TestContext(plugins).LogInfo($"!!!                                  {action.GetType().Name} execution completed; Result: [ {string.Join(", ", output.Select(o => $"[{string.Join(", ", o)}]"))}]");
+}
+
+static string TempDirFor(string action)
+{
+    var dir = Path.GetFullPath("temp/" + action);
+    if (Directory.Exists(dir)) Directory.Delete(dir, true);
+    Directory.CreateDirectory(dir);
+
+    return dir;
 }
 
 
