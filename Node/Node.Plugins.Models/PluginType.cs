@@ -5,7 +5,7 @@ public enum PluginType
 {
     FFmpeg,
     DaVinciResolve,
-    TopazGigapixelAI,
+    TopazVideoAI,
     Autodesk3dsMax,
     Blender,
     VeeeVectorizer,
