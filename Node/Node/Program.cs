@@ -237,7 +237,8 @@ async Task InitializePlugins()
     Directory.CreateDirectory("plugins");
 
 
-    TaskList.Add(
+    TaskList.Add(new IPluginAction[]
+    {
         new EditRaster(), new EditVideo(),
         new EsrganUpscale(),
         new GreenscreenBackground(),
@@ -245,8 +246,9 @@ async Task InitializePlugins()
         new GenerateQSPreview(),
         new GenerateTitleKeywords(),
         new GenerateImageByMeta(),
-        new GenerateImageByPrompt()
-    );
+        new GenerateImageByPrompt(),
+        new Topaz(),
+    });
 
     TaskHandler.AutoInitializeHandlers();
 }

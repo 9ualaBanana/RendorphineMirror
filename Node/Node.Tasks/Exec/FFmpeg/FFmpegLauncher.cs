@@ -1,5 +1,12 @@
 namespace Node.Tasks.Exec.FFmpeg;
 
+
+/*
+TODO: copy metadata ?
+-movflags use_metadata_tags
+-map_metadata 0
+-map_metadata:s:v 0:s:v
+*/
 public class FFmpegLauncher
 {
     readonly string Executable;
