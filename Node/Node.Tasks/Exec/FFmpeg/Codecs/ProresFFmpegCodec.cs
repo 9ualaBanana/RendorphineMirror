@@ -11,8 +11,10 @@ public class ProresFFmpegCodec : IFFmpegCodec
     {
         return new ArgList()
         {
-            "-c:v", "prores",
+            "-c:v", "prores_ks",
             "-qscale:v", QScale,
+
+            "-pix_fmt", Profile <= Profiles.HQ ? "yuv422p10le" : "yuv444p10le",
 
             // profile directly affects bitrate
             "-profile:v", ((int) Profile).ToString(CultureInfo.InvariantCulture),

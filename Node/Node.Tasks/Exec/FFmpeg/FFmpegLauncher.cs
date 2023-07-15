@@ -11,6 +11,8 @@ public class FFmpegLauncher
 {
     readonly string Executable;
 
+    public MultiDictionary<string, string> EnvVariables { get; } = new();
+
     public MultiList<string> Input { get; } = new();
     public ArgList VideoFilters { get; } = new();
     public MultiList<string> AudioFilters { get; } = new();
@@ -49,7 +51,7 @@ public class FFmpegLauncher
         {
             await launch(false);
         }
-        catch (NodeProcessException ex) when (Outputs.Any(p => p.Codec?.Fallback is not null))
+        catch (Exception ex) when (Outputs.Any(p => p.Codec?.Fallback is not null))
         {
             Logger?.LogErr($"{ex.Message}, restarting using fallback codecs..");
             await launch(true);
@@ -84,7 +86,12 @@ public class FFmpegLauncher
             // but noone should change speed anyway and who cares about progress
             // duration /= argholder.Rate;
 
-            await new ProcessLauncher(Executable, args) { ThrowOnStdErr = false, Logging = { Logger = logger, StdErr = LogLevel.Trace } }
+            await new ProcessLauncher(Executable, args)
+            {
+                ThrowOnStdErr = false,
+                Logging = { Logger = logger, StdErr = LogLevel.Trace },
+                EnvVariables = { EnvVariables },
+            }
                 .AddOnRead(onRead)
                 .ExecuteAsync();
 

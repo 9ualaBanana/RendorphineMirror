@@ -9,6 +9,8 @@ public class ProcessLauncher
     readonly string Executable;
 
     public ArgList Arguments { get; } = new();
+    public MultiDictionary<string, string> EnvVariables { get; } = new();
+
     public bool WineSupport { get; init; } = false;
     public bool ThrowOnStdErr { get; init; } = true;
     public bool ThrowOnNonZeroExitCode { get; init; } = true;
@@ -66,6 +68,9 @@ public class ProcessLauncher
             procinfo.ArgumentList.Add(Executable);
         foreach (var arg in Arguments)
             procinfo.ArgumentList.Add(arg);
+
+        foreach (var (key, value) in EnvVariables)
+            procinfo.EnvironmentVariables[key] = value;
 
         Logging.Logger?.LogInfo($"Starting {WrapWithSpaces(procinfo.FileName)} {string.Join(' ', procinfo.ArgumentList.Select(WrapWithSpaces))}");
         var process = new Process() { StartInfo = procinfo };

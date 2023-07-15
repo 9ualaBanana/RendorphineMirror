@@ -26,12 +26,17 @@ public class Topaz : PluginAction<TopazInfo>
             {
                 Logger = context,
                 ProgressSetter = new TaskExecutionContextProgressSetterAdapter(context),
+                EnvVariables =
+                {
+                    ["TVAI_MODEL_DIR"] = @"C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models",
+                    ["TVAI_MODEL_DATA_DIR"] = @"C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models",
+                },
                 Input = { input.Path },
                 Outputs =
                 {
                     new FFmpegLauncherOutput()
                     {
-                        Codec = FFmpegLauncher.CodecFromStream(ffprobe.VideoStream),
+                        Codec = new ProresFFmpegCodec() { Profile = ProresFFmpegCodec.CopyProfileFrom(ffprobe.VideoStream) },
                         Output = output.New(input.Format).Path,
                     },
                 },
@@ -49,14 +54,11 @@ public class Topaz : PluginAction<TopazInfo>
         {
             var filter = new ArgList()
             {
-                string.Join(':', new ArgList()
-                {
-                    // slowmo filter with chronos model
-                    "tvai_fi=model=chr-1",
+                // slowmo filter with chronos model
+                "tvai_fi=model=chr-1",
 
-                    // slowmo strength
-                    $"slowmo={(data.X ?? 2).ToString(NumberFormats.Normal)}",
-                }),
+                // slowmo strength
+                $"slowmo={(data.X ?? 2).ToString(NumberFormats.Normal)}",
 
                 // no replacing duplicate frames
                 "rdt=-0.000001",
@@ -64,7 +66,7 @@ public class Topaz : PluginAction<TopazInfo>
                 "vram=1", "instances=1",
             };
 
-            launcher.VideoFilters.Add(filter);
+            launcher.VideoFilters.Add(string.Join(':', filter));
         }
         else if (data.Operation == TopazOperation.Upscale)
         {
@@ -91,10 +93,10 @@ public class Topaz : PluginAction<TopazInfo>
                 string.Join(':', filter),
 
                 // scaling
-                $"scale=w={w.ToString(NumberFormats.Normal)}:h={h.ToString(NumberFormats.Normal)}",
+                $"scale=w={w.ToString(NumberFormats.Normal)}:h={h.ToString(NumberFormats.Normal)}:flags=lanczos:threads=0",
 
-                // scale filter
-                "flags=lanczos:threads=0",
+                // ffmpeg "-hide_banner" "-nostdin" "-y" "-nostats" "-i" "C:/Users/user/Documents/mov.mov" "-sws_flags" "spline+accurate_rnd+full_chroma_int" "-color_trc" "2" "-colorspace" "5" "-color_primaries" "2" "-filter_complex" "tvai_up=model=prob-3:scale=0:w=3840:h=2160:preblur=0:noise=0:details=0:halo=0:blur=0:compression=0:estimate=20:device=0:vram=1:instances=1,scale=w=3840:h=2160:flags=lanczos:threads=0,scale=out_color_matrix=bt709" "-c:v" "prores_ks" "-profile:v" "1" "-vendor" "apl0" "-quant_mat" "lt" "-bits_per_mb" "525" "-pix_fmt" "yuv422p10le" "-map_metadata" "0" "-movflags" "frag_keyframe+empty_moov+delay_moov+use_metadata_tags+write_colr " "-map_metadata:s:v" "0:s:v" "-an" "-metadata" "videoai=Enhanced using prob-3 auto with recover details at 0, dehalo at 0, reduce noise at 0, sharpen at 0, revert compression at 0, and anti-alias/deblur at 0. Changed resolution to 3840x2160" "C:/Users/user/Documents/mov_1_prob3_temp.mov"
+                $"scale=out_color_matrix=bt709",
             });
         }
         else throw new TaskFailedException("Unknown operation");
