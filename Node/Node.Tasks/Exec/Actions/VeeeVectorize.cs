@@ -33,7 +33,7 @@ public class VeeeVectorize : PluginAction<VeeeVectorizeInfo>
         Directory.CreateDirectory(veeeoutdir);
         File.WriteAllText(Path.Combine(plugindir, "config.xml"), GetConfig(inputfile, data.Lod, context));
 
-        await new ProcessLauncher(exepath, inputfile) { WineSupport = true, Logging = { Logger = context } }
+        await new ProcessLauncher(exepath, inputfile) { WineSupport = true, Logging = { Logger = context }, Timeout = TimeSpan.FromMinutes(5) }
             .ExecuteAsync();
 
         Directory.Delete(outputdir, true);
