@@ -8,8 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BarCode" Version="2023.7.2" />
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
+    <PackageReference Include="ZXing.Net" Version="0.16.9" />
+    <PackageReference Include="ZXing.Net.Bindings.ImageSharp" Version="0.16.14" />
   </ItemGroup>
 
 </Project>
