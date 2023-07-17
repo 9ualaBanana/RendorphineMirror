@@ -3,73 +3,72 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{739A87FC-1B62-4B7D-BB14-89871EF09CD7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "Common\Common.csproj", "{739A87FC-1B62-4B7D-BB14-89871EF09CD7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmark", "Benchmark\Benchmark.csproj", "{5BBE7607-E9B9-4890-90F9-557973E427E3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmark", "Benchmark\Benchmark.csproj", "{5BBE7607-E9B9-4890-90F9-557973E427E3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RApi", "RApi\RApi.csproj", "{84AAEC09-71AB-4273-811D-E4F58615B23E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RApi", "RApi\RApi.csproj", "{84AAEC09-71AB-4273-811D-E4F58615B23E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoftwareRegistry", "SoftwareRegistry\SoftwareRegistry.csproj", "{DD7A054F-47E2-4C16-9C42-31F12806B35C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SoftwareRegistry", "SoftwareRegistry\SoftwareRegistry.csproj", "{DD7A054F-47E2-4C16-9C42-31F12806B35C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telegram", "Telegram\Telegram.csproj", "{86E99A3E-B610-49E3-A8DD-DF2A163E9A19}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telegram", "Telegram\Telegram.csproj", "{86E99A3E-B610-49E3-A8DD-DF2A163E9A19}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transport", "Transport\Transport.csproj", "{2239C780-30C6-43F9-8ABD-5D8513A72324}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transport", "Transport\Transport.csproj", "{2239C780-30C6-43F9-8ABD-5D8513A72324}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Updater", "Updater\Updater.csproj", "{D5E68BEB-659F-4BCC-86C7-AEF207F04B75}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Updater", "Updater\Updater.csproj", "{D5E68BEB-659F-4BCC-86C7-AEF207F04B75}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdaterCommon", "UpdaterCommon\UpdaterCommon.csproj", "{35A5C7AB-E72B-4A67-A0C3-6B00C40EAC03}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UpdaterCommon", "UpdaterCommon\UpdaterCommon.csproj", "{35A5C7AB-E72B-4A67-A0C3-6B00C40EAC03}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateServer", "UpdateServer\UpdateServer.csproj", "{4A152A85-FA5A-49A7-8923-22CED1FCC37A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UpdateServer", "UpdateServer\UpdateServer.csproj", "{4A152A85-FA5A-49A7-8923-22CED1FCC37A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Uploader", "Uploader\Uploader.csproj", "{6EC8E90C-37AA-456E-B5CA-A7831AC8C3B0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Uploader", "Uploader\Uploader.csproj", "{6EC8E90C-37AA-456E-B5CA-A7831AC8C3B0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Node", "Node", "{A9B60D91-D082-47A7-8E25-54DC20BC18E3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node", "Node\Node\Node.csproj", "{22AAF815-71E7-488A-8AA9-806E0697393F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node", "Node\Node\Node.csproj", "{22AAF815-71E7-488A-8AA9-806E0697393F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Common", "Node\Node.Common\Node.Common.csproj", "{CA431768-863E-4AA8-A0DB-DBE32627856A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node.Common", "Node\Node.Common\Node.Common.csproj", "{CA431768-863E-4AA8-A0DB-DBE32627856A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Common.Models", "Node\Node.Common.Models\Node.Common.Models.csproj", "{80AEC21C-C3A7-418F-A213-DE643D776657}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node.Common.Models", "Node\Node.Common.Models\Node.Common.Models.csproj", "{80AEC21C-C3A7-418F-A213-DE643D776657}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Plugins", "Node\Node.Plugins\Node.Plugins.csproj", "{83045382-19CD-4ADA-A7C3-93A3024BF67F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node.Plugins", "Node\Node.Plugins\Node.Plugins.csproj", "{83045382-19CD-4ADA-A7C3-93A3024BF67F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Plugins.Models", "Node\Node.Plugins.Models\Node.Plugins.Models.csproj", "{B02AE9F5-4B74-40B1-AA35-51C1FD2727DB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node.Plugins.Models", "Node\Node.Plugins.Models\Node.Plugins.Models.csproj", "{B02AE9F5-4B74-40B1-AA35-51C1FD2727DB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Tasks", "Node\Node.Tasks\Node.Tasks.csproj", "{02CBEAB3-95C5-4653-B394-5042AF408F39}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node.Tasks", "Node\Node.Tasks\Node.Tasks.csproj", "{02CBEAB3-95C5-4653-B394-5042AF408F39}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Tasks.Models", "Node\Node.Tasks.Models\Node.Tasks.Models.csproj", "{32101387-54AB-4D9F-8A9D-BA99DC82076E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node.Tasks.Models", "Node\Node.Tasks.Models\Node.Tasks.Models.csproj", "{32101387-54AB-4D9F-8A9D-BA99DC82076E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Tests", "Node\Node.Tests\Node.Tests.csproj", "{B65534A9-1B26-49FD-B132-3A19670D4E15}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node.Tests", "Node\Node.Tests\Node.Tests.csproj", "{B65534A9-1B26-49FD-B132-3A19670D4E15}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeCommon", "NodeCommon\NodeCommon.csproj", "{31F3A2AC-78B6-4912-9808-905E25D1F539}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeCommon", "NodeCommon\NodeCommon.csproj", "{31F3A2AC-78B6-4912-9808-905E25D1F539}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aws-signature-version-4", "aws-signature-version-4", "{CD2EBDBA-590F-41F7-8126-BE46A06E0C8A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwsSignatureVersion4", "aws-signature-version-4\src\AwsSignatureVersion4.csproj", "{947B8721-36F4-4C7C-A733-E32C7004D664}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AwsSignatureVersion4", "aws-signature-version-4\src\AwsSignatureVersion4.csproj", "{947B8721-36F4-4C7C-A733-E32C7004D664}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Machine", "Machine\Machine.csproj", "{D1BA1C41-1709-43A3-AE83-6C5C5B0FE6D9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Machine", "Machine\Machine.csproj", "{D1BA1C41-1709-43A3-AE83-6C5C5B0FE6D9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.UI", "Node\Node.UI\Node.UI.csproj", "{5530EC69-869F-43EB-9DCB-6FA345636959}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node.UI", "Node\Node.UI\Node.UI.csproj", "{5530EC69-869F-43EB-9DCB-6FA345636959}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeToUI", "Node\NodeToUI\NodeToUI.csproj", "{32A813A1-3C9F-4844-8C5C-922FC9CBE9C2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeToUI", "Node\NodeToUI\NodeToUI.csproj", "{32A813A1-3C9F-4844-8C5C-922FC9CBE9C2}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MimeTypesMap", "MimeTypesMap\src\MimeTypesMap\MimeTypesMap.csproj", "{B418495A-0EA1-43A0-BA5A-F4C0085767E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Benchmarks", "Node\Node.Benchmarks\Node.Benchmarks.csproj", "{5054208B-C87E-4B71-B58B-F3E83173D4F3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node.Benchmarks", "Node\Node.Benchmarks\Node.Benchmarks.csproj", "{5054208B-C87E-4B71-B58B-F3E83173D4F3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Node.Build", "Node\Node.Build\Node.Build.csproj", "{A9A9910D-68A7-4E9D-B848-61DA53732DD7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Node.Build", "Node\Node.Build\Node.Build.csproj", "{A9A9910D-68A7-4E9D-B848-61DA53732DD7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorrentTracker", "TorrentTracker\TorrentTracker.csproj", "{AE01E8D5-8078-495E-877C-D2707691D0C2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TorrentTracker", "TorrentTracker\TorrentTracker.csproj", "{AE01E8D5-8078-495E-877C-D2707691D0C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatGptApi", "ChatGptApi\ChatGptApi.csproj", "{DBA666E5-0ACB-4BD7-955F-EBDDE557AF99}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatGptApi", "ChatGptApi\ChatGptApi.csproj", "{DBA666E5-0ACB-4BD7-955F-EBDDE557AF99}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QRCode", "QRCode\QRCode.csproj", "{7571EBBA-20AC-463E-AB9E-115C58824DA3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{739A87FC-1B62-4B7D-BB14-89871EF09CD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -184,6 +183,13 @@ Global
 		{DBA666E5-0ACB-4BD7-955F-EBDDE557AF99}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DBA666E5-0ACB-4BD7-955F-EBDDE557AF99}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DBA666E5-0ACB-4BD7-955F-EBDDE557AF99}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7571EBBA-20AC-463E-AB9E-115C58824DA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7571EBBA-20AC-463E-AB9E-115C58824DA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7571EBBA-20AC-463E-AB9E-115C58824DA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7571EBBA-20AC-463E-AB9E-115C58824DA3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{22AAF815-71E7-488A-8AA9-806E0697393F} = {A9B60D91-D082-47A7-8E25-54DC20BC18E3}
