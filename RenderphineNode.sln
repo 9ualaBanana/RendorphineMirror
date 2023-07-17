@@ -45,8 +45,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RApi", "RApi\RApi.csproj", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MimeTypesMap", "MimeTypesMap\src\MimeTypesMap\MimeTypesMap.csproj", "{B418495A-0EA1-43A0-BA5A-F4C0085767E4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TrialUsersMediator", "TrialUsersMediator\TrialUsersMediator.csproj", "{7E1648E2-1FB8-4124-9DDB-21ECB1092A6E}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QRCode", "QRCode\QRCode.csproj", "{B10DED59-87CB-4C7F-BBAD-374F81FBB048}"
 EndProject
 Global
@@ -135,10 +133,6 @@ Global
 		{B418495A-0EA1-43A0-BA5A-F4C0085767E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B418495A-0EA1-43A0-BA5A-F4C0085767E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B418495A-0EA1-43A0-BA5A-F4C0085767E4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7E1648E2-1FB8-4124-9DDB-21ECB1092A6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7E1648E2-1FB8-4124-9DDB-21ECB1092A6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7E1648E2-1FB8-4124-9DDB-21ECB1092A6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7E1648E2-1FB8-4124-9DDB-21ECB1092A6E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B10DED59-87CB-4C7F-BBAD-374F81FBB048}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B10DED59-87CB-4C7F-BBAD-374F81FBB048}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B10DED59-87CB-4C7F-BBAD-374F81FBB048}.Release|Any CPU.ActiveCfg = Release|Any CPU
