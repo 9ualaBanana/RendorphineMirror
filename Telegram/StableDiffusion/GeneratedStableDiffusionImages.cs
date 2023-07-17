@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
-using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.MediaFiles.Images;

@@ -1,13 +1,13 @@
-﻿using Telegram.Bot;
-using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure;
+﻿using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
+using Telegram.Infrastructure.Messages;
 using Telegram.Localization.Resources;
 
 namespace Telegram.MediaFiles.Videos;
 
-public class ProcessingMethodSelectorVideoHandler : MessageHandler
+public class ProcessingMethodSelectorVideoHandler : MessageHandler_
 {
     readonly MediaFilesCache _mediaFilesCache;
     readonly MediaFile.Factory _mediaFileFactory;

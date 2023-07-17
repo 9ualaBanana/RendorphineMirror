@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
-using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Tasks;
 

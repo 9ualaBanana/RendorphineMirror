@@ -7,11 +7,9 @@ global using NodeCommon;
 global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
 using NLog.Web;
-using Telegram.Bot;
 using Telegram.Commands;
-using Telegram.Infrastructure.Middleware.UpdateRouting;
+using Telegram.Infrastructure.Bot;
 using Telegram.Localization;
-using Telegram.Localization.Resources;
 using Telegram.MediaFiles.Images;
 using Telegram.MediaFiles.Videos;
 using Telegram.Security.Authentication;
@@ -19,54 +17,47 @@ using Telegram.Security.Authorization;
 using Telegram.Services.GitHub;
 using Telegram.Services.Node;
 using Telegram.StableDiffusion;
+using Telegram.TrialUsers;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost
-    .UseNLog_()
-    .AddTelegramBot().ConfigureServices(_ => _
+    .ConfigureTelegramBot(_ => _
         .AddCommands()
-        .AddUpdateRouting()
         .AddImages()
         .AddVideos()
+        .AddMPlusAuthentication()
         .AddMPlusAuthorization()
-        .AddAuthentication(MPlusAuthenticationDefaults.AuthenticationScheme).AddMPlus()
-            .Services.AddScoped<AuthenticationManager>());
+        .ConfigureExceptionHandlerOptions())
 
-// Telegram.Bot works only with Newtonsoft.
-builder.Services.AddControllers().AddNewtonsoftJson();
-builder.Services.AddLocalization_();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddHttpClient();
-builder.Services.AddSwaggerGen();
+    .ConfigureServices(_ => _
+        .AddTrialUsers()
+        .AddStableDiffusion()
+        .AddRequestLocalization_()
+        .AddSwaggerGen()
 
-builder.Services.AddSingleton<UserNodes>();
-builder.Services.AddScoped<GitHubEventForwarder>();
-builder.Services.AddStableDiffusion();
+        .AddSingleton<UserNodes>()
+        .AddScoped<GitHubEventForwarder>())
+
+    .UseNLog_();
 
 var app = builder.Build();
 
-await app.Services.GetRequiredService<TelegramBot>().InitializeAsync();
-
+app.UseTelegramBot()
+    .UseAuthentication()
+    .UseAuthorization()
+    .UseRequestLocalization();
 if (!app.Environment.IsDevelopment())
-    app.UseExceptionHandler_();
-else
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-app.MapControllers();
-app.UseUpdateRouting();
-app.UseRouting();
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseRequestLocalization();
+    app.UseTelegramBotExceptionHandler();
+else app.UseDeveloperExceptionPage()
+        .UseSwagger().UseSwaggerUI();
 
-app.Run();
+await app.RunAsync_();
 
 
 static class Startup
 {
+    /// <inheritdoc cref="AspNetExtensions.UseNLog(IHostBuilder)"/>
     internal static IWebHostBuilder UseNLog_(this IWebHostBuilder builder)
         => builder.UseNLog(new() { ReplaceLoggerFactory = true });
 }

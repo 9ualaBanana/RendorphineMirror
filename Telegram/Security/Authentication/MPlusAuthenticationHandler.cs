@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using System.Text.Encodings.Web;
-using Telegram.Bot;
 using Telegram.Commands.Handlers;
 using Telegram.Infrastructure;
-using Telegram.Persistence;
+using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Security.Authentication;
 
@@ -42,7 +41,7 @@ public class MPlusAuthenticationHandler : AuthenticationHandler<AuthenticationSc
         return AuthenticateResult.NoResult();
 
 
-        async Task<TelegramBotUserEntity> PersistedTelegramUser()
+        async Task<TelegramBot.User.Entity> PersistedTelegramUser()
             => await _authenticationManager.PersistTelegramUserAsyncWith(Context.GetUpdate().ChatId(),
             save: true, Context.RequestAborted);
     }

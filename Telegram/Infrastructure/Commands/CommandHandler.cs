@@ -1,5 +1,6 @@
-﻿using Telegram.Bot;
-using Telegram.Bot.Types;
+﻿using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
+using Telegram.Infrastructure.Messages;
 
 namespace Telegram.Infrastructure.Commands;
 
@@ -9,7 +10,7 @@ namespace Telegram.Infrastructure.Commands;
 /// <see cref="HandleAsync(Command)"/>
 /// via publicly available <see cref="HandleAsync()"/>.
 /// </summary>
-public abstract class CommandHandler : MessageHandler, ISwitchableService<CommandHandler, Command>
+public abstract class CommandHandler : MessageHandler_, ISwitchableService<CommandHandler, Command>
 {
     protected readonly Command.Factory CommandFactory;
 

@@ -32,7 +32,7 @@ public abstract record CallbackQuery<ECallbackData>
         else
         {
             var exception = new ArgumentNullException(nameof(argument), "Missing required callback query argument.");
-            _logger.Fatal(exception);
+            _logger.Fatal(exception.Message);
             throw exception;
         }
     }

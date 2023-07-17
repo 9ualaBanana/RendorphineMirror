@@ -5,7 +5,7 @@ using Telegram.MediaFiles.Images;
 namespace Telegram.Infrastructure.MediaFiles.Images;
 
 [ApiController]
-[Route($"telegram/{{token}}/{PathFragment}")]
+[Route($"/{PathFragment}")]
 public class ImagesController : ControllerBase
 {
     internal const string PathFragment = "image";

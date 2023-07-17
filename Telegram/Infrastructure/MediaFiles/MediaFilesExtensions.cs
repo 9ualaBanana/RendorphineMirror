@@ -1,10 +1,16 @@
-﻿namespace Telegram.Infrastructure.MediaFiles;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Infrastructure.Bot;
+
+namespace Telegram.Infrastructure.MediaFiles;
 
 static class MediaFilesExtensions
 {
-    internal static IServiceCollection AddMediaFiles(this IServiceCollection services)
-        => services
-        .AddScoped<MediaFile.Factory>()
-        .AddSingleton<MediaFileDownloader>()
-        .AddSingleton<MediaFilesCache>();
+    internal static ITelegramBotBuilder AddMediaFilesCore(this ITelegramBotBuilder builder)
+    {
+        builder.Services.TryAddScoped<MediaFile.Factory>();
+        builder.Services.TryAddSingleton<MediaFilesCache>();
+        builder.Services.TryAddSingleton<MediaFileDownloader>();
+
+        return builder;
+    }
 }

@@ -1,15 +1,26 @@
-﻿using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using Telegram.Infrastructure.Bot;
+using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
 
 namespace Telegram.Infrastructure.Middleware.UpdateRouting;
 
 internal static class UpdateRoutingExtensions
 {
-    internal static IServiceCollection AddUpdateRouting(this IServiceCollection services)
-        => services
-        .AddScoped<UpdateRoutingBranchingMiddleware>()
-        .AddScoped<UpdateReaderMiddleware>()
-        .AddScoped<UpdateTypeRouterMiddleware>();
+    internal static ITelegramBotBuilder AddUpdateRouting(this ITelegramBotBuilder builder)
+    {
+        builder.Services.TryAddScoped<UpdateRoutingMiddleware>();
+        builder.Services.TryAddScoped<UpdateReaderMiddleware>();
+        builder.Services.TryAddScoped<UpdateTypeRouterMiddleware>();
 
-    internal static IApplicationBuilder UseUpdateRouting(this IApplicationBuilder app)
-        => app.UseMiddleware<UpdateRoutingBranchingMiddleware>();
+        return builder;
+    }
+        
+
+    internal static WebApplication UseUpdateRouting(this WebApplication app)
+    {
+        app.MapControllers();
+        app.UseMiddleware<UpdateRoutingMiddleware>().UseRouting();
+        return app;
+    }
+        
 }

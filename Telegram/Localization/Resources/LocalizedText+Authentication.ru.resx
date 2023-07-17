@@ -120,29 +120,34 @@
   <data name="AlreadyLoggedIn" xml:space="preserve">
     <value>Вы уже аутентифицированы.</value>
   </data>
+  <data name="Balance" xml:space="preserve">
+    <value>*Баланс* : {0}</value>
+  </data>
   <data name="BrowserAuthenticationButton" xml:space="preserve">
     <value>Аутентифицироваться через бразуер</value>
   </data>
   <data name="Failure" xml:space="preserve">
     <value>Попытка аутентификации провалилась</value>
   </data>
+  <data name="HowToUse" xml:space="preserve">
+    <value>Этот бот умеет работать с изображениями и видео. Отправьте ему медифайл, который вы хотите обработать и следуйте дальнейшим инструкциям.</value>
+  </data>
+  <data name="LoggedIn" xml:space="preserve">
+    <value>Вы успешно аутентифицированы.</value>
+  </data>
   <data name="LoggedOut" xml:space="preserve">
     <value>Вы вышли из аккаунта.</value>
+  </data>
+  <data name="LoginAsGuestButton" xml:space="preserve">
+    <value>Войти как Гость</value>
   </data>
   <data name="Start" xml:space="preserve">
     <value>Добро пожаловать!
 Вам необходим зарегистрированный аккаунт М+, чтобы продолжить.
-Введите ваш email и пароль вслед за коммандой {0} разделяя их пробелом (`{0} email пароль`) для аутентификации через М+ используя бота или нажмите кнопку ниже для аутентификации через М+ используя браузер (аутентификация с использованием браузера не работает для IPhone).</value>
-  </data>
-  <data name="Success" xml:space="preserve">
-    <value>Вы успешно аутентифицированы.
-
-*Баланс* : {0}
-
-Этот бот умеет работать с изображениями и видео. Отправьте ему медифайл, который вы хотите обработать и следуйте дальнейшим инструкциям. </value>
+Введите ваш email и пароль разделяя их пробелом, опционально добавив команду {0} в начале ('`email пароль`' / '`{0} email пароль`') для аутентификации через М+ используя бота или нажмите кнопку ниже для аутентификации через М+ используя браузер (аутентификация с использованием браузера не работает для IPhone).</value>
   </data>
   <data name="WrongSyntax" xml:space="preserve">
     <value>Команда {0} должна иметь следующий вид:
-`{1}`</value>
+'`{1}`'</value>
   </data>
 </root>

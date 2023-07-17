@@ -20,7 +20,7 @@ public class MPlusTaskManagerClient
 
     /// <exception cref="InvalidDataException">M+ server returned authentication result in a wrong format.</exception>
     /// <exception cref="HttpRequestException">Exception occured on the M+ server.</exception>
-    internal async Task<MPlusIdentity> AuthenticateAsyncUsing(string email, string password)
+    public async Task<MPlusIdentity> AuthenticateAsyncUsing(string email, string password)
     {
         var credentialsForm = new FormUrlEncodedContent(new Dictionary<string, string>()
         {
@@ -33,7 +33,7 @@ public class MPlusTaskManagerClient
             throw new InvalidDataException("M+ authentication result returned from the server was in a wrong format.");
     }
 
-    internal async Task<MPlusFileInfo> RequestFileInfoAsyncUsing(MPlusFileAccessor fileAccessor, CancellationToken cancellationToken)
+    public async Task<MPlusFileInfo> RequestFileInfoAsyncUsing(MPlusFileAccessor fileAccessor, CancellationToken cancellationToken)
     {
         var requestUrl = QueryHelpers.AddQueryString("getmympitem", new Dictionary<string, string?>()
         {
@@ -66,7 +66,7 @@ public class MPlusTaskManagerClient
         }
     }
 
-    internal async Task<MPlusPublicSessionInfo> GetPublicSessionInfoAsync(string sessionId, CancellationToken cancellationToken)
+    public async Task<MPlusPublicSessionInfo> GetPublicSessionInfoAsync(string sessionId, CancellationToken cancellationToken)
     {
         var requestUri = QueryHelpers.AddQueryString("checkmysession", "sessionid", sessionId);
 

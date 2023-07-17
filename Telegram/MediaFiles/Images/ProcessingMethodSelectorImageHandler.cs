@@ -1,15 +1,15 @@
-﻿using Telegram.Bot;
-using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure;
+﻿using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
+using Telegram.Infrastructure.Messages;
 using Telegram.Localization.Resources;
 using Telegram.MPlus.Security;
 using Telegram.Tasks;
 
 namespace Telegram.MediaFiles.Images;
 
-public class ProcessingMethodSelectorImageHandler : MessageHandler
+public class ProcessingMethodSelectorImageHandler : MessageHandler_
 {
     readonly TaskPrice _taskPrice;
     readonly MediaFilesCache _mediaFilesCache;

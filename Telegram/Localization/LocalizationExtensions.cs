@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Localization;
-using Telegram.Bot;
 using Telegram.Infrastructure;
+using Telegram.Infrastructure.Bot;
 using Telegram.Localization.Resources;
 
 namespace Telegram.Localization;
 
 static class LocalizationExtensions
 {
-    internal static IServiceCollection AddLocalization_(this IServiceCollection services)
+    internal static IServiceCollection AddRequestLocalization_(this IServiceCollection services)
     {
         var supportedCultures = new string[] { "en", "ru" };
         return services

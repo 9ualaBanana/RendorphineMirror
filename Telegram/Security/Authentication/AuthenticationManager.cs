@@ -1,8 +1,10 @@
-﻿using Telegram.Bot;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
 using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
+using Telegram.Infrastructure.Persistence;
 using Telegram.Localization.Resources;
+using Telegram.MPlus;
 using Telegram.MPlus.Clients;
-using Telegram.Persistence;
 
 namespace Telegram.Security.Authentication;
 
@@ -25,7 +27,7 @@ public class AuthenticationManager
         _localiedAuthenticationMessage = localizedAuthenticationMessage;
 	}
 
-    internal async Task TryAuthenticateByMPlusAsync(TelegramBotUserEntity user, string email, string password, CancellationToken cancellationToken)
+    internal async Task TryAuthenticateByMPlusAsync(TelegramBot.User.Entity user, string email, string password, CancellationToken cancellationToken)
     {
         if (await TryAuthenticateByMPlusAsync() is MPlusIdentityEntity identity)
         {
@@ -49,19 +51,19 @@ public class AuthenticationManager
     }
 
     /// <summary>
-    /// Persists <see cref="TelegramBotUserEntity"/> with provided <paramref name="chatId"/> if it is not persisted yet
-    /// or simplly returns the persisted <see cref="TelegramBotUserEntity"/> from the database.
+    /// Persists <see cref="TelegramBot.User.Entity"/> with provided <paramref name="chatId"/> if it is not persisted yet
+    /// or simplly returns the persisted <see cref="TelegramBot.User.Entity"/> from the database.
     /// </summary>
     /// <returns>
-    /// Persisted <see cref="TelegramBotUserEntity"/> who might be not logged in
-    /// (i.e. its <see cref="TelegramBotUserEntity.MPlusIdentity"/> might be <see langword="null"/>.
+    /// Persisted <see cref="TelegramBot.User.Entity"/> who might be not logged in
+    /// (i.e. its <see cref="TelegramBot.User.Entity.MPlusIdentity"/> might be <see langword="null"/>.
     /// </returns>
-    internal async Task<TelegramBotUserEntity> PersistTelegramUserAsyncWith(
+    internal async Task<TelegramBot.User.Entity> PersistTelegramUserAsyncWith(
         ChatId chatId,
         bool save,
         CancellationToken cancellationToken)
     {
-        var user = await _database.FindAsync<TelegramBotUserEntity>(chatId) ??
+        var user = await _database.FindAsync<TelegramBot.User.Entity>(chatId) ??
             (await _database.Users.AddAsync(new(chatId), cancellationToken)).Entity;
 
         if (save) await _database.SaveChangesAsync(cancellationToken);
@@ -70,7 +72,7 @@ public class AuthenticationManager
     }
 
     internal async Task PersistMPlusUserIdentityAsync(
-        TelegramBotUserEntity user,
+        TelegramBot.User.Entity user,
         MPlusIdentityEntity identity,
         CancellationToken cancellationToken)
     {
@@ -84,7 +86,9 @@ public class AuthenticationManager
     {
         var balance = await _mPlusClient.TaskLauncher.RequestBalanceAsync(sessionId, cancellationToken);
         await _bot.SendMessageAsync_(chatId,
-            _localiedAuthenticationMessage.Success(balance.RealBalance),
+            $"{_localiedAuthenticationMessage.LoggedIn}\n\n" +
+            $"{_localiedAuthenticationMessage.Balance(balance.RealBalance)}\n\n" +
+            $"{_localiedAuthenticationMessage.HowToUse}",
             cancellationToken: cancellationToken);
     }
 
@@ -97,4 +101,16 @@ public class AuthenticationManager
         => await _bot.SendMessageAsync_(chatId,
             _localiedAuthenticationMessage.LoggedOut,
             cancellationToken: cancellationToken);
+}
+
+static class AuthenticationManagerExtensions
+{
+    internal static ITelegramBotBuilder AddAuthenticationManager(this ITelegramBotBuilder builder)
+    {
+        builder.AddPersistence();
+        builder.Services.TryAddScoped<AuthenticationManager>();
+        builder.Services.AddMPlusClient();
+
+        return builder;
+    }
 }

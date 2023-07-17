@@ -13,13 +13,19 @@ public abstract partial class LocalizedText
 
         internal string Start(string loginCommand) => Localizer[nameof(Start), loginCommand];
 
+        internal string HowToUse => Localizer[nameof(HowToUse)];
+
         internal string BrowserAuthenticationButton => Localizer[nameof(BrowserAuthenticationButton)];
 
-        internal string Success(int balance) => Localizer[nameof(Success), balance];
+        internal string LoginAsGuestButton => Localizer[nameof(LoginAsGuestButton)];
+
+        internal string Balance(int balance) => Localizer[nameof(Balance), balance];
 
         internal string Failure => Localizer[nameof(Failure)];
 
         internal string AlreadyLoggedIn => Localizer[nameof(AlreadyLoggedIn)];
+
+        internal string LoggedIn => Localizer[nameof(LoggedIn)];
 
         internal string LoggedOut => Localizer[nameof(LoggedOut)];
 

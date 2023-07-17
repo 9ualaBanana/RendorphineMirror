@@ -4,7 +4,7 @@ using Telegram.Bot.Types;
 namespace Telegram.Infrastructure.CallbackQueries;
 
 [ApiController]
-[Route($"telegram/{{token}}/{PathFragment}")]
+[Route($"/{PathFragment}")]
 public class CallbackQueriesController : ControllerBase
 {
     internal const string PathFragment = "callback_query";
@@ -20,8 +20,8 @@ public class CallbackQueriesController : ControllerBase
     public async Task Handle([FromServices] IEnumerable<ICallbackQueryHandler> callbackQueryHandlers)
     {
         try { await Handle(); }
-        catch (Exception exception)
-        { _logger.LogCritical(exception, "Callback query wasn't handled"); throw; }
+        catch (Exception)
+        { _logger.LogCritical("Callback query wasn't handled"); throw; }
 
 
         async Task Handle()
@@ -36,9 +36,7 @@ public class CallbackQueriesController : ControllerBase
                     $"None of registered implementations of {nameof(ICallbackQueryHandler)} matched received callback query: {callbackQuery.Data}"
                     );
 
-            else throw new ArgumentNullException(nameof(callbackQuery.Data),
-                $"{nameof(CallbackQuery.Data)} must contain a serialized {typeof(CallbackQuery<>)}"
-                );
+            else throw new NullReferenceException($"{nameof(CallbackQuery.Data)} must contain a serialized {typeof(CallbackQuery<>)}");
         }
     }
 }

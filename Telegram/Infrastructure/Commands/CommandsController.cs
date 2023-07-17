@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Telegram.Security.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace Telegram.Infrastructure.Commands;
 
 [ApiController]
-[Route($"telegram/{{token}}/{PathFragment}")]
+[Route($"/{PathFragment}")]
 public class CommandsController : ControllerBase
 {
     internal const string PathFragment = "command";

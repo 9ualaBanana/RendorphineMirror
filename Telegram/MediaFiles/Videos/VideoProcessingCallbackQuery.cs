@@ -1,4 +1,4 @@
-﻿using Telegram.Bot;
+﻿using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Localization.Resources;

@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Telegram.Bot;
 using Telegram.Infrastructure;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
-using Telegram.Persistence;
+using Telegram.Infrastructure.Persistence;
 using Telegram.Security.Authentication;
 using Telegram.Security.Authorization;
 
@@ -42,7 +42,7 @@ public class LogoutCommand : CommandHandler, IAuthorizationPolicyProtected
         }
 
 
-        async Task<TelegramBotUserEntity> PersistedTelegramUser()
+        async Task<TelegramBot.User.Entity> PersistedTelegramUser()
             => await _authenticationManager.PersistTelegramUserAsyncWith(Context.GetUpdate().ChatId(),
             save: false, Context.RequestAborted);
     }

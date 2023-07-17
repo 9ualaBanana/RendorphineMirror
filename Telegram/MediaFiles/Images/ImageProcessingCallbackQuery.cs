@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
-using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
@@ -13,12 +13,12 @@ namespace Telegram.MediaFiles.Images;
 public class ImageProcessingCallbackQueryHandler
     : MediaProcessingCallbackQueryHandler<ImageProcessingCallbackQuery, ImageProcessingCallbackData>
 {
-    readonly OwnedRegisteredTasksCache _ownedRegisteredTasksCache;
+    readonly TaskManager _taskManager;
     readonly Uri _hostUrl;
 
     public ImageProcessingCallbackQueryHandler(
-        OwnedRegisteredTasksCache ownedRegisteredTasksCache,
-        IOptions<TelegramBotOptions> botOptions,
+        TaskManager taskManager,
+        IOptions<TelegramBot.Options> botOptions,
         MediaFilesCache mediaFilesCache,
         LocalizedText.Media localizedMediaText,
         IHttpClientFactory httpClientFactory,
@@ -28,7 +28,7 @@ public class ImageProcessingCallbackQueryHandler
         ILogger<ImageProcessingCallbackQueryHandler> logger)
         : base(localizedMediaText, mediaFilesCache, httpClientFactory, serializer, bot, httpContextAccessor, logger)
     {
-        _ownedRegisteredTasksCache = ownedRegisteredTasksCache;
+        _taskManager = taskManager;
         _hostUrl = botOptions.Value.Host;
     }
 
@@ -46,36 +46,34 @@ public class ImageProcessingCallbackQueryHandler
 
     async Task UpscaleAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
     {
-        var registeredTask = (await TaskRegistration.RegisterAsync(
+        var registeredTask = await _taskManager.RegisterAsync(
             new TaskCreationInfo(
                 TaskAction.EsrganUpscale,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
                 new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "upscaled"),
                 TaskObject.From(cachedImage.File)),
-            MPlusIdentity.SessionIdOf(User))).Result;
-
-        _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBotUser(ChatId, User)));
+            new TelegramBot.User(ChatId, User),
+            MPlusIdentity.SessionIdOf(User));
 
         await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
-            new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
+            new InlineKeyboardMarkup(DetailsButtonFor(registeredTask._))
             );
     }
 
     async Task VectorizeAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
     {
-        var registeredTask = (await TaskRegistration.RegisterAsync(
+        var registeredTask = await _taskManager.RegisterAsync(
             new TaskCreationInfo(
                 TaskAction.VeeeVectorize,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
                 new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "vectorized"),
                 new VeeeVectorizeInfo(new int[] { 8500 }),
                 TaskObject.From(cachedImage.File)),
-            MPlusIdentity.SessionIdOf(User))).Result;
-
-        _ownedRegisteredTasksCache.Add(registeredTask.OwnedBy(new TelegramBotUser(ChatId, User)));
+            new TelegramBot.User(ChatId, User),
+            MPlusIdentity.SessionIdOf(User));
 
         await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
-            new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
+            new InlineKeyboardMarkup(DetailsButtonFor(registeredTask._))
             );
     }
 
