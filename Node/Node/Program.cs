@@ -47,7 +47,7 @@ async Task startReconnect()
     var logger = new NamedLogger("Reconnect", new LoggableLogger(LogManager.GetCurrentClassLogger()));
 
     await cancelTransferredTasks();
-    await Api.Default.ApiGet($"{Api.TaskLauncherEndpoint}/nodereconnected", "Reconnecting the node", Node.Apis.Default.AddSessionId(("guid", Settings.Guid)))
+    await Api.Default.ApiGet($"{Api.TaskManagerEndpoint}/nodereconnected", "Reconnecting the node", Node.Apis.Default.AddSessionId(("guid", Settings.Guid)))
         .ThrowIfError();
 
 
