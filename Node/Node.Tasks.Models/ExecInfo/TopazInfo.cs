@@ -5,6 +5,7 @@ public enum TopazOperation
 {
     Upscale,
     Slowmo,
+    Denoise,
 }
 
 public class TopazInfo
