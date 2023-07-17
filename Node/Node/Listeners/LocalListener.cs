@@ -29,7 +29,7 @@ public class LocalListener : ExecutableListenerBase
         var request = context.Request;
         var response = context.Response;
 
-        if (path == "ping") return HttpStatusCode.OK;
+        // if (path == "ping") return HttpStatusCode.OK;
 
         var query = request.QueryString;
 
