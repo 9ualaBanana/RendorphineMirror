@@ -17,7 +17,7 @@ internal class QRCodeGenerator : BarcodeWriterPixelData
         // current working directory when invoked from getter in objects constructed by CommandLineParser framework.
         var qrCodePath = Path.GetFullPath(Path.ChangeExtension(_.OutputPath, _.Extension));
         
-        _.UseToGenerateQrCode().SaveAsJpeg(qrCodePath);
+        _.UseToGenerateQrCode().SaveAsPng(qrCodePath);
 
         Console.WriteLine(qrCodePath);
         return qrCodePath;
