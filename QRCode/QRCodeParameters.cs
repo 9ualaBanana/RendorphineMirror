@@ -1,4 +1,5 @@
 ﻿using ZXing;
+using ZXing.ImageSharp.Rendering;
 using ZXing.QrCode;
 
 namespace QRCode;
@@ -15,28 +16,13 @@ internal record QRCodeParameters
     public int Size { get; init; }
 
     [CommandLine.Option("ecl", Default = 'Q')]
-    public char Ecl { get; init; }
+    public char ErrorCorrectionLevel { get; init; }
 
-    [CommandLine.Option('p', "padded", Default = true)]
+    [CommandLine.Option('p', "padded", Default = false)]
     public bool IsPadded { get; init; }
 
     internal virtual Image<Rgba32> UseToGenerateQrCode()
-    {
-        var qrCodeWriter = new BarcodeWriterPixelData
-        {
-            Format = BarcodeFormat.QR_CODE,
-            Options = new QrCodeEncodingOptions
-            {
-                Height = Size,
-                Width = Size,
-                ErrorCorrection = QRCodeGenerator.ErrorCorrectionLevelFrom(Ecl),
-                NoPadding = !IsPadded,
-            }
-        };
-        var qrCode = qrCodeWriter.WriteAsImageSharp<Rgba32>(Data);
-
-        return qrCode;
-    }
+        => new QRCodeGenerator(this).WriteAsImageSharp<Rgba32>(Data);
 
     [CommandLine.Option('o', "output", Default = null)]
     public virtual string OutputPath
@@ -45,6 +31,14 @@ internal record QRCodeParameters
         init => _outputPath = value;
     }
     string? _outputPath;
+
+    internal QrCodeEncodingOptions ToOptions() => new()
+    {
+        Height = Size,
+        Width = Size,
+        ErrorCorrection = new ErrorCorrectionLevel(ErrorCorrectionLevel).Value,
+        NoPadding = !IsPadded,
+    };
 
     /// <summary>
     /// Intended to be called only by CommandLineParser framework
@@ -68,23 +62,23 @@ internal record QRCodeWithLogoParameters : QRCodeParameters
 
     internal override Image<Rgba32> UseToGenerateQrCode()
     {
-        var qrCode = base.UseToGenerateQrCode();
-        DrawLogoOn(qrCode);
+        var qrCodeGenerator = new QRCodeGenerator(this);
+        var encodedData = qrCodeGenerator.Encode(Data);
+        var qrCode = new ImageSharpRenderer<Rgba32>().Render(encodedData, BarcodeFormat.QR_CODE, Data);
+        var actuaQrCodelSize = IsPadded ? Size : encodedData.Width;
+
+        using var logo = Image.Load(Logo);
+        var maxLogoSize = actuaQrCodelSize / 3; 
+        var actualLogoSize = LogoSize < maxLogoSize ? LogoSize : maxLogoSize;
+        logo.Mutate(_ => _.Resize(new Size(actualLogoSize)));
+        // We minus logo.Width because we need the top left point from which the logo will be drawn.
+        var center = (actuaQrCodelSize - actualLogoSize) / 2;
+        qrCode.Mutate(_ => _.DrawImage(logo, new Point(center, center), opacity: 1));
+
         return qrCode;
-
-
-        void DrawLogoOn(Image<Rgba32> qrCode)
-        {
-            using var logo = Image.Load(Logo);
-            logo.Mutate(_ => _.Resize(new Size(LogoSize < Size / 3 ? LogoSize : Size / 3)));
-            var center = (Size - logo.Width) / 2;
-            qrCode.Mutate(_ => _.DrawImage(logo, new Point(center, center), opacity: 1));
-        }
     }
 
-    /// <summary>
-    /// Intended to be called only by CommandLineParser framework
-    /// </summary>
+    /// <inheritdoc cref="QRCodeParameters()"/>
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     public QRCodeWithLogoParameters() { }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
