@@ -38,7 +38,7 @@ internal class QRCodeGenerator : BarcodeWriterPixelData
         bool HandleDefaultOptions()
             => errors.SingleOrDefault() is Error defaultOption && defaultOption.Tag switch
             {
-                ErrorType.HelpVerbRequestedError or ErrorType.VersionRequestedError => true,
+                ErrorType.HelpRequestedError or ErrorType.HelpVerbRequestedError or ErrorType.VersionRequestedError => true,
                 _ => false
             };
     }
