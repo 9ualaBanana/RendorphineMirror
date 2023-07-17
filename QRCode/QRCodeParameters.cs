@@ -27,7 +27,17 @@ internal record QRCodeParameters
     [CommandLine.Option('o', "output", Default = null)]
     public virtual string OutputPath
     {
-        get => _outputPath ??= Path.GetFileNameWithoutExtension(Path.GetRandomFileName());
+        get
+        {
+            if (_outputPath is null)
+                _outputPath = RandomFileName();
+            else if (Path.EndsInDirectorySeparator(_outputPath))
+                _outputPath = Path.Combine(_outputPath, RandomFileName());
+        
+            return _outputPath;
+                
+            static string RandomFileName() => Path.GetFileNameWithoutExtension(Path.GetRandomFileName());
+        }
         init => _outputPath = value;
     }
     string? _outputPath;
