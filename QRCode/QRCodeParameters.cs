@@ -38,11 +38,34 @@ internal record QRCodeParameters
                 
             static string RandomFileName() => Path.GetFileNameWithoutExtension(Path.GetRandomFileName());
         }
-        init => _outputPath = value;
+        init
+        {
+            if (ExtensionSpecifiedInOutputPath() is string extension)
+                Extension = extension;
+            _outputPath = OutputPathWithoutExtension();
+
+
+            string? ExtensionSpecifiedInOutputPath()
+                => Path.GetExtension(value) is string extension && !string.IsNullOrWhiteSpace(extension) ?
+                extension : null;
+            string OutputPathWithoutExtension() => Path.ChangeExtension(value, null);
+        }
     }
     string? _outputPath;
 
-    internal QrCodeEncodingOptions ToOptions() => new()
+    /// <remarks>
+    /// Must follow <see cref="OutputPath"/> option to override the behavior defined there.
+    /// Default extension is lazily computed inside the getter to prevent overriding the extension set explicitly.
+    /// </remarks>
+    [CommandLine.Option('x', "extension")]
+    public string Extension
+    {
+        get => _extension ?? ".png";
+        init => _extension = value;
+    }
+    string? _extension;
+
+    internal QrCodeEncodingOptions ToEncodingOptions() => new()
     {
         Height = Size,
         Width = Size,
