@@ -41,7 +41,12 @@ public static class StableDiffusionLauncher
         }
         async Task launch()
         {
-            var launcher = new ProcessLauncher(context.GetPlugin(PluginType.StableDiffusion).Path) { ThrowOnStdErr = false, Logging = { Logger = context } }
+            var launcher = new ProcessLauncher(context.GetPlugin(PluginType.StableDiffusion).Path)
+            {
+                ThrowOnStdErr = false,
+                Logging = { Logger = context },
+                Timeout = TimeSpan.FromMinutes(10),
+            }
                 .WithArgs(args =>
                 {
                     args.Add("gen", gentype);
@@ -58,7 +63,7 @@ public static class StableDiffusionLauncher
                 .AddOnErr(onerr);
 
             modify?.Invoke(launcher);
-            await launcher.ExecuteAsync(TimeSpan.FromMinutes(10));
+            await launcher.ExecuteAsync();
 
 
             void onread(string line)

@@ -9,7 +9,7 @@ public static class PluginDiscoverers
         {
             new BlenderPluginDiscoverer(),
             new Autodesk3dsMaxPluginDiscoverer(),
-            new TopazGigapixelAIPluginDiscoverer(),
+            new TopazVideoAIPluginDiscoverer(),
             new DaVinciResolvePluginDiscoverer(),
             new FFmpegPluginDiscoverer(),
             new PythonPluginDiscoverer(),

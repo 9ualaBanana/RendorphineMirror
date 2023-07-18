@@ -10,7 +10,7 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public async ValueTask<ReadOnlyTaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var files = new TaskFileList(task.FSInputDirectory());
-        foreach (var inputformats in task.GetFirstAction().InputFileFormats.OrderByDescending(fs => fs.Sum(f => (int) f)))
+        foreach (var inputformats in task.GetFirstAction().InputFileFormats.OrderByDescending(fs => fs.Sum(f => (int) f + 1)))
         {
             task.LogInfo($"[M+ ITH] (Re)trying to download {string.Join(", ", inputformats)}");
 

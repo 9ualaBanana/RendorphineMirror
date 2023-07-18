@@ -2,7 +2,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace Node.Tasks.Exec.Actions;
 
-public class GenerateQSPreview : FFMpegActionBase<QSPreviewInfo>
+public class GenerateQSPreview : PluginAction<QSPreviewInfo>
 {
     const int MaximumPixels = 129600;
     const double MaxByWidth = .6;
@@ -14,7 +14,9 @@ public class GenerateQSPreview : FFMpegActionBase<QSPreviewInfo>
     public override TaskAction Name => TaskAction.GenerateQSPreview;
 
     public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
-        new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Jpeg, FileFormat.Mov } };
+        new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov }, new[] { FileFormat.Jpeg, FileFormat.Mov } };
+
+    public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.FFmpeg);
 
     protected override OperationResult ValidateOutputFiles(TaskFilesCheckData files, QSPreviewInfo data) =>
         files.EnsureSameFormats();
@@ -27,7 +29,7 @@ public class GenerateQSPreview : FFMpegActionBase<QSPreviewInfo>
             if (file.Format == FileFormat.Jpeg)
                 ProcessJpeg(file.Path, outfiles.New(FileFormat.Jpeg).Path);
             else if (file.Format == FileFormat.Mov)
-                await ExecuteFFMpeg(context, data, file, outfiles, ConstructFFMpegArguments);
+                await ExecuteFFmpeg(context, outfiles.New(FileFormat.Mov), file);
         }
     }
 
@@ -57,19 +59,20 @@ public class GenerateQSPreview : FFMpegActionBase<QSPreviewInfo>
         image.SaveAsJpeg(output, new JpegEncoder() { Quality = 90 });
     }
 
-    void ConstructFFMpegArguments(ITaskExecutionContext context, QSPreviewInfo data, FFMpegArgsHolder args)
+    async Task ExecuteFFmpeg(ITaskExecutionContext context, FileWithFormat output, FileWithFormat file)
     {
         var watermarkFile = Path.GetFullPath("assets/qswatermark/watermark.png");
 
-        var video = args.FFProbe.VideoStream;
+        var ffprobe = await FFProbe.Get(file.Path, context);
+        var video = ffprobe.VideoStream;
         var (outwidth, outheight) = Scale(video.Width, video.Height);
-
 
         if (CachedWatermarkAspectRatio is null)
         {
             using var water = Image.Load<Rgba32>(watermarkFile);
             CachedWatermarkAspectRatio = water.Width / water.Height;
         }
+
 
         var waterw = outwidth * MaxByWidth;
         var waterh = waterw / CachedWatermarkAspectRatio.Value;
@@ -81,39 +84,52 @@ public class GenerateQSPreview : FFMpegActionBase<QSPreviewInfo>
         waterw += waterw % 2;
         waterh += waterh % 2;
 
-        args.HighQuality = false;
-
-        // input watermark file
-        args.Args.Add("-i", watermarkFile);
-
-        // no audio
-        args.Args.Add("-an");
-
-        // enable streaming
-        args.Args.Add("-movflags", "faststart");
-
-        // color format in case of conversion from prores
-        args.Args.Add("-pix_fmt", "yuv420p");
 
 
-        var graph = "";
+        var filtergraph = "";
 
         // scale video to maximum of MaximumPixels
-        graph += $"[0] scale= w={(int) outwidth}:h={(int) outheight} [v];";
+        filtergraph += $"[0] scale= w={(int) outwidth}:h={(int) outheight} [v];";
 
         // scale watermark
-        graph += $"[1] scale= w={(int) waterw}:h={(int) waterh},";
+        filtergraph += $"[1] scale= w={(int) waterw}:h={(int) waterh},";
 
         // set watermark transparency to 60%
-        graph += $"format=rgba, colorchannelmixer=aa=0.6 [o];";
+        filtergraph += $"format=rgba, colorchannelmixer=aa=0.6 [o];";
 
         // overlay watermark
-        graph += $"[v][o] overlay= (main_w-overlay_w)/2:((main_h-main_h/3)-overlay_h/2):format=auto,";
+        filtergraph += $"[v][o] overlay= (main_w-overlay_w)/2:((main_h-main_h/3)-overlay_h/2):format=auto";
 
-        // set the color format
-        graph += "format= yuv420p";
 
-        args.Filtergraph.AddLast(graph);
+        var launcher = new FFmpegLauncher(context.GetPlugin(PluginType.FFmpeg).Path)
+        {
+            Logger = context,
+            ProgressSetter = new TaskExecutionContextProgressSetterAdapter(context),
+
+            Input = { file.Path, watermarkFile },
+            VideoFilters = { filtergraph },
+            Outputs =
+            {
+                new FFmpegLauncherOutput()
+                {
+                    Output = output.Path,
+                    Codec = new H264NvencFFmpegCodec() { Bitrate = new BitrateData.Variable("31") },
+                    Args =
+                    {
+                        // no audio
+                        "-an",
+
+                        // enable streaming
+                        "-movflags", "faststart",
+
+                        // color format
+                        "-pix_fmt", "yuv420p",
+                    },
+                },
+            },
+        };
+
+        await launcher.Execute();
     }
 
     static (int width, int height) Scale(int width, int height)

@@ -7,7 +7,7 @@ public static class FFProbe
         // TODO:: get from plugin list
         var ffprobe = File.Exists("/bin/ffprobe") ? "/bin/ffprobe" : "assets/ffprobe.exe";
 
-        var str = await new ProcessLauncher(ffprobe) { Logging = { Logger = logobj } }
+        var str = await new ProcessLauncher(ffprobe) { Logging = { Logger = NamedLogger.TryFrom("FFprobe", logobj) } }
             .WithArgs(args => args.Add(
                 $"-hide_banner",
                 $"-v", $"quiet",

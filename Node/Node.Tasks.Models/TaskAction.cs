@@ -12,4 +12,5 @@ public enum TaskAction
     GenerateTitleKeywords,
     GenerateImageByMeta,
     GenerateImageByPrompt,
+    Topaz,
 }

@@ -32,9 +32,64 @@ if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
     foreach (var proc in FileList.GetAnotherInstances())
         proc.Kill(true);
 
-var halfrelease = args.Contains("release");
 Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
+var captured = new List<object>();
+
+var localping = new LocalPingListener();
+localping.Start();
+captured.Add(localping);
+
+
+await startReconnect();
+async Task startReconnect()
+{
+    var logger = new NamedLogger("Reconnect", new LoggableLogger(LogManager.GetCurrentClassLogger()));
+
+    await cancelTransferredTasks();
+    await Api.Default.ApiGet($"{Api.TaskLauncherEndpoint}/nodereconnected", "Reconnecting the node", Node.Apis.Default.AddSessionId(("guid", Settings.Guid)))
+        .ThrowIfError();
+
+
+    async Task cancelTransferredTasks()
+    {
+        var shardtasks = NodeSettings.QueuedTasks.Values.GroupBy(t => t.HostShard);
+
+        foreach (var tasks in shardtasks)
+        {
+            var shard = tasks.Key;
+            var tasksarr = tasks.ToArray();
+
+            if (shard is null)
+            {
+                logger.Error($"[Reconnecting] Found {tasksarr.Length} tasks without shard being set: {string.Join(", ", tasksarr.Select(t => t.Id))}");
+                continue;
+            }
+
+            while (true)
+            {
+                var canceltasks = await Api.Default.ApiPost<ImmutableArray<string>>(
+                    $"https://{shard}/rphtasklauncher/nodereconnected",
+                    "canceltasks",
+                    "Getting list of transferred tasks",
+                    Node.Apis.Default.AddSessionId(
+                        ("guid", Settings.Guid),
+                        ("taskids", JsonConvert.SerializeObject(tasksarr.Select(t => t.Id)))
+                    )
+                ).ThrowIfError();
+
+                foreach (var cancel in canceltasks)
+                    NodeSettings.QueuedTasks.Remove(cancel);
+
+                break;
+            }
+
+        }
+    }
+}
+
+
+var halfrelease = args.Contains("release");
 var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
 var pluginChecker = new PluginChecker(new SoftwareList());
 var pluginDeployer = new PluginDeployer(pluginManager);
@@ -74,8 +129,6 @@ else
 
 if (!Init.IsDebug || halfrelease)
     PortForwarder.Initialize();
-
-var captured = new List<object>();
 
 if (!Init.IsDebug || halfrelease)
 {
@@ -237,7 +290,8 @@ async Task InitializePlugins()
     Directory.CreateDirectory("plugins");
 
 
-    TaskList.Add(
+    TaskList.Add(new IPluginAction[]
+    {
         new EditRaster(), new EditVideo(),
         new EsrganUpscale(),
         new GreenscreenBackground(),
@@ -245,8 +299,9 @@ async Task InitializePlugins()
         new GenerateQSPreview(),
         new GenerateTitleKeywords(),
         new GenerateImageByMeta(),
-        new GenerateImageByPrompt()
-    );
+        new GenerateImageByPrompt(),
+        new Topaz(),
+    });
 
     TaskHandler.AutoInitializeHandlers();
 }

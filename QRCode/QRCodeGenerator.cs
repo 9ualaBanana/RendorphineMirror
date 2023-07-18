@@ -3,21 +3,21 @@ using ZXing;
 
 namespace QRCode;
 
-internal class QRCodeGenerator : BarcodeWriterPixelData
+public class QRCodeGenerator : BarcodeWriterPixelData
 {
-    internal QRCodeGenerator(QRCodeParameters parameters)
+    public QRCodeGenerator(QRCodeParameters parameters)
     {
         Format = BarcodeFormat.QR_CODE;
         Options = parameters.ToEncodingOptions();
     }
 
-    internal static string Execute(QRCodeParameters _)
+    public static string Execute(QRCodeParameters _)
     {
         // Path.GetFullPath is invoked here from client code because this method doesn't consider
         // current working directory when invoked from getter in objects constructed by CommandLineParser framework.
         var qrCodePath = Path.GetFullPath(Path.ChangeExtension(_.OutputPath, _.Extension));
         
-        _.UseToGenerateQrCode().SaveAsJpeg(qrCodePath);
+        _.UseToGenerateQrCode().SaveAsPng(qrCodePath);
 
         Console.WriteLine(qrCodePath);
         return qrCodePath;

@@ -9,9 +9,12 @@ public class ProcessLauncher
     readonly string Executable;
 
     public ArgList Arguments { get; } = new();
+    public MultiDictionary<string, string> EnvVariables { get; } = new();
+
     public bool WineSupport { get; init; } = false;
     public bool ThrowOnStdErr { get; init; } = true;
     public bool ThrowOnNonZeroExitCode { get; init; } = true;
+    public TimeSpan? Timeout { get; init; }
     public ProcessLogging Logging { get; init; } = new();
     StringBuilder? StringBuilder;
 
@@ -67,6 +70,9 @@ public class ProcessLauncher
         foreach (var arg in Arguments)
             procinfo.ArgumentList.Add(arg);
 
+        foreach (var (key, value) in EnvVariables)
+            procinfo.EnvironmentVariables[key] = value;
+
         Logging.Logger?.LogInfo($"Starting {WrapWithSpaces(procinfo.FileName)} {string.Join(' ', procinfo.ArgumentList.Select(WrapWithSpaces))}");
         var process = new Process() { StartInfo = procinfo };
 
@@ -110,21 +116,12 @@ public class ProcessLauncher
     public async Task ExecuteAsync()
     {
         using var proc = Start(out var readingtask);
-        await proc.WaitForExitAsync();
-        await readingtask;
-
-        if (ThrowOnNonZeroExitCode)
-            EnsureZeroExitCode(proc);
-    }
-
-    /// <summary> Start the process, wait for exit, force kill after <paramref name="cancelAfter"/> </summary>
-    public async Task ExecuteAsync(TimeSpan cancelAfter)
-    {
-        using var proc = Start(out var readingtask);
 
         var token = new CancellationTokenSource();
-        token.CancelAfter(cancelAfter);
-        var kill = token.Token.UnsafeRegister((_, _) =>
+        if (Timeout is not null)
+            token.CancelAfter(Timeout.Value);
+
+        using var kill = token.Token.UnsafeRegister((_, _) =>
         {
             try
             {
@@ -134,8 +131,8 @@ public class ProcessLauncher
             catch { }
         }, null);
 
-        await proc.WaitForExitAsync();
-        kill.Unregister();
+
+        await proc.WaitForExitAsync(token.Token);
         await readingtask;
 
         if (ThrowOnNonZeroExitCode)

@@ -275,7 +275,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
         if (errmsg is not null)
             data = data.Append(("errormessage", errmsg)).ToArray();
         if (fullerrmsg is not null)
-            data = data.Append(("fullerrmsg", fullerrmsg)).ToArray();
+            data = data.Append(("fullerrormessage", fullerrmsg)).ToArray();
 
         var result = await ShardGet(task, "mytaskstatechanged", "Changing task state", data).ConfigureAwait(false);
 

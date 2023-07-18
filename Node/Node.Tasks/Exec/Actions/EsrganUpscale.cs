@@ -86,8 +86,25 @@ public class EsrganUpscale : PluginAction<EsrganUpscaleInfo>
             // ESRGAN can upscale only to x4, so for x2 we just downscale x4 by half
             context.LogInfo($"Downscaling {file.Path} to x2..");
 
-            var outpath = Path.Combine(files.OutputFiles.Directory, "out_downscaled" + file.Format.AsExtension());
-            await FFMpegExec.ExecuteFFMpeg(context, file, files.OutputFiles, args => { args.Filtergraph.Add("scale=iw/2:ih/2"); return outpath; });
+            var ffprobe = await FFProbe.Get(file.Path, context);
+            var launcher = new FFmpegLauncher(context.GetPlugin(PluginType.FFmpeg).Path)
+            {
+                Logger = context,
+                ProgressSetter = new TaskExecutionContextProgressSetterAdapter(context),
+
+                Input = { file.Path },
+                VideoFilters = { "scale=iw/2:ih/2" },
+                Outputs =
+                {
+                    new FFmpegLauncherOutput()
+                    {
+                        Codec = FFmpegLauncher.CodecFromStream(ffprobe.VideoStream),
+                        Output = files.OutputFiles.New().New(file.Format, "out_downscaled").Path,
+                    },
+                },
+            };
+
+            await launcher.Execute();
         }
     }
 

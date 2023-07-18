@@ -119,8 +119,8 @@ public static class TaskExecutor
         }
 
         outputs.ThrowIfNull("No task result (what?)");
-        await context.SetOutputAsync(outputs);
         econtext.SetProgress(1);
+        await context.SetOutputAsync(outputs);
     }
 
 
