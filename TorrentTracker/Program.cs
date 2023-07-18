@@ -1,9 +1,7 @@
-﻿using Common;
-using MonoTorrent.Tracker;
+﻿using MonoTorrent.Tracker;
 using MonoTorrent.Tracker.Listeners;
-using NLog;
 
-Initializer.ConfigDirectory = "renderfin_tracker";
+Initializer.AppName = "renderfin_tracker";
 Init.Initialize();
 
 var logger = LogManager.GetCurrentClassLogger();

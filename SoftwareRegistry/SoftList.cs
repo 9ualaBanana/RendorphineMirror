@@ -4,12 +4,15 @@ namespace SoftwareRegistry;
 
 public class SoftList
 {
-    readonly DatabaseValueKeyDictionary<string, SoftwareDefinition> SoftwareDictBindable = new(Database.Instance, nameof(Software), StringComparer.OrdinalIgnoreCase);
+    readonly Database Database = new Database(Path.Combine(Directories.Data, "config.db"));
+    readonly DatabaseValueKeyDictionary<string, SoftwareDefinition> SoftwareDictBindable;
     public ImmutableDictionary<string, SoftwareDefinition> Software => SoftwareDictBindable.Values.ToImmutableDictionary();
 
     public SoftList()
     {
-        var soft = new DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>>(Database.Instance, nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
+        SoftwareDictBindable = new(Database, nameof(Software), StringComparer.OrdinalIgnoreCase);
+
+        var soft = new DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>>(Database, nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
         var softv = soft.Value.WithComparers(StringComparer.OrdinalIgnoreCase);
         if (softv.Count != 0)
         {
@@ -32,10 +35,10 @@ public class SoftList
 
     void Backup()
     {
-        var bkppath = Path.Combine(Init.ConfigDirectory, "bkp");
+        var bkppath = Path.Combine(Directories.Data, "bkp");
         Directory.CreateDirectory(bkppath);
 
-        File.Copy(Database.Instance.DbPath, Path.Combine(bkppath, DateTimeOffset.Now.ToUnixTimeSeconds().ToString() + ".db"), true);
+        File.Copy(Database.DbPath, Path.Combine(bkppath, DateTimeOffset.Now.ToUnixTimeSeconds().ToString() + ".db"), true);
     }
 
     public void Set(IEnumerable<KeyValuePair<string, SoftwareDefinition>> soft)

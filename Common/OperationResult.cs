@@ -105,7 +105,7 @@ namespace Common
 
     public static class OperationResultExtensions
     {
-        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+        static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         public static OperationResult<T> AsOpResult<T>(this T value) => OperationResult.Succ(value);
         public static ref readonly OperationResult GetResult<T>(in this OperationResult<T> estring) => ref estring.EString;
@@ -113,34 +113,61 @@ namespace Common
         public static Task<T> AsTask<T>(this T value) => Task.FromResult(value);
         public static ValueTask<OperationResult<T>> AsTaskResult<T>(this T value) => value.AsOpResult().AsVTask();
 
-        public static void ThrowIfError(in this OperationResult opr, string? format = null)
+        public static void ThrowIfError(this OperationResult opr, string? format = null)
         {
-            if (opr) return;
-
-            if (format is not null) throw new Exception(string.Format(format, opr.AsString()));
-            else throw new Exception(opr.AsString());
+            opr.ThrowIfError(message =>
+                format is not null
+                ? new Exception(string.Format(format, message))
+                : new Exception(message)
+            );
         }
-        public static T ThrowIfError<T>(in this OperationResult<T> opr, string? format = null)
+        public static T ThrowIfError<T>(this OperationResult<T> opr, string? format = null)
         {
             opr.GetResult().ThrowIfError(format);
             return opr.Value;
         }
-        public static async ValueTask ThrowIfError(this ValueTask<OperationResult> opr, string? format = null) => (await opr).ThrowIfError();
-        public static async ValueTask<T> ThrowIfError<T>(this ValueTask<OperationResult<T>> opr, string? format = null) => (await opr).ThrowIfError();
+        public static async ValueTask ThrowIfError(this ValueTask<OperationResult> opr, string? format = null) => (await opr).ThrowIfError(format);
+        public static async ValueTask<T> ThrowIfError<T>(this ValueTask<OperationResult<T>> opr, string? format = null) => (await opr).ThrowIfError(format);
 
-        public static OperationResult LogIfError(in this OperationResult opr, string? format = null)
+        public static void ThrowIfError(this OperationResult opr, Func<string, Exception> createfunc)
+        {
+            if (opr) return;
+            throw createfunc(opr.AsString());
+        }
+        public static T ThrowIfError<T>(this OperationResult<T> opr, Func<string, Exception> createfunc)
+        {
+            opr.GetResult().ThrowIfError(createfunc);
+            return opr.Value;
+        }
+        public static async ValueTask ThrowIfError(this ValueTask<OperationResult> opr, Func<string, Exception> createfunc) => (await opr).ThrowIfError(createfunc);
+        public static async ValueTask<T> ThrowIfError<T>(this ValueTask<OperationResult<T>> opr, Func<string, Exception> createfunc) => (await opr).ThrowIfError(createfunc);
+
+        [return: NotNullIfNotNull(nameof(def))]
+        public static T? GetValueOrDefault<T>(this OperationResult<T> opr, T? def = default)
+        {
+            if (!opr) return def;
+            return opr.Value;
+        }
+        [return: NotNullIfNotNull(nameof(def))]
+        public static async ValueTask<T?> GetValueOrDefault<T>(this ValueTask<OperationResult<T>> opr, T? def = default) => (await opr).GetValueOrDefault(def);
+
+        public static OperationResult LogIfError(in this OperationResult opr, string? format = null, ILoggable? loggable = null)
         {
             if (!opr)
             {
-                if (format is not null) _logger.Error(string.Format(format, opr.AsString()));
-                else _logger.Error(opr.AsString());
+                var text = opr.AsString();
+                if (format is not null)
+                    text = string.Format(format, text);
+
+                if (loggable is not null) loggable.LogErr(text);
+                else Logger.Error(text);
             }
 
             return opr;
         }
-        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null)
+        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null, ILoggable? loggable = null)
         {
-            opr.EString.LogIfError();
+            opr.EString.LogIfError(format, loggable);
             return opr;
         }
 

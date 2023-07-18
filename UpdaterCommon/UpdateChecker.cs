@@ -87,7 +87,7 @@ public class UpdateChecker
         TempDirectory = tempdirectory ?? Path.Combine(Path.GetTempPath(), $"{app}-update");
         Directory.CreateDirectory(TempDirectory);
 
-        appexecutables ??= new[] { "Node", "NodeUI" };
+        appexecutables ??= new[] { "Node", "Node.UI" };
         for (int i = 0; i < appexecutables.Length; i++)
         {
             ref var appexe = ref appexecutables[i];

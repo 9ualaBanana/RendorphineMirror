@@ -16,9 +16,12 @@ public class MPlusTaskInputInfo : ITaskInputInfo
     }
 
 
-    static ValueTask<OperationResult<ImmutableDictionary<string, MPlusNewItem>>> GetMpItems(string sessionid, string userid, IEnumerable<string> iids) =>
-        Api.Default.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info",
-            ("sessionid", sessionid), ("userid", userid), ("iids", JsonConvert.SerializeObject(iids)));
+    static ValueTask<OperationResult<Dictionary<string, MPlusNewItem>>> GetMpItems(string sessionid, string userid, IEnumerable<string> iids) =>
+        iids.Chunk(30).Select(async iids =>
+            await Api.Default.ApiPost<Dictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info",
+                ("sessionid", sessionid), ("userid", userid), ("iids", JsonConvert.SerializeObject(iids)))
+        )
+        .MergeDictResults();
 
     public ValueTask<OperationResult<TaskObject>> GetFileInfo(string sessionid, string myuserid) => GetFileInfo(sessionid, TUid ?? myuserid, Iid);
     public static ValueTask<OperationResult<TaskObject>> GetFileInfo(string sessionid, string userid, string iid) =>

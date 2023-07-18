@@ -1,25 +1,18 @@
 using System.Diagnostics;
-using Common;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace NodeCommon;
 
 public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = true)
 {
-    public const string RegistryUrl = "https://t.microstock.plus:7897";
+    public const string RegistryUrl = "https://t.microstock.plus:7898";
     const string TaskManagerEndpoint = Common.Api.TaskManagerEndpoint;
 
 
-    public static Apis DefaultWithSessionId(string sid) => new(Common.Api.Default, sid);
+    public static Apis DefaultWithSessionId(string sid, CancellationToken token = default) => new(Common.Api.Default with { CancellationToken = token }, sid);
     public Apis WithSessionId(string sid) => this with { SessionId = sid };
     public Apis WithNoErrorLog() => this with { LogErrors = false };
 
-    (string, string)[] AddSessionId(params (string, string)[] values)
-    {
-        if (values.Any(x => x.Item1 == "sessionid")) return values;
-        return values.Append(("sessionid", SessionId)).ToArray();
-    }
+    public (string, string)[] AddSessionId(params (string, string)[] values) => Common.Api.AddSessionId(SessionId, values);
 
     public ValueTask<OperationResult> ShardPost(IRegisteredTaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
         ShardPost<JToken>(task, url, property, errorDetails, content).Next(j => true);
@@ -33,7 +26,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     public ValueTask<OperationResult<T>> ShardGet<T>(IRegisteredTaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
         ShardSend(task, url, url => Api.ApiGet<T>(url, property, errorDetails, AddSessionId(values)));
     public ValueTask<OperationResult<T>> ShardPost<T>(IRegisteredTaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
-        ShardSend(task, url, url => Api.ApiPost<T>(url, property, errorDetails, Api.ToContent(AddSessionId(values))));
+        ShardSend(task, url, url => Api.ApiPost<T>(url, property, errorDetails, AddSessionId(values)));
 
     async ValueTask<OperationResult<T>> ShardSend<T>(IRegisteredTaskApi task, string url, Func<string, ValueTask<OperationResult<T>>> func)
     {
@@ -271,26 +264,23 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
             .Next(state => state.ThrowIfNull($"Task {task.Id} is already completed").AsOpResult());
 
 
-    public ValueTask<OperationResult> FailTaskAsync(IRegisteredTaskApi task, string errorMessage) => ChangeStateAsync(task, TaskState.Failed, errorMessage);
-    public ValueTask<OperationResult> ChangeStateAsync(IRegisteredTaskApi task, TaskState state) => ChangeStateAsync(task, state, null);
-    async ValueTask<OperationResult> ChangeStateAsync(IRegisteredTaskApi task, TaskState state, string? errorMessage)
+    public ValueTask<OperationResult> FailTaskAsync(IRegisteredTaskApi task, string errmsg, string fullerrmsg) => ChangeStateAsync(task, TaskState.Failed, errmsg, fullerrmsg);
+    public ValueTask<OperationResult> ChangeStateAsync(IRegisteredTaskApi task, TaskState state) => ChangeStateAsync(task, state, null, null);
+    async ValueTask<OperationResult> ChangeStateAsync(IRegisteredTaskApi task, TaskState state, string? errmsg, string? fullerrmsg)
     {
         (task as ILoggable)?.LogInfo($"Changing state to {state}");
 
 
         var data = AddSessionId(("taskid", task.Id), ("newstate", state.ToString().ToLowerInvariant()));
-        if (errorMessage is not null)
-        {
-            if (state != TaskState.Failed)
-                throw new ArgumentException($"Could not provide {nameof(errorMessage)} for task state {state}");
-
-            data = data.Append(("errormessage", errorMessage)).ToArray();
-        }
+        if (errmsg is not null)
+            data = data.Append(("errormessage", errmsg)).ToArray();
+        if (fullerrmsg is not null)
+            data = data.Append(("fullerrmsg", fullerrmsg)).ToArray();
 
         var result = await ShardGet(task, "mytaskstatechanged", "Changing task state", data).ConfigureAwait(false);
 
 
-        result.LogIfError($"[{(task as ILoggable)?.LogName ?? task.Id}] Error while changing task state: {{0}}");
+        result.LogIfError("Error while changing task state: {0}", task);
         if (result && task is TaskBase rtask)
         {
             rtask.State = state;
@@ -301,7 +291,7 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
     }
 
     /// <summary> Send current task progress to the server </summary>
-    public ValueTask<OperationResult> SendTaskProgressAsync(ReceivedTask task) =>
+    public ValueTask<OperationResult> SendTaskProgressAsync(TaskBase task) =>
         ShardGet(task, "mytaskprogress", "Sending task progress",
             AddSessionId(("taskid", task.Id), ("curstate", task.State.ToString().ToLowerInvariant()), ("progress", task.Progress.ToString())));
 
@@ -354,4 +344,122 @@ public partial record Apis(ApiInstance Api, string SessionId, bool LogErrors = t
         Extension extension)
         => await ShardGet<string>(registeredTaskApi, "getmplusitemdownloadlink", "link", "Getting M+ item download link",
             AddSessionId(("iid", iid), ("format", extension.ToString().ToLower()), ("original", extension == Extension.jpeg ? "1" : "0")));
+
+
+    public ValueTask<OperationResult<UUserSettings>> GetSettingsAsync() =>
+        Api.ApiGet<ServerUserSettings>($"{TaskManagerEndpoint}/getmysettings", "settings", "Getting user settings", AddSessionId())
+            .Next(settings => settings.ToSettings().AsOpResult());
+
+    public ValueTask<OperationResult> SetSettingsAsync(UUserSettings userSettings) =>
+        Api.ApiPost($"{TaskManagerEndpoint}/setusersettings", "Setting user settings",
+            AddSessionId(("settings", JsonConvert.SerializeObject(ServerUserSettings.FromSettings(userSettings), JsonSettings.LowercaseIgnoreNull)))
+        );
+
+
+    /*
+    Actual TMServerSoftware schema:
+    {
+        [plugin_name]: {
+            [plugin_version]: {
+                plugins: {
+                    [subplugin_name]: {
+                        version: [subplugin_version],
+                        subplugins: {
+                            [subsubplugin_name]: [subsubplugin_version],
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    But since this is stupid, and the server doesn't validate software names, we can use a more flattened schema:
+    (The server still expects there to be a "plugins" object on every software version, so we need to keep it)
+    {
+        [plugin_name]: {
+            [plugin_version]: { "plugins": {} }
+        }
+    }
+    */
+    public class ServerUserSettings
+    {
+        [JsonProperty("nodeinstallsoftware")] public RNodeInstallSoftware? NodeInstallSoftware { get; private set; }
+        [JsonProperty("installsoftware")] public TMServerSoftware? InstallSoftware { get; private set; }
+
+        public ServerUserSettings(RNodeInstallSoftware? nodeInstallSoftware, TMServerSoftware? installSoftware)
+        {
+            NodeInstallSoftware = nodeInstallSoftware;
+            InstallSoftware = installSoftware;
+        }
+
+        public UUserSettings ToSettings()
+        {
+            var soft = toSoftware(InstallSoftware);
+
+            var nodesoft = new UUserSettings.RNodeInstallSoftware();
+            if (NodeInstallSoftware is not null)
+                foreach (var (node, isoft) in NodeInstallSoftware)
+                    nodesoft.Add(node, toSoftware(isoft));
+
+            return new UUserSettings(nodesoft, soft);
+
+
+            static UUserSettings.TMServerSoftware toSoftware(TMServerSoftware? software)
+            {
+                var result = new UUserSettings.TMServerSoftware();
+
+                if (software is not null)
+                    foreach (var (type, versions) in software)
+                    {
+                        if (!Enum.TryParse<PluginType>(type, true, out var plugintype))
+                        {
+                            // TODO: log instead of throw
+                            throw new Exception($"Unknown plugin type {type}");
+                            continue;
+                        }
+
+                        result.Add(plugintype, versions.Keys.ToHashSet());
+                    }
+
+                return result;
+            }
+        }
+        public static ServerUserSettings FromSettings(UUserSettings settings)
+        {
+            var soft = toSoftware(settings.InstallSoftware);
+
+            var nodesoft = new RNodeInstallSoftware();
+            foreach (var (node, isoft) in settings.NodeInstallSoftware)
+                nodesoft.Add(node, toSoftware(isoft));
+
+            return new ServerUserSettings(nodesoft, soft);
+
+
+            static TMServerSoftware toSoftware(UUserSettings.TMServerSoftware software)
+            {
+                var result = new TMServerSoftware();
+
+                if (software is not null)
+                    foreach (var (type, versions) in software)
+                    {
+                        var softversions = new TMServerSoftwareVersions();
+                        foreach (var version in versions)
+                            softversions.Add(version, new UserSettingsSoft());
+
+                        result.Add(type.ToString().ToLowerInvariant(), softversions);
+                    }
+
+                return result;
+            }
+        }
+
+
+        public class RNodeInstallSoftware : Dictionary<string, TMServerSoftware> { }        // <node GUID, ...>
+        public class TMServerSoftware : Dictionary<string, TMServerSoftwareVersions> { }    // <plugin, ...>
+        public class TMServerSoftwareVersions : Dictionary<PluginVersion, UserSettingsSoft> { }    // <version, ...>
+        public class UserSettingsSoft
+        {
+            [JsonProperty("plugins")] public readonly object Plugins = new();
+        }
+    }
 }

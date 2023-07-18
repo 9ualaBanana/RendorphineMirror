@@ -34,6 +34,14 @@ var defaultActions = new Dictionary<string, ImmutableArray<IAction>>()
     {
         new BuildUploadAction(ProjectType.Release, "UpdateServer", "linux-x64", "debian@t.microstock.plus:/home/debian/updater3"),
     }.ToImmutableArray(),
+    ["registry"] = new IAction[]
+    {
+        new BuildUploadAction(ProjectType.Release, "SoftwareRegistry", "linux-x64", "debian@t.microstock.plus:/home/debian/registry2"),
+    }.ToImmutableArray(),
+    ["chatgptapi"] = new IAction[]
+    {
+        new BuildUploadAction(ProjectType.Release, "ChatGptApi", "linux-x64", "debian@t.microstock.plus:/home/debian/chatgptapi"),
+    }.ToImmutableArray(),
     ["rapi"] = new IAction[]
     {
         new BuildUploadAction(ProjectType.Release, "RApi", "linux-x64", "debian@51.91.57.112:/home/debian/rapi"),

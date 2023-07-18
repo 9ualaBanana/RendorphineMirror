@@ -1,11 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="CefSharp.OffScreen.NETCore" Version="109.1.110" />
     <PackageReference Include="Direx" Version="0.2.0" />
@@ -15,7 +9,8 @@
   <ItemGroup>
     <ProjectReference Include="..\aws-signature-version-4\src\AwsSignatureVersion4.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
-    <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
+    <ProjectReference Include="..\Node\Node.Common.Models\Node.Common.Models.csproj" />
+    <ProjectReference Include="..\Node\NodeToUI\NodeToUI.csproj" />
   </ItemGroup>
 
 </Project>

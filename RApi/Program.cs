@@ -1,15 +1,14 @@
-using System.Collections.Immutable;
-using Common;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
-using Newtonsoft.Json.Linq;
 using NLog.Web;
+using Node.Common.Models;
+using Node.Tasks.Models;
 using NodeCommon;
 using NodeCommon.Tasks;
 using NodeCommon.Tasks.Model;
 
 
-Initializer.ConfigDirectory = "rapi";
+Initializer.AppName = "rapi";
 Init.Initialize();
 
 var builder = WebApplication.CreateBuilder(args);

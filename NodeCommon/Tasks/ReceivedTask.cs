@@ -10,7 +10,7 @@ public interface IRegisteredTask
     public string Id { get; }
 }
 
-public interface IRegisteredTaskApi : IRegisteredTask
+public interface IRegisteredTaskApi : IRegisteredTask, ILoggable
 {
     string? HostShard { get; set; }
 }
@@ -62,8 +62,11 @@ public record ExecutedTask : TypedRegisteredTask
 /// <summary>
 /// Default implementation of <see cref="IRegisteredTaskApi"/>.
 /// </summary>
-public record TaskApi(string Id) : IRegisteredTaskApi
+public record TaskApi(string Id) : IRegisteredTaskApi, ILoggable
 {
+    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    void ILoggable.Log(LogLevel level, string text) => Logger.Log(level, text);
+
     public string? HostShard { get; set; }
 
     public static TaskApi For(IRegisteredTask task)
@@ -72,27 +75,15 @@ public record TaskApi(string Id) : IRegisteredTaskApi
     public bool Equals(IRegisteredTask? other) => Id == other?.Id;
 }
 
-public record ExecutedTaskApi : ExecutedTask, IRegisteredTaskApi
+public record ExecutedTaskApi : ExecutedTask, IRegisteredTaskApi, ILoggable
 {
+    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    void ILoggable.Log(LogLevel level, string text) => Logger.Log(level, text);
+
     public ExecutedTaskApi(string Id = default!, TaskAction Action = default!)
         : base(Id, Action)
     {
     }
 
     public string? HostShard { get; set; }
-}
-
-public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info), ILoggable
-{
-    string ILoggable.LogName => $"Task {Id}";
-
-    public readonly HashSet<FileWithFormat> InputFiles = new();
-    public readonly HashSet<FileWithFormat> OutputFiles = new();
-    public readonly HashSet<IUploadedFileInfo> UploadedFiles = new();
-
-
-    public string FSInputFile() => InputFiles.Single().Path;
-    public string FSInputFile(FileFormat format) => InputFiles.First(x => x.Format == format).Path;
-    public string FSOutputFile(FileFormat format) => OutputFiles.First(x => x.Format == format).Path;
-    public string? TryFSOutputFile(FileFormat format) => OutputFiles.FirstOrDefault(x => x.Format == format)?.Path;
 }

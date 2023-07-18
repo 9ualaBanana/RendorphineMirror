@@ -67,7 +67,7 @@ public class ImageProcessingCallbackQueryHandler
                 TaskAction.VeeeVectorize,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
                 new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "vectorized"),
-                new VeeeVectorizeInfo() { Lods = new int[] { 8500 } },
+                new VeeeVectorizeInfo(new int[] { 8500 }),
                 TaskObject.From(cachedImage.File)),
             new TelegramBot.User(ChatId, User),
             MPlusIdentity.SessionIdOf(User));

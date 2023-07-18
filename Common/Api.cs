@@ -39,14 +39,16 @@ public static class Api
         return responseJson;
     }
 
+    public static (string, string)[] AddSessionId(string sessionid, params (string, string)[] values)
+    {
+        if (values.Any(x => x.Item1 == "sessionid")) return values;
+        return values.Append(("sessionid", sessionid)).ToArray();
+    }
     public static (string, string)[] SignRequest(string key, params (string, string)[] values) => ApiInstance.SignRequest(key, values);
     public static string CalculateSign(string key, params (string, string)[] values) => ApiInstance.CalculateSign(key, values);
 }
-public record ApiInstance(HttpClient Client, bool LogRequests = true, CancellationToken? CancellationToken = default)
+public record ApiInstance(HttpClient Client, bool LogRequests = true, CancellationToken CancellationToken = default)
 {
-    const string ServerUri = Api.ServerUri;
-    const string TaskManagerEndpoint = Api.TaskManagerEndpoint;
-
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     public ValueTask<OperationResult<T>> ApiGet<T>(string url, string? property, string errorDetails, params (string, string)[] values) =>
@@ -85,7 +87,7 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
             if (!response.IsSuccessStatusCode)
                 return await asOpResult(null);
 
-            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            using var stream = await response.Content.ReadAsStreamAsync(CancellationToken).ConfigureAwait(false);
             using var reader = new JsonTextReader(new StreamReader(stream));
             return await asOpResult(JToken.Load(reader));
 
@@ -97,7 +99,7 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
                 logmsg += values switch
                 {
                     (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + x.Item2)),
-                    FormUrlEncodedContent fcontent => await fcontent.ReadAsStringAsync(),
+                    FormUrlEncodedContent fcontent => await fcontent.ReadAsStringAsync(CancellationToken),
                     _ => null,
                 };
                 logmsg += "]";
@@ -131,8 +133,8 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
         }
     }
 
-    public HttpContent ToContent((string, string)[] values) => new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
-    public static string ToGetContent((string, string)[] values) => string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
+    static HttpContent ToContent((string, string)[] values) => new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
+    static string ToGetContent((string, string)[] values) => string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
 
     public async Task<HttpResponseMessage> JustPost(string url, (string, string)[] values)
     {
@@ -146,11 +148,11 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
 
         return JustGet(url + str);
     }
-    public Task<HttpResponseMessage> JustPost(string url, HttpContent content) => Client.PostAsync(url, content);
-    public Task<HttpResponseMessage> JustGet(string url) => Client.GetAsync(url);
+    public Task<HttpResponseMessage> JustPost(string url, HttpContent content) => Client.PostAsync(url, content, CancellationToken);
+    public Task<HttpResponseMessage> JustGet(string url) => Client.GetAsync(url, CancellationToken);
 
-    public Task<Stream> Download(string url) => Client.GetStreamAsync(url);
-    public Task<HttpResponseMessage> Get(string url) => Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+    public Task<Stream> Download(string url) => Client.GetStreamAsync(url, CancellationToken);
+    public Task<HttpResponseMessage> Get(string url) => Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, CancellationToken);
 
     public static (string, string)[] SignRequest(string key, params (string, string)[] values) => values.Append(("sign", CalculateSign(key, values))).ToArray();
     public static string CalculateSign(string key, params (string, string)[] values)
@@ -159,14 +161,14 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
         return Convert.ToHexString(HMACSHA256.HashData(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(content))).ToLowerInvariant();
     }
 
-    async ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<OperationResult<T>>> func)
+    static async ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<OperationResult<T>>> func)
     {
         while (true)
         {
             try
             {
                 var result = await func().ConfigureAwait(false);
-                if (result.EString.HttpData is { } httperr && !httperr.IsSuccessStatusCode)
+                if (result.EString.HttpData is { } httperr && !httperr.IsSuccessStatusCode && httperr.StatusCode != System.Net.HttpStatusCode.BadRequest)
                 {
                     await Task.Delay(1000).ConfigureAwait(false);
                     continue;

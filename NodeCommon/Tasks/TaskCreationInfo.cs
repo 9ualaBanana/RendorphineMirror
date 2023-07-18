@@ -1,12 +1,7 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 namespace NodeCommon.Tasks;
 
 public class TaskCreationInfo
 {
-    public PluginType Type = default!;
-    public string? Version = default!;
     public string Action = default!;
     public JObject Input = default!;
     public JObject Output = default!;
@@ -15,9 +10,10 @@ public class TaskCreationInfo
     public TaskObject TaskObject = default!;
     public decimal PriceMultiplication = 1;
     public ImmutableArray<TaskSoftwareRequirement>? SoftwareRequirements;
+    public ImmutableArray<JObject>? Next;
 
     [JsonConstructor]
-    public TaskCreationInfo() { }
+    protected TaskCreationInfo() { }
 
     public TaskCreationInfo(TaskAction action, ITaskInputInfo input, ITaskOutputInfo output, TaskObject taskobj)
         : this(action.ToString(), input, output, new { }, TaskPolicy.AllNodes, taskobj)

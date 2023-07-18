@@ -13,7 +13,7 @@ public record UploadAction(string Source, string Destination) : IAction
     public static void Upload(string source, string destination)
     {
         if (File.Exists("/bin/rsync"))
-            Start("/bin/rsync", "-ravhP", "-T=/tmp", source, destination);
+            Start("/bin/rsync", "-ravhP", "-T=/tmp", "--exclude", "appsettings.*json", source, destination);
         else Start("scp", "-pr", source, destination);
     }
 

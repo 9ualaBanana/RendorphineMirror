@@ -1,28 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Library</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <EnablePreviewFeatures>True</EnablePreviewFeatures>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="NLog" Version="5.1.3" />
     <PackageReference Include="System.IO.Packaging" Version="7.0.0" />
     <PackageReference Include="UnitsNet" Version="4.145.0" />
     <PackageReference Include="TaskScheduler" Version="2.10.1" />
-    <PackageReference Include="MonoTorrent" Version="2.0.6" />
-    <PackageReference Include="System.Data.SQLite" Version="1.0.116" />
-    <PackageReference Include="MimeTypes" Version="2.4.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="MonoTorrent" Version="2.0.7" />
+    <PackageReference Include="System.Data.SQLite" Version="1.0.117" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\Node\Node.Common\Node.Common.csproj" />
+    <ProjectReference Include="..\Node\Node.Common.Models\Node.Common.Models.csproj" />
+    <ProjectReference Include="..\Node\Node.Tasks.Models\Node.Tasks.Models.csproj" />
+    <ProjectReference Include="..\Node\Node.Plugins.Models\Node.Plugins.Models.csproj" />
   </ItemGroup>
 
 </Project>

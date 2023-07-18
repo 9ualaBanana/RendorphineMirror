@@ -35,14 +35,13 @@ public class DeployCommand : CommandHandler, IAuthorizationPolicyProtected
         var pluginTypes = receivedCommand.UnquotedArguments.Select(type => Enum.Parse<PluginType>(type, true));
         var nodeNames = receivedCommand.QuotedArguments;
 
-        var plugins = pluginTypes.Where(type => type.IsPlugin())
-            .Select(type => new PluginToDeploy() { Type = type, Version = string.Empty }).ToHashSet();
+        var plugins = pluginTypes
+            .Select(type => new PluginToDeploy(type, string.Empty)).ToHashSet();
 
-        var userSettingsManager = new UserSettingsManager(_httpClient);
-        var userSettings = await userSettingsManager.TryFetchAsync(MPlusIdentity.SessionIdOf(User));
+        var api = new Apis(new ApiInstance(_httpClient), MPlusIdentity.SessionIdOf(User), default);
+        var userSettings = await api.GetSettingsAsync().GetValueOrDefault();
         if (userSettings is null)
         { await Bot.SendMessageAsync_(ChatId, "Plugins couldn't be deployed."); return; }
-        PopulateWithChildPlugins(plugins, pluginTypes);
         if (nodeNames.Any())
         {
             if (!_userNodes.TryGetUserNodeSupervisor(MPlusIdentity.UserIdOf(User), out var userNodesSupervisor, Bot, ChatId))
@@ -50,36 +49,21 @@ public class DeployCommand : CommandHandler, IAuthorizationPolicyProtected
 
             foreach (var node in nodeNames.SelectMany(userNodesSupervisor.GetNodesByName))
             {
-                var nodeSettings = new UserSettings(node.Guid) { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware };
-                nodeSettings.ThisNodeInstallSoftware.UnionEachWith(plugins);
-                if (!await userSettingsManager.TrySetAsync(nodeSettings, MPlusIdentity.SessionIdOf(User)))
+                foreach (var plugin in plugins)
+                    userSettings.Install(node.Guid, plugin.Type, plugin.Version);
+
+                if (!await api.SetSettingsAsync(userSettings))
                 { await Bot.SendMessageAsync_(ChatId, "Plugins couldn't be deployed."); return; }
             }
         }
         else
         {
-            userSettings.InstallSoftware.UnionEachWith(plugins);
-            if (!await userSettingsManager.TrySetAsync(new UserSettings() { InstallSoftware = userSettings.InstallSoftware, NodeInstallSoftware = userSettings.NodeInstallSoftware }, MPlusIdentity.SessionIdOf(User)))
+            foreach (var plugin in plugins)
+                userSettings.Install(plugin.Type, plugin.Version);
+
+            if (!await api.SetSettingsAsync(userSettings))
             { await Bot.SendMessageAsync_(ChatId, "Plugins couldn't be deployed."); return; }
         }
         await Bot.SendMessageAsync_(ChatId, "Plugins successfully added to the deploy queue.");
-    }
-
-    static void PopulateWithChildPlugins(IEnumerable<PluginToDeploy> plugins, IEnumerable<PluginType> pluginTypes)
-    {
-        foreach (var plugin in plugins)
-        {
-            plugin.SubPlugins = pluginTypes
-                .Where(type => type.IsChildOf(plugin.Type))
-                .Select(type => new PluginToDeploy() { Type = type, Version = string.Empty })
-                .ToHashSet();
-            foreach (var subPlugin in plugin.SubPlugins)
-            {
-                subPlugin.SubPlugins = pluginTypes
-                    .Where(type => type.IsChildOf(subPlugin.Type))
-                    .Select(type => new PluginToDeploy() { Type = type, Version = string.Empty })
-                    .ToHashSet();
-            }
-        }
     }
 }

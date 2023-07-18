@@ -11,9 +11,18 @@ public interface ITaskInputInfo : ITaskInputOutputInfo
 {
     TaskInputType Type { get; }
 }
-public interface ITaskInputFileInfo : ITaskInputInfo
+public interface ILocalTaskInputInfo : ITaskInputInfo
 {
-    ValueTask<TaskObject> GetFileInfo();
+    string Path { get; }
+
+    public ValueTask<OperationResult<TaskObject>> GetTaskObject()
+    {
+        if (File.Exists(Path)) return get(Path).AsOpResult().AsVTask();
+        return get(Directory.GetFiles(Path, "*", SearchOption.AllDirectories).First()).AsOpResult().AsVTask();
+
+
+        TaskObject get(string file) => new TaskObject(System.IO.Path.GetFileName(file), new FileInfo(file).Length);
+    }
 }
 
 [JsonConverter(typeof(TaskOutputJConverter))]

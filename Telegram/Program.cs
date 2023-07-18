@@ -1,8 +1,9 @@
 global using Common;
+global using Node.Common.Models;
+global using Node.Plugins.Models;
+global using Node.Tasks.Models;
+global using Node.Tasks.Models.ExecInfo;
 global using NodeCommon;
-global using NodeCommon.NodeUserSettings;
-global using NodeCommon.Plugins;
-global using NodeCommon.Plugins.Deployment;
 global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
 using NLog.Web;

@@ -5,175 +5,117 @@
             "label": "buildnode",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/Node/Node.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ]
+            "args": [ "build", "${workspaceFolder}/Node/Node/Node.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
+        },
+        {
+            "label": "buildnodetests",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "build", "${workspaceFolder}/Node/Node.Tests/Node.Tests.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
+        },
+        {
+            "label": "buildnodebenchmarks",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "build", "${workspaceFolder}/Node/Node.Benchmarks/Node.Benchmarks.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary", "-c", "Release" ]
         },
         {
             "label": "buildnodeui",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/NodeUI/NodeUI.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ]
+            "args": [ "build", "${workspaceFolder}/Node/Node.UI/Node.UI.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "buildregistry",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/SoftwareRegistry/SoftwareRegistry.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ]
+            "args": [ "build", "${workspaceFolder}/SoftwareRegistry/SoftwareRegistry.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "buildtracker",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/TorrentTracker/TorrentTracker.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ]
+            "args": [ "build", "${workspaceFolder}/TorrentTracker/TorrentTracker.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "buildrapi",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/RApi/RApi.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ]
+            "args": [ "build", "${workspaceFolder}/RApi/RApi.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "buildpinger",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/Pinger/Pinger.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ]
+            "args": [ "build", "${workspaceFolder}/Pinger/Pinger.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "buildupdater",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/Updater/Updater.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ]
+            "args": [ "build", "${workspaceFolder}/Updater/Updater.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "buildupdateserver",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/UpdateServer/UpdateServer.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ]
+            "args": [ "build", "${workspaceFolder}/UpdateServer/UpdateServer.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "builduploader",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/Uploader/Uploader.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary"
-            ]
+            "args": [ "build", "${workspaceFolder}/Uploader/Uploader.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
 
         {
             "label": "Upload node",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "run",
-                "--project",
-                "${workspaceFolder}/Uploader/Uploader.csproj"
-            ],
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-            }
+            "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj" ], "problemMatcher": [ ],
+            "group": { "kind": "build", }
         },
         {
             "label": "Upload node-dbg",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "run",
-                "--project",
-                "${workspaceFolder}/Uploader/Uploader.csproj",
-                "nodedbg"
-            ],
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-            }
+            "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "nodedbg" ],
+            "group": { "kind": "build", }
         },
         {
             "label": "Upload node-test",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "run",
-                "--project",
-                "${workspaceFolder}/Uploader/Uploader.csproj",
-                "nodetest"
-            ],
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-            }
+            "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "nodetest" ],
+            "group": { "kind": "build", }
         },
         {
             "label": "Upload update server",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "run",
-                "--project",
-                "${workspaceFolder}/Uploader/Uploader.csproj",
-                "updateserver"
-            ],
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-            }
+            "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "updateserver" ],
+            "group": { "kind": "build", }
+        },
+        {
+            "label": "Upload registry",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "registry" ],
+            "group": { "kind": "build", }
         },
         {
             "label": "Upload RApi",
             "command": "dotnet",
             "type": "process",
-            "args": [
-                "run",
-                "--project",
-                "${workspaceFolder}/Uploader/Uploader.csproj",
-                "rapi"
-            ],
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-            }
+            "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "rapi" ],
+            "group": { "kind": "build", }
+        },
+        {
+            "label": "Upload ChatGptApi",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "chatgptapi" ],
+            "group": { "kind": "build", }
         }
     ]
 }
