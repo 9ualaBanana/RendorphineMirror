@@ -14,4 +14,8 @@
     <PackageReference Include="ZXing.Net.Bindings.ImageSharp" Version="0.16.14" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
+
 </Project>

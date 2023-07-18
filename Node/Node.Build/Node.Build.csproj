@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Pinger\Pinger.csproj" />
     <ProjectReference Include="..\Node\Node.csproj" />
     <ProjectReference Include="..\Node.UI\Node.UI.csproj" />
-    <ProjectReference Include="..\..\Pinger\Pinger.csproj" />
   </ItemGroup>
 
 </Project>
