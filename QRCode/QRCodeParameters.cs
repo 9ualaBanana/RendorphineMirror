@@ -7,7 +7,7 @@ namespace QRCode;
 [CommandLine.Verb("without-logo",
     isDefault: false,
     aliases: new string[] { "w/ologo" })]
-internal record QRCodeParameters
+public record QRCodeParameters
 {
     [CommandLine.Value(index: 0, Required = true,
         MetaName = nameof(Data))]
@@ -94,7 +94,7 @@ internal record QRCodeParameters
 [CommandLine.Verb("with-logo",
     isDefault: true,
     aliases: new string[] { "w/logo" })]
-internal record QRCodeWithLogoParameters : QRCodeParameters
+public record QRCodeWithLogoParameters : QRCodeParameters
 {
     [CommandLine.Value(index: 1, Required = true,
         MetaName = nameof(Logo),
