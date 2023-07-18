@@ -36,10 +36,6 @@ Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
 var captured = new List<object>();
 
-var localping = new LocalPingListener();
-localping.Start();
-captured.Add(localping);
-
 
 await startReconnect();
 async Task startReconnect()
