@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using NodeCommon.Tasks;
+using Node.Tasks.Models;
 using Telegram.Infrastructure.Bot;
 
 namespace TrialUsersMediator;

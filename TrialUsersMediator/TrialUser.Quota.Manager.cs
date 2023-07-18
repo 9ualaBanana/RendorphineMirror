@@ -1,4 +1,4 @@
-﻿using NodeCommon.Tasks;
+﻿using Node.Tasks.Models;
 
 namespace TrialUsersMediator;
 

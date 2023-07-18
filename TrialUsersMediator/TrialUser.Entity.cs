@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using NodeCommon.Tasks;
+using Node.Tasks.Models;
 using System.Diagnostics.CodeAnalysis;
 
 namespace TrialUsersMediator;
