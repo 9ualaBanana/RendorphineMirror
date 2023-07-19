@@ -66,6 +66,8 @@ public static class PowerShellInvoker
 
     public static Collection<PSObject> Invoke(string script, Action<PSObject, Action>? onRead, Action<object, Action>? onErr, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null)
     {
+        logobj?.LogTrace($"Invoking powershell script: `\n{script}\n`");
+
         var session = InitialSessionState.CreateDefault();
         session.Variables.Add(new SessionStateVariableEntry(nameof(PSInvocationSettings.ErrorActionPreference), nameof(ActionPreference.Stop), "Error action preference"));
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
