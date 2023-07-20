@@ -15,15 +15,14 @@ public class TaskManager
         _cache = cache;
     }
 
-    internal async Task<OwnedRegisteredTask> RegisterAsync(TaskCreationInfo taskInfo, TelegramBot.User user, string sessionId)
+    internal async Task<OwnedRegisteredTask> RegisterAsync(TaskCreationInfo taskInfo, TelegramBot.User taskOwner, string sessionId)
     {
         var registeredTask = (await TaskRegistration.RegisterAsync(taskInfo, sessionId)).Result;
-        // Reduces quota of a trial user if `ChatId` belongs to an authenticated trial user.
-        await _trialUsersMediatorClient.TryReduceQuotaAsync(taskInfo.Action, user.ChatId, MPlusIdentity.UserIdOf(user._));
-        var ownedRegisteredTask = registeredTask.OwnedBy(user);
+        await _trialUsersMediatorClient.TryReduceQuotaAsync(taskInfo.Action, taskOwner.ChatId!, MPlusIdentity.UserIdOf(taskOwner._));
 
+        var ownedRegisteredTask = registeredTask.OwnedBy(taskOwner);
         _cache.Add(ownedRegisteredTask);
-
+        
         return ownedRegisteredTask;
     }
 }

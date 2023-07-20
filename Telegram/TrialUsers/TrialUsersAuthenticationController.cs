@@ -16,6 +16,7 @@ public class TrialUsersAuthenticationController : ControllerBase
         [FromServices] TrialUsersMediatorClient trialUsersMediator,
         [FromServices] IOptions<TelegramBot.Options> telegramBotOptions)
     {
+        // TODO: Calculate and compare hash OF LoginWidgetData.
         string sessionId = await trialUsersMediator.AuthenticateAsync(chatId, telegramUserLoginWidgetData);
         
         return Redirect(TelegramBotAuthenticationDeepLinkFor(sessionId));

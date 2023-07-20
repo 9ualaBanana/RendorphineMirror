@@ -47,7 +47,7 @@ public class StartCommand : CommandHandler
 
     protected override async Task HandleAsync(Command receivedCommand)
     {
-        if (!receivedCommand.UnquotedArguments.Any())
+            if (!receivedCommand.UnquotedArguments.Any())
             await SendStartMessageAsync();
         else if (receivedCommand.UnquotedArguments.FirstOrDefault() is string sessionId)
             await AuthenticateByMPlusViaBrowserAsyncWith(sessionId);
