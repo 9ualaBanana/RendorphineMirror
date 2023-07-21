@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace TrialUsersMediator;
 
@@ -12,34 +13,29 @@ public partial record TrialUser
         {
             public int Id { get; private set; } = default!;
             public TrialUser.Entity TrialUser { get; private set; } = default!;
-            public IEnumerable<Entry> Entries { get; private set; } = new List<Entry>();
 
             Entity() { }
             internal Entity(Quota<EQuota> quota)
                 : base(quota)
             {
-                MakePersistable();
             }
+            
 
-            internal void MakeManagable()
-                => _entries ??= Entries.ToDictionary(_ => _.Type, _ => _.Value);
-            internal void MakePersistable()
-                => Entries = _entries.Select(_ => new Entry(_.Key, _.Value) { Quota = this }).ToList();
-
-        internal readonly struct Configuration : IEntityTypeConfiguration<Entity>
+            internal readonly struct Configuration : IEntityTypeConfiguration<Entity>
             {
                 public void Configure(EntityTypeBuilder<Entity> taskQuotaEntity)
                 {
                     taskQuotaEntity.ToTable("TrialUsers_Quota");
 
-                    taskQuotaEntity.OwnsMany(_ => _.Entries, quotaEntry =>
-                    {
-                        quotaEntry.WithOwner(_ => _.Quota);
-
-                        quotaEntry.ToTable("TrialUsers_QuotaEntries");
-                        
-                        quotaEntry.HasKey(_ => _.Id);
-                    });
+                    taskQuotaEntity.Property(_ => _._entries)
+                        .HasColumnName("Entries")
+                        .HasConversion(
+                        _ => JsonConvert.SerializeObject(_),
+                        _ => JsonConvert.DeserializeObject<Dictionary<EQuota, int>>(_)!,
+                        new ValueComparer<Dictionary<EQuota, int>>(
+                            (this_, that) => JsonConvert.SerializeObject(this_) == JsonConvert.SerializeObject(that),
+                            _ => _.GetHashCode())
+                        );
                 }
             }
         }

@@ -5,11 +5,7 @@ public partial record TrialUser
     public partial record Quota<EQuota>
         where EQuota : struct, Enum
     {
-        /// <summary>
-        /// This field won't contain a value when an entity, whose base class is this class,
-        /// being constructed as a result of database query.
-        /// </summary>
-        protected Dictionary<EQuota, int> _entries;
+        Dictionary<EQuota, int> _entries { get; set; } = default!;
 
         internal static Quota<EQuota> Default => new(
             Enum.GetValues<EQuota>()
@@ -18,11 +14,10 @@ public partial record TrialUser
             );
         protected const int _DefaultQuota = 5;
 
-        protected Quota() { _entries = default!; }
-        Quota(Dictionary<EQuota, int> entries)
-        { _entries = entries; }
-
+        Quota() { }
         protected Quota(Quota<EQuota> quota)
         { _entries = quota._entries; }
+        Quota(Dictionary<EQuota, int> entries)
+        { _entries = entries; }
     }
 }

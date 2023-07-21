@@ -17,10 +17,7 @@ public partial record TrialUser
                 get
                 {
                     lock (_managerLock)
-                    {
-                        _trialUser.Quota_.MakeManagable();
-                        return _trialUser.Quota_._entries[_taskAction];
-                    }
+                    { return _trialUser.Quota_._entries[_taskAction]; }
                 }
             }
 
@@ -41,11 +38,7 @@ public partial record TrialUser
             internal void DecreaseBy(int count)
             {
                 lock (_managerLock)
-                {
-                    _trialUser.Quota_.MakeManagable();
-                    _trialUser.Quota_._entries[_taskAction] -= count;
-                    _trialUser.Quota_.MakePersistable();
-                }
+                { _trialUser.Quota_._entries[_taskAction] -= count; }
             }
 
             internal void Increase() => IncreaseBy(1);
@@ -53,11 +46,7 @@ public partial record TrialUser
             internal void IncreaseBy(int count)
             {
                 lock (_managerLock)
-                {
-                    _trialUser.Quota_.MakeManagable();
-                    _trialUser.Quota_._entries[_taskAction] += count;
-                    _trialUser.Quota_.MakePersistable();
-                }
+                { _trialUser.Quota_._entries[_taskAction] += count; }
             }
         }
     }

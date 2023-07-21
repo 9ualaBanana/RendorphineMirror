@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TrialUsersMediator;
 
@@ -10,9 +11,11 @@ using TrialUsersMediator;
 namespace TrialUsersMediator.Migrations
 {
     [DbContext(typeof(TrialUsersDbContext))]
-    partial class TrialUsersDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230721100113_StoreTrialUsersQuotaEntriesAsJson")]
+    partial class StoreTrialUsersQuotaEntriesAsJson
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.5");
@@ -87,7 +90,7 @@ namespace TrialUsersMediator.Migrations
 
             modelBuilder.Entity("TrialUsersMediator.TrialUser+Entity", b =>
                 {
-                    b.OwnsOne("TrialUsersMediator.TrialUser+Entity.Info_#TrialUsersMediator.TrialUser+Info+Entity", "Info_", b1 =>
+                    b.OwnsOne("TrialUsersMediator.TrialUser+Info+Entity", "Info_", b1 =>
                         {
                             b1.Property<long>("TrialUserIdentifier")
                                 .HasColumnType("INTEGER");
@@ -107,7 +110,7 @@ namespace TrialUsersMediator.Migrations
 
                             b1.HasOne("TrialUsersMediator.TrialUser+Info+Telegram+Entity", "Telegram")
                                 .WithOne()
-                                .HasForeignKey("TrialUsersMediator.TrialUser+Entity.Info_#TrialUsersMediator.TrialUser+Entity.Info_#TrialUsersMediator.TrialUser+Info+Entity", "TelegramInfoId");
+                                .HasForeignKey("TrialUsersMediator.TrialUser+Entity.Info_#TrialUsersMediator.TrialUser+Info+Entity", "TelegramInfoId");
 
                             b1.WithOwner("TrialUser")
                                 .HasForeignKey("TrialUserIdentifier", "TrialUserPlatform");

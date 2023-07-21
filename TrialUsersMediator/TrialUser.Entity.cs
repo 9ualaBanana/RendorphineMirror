@@ -9,7 +9,6 @@ public partial record TrialUser
 {
     public record Entity : TrialUser
     {
-        // Must be `Quota<TaskAction>.Entity` and not `TaskQuota` because of discriminator.
         required public Quota<TaskAction>.Entity Quota_ { get; set; } = default!;
         required public Info.Entity Info_ { get; set; } = default!;
 

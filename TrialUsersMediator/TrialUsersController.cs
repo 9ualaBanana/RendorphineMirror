@@ -23,10 +23,12 @@ public class TrialUsersController : ControllerBase
         string userId)
     {
         if (userId == _trialUserIdentity._.UserId)
-            if (await _database.AuthenticatedUsers.SingleOrDefaultAsync(trialUser => trialUser == new TrialUser.Entity(user)) is TrialUser.Entity trialUser)
+            if (await User() is TrialUser.Entity authenticatedTrialUser)
             {
-                TrialUser.Quota<TaskAction>.Manager.For(trialUser, Enum.Parse<TaskAction>(taskAction)).Decrease();
-                _database.Update(trialUser);
+                TrialUser.Quota<TaskAction>.Manager.For(authenticatedTrialUser, Enum.Parse<TaskAction>(taskAction)).Decrease();
+                // Quota.Entity must be updated directly (not via reference property of TrialUser.Entity)
+                // because changes to the dictionary are not detected otherwise.
+                _database.Update(authenticatedTrialUser.Quota_);
                 _database.SaveChanges();
                 return Ok();
             }
@@ -39,5 +41,9 @@ public class TrialUsersController : ControllerBase
         {
             return Unauthorized();
         }
+
+
+        async Task<TrialUser.Entity?> User()
+            => await _database.AuthenticatedUsers.SingleOrDefaultAsync(trialUser => trialUser == new TrialUser.Entity(user));
     }
 }
