@@ -23,20 +23,7 @@ public partial class TelegramBot
 
         public Uri Host { get; init; } = default!;
 
-        internal string PathBase
-        {
-            get
-            {
-                if (_pathBase is not null) return _pathBase;
-
-                _pathBase ??= _PathBase.StartsWith('/') ? _PathBase : $"/{_pathBase}";
-                _pathBase ??= _pathBase!.EndsWith('/') ? _pathBase : $"{_PathBase}/";
-
-                return _pathBase;
-            }
-        }
-        string? _pathBase;
-        string _PathBase { get; init; } = null!;
+        public string PathBase { get; init; } = default!;
     }
 }
 
@@ -45,9 +32,11 @@ static class TelegramBotOptionsExtensions
     internal static ITelegramBotBuilder ConfigureOptions(this ITelegramBotBuilder builder)
     {
         builder.Services.AddOptions<TelegramBot.Options>()
-            .BindConfiguration(TelegramBot.Options.Configuration, _ => _.BindNonPublicProperties = true)
-            .Validate(_ => Path.EndsInDirectorySeparator(_.Host.OriginalString),
+            .BindConfiguration(TelegramBot.Options.Configuration)
+            .Validate(_ => _.Host.OriginalString.EndsWith('/'),
                 $"{nameof(TelegramBot.Options.Host)} must end with a path separator.")
+            .Validate(_ => _.PathBase.StartsWith('/') &&  _.PathBase.EndsWith("/"),
+                $"{nameof(TelegramBot.Options.PathBase)} must start and end with a path separator.")
             .ValidateOnStart();
         return builder;
     }
