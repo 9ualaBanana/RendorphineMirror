@@ -2,9 +2,9 @@
 
 namespace TrialUsersMediator;
 
-public partial class TrialUserMediator
+public partial record TrialUser
 {
-    public class Client
+    public class MediatorClient
     {
         internal readonly MPlusClient _;
         readonly TrialUser.Identity _identity;
@@ -13,7 +13,7 @@ public partial class TrialUserMediator
         const string Email = "netherspite123@gmail.com";
         const string Password = "nhbfkmysqgfhjkm";
 
-        public Client(MPlusClient mPlusClient, TrialUser.Identity identity)
+        public MediatorClient(MPlusClient mPlusClient, TrialUser.Identity identity)
         {
             _ = mPlusClient;
             _identity = identity;
