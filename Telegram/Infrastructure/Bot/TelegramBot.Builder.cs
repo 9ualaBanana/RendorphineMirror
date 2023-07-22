@@ -18,10 +18,9 @@ public partial class TelegramBot
     {
         public IServiceCollection Services { get; }
 
-        internal static ITelegramBotBuilder Default(IServiceCollection services, Action<ITelegramBotBuilder> configure)
+        internal static ITelegramBotBuilder Default(IServiceCollection services)
         {
             var builder = new Builder(services);
-            configure(builder);
 
             builder
                 .ConfigureOptions()

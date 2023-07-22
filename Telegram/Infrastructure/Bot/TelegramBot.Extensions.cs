@@ -8,14 +8,14 @@ static class TelegramBotExtensions
 {
     internal static IWebHostBuilder ConfigureTelegramBot(
         this IWebHostBuilder builder,
-        Action<ITelegramBotBuilder> configureTelegramBot)
+        Action<ITelegramBotBuilder> configure)
     {
         builder
             .ConfigureAppConfiguration(_ => _
                 .AddJsonFile("botsettings.json", optional: false, reloadOnChange: false)
                 .AddJsonFile($"botsettings.{Environments.Development}.json", optional: true, reloadOnChange: false));
 
-        TelegramBot.Builder.Default(builder.Services(), configureTelegramBot);
+        configure(TelegramBot.Builder.Default(builder.Services()));
 
         return builder;
     }
