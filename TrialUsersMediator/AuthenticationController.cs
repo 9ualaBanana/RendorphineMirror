@@ -9,12 +9,12 @@ namespace TrialUsersMediator;
 public class AuthenticationController : ControllerBase
 {
     readonly TrialUsersDbContext _database;
-    readonly TrialUser.Identity _identity;
+    readonly TrialUser.Identity _trialUserIdentity;
 
-    public AuthenticationController(TrialUsersDbContext database, TrialUser.Identity identity)
+    public AuthenticationController(TrialUsersDbContext database, TrialUser.Identity trialUserIdentity)
     {
         _database = database;
-        _identity = identity;
+        _trialUserIdentity = trialUserIdentity;
     }
 
     [HttpGet("telegram_user")]
@@ -32,6 +32,6 @@ public class AuthenticationController : ControllerBase
         });
         await _database.SaveChangesAsync();
 
-        return _identity._.SessionId;
+        return _trialUserIdentity._.SessionId;
     }
 }

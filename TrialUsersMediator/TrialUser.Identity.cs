@@ -1,21 +1,26 @@
-﻿using Telegram.MPlus.Security;
+using Microsoft.Extensions.Options;
+using Telegram.MPlus.Clients;
+using Telegram.MPlus.Security;
 
 namespace TrialUsersMediator;
 
 public partial record TrialUser
 {
-    public record Identity
+
+    public partial record Identity
     {
-        internal MPlusIdentity _
+        internal MPlusIdentity _ { get; private set; } = default!;
+
+        readonly MPlusTaskManagerClient _client;
+        readonly Credentials _options;
+
+        public Identity(MPlusTaskManagerClient client, IOptions<Credentials> credentials)
         {
-            get
-            {
-                return _identity ?? throw new InvalidOperationException(
-                    $"{nameof(TrialUser.Identity)} must be initialized by calling {nameof(TrialUserMediator.Client.InitializeAsync)} before using.");
-            }
-            set => _identity = value;
+            _client = client;
+            _options = credentials.Value;
         }
 
-        MPlusIdentity? _identity;
+        internal async Task ObtainAsync()
+            => _ = await _client.AuthenticateAsyncUsing(_options.Email, _options.Password);
     }
 }

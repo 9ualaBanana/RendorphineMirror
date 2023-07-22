@@ -26,7 +26,7 @@ public class TrialUsersController : ControllerBase
             if (await User() is TrialUser.Entity authenticatedTrialUser)
             {
                 TrialUser.Quota<TaskAction>.Manager.For(authenticatedTrialUser, Enum.Parse<TaskAction>(taskAction)).Decrease();
-                // Quota.Entity must be updated directly (not via reference property of TrialUser.Entity)
+                // Quota.Entity must be updated manually (not by EF Core following the reference property of TrialUser.Entity when detecting changes)
                 // because changes to the dictionary are not detected otherwise.
                 _database.Update(authenticatedTrialUser.Quota_);
                 _database.SaveChanges();
