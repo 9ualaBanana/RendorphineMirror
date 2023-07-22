@@ -6,9 +6,9 @@ public partial class TelegramBot
     {
         internal const string Configuration = "TelegramBot";
 
-        public string Token { get; init; } = null!;
+        public string Token { get; init; } = default!;
 
-        public string Username { get; init; } = null!;
+        public string Username { get; init; } = default!;
 
         internal Uri WebhookUri
         {
@@ -21,10 +21,7 @@ public partial class TelegramBot
             }
         }
 
-        public Uri Host => _host ??= new(_Host.EndsWith('/') ? _Host : $"{_Host}/");
-        Uri? _host;
-        /// <inheritdoc cref="IConfigurationBoundPropertyDocumentation"/>
-        string _Host { get; init; } = null!;
+        public Uri Host { get; init; } = default!;
 
         internal string PathBase
         {
@@ -39,16 +36,7 @@ public partial class TelegramBot
             }
         }
         string? _pathBase;
-        /// <inheritdoc cref="IConfigurationBoundPropertyDocumentation"/>
         string _PathBase { get; init; } = null!;
-
-
-        /// <remarks>
-        /// Gets bound from <see cref="IConfiguration"/>.
-        /// </remarks>
-#pragma warning disable IDE0052 // Remove unread private members
-        const object? IConfigurationBoundPropertyDocumentation = null;
-#pragma warning restore IDE0052 // Remove unread private members
     }
 }
 
@@ -57,7 +45,10 @@ static class TelegramBotOptionsExtensions
     internal static ITelegramBotBuilder ConfigureOptions(this ITelegramBotBuilder builder)
     {
         builder.Services.AddOptions<TelegramBot.Options>()
-            .BindConfiguration(TelegramBot.Options.Configuration, _ => _.BindNonPublicProperties = true);
+            .BindConfiguration(TelegramBot.Options.Configuration, _ => _.BindNonPublicProperties = true)
+            .Validate(_ => Path.EndsInDirectorySeparator(_.Host.OriginalString),
+                $"{nameof(TelegramBot.Options.Host)} must end with a path separator.")
+            .ValidateOnStart();
         return builder;
     }
 }
