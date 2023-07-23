@@ -16,7 +16,8 @@ public static class TrialUsersMediatorOptionsExtensions
         services.AddOptions<TrialUsersMediatorOptions>()
             .BindConfiguration(TrialUsersMediatorOptions.Configuration)
             .Validate(_ => _.Host.OriginalString.EndsWith('/'),
-                $"{nameof(TelegramBot.Options.Host)} must end with a path separator.");
+                $"{nameof(TelegramBot.Options.Host)} must end with a path separator.")
+            .ValidateOnStart();
         return services;
     }
 }
