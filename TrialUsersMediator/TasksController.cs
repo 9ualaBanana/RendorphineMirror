@@ -5,12 +5,12 @@ using Node.Tasks.Models;
 namespace TrialUsersMediator;
 
 [ApiController]
-public class TrialUsersController : ControllerBase
+public class TasksController : ControllerBase
 {
     readonly TrialUsersDbContext _database;
     readonly TrialUser.Identity _trialUserIdentity;
 
-    public TrialUsersController(TrialUsersDbContext database, TrialUser.Identity trialUserIdentity)
+    public TasksController(TrialUsersDbContext database, TrialUser.Identity trialUserIdentity)
     {
         _database = database;
         _trialUserIdentity = trialUserIdentity;

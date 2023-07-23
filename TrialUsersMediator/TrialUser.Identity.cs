@@ -12,9 +12,9 @@ public partial record TrialUser
         internal MPlusIdentity _ { get; private set; } = default!;
 
         readonly MPlusTaskManagerClient _client;
-        readonly Credentials _options;
+        readonly TrialUser.MediatorClient.Credentials _options;
 
-        public Identity(MPlusTaskManagerClient client, IOptions<Credentials> credentials)
+        public Identity(MPlusTaskManagerClient client, IOptions<TrialUser.MediatorClient.Credentials> credentials)
         {
             _client = client;
             _options = credentials.Value;

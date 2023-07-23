@@ -10,7 +10,20 @@ static class TrialUserMediatorClientExtensions
             .AddScoped<TrialUser.MediatorClient>()
             .AddSingleton<TrialUser.Identity>()
             .AddMPlusClient());
-        builder.ConfigureTrialUserCredentials();
+        builder.ConfigureTrialUserMediatorClientCredentials();
+
+        return builder;
+    }
+
+    static IWebHostBuilder ConfigureTrialUserMediatorClientCredentials(this IWebHostBuilder builder)
+    {
+        builder.ConfigureAppConfiguration(_ => _.AddJsonFile("credentials.json", optional: false, reloadOnChange: false));
+
+        builder.ConfigureServices(_ => _
+            .AddOptions<TrialUser.MediatorClient.Credentials>()
+                .BindConfiguration(TrialUser.MediatorClient.Credentials.Configuration)
+                // Exception upon validation failure will be thrown only when IOptions.Value property is accessed.
+                .ValidateDataAnnotations());
 
         return builder;
     }

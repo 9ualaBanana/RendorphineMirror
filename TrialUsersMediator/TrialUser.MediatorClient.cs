@@ -5,7 +5,7 @@ namespace TrialUsersMediator;
 
 public partial record TrialUser
 {
-    public class MediatorClient : MPlusClient
+    public partial class MediatorClient : MPlusClient
     {
         readonly internal MPlusIdentity Identity;
 
