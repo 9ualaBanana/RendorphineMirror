@@ -47,7 +47,7 @@ public class StartCommand : CommandHandler
 
     protected override async Task HandleAsync(Command receivedCommand)
     {
-            if (!receivedCommand.UnquotedArguments.Any())
+        if (!receivedCommand.UnquotedArguments.Any())
             await SendStartMessageAsync();
         else if (receivedCommand.UnquotedArguments.FirstOrDefault() is string sessionId)
             await AuthenticateByMPlusViaBrowserAsyncWith(sessionId);
@@ -95,7 +95,7 @@ public class StartCommand : CommandHandler
                     Context.Request.PathBase = PathString.Empty;
 
                     return QueryHelpers.AddQueryString(
-                        _linkGenerator.GetUriByName(Context, TrialUsersAuthenticationController.using_telegram_login_widget_data)!,
+                        _linkGenerator.GetUriByName(Context, TrialUsersAuthenticationController.using_telegram_login_widget_data, host: HostString.FromUriComponent(_botOptions.Host.Authority))!,
                         "chatId", chatId.ToString());
                     // Resulting Telegram Login Widget data returned as query string parameters will be appended to the callback's query string if present.
                 }
