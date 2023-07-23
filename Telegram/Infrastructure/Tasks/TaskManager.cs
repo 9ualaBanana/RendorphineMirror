@@ -1,4 +1,5 @@
-﻿using Telegram.Infrastructure.Bot;
+﻿using System.Net;
+using Telegram.Infrastructure.Bot;
 using Telegram.MPlus.Security;
 using Telegram.TrialUsers;
 
@@ -15,14 +16,18 @@ public class TaskManager
         _cache = cache;
     }
 
-    internal async Task<OwnedRegisteredTask> RegisterAsync(TaskCreationInfo taskInfo, TelegramBot.User taskOwner, string sessionId)
+    internal async Task<OwnedRegisteredTask?> TryRegisterAsync(TaskCreationInfo taskInfo, TelegramBot.User taskOwner, string sessionId)
     {
-        var registeredTask = (await TaskRegistration.RegisterAsync(taskInfo, sessionId)).Result;
-        await _trialUsersMediatorClient.TryReduceQuotaAsync(taskInfo.Action, taskOwner.ChatId!, MPlusIdentity.UserIdOf(taskOwner._));
+        var response = await _trialUsersMediatorClient.TryReduceQuotaAsync(taskInfo.Action, taskOwner.ChatId!, MPlusIdentity.UserIdOf(taskOwner._));
+        if (response.StatusCode is HttpStatusCode.OK or HttpStatusCode.Unauthorized)
+        {
+            var registeredTask = (await TaskRegistration.RegisterAsync(taskInfo, sessionId)).Result;
 
-        var ownedRegisteredTask = registeredTask.OwnedBy(taskOwner);
-        _cache.Add(ownedRegisteredTask);
-        
-        return ownedRegisteredTask;
+            var ownedRegisteredTask = registeredTask.OwnedBy(taskOwner);
+            _cache.Add(ownedRegisteredTask);
+
+            return ownedRegisteredTask;
+        }
+        else return null;
     }
 }

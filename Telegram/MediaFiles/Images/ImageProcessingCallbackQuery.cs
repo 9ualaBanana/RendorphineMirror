@@ -46,7 +46,7 @@ public class ImageProcessingCallbackQueryHandler
 
     async Task UpscaleAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
     {
-        var registeredTask = await _taskManager.RegisterAsync(
+        var registeredTask = await _taskManager.TryRegisterAsync(
             new TaskCreationInfo(
                 TaskAction.EsrganUpscale,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
@@ -55,14 +55,16 @@ public class ImageProcessingCallbackQueryHandler
             new TelegramBot.User(ChatId, User),
             MPlusIdentity.SessionIdOf(User));
 
-        await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
-            new InlineKeyboardMarkup(DetailsButtonFor(registeredTask._))
-            );
+        if (registeredTask is not null)
+            await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
+                new InlineKeyboardMarkup(DetailsButtonFor(registeredTask._))
+                );
+        else await Bot.SendMessageAsync_(ChatId, "Task couldn't be registered.");
     }
 
     async Task VectorizeAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
     {
-        var registeredTask = await _taskManager.RegisterAsync(
+        var registeredTask = await _taskManager.TryRegisterAsync(
             new TaskCreationInfo(
                 TaskAction.VeeeVectorize,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
@@ -72,9 +74,11 @@ public class ImageProcessingCallbackQueryHandler
             new TelegramBot.User(ChatId, User),
             MPlusIdentity.SessionIdOf(User));
 
-        await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
-            new InlineKeyboardMarkup(DetailsButtonFor(registeredTask._))
-            );
+        if (registeredTask is not null)
+            await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
+                new InlineKeyboardMarkup(DetailsButtonFor(registeredTask._))
+                );
+        else await Bot.SendMessageAsync_(ChatId, "Task couldn't be registered.");
     }
 
     InlineKeyboardButton DetailsButtonFor(ITypedRegisteredTask typedRegisteredTask)

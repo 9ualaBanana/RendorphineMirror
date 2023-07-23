@@ -23,7 +23,7 @@ public class TrialUsersAuthenticationController : ControllerBase
 
 
         string TelegramBotAuthenticationDeepLinkFor(string sessionId)
-            => new UriBuilder()
+            => new UriBuilder
             {
                 Scheme = "https",
                 Host = new HostString("t.me").ToUriComponent(),
