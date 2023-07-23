@@ -6,7 +6,6 @@ namespace Telegram.TrialUsers;
 public class TrialUsersMediatorClient
 {
     readonly HttpClient _httpClient;
-    readonly TrialUsersMediatorOptions _options;
     readonly ILogger _logger;
 
     public TrialUsersMediatorClient(
@@ -16,7 +15,6 @@ public class TrialUsersMediatorClient
     {
         _httpClient = httpClient;
         _httpClient.BaseAddress = new(options.Value.Host.GetLeftPart(UriPartial.Authority));
-        _options = options.Value;
         _logger = logger;
     }
 
