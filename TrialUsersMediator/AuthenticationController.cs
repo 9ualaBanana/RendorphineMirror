@@ -22,15 +22,19 @@ public class AuthenticationController : ControllerBase
         [FromQuery] long chatId,
         [FromQuery] TelegramBot.User.LoginWidgetData telegramLoginWidgetData)
     {
-        var trialUser = new TrialUser() { Identifier = chatId, Platform = Platform.Telegram };
-        var quota = TrialUser.Quota<TaskAction>.Default;
-
-        _database.Add(new TrialUser.Entity(trialUser)
+        try
         {
-            Info_ = TrialUser.Info.Entity.From(telegramLoginWidgetData),
-            Quota_ = new TrialUser.Quota<TaskAction>.Entity(quota)
-        });
-        await _database.SaveChangesAsync();
+            var trialUser = new TrialUser() { Identifier = chatId, Platform = Platform.Telegram };
+            var quota = TrialUser.Quota<TaskAction>.Default;
+
+            _database.Add(new TrialUser.Entity(trialUser)
+            {
+                Info_ = TrialUser.Info.Entity.From(telegramLoginWidgetData),
+                Quota_ = new TrialUser.Quota<TaskAction>.Entity(quota)
+            });
+            await _database.SaveChangesAsync();
+        }
+        catch { /* Already authenticated */ }
 
         return _trialUserIdentity._.SessionId;
     }
