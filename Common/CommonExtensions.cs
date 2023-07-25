@@ -14,6 +14,8 @@ namespace Common
             action(t);
             return t;
         }
+        public static async ValueTask<T> With<T>(this ValueTask<T> task, Action<T> action) => (await task).With(action);
+        public static async Task<T> With<T>(this Task<T> task, Action<T> action) => (await task).With(action);
 
         public static string TrimLines(this string str) => string.Join(Environment.NewLine, str.Split('\n', StringSplitOptions.TrimEntries)).Trim();
         public static string TrimVerbatim(this string str)

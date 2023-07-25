@@ -2,77 +2,86 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Common;
 
-public static class Api
+public record Api(HttpClient Client, bool LogRequests = true, CancellationToken CancellationToken = default)
 {
     public const string ServerUri = "https://tasks.microstock.plus";
     public const string TaskManagerEndpoint = $"{ServerUri}/rphtaskmgr";
     public static readonly Uri TaskLauncherEndpoint = new($"{ServerUri}/rphtasklauncher/");
     public const string ContentDBEndpoint = $"https://cdb.microstock.plus/contentdb";
 
-    public static readonly HttpClient Client = new();
-    public static readonly ApiInstance Default = new(Client);
-
-    public static async ValueTask<JToken> GetJsonIfSuccessfulAsync(this HttpResponseMessage response, string? errorDetails = null)
-    {
-        response.EnsureSuccessStatusCode();
-
-        using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-        using var reader = new JsonTextReader(new StreamReader(stream));
-        var responseJson = JToken.Load(reader);
-        var responseStatusCode = responseJson["ok"]?.Value<int>();
-        if (responseStatusCode != 1)
-        {
-            if (responseJson["errormessage"]?.Value<string>() is { } errmsg)
-                throw new HttpRequestException(errmsg);
-
-            if (responseJson["errorcode"]?.Value<string>() is { } errcode)
-                throw new HttpRequestException($"{errorDetails} Server responded with {errcode} error code");
-
-            throw new HttpRequestException($"{errorDetails} Server responded with {responseStatusCode} status code");
-        }
-
-        return responseJson;
-    }
+    public static readonly HttpClient GlobalClient = new();
+    public static readonly Api Default = new(GlobalClient);
+    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     public static (string, string)[] AddSessionId(string sessionid, params (string, string)[] values)
     {
         if (values.Any(x => x.Item1 == "sessionid")) return values;
         return values.Append(("sessionid", sessionid)).ToArray();
     }
-    public static (string, string)[] SignRequest(string key, params (string, string)[] values) => ApiInstance.SignRequest(key, values);
-    public static string CalculateSign(string key, params (string, string)[] values) => ApiInstance.CalculateSign(key, values);
-}
-public record ApiInstance(HttpClient Client, bool LogRequests = true, CancellationToken CancellationToken = default)
-{
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    public static (string, string)[] SignRequest(string key, params (string, string)[] values) => values.Append(("sign", CalculateSign(key, values))).ToArray();
+    public static string CalculateSign(string key, params (string, string)[] values)
+    {
+        var content = string.Join('|', values.Select(x => x.Item2));
+        return Convert.ToHexString(HMACSHA256.HashData(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(content))).ToLowerInvariant();
+    }
 
     public ValueTask<OperationResult<T>> ApiGet<T>(string url, string? property, string errorDetails, params (string, string)[] values) =>
-        Send<T>(HttpMethod.Get, JustGet, url, property, values, errorDetails);
+        Send<T>(JustGet, url, property, values, errorDetails);
     public ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string errorDetails, params (string, string)[] values) =>
-        Send<T>(HttpMethod.Post, JustPost, url, property, values, errorDetails);
+        Send<T>(JustPost, url, property, values, errorDetails);
     public ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string errorDetails, HttpContent content) =>
-        Send<T, HttpContent>(HttpMethod.Post, JustPost, url, property, content, errorDetails);
+        Send<T, HttpContent>(JustPost, url, property, content, errorDetails);
 
     public ValueTask<OperationResult> ApiGet(string url, string errorDetails, params (string, string)[] values) =>
-        SendOk(HttpMethod.Get, JustGet, url, values, errorDetails);
+        SendOk(JustGet, url, values, errorDetails);
     public ValueTask<OperationResult> ApiPost(string url, string errorDetails, params (string, string)[] values) =>
-        SendOk(HttpMethod.Post, JustPost, url, values, errorDetails);
+        SendOk(JustPost, url, values, errorDetails);
     public ValueTask<OperationResult> ApiPost(string url, string errorDetails, HttpContent content) =>
-        SendOk(HttpMethod.Post, JustPost, url, content, errorDetails);
+        SendOk(JustPost, url, content, errorDetails);
 
-    ValueTask<OperationResult> SendOk<TValues>(HttpMethod method, Func<string, TValues, Task<HttpResponseMessage>> func, string url, TValues values, string? errorDetails) =>
-        Send<bool, TValues>(method, func, url, "ok", values, errorDetails).Next(v => new OperationResult(v, null));
-    ValueTask<OperationResult<T>> Send<T>(HttpMethod method, Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, string? property, (string, string)[] values, string? errorDetails) =>
-        Send<T, (string, string)[]>(method, func, url, property, values, errorDetails);
-    ValueTask<OperationResult<T>> Send<T, TValues>(HttpMethod method, Func<string, TValues, Task<HttpResponseMessage>> func, string url, string? property, TValues values, string? errorDetails)
+    ValueTask<OperationResult> SendOk<TValues>(Func<string, TValues, Task<HttpResponseMessage>> func, string url, TValues values, string? errorDetails) =>
+        Send<bool, TValues>(func, url, "ok", values, errorDetails).Next(v => new OperationResult(v, null));
+    ValueTask<OperationResult<T>> Send<T>(Func<string, (string, string)[], Task<HttpResponseMessage>> func, string url, string? property, (string, string)[] values, string? errorDetails) =>
+        Send<T, (string, string)[]>(func, url, property, values, errorDetails);
+    ValueTask<OperationResult<T>> Send<T, TValues>(Func<string, TValues, Task<HttpResponseMessage>> func, string url, string? property, TValues values, string? errorDetails)
     {
-        return Execute(send);
+        return execute();
 
+        async ValueTask<OperationResult<T>> execute()
+        {
+            while (true)
+            {
+                try
+                {
+                    var result = await send().ConfigureAwait(false);
+
+                    // true only when http code is non-success (except 400) and there's no response json
+                    var httperr = result.EString.HttpData is
+                    {
+                        IsSuccessStatusCode: false,
+                        //StatusCode: not System.Net.HttpStatusCode.BadRequest,
+                        ErrorCode: null,
+                    };
+
+                    if (httperr)
+                    {
+                        await Task.Delay(1000).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    return result;
+                }
+                catch (SocketException)
+                {
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    continue;
+                }
+                catch (Exception ex) { return OperationResult.Err(ex); }
+            }
+        }
         async ValueTask<OperationResult<T>> send()
         {
             var result = await func(url, values).ConfigureAwait(false);
@@ -84,53 +93,63 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
         }
         async ValueTask<OperationResult<JToken>> readResponse(HttpResponseMessage response, string? errorDetails = null)
         {
-            if (!response.IsSuccessStatusCode)
-                return await asOpResult(null);
-
-            using var stream = await response.Content.ReadAsStreamAsync(CancellationToken).ConfigureAwait(false);
-            using var reader = new JsonTextReader(new StreamReader(stream));
-            return await asOpResult(JToken.Load(reader));
-
-
-            async ValueTask<OperationResult<JToken>> asOpResult(JToken? responseJson)
+            try
             {
-                var logmsg = $"{(errorDetails is null ? $"{errorDetails} " : string.Empty)}[{method.Method} {url} ";
+                using var stream = await response.Content.ReadAsStreamAsync(CancellationToken).ConfigureAwait(false);
+                if (stream.Length == 0)
+                    return await ResponseJsonToOpResult(response, null, errorDetails, LogRequests, CancellationToken);
 
-                logmsg += values switch
-                {
-                    (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + x.Item2)),
-                    FormUrlEncodedContent fcontent => await fcontent.ReadAsStringAsync(CancellationToken),
-                    _ => null,
-                };
-                logmsg += "]";
-
-                var retmsg = errorDetails ?? string.Empty;
-
-                var ok = responseJson?["ok"]?.Value<int>() == 1;
-                var errcode = responseJson?["errorcode"]?.Value<int>();
-                var errmsg = responseJson?["errormessage"]?.Value<string>();
-
-
-                if (!response.IsSuccessStatusCode || responseJson is null)
-                {
-                    logmsg += $": HTTP {response.StatusCode}";
-                    retmsg += $": HTTP {response.StatusCode}";
-                }
-                else if (!ok)
-                {
-                    logmsg += $": {responseJson.ToString(Formatting.None)}";
-                    retmsg += $": error {errcode}: {errmsg ?? "<no message>"}";
-                }
-
-                if (LogRequests) Logger.Trace(logmsg);
-
-
-                if (response.IsSuccessStatusCode && ok)
-                    return new OperationResult<JToken>(OperationResult.Succ() with { HttpData = new(response, null) }, responseJson);
-
-                return OperationResult.Err(retmsg) with { HttpData = new(response, errcode) };
+                using var reader = new JsonTextReader(new StreamReader(stream));
+                return await ResponseJsonToOpResult(response, await JToken.LoadAsync(reader), errorDetails, LogRequests, CancellationToken);
+            }
+            catch
+            {
+                return await ResponseJsonToOpResult(response, null, errorDetails, LogRequests, CancellationToken);
             }
         }
+    }
+
+    public static async ValueTask<OperationResult<JToken>> ResponseJsonToOpResult(HttpResponseMessage response, JToken? responseJson, string? errorDetails, bool log, CancellationToken token)
+    {
+        var logmsg = $"{(errorDetails is null ? $"{errorDetails} " : string.Empty)}[{response.RequestMessage?.Method.Method} {response.RequestMessage?.RequestUri} ";
+
+        logmsg += response.RequestMessage?.Content switch
+        {
+            // (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + x.Item2)),
+            FormUrlEncodedContent fcontent => await fcontent.ReadAsStringAsync(token),
+            _ => "{ hidden or no content }",
+        };
+        logmsg += "]";
+
+        var retmsg = errorDetails ?? string.Empty;
+
+        var errcode = responseJson?["errorcode"]?.Value<int>();
+        var errmsg = responseJson?["errormessage"]?.Value<string>();
+        var ok =
+            response.IsSuccessStatusCode
+            && responseJson?["ok"]?.Value<int>() is null or 1
+            && errcode is null or 0
+            && errmsg is null;
+
+
+        if (!response.IsSuccessStatusCode || responseJson is null)
+        {
+            logmsg += $": HTTP {response.StatusCode}";
+            retmsg += $": HTTP {response.StatusCode}";
+        }
+        if (!ok && responseJson is not null)
+        {
+            logmsg += $": {responseJson.ToString(Formatting.None)}";
+            retmsg += $": error {errcode}: {errmsg ?? "<no message>"}";
+        }
+
+        if (log) Logger.Trace(logmsg);
+
+
+        if (response.IsSuccessStatusCode && ok)
+            return new OperationResult<JToken>(OperationResult.Succ() with { HttpData = new(response, null) }, responseJson);
+
+        return OperationResult.Err(retmsg) with { HttpData = new(response, errcode) };
     }
 
     static HttpContent ToContent((string, string)[] values) => new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
@@ -148,40 +167,12 @@ public record ApiInstance(HttpClient Client, bool LogRequests = true, Cancellati
 
         return JustGet(url + str);
     }
-    public Task<HttpResponseMessage> JustPost(string url, HttpContent content) => Client.PostAsync(url, content, CancellationToken);
+    public Task<HttpResponseMessage> JustPost(string url, HttpContent? content) => Client.PostAsync(url, content, CancellationToken);
     public Task<HttpResponseMessage> JustGet(string url) => Client.GetAsync(url, CancellationToken);
 
     public Task<Stream> Download(string url) => Client.GetStreamAsync(url, CancellationToken);
     public Task<HttpResponseMessage> Get(string url) => Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, CancellationToken);
 
-    public static (string, string)[] SignRequest(string key, params (string, string)[] values) => values.Append(("sign", CalculateSign(key, values))).ToArray();
-    public static string CalculateSign(string key, params (string, string)[] values)
-    {
-        var content = string.Join('|', values.Select(x => x.Item2));
-        return Convert.ToHexString(HMACSHA256.HashData(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(content))).ToLowerInvariant();
-    }
 
-    static async ValueTask<OperationResult<T>> Execute<T>(Func<ValueTask<OperationResult<T>>> func)
-    {
-        while (true)
-        {
-            try
-            {
-                var result = await func().ConfigureAwait(false);
-                if (result.EString.HttpData is { } httperr && !httperr.IsSuccessStatusCode && httperr.StatusCode != System.Net.HttpStatusCode.BadRequest)
-                {
-                    await Task.Delay(1000).ConfigureAwait(false);
-                    continue;
-                }
-
-                return result;
-            }
-            catch (SocketException)
-            {
-                await Task.Delay(1000).ConfigureAwait(false);
-                continue;
-            }
-            catch (Exception ex) { return OperationResult.Err(ex); }
-        }
-    }
+    public static implicit operator HttpClient(Api api) => api.Client;
 }

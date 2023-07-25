@@ -5,9 +5,9 @@ public interface IMPlusApi
 {
     string TaskId { get; }
     string SessionId { get; }
-    ApiInstance Api { get; }
+    Api Api { get; }
 }
-public record MPlusApiService(string TaskId, string SessionId, ApiInstance Api) : IMPlusApi;
+public record MPlusApiService(string TaskId, string SessionId, Api Api) : IMPlusApi;
 
 
 

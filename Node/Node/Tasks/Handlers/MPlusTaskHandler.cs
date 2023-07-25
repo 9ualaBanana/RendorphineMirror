@@ -52,7 +52,7 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
             else postfix = postfix.Substring(commonprefix.Length);
 
             task.LogInfo($"[MPlus] Uploading {file} with postfix '{postfix}'");
-            var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: postfix, task, Api.Client, Settings.SessionId), cancellationToken: cancellationToken);
+            var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: postfix, task, Api.GlobalClient, Settings.SessionId), cancellationToken: cancellationToken);
             task.UploadedFiles.Add(new MPlusUploadedFileInfo(iid, file));
         }
     }

@@ -1,4 +1,4 @@
-﻿using Common;
+using Common;
 using Node.Common.Models;
 using Node.Tasks.Models;
 using NodeCommon;
@@ -38,7 +38,7 @@ public abstract class UploadSessionData
         CancellationToken cancellationToken)
     {
         var httpResponse = await httpClient.PostAsync(Endpoint, HttpContent, cancellationToken).ConfigureAwait(false);
-        var response = await Api.GetJsonIfSuccessfulAsync(httpResponse);
+        var response = await httpResponse.GetJsonIfSuccessfulAsync();
         return new(
             this,
             (string)response["fileid"]!,

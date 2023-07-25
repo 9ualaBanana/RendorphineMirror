@@ -46,7 +46,7 @@ internal class PluginsUpdater : IHeartbeatGenerator
 
     async Task DeployUninstalledPluginsAsync(HttpResponseMessage response)
     {
-        var settings = (await Api.GetJsonIfSuccessfulAsync(response))["settings"].ThrowIfNull().ToObject<NodeCommon.Apis.ServerUserSettings>().ThrowIfNull().ToSettings();
+        var settings = (await response.GetJsonIfSuccessfulAsync())["settings"].ThrowIfNull().ToObject<NodeCommon.Apis.ServerUserSettings>().ThrowIfNull().ToSettings();
 
         await trydeploy(settings.InstallSoftware);
         await trydeploy(settings.GetNodeInstallSoftware(Settings.Guid));

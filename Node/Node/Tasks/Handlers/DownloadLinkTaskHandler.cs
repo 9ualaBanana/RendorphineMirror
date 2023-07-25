@@ -80,7 +80,7 @@ public class DownloadLinkTaskHandler : ITaskInputHandler
     {
         var dinput = (DownloadLinkTaskInputInfo) input;
 
-        var headers = await Api.Client.GetAsync(dinput.Url, HttpCompletionOption.ResponseHeadersRead);
+        var headers = await Api.GlobalClient.GetAsync(dinput.Url, HttpCompletionOption.ResponseHeadersRead);
         if (!headers.IsSuccessStatusCode)
             return OperationResult.Err() with { HttpData = new(headers, null) };
 

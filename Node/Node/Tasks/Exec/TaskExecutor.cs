@@ -232,7 +232,7 @@ public static class TaskExecutor
             $"hostshard={HttpUtility.UrlDecode(task.HostShard)}&" +
             $"executor={HttpUtility.UrlDecode(Settings.NodeName)}";
 
-        try { await Api.Client.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
+        try { await Api.GlobalClient.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to Telegram bot: " + ex); }
     }
 

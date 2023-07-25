@@ -137,7 +137,7 @@ if (!Init.IsDebug || halfrelease)
 
         var reepoHeartbeat = new Heartbeat(
             new HttpRequestMessage(HttpMethod.Post, $"{Settings.ServerUrl}/node/ping") { Content = await MachineInfo.AsJsonContentAsync(pluginManager) },
-            TimeSpan.FromMinutes(5), Api.Client);
+            TimeSpan.FromMinutes(5), Api.GlobalClient);
         _ = reepoHeartbeat.StartAsync();
 
         captured.Add(reepoHeartbeat);
@@ -145,12 +145,12 @@ if (!Init.IsDebug || halfrelease)
         //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
     }
 
-    var mPlusTaskManagerHeartbeat = new Heartbeat(new MPlusHeartbeatGenerator(pluginManager), TimeSpan.FromMinutes(1), Api.Client);
+    var mPlusTaskManagerHeartbeat = new Heartbeat(new MPlusHeartbeatGenerator(pluginManager), TimeSpan.FromMinutes(1), Api.GlobalClient);
     _ = mPlusTaskManagerHeartbeat.StartAsync();
 
     captured.Add(mPlusTaskManagerHeartbeat);
 
-    var userSettingsHeartbeat = new Heartbeat(new PluginsUpdater(pluginManager, pluginChecker, pluginDeployer), TimeSpan.FromMinutes(1), Api.Client);
+    var userSettingsHeartbeat = new Heartbeat(new PluginsUpdater(pluginManager, pluginChecker, pluginDeployer), TimeSpan.FromMinutes(1), Api.GlobalClient);
     _ = userSettingsHeartbeat.StartAsync();
 
     captured.Add(userSettingsHeartbeat);

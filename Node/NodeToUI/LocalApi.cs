@@ -1,6 +1,6 @@
 namespace NodeToUI;
 
-public record LocalApi(ApiInstance Api)
+public record LocalApi(Api Api)
 {
     public static readonly LocalApi Default = new LocalApi(Common.Api.Default);
 

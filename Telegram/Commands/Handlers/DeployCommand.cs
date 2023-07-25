@@ -38,7 +38,7 @@ public class DeployCommand : CommandHandler, IAuthorizationPolicyProtected
         var plugins = pluginTypes
             .Select(type => new PluginToDeploy(type, string.Empty)).ToHashSet();
 
-        var api = new Apis(new ApiInstance(_httpClient), MPlusIdentity.SessionIdOf(User), default);
+        var api = new Apis(new Api(_httpClient), MPlusIdentity.SessionIdOf(User), default);
         var userSettings = await api.GetSettingsAsync().GetValueOrDefault();
         if (userSettings is null)
         { await Bot.SendMessageAsync_(ChatId, "Plugins couldn't be deployed."); return; }

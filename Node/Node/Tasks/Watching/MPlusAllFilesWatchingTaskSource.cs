@@ -15,11 +15,7 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
         var qwertykey = File.ReadAllText("qwertykey").Trim();
         var mpluskey = File.ReadAllText("mpluskey").Trim();
 
-        var items = await process(getUsers().Next(users => getQSItems(users)));
-        if (!items.Success) return items;
-        if (items.Value.Length != 0) return items;
-
-        return await process(getQSItems(null));
+        return await process(getUsers().Next(users => getQSItems(users)));
 
 
         ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> process(ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> qitems) =>
