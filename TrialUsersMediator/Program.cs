@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<TrialUsersDbContext>();
 builder.WebHost.ConfigureTrialUserMediator();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson(_ => { _.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore; });
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
@@ -20,7 +20,7 @@ app.MapControllers();
 await app.RunAsync_();
 
 
-static class TrialUserExtensions
+static class TrialUsersMediatorExtensions
 {
     internal static async Task RunAsync_(this WebApplication app)
     { await app.Services.GetRequiredService<TrialUser.Identity>().ObtainAsync(); app.Run(); }
