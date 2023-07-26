@@ -13,8 +13,8 @@ public class FFmpegLauncher
 
     public MultiDictionary<string, string> EnvVariables { get; } = new();
 
-    public MultiList<string> Input { get; } = new();
-    public ArgList VideoFilters { get; } = new();
+    public InputList Input { get; } = new();
+    public FilterList VideoFilters { get; } = new();
     public MultiList<string> AudioFilters { get; } = new();
     public MultiList<FFmpegLauncherOutput> Outputs { get; } = new();
 
@@ -71,7 +71,7 @@ public class FFmpegLauncher
                 // force rewrite output file if exists
                 "-y",
 
-                Input.SelectMany(file => new[] { "-i", file }),
+                Input.SelectMany(file => new ArgList() { file.Args, "-i", file.Path }),
 
                 VideoFilters.Count == 0 ? null : new[] { "-filter_complex", string.Join(',', VideoFilters) },
                 AudioFilters.Count == 0 ? null : new[] { "-af", string.Join(',', AudioFilters) },
@@ -81,7 +81,7 @@ public class FFmpegLauncher
 
             var logger = Logger is null ? null : new NamedLogger("FFmpeg", Logger);
 
-            var duration = (await Task.WhenAll(Input.Select(f => FFProbe.Get(f, logger)))).Select(ff => TimeSpan.FromSeconds(ff.Format.Duration)).Max();
+            var duration = (await Task.WhenAll(Input.Select(f => FFProbe.Get(f.Path, logger)))).Select(ff => TimeSpan.FromSeconds(ff.Format.Duration)).Max();
             // if speed filter is active we should alter the duration for progress
             // but noone should change speed anyway and who cares about progress
             // duration /= argholder.Rate;
@@ -113,5 +113,15 @@ public class FFmpegLauncher
                 ProgressSetter?.Set(Math.Clamp(time / duration, 0, 1));
             }
         }
+    }
+
+
+    public class InputList : MultiList<FFmpegLauncherInput>
+    {
+        public void Add(string input) => base.Add(new FFmpegLauncherInput(input));
+    }
+    public class FilterList : MultiList<string>
+    {
+        public void Add(FFmpegFilter.FilterList list) => base.Add(list.Build());
     }
 }
