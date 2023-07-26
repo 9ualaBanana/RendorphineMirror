@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+using Node.Tasks.Models.ExecInfo;
 
 namespace Node.Tasks.Watching;
 
@@ -79,6 +79,20 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
         await base.Tick();
     }
 
+    protected override async ValueTask<DbTaskFullState> Register(MPlusTaskInputInfo input, ITaskOutputInfo output, TaskObject tobj)
+    {
+        var qid = await Api.Default.ApiGet<QwertyFileIdResult>($"https://qwertystock.com/search/getiids", null, "getting qs file id",
+            Api.SignRequest(File.ReadAllText("qwertykey").Trim(), ("mpiids", JsonConvert.SerializeObject(new[] { input.Iid }))))
+            .ThrowIfError();
+
+        var data = new QSPreviewInfo(qid.Result[input.Iid].ToStringInvariant());
+        return await Task.RegisterTask(input, output, tobj, data);
+    }
+
+    record QwertyFileIdResult(
+        // <mpiid, qid>
+        ImmutableDictionary<string, ulong> Result
+    );
 
     record QwertyStockItem(string UserId, string Iid);
 }

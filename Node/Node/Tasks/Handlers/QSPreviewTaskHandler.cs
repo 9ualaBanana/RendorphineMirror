@@ -2,13 +2,18 @@ namespace Node.Tasks.Handlers;
 
 public class QSPreviewTaskHandler : ITaskOutputHandler
 {
-    public const string Version = "4";
+    public const string Version = "5";
 
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.QSPreview;
 
     public async ValueTask UploadResult(ReceivedTask task, ReadOnlyTaskFileList files, CancellationToken cancellationToken)
     {
-        var jpeg = files.Single(FileFormat.Jpeg);
+        // with qr
+        var jpeg1 = files.First(f => f.Format == FileFormat.Jpeg && Path.GetFileNameWithoutExtension(f.Path) == "pj1");
+
+        // with footer
+        var jpeg2 = files.First(f => f.Format == FileFormat.Jpeg && Path.GetFileNameWithoutExtension(f.Path) == "pj2");
+
         var mov = files.TrySingle(FileFormat.Mov);
 
         var res = await task.ShardPost<InitOutputResult>("initqspreviewoutput", null, "Initializing qs preview result upload", ("taskid", task.Id));
@@ -20,19 +25,27 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
         }
 
         var result = res.ThrowIfError();
-        using var content = new MultipartFormDataContent() {
+        using var content = new MultipartFormDataContent()
+        {
             { new StringContent(result.UploadId), "uploadid" },
             { new StringContent(Version), "version" },
-        };
-
-        content.Add(new StreamContent(File.OpenRead(jpeg.Path))
-        {
-            Headers =
+            new StreamContent(File.OpenRead(jpeg2.Path))
             {
-                { "Content-Type", "image/jpeg" },
-                { "Content-Disposition", $"form-data; name=jpeg; filename={Path.GetFileName(jpeg.Path)}" },
+                Headers =
+                {
+                    { "Content-Type", "image/jpeg" },
+                    { "Content-Disposition", $"form-data; name=jpeg; filename={Path.GetFileName(jpeg2.Path)}" },
+                },
             },
-        });
+            new StreamContent(File.OpenRead(jpeg1.Path))
+            {
+                Headers =
+                {
+                    { "Content-Type", "image/jpeg" },
+                    { "Content-Disposition", $"form-data; name=qr; filename={Path.GetFileName(jpeg1.Path)}" },
+                },
+            }
+        };
 
         if (mov is not null)
         {

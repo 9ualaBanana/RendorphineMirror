@@ -33,6 +33,7 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
         if (Task.PlacedNonCompletedTasks.Count == 0) await Tick();
     }
     protected abstract ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync();
+
     protected virtual async ValueTask TickItem(MPlusNewItem item, TaskObject taskobj)
     {
         var fileName = item.Files.Jpeg.FileName;
@@ -43,9 +44,12 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
             ?? Task.Output.CreateOutput(Task, fileName);
 
         var newinput = new MPlusTaskInputInfo(item.Iid, item.UserId);
-        var newtask = await Task.RegisterTask(newinput, output, taskobj);
+        var newtask = await Register(newinput, output, taskobj);
         Task.PlacedNonCompletedTasks.Add(newtask.Id);
 
         SaveTask();
     }
+
+    protected virtual async ValueTask<DbTaskFullState> Register(MPlusTaskInputInfo input, ITaskOutputInfo output, TaskObject tobj) =>
+        await Task.RegisterTask(input, output, tobj);
 }

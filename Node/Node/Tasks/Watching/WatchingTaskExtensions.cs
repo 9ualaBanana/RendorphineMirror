@@ -17,25 +17,30 @@ public static class WatchingTaskExtensions
         handler.StartListening();
     }
 
-    public static TaskCreationInfo CreateTaskInfo(this WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output, TaskObject tobj)
+    public static TaskCreationInfo CreateTaskInfo(this WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output, TaskObject tobj, object data)
     {
         var action = TaskList.TryGet(task.TaskAction).ThrowIfNull($"Task action {task.TaskAction} does not exists");
-
-        return new TaskCreationInfo(
-            action.Name.ToString(),
-            input,
-            output,
-            JObject.FromObject(task.TaskData, JsonSettings.LowercaseIgnoreNullS),
-            task.Policy,
-            tobj
-        )
-        { SoftwareRequirements = task.SoftwareRequirements };
+        return new TaskCreationInfo(action.Name.ToString(), input, output, data, task.Policy, tobj)
+        {
+            SoftwareRequirements = task.SoftwareRequirements,
+        };
     }
 
-    public static ValueTask<DbTaskFullState> RegisterTask(this WatchingTask task, string filename, ITaskInputInfo input, TaskObject tobj) => task.RegisterTask(input, task.Output.CreateOutput(task, filename), tobj);
-    public static async ValueTask<DbTaskFullState> RegisterTask(this WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output, TaskObject tobj)
+    public static ValueTask<DbTaskFullState> RegisterTask(this WatchingTask task, string filename, ITaskInputInfo input, TaskObject tobj) =>
+        task.RegisterTask(input, task.Output.CreateOutput(task, filename), tobj);
+
+    public static async ValueTask<DbTaskFullState> RegisterTask(this WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output, TaskObject tobj) =>
+        await RegisterTask(
+            task,
+            input,
+            output,
+            tobj,
+            JObject.FromObject(task.TaskData, JsonSettings.LowercaseIgnoreNullS)
+        );
+
+    public static async ValueTask<DbTaskFullState> RegisterTask(this WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output, TaskObject tobj, object data)
     {
-        var taskinfo = task.CreateTaskInfo(input, output, tobj);
+        var taskinfo = task.CreateTaskInfo(input, output, tobj, data);
         var register = await NodeTaskRegistration.TaskRegisterAsync(taskinfo, task).ConfigureAwait(false);
         var newtask = register.ThrowIfError().ThrowIfNull();
         NodeSettings.WatchingTasks.Save(task);
