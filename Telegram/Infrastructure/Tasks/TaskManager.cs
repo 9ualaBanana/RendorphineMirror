@@ -18,7 +18,7 @@ public class TaskManager
 
     internal async Task<OwnedRegisteredTask?> TryRegisterAsync(TaskCreationInfo taskInfo, TelegramBot.User taskOwner, string sessionId)
     {
-        var response = await _trialUsersMediatorClient.TryReduceQuotaAsync(taskInfo.Action, taskOwner.ChatId!, MPlusIdentity.UserIdOf(taskOwner._));
+        var response = await _trialUsersMediatorClient.TryReduceQuotaAsync(taskInfo.Action, taskOwner.ChatId!, MPlusIdentity.UserIdOf(taskOwner));
         if (response.StatusCode is HttpStatusCode.OK or HttpStatusCode.Unauthorized)
         {
             var registeredTask = (await TaskRegistration.RegisterAsync(taskInfo, sessionId)).Result;

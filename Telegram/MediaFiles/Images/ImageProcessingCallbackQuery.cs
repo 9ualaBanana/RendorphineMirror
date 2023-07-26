@@ -52,7 +52,7 @@ public class ImageProcessingCallbackQueryHandler
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
                 new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "upscaled"),
                 TaskObject.From(cachedImage.File)),
-            new TelegramBot.User(ChatId, User),
+            User.ToTelegramBotUserWith(ChatId),
             MPlusIdentity.SessionIdOf(User));
 
         if (registeredTask is not null)
@@ -71,7 +71,7 @@ public class ImageProcessingCallbackQueryHandler
                 new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "vectorized"),
                 new VeeeVectorizeInfo(new int[] { 8500 }),
                 TaskObject.From(cachedImage.File)),
-            new TelegramBot.User(ChatId, User),
+            User.ToTelegramBotUserWith(ChatId),
             MPlusIdentity.SessionIdOf(User));
 
         if (registeredTask is not null)

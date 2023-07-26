@@ -8,7 +8,7 @@ namespace Telegram.Infrastructure.Bot;
 
 public partial class TelegramBot
 {
-    public partial record User
+    public partial class User
     {
         /// <summary>
         /// Principal entity with which other entities representing information related to this <see cref="ChatId"/> are associated.

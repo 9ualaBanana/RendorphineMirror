@@ -55,7 +55,7 @@ public class TelegramPreviewTaskResultHandler
         async Task SendPreviewsAsyncCore()
         {
             var taskOwner = _ownedRegisteredTasksCache.Retrieve(TypedRegisteredTask.With(executedTaskApi.Id, executedTaskApi.Action)).Owner;
-            var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(taskOwner._));
+            var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(taskOwner));
 
             foreach (var taskResult in await RequestTaskResultsAsyncFor(executedTaskApi.UploadedFiles).ToArrayAsync(cancellationToken))
                 await SendPreviewAsyncUsing(api, taskResult, taskOwner, cancellationToken);
@@ -67,7 +67,7 @@ public class TelegramPreviewTaskResultHandler
             {
                 foreach (var iid in uploadedFiles)
                 {
-                    var fileAccessor = new MPlusFileAccessor(iid, MPlusIdentity.SessionIdOf(taskOwner._));
+                    var fileAccessor = new MPlusFileAccessor(iid, MPlusIdentity.SessionIdOf(taskOwner));
                     yield return await _mPlusClient.RequestTaskResultAsyncUsing(api, executedTaskApi, fileAccessor, cancellationToken);
                 };
             }
@@ -115,7 +115,7 @@ public class TelegramPreviewTaskResultHandler
                     .AppendLine($"*Size*: `{cachedTaskResult.File.Length / 1024 / 1024}` *MB*")
                     .AppendLine($"*Execution Time*: `{taskExecutionTime}`");
 
-                if (MPlusIdentity.AccessLevelOf(user._) is AccessLevel.Admin)
+                if (MPlusIdentity.AccessLevelOf(user) is AccessLevel.Admin)
                     caption
                         .AppendLine($"*Task Executor* : `{taskResult.Executor}`")
                         .AppendLine($"*Task ID* : `{taskResult.Id}`")
