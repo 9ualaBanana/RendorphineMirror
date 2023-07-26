@@ -18,6 +18,21 @@ public class TrialUsersMediatorClient
         _logger = logger;
     }
 
+    internal async Task<bool> IsAuthenticatedAsync(string chatId, string userId)
+    {
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+
+            new UriBuilder
+            {
+                Path = new PathString("/authentication/check").ToUriComponent(),
+                Query = QueryString.Create(new Dictionary<string, string?>()
+                { ["identifier"] = chatId, ["platform"] = 0.ToString(), ["userid"] = userId }).ToUriComponent()
+            }.Uri.PathAndQuery);
+
+        return (await _httpClient.SendAsync(request)).IsSuccessStatusCode;
+    }
+
     /// <returns>M+ session ID of a user authenticated using provided arguments.</returns>
     internal async Task<string> AuthenticateAsync(
         string chatId,
@@ -39,7 +54,7 @@ public class TrialUsersMediatorClient
 
                 new UriBuilder
                 {
-                    Path = new PathString("/authenticate/telegram_user").ToUriComponent(),
+                    Path = new PathString("/authentication/telegram_user").ToUriComponent(),
                     Query = telegramUserLoginWidgetData.ToQueryString().Add("chatid", chatId).ToUriComponent(),
                 }.Uri.PathAndQuery);
 

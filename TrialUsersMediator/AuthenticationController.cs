@@ -5,14 +5,19 @@ using Telegram.Infrastructure.Bot;
 namespace TrialUsersMediator;
 
 [ApiController]
-[Route("authenticate")]
+[Route("authentication")]
 public class AuthenticationController : ControllerBase
 {
+    readonly Authentication _authentication;
     readonly TrialUsersDbContext _database;
     readonly TrialUser.Identity _trialUserIdentity;
 
-    public AuthenticationController(TrialUsersDbContext database, TrialUser.Identity trialUserIdentity)
+    public AuthenticationController(
+        Authentication authentication,
+        TrialUsersDbContext database,
+        TrialUser.Identity trialUserIdentity)
     {
+        _authentication = authentication;
         _database = database;
         _trialUserIdentity = trialUserIdentity;
     }
@@ -38,4 +43,10 @@ public class AuthenticationController : ControllerBase
 
         return _trialUserIdentity._.SessionId;
     }
+
+    [HttpGet("check")]
+    public async Task<ActionResult<TrialUser>> Check(
+        [FromQuery] TrialUser user,
+        [FromQuery] string userId)
+        => (await _authentication.CheckAsync(user, userId)).AsActionResult;
 }

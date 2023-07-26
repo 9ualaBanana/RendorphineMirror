@@ -4,6 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<TrialUsersDbContext>();
 builder.WebHost.ConfigureTrialUserMediator();
+builder.Services.AddScoped<Authentication>();
 
 builder.Services.AddControllers().AddNewtonsoftJson(_ => { _.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore; });
 builder.Services.AddSwaggerGen();

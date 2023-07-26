@@ -6,6 +6,8 @@ namespace TrialUsersMediator;
 public class TrialUsersDbContext : DbContext
 {
     public DbSet<TrialUser.Entity> AuthenticatedUsers { get; set; }
+    internal async Task<TrialUser.Entity?> Authenticated(TrialUser user)
+        => await AuthenticatedUsers.SingleOrDefaultAsync(trialUser => trialUser == new TrialUser.Entity(user));
 
     public TrialUsersDbContext(DbContextOptions options)
         : base(options)

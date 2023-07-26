@@ -46,3 +46,13 @@ public partial record TrialUser
         }
     }
 }
+
+static class TrialUserEntityExtensions
+{
+    internal static TrialUser Downcast(this TrialUser.Entity entity)
+        => new TrialUser
+        {
+            Identifier = entity.Identifier,
+            Platform = entity.Platform
+        };
+}
