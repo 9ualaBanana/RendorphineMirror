@@ -41,8 +41,6 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
     public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, QSPreviewInfo data)
     {
         var id = data.Qid;
-        using var qr = await GenerateQR($"https://qwertystock.com/item?id={id}");
-
         var outfiles = files.OutputFiles.New();
 
         var jpeg = files.InputFiles.TryFirst(FileFormat.Jpeg);
@@ -53,12 +51,17 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
             await ProcessPreviewFooter(id, jpeg.Path, outfiles.New(FileFormat.Jpeg, "pj_footer").Path);
 
             if (mov is null)
+            {
+                using var qr = await GenerateQR($"https://qwertystock.com/item?id={id}", "assets/qswatermark/qwerty_logo.png");
                 await ProcessPreviewQr(jpeg.Path, qr, outfiles.New(FileFormat.Jpeg, "pj_qr").Path);
+            }
         }
 
         if (mov is not null)
         {
             using var _ = Directories.TempFile(out var qrfile, "qsprveiew_qr");
+
+            using var qr = await GenerateQR($"https://qwertystock.com/item?id={id}", "assets/qswatermark/qwerty_logo_fried.png");
             await qr.SaveAsPngAsync(qrfile);
 
             await ProcessVideoPreview(context, mov.Path, qrfile, qr, outfiles.New(FileFormat.Mov, "pv1").Path);
@@ -66,8 +69,8 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
     }
 
 
-    async Task<Image<Rgba32>> GenerateQR(string data) =>
-        QRGenerator.Generate(data, QwertyLogoImage ??= await Image.LoadAsync<Rgba32>("assets/qswatermark/qwerty_logo.png"), 1, 1, .2f);
+    async Task<Image<Rgba32>> GenerateQR(string data, string logo) =>
+        QRGenerator.Generate(data, QwertyLogoImage ??= await Image.LoadAsync<Rgba32>(logo), 1, 1, .2f);
 
 
     async Task ProcessPreviewQr(string input, Image qr, string output)
