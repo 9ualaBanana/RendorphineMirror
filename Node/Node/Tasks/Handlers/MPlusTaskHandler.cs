@@ -10,29 +10,42 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     public async ValueTask<ReadOnlyTaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var files = new TaskFileList(task.FSInputDirectory());
+        var lastex = null as Exception;
+
         foreach (var inputformats in task.GetFirstAction().InputFileFormats.OrderByDescending(fs => fs.Sum(f => (int) f + 1)))
         {
+            using var token = new CancellationTokenSource();
             task.LogInfo($"[M+ ITH] (Re)trying to download {string.Join(", ", inputformats)}");
 
             try
             {
-                await Task.WhenAll(inputformats.Select(download));
-                break;
+                await Task.WhenAll(inputformats.Select(f => download(f, CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, token.Token).Token)));
+                return files;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                lastex = ex;
+                files.Clear();
+                token.Cancel();
+            }
         }
 
-        return files;
+        task.ThrowFailed("Could not download any input files", lastex?.Message);
+        throw null;
 
 
-        async Task download(FileFormat format)
+        async Task download(FileFormat format, CancellationToken token)
         {
             var downloadLink = await task.ShardGet<string>("gettaskinputdownloadlink", "link", "Getting m+ input download link",
                 ("taskid", task.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"));
 
-            using var inputStream = await Api.Default.Download(downloadLink.ThrowIfError());
+            using var response = await Api.GlobalClient.GetAsync(downloadLink.ThrowIfError(), HttpCompletionOption.ResponseHeadersRead, token);
             using var file = File.Open(files.New(format).Path, FileMode.Create, FileAccess.Write);
-            await inputStream.CopyToAsync(file, cancellationToken);
+
+            try { task.LogInfo($"[M+ ITH] {format} file is {response.Content.Headers.ContentLength} bytes"); }
+            catch { }
+
+            await response.Content.CopyToAsync(file, cancellationToken);
         }
     }
     public async ValueTask UploadResult(ReceivedTask task, ReadOnlyTaskFileList files, CancellationToken cancellationToken)

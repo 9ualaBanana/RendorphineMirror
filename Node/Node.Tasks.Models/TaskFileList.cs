@@ -45,6 +45,8 @@ public class TaskFileList : ReadOnlyTaskFileList
         Add(file);
         return file;
     }
+
+    public void Clear() => Files.Clear();
 }
 
 public static class TaskFileListExtensions

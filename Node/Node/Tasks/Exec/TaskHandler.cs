@@ -278,7 +278,7 @@ public static class TaskHandler
             }
             catch (NodeTaskFailedException ex)
             {
-                await fail(ex.Message, $"at {ex.TargetSite}; {ex}");
+                await fail(ex.Message, $"{ex.FullError}; at {ex.TargetSite}; {ex}");
                 return;
             }
             catch (Exception ex)
