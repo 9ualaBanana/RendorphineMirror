@@ -97,29 +97,35 @@ public record Api(HttpClient Client, bool LogRequests = true, CancellationToken 
             {
                 using var stream = await response.Content.ReadAsStreamAsync(CancellationToken).ConfigureAwait(false);
                 if (stream.Length == 0)
-                    return await ResponseJsonToOpResult(response, null, errorDetails, LogRequests, CancellationToken);
+                    return await ResponseJsonToOpResult(response, values, null, errorDetails, LogRequests, CancellationToken);
 
                 using var reader = new JsonTextReader(new StreamReader(stream));
-                return await ResponseJsonToOpResult(response, await JToken.LoadAsync(reader), errorDetails, LogRequests, CancellationToken);
+                return await ResponseJsonToOpResult(response, values, await JToken.LoadAsync(reader), errorDetails, LogRequests, CancellationToken);
             }
             catch
             {
-                return await ResponseJsonToOpResult(response, null, errorDetails, LogRequests, CancellationToken);
+                return await ResponseJsonToOpResult(response, values, null, errorDetails, LogRequests, CancellationToken);
             }
         }
     }
 
-    public static async ValueTask<OperationResult<JToken>> ResponseJsonToOpResult(HttpResponseMessage response, JToken? responseJson, string? errorDetails, bool log, CancellationToken token)
+    public static async ValueTask<OperationResult<JToken>> ResponseJsonToOpResult(HttpResponseMessage response, object? content, JToken? responseJson, string? errorDetails, bool log, CancellationToken token)
     {
         var logmsg = $"{(errorDetails is null ? $"{errorDetails} " : string.Empty)}[{response.RequestMessage?.Method.Method} {response.RequestMessage?.RequestUri} ";
 
-        logmsg += response.RequestMessage?.Content switch
-        {
-            // (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + x.Item2)),
-            FormUrlEncodedContent fcontent => await fcontent.ReadAsStringAsync(token),
-            _ => "{ hidden or no content }",
-        };
-        logmsg += "]";
+        logmsg += "{";
+        async ValueTask<string> contentToString(object? content) =>
+            content switch
+            {
+                (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + x.Item2)),
+                HttpContent c when c is FormUrlEncodedContent or StringContent => await c.ReadAsStringAsync(token),
+                MultipartContent c => $"Multipart [{string.Join(", ", await Task.WhenAll(c.Select(async c => $"{{ {c.Headers.ContentDisposition?.Name ?? "<noname>"} : {await contentToString(c)} }}")))}]",
+                { } => content.GetType().Name,
+                _ => "no content",
+            };
+
+        logmsg += await contentToString(content);
+        logmsg += "}]";
 
         var retmsg = errorDetails ?? string.Empty;
 

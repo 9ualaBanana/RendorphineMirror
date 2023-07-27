@@ -12,6 +12,7 @@ public class ApiCallTests
         {
             return await Api.ResponseJsonToOpResult(
                 new HttpResponseMessage(status),
+                null,
                 response,
                 null,
                 false,
