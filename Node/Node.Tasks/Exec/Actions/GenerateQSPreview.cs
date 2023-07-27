@@ -129,18 +129,12 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
                 Position = AnchorPositionMode.TopLeft,
             })
             .DrawImage(LogoImage, new Point(padding, outheight + (footerh / 2) - (LogoImage.Height / 2)), 1)
-            .DrawText(new TextOptions(new Font(font, 7f))
+            .DrawText(new TextOptions(new Font(font, 8f))
             {
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Origin = new System.Numerics.Vector2(outwidth - padding, outheight + (footerh / 2) - (footerh / 5))
-            }, $"ID: {id}", Color.White)
-            .DrawText(new TextOptions(new Font(font, 6f))
-            {
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Origin = new System.Numerics.Vector2(outwidth - padding, outheight + (footerh / 2) + (footerh / 5))
-            }, "www.qwertystock.com", Color.FromRgb(0x8a, 0x8d, 0xa0))
+                Origin = new System.Numerics.Vector2(outwidth - padding, outheight + (footerh / 2))
+            }, $"ID: {id}", Color.FromRgb(0x8a, 0x8d, 0xa0))
         );
 
         await image.SaveAsJpegAsync(output, new JpegEncoder() { Quality = 90 });
