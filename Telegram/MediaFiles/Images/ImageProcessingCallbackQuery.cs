@@ -57,7 +57,7 @@ public class ImageProcessingCallbackQueryHandler
 
         if (registeredTask is not null)
             await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
-                new InlineKeyboardMarkup(DetailsButtonFor(registeredTask._))
+                new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
                 );
         else await Bot.SendMessageAsync_(ChatId, "Task couldn't be registered.");
     }
@@ -76,7 +76,7 @@ public class ImageProcessingCallbackQueryHandler
 
         if (registeredTask is not null)
             await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
-                new InlineKeyboardMarkup(DetailsButtonFor(registeredTask._))
+                new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
                 );
         else await Bot.SendMessageAsync_(ChatId, "Task couldn't be registered.");
     }

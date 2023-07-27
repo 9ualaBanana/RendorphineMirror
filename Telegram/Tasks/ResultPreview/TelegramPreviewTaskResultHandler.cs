@@ -54,7 +54,7 @@ public class TelegramPreviewTaskResultHandler
 
         async Task SendPreviewsAsyncCore()
         {
-            var taskOwner = _ownedRegisteredTasksCache.Retrieve(TypedRegisteredTask.With(executedTaskApi.Id, executedTaskApi.Action)).Owner;
+            var taskOwner = _ownedRegisteredTasksCache.Retrieve(executedTaskApi as ExecutedTask).Owner;
             var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(taskOwner));
 
             foreach (var taskResult in await RequestTaskResultsAsyncFor(executedTaskApi.UploadedFiles).ToArrayAsync(cancellationToken))
