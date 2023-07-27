@@ -41,9 +41,7 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
     public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, QSPreviewInfo data)
     {
         var id = data.Qid;
-
         using var qr = await GenerateQR($"https://qwertystock.com/item?id={id}");
-        await qr.SaveAsPngAsync("/temp/asd.png");
 
         var outfiles = files.OutputFiles.New();
 
@@ -61,19 +59,10 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
         if (mov is not null)
         {
             using var _ = Directories.TempFile(out var qrfile, "qsprveiew_qr");
-
-#if DEBUG
-            // TODO:_ remove
             await qr.SaveAsPngAsync(qrfile);
-#endif
 
             await ProcessVideoPreview(context, mov.Path, qrfile, qr, outfiles.New(FileFormat.Mov, "pv1").Path);
         }
-
-#if DEBUG
-        // TODO:_ remove
-        Process.Start("mpv", "/home/i3ym/workspace/Projects/RenderphineNode/temp/GenerateQSPreview/1/pv1.mov");
-#endif
     }
 
 
