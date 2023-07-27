@@ -30,7 +30,7 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
         if (jpeg)
         {
             format.Add(FileFormat.Jpeg);
-            format.Add(FileFormat.Jpeg);
+            if (!mov) format.Add(FileFormat.Jpeg);
         }
         if (mov)
             format.Add(FileFormat.Mov);
@@ -47,13 +47,18 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
 
         var outfiles = files.OutputFiles.New();
 
-        if (files.InputFiles.TryFirst(FileFormat.Jpeg) is { } jpeg)
+        var jpeg = files.InputFiles.TryFirst(FileFormat.Jpeg);
+        var mov = files.InputFiles.TryFirst(FileFormat.Mov);
+
+        if (jpeg is not null)
         {
-            await ProcessFirstPreview(jpeg.Path, qr, outfiles.New(FileFormat.Jpeg, "pj1").Path);
-            await ProcessSecondPreview(id, jpeg.Path, outfiles.New(FileFormat.Jpeg, "pj2").Path);
+            await ProcessPreviewFooter(id, jpeg.Path, outfiles.New(FileFormat.Jpeg, "pj_footer").Path);
+
+            if (mov is null)
+                await ProcessPreviewQr(jpeg.Path, qr, outfiles.New(FileFormat.Jpeg, "pj_qr").Path);
         }
 
-        if (files.InputFiles.TryFirst(FileFormat.Mov) is { } mov)
+        if (mov is not null)
         {
             using var _ = Directories.TempFile(out var qrfile, "qsprveiew_qr");
 
@@ -76,8 +81,7 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
         QRGenerator.Generate(data, QwertyLogoImage ??= await Image.LoadAsync<Rgba32>("assets/qswatermark/qwerty_logo.png"), 1, 1, .2f);
 
 
-    /// <summary> Generate preview with a watermark and a QR code </summary>
-    async Task ProcessFirstPreview(string input, Image qr, string output)
+    async Task ProcessPreviewQr(string input, Image qr, string output)
     {
         const double maxByWidth = .6;
         const double maxByHeight = .3;
@@ -105,8 +109,7 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
         await image.SaveAsJpegAsync(output, new JpegEncoder() { Quality = 90 });
     }
 
-    /// <summary> Generate preview with a footer </summary>
-    async Task ProcessSecondPreview(string id, string input, string output)
+    async Task ProcessPreviewFooter(string id, string input, string output)
     {
         LogoImage ??= await Image.LoadAsync<Rgba32>("assets/qswatermark/logo.png");
 

@@ -8,11 +8,8 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
 
     public async ValueTask UploadResult(ReceivedTask task, ReadOnlyTaskFileList files, CancellationToken cancellationToken)
     {
-        // with qr
-        var jpeg1 = files.First(f => f.Format == FileFormat.Jpeg && Path.GetFileNameWithoutExtension(f.Path) == "pj1");
-
-        // with footer
-        var jpeg2 = files.First(f => f.Format == FileFormat.Jpeg && Path.GetFileNameWithoutExtension(f.Path) == "pj2");
+        var jpegfooter = files.First(f => f.Format == FileFormat.Jpeg && Path.GetFileNameWithoutExtension(f.Path) == "pj_footer");
+        var jpegqr = files.FirstOrDefault(f => f.Format == FileFormat.Jpeg && Path.GetFileNameWithoutExtension(f.Path) == "pj_qr");
 
         var mov = files.TrySingle(FileFormat.Mov);
 
@@ -29,23 +26,27 @@ public class QSPreviewTaskHandler : ITaskOutputHandler
         {
             { new StringContent(result.UploadId), "uploadid" },
             { new StringContent(Version), "version" },
-            new StreamContent(File.OpenRead(jpeg2.Path))
+            new StreamContent(File.OpenRead(jpegfooter.Path))
             {
                 Headers =
                 {
                     { "Content-Type", "image/jpeg" },
-                    { "Content-Disposition", $"form-data; name=jpeg; filename={Path.GetFileName(jpeg2.Path)}" },
+                    { "Content-Disposition", $"form-data; name=jpeg; filename={Path.GetFileName(jpegfooter.Path)}" },
                 },
             },
-            new StreamContent(File.OpenRead(jpeg1.Path))
+        };
+
+        if (jpegqr is not null)
+        {
+            content.Add(new StreamContent(File.OpenRead(jpegqr.Path))
             {
                 Headers =
                 {
                     { "Content-Type", "image/jpeg" },
-                    { "Content-Disposition", $"form-data; name=qr; filename={Path.GetFileName(jpeg1.Path)}" },
+                    { "Content-Disposition", $"form-data; name=qr; filename={Path.GetFileName(jpegqr.Path)}" },
                 },
-            }
-        };
+            });
+        }
 
         if (mov is not null)
         {
