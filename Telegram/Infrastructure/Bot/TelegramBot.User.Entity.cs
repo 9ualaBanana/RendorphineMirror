@@ -18,18 +18,22 @@ public partial class TelegramBot
             [MemberNotNullWhen(true, nameof(MPlusIdentity))]
             internal bool IsAuthenticatedByMPlus => MPlusIdentity is not null;
 
-            public MPlusIdentityEntity? MPlusIdentity { get; set; }
+            public MPlusIdentityEntity? MPlusIdentity { get; set; } = default!;
 
 
             internal readonly struct Configuration : IEntityTypeConfiguration<Entity>
             {
-                public void Configure(EntityTypeBuilder<Entity> entity)
+                public void Configure(EntityTypeBuilder<Entity> telegramBotUserEntity)
                 {
-                    entity.HasKey(_ => _.ChatId);
-                    entity.Property(_ => _.ChatId)
+                    telegramBotUserEntity.ToTable("Users");
+
+                    telegramBotUserEntity.HasKey(_ => _.ChatId);
+
+                    telegramBotUserEntity.Property(_ => _.ChatId)
                         .HasConversion(chatId => chatId.Identifier, identifier => new ChatId((long)identifier!))
                         .ValueGeneratedNever();
-                    entity.Navigation(_ => _.MPlusIdentity).AutoInclude();
+
+                    telegramBotUserEntity.Navigation(_ => _.MPlusIdentity).AutoInclude();
                 }
             }
         }
