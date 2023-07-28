@@ -1,6 +1,4 @@
-﻿using Telegram.Infrastructure.Bot;
-
-namespace Telegram.TrialUsers;
+﻿namespace Telegram.TrialUsers;
 
 public record TrialUsersMediatorOptions
 {
@@ -14,10 +12,7 @@ public static class TrialUsersMediatorOptionsExtensions
     public static IServiceCollection ConfigureTrialUsersMediatorOptions(this IServiceCollection services)
     {
         services.AddOptions<TrialUsersMediatorOptions>()
-            .BindConfiguration(TrialUsersMediatorOptions.Configuration)
-            .Validate(_ => _.Host.OriginalString.EndsWith('/'),
-                $"{nameof(TelegramBot.Options.Host)} must end with a path separator.")
-            .ValidateOnStart();
+            .BindConfiguration(TrialUsersMediatorOptions.Configuration);
         return services;
     }
 }

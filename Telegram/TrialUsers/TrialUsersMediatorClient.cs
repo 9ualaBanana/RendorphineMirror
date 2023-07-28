@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
 
 namespace Telegram.TrialUsers;
@@ -18,6 +19,8 @@ public class TrialUsersMediatorClient
         _logger = logger;
     }
 
+    internal async Task<bool> IsAuthenticatedAsync(ChatId chatId, string userId)
+        => await IsAuthenticatedAsync(chatId, userId);
     internal async Task<bool> IsAuthenticatedAsync(string chatId, string userId)
     {
         var request = new HttpRequestMessage(

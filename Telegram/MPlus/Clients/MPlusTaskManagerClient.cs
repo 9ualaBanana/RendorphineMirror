@@ -27,7 +27,7 @@ public class MPlusTaskManagerClient
 
             new UriBuilder 
             { Path = new PathString("/login").ToUriComponent() }
-            .Uri.PathAndQuery)
+            .Uri.PathAndQuery.TrimStart('/'))
         {
             Content = new FormUrlEncodedContent(new Dictionary<string, string>()
             {
