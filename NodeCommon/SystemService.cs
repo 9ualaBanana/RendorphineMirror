@@ -69,24 +69,27 @@ namespace NodeCommon
             }
             void Linux()
             {
-                var service = $@"
+                var service = $"""
                     [Unit]
-                    Description=Renderfin tracker
+                    Description=Renderfin pinger
 
                     [Service]
                     Type=oneshot
                     KillMode=process
                     WorkingDirectory={Path.GetDirectoryName(updaterexe)}
-                    ExecStart=""{pingerexe}""
-                ".TrimLines();
-                var timer = $@"
+                    ExecStart="{pingerexe}"
+                    """;
+                var timer = $"""
                     [Unit]
-                    Description=Renderfin tracker
+                    Description=Renderfin pinger
 
                     [Timer]
                     OnActiveSec=1min
                     OnUnitActiveSec=1min
-                ".TrimLines();
+
+                    [install]
+                    WantedBy=multi-user.target
+                    """;
 
                 var configdir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "systemd/user/");
                 Directory.CreateDirectory(configdir);
