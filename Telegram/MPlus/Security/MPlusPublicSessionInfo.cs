@@ -14,5 +14,5 @@ public record MPlusPublicSessionInfo(
 static class MPlusPublicSessionInfoExtensions
 {
     internal static MPlusIdentity ToMPlusIdentity(this MPlusPublicSessionInfo publicSessionInfo)
-        => new(publicSessionInfo.UserId, publicSessionInfo.SessionId, publicSessionInfo.AccessLevel);
+        => new(publicSessionInfo.Email, publicSessionInfo.UserId, publicSessionInfo.SessionId, publicSessionInfo.AccessLevel);
 }
