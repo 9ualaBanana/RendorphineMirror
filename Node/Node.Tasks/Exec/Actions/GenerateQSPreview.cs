@@ -84,11 +84,11 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
         var (outwidth, outheight) = Scale(image.Width, image.Height, MaximumPixels);
 
         var ww = outwidth * maxByWidth;
-        var wh = ww / (WatermarkImage.Width / WatermarkImage.Height);
-        if (outwidth * maxByWidth / (WatermarkImage.Width / WatermarkImage.Height) > outheight * maxByHeight)
+        var wh = ww / ((double) WatermarkImage.Width / WatermarkImage.Height);
+        if (outwidth * maxByWidth / ((double) WatermarkImage.Width / WatermarkImage.Height) > outheight * maxByHeight)
         {
             wh = outheight * maxByHeight;
-            ww = wh * (WatermarkImage.Width / WatermarkImage.Height);
+            ww = wh * ((double) WatermarkImage.Width / WatermarkImage.Height);
         }
 
         using var watermark = WatermarkImage.Clone(ctx => ctx.Resize((int) ww, (int) wh));
