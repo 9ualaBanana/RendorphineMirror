@@ -67,7 +67,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatGptApi", "ChatGptApi\Ch
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_3DProductsPublish", "_3DProductsPublish\_3DProductsPublish.csproj", "{BB06A7BE-0EF3-41A4-81B6-9EB7B93E8BE6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pinger", "Pinger\Pinger.csproj", "{F0C97700-5B44-4CF1-8E54-154084E70FCB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pinger", "Node\Node.Pinger\Node.Pinger.csproj", "{F0C97700-5B44-4CF1-8E54-154084E70FCB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

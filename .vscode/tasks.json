@@ -47,7 +47,7 @@
             "label": "buildpinger",
             "command": "dotnet",
             "type": "process",
-            "args": [ "build", "${workspaceFolder}/Pinger/Pinger.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
+            "args": [ "build", "${workspaceFolder}/Node/Node.Pinger/Node.Pinger.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "buildupdater",
