@@ -46,9 +46,10 @@ public class ImageProcessingCallbackQueryHandler
 
     async Task UpscaleAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
     {
+        const TaskAction Action = TaskAction.EsrganUpscale;
         var registeredTask = await _taskManager.TryRegisterAsync(
             new TaskCreationInfo(
-                TaskAction.EsrganUpscale,
+                Action,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
                 new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "upscaled"),
                 TaskObject.From(cachedImage.File)),
@@ -59,14 +60,15 @@ public class ImageProcessingCallbackQueryHandler
             await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
                 new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
                 );
-        else await Bot.SendMessageAsync_(ChatId, "Task couldn't be registered.");
+        else await Bot.SendMessageAsync_(ChatId, NoMoreFreeActionsMessageFor(Action));
     }
 
     async Task VectorizeAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
     {
+        const TaskAction Action = TaskAction.VeeeVectorize;
         var registeredTask = await _taskManager.TryRegisterAsync(
             new TaskCreationInfo(
-                TaskAction.VeeeVectorize,
+                Action,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
                 new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "vectorized"),
                 new VeeeVectorizeInfo(new int[] { 8500 }),
@@ -78,7 +80,7 @@ public class ImageProcessingCallbackQueryHandler
             await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
                 new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
                 );
-        else await Bot.SendMessageAsync_(ChatId, "Task couldn't be registered.");
+        else await Bot.SendMessageAsync_(ChatId, NoMoreFreeActionsMessageFor(Action));
     }
 
     InlineKeyboardButton DetailsButtonFor(ITypedRegisteredTask typedRegisteredTask)
@@ -88,6 +90,9 @@ public class ImageProcessingCallbackQueryHandler
                 .Arguments(typedRegisteredTask.Id, typedRegisteredTask.Action)
                 .Build())
             );
+
+    string NoMoreFreeActionsMessageFor(TaskAction action)
+        => $"Task couldn't be registered: no more free {action} actions left.";
 }
 
 public record ImageProcessingCallbackQuery : MediaProcessingCallbackQuery<ImageProcessingCallbackData>
