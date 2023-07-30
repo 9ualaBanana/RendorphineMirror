@@ -3,6 +3,8 @@ using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Localization.Resources;
+using Telegram.MPlus.Clients;
+using Telegram.MPlus.Security;
 using Telegram.Security.Authentication;
 
 namespace Telegram.Commands.Handlers;
@@ -40,7 +42,7 @@ public class LoginCommand : CommandHandler
         var user = await _authenticationManager.GetBotUserAsyncWith(ChatId);
 
         if (user.IsAuthenticatedByMPlus)
-            await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, RequestAborted);
+            await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, user.MPlusIdentity, RequestAborted);
         else await TryAuthenticateByMPlusAsync(user);
 
 

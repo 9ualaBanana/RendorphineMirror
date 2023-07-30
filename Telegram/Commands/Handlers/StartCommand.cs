@@ -108,14 +108,14 @@ public class StartCommand : CommandHandler
 
             if (!user.IsAuthenticatedByMPlus)
                 await AuthenticateByMPlusAsyncWith(sessionId);
-            else await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, RequestAborted);
+            else await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, user.MPlusIdentity, RequestAborted);
 
 
             async Task AuthenticateByMPlusAsyncWith(string sessionId)
             {
                 var publicSessionInfo = await _mPlusClient.TaskManager.GetPublicSessionInfoAsync(sessionId, RequestAborted);
                 await _authenticationManager.AddMPlusIdentityAsync(user, new(publicSessionInfo.ToMPlusIdentity()), RequestAborted);
-                await _authenticationManager.SendSuccessfulLogInMessageAsync(ChatId, sessionId, RequestAborted);
+                await _authenticationManager.SendSuccessfulLogInMessageAsync(ChatId, user.MPlusIdentity!, RequestAborted);
             }
         }
     }

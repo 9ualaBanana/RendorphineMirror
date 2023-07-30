@@ -23,9 +23,9 @@ public abstract partial class LocalizedText
 
         internal string Failure => Localizer[nameof(Failure)];
 
-        internal string AlreadyLoggedIn => Localizer[nameof(AlreadyLoggedIn)];
+        internal string AlreadyLoggedInAs(string email) => Localizer[nameof(AlreadyLoggedInAs), email];
 
-        internal string LoggedIn => Localizer[nameof(LoggedIn)];
+        internal string LoggedInAs(string email) => Localizer[nameof(LoggedInAs), email];
 
         internal string LoggedOut => Localizer[nameof(LoggedOut)];
 

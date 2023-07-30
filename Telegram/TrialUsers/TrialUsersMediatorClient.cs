@@ -20,7 +20,7 @@ public class TrialUsersMediatorClient
     }
 
     internal async Task<bool> IsAuthenticatedAsync(ChatId chatId, string userId)
-        => await IsAuthenticatedAsync(chatId, userId);
+        => await IsAuthenticatedAsync(chatId.ToString(), userId);
     internal async Task<bool> IsAuthenticatedAsync(string chatId, string userId)
     {
         var request = new HttpRequestMessage(

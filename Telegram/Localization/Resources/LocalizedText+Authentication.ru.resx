@@ -117,8 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AlreadyLoggedIn" xml:space="preserve">
-    <value>Вы уже аутентифицированы.</value>
+  <data name="AlreadyLoggedInAs" xml:space="preserve">
+    <value>Вы уже аутентифицированы как {0}.</value>
   </data>
   <data name="Balance" xml:space="preserve">
     <value>*Баланс* : {0}</value>
@@ -132,8 +132,8 @@
   <data name="HowToUse" xml:space="preserve">
     <value>Этот бот умеет работать с изображениями и видео. Отправьте ему медифайл, который вы хотите обработать и следуйте дальнейшим инструкциям.</value>
   </data>
-  <data name="LoggedIn" xml:space="preserve">
-    <value>Вы успешно аутентифицированы.</value>
+  <data name="LoggedInAs" xml:space="preserve">
+    <value>Вы успешно аутентифицированы как {0}.</value>
   </data>
   <data name="LoggedOut" xml:space="preserve">
     <value>Вы вышли из аккаунта.</value>

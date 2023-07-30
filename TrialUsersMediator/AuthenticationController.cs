@@ -27,7 +27,13 @@ public class AuthenticationController : ControllerBase
         [FromQuery] long chatId,
         [FromQuery] TelegramBot.User.LoginWidgetData telegramLoginWidgetData)
     {
-        try
+        try { await AuthenticateAsync(); }
+        catch { /* Already authenticated */ }
+
+        return _trialUserIdentity._.SessionId;
+
+
+        async Task AuthenticateAsync()
         {
             var trialUser = new TrialUser() { Identifier = chatId, Platform = Platform.Telegram };
             var quota = TrialUser.Quota<TaskAction>.Default;
@@ -39,9 +45,6 @@ public class AuthenticationController : ControllerBase
             });
             await _database.SaveChangesAsync();
         }
-        catch { /* Already authenticated */ }
-
-        return _trialUserIdentity._.SessionId;
     }
 
     [HttpGet("check")]

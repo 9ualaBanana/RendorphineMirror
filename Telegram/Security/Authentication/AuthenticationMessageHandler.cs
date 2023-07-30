@@ -32,7 +32,7 @@ public class AuthenticationMessageHandler : MessageHandler
         var user = await _authenticationManager.GetBotUserAsyncWith(ChatId);
 
         if (user.IsAuthenticatedByMPlus)
-            await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, RequestAborted);
+            await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, user.MPlusIdentity, RequestAborted);
         else await _authenticationManager.TryAuthenticateByMPlusAsync(user, email, password, RequestAborted);
     }
 }
