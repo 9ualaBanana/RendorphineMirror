@@ -62,7 +62,7 @@ public class StartCommand : CommandHandler
 
         async Task SendStartMessageAsync()
         {
-            var user = await _authenticationManager.PersistTelegramUserAsyncWith(ChatId, save: false, RequestAborted);
+            var user = await _authenticationManager.GetBotUserAsyncWith(ChatId);
 
             if (user.IsAuthenticatedByMPlus)
                 await Bot.SendMessageAsync_(ChatId,
@@ -104,8 +104,7 @@ public class StartCommand : CommandHandler
 
         async Task AuthenticateByMPlusViaBrowserAsyncWith(string sessionId)
         {
-            // `save: false` because the user is already persisted and we just need to query it from database.
-            var user = await _authenticationManager.PersistTelegramUserAsyncWith(ChatId, save: false, RequestAborted);
+            var user = await _authenticationManager.GetBotUserAsyncWith(ChatId);
 
             if (!user.IsAuthenticatedByMPlus)
                 await AuthenticateByMPlusAsyncWith(sessionId);
@@ -115,7 +114,7 @@ public class StartCommand : CommandHandler
             async Task AuthenticateByMPlusAsyncWith(string sessionId)
             {
                 var publicSessionInfo = await _mPlusClient.TaskManager.GetPublicSessionInfoAsync(sessionId, RequestAborted);
-                await _authenticationManager.PersistMPlusUserIdentityAsync(user, new(publicSessionInfo.ToMPlusIdentity()), RequestAborted);
+                await _authenticationManager.AddMPlusIdentityAsync(user, new(publicSessionInfo.ToMPlusIdentity()), RequestAborted);
                 await _authenticationManager.SendSuccessfulLogInMessageAsync(ChatId, sessionId, RequestAborted);
             }
         }

@@ -29,7 +29,7 @@ public class AuthenticationMessageHandler : MessageHandler
         var credentials = Message.Text!.Split();
         var (email, password) = (credentials.First(), credentials.Last());
 
-        var user = await _authenticationManager.PersistTelegramUserAsyncWith(ChatId, save: false, RequestAborted);
+        var user = await _authenticationManager.GetBotUserAsyncWith(ChatId);
 
         if (user.IsAuthenticatedByMPlus)
             await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, RequestAborted);
