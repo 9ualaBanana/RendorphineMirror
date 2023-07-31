@@ -8,11 +8,13 @@ public class MPlusHeartbeat : Heartbeat
 
     readonly Api Api;
     readonly PluginManager PluginManager;
+    readonly Profiler Profiler;
 
-    public MPlusHeartbeat(Api api, PluginManager pluginManager, ILogger<MPlusHeartbeat> logger) : base(logger)
+    public MPlusHeartbeat(Api api, PluginManager pluginManager, Profiler profiler, ILogger<MPlusHeartbeat> logger) : base(logger)
     {
         Api = api;
         PluginManager = pluginManager;
+        Profiler = profiler;
     }
 
     protected override async Task Execute()

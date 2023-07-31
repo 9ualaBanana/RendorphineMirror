@@ -193,7 +193,20 @@ builder.RegisterType<NodeGlobalStateInitializedTarget>()
     .SingleInstance()
     .OnActivating(s => s.Instance.Execute());
 
-builder.RegisterType<TaskHandler2>()
+builder.RegisterType<TaskHandlerList>()
+    .SingleInstance()
+    .OnActivating(h => h.Instance.AutoInitializeHandlers());
+
+builder.RegisterType<NodeTaskRegistration>()
+    .SingleInstance();
+
+builder.RegisterType<WatchingTaskHandler>()
+    .SingleInstance();
+
+builder.RegisterType<TaskExecutor>()
+    .SingleInstance();
+
+builder.RegisterType<TaskHandler>()
     .SingleInstance()
     .OnActivating(c =>
     {
@@ -203,40 +216,44 @@ builder.RegisterType<TaskHandler2>()
         c.Instance.StartListening();
     });
 
+builder.RegisterType<Profiler>()
+    .SingleInstance();
+
 builder.RegisterType<AutoCleanup>()
     .SingleInstance()
     .OnActivating(c => c.Instance.Start());
 
-{
-    builder.RegisterType<ServiceTargets.UI>()
-        .SingleInstance();
-    builder.RegisterType<ServiceTargets.PublicListeners>()
-        .SingleInstance();
-    builder.RegisterType<ServiceTargets.ReadyToExecuteTasks>()
-        .SingleInstance();
-    builder.RegisterType<ServiceTargets.ReadyToReceiveTasks>()
-        .SingleInstance();
-    builder.RegisterType<ServiceTargets.ConnectedToMPlus>()
-        .SingleInstance();
-    builder.RegisterType<ServiceTargets.Debug>()
-        .SingleInstance();
 
-    builder.RegisterType<ServiceTargets.BaseMain>()
-        .SingleInstance();
-}
+builder.RegisterType<ServiceTargets.UI>()
+    .SingleInstance();
+builder.RegisterType<ServiceTargets.PublicListeners>()
+    .SingleInstance();
+builder.RegisterType<ServiceTargets.ReadyToExecuteTasks>()
+    .SingleInstance();
+builder.RegisterType<ServiceTargets.ReadyToReceiveTasks>()
+    .SingleInstance();
+builder.RegisterType<ServiceTargets.ConnectedToMPlus>()
+    .SingleInstance();
+builder.RegisterType<ServiceTargets.Debug>()
+    .SingleInstance();
 
-var maintype = (Init.IsDebug, halfrelease) switch
-{
-    (true, false) => typeof(ServiceTargets.DebugMain),
-    (true, true) => typeof(ServiceTargets.ReleaseMain),
-    (false, _) => typeof(ServiceTargets.ReleaseMain),
-};
-builder.RegisterType(maintype)
-    .SingleInstance()
-    .AutoActivate();
+builder.RegisterType<ServiceTargets.BaseMain>()
+    .SingleInstance();
+builder.RegisterType<ServiceTargets.DebugMain>()
+    .SingleInstance();
+builder.RegisterType<ServiceTargets.ReleaseMain>()
+    .SingleInstance();
+builder.RegisterType<ServiceTargets.PublishMain>()
+    .SingleInstance();
 
 
 var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
+object main = (Init.IsDebug, halfrelease) switch
+{
+    (true, false) => container.Resolve<ServiceTargets.DebugMain>(),
+    (true, true) => container.Resolve<ServiceTargets.ReleaseMain>(),
+    (false, _) => container.Resolve<ServiceTargets.PublishMain>(),
+};
 
 Thread.Sleep(-1);
 GC.KeepAlive(captured);
@@ -275,8 +292,6 @@ void InitializePlugins()
         new GenerateImageByPrompt(),
         new Topaz(),
     });
-
-    TaskHandler.AutoInitializeHandlers();
 }
 async ValueTask WaitForAuth()
 {

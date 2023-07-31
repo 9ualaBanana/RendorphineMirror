@@ -10,18 +10,19 @@ namespace Node.Listeners;
 
 public class LocalListener : ExecutableListenerBase
 {
-    readonly HttpClient Client = new();
     protected override ListenTypes ListenType => ListenTypes.Local;
 
     readonly PluginManager PluginManager;
     readonly PluginChecker PluginChecker;
     readonly PluginDeployer PluginDeployer;
+    readonly Profiler Profiler;
 
-    public LocalListener(PluginManager pluginManager, PluginChecker pluginChecker, PluginDeployer pluginDeployer, ILogger<LocalListener> logger) : base(logger)
+    public LocalListener(PluginManager pluginManager, PluginChecker pluginChecker, PluginDeployer pluginDeployer, Profiler profiler, ILogger<LocalListener> logger) : base(logger)
     {
         PluginManager = pluginManager;
         PluginChecker = pluginChecker;
         PluginDeployer = pluginDeployer;
+        Profiler = profiler;
     }
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)

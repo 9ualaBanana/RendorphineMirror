@@ -14,7 +14,6 @@ public class TaskReceiver : ListenerBase
     {
         if (!Settings.AcceptTasks.Value) return;
         if (context.Request.HttpMethod != "POST") return;
-        if (NodeSettings.QueuedTasks.Count != 0) return;
 
         using var response = context.Response;
 

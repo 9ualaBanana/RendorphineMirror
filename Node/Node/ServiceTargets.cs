@@ -42,7 +42,7 @@ public static class ServiceTargets
     /// <summary> Target to enable Node.UI support </summary>
     public class UI
     {
-        public UI(NodeStateListener _1, LocalListener _2, NodeGlobalStateInitializedTarget _3) { }
+        public UI(LocalListener _1, NodeStateListener _2, NodeGlobalStateInitializedTarget _3) { }
     }
 
     public class PublicListeners
@@ -52,7 +52,7 @@ public static class ServiceTargets
 
     public class ReadyToExecuteTasks
     {
-        public ReadyToExecuteTasks(TaskHandler2 _1) { }
+        public ReadyToExecuteTasks(TaskHandler _1) { }
     }
     public class ReadyToReceiveTasks
     {

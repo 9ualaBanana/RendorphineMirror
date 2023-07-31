@@ -51,5 +51,5 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
     }
 
     protected virtual async ValueTask<DbTaskFullState> Register(MPlusTaskInputInfo input, ITaskOutputInfo output, TaskObject tobj) =>
-        await Task.RegisterTask(input, output, tobj);
+        await TaskHandlerList.RegisterTask(Task, input, output, tobj);
 }
