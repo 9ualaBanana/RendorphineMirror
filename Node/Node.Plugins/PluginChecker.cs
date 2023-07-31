@@ -2,11 +2,14 @@ namespace Node.Plugins;
 
 public class PluginChecker
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-
     readonly ISoftwareListProvider SoftwareList;
+    readonly ILogger Logger;
 
-    public PluginChecker(ISoftwareListProvider softwareList) => SoftwareList = softwareList;
+    public PluginChecker(ISoftwareListProvider softwareList, ILogger<PluginChecker> logger)
+    {
+        SoftwareList = softwareList;
+        Logger = logger;
+    }
 
     public IEnumerable<PluginToInstall> GetInstallationTree(IEnumerable<PluginToDeploy> plugins) =>
         plugins.SelectMany(p => GetInstallationTree(p.Type, p.Version)).Distinct();
@@ -15,7 +18,7 @@ public class PluginChecker
     {
         if (!Enum.TryParse<PluginType>(type, true, out var ptype))
         {
-            Logger.Warn($"Unknown plugin type {type}, skipping");
+            Logger.LogWarning($"Unknown plugin type {type}, skipping");
             return Enumerable.Empty<PluginToInstall>();
         }
 

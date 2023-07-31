@@ -23,6 +23,8 @@ public class DirectUploadListener : MultipartListenerBase
     protected override ListenTypes ListenType => ListenTypes.Public;
     protected override string? Prefix => "rphtaskexec/uploadinput";
 
+    public DirectUploadListener(ILogger<DirectUploadListener> logger) : base(logger) { }
+
     public static async Task<TaskFileList> WaitForFiles(ReceivedTask task, CancellationToken token)
     {
         var filelist = new FileList(task);

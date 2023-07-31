@@ -9,7 +9,8 @@ public class DebugListener : ExecutableListenerBase
 
     readonly PluginManager PluginManager;
 
-    public DebugListener(PluginManager pluginManager) => PluginManager = pluginManager;
+    public DebugListener(PluginManager pluginManager, ILogger<DebugListener> logger) : base(logger) =>
+        PluginManager = pluginManager;
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {

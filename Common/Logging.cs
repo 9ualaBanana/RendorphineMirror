@@ -4,7 +4,7 @@ namespace Common;
 
 internal static class Logging
 {
-    readonly static string _layout = "${time:universalTime=true} [${level:uppercase=true} @ ${logger:shortName=true}] ${message:withException=true:exceptionSeparator=\n\n}";
+    readonly static string _layout = "${time:universalTime=true} [${level:uppercase=true} @ ${logger:shortName=true} @ ${scopenested:separator= @ }] ${message:withException=true:exceptionSeparator=\n\n}";
 
 
     internal static void Configure(bool isDebug)

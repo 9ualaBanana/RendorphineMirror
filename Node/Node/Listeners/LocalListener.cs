@@ -17,7 +17,7 @@ public class LocalListener : ExecutableListenerBase
     readonly PluginChecker PluginChecker;
     readonly PluginDeployer PluginDeployer;
 
-    public LocalListener(PluginManager pluginManager, PluginChecker pluginChecker, PluginDeployer pluginDeployer)
+    public LocalListener(PluginManager pluginManager, PluginChecker pluginChecker, PluginDeployer pluginDeployer, ILogger<LocalListener> logger) : base(logger)
     {
         PluginManager = pluginManager;
         PluginChecker = pluginChecker;
@@ -81,7 +81,7 @@ public class LocalListener : ExecutableListenerBase
                 Settings.DhtPort = ushort.Parse(dhtport);
 
                 var changed = new { port = Settings.UPnpPort, webport = Settings.UPnpServerPort, torrentport = Settings.TorrentPort, dhtport = Settings.DhtPort };
-                _logger.Info($"Settings changed: {JsonConvert.SerializeObject(changed)}");
+                Logger.Info($"Settings changed: {JsonConvert.SerializeObject(changed)}");
 
                 _ = Task.Delay(500).ContinueWith(_ => ListenerBase.RestartAll());
                 return await WriteSuccess(response).ConfigureAwait(false);

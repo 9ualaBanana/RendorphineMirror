@@ -1,9 +1,10 @@
 global using System.Collections.Immutable;
 global using Common;
 global using Machine;
-global using NLog;
+global using Microsoft.Extensions.Logging;
 global using Node.Common;
 global using Node.Common.Models;
+global using Node.DataStorage;
 global using Node.Plugins;
 global using Node.Plugins.Models;
 global using Node.Registry;
@@ -18,6 +19,13 @@ global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
 global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
+global using Logger = NLog.Logger;
+global using LogLevel = NLog.LogLevel;
+global using LogManager = NLog.LogManager;
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+using NLog.Extensions.Logging;
 using Node;
 using Node.Heartbeat;
 using Node.Listeners;
@@ -36,85 +44,75 @@ Init.Initialize();
 var logger = LogManager.GetCurrentClassLogger();
 var captured = new List<object>();
 
+var builder = new ContainerBuilder();
 
-await startReconnect();
-async Task startReconnect()
-{
-    var logger = new NamedLogger("Reconnect", new LoggableLogger(LogManager.GetCurrentClassLogger()));
-
-    await cancelTransferredTasks();
-    await Api.Default.ApiGet($"{Api.TaskManagerEndpoint}/nodereconnected", "Reconnecting the node", Node.Apis.Default.AddSessionId(("guid", Settings.Guid)))
-        .ThrowIfError();
+// logging
+builder.Populate(new ServiceCollection().With(services => services.AddLogging(l => l.AddNLog())));
 
 
-    async Task cancelTransferredTasks()
-    {
-        var shardtasks = NodeSettings.QueuedTasks.Values.GroupBy(t => t.HostShard);
+builder.RegisterInstance(Api.Default)
+    .SingleInstance();
+builder.RegisterInstance(new NodeCommon.Apis(Api.Default, Settings.SessionId))
+    .SingleInstance();
 
-        foreach (var tasks in shardtasks)
-        {
-            var shard = tasks.Key;
-            var tasksarr = tasks.ToArray();
+builder.RegisterInstance(Settings.Instance)
+    .SingleInstance();
 
-            if (shard is null)
-            {
-                logger.Error($"[Reconnecting] Found {tasksarr.Length} tasks without shard being set: {string.Join(", ", tasksarr.Select(t => t.Id))}");
-                continue;
-            }
+builder.RegisterType<NodeSettingsInstance>()
+    .As<IQueuedTasksStorage>()
+    .As<IPlacedTasksStorage>()
+    .As<ICompletedTasksStorage>()
+    .As<IWatchingTasksStorage>()
+    .SingleInstance();
 
-            while (true)
-            {
-                var canceltasks = await Api.Default.ApiPost<ImmutableArray<string>>(
-                    $"https://{shard}/rphtasklauncher/nodereconnected",
-                    "canceltasks",
-                    "Getting list of transferred tasks",
-                    Node.Apis.Default.AddSessionId(
-                        ("guid", Settings.Guid),
-                        ("taskids", JsonConvert.SerializeObject(tasksarr.Select(t => t.Id)))
-                    )
-                ).ThrowIfError();
 
-                foreach (var cancel in canceltasks)
-                    NodeSettings.QueuedTasks.Remove(cancel);
+builder.RegisterType<ReconnectTarget>()
+    .SingleInstance()
+    .OnActivating(async t => await t.Instance.Execute());
 
-                break;
-            }
-
-        }
-    }
-}
 
 
 var halfrelease = args.Contains("release");
 var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
-var pluginChecker = new PluginChecker(new SoftwareList());
-var pluginDeployer = new PluginDeployer(pluginManager);
-InitializeSettings();
+builder.RegisterInstance(pluginManager)
+    .AsSelf()
+    .As<IInstalledPluginsProvider>()
+    .SingleInstance()
+    .OnActivating(async m => await m.Instance.GetInstalledPluginsAsync());
+
+builder.RegisterType<SoftwareList>()
+    .As<ISoftwareListProvider>()
+    .SingleInstance();
+
+builder.RegisterType<PluginChecker>()
+    .SingleInstance();
+
+builder.RegisterType<PluginDeployer>()
+    .SingleInstance();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
 {
-    var localport = UpdatePort("127.0.0.1", Settings.BLocalListenPort, "Local")
-        .ContinueWith(_ => new LocalListener(pluginManager, pluginChecker, pluginDeployer).Start());
+    builder.RegisterType<LocalListener>()
+        .SingleInstance()
+        .OnActivating(async l =>
+        {
+            await UpdatePort("127.0.0.1", Settings.BLocalListenPort, "Local");
+            l.Instance.Start();
+        });
 
-    var publicports = PortForwarding.GetPublicIPAsync()
+    await PortForwarding.GetPublicIPAsync()
         .ContinueWith(ip => Task.WhenAll(
             UpdatePort(ip.Result.ToString(), Settings.BUPnpPort, "Public"),
             UpdatePort(ip.Result.ToString(), Settings.BUPnpServerPort, "Server")
         )).Unwrap();
 
-    var pluginsinit = InitializePlugins();
-    var plugindiscover = pluginManager.GetInstalledPluginsAsync();
-
-    await Task.WhenAll(
-        pluginsinit,
-        plugindiscover,
-        publicports,
-        localport
-    );
+    InitializePlugins();
 }
 
-new NodeStateListener().Start();
+registerListener<NodeStateListener>();
+
+
 if (Settings.SessionId is not null)
     logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
 else
@@ -123,47 +121,44 @@ else
     logger.Info("Authentication completed");
 }
 
-if (!Init.IsDebug || halfrelease)
-    PortForwarder.Initialize();
+builder.RegisterType<PortForwarder>()
+    .SingleInstance()
+    .OnActivating(p => p.Instance.Start());
 
-if (!Init.IsDebug || halfrelease)
-{
-    if (!Init.IsDebug)
-    {
-        SystemService.Start();
 
-        var reepoHeartbeat = new Heartbeat(
-            new HttpRequestMessage(HttpMethod.Post, $"{Settings.ServerUrl}/node/ping") { Content = await MachineInfo.AsJsonContentAsync(pluginManager) },
-            TimeSpan.FromMinutes(5), Api.GlobalClient);
-        _ = reepoHeartbeat.StartAsync();
+builder.RegisterType<SystemTimerStartedTarget>()
+    .SingleInstance()
+    .OnActivating(p => p.Instance.Execute());
 
-        captured.Add(reepoHeartbeat);
+builder.RegisterType<MPlusHeartbeat>()
+    .OnActivating(h => h.Instance.Start())
+    .SingleInstance();
 
-        //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
-    }
+builder.RegisterType<TelegramBotHeartbeat>()
+    .OnActivating(h => h.Instance.Start())
+    .SingleInstance();
 
-    var mPlusTaskManagerHeartbeat = new Heartbeat(new MPlusHeartbeatGenerator(pluginManager), TimeSpan.FromMinutes(1), Api.GlobalClient);
-    _ = mPlusTaskManagerHeartbeat.StartAsync();
+builder.RegisterType<UserSettingsHeartbeat>()
+    .OnActivating(h => h.Instance.Start())
+    .SingleInstance();
 
-    captured.Add(mPlusTaskManagerHeartbeat);
 
-    var userSettingsHeartbeat = new Heartbeat(new PluginsUpdater(pluginManager, pluginChecker, pluginDeployer), TimeSpan.FromMinutes(1), Api.GlobalClient);
-    _ = userSettingsHeartbeat.StartAsync();
+registerListener<TaskReceiver>();
+registerListener<DirectUploadListener>();
+registerListener<DirectDownloadListener>();
 
-    captured.Add(userSettingsHeartbeat);
-}
+registerListener<PublicListener>();
+registerListener<TaskListener>();
+registerListener<DirectoryDiffListener>();
+registerListener<DownloadListener>();
+registerListener<PublicPagesListener>();
 
-new TaskReceiver().Start();
-new DirectUploadListener().Start();
-new DirectDownloadListener().Start();
+registerListener<DebugListener>();
 
-new PublicListener().Start();
-new TaskListener().Start();
-new DirectoryDiffListener().Start();
-new DownloadListener().Start();
-new PublicPagesListener().Start();
-
-if (Init.DebugFeatures) new DebugListener(pluginManager).Start();
+void registerListener<T>() where T : ListenerBase =>
+    builder.RegisterType<T>()
+        .SingleInstance()
+        .OnActivating(l => l.Instance.Start());
 
 PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
 {
@@ -192,73 +187,61 @@ logger.Info(@$"Tasks found
 
 NodeCommon.Tasks.TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;
 
-//var taskhandler = new TaskHandler2(NodeSettings.QueuedTasks.Bindable, NodeGlobalState.Instance.ExecutingTasks, NodeSettings.CompletedTasks.Bindable);
+builder.RegisterInstance(NodeGlobalState.Instance)
+    .SingleInstance();
+builder.RegisterType<NodeGlobalStateInitializedTarget>()
+    .SingleInstance()
+    .OnActivating(s => s.Instance.Execute());
 
-TaskHandler.InitializePlacedTasksAsync().Consume();
-TaskHandler.StartUpdatingPlacedTasks();
-TaskHandler.StartWatchingTasks();
-TaskHandler.StartListening(pluginManager);
-
-new Thread(() =>
-{
-    while (true)
+builder.RegisterType<TaskHandler2>()
+    .SingleInstance()
+    .OnActivating(c =>
     {
-        OperationResult.WrapException(() => AutoCleanup.Start()).LogIfError();
-        Thread.Sleep(60 * 60 * 24 * 1000);
-    }
-})
-{ IsBackground = true }.Start();
+        c.Instance.InitializePlacedTasksAsync().Consume();
+        c.Instance.StartUpdatingPlacedTasks();
+        c.Instance.StartWatchingTasks();
+        c.Instance.StartListening();
+    });
 
-new Thread(() =>
+builder.RegisterType<AutoCleanup>()
+    .SingleInstance()
+    .OnActivating(c => c.Instance.Start());
+
 {
-    while (true)
-    {
-        var root = Path.GetPathRoot(ReceivedTask.FSTaskDataDirectory());
-        var drive = DriveInfo.GetDrives().First(d => d.RootDirectory.Name == root);
+    builder.RegisterType<ServiceTargets.UI>()
+        .SingleInstance();
+    builder.RegisterType<ServiceTargets.PublicListeners>()
+        .SingleInstance();
+    builder.RegisterType<ServiceTargets.ReadyToExecuteTasks>()
+        .SingleInstance();
+    builder.RegisterType<ServiceTargets.ReadyToReceiveTasks>()
+        .SingleInstance();
+    builder.RegisterType<ServiceTargets.ConnectedToMPlus>()
+        .SingleInstance();
+    builder.RegisterType<ServiceTargets.Debug>()
+        .SingleInstance();
 
-        if (drive.AvailableFreeSpace < 16L * 1024 * 1024 * 1024)
-        {
-            // creating new thread for logging in case of 0 bytes free space available
-            // because then the logger wouldn't be able to write into log file and might just freeze
-            // and not let the cleanup happen
-            new Thread(() => logger.Info($"Low free space ({drive.AvailableFreeSpace / 1024 / 1024f} MB), starting a cleanup..")) { IsBackground = true }.Start();
+    builder.RegisterType<ServiceTargets.BaseMain>()
+        .SingleInstance();
+}
 
-            OperationResult.WrapException(() => AutoCleanup.CleanForLowFreeSpace()).LogIfError();
-        }
+var maintype = (Init.IsDebug, halfrelease) switch
+{
+    (true, false) => typeof(ServiceTargets.DebugMain),
+    (true, true) => typeof(ServiceTargets.ReleaseMain),
+    (false, _) => typeof(ServiceTargets.ReleaseMain),
+};
+builder.RegisterType(maintype)
+    .SingleInstance()
+    .AutoActivate();
 
-        Thread.Sleep(60 * 1000);
-    }
-})
-{ IsBackground = true }.Start();
+
+var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
 
 Thread.Sleep(-1);
 GC.KeepAlive(captured);
+GC.KeepAlive(container);
 
-
-void InitializeSettings()
-{
-    var state = NodeGlobalState.Instance;
-
-    state.WatchingTasks.Bind(NodeSettings.WatchingTasks.Bindable);
-    state.PlacedTasks.Bind(NodeSettings.PlacedTasks.Bindable);
-    NodeSettings.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(NodeSettings.QueuedTasks.Values), true);
-    Settings.BenchmarkResult.Bindable.SubscribeChanged(() => state.BenchmarkResult.Value = Settings.BenchmarkResult.Value is null ? null : JObject.FromObject(Settings.BenchmarkResult.Value), true);
-    pluginManager.CachedPluginsBindable.SubscribeChanged(() => NodeGlobalState.Instance.InstalledPlugins.SetRange(pluginManager.CachedPluginsBindable.Value ?? Array.Empty<Plugin>()), true);
-    state.TaskAutoDeletionDelayDays.Bind(Settings.TaskAutoDeletionDelayDays.Bindable);
-
-    state.BServerUrl.Bind(Settings.BServerUrl.Bindable);
-    state.BLocalListenPort.Bind(Settings.BLocalListenPort.Bindable);
-    state.BUPnpPort.Bind(Settings.BUPnpPort.Bindable);
-    state.BUPnpServerPort.Bind(Settings.BUPnpServerPort.Bindable);
-    state.BDhtPort.Bind(Settings.BDhtPort.Bindable);
-    state.BTorrentPort.Bind(Settings.BTorrentPort.Bindable);
-    state.BNodeName.Bind(Settings.BNodeName.Bindable);
-    state.BAuthInfo.Bind(Settings.BAuthInfo.Bindable);
-
-
-    Software.StartUpdating(null, default);
-    Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Directories.Data, "lport"), Settings.LocalListenPort.ToString()), true);
-}
 
 /// <summary> Try to connect to the port and change it if someone is already listening there </summary>
 async Task UpdatePort(string ip, DatabaseValue<ushort> port, string description)
@@ -278,11 +261,8 @@ async Task UpdatePort(string ip, DatabaseValue<ushort> port, string description)
         port.Value++;
     }
 }
-async Task InitializePlugins()
+void InitializePlugins()
 {
-    Directory.CreateDirectory("plugins");
-
-
     TaskList.Add(new IPluginAction[]
     {
         new EditRaster(), new EditVideo(),

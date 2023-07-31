@@ -10,6 +10,8 @@ namespace Node.Listeners
 
         static string[] imagesExtentions = { ".jpg", ".jpeg", ".png" };
 
+        public PublicPagesListener(ILogger<PublicPagesListener> logger) : base(logger) { }
+
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
             await Task.Delay(0); // to hide a warning

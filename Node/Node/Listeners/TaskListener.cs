@@ -9,6 +9,7 @@ public class TaskListener : ExecutableListenerBase
     protected override bool RequiresAuthentication => true;
     protected override string? Prefix => "tasks";
 
+    public TaskListener(ILogger<TaskListener> logger) : base(logger) { }
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {

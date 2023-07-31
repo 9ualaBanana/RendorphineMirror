@@ -8,6 +8,8 @@ public class NodeStateListener : ListenerBase
     protected override ListenTypes ListenType => ListenTypes.Local;
     protected override string Prefix => "getstate";
 
+    public NodeStateListener(ILogger<NodeStateListener> logger) : base(logger) { }
+
     protected override ValueTask Execute(HttpListenerContext context)
     {
         context.Response.StatusCode = (int) HttpStatusCode.OK;

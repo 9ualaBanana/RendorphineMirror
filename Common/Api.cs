@@ -117,8 +117,9 @@ public record Api(HttpClient Client, bool LogRequests = true, CancellationToken 
         async ValueTask<string> contentToString(object? content) =>
             content switch
             {
-                (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + x.Item2)),
-                HttpContent c when c is FormUrlEncodedContent or StringContent => await c.ReadAsStringAsync(token),
+                (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + HttpUtility.UrlDecode(x.Item2))),
+                FormUrlEncodedContent c => HttpUtility.UrlDecode(await c.ReadAsStringAsync(token)),
+                StringContent c => await c.ReadAsStringAsync(token),
                 MultipartContent c => $"Multipart [{string.Join(", ", await Task.WhenAll(c.Select(async c => $"{{ {c.Headers.ContentDisposition?.Name ?? "<noname>"} : {await contentToString(c)} }}")))}]",
                 { } => content.GetType().Name,
                 _ => "no content",
