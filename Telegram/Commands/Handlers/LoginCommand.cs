@@ -3,8 +3,6 @@ using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Localization.Resources;
-using Telegram.MPlus.Clients;
-using Telegram.MPlus.Security;
 using Telegram.Security.Authentication;
 
 namespace Telegram.Commands.Handlers;
@@ -19,7 +17,7 @@ namespace Telegram.Commands.Handlers;
 public class LoginCommand : CommandHandler
 {
     readonly AuthenticationManager _authenticationManager;
-    readonly LocalizedText.Authentication _localizedAuthenticationMessage;
+    readonly LocalizedText.Authentication _localizedAuthenticationText;
 
     public LoginCommand(
         AuthenticationManager authenticationManager,
@@ -32,7 +30,7 @@ public class LoginCommand : CommandHandler
         : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
         _authenticationManager = authenticationManager;
-        _localizedAuthenticationMessage = localizedAuthenticationMessage;
+        _localizedAuthenticationText = localizedAuthenticationMessage;
     }
 
     internal override Command Target => CommandFactory.Create("login");
@@ -42,7 +40,9 @@ public class LoginCommand : CommandHandler
         var user = await _authenticationManager.GetBotUserAsyncWith(ChatId);
 
         if (user.IsAuthenticatedByMPlus)
-            await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, user.MPlusIdentity, RequestAborted);
+            await Bot.SendMessageAsync_(ChatId,
+                await _localizedAuthenticationText.AlreadyLoggedInAsync(ChatId, user.MPlusIdentity, RequestAborted),
+                cancellationToken: RequestAborted);
         else await TryAuthenticateByMPlusAsync(user);
 
 
@@ -55,7 +55,7 @@ public class LoginCommand : CommandHandler
                 await _authenticationManager.TryAuthenticateByMPlusAsync(user, email, password, RequestAborted);
             }
             else await Bot.SendMessageAsync_(ChatId,
-                _localizedAuthenticationMessage.WrongSyntax(Target.Prefixed, correctSyntax: $"{Target.Prefixed} email password"),
+                _localizedAuthenticationText.WrongSyntax(Target.Prefixed, correctSyntax: $"{Target.Prefixed} email password"),
                 cancellationToken: RequestAborted);
         }
     }

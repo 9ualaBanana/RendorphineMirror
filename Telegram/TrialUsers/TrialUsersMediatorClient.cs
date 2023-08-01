@@ -19,9 +19,9 @@ public class TrialUsersMediatorClient
         _logger = logger;
     }
 
-    internal async Task<bool> IsAuthenticatedAsync(ChatId chatId, string userId)
-        => await IsAuthenticatedAsync(chatId.ToString(), userId);
-    internal async Task<bool> IsAuthenticatedAsync(string chatId, string userId)
+    internal async Task<bool> IsAuthenticatedAsync(ChatId chatId, string userId, CancellationToken cancellationToken)
+        => await IsAuthenticatedAsync(chatId.ToString(), userId, cancellationToken);
+    internal async Task<bool> IsAuthenticatedAsync(string chatId, string userId, CancellationToken cancellationToken)
     {
         var request = new HttpRequestMessage(
             HttpMethod.Get,
@@ -33,7 +33,7 @@ public class TrialUsersMediatorClient
                 { ["identifier"] = chatId, ["platform"] = 0.ToString(), ["userid"] = userId }).ToUriComponent()
             }.Uri.PathAndQuery);
 
-        return (await _httpClient.SendAsync(request)).IsSuccessStatusCode;
+        return (await _httpClient.SendAsync(request, cancellationToken)).IsSuccessStatusCode;
     }
 
     /// <returns>M+ session ID of a user authenticated using provided arguments.</returns>

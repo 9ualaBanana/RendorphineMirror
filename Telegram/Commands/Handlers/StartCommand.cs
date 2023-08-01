@@ -27,7 +27,7 @@ public class StartCommand : CommandHandler
         MPlusClient mPlusClient,
         IOptions<TelegramBot.Options> botOptions,
         LinkGenerator linkGenerator,
-        LocalizedText.Authentication localizedAuthenticationMessage,
+        LocalizedText.Authentication localizedAuthenticationText,
         Command.Factory commandFactory,
         Command.Received receivedCommand,
         TelegramBot bot,
@@ -40,7 +40,7 @@ public class StartCommand : CommandHandler
         _mPlusClient = mPlusClient;
         _botOptions = botOptions.Value;
         _linkGenerator = linkGenerator;
-        _localizedAuthenticationText = localizedAuthenticationMessage;
+        _localizedAuthenticationText = localizedAuthenticationText;
     }
 
     internal override Command Target => CommandFactory.Create("start");
@@ -66,7 +66,7 @@ public class StartCommand : CommandHandler
 
             if (user.IsAuthenticatedByMPlus)
                 await Bot.SendMessageAsync_(ChatId,
-                    _localizedAuthenticationText.HowToUse,
+                    _localizedAuthenticationText.Usage,
                     cancellationToken: RequestAborted);
             else
             {
@@ -79,7 +79,7 @@ public class StartCommand : CommandHandler
                             "https://microstock.plus/oauth2/authorize?clientid=003&state=_"),
 
                         InlineKeyboardButton.WithLoginUrl(
-                            _localizedAuthenticationText.LoginAsGuestButton, new()
+                            _localizedAuthenticationText.LogInAsGuestButton, new()
                             {
                                 BotUsername = _botOptions.Username,
                                 Url = GuestLoginUrlForUserWith(ChatId),
@@ -108,14 +108,19 @@ public class StartCommand : CommandHandler
 
             if (!user.IsAuthenticatedByMPlus)
                 await AuthenticateByMPlusAsyncWith(sessionId);
-            else await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, user.MPlusIdentity, RequestAborted);
+            else
+                await Bot.SendMessageAsync_(ChatId,
+                    await _localizedAuthenticationText.AlreadyLoggedInAsync(ChatId, user.MPlusIdentity!, RequestAborted),
+                    cancellationToken: RequestAborted);
 
 
             async Task AuthenticateByMPlusAsyncWith(string sessionId)
             {
                 var publicSessionInfo = await _mPlusClient.TaskManager.GetPublicSessionInfoAsync(sessionId, RequestAborted);
                 await _authenticationManager.AddMPlusIdentityAsync(user, new(publicSessionInfo.ToMPlusIdentity()), RequestAborted);
-                await _authenticationManager.SendSuccessfulLogInMessageAsync(ChatId, user.MPlusIdentity!, RequestAborted);
+                await Bot.SendMessageAsync_(ChatId,
+                    await _localizedAuthenticationText.SuccessfulLogInAsync(ChatId, user.MPlusIdentity!, RequestAborted),
+                    cancellationToken: RequestAborted);
             }
         }
     }

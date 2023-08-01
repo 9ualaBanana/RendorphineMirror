@@ -2,6 +2,7 @@
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Infrastructure.Persistence;
+using Telegram.Localization.Resources;
 using Telegram.Security.Authentication;
 using Telegram.Security.Authorization;
 
@@ -11,10 +12,12 @@ public class LogoutCommand : CommandHandler, IAuthorizationPolicyProtected
 {
     readonly AuthenticationManager _authenticationManager;
     readonly TelegramBotDbContext _database;
+    readonly LocalizedText.Authentication _localizedAuthenticationText;
 
     public LogoutCommand(
         AuthenticationManager authenticationManager,
         TelegramBotDbContext database,
+        LocalizedText.Authentication localizedAuthenticationText,
         Command.Factory commandFactory,
         Command.Received receivedCommand,
         TelegramBot bot,
@@ -24,6 +27,7 @@ public class LogoutCommand : CommandHandler, IAuthorizationPolicyProtected
     {
         _authenticationManager = authenticationManager;
         _database = database;
+        _localizedAuthenticationText = localizedAuthenticationText;
     }
 
     internal override Command Target => CommandFactory.Create("logout");
@@ -37,7 +41,9 @@ public class LogoutCommand : CommandHandler, IAuthorizationPolicyProtected
             _database.Remove(user.MPlusIdentity);
             await _database.SaveChangesAsync(RequestAborted);
 
-            await _authenticationManager.SendSuccessfullLogOutMessageAsync(ChatId, RequestAborted);
+            await Bot.SendMessageAsync_(ChatId,
+                _localizedAuthenticationText.LoggedOut,
+                cancellationToken: RequestAborted);
         }
     }
 }

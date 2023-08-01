@@ -1,35 +1,30 @@
 ﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using System.Text;
 using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Persistence;
 using Telegram.Localization.Resources;
 using Telegram.MPlus;
 using Telegram.MPlus.Clients;
-using Telegram.TrialUsers;
 
 namespace Telegram.Security.Authentication;
 
 public class AuthenticationManager
 {
-    readonly TrialUsersMediatorClient _trialUsersMediatorClient;
     readonly MPlusClient _mPlusClient;
     readonly TelegramBot _bot;
 	readonly TelegramBotDbContext _database;
-    readonly LocalizedText.Authentication _localizedAuthenticationMessage;
+    readonly LocalizedText.Authentication _localizedAuthenticationText;
 
 	public AuthenticationManager(
-        TrialUsersMediatorClient trialUsersMediatorClient,
         MPlusClient mPlusClient,
         TelegramBot bot,
         TelegramBotDbContext database,
         LocalizedText.Authentication localizedAuthenticationMessage)
 	{
-        _trialUsersMediatorClient = trialUsersMediatorClient;
         _mPlusClient = mPlusClient;
         _bot = bot;
 		_database = database;
-        _localizedAuthenticationMessage = localizedAuthenticationMessage;
+        _localizedAuthenticationText = localizedAuthenticationMessage;
 	}
 
     internal async Task TryAuthenticateByMPlusAsync(TelegramBot.User.Entity user, string email, string password, CancellationToken cancellationToken)
@@ -37,7 +32,9 @@ public class AuthenticationManager
         if (await TryAuthenticateByMPlusAsync() is MPlusIdentityEntity identity)
         {
             await AddMPlusIdentityAsync(user, identity, cancellationToken);
-            await SendSuccessfulLogInMessageAsync(user.ChatId, user.MPlusIdentity!, cancellationToken);
+            await _bot.SendMessageAsync_(user.ChatId,
+                await _localizedAuthenticationText.SuccessfulLogInAsync(user.ChatId, user.MPlusIdentity!, cancellationToken),
+                cancellationToken: cancellationToken);
         }
 
 
@@ -47,8 +44,7 @@ public class AuthenticationManager
             catch (Exception ex)
             {
                 await _bot.SendMessageAsync_(user.ChatId,
-                    $"{_localizedAuthenticationMessage.Failure}:\n" +
-                ex.Message,
+                    _localizedAuthenticationText.FailedLogIn(ex),
                     cancellationToken: cancellationToken);
                 return null;
             }
@@ -85,39 +81,6 @@ public class AuthenticationManager
 
         await _database.SaveChangesAsync(cancellationToken);
     }
-
-    internal async Task SendSuccessfulLogInMessageAsync(ChatId chatId, MPlusIdentityEntity identity, CancellationToken cancellationToken)
-    {
-        var balance = await _mPlusClient.TaskLauncher.RequestBalanceAsync(identity.SessionId, cancellationToken);
-        bool isTrialUser = await _trialUsersMediatorClient.IsAuthenticatedAsync(chatId, identity.UserId);
-        await _bot.SendMessageAsync_(chatId, Message(), cancellationToken: cancellationToken);
-
-        string Message()
-        {
-            var message = new StringBuilder();
-            message.AppendLine($"{_localizedAuthenticationMessage.LoggedInAs(isTrialUser ? "Guest" : identity.Email)}")
-                .AppendLine();
-            if (!isTrialUser)
-                message.AppendLine($"{_localizedAuthenticationMessage.Balance(balance.RealBalance)}")
-                    .AppendLine();
-            message.AppendLine($"{_localizedAuthenticationMessage.HowToUse}");
-
-            return message.ToString();
-        }
-    }
-
-    internal async Task SendAlreadyLoggedInMessageAsync(ChatId chatId, MPlusIdentityEntity identity, CancellationToken cancellationToken)
-    {
-        bool isTrialUser = await _trialUsersMediatorClient.IsAuthenticatedAsync(chatId, identity.UserId);
-        await _bot.SendMessageAsync_(chatId, 
-            _localizedAuthenticationMessage.AlreadyLoggedInAs(isTrialUser ? "Guest" : identity.Email),
-            cancellationToken: cancellationToken);
-    }
-
-    internal async Task SendSuccessfullLogOutMessageAsync(ChatId chatId, CancellationToken cancellationToken)
-        => await _bot.SendMessageAsync_(chatId,
-            _localizedAuthenticationMessage.LoggedOut,
-            cancellationToken: cancellationToken);
 }
 
 static class AuthenticationManagerExtensions

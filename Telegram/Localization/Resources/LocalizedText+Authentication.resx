@@ -129,22 +129,22 @@
   <data name="Failure" xml:space="preserve">
     <value>Authentication attempt failed</value>
   </data>
-  <data name="HowToUse" xml:space="preserve">
-    <value>This bot can work with images and videos. Send the bot some media file you would like to process and follow further instructions.</value>
-  </data>
   <data name="LoggedInAs" xml:space="preserve">
     <value>You are logged in as {0} now.</value>
   </data>
   <data name="LoggedOut" xml:space="preserve">
     <value>You are logged out now.</value>
   </data>
-  <data name="LoginAsGuestButton" xml:space="preserve">
+  <data name="LogInAsGuestButton" xml:space="preserve">
     <value>Login as Guest</value>
   </data>
   <data name="Start" xml:space="preserve">
     <value>Welcome!
 You need to have a registered M+ account to proceed.
 Use your email and password separated by space and optionally prepended by {0} command ('`email password`' / '`{0} email password`') to authenticate with M+ via bot or click the button below to authenticate with M+ via browser (browser authentication doesn't work for IPhone).</value>
+  </data>
+  <data name="Usage" xml:space="preserve">
+    <value>This bot can work with images and videos. Send the bot some media file you would like to process and follow further instructions.</value>
   </data>
   <data name="WrongSyntax" xml:space="preserve">
     <value>{0} command must have the following syntax:
