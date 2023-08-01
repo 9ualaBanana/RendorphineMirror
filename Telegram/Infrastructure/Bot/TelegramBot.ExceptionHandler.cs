@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 using NLog;
+using System.Text;
 using ILogger = NLog.ILogger;
 
 namespace Telegram.Infrastructure.Bot;
@@ -32,21 +33,50 @@ static partial class TelegramBotExceptionHandler
     {
         try
         {
-            var exception = context.Features.GetRequiredFeature<IExceptionHandlerFeature>();
-            var exceptionDetails =
-                $"{exception.Error.Message}\n" +
-                $"{exception.Error.StackTrace?.Replace(@"\", @"\\").Replace("`", @"\`")}";
-
             var bot = context.RequestServices.GetRequiredService<TelegramBot>();
             var subscribers = context.RequestServices.GetRequiredService<IOptionsSnapshot<Options>>().Value.Subscribers;
 
             foreach (var subscriber in subscribers)
-                await bot.SendMessageAsync_(subscriber,
-                    $"`{exception.Path}` handler thrown an unhandled exception.\n\n{exceptionDetails}",
-                    disableNotification: true,
-                    cancellationToken: context.RequestAborted);
+                await bot.SendMessageAsync_(subscriber, ExceptionMessage(),
+                    disableNotification: true, cancellationToken: context.RequestAborted
+                    );
         }
         catch (Exception ex)
         { _logger.Error(ex, $"{nameof(TelegramBotExceptionHandler)} must not throw"); }
+
+
+        string ExceptionMessage()
+        {
+            var exception = context.Features.GetRequiredFeature<IExceptionHandlerFeature>();
+            return
+                $"""
+                `{exception.Path}` handler thrown an unhandled exception.
+
+                {ExceptionDetails()}
+                """;
+
+
+            string ExceptionDetails()
+            {
+                var exceptionDetails = new StringBuilder()
+                    .AppendLine($"*{exception.Error.Message}*");
+                foreach (var innerException in InnerExceptions())
+                    exceptionDetails.Append(" ---> ").AppendLine($"*{innerException.Message}*");
+                exceptionDetails.AppendLine(exception.Error.StackTrace?.Replace(@"\", @"\\").Replace("`", @"\`"));
+
+                return exceptionDetails.ToString();
+
+
+                IEnumerable<Exception> InnerExceptions()
+                {
+                    var innerExceptions = new List<Exception>();
+                    Exception? innerException = exception.Error;
+                    while ((innerException = innerException?.InnerException) is not null)
+                        innerExceptions.Add(innerException);
+
+                    return innerExceptions;
+                }
+            }
+    }
     }
 }

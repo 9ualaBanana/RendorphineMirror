@@ -6,9 +6,9 @@ public partial class TelegramBot
     {
         internal const string Configuration = "TelegramBot";
 
-        public string Token { get; init; } = null!;
+        public string Token { get; init; } = default!;
 
-        public string Username { get; init; } = null!;
+        public string Username { get; init; } = default!;
 
         internal Uri WebhookUri
         {
@@ -21,34 +21,9 @@ public partial class TelegramBot
             }
         }
 
-        public Uri Host => _host ??= new(_Host.EndsWith('/') ? _Host : $"{_Host}/");
-        Uri? _host;
-        /// <inheritdoc cref="IConfigurationBoundPropertyDocumentation"/>
-        string _Host { get; init; } = null!;
+        public Uri Host { get; init; } = default!;
 
-        internal string PathBase
-        {
-            get
-            {
-                if (_pathBase is not null) return _pathBase;
-
-                _pathBase ??= _PathBase.StartsWith('/') ? _PathBase : $"/{_pathBase}";
-                _pathBase ??= _pathBase!.EndsWith('/') ? _pathBase : $"{_PathBase}/";
-
-                return _pathBase;
-            }
-        }
-        string? _pathBase;
-        /// <inheritdoc cref="IConfigurationBoundPropertyDocumentation"/>
-        string _PathBase { get; init; } = null!;
-
-
-        /// <remarks>
-        /// Gets bound from <see cref="IConfiguration"/>.
-        /// </remarks>
-#pragma warning disable IDE0052 // Remove unread private members
-        const object? IConfigurationBoundPropertyDocumentation = null;
-#pragma warning restore IDE0052 // Remove unread private members
+        public string PathBase { get; init; } = default!;
     }
 }
 
@@ -57,7 +32,12 @@ static class TelegramBotOptionsExtensions
     internal static ITelegramBotBuilder ConfigureOptions(this ITelegramBotBuilder builder)
     {
         builder.Services.AddOptions<TelegramBot.Options>()
-            .BindConfiguration(TelegramBot.Options.Configuration, _ => _.BindNonPublicProperties = true);
+            .BindConfiguration(TelegramBot.Options.Configuration)
+            .Validate(_ => _.Host.OriginalString.EndsWith('/'),
+                $"{nameof(TelegramBot.Options.Host)} must end with a path separator.")
+            .Validate(_ => _.PathBase.StartsWith('/') &&  _.PathBase.EndsWith("/"),
+                $"{nameof(TelegramBot.Options.PathBase)} must start and end with a path separator.")
+            .ValidateOnStart();
         return builder;
     }
 }

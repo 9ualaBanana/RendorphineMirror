@@ -4,7 +4,7 @@ namespace Telegram.Infrastructure.Bot;
 
 public partial class TelegramBot
 {
-    public partial record User
+    public partial class User
     {
         public record LoginWidgetData(
             [ModelBinder(Name = LoginWidgetData.username)] string? UserName,

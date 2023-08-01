@@ -22,15 +22,27 @@ public class MPlusTaskManagerClient
     /// <exception cref="HttpRequestException">Exception occured on the M+ server.</exception>
     public async Task<MPlusIdentity> AuthenticateAsyncUsing(string email, string password)
     {
-        var credentialsForm = new FormUrlEncodedContent(new Dictionary<string, string>()
+        var authenticationRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+
+            new UriBuilder 
+            { Path = new PathString("/login").ToUriComponent() }
+            .Uri.PathAndQuery.TrimStart('/'))
         {
-            ["email"] = email,
-            ["password"] = password,
-            ["guid"] = Guid.NewGuid().ToString()
-        });
-        return (await (await _httpClient.PostAsync("login", credentialsForm)).GetJsonIfSuccessfulAsync())
-            .ToObject<MPlusIdentity>() ??
-            throw new InvalidDataException("M+ authentication result returned from the server was in a wrong format.");
+            Content = new FormUrlEncodedContent(new Dictionary<string, string>()
+            {
+                ["email"] = email,
+                ["password"] = password,
+                ["guid"] = Guid.NewGuid().ToString()
+            })
+        };
+        return await AuthenticateAsyncCore();
+
+
+        async Task<MPlusIdentity> AuthenticateAsyncCore()
+            => (await(await _httpClient.SendAsync(authenticationRequest)).GetJsonIfSuccessfulAsync())
+            .ToObject<MPlusIdentity>() is MPlusIdentity identity ? identity with { Email = email }
+            : throw new InvalidDataException("M+ authentication result returned from the server was in a wrong format.");
     }
 
     public async Task<MPlusFileInfo> RequestFileInfoAsyncUsing(MPlusFileAccessor fileAccessor, CancellationToken cancellationToken)

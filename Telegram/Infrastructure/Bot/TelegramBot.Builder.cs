@@ -21,7 +21,7 @@ public partial class TelegramBot
         internal static ITelegramBotBuilder Default(IServiceCollection services, Action<ITelegramBotBuilder> configure)
         {
             var builder = new Builder(services);
-            configure(builder);
+            configure(builder); // Must be called here because otherwise Update handlers order becomes fucked up.
 
             builder
                 .ConfigureOptions()

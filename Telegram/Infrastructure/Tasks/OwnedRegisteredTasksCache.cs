@@ -16,16 +16,19 @@ public class OwnedRegisteredTasksCache
     readonly static ILogger _logger = LogManager.GetCurrentClassLogger();
 
     internal void Add(OwnedRegisteredTask ownedRegisteredTask)
-        => _ownedRegisteredTasksCache.Add(ownedRegisteredTask._, ownedRegisteredTask.Owner);
+    {
+        _ownedRegisteredTasksCache.Add(ownedRegisteredTask, ownedRegisteredTask.Owner);
+        _logger.Trace("{Task} is added to the cache.", ownedRegisteredTask);
+    }
 
     internal OwnedRegisteredTask Retrieve(TypedRegisteredTask registeredTask)
     {
         if (_ownedRegisteredTasksCache.Remove(registeredTask, out var taskOwner))
-            return new(registeredTask, taskOwner);
+            return registeredTask.OwnedBy(taskOwner);
         else
         {
-            var exception = new ArgumentException($"{nameof(registeredTask)} is not stored inside this {nameof(OwnedRegisteredTasksCache)}.");
-            _logger.Error(exception);
+            var exception = new ArgumentException($"{registeredTask} is not stored inside the cache.", nameof(registeredTask));
+            _logger.Error("{Task} couldn't be retrieved from the cache.");
             throw exception;
         }
     }

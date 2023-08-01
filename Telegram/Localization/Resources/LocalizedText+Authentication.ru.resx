@@ -117,8 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AlreadyLoggedIn" xml:space="preserve">
-    <value>Вы уже аутентифицированы.</value>
+  <data name="AlreadyLoggedInAs" xml:space="preserve">
+    <value>Вы уже аутентифицированы как {0}.</value>
   </data>
   <data name="Balance" xml:space="preserve">
     <value>*Баланс* : {0}</value>
@@ -129,22 +129,22 @@
   <data name="Failure" xml:space="preserve">
     <value>Попытка аутентификации провалилась</value>
   </data>
-  <data name="HowToUse" xml:space="preserve">
-    <value>Этот бот умеет работать с изображениями и видео. Отправьте ему медифайл, который вы хотите обработать и следуйте дальнейшим инструкциям.</value>
-  </data>
-  <data name="LoggedIn" xml:space="preserve">
-    <value>Вы успешно аутентифицированы.</value>
+  <data name="LoggedInAs" xml:space="preserve">
+    <value>Вы успешно аутентифицированы как {0}.</value>
   </data>
   <data name="LoggedOut" xml:space="preserve">
     <value>Вы вышли из аккаунта.</value>
   </data>
-  <data name="LoginAsGuestButton" xml:space="preserve">
+  <data name="LogInAsGuestButton" xml:space="preserve">
     <value>Войти как Гость</value>
   </data>
   <data name="Start" xml:space="preserve">
     <value>Добро пожаловать!
 Вам необходим зарегистрированный аккаунт М+, чтобы продолжить.
 Введите ваш email и пароль разделяя их пробелом, опционально добавив команду {0} в начале ('`email пароль`' / '`{0} email пароль`') для аутентификации через М+ используя бота или нажмите кнопку ниже для аутентификации через М+ используя браузер (аутентификация с использованием браузера не работает для IPhone).</value>
+  </data>
+  <data name="Usage" xml:space="preserve">
+    <value>Этот бот умеет работать с изображениями и видео. Отправьте ему медифайл, который вы хотите обработать и следуйте дальнейшим инструкциям.</value>
   </data>
   <data name="WrongSyntax" xml:space="preserve">
     <value>Команда {0} должна иметь следующий вид:

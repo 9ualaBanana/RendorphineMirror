@@ -32,18 +32,16 @@ public class MPlusAuthenticationHandler : AuthenticationHandler<AuthenticationSc
     {
         // Authentication middleware is invoked regardless of the current middleware pipeline so Update might not have been read.
         if (Context.ContainsUpdate())
-            if (await PersistedTelegramUser() is var user && user.IsAuthenticatedByMPlus)
+        {
+            var botUser = await _authenticationManager.GetBotUserAsyncWith(Context.GetUpdate().ChatId());
+            if (botUser.IsAuthenticatedByMPlus)
             {
-                Context.User.AddIdentity(user.MPlusIdentity.ToClaimsIdentity(ClaimsIssuer));
+                Context.User.AddIdentity(botUser.MPlusIdentity.ToClaimsIdentity(ClaimsIssuer));
                 return AuthenticateResult.Success(new(Context.User, MPlusAuthenticationDefaults.AuthenticationScheme));
             }
+        }
 
         return AuthenticateResult.NoResult();
-
-
-        async Task<TelegramBot.User.Entity> PersistedTelegramUser()
-            => await _authenticationManager.PersistTelegramUserAsyncWith(Context.GetUpdate().ChatId(),
-            save: true, Context.RequestAborted);
     }
 
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)

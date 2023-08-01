@@ -29,6 +29,6 @@ static class LocalizationExtensions
 
     static IServiceCollection AddLocalizedTexts(this IServiceCollection services)
         => services
-        .AddSingleton<LocalizedText.Authentication>()
+        .AddScoped<LocalizedText.Authentication>()
         .AddSingleton<LocalizedText.Media>();
 }

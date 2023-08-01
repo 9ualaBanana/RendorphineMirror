@@ -17,7 +17,7 @@ namespace Telegram.Commands.Handlers;
 public class LoginCommand : CommandHandler
 {
     readonly AuthenticationManager _authenticationManager;
-    readonly LocalizedText.Authentication _localizedAuthenticationMessage;
+    readonly LocalizedText.Authentication _localizedAuthenticationText;
 
     public LoginCommand(
         AuthenticationManager authenticationManager,
@@ -30,17 +30,19 @@ public class LoginCommand : CommandHandler
         : base(commandFactory, receivedCommand, bot, httpContextAccessor, logger)
     {
         _authenticationManager = authenticationManager;
-        _localizedAuthenticationMessage = localizedAuthenticationMessage;
+        _localizedAuthenticationText = localizedAuthenticationMessage;
     }
 
     internal override Command Target => CommandFactory.Create("login");
 
     protected override async Task HandleAsync(Command receivedCommand)
     {
-        var user = await _authenticationManager.PersistTelegramUserAsyncWith(ChatId, save: false, RequestAborted);
+        var user = await _authenticationManager.GetBotUserAsyncWith(ChatId);
 
         if (user.IsAuthenticatedByMPlus)
-            await _authenticationManager.SendAlreadyLoggedInMessageAsync(ChatId, RequestAborted);
+            await Bot.SendMessageAsync_(ChatId,
+                await _localizedAuthenticationText.AlreadyLoggedInAsync(ChatId, user.MPlusIdentity, RequestAborted),
+                cancellationToken: RequestAborted);
         else await TryAuthenticateByMPlusAsync(user);
 
 
@@ -53,7 +55,7 @@ public class LoginCommand : CommandHandler
                 await _authenticationManager.TryAuthenticateByMPlusAsync(user, email, password, RequestAborted);
             }
             else await Bot.SendMessageAsync_(ChatId,
-                _localizedAuthenticationMessage.WrongSyntax(Target.Prefixed, correctSyntax: $"{Target.Prefixed} email password"),
+                _localizedAuthenticationText.WrongSyntax(Target.Prefixed, correctSyntax: $"{Target.Prefixed} email password"),
                 cancellationToken: RequestAborted);
         }
     }
