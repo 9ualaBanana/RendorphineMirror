@@ -62,7 +62,7 @@ public class TrialUsersMediatorClient
                 }.Uri.PathAndQuery);
 
             string sessionId = await
-                (await _httpClient.SendAsync(authenticationRequest))
+                (await _httpClient.SendAsync(authenticationRequest)).EnsureSuccessStatusCode()
                 .Content.ReadAsStringAsync();
 
             return sessionId;
@@ -76,16 +76,27 @@ public class TrialUsersMediatorClient
     /// TODO: Return some enum value instead that will represent the server response.
     internal async Task<HttpResponseMessage> TryReduceQuotaAsync(string taskAction, string chatId, string userId)
     {
-        var request = new HttpRequestMessage(
-            HttpMethod.Get,
+        try { return await TryReduceQuotaAsyncCore(); }
+        catch (Exception ex)
+        {
+            _logger.LogCritical(ex, "Attempt to reduce quota of a user ({Identifier}) failed.", userId);
+            throw;
+        }
 
-            new UriBuilder()
-            {
-                Path = new PathString("/try_reduce_quota").ToUriComponent(),
-                Query = QueryString.Create(new Dictionary<string, string?>()
-                { ["taskaction"] = taskAction, ["identifier"] = chatId, ["platform"] = 0.ToString(), ["userid"] = userId }).ToUriComponent()
-            }.Uri.PathAndQuery);
 
-        return await _httpClient.SendAsync(request);
+        async Task<HttpResponseMessage> TryReduceQuotaAsyncCore()
+        {
+            var request = new HttpRequestMessage(
+                HttpMethod.Get,
+
+                new UriBuilder()
+                {
+                    Path = new PathString("/try_reduce_quota").ToUriComponent(),
+                    Query = QueryString.Create(new Dictionary<string, string?>()
+                    { ["taskaction"] = taskAction, ["identifier"] = chatId, ["platform"] = 0.ToString(), ["userid"] = userId }).ToUriComponent()
+                }.Uri.PathAndQuery);
+
+            return await _httpClient.SendAsync(request);
+        }
     }
 }

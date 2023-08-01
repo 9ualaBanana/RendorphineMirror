@@ -21,7 +21,7 @@ public class Authentication
             else
             {
                 // TODO: Throw critical exception here.
-                // (There is no record for that user in the database (it could be dropped) but it has been authentificated)
+                // (There is no record for that user in the database (it could be dropped) but it has been authenticated)
                 return Check.Failed(new NotFoundObjectResult(user));
             }
         else
