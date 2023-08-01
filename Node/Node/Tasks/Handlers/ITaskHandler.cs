@@ -4,6 +4,7 @@ public interface ITaskHandler { }
 public interface ITaskInputHandler : ITaskHandler
 {
     TaskInputType Type { get; }
+    Type ResultType { get; }
 
     ValueTask<ReadOnlyTaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken = default);
 

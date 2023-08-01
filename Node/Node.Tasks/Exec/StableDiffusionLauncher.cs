@@ -11,7 +11,7 @@ public class StableDiffusionLaunchInfo
 }
 public static class StableDiffusionLauncher
 {
-    static async Task Launch(ITaskExecutionContext context, StableDiffusionLaunchInfo info, string gentype, TaskFileList files, Action<ProcessLauncher>? modify = null)
+    static async Task Launch(StableDiffusionLaunchInfo info, string gentype, TaskFileList files, PluginList plugins, IProgressSetter progressSetter, ILogger logger, Action<ProcessLauncher>? modify = null)
     {
         try
         {
@@ -27,24 +27,24 @@ public static class StableDiffusionLauncher
         async Task install()
         {
             // TODO: move installation to installation not execution
-            context.LogInfo("Installing stable diffusion...");
+            logger.LogInformation("Installing stable diffusion...");
 
             await CondaInvoker.ExecutePowerShellAtWithCondaEnvAsync(
-                context,
+                plugins,
                 PluginType.StableDiffusion,
                 @".\sdcli install",
                 null,
-                context
+                logger
             );
 
-            context.LogInfo("Stable diffusion installed.");
+            logger.LogInformation("Stable diffusion installed.");
         }
         async Task launch()
         {
-            var launcher = new ProcessLauncher(context.GetPlugin(PluginType.StableDiffusion).Path)
+            var launcher = new ProcessLauncher(plugins.GetPlugin(PluginType.StableDiffusion).Path)
             {
                 ThrowOnStdErr = false,
-                Logging = { Logger = context },
+                Logging = { ILogger = logger },
                 Timeout = TimeSpan.FromMinutes(10),
             }
                 .WithArgs(args =>
@@ -75,7 +75,7 @@ public static class StableDiffusionLauncher
                 if (!line.StartsWith("Progress: ", StringComparison.Ordinal)) return;
 
                 var progress = int.Parse(line.AsSpan()["Progress: ".Length..^"%".Length], CultureInfo.InvariantCulture) / 100d;
-                context.SetProgress(progress);
+                progressSetter.Set(progress);
             }
             void onerr(string line)
             {
@@ -86,11 +86,11 @@ public static class StableDiffusionLauncher
         }
     }
 
-    public static async Task LaunchTxt2ImgAsync(ITaskExecutionContext context, StableDiffusionLaunchInfo info, TaskFileList files) =>
-        await Launch(context, info, "txt2img", files);
+    public static async Task LaunchTxt2ImgAsync(StableDiffusionLaunchInfo info, TaskFileList files, PluginList plugins, IProgressSetter progress, ILogger logger) =>
+        await Launch(info, "txt2img", files, plugins, progress, logger);
 
-    public static async Task LaunchImg2ImgAsync(ITaskExecutionContext context, StableDiffusionLaunchInfo info, string inputimg, TaskFileList files) =>
-        await Launch(context, info, "img2img", files,
+    public static async Task LaunchImg2ImgAsync(StableDiffusionLaunchInfo info, string inputimg, TaskFileList files, PluginList plugins, IProgressSetter progress, ILogger logger) =>
+        await Launch(info, "img2img", files, plugins, progress, logger,
             launcher => launcher.WithArgs(args => args.Add("--input", inputimg))
         );
 }

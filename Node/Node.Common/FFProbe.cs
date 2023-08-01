@@ -2,6 +2,26 @@ namespace Node.Common;
 
 public static class FFProbe
 {
+    public static async Task<FFProbeInfo> Get(string file, ILogger logger)
+    {
+        using var _ = logger.BeginScope("FFprobe");
+
+        // TODO:: get from plugin list
+        var ffprobe = File.Exists("/bin/ffprobe") ? "/bin/ffprobe" : "assets/ffprobe.exe";
+
+        var str = await new ProcessLauncher(ffprobe) { Logging = { ILogger = logger } }
+            .WithArgs(args => args.Add(
+                $"-hide_banner",
+                $"-v", $"quiet",
+                $"-print_format", $"json",
+                $"-show_streams",
+                $"-show_format",
+                file
+            ))
+            .ExecuteFullAsync();
+
+        return JsonConvert.DeserializeObject<FFProbeInfo>(str) ?? throw new Exception($"Could not parse ffprobe output: {str}");
+    }
     public static async Task<FFProbeInfo> Get(string file, ILoggable? logobj)
     {
         // TODO:: get from plugin list

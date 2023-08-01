@@ -1,5 +1,6 @@
 namespace Node.Tasks.Exec;
 
+[Obsolete("DELETE")]
 public interface IPluginAction
 {
     Type DataType { get; }
@@ -12,10 +13,12 @@ public interface IPluginAction
 
     void ValidateInputFilesThrow(ITaskExecutionContext context, ReadOnlyTaskFileList files);
 }
+[Obsolete("DELETE")]
 public interface IPluginAction<T> : IPluginAction
 {
     Task Execute(ITaskExecutionContext context, TaskFiles files, T data);
 }
+[Obsolete("DELETE")]
 public abstract class PluginAction<T> : IPluginAction<T>
 {
     Type IPluginAction.DataType => typeof(T);

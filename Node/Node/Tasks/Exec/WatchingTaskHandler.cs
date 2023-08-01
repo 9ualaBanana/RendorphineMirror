@@ -53,8 +53,7 @@ public class WatchingTaskHandler
 
     static TaskCreationInfo CreateTaskInfo(WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output, TaskObject tobj, object data)
     {
-        var action = TaskList.TryGet(task.TaskAction).ThrowIfNull($"Task action {task.TaskAction} does not exists");
-        return new TaskCreationInfo(action.Name.ToString(), input, output, data, task.Policy, tobj)
+        return new TaskCreationInfo(task.TaskAction, input, output, data, task.Policy, tobj)
         {
             SoftwareRequirements = task.SoftwareRequirements,
         };

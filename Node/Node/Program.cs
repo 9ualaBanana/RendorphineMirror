@@ -1,4 +1,5 @@
 global using System.Collections.Immutable;
+global using Autofac;
 global using Common;
 global using Machine;
 global using Microsoft.Extensions.Logging;
@@ -22,7 +23,6 @@ global using NodeToUI;
 global using Logger = NLog.Logger;
 global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
-using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using NLog.Extensions.Logging;
@@ -110,7 +110,7 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
             UpdatePort(ip.Result.ToString(), Settings.BUPnpServerPort, "Server")
         )).Unwrap();
 
-    InitializePlugins();
+    RegisterTasks();
 }
 
 registerListener<NodeStateListener>();
@@ -272,20 +272,32 @@ async Task UpdatePort(string ip, DatabaseValue<ushort> port, string description)
         port.Value++;
     }
 }
-void InitializePlugins()
+void RegisterTasks()
 {
-    TaskList.Add(new IPluginAction[]
+    var types = new[]
     {
-        new EditRaster(), new EditVideo(),
-        new EsrganUpscale(),
-        new GreenscreenBackground(),
-        new VeeeVectorize(),
-        new GenerateQSPreview(),
-        new GenerateTitleKeywords(),
-        new GenerateImageByMeta(),
-        new GenerateImageByPrompt(),
-        new Topaz(),
-    });
+        typeof(EditRaster),
+        typeof(EditVideo),
+        typeof(EsrganUpscale),
+        typeof(GreenscreenBackground),
+        typeof(VeeeVectorize),
+        typeof(GenerateQSPreview),
+        typeof(GenerateTitleKeywords),
+        //typeof(GenerateImageByMeta),
+        typeof(GenerateImageByPrompt),
+        typeof(Topaz),
+    };
+
+    foreach (var type in types)
+    {
+        builder.RegisterType(type)
+            .Keyed<IGPluginAction>(Enum.Parse<TaskAction>(type.Name))
+            .InstancePerDependency();
+    }
+
+    builder.RegisterType<TaskActionList>()
+        .SingleInstance()
+        .OnActivating(ctx => ctx.Instance.Add(types));
 }
 
 

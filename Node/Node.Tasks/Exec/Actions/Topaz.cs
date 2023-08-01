@@ -1,6 +1,6 @@
 namespace Node.Tasks.Exec.Actions;
 
-public class Topaz : PluginAction<TopazInfo>
+public class Topaz : FilePluginAction<TopazInfo>
 {
     public override TaskAction Name => TaskAction.Topaz;
     public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.TopazVideoAI);
@@ -13,31 +13,32 @@ public class Topaz : PluginAction<TopazInfo>
         .Next(input => files.EnsureSingleOutputFile()
         .Next(output => TaskRequirement.EnsureSameFormat(output, input)));
 
-    public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, TopazInfo data)
+    public override async Task<TaskFileOutput> ExecuteUnchecked(TaskFileInput input, TopazInfo data)
     {
-        var ffmpeg = Path.Combine(context.GetPlugin(PluginType.TopazVideoAI).Path, "../ffmpeg.exe");
+        var ffmpeg = Path.Combine(PluginList.GetPlugin(PluginType.TopazVideoAI).Path, "../ffmpeg.exe");
 
-        var output = files.OutputFiles.New();
-        foreach (var input in files.InputFiles)
+        var output = new TaskFileOutput(input.ResultDirectory);
+        var outfiles = output.Files.New();
+        foreach (var file in input)
         {
-            var ffprobe = await FFProbe.Get(input.Path, context);
+            var ffprobe = await FFProbe.Get(file.Path, Logger);
 
             var launcher = new FFmpegLauncher(ffmpeg)
             {
-                Logger = context,
-                ProgressSetter = new TaskExecutionContextProgressSetterAdapter(context),
+                ILogger = Logger,
+                ProgressSetter = ProgressSetter,
                 EnvVariables =
                 {
                     ["TVAI_MODEL_DIR"] = @"C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models",
                     ["TVAI_MODEL_DATA_DIR"] = @"C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models",
                 },
-                Input = { input.Path },
+                Input = { file.Path },
                 Outputs =
                 {
                     new FFmpegLauncherOutput()
                     {
                         Codec = new ProresFFmpegCodec() { Profile = ProresFFmpegCodec.CopyProfileFrom(ffprobe.VideoStream) },
-                        Output = output.New(input.Format).Path,
+                        Output = outfiles.New(file.Format).Path,
                         Args =
                         {
                             // scaling flags
@@ -50,6 +51,8 @@ public class Topaz : PluginAction<TopazInfo>
             AddFilters(data, ffprobe, launcher);
             await launcher.Execute();
         }
+
+        return output;
     }
 
 

@@ -7,12 +7,15 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     TaskInputType ITaskInputHandler.Type => TaskInputType.MPlus;
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.MPlus;
 
+    readonly IComponentContext ComponentContext;
+
     public async ValueTask<ReadOnlyTaskFileList> Download(ReceivedTask task, CancellationToken cancellationToken)
     {
         var files = new TaskFileList(task.FSInputDirectory());
         var lastex = null as Exception;
+        var firstaction = (IFilePluginAction) ComponentContext.ResolveKeyed<IGPluginAction>(GTaskExecutor.GetTaskName(task.Info.Data));
 
-        foreach (var inputformats in task.GetFirstAction().InputFileFormats.OrderByDescending(fs => fs.Sum(f => (int) f + 1)))
+        foreach (var inputformats in firstaction.InputFileFormats.OrderByDescending(fs => fs.Sum(f => (int) f + 1)))
         {
             using var token = new CancellationTokenSource();
             task.LogInfo($"[M+ ITH] (Re)trying to download {string.Join(", ", inputformats)}");

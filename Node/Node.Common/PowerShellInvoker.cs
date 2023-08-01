@@ -64,7 +64,7 @@ public static class PowerShellInvoker
     public static Collection<T> JustInvoke<T>(string script) => Invoke<T>(PowerShell.Create().AddScript(script));
 
 
-    public static Collection<PSObject> Invoke(string script, Action<PSObject, Action>? onRead, Action<object, Action>? onErr, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null)
+    public static Collection<PSObject> Invoke(string script, Action<PSObject, Action>? onRead, Action<object, Action>? onErr, ILoggable? logobj, LogLevel? stdout = null, LogLevel? stderr = null, ILogger? logger = null)
     {
         logobj?.LogTrace($"Invoking powershell script: `\n{script}\n`");
 
@@ -79,7 +79,11 @@ public static class PowerShellInvoker
         using var pipeline = runspace.CreatePipeline();
 
         void process<T>(T item, LogLevel level, Action<T, Action>? action) =>
-            action?.Invoke(item, () => logobj?.Log(level, $"[PowerShell {pipeline.GetHashCode()}] {item}"));
+            action?.Invoke(item, () =>
+            {
+                logobj?.Log(level, $"[PowerShell {pipeline.GetHashCode()}] {item}");
+                logger?.Log(level, $"[PowerShell {pipeline.GetHashCode()}] {item}");
+            });
         pipeline.Output.DataReady += (obj, e) =>
         {
             foreach (var item in pipeline.Output.NonBlockingRead())

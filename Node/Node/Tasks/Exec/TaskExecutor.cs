@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Web;
+using Autofac;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -67,63 +68,6 @@ public class TaskExecutor
     }
 
 
-
-    interface ITaskExecutionExecutionContext : ILoggable
-    {
-        IReadOnlyCollection<JObject> Datas { get; }
-        IReadOnlyCollection<Plugin> Plugins { get; }
-
-        Task SetOutputAsync(IReadOnlyTaskFileListList files);
-        string NewTaskResultDirectory(string addition);
-    }
-    record TaskExecutionExecutionContext(ReceivedTask Task, NodeCommon.Apis Apis, IReadOnlyCollection<Plugin> Plugins) : ApiTaskContextBase(Task, Apis), ITaskExecutionExecutionContext
-    {
-        public IReadOnlyCollection<JObject> Datas { get; } = (Task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(Task.Info.Data).ToArray();
-
-        public async Task SetOutputAsync(IReadOnlyTaskFileListList files)
-        {
-            Task.OutputFileListList = files;
-            await ChangeStateAsync(TaskState.Output);
-        }
-        public string NewTaskResultDirectory(string add) => Task.FSOutputDirectory(add);
-    }
-
-    static async Task Execute(ITaskExecutionExecutionContext context, ReadOnlyTaskFileList? inputfiles)
-    {
-        // TODO:: delete
-        var task = ((TaskExecutionExecutionContext) context).Task;
-
-        var econtext = new TaskExecutionContext(task, context.Plugins, new MPlusApiService(task.Id, Apis.Default.SessionId, Api.Default));
-
-        CheckFileList(inputfiles, "input");
-
-        var outputs = null as TaskFileListList;
-        var index = 0;
-        foreach (var data in context.Datas)
-        {
-            var prevoutput = outputs ?? new TaskFileListList("/does/not/exists") { inputfiles };
-            outputs = new TaskFileListList(context.NewTaskResultDirectory(index.ToString()));
-
-            foreach (var input in prevoutput)
-            {
-                outputs.InputFiles = input;
-                await TaskList.GetAction(TaskInfo.GetTaskType(data)).Execute(
-                    new TaskExecutionContextSubtaskOverlay(index, context.Datas.Count, econtext),
-                    new TaskFiles(input, outputs),
-                    data
-                );
-            }
-
-            index++;
-        }
-
-        outputs.ThrowIfNull("No task result (what?)");
-        econtext.SetProgress(1);
-        await context.SetOutputAsync(outputs);
-    }
-
-
-
     interface ITaskOutputExecutionContext : ILoggable
     {
         ITaskOutputInfo Output { get; }
@@ -156,18 +100,25 @@ public class TaskExecutor
 
 
     readonly TaskHandlerList TaskHandlerList;
+    readonly ILifetimeScope LifetimeScope;
+    readonly ILogger Logger;
 
-    public TaskExecutor(TaskHandlerList taskHandlerList) => TaskHandlerList = taskHandlerList;
+    public TaskExecutor(TaskHandlerList taskHandlerList, ILifetimeScope lifetimeScope, ILogger<TaskExecutor> logger)
+    {
+        TaskHandlerList = taskHandlerList;
+        LifetimeScope = lifetimeScope;
+        Logger = logger;
+    }
 
 
-    public async Task Execute(ReceivedTask task, PluginManager pluginManager)
+    public async Task Execute(ReceivedTask task)
     {
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.None)}");
         var apis = Apis.Default;
 
         if (task.State <= TaskState.Input)
         {
-            var isqspreview = task.GetFirstAction().Name == TaskAction.GenerateQSPreview;
+            var isqspreview = GTaskExecutor.GetTaskName(task.Info.Data) == TaskAction.GenerateQSPreview;
             var semaphore = isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore;
             var info = isqspreview ? "qspinput" : "input";
             using var _ = await WaitDisposed(semaphore, task, info);
@@ -179,7 +130,10 @@ public class TaskExecutor
         if (task.State <= TaskState.Active)
         {
             using var _ = await WaitDisposed(ActiveSemaphore, task);
-            await Execute(new TaskExecutionExecutionContext(task, apis, await pluginManager.GetInstalledPluginsAsync()), task.InputFileList);
+
+            var input = task.Info.Data.ToObject(TaskHandlerList.GetInputHandler(task).ResultType).ThrowIfNull();
+            var result = await Execute(task, input);
+            task.Result = result;
         }
         else task.LogInfo($"Task execution seems to be already finished");
 
@@ -192,6 +146,24 @@ public class TaskExecutor
 
         await MaybeNotifyTelegramBotOfTaskCompletion(task);
     }
+
+    async Task<IReadOnlyList<object>> Execute(ReceivedTask task, object input)
+    {
+        using var _ = Logger.BeginScope($"Task {task}");
+        using var scope = LifetimeScope.BeginLifetimeScope(builder =>
+        {
+            builder.RegisterInstance(task)
+                .SingleInstance();
+
+            builder.Register(ctx => new ThrottledProgressSetter(5, new TaskProgressSetter(ctx.Resolve<NodeCommon.Apis>(), task)))
+                .As<IProgressSetter>()
+                .SingleInstance();
+        });
+
+        return await scope.Resolve<GTaskExecutor>()
+            .Execute(input, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
+    }
+
 
     /// <summary> Asserts that the provided list isn't empty and all files are present </summary>
     static void CheckFileListList([System.Diagnostics.CodeAnalysis.NotNull] IReadOnlyTaskFileListList? lists, string type)
@@ -253,36 +225,44 @@ public class TaskExecutor
     }
 
 
-
-    record TaskExecutionContextSubtaskOverlay(int Subtask, int MaxSubtasks, ITaskExecutionContext Context) : ITaskExecutionContext
+    class ThrottledProgressSetter : IProgressSetter
     {
-        public IMPlusApi? MPlusApi => Context.MPlusApi;
-        public IReadOnlyCollection<Plugin> Plugins => Context.Plugins;
+        readonly int ProgressSendDelaySec;
+        readonly IProgressSetter Progress;
 
-        public void Log(LogLevel level, string text) => Context.Log(level, text);
-
-        public void SetProgress(double progress)
+        public ThrottledProgressSetter(int progressSendDelaySec, IProgressSetter progress)
         {
-            var subtaskpart = 1d / MaxSubtasks;
-            Context.SetProgress((progress * subtaskpart) + (subtaskpart * Subtask));
+            ProgressSendDelaySec = progressSendDelaySec;
+            Progress = progress;
         }
-    }
-    record TaskExecutionContext(ReceivedTask Task, IReadOnlyCollection<Plugin> Plugins, IMPlusApi? MPlusApi) : ITaskExecutionContext
-    {
-        public void Log(LogLevel level, string text) => Task.Log(level, text);
 
-        const int ProgressSendDelaySec = 5;
         DateTime ProgressWriteTime = DateTime.MinValue;
-        public void SetProgress(double progress)
+        public void Set(double progress)
         {
-            Task.Progress = progress;
-
             var now = DateTime.Now;
             if (progress >= .98 || ProgressWriteTime < now)
             {
-                Apis.Default.SendTaskProgressAsync(Task).Consume();
+                Progress.Set(progress);
                 ProgressWriteTime = DateTime.Now.AddSeconds(ProgressSendDelaySec);
             }
+        }
+    }
+
+    class TaskProgressSetter : IProgressSetter
+    {
+        readonly NodeCommon.Apis Api;
+        readonly ReceivedTask Task;
+
+        public TaskProgressSetter(NodeCommon.Apis api, ReceivedTask task)
+        {
+            Api = api;
+            Task = task;
+        }
+
+        public void Set(double progress)
+        {
+            Task.Progress = progress;
+            Api.SendTaskProgressAsync(Task).Consume();
         }
     }
 }

@@ -14,17 +14,6 @@ public record SoftwareListProvider(IReadOnlyDictionary<string, SoftwareDefinitio
 
 public static class TaskTesting
 {
-    // task itself validates input&output files so we don't need to do much here
-    public static async Task TestTaskExecution<T>(PluginManager pluginManager, PluginAction<T> action, T data, ReadOnlyTaskFileList input)
-    {
-        var plugins = await pluginManager.GetInstalledPluginsAsync();
-
-        var output = new TaskFileListList(TempDirFor(action.Name.ToString()));
-        await action.Execute(new TestContext(plugins), new TaskFiles(input, output), data);
-
-        new TestContext(plugins).LogInfo($"{action.GetType().Name} execution completed; Result: [ {string.Join(", ", output.Select(o => $"[{string.Join(", ", o)}]"))}]");
-    }
-
     public static string TempDirFor(string action)
     {
         var dir = Path.GetFullPath("temp/" + action);

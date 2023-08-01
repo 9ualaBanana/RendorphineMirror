@@ -10,7 +10,7 @@ public interface IMPlusApi
 public record MPlusApiService(string TaskId, string SessionId, Api Api) : IMPlusApi;
 
 
-
+[Obsolete("DELETE")]
 public interface ITaskExecutionContext : ILoggable
 {
     IReadOnlyCollection<Plugin> Plugins { get; }
@@ -20,7 +20,7 @@ public interface ITaskExecutionContext : ILoggable
     void SetProgress(double progress);
 
     IMPlusApi? MPlusApi { get; }
-}
+}[Obsolete("DELETE")]
 public static class TaskExecutionContextExtensions
 {
     public static Plugin GetPlugin(this ITaskExecutionContext context, PluginType type) =>

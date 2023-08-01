@@ -7,15 +7,15 @@ namespace Node.Tests;
 
 public static class Container
 {
-    public static readonly IContainer Instance;
+    public static readonly IContainer Instance = CreateBuilder().Build();
 
-    static Container()
+    public static ContainerBuilder CreateBuilder()
     {
         var builder = new ContainerBuilder();
 
         // logging
         builder.Populate(new ServiceCollection().With(services => services.AddLogging(l => l.AddNLog())));
 
-        Instance = builder.Build();
+        return builder;
     }
 }

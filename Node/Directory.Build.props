@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Remove="NLog" />
     <Using Include="System.Diagnostics" />
     <Using Include="System.Diagnostics.CodeAnalysis" />
     <Using Include="System.Globalization" />

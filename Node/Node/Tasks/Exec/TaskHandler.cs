@@ -261,7 +261,7 @@ public class TaskHandler
             try
             {
                 var starttime = DateTimeOffset.Now;
-                await TaskExecutor.Execute(task, PluginManager).ConfigureAwait(false);
+                await TaskExecutor.Execute(task).ConfigureAwait(false);
 
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");

@@ -19,6 +19,7 @@ public class FFmpegLauncher
     public MultiList<FFmpegLauncherOutput> Outputs { get; } = new();
 
     public ILoggable? Logger { get; init; }
+    public ILogger? ILogger { get; init; }
     public IProgressSetter? ProgressSetter { get; init; }
 
     public FFmpegLauncher(string executable) => Executable = executable;
@@ -80,6 +81,7 @@ public class FFmpegLauncher
 
 
             var logger = Logger is null ? null : new NamedLogger("FFmpeg", Logger);
+            using var _ = ILogger?.BeginScope("FFmpeg") ?? new FuncDispose(delegate { });
 
             var duration = (await Task.WhenAll(Input.Select(f => FFProbe.Get(f.Path, logger)))).Select(ff => TimeSpan.FromSeconds(ff.Format.Duration)).Max();
             // if speed filter is active we should alter the duration for progress
@@ -89,7 +91,7 @@ public class FFmpegLauncher
             await new ProcessLauncher(Executable, args)
             {
                 ThrowOnStdErr = false,
-                Logging = { Logger = logger, StdErr = LogLevel.Trace },
+                Logging = { Logger = logger, ILogger = ILogger, StdErr = LogLevel.Trace },
                 EnvVariables = { EnvVariables },
             }
                 .AddOnRead(onRead)

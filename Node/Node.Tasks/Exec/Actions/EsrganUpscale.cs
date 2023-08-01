@@ -1,6 +1,6 @@
 namespace Node.Tasks.Exec.Actions;
 
-public class EsrganUpscale : PluginAction<EsrganUpscaleInfo>
+public class EsrganUpscale : FilePluginAction<EsrganUpscaleInfo>
 {
     public override TaskAction Name => TaskAction.EsrganUpscale;
     public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.Esrgan);
@@ -13,20 +13,23 @@ public class EsrganUpscale : PluginAction<EsrganUpscaleInfo>
         .Next(input => files.EnsureSingleOutputFile()
         .Next(output => TaskRequirement.EnsureSameFormat(output, input)));
 
-    public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, EsrganUpscaleInfo data)
+    public override async Task<TaskFileOutput> ExecuteUnchecked(TaskFileInput input, EsrganUpscaleInfo data)
     {
-        foreach (var file in files.InputFiles)
+        var output = new TaskFileOutput(input.ResultDirectory);
+
+        foreach (var file in input)
         {
-            var fs = files.OutputFiles.New();
+            var fs = output.Files.New();
             var outputfile = fs.New(file.Format);
             await upscale(file.Path, outputfile.Path);
 
             if (data.X2)
             {
-                files.OutputFiles.Remove(fs);
+                output.Files.Remove(fs);
                 await downscale(outputfile);
             }
         }
+        return output;
 
 
         async Task upscale(string inputfile, string outputfile)
@@ -38,7 +41,7 @@ public class EsrganUpscale : PluginAction<EsrganUpscaleInfo>
                 + $"\"{outputfile}\" "          // output file
                 + $"--tile_size 384 ";          // tile size; TODO: automatically determine
 
-            await CondaInvoker.ExecutePowerShellAtWithCondaEnvAsync(context, PluginType.Esrgan, pylaunch, onRead, context);
+            await CondaInvoker.ExecutePowerShellAtWithCondaEnvAsync(PluginList, PluginType.Esrgan, pylaunch, onRead, Logger);
 
 
             void onRead(bool err, object obj)
@@ -78,19 +81,19 @@ public class EsrganUpscale : PluginAction<EsrganUpscaleInfo>
                 var num1 = double.Parse(spt.Slice(0, slashidx));
                 var num2 = double.Parse(spt.Slice(slashidx + 1));
 
-                context.SetProgress(Math.Min(num1 / num2, .99));
+                ProgressSetter.Set(Math.Min(num1 / num2, .99));
             }
         }
         async Task downscale(FileWithFormat file)
         {
             // ESRGAN can upscale only to x4, so for x2 we just downscale x4 by half
-            context.LogInfo($"Downscaling {file.Path} to x2..");
+            Logger.LogInformation($"Downscaling {file.Path} to x2..");
 
-            var ffprobe = await FFProbe.Get(file.Path, context);
-            var launcher = new FFmpegLauncher(context.GetPlugin(PluginType.FFmpeg).Path)
+            var ffprobe = await FFProbe.Get(file.Path, Logger);
+            var launcher = new FFmpegLauncher(PluginList.GetPlugin(PluginType.FFmpeg).Path)
             {
-                Logger = context,
-                ProgressSetter = new TaskExecutionContextProgressSetterAdapter(context),
+                ILogger = Logger,
+                ProgressSetter = ProgressSetter,
 
                 Input = { file.Path },
                 VideoFilters = { "scale=iw/2:ih/2" },
@@ -99,7 +102,7 @@ public class EsrganUpscale : PluginAction<EsrganUpscaleInfo>
                     new FFmpegLauncherOutput()
                     {
                         Codec = FFmpegLauncher.CodecFromStream(ffprobe.VideoStream),
-                        Output = files.OutputFiles.New().New(file.Format, "out_downscaled").Path,
+                        Output = output.Files.New().New(file.Format, "out_downscaled").Path,
                     },
                 },
             };

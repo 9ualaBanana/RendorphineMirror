@@ -7,55 +7,51 @@ using ZXing.QrCode;
 
 namespace Node.Tasks.Exec.Actions;
 
-public class GenerateQSPreview : PluginAction<QSPreviewInfo>
+public class GenerateQSPreview : GPluginAction<TaskFileInput, QSPreviewOutput, QSPreviewInfo>
 {
-    const float WatermarkTransparency = .7f;
-    const int MaximumPixels = 129600;
-
-    Image<Rgba32>? LogoImage, WatermarkImage, QwertyLogoImage;
-
     public override TaskAction Name => TaskAction.GenerateQSPreview;
-
-    public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
-        new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov }, new[] { FileFormat.Jpeg, FileFormat.Mov } };
-
     public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.FFmpeg);
 
-    protected override OperationResult ValidateOutputFiles(TaskFilesCheckData files, QSPreviewInfo data)
-    {
-        var jpeg = files.InputFiles.TryFirst(FileFormat.Jpeg) is not null;
-        var mov = files.InputFiles.TryFirst(FileFormat.Mov) is not null;
+    const float WatermarkTransparency = .7f;
+    const int MaximumPixels = 129600;
+    Image<Rgba32>? LogoImage, WatermarkImage, QwertyLogoImage;
 
-        var format = new List<FileFormat>();
+    protected override void ValidateInput(TaskFileInput input, QSPreviewInfo data) =>
+        input.ValidateInput(new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov }, new[] { FileFormat.Jpeg, FileFormat.Mov } });
+
+    protected override void ValidateOutput(TaskFileInput input, QSPreviewInfo data, QSPreviewOutput output)
+    {
+        output.AssertListValid();
+
+        var jpeg = input.Files.TryFirst(FileFormat.Jpeg) is not null;
+        var mov = input.Files.TryFirst(FileFormat.Mov) is not null;
+
         if (jpeg)
         {
-            format.Add(FileFormat.Jpeg);
-            if (!mov) format.Add(FileFormat.Jpeg);
+            output.ImageFooter.ThrowIfNull("Footer image is null");
+            if (!mov) output.ImageQr.ThrowIfNull("QR image is null");
         }
-        if (mov)
-            format.Add(FileFormat.Mov);
-
-        return files.EnsureOutputFormats(new[] { format });
+        if (mov) output.Video.ThrowIfNull("Video is null");
     }
 
-    public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, QSPreviewInfo data)
+    public override async Task<QSPreviewOutput> ExecuteUnchecked(TaskFileInput input, QSPreviewInfo data)
     {
         var id = data.Qid;
-        var outfiles = files.OutputFiles.New();
+        var output = new QSPreviewOutput(input.ResultDirectory);
 
-        var jpeg = files.InputFiles.TryFirst(FileFormat.Jpeg);
-        var mov = files.InputFiles.TryFirst(FileFormat.Mov);
+        var jpeg = input.Files.TryFirst(FileFormat.Jpeg);
+        var mov = input.Files.TryFirst(FileFormat.Mov);
 
         var qrtext = $"https://qwertystock.com/{id}";
 
         if (jpeg is not null)
         {
-            await ProcessPreviewFooter(id, jpeg.Path, outfiles.New(FileFormat.Jpeg, "pj_footer").Path);
+            await ProcessPreviewFooter(id, jpeg.Path, output.InitializeImageFooter().Path);
 
             if (mov is null)
             {
                 using var qr = await GenerateQR(qrtext, "assets/qswatermark/qwerty_logo.png");
-                await ProcessPreviewQr(jpeg.Path, qr, outfiles.New(FileFormat.Jpeg, "pj_qr").Path);
+                await ProcessPreviewQr(jpeg.Path, qr, output.InitializeImageQr().Path);
             }
         }
 
@@ -66,8 +62,10 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
             using (var qr = await GenerateQR(qrtext, "assets/qswatermark/qwerty_logo.png"))
                 await qr.SaveAsPngAsync(qrfile);
 
-            await ProcessVideoPreview(context, mov.Path, qrfile, outfiles.New(FileFormat.Mov, "pv1").Path);
+            await ProcessVideoPreview(mov.Path, qrfile, output.InitializeVideo().Path);
         }
+
+        return output;
     }
 
 
@@ -137,7 +135,7 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
         await image.SaveAsJpegAsync(output, new JpegEncoder() { Quality = 90 });
     }
 
-    static async Task ProcessVideoPreview(ITaskExecutionContext context, string input, string qr, string output)
+    async Task ProcessVideoPreview(string input, string qr, string output)
     {
         await buildLauncher().Execute();
 
@@ -154,10 +152,10 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
             var xshift = .97;
             var yshift = xshift;
 
-            var launcher = new FFmpegLauncher(context.GetPlugin(PluginType.FFmpeg).Path)
+            var launcher = new FFmpegLauncher(PluginList.GetPlugin(PluginType.FFmpeg).Path)
             {
-                Logger = context,
-                ProgressSetter = new TaskExecutionContextProgressSetterAdapter(context),
+                ILogger = Logger,
+                ProgressSetter = ProgressSetter,
                 Input =
                 {
                     input,
@@ -294,7 +292,6 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
         outheight += outheight % 2;
         return (outwidth, outheight);
     }
-
 
     static class QRGenerator
     {

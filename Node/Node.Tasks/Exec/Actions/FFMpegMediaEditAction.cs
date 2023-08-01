@@ -1,31 +1,35 @@
 namespace Node.Tasks.Exec.Actions;
 
-public abstract class FFMpegMediaEditAction<T> : PluginAction<T> where T : MediaEditInfo
+public abstract class FFMpegMediaEditAction<TData> : FilePluginAction<TData> where TData : MediaEditInfo
 {
     protected static NumberFormatInfo NumberFormat => NumberFormats.Normal;
     protected static NumberFormatInfo NumberFormatNoDecimalLimit => NumberFormats.NoDecimalLimit;
 
-    public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.FFmpeg);
+    public override ImmutableArray<PluginType> RequiredPlugins { get; } = ImmutableArray.Create(PluginType.FFmpeg);
 
-    public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, T data)
+    public override async Task<TaskFileOutput> ExecuteUnchecked(TaskFileInput input, TData data)
     {
-        foreach (var input in files.InputFiles)
-        {
-            var ffprobe = await FFProbe.Get(input.Path, context);
+        var output = new TaskFileOutput(input.ResultDirectory);
 
-            var launcher = new FFmpegLauncher(context.GetPlugin(PluginType.FFmpeg).Path)
+        foreach (var file in input)
+        {
+            var ffprobe = await FFProbe.Get(file.Path, Logger);
+
+            var launcher = new FFmpegLauncher(PluginList.GetPlugin(PluginType.FFmpeg).Path)
             {
-                Logger = context,
-                ProgressSetter = new TaskExecutionContextProgressSetterAdapter(context),
-                Input = { input.Path },
+                ILogger = Logger,
+                ProgressSetter = ProgressSetter,
+                Input = { file.Path },
             };
 
-            AddFilters(data, files.OutputFiles, input, ffprobe, launcher);
+            AddFilters(data, output.Files, file, ffprobe, launcher);
             await launcher.Execute();
         }
+
+        return output;
     }
 
-    protected virtual void AddFilters(T data, TaskFileListList output, FileWithFormat input, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
+    protected virtual void AddFilters(TData data, TaskFileListList output, FileWithFormat input, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
     {
         var filters = launcher.VideoFilters;
 

@@ -6,8 +6,10 @@ public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info), ILogg
 
     public readonly HashSet<IUploadedFileInfo> UploadedFiles = new();
 
-    public ReadOnlyTaskFileList? InputFileList;
+    public JObject? DownloadedInput, Result;
+
+    [Obsolete("DELETE")] public ReadOnlyTaskFileList? InputFileList;
 
     [JsonConverter(typeof(JsonSettings.ConcreteConverter<TaskFileListList, IReadOnlyTaskFileListList>))]
-    public IReadOnlyTaskFileListList? OutputFileListList;
+    [Obsolete("DELETE")] public IReadOnlyTaskFileListList? OutputFileListList;
 }

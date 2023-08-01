@@ -7,11 +7,13 @@ public class Profiler
     bool HeartbeatLocked = false;
     Profile? _cachedProfile;
 
+    readonly TaskActionList TaskActionList;
     readonly TaskHandlerList TaskHandlerList;
     readonly ILogger Logger;
 
-    public Profiler(TaskHandlerList taskHandlerList, ILogger<Profiler> logger)
+    public Profiler(TaskActionList taskActionList, TaskHandlerList taskHandlerList, ILogger<Profiler> logger)
     {
+        TaskActionList = taskActionList;
         TaskHandlerList = taskHandlerList;
         Logger = logger;
     }
@@ -42,13 +44,13 @@ public class Profiler
         };
     }
 
-    static async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes(PluginManager pluginManager)
+    async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes(PluginManager pluginManager)
     {
         var installed = (await pluginManager.GetInstalledPluginsAsync())
             .Select(p => p.Type)
             .ToImmutableHashSet();
 
-        return TaskList.AllActions
+        return TaskActionList.AllActions
             .Where(a => !Settings.DisabledTaskTypes.Value.Contains(a.Name))
             .Where(a => a.RequiredPlugins.All(installed.Contains))
             .ToDictionary(a => a.Name.ToString(), _ => 1);

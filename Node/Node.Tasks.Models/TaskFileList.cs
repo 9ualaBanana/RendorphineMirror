@@ -6,6 +6,7 @@ namespace Node.Tasks.Models;
 [JsonObject]
 public class ReadOnlyTaskFileList : IEnumerable<FileWithFormat>
 {
+    [Obsolete("DELETE")]
     // TODO:: TEMPORARY AND WILL BE REFACTORED
     public JToken? OutputJson;
 
@@ -32,21 +33,24 @@ public class TaskFileList : ReadOnlyTaskFileList
     public TaskFileList(string directory) : base(Enumerable.Empty<FileWithFormat>()) => Directory = directory;
 
     public void Add(FileWithFormat file) => Files.Add(file);
-    public FileWithFormat New(FileFormat format, string? filename = null)
+    public FileWithFormat New(FileFormat format, string? filename = null) =>
+        NewFile(Directory, format, filename)
+            .With(Add);
+
+    public void Clear() => Files.Clear();
+
+
+    public static FileWithFormat NewFile(string directory, FileFormat format, string? filename = null)
     {
         if (filename is not null && Path.GetExtension(filename) == string.Empty)
             filename += format.AsExtension();
 
         // use input file name if there is only one input file
-        filename ??= ((InputFiles is { Count: 1 } ? Path.GetFileNameWithoutExtension(InputFiles.Single().Path) : "file") + format.AsExtension());
-        filename = Path.Combine(Directory, Path.GetFileName(filename));
+        filename ??= ("file" + format.AsExtension());
+        filename = Path.Combine(directory, Path.GetFileName(filename));
 
-        var file = new FileWithFormat(format, filename);
-        Add(file);
-        return file;
+        return new FileWithFormat(format, filename);
     }
-
-    public void Clear() => Files.Clear();
 }
 
 public static class TaskFileListExtensions
