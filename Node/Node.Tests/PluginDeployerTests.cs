@@ -66,7 +66,7 @@ public class PluginDeployerTests
                     )))
             );
 
-        var checker = new PluginChecker(new SoftwareList(software));
+        var checker = new PluginChecker(new SoftwareList(software), Container.Instance.Resolve<ILogger<PluginChecker>>());
 
 
         var installedEsrgan = ImmutableArray<Plugin>.Empty
@@ -115,7 +115,7 @@ public class PluginDeployerTests
 
         static IEnumerable<PluginToInstall> gettree(PluginType type, string? version, PluginChecker checker, IReadOnlyCollection<Plugin> installed) =>
             checker.GetInstallationTree(type, version)
-                .Where(p => !new PluginDeployer(new InstalledPlugins(installed)).IsInstalled(p.Type, p.Version));
+                .Where(p => !new PluginDeployer(new InstalledPlugins(installed), Container.Instance.Resolve<ILogger<PluginDeployer>>()).IsInstalled(p.Type, p.Version));
     }
 
 
