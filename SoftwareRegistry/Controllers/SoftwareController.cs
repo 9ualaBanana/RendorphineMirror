@@ -8,7 +8,7 @@ public class SoftwareController : ControllerBase
 {
     [HttpGet("getsoft")]
     [AllowAnonymous]
-    public JObject GetSoftware([FromServices] ILogger<SoftwareController> logger, [FromServices] SoftList softlist,
+    public JObject GetSoftware([FromServices] SoftList softlist,
         [FromQuery] string? name = null, [FromQuery] string? version = null)
     {
         if (name is null) return JsonApi.Success(softlist.Software);
@@ -19,7 +19,7 @@ public class SoftwareController : ControllerBase
 
 
     [HttpPost("addsoft")]
-    public JObject AddSoftware([FromServices] ILogger<SoftwareController> logger, [FromServices] SoftList softlist,
+    public JObject AddSoftware([FromServices] SoftList softlist,
         [FromQuery] string name, [FromBody] SoftwareDefinition soft)
     {
         softlist.Add(name, soft);
@@ -27,7 +27,7 @@ public class SoftwareController : ControllerBase
     }
 
     [HttpPost("addver")]
-    public JObject AddVersion([FromServices] ILogger<SoftwareController> logger, [FromServices] SoftList softlist,
+    public JObject AddVersion([FromServices] SoftList softlist,
         [FromQuery] string name, string version, [FromBody] SoftwareVersionDefinition ver)
     {
         var data = GetSoft(softlist, name)
@@ -41,7 +41,7 @@ public class SoftwareController : ControllerBase
     }
 
     [HttpGet("delsoft")]
-    public JObject DeleteSoftware([FromServices] ILogger<SoftwareController> logger, [FromServices] SoftList softlist,
+    public JObject DeleteSoftware([FromServices] SoftList softlist,
         [FromQuery] string name)
     {
         var data = GetSoft(softlist, name)
@@ -55,7 +55,7 @@ public class SoftwareController : ControllerBase
     }
 
     [HttpGet("delver")]
-    public JObject DeleteVersion([FromServices] ILogger<SoftwareController> logger, [FromServices] SoftList softlist,
+    public JObject DeleteVersion([FromServices] SoftList softlist,
         [FromQuery] string name, [FromQuery] string version)
     {
         var data = GetSoft(softlist, name, version, out var soft)
@@ -69,15 +69,15 @@ public class SoftwareController : ControllerBase
     }
 
     [HttpPost("editall")]
-    public JObject EditAll([FromServices] ILogger<SoftwareController> logger, [FromServices] SoftList softlist,
+    public JObject EditAll([FromServices] SoftList softlist,
         [FromBody] JObject soft)
     {
         softlist.Set(soft.ToObject<ImmutableDictionary<string, SoftwareDefinition>>() ?? throw new InvalidOperationException());
-        return GetSoftware(logger, softlist);
+        return GetSoftware(softlist);
     }
 
     [HttpPost("editsoft")]
-    public JObject EditSoftware([FromServices] ILogger<SoftwareController> logger, [FromServices] SoftList softlist,
+    public JObject EditSoftware([FromServices] SoftList softlist,
         [FromQuery] string name, [FromBody] JObject soft, [FromQuery] string? newname = null)
     {
         var data = GetSoft(softlist, name)
@@ -95,7 +95,7 @@ public class SoftwareController : ControllerBase
     }
 
     [HttpPost("editver")]
-    public JObject EditVersion([FromServices] ILogger<SoftwareController> logger, [FromServices] SoftList softlist,
+    public JObject EditVersion([FromServices] SoftList softlist,
         [FromQuery] string name, [FromQuery] string version, [FromBody] JObject soft, [FromQuery] string? newversion = null)
     {
         var data = GetSoft(softlist, name, version, out var prevsoft)

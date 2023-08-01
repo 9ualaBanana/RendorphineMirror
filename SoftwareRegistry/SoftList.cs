@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace SoftwareRegistry;
 
 public class SoftList
@@ -8,8 +6,11 @@ public class SoftList
     readonly DatabaseValueKeyDictionary<string, SoftwareDefinition> SoftwareDictBindable;
     public ImmutableDictionary<string, SoftwareDefinition> Software => SoftwareDictBindable.Values.ToImmutableDictionary();
 
-    public SoftList()
+    readonly ILogger Logger;
+
+    public SoftList(ILogger<SoftList> logger)
     {
+        Logger = logger;
         SoftwareDictBindable = new(Database, nameof(Software), StringComparer.OrdinalIgnoreCase);
 
         var soft = new DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>>(Database, nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
@@ -47,11 +48,13 @@ public class SoftList
 
         SoftwareDictBindable.Clear();
         SoftwareDictBindable.AddRange(soft);
+        Logger.LogInformation($"Settings values {string.Join("; ", soft)}");
     }
     public void Add(string type, SoftwareDefinition soft)
     {
         Backup();
         SoftwareDictBindable.Add(type, soft);
+        Logger.LogInformation($"Adding {type} {soft}");
     }
     public void Replace(string type, SoftwareDefinition newv, string? newtype = null)
     {
@@ -59,10 +62,12 @@ public class SoftList
 
         SoftwareDictBindable.Remove(type);
         SoftwareDictBindable.Add(newtype ?? type, newv);
+        Logger.LogInformation($"Replacing {type} with {newtype} {newv}");
     }
     public void Remove(string type)
     {
         Backup();
         SoftwareDictBindable.Remove(type);
+        Logger.LogInformation($"Removing {type}");
     }
 }
