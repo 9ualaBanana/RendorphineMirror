@@ -69,6 +69,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_3DProductsPublish", "_3DPr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pinger", "Node\Node.Pinger\Node.Pinger.csproj", "{F0C97700-5B44-4CF1-8E54-154084E70FCB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiniNode", "Node\MiniNode\MiniNode.csproj", "{7CFCD304-8103-463F-BC43-F5D793562183}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -199,6 +201,10 @@ Global
 		{F0C97700-5B44-4CF1-8E54-154084E70FCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0C97700-5B44-4CF1-8E54-154084E70FCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0C97700-5B44-4CF1-8E54-154084E70FCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CFCD304-8103-463F-BC43-F5D793562183}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CFCD304-8103-463F-BC43-F5D793562183}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CFCD304-8103-463F-BC43-F5D793562183}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CFCD304-8103-463F-BC43-F5D793562183}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -217,6 +223,7 @@ Global
 		{32A813A1-3C9F-4844-8C5C-922FC9CBE9C2} = {A9B60D91-D082-47A7-8E25-54DC20BC18E3}
 		{5054208B-C87E-4B71-B58B-F3E83173D4F3} = {A9B60D91-D082-47A7-8E25-54DC20BC18E3}
 		{A9A9910D-68A7-4E9D-B848-61DA53732DD7} = {A9B60D91-D082-47A7-8E25-54DC20BC18E3}
+		{7CFCD304-8103-463F-BC43-F5D793562183} = {A9B60D91-D082-47A7-8E25-54DC20BC18E3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1449F403-A78E-4A78-B65E-3DC50B1949C0}
