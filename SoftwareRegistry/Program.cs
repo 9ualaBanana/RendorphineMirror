@@ -1,6 +1,7 @@
 global using System.Collections.Immutable;
 global using System.Diagnostics.CodeAnalysis;
 global using Common;
+global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.AspNetCore.Mvc;
 global using MonoTorrent;
 global using Node.Common;
@@ -20,7 +21,6 @@ builder.Host.UseNLog();
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddSingleton(new TorrentClient(6229, 6230));
 builder.Services.AddSingleton<SoftList>();
-builder.Services.AddSingleton<TorrentHolder>();
 builder.Services.AddSingleton<TorrentManager>();
 
 var app = builder.Build();
@@ -30,7 +30,7 @@ app.Services.GetRequiredService<ILogger<Program>>()
     .LogInformation("Torrent listening at dht" + client.DhtPort + " and trt" + client.ListenPort);
 
 await app.Services.GetRequiredService<TorrentManager>()
-    .AddFromDirectory("torrents");
+    .AddFromMainDirectoryAsync();
 
 
 app.MapControllers();
