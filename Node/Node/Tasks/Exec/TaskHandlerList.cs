@@ -13,6 +13,8 @@ public class TaskHandlerList
     readonly Dictionary<TaskOutputType, ITaskOutputHandler> OutputHandlers = new();
     readonly Dictionary<WatchingTaskInputType, Func<WatchingTask, IWatchingTaskInputHandler>> WatchingHandlers = new();
 
+    public required IComponentContext ComponentContext { get; init; }
+
     public void AutoInitializeHandlers()
     {
         var types = AppDomain.CurrentDomain.GetAssemblies()
@@ -41,7 +43,13 @@ public class TaskHandlerList
             // since all IWatchingTaskInputHandler object implement Type property using `=>` and not `{ get; } =`
 
             WatchingHandlers[((IWatchingTaskInputHandler) FormatterServices.GetSafeUninitializedObject(type)).Type] =
-                task => (IWatchingTaskInputHandler) Activator.CreateInstance(type, new object?[] { task })!;
+                task =>
+                {
+                    var handler = (IWatchingTaskInputHandler) Activator.CreateInstance(type, new object?[] { task })!;
+                    handler.GetType().GetProperty("TaskHandlerList").ThrowIfNull().SetValue(handler, ComponentContext.Resolve<WatchingTaskHandler>());
+
+                    return handler;
+                };
         }
     }
 
