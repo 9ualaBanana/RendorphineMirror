@@ -39,7 +39,7 @@ namespace Common
         public static string GetUpdaterExe() => GetExe("Updater");
         public static string GetNodeExe() => GetExe("Node");
         public static string GetNodeUIExe() => GetExe("Node.UI");
-        public static string GetPingerExe() => GetExe("Pinger");
+        public static string GetPingerExe() => GetExe("Node.Pinger");
 
 
         static string GetExe(string filename)
