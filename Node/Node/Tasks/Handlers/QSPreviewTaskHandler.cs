@@ -2,7 +2,7 @@ namespace Node.Tasks.Handlers;
 
 public class QSPreviewTaskHandler : ITaskOutputHandler
 {
-    public const string Version = "6";
+    public const string Version = "7";
 
     TaskOutputType ITaskOutputHandler.Type => TaskOutputType.QSPreview;
 

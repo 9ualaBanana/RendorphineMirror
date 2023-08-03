@@ -63,7 +63,7 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
         {
             using var _ = Directories.TempFile(out var qrfile, "qsprveiew_qr");
 
-            using (var qr = await GenerateQR(qrtext, "assets/qswatermark/qwerty_logo_fried.png"))
+            using (var qr = await GenerateQR(qrtext, "assets/qswatermark/qwerty_logo.png"))
                 await qr.SaveAsPngAsync(qrfile);
 
             await ProcessVideoPreview(context, mov.Path, qrfile, outfiles.New(FileFormat.Mov, "pv1").Path);
