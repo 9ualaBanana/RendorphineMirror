@@ -13,7 +13,7 @@ public class MPlusTaskHandler : ITaskInputHandler, ITaskOutputHandler
     {
         var files = new TaskFileList(task.FSInputDirectory());
         var lastex = null as Exception;
-        var firstaction = (IFilePluginAction) ComponentContext.ResolveKeyed<IGPluginAction>(GTaskExecutor.GetTaskName(task.Info.Data));
+        var firstaction = (IFilePluginActionInfo) ComponentContext.ResolveKeyed<IPluginActionInfo>(TaskExecutorByData.GetTaskName(task.Info.Data));
 
         foreach (var inputformats in firstaction.InputFileFormats.OrderByDescending(fs => fs.Sum(f => (int) f + 1)))
         {

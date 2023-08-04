@@ -7,13 +7,13 @@ public class Profiler
     bool HeartbeatLocked = false;
     Profile? _cachedProfile;
 
-    readonly TaskActionList TaskActionList;
+    readonly IComponentContext ComponentContext;
     readonly TaskHandlerList TaskHandlerList;
     readonly ILogger Logger;
 
-    public Profiler(TaskActionList taskActionList, TaskHandlerList taskHandlerList, ILogger<Profiler> logger)
+    public Profiler(IComponentContext componentContext, TaskHandlerList taskHandlerList, ILogger<Profiler> logger)
     {
-        TaskActionList = taskActionList;
+        ComponentContext = componentContext;
         TaskHandlerList = taskHandlerList;
         Logger = logger;
     }
@@ -50,7 +50,8 @@ public class Profiler
             .Select(p => p.Type)
             .ToImmutableHashSet();
 
-        return TaskActionList.AllActions
+        return Enum.GetValues<TaskAction>()
+            .Select(k => ComponentContext.ResolveKeyed<IPluginActionInfo>(k))
             .Where(a => !Settings.DisabledTaskTypes.Value.Contains(a.Name))
             .Where(a => a.RequiredPlugins.All(installed.Contains))
             .ToDictionary(a => a.Name.ToString(), _ => 1);

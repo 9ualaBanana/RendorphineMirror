@@ -118,7 +118,7 @@ public class TaskExecutor
 
         if (task.State <= TaskState.Input)
         {
-            var isqspreview = GTaskExecutor.GetTaskName(task.Info.Data) == TaskAction.GenerateQSPreview;
+            var isqspreview = TaskExecutorByData.GetTaskName(task.Info.Data) == TaskAction.GenerateQSPreview;
             var semaphore = isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore;
             var info = isqspreview ? "qspinput" : "input";
             using var _ = await WaitDisposed(semaphore, task, info);
@@ -132,8 +132,7 @@ public class TaskExecutor
             using var _ = await WaitDisposed(ActiveSemaphore, task);
 
             var input = task.Info.Data.ToObject(TaskHandlerList.GetInputHandler(task).ResultType).ThrowIfNull();
-            var result = await Execute(task, input);
-            task.Result = result;
+            task.Result = await Execute(task, input);
         }
         else task.LogInfo($"Task execution seems to be already finished");
 
@@ -160,7 +159,7 @@ public class TaskExecutor
                 .SingleInstance();
         });
 
-        return await scope.Resolve<GTaskExecutor>()
+        return await scope.Resolve<TaskExecutorByData>()
             .Execute(input, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
     }
 

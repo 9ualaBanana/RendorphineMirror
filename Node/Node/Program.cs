@@ -274,30 +274,21 @@ async Task UpdatePort(string ip, DatabaseValue<ushort> port, string description)
 }
 void RegisterTasks()
 {
-    var types = new[]
-    {
-        typeof(EditRaster),
-        typeof(EditVideo),
-        typeof(EsrganUpscale),
-        typeof(GreenscreenBackground),
-        typeof(VeeeVectorize),
-        typeof(GenerateQSPreview),
-        typeof(GenerateTitleKeywords),
-        //typeof(GenerateImageByMeta),
-        typeof(GenerateImageByPrompt),
-        typeof(Topaz),
-    };
+    void registertask<T>() where T : IPluginActionInfo =>
+        builder.RegisterType<T>()
+            .Keyed<IPluginActionInfo>(Enum.Parse<TaskAction>(typeof(T).Name))
+            .SingleInstance();
 
-    foreach (var type in types)
-    {
-        builder.RegisterType(type)
-            .Keyed<IGPluginAction>(Enum.Parse<TaskAction>(type.Name))
-            .InstancePerDependency();
-    }
-
-    builder.RegisterType<TaskActionList>()
-        .SingleInstance()
-        .OnActivating(ctx => ctx.Instance.Add(types));
+    registertask<EditRaster>();
+    registertask<EditVideo>();
+    registertask<EsrganUpscale>();
+    registertask<GreenscreenBackground>();
+    registertask<VeeeVectorize>();
+    registertask<GenerateQSPreview>();
+    registertask<GenerateTitleKeywords>();
+    //registertask<GenerateImageByMeta>();
+    registertask<GenerateImageByPrompt>();
+    registertask<Topaz>();
 }
 
 

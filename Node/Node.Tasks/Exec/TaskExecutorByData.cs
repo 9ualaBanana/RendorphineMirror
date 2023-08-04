@@ -1,12 +1,12 @@
 namespace Node.Tasks.Exec;
 
-public class GTaskExecutor
+public class TaskExecutorByData
 {
     readonly ILifetimeScope LifetimeScope;
     readonly IProgressSetter ProgressSetter;
     readonly ILogger Logger;
 
-    public GTaskExecutor(ILifetimeScope lifetimeScope, IProgressSetter progressSetter, ILogger<GTaskExecutor> logger)
+    public TaskExecutorByData(ILifetimeScope lifetimeScope, IProgressSetter progressSetter, ILogger<TaskExecutorByData> logger)
     {
         LifetimeScope = lifetimeScope;
         ProgressSetter = progressSetter;
@@ -44,13 +44,13 @@ public class GTaskExecutor
         ProgressSetter.Set(1);
         return results;
     }
-    async Task<object> ExecuteSingle(IComponentContext container, object input, JObject data)
+    async Task<object> ExecuteSingle(ILifetimeScope container, object input, JObject data)
     {
         var tasktype = GetTaskName(data);
         using var _ = Logger.BeginScope(tasktype);
-        var action = container.ResolveKeyed<IGPluginAction>(tasktype);
 
-        return await action.Execute(input, data);
+        var info = container.ResolveKeyed<IPluginActionInfo>(tasktype);
+        return await info.Execute(container, input, data);
     }
 
     public static TaskAction GetTaskName(JObject data)

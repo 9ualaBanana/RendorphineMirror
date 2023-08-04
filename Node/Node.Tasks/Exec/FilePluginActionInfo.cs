@@ -2,12 +2,39 @@ using System.Runtime.CompilerServices;
 
 namespace Node.Tasks.Exec;
 
-public interface IFilePluginAction : IGPluginAction
+public interface IFilePluginActionInfo : IPluginActionInfo
 {
     IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
 }
+public abstract class FilePluginActionInfo<TData> : PluginActionInfo<TaskFileInput, TaskFileOutput, TData>
+{
+    public abstract IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
+    protected abstract OperationResult ValidateOutputFiles(TaskFilesCheckData files, TData data);
 
-public static class FilePluginAction
+    protected sealed override void ValidateInput(TaskFileInput input, TData data) =>
+        input.ValidateInput(InputFileFormats);
+
+    protected sealed override void ValidateOutput(TaskFileInput input, TData data, TaskFileOutput output)
+    {
+        input.Files.AssertListValid("output");
+
+        if (output.Files.Count == 0)
+            validate(new TaskFilesCheckData(input.Files, new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())));
+        else
+            foreach (var outfiles in output)
+                validate(new TaskFilesCheckData(input.Files, outfiles));
+
+
+        void validate(TaskFilesCheckData input)
+        {
+            ValidateOutputFiles(input, data)
+                .Next(() => OperationResult.WrapException(() => input.OutputFiles.ValidateFileList("output")))
+                .ThrowIfError(message => new TaskFailedException($"Output file validation failed: {message}"));
+        }
+    }
+}
+
+public static class FilePluginActionExtensions
 {
     /// <inheritdoc cref="AssertListValid(IReadOnlyTaskFileListList?, string?)"/>
     public static void AssertListValid([NotNull] this IEnumerable<FileWithFormat>? files, [CallerArgumentExpression(nameof(files))] string? type = null)
@@ -37,32 +64,5 @@ public static class FilePluginAction
         TaskRequirement.EnsureFormats(input.Files, "input", formats)
             .Next(() => OperationResult.WrapException(() => input.Files.ValidateFileList("input")))
             .ThrowIfError(message => new TaskValidationException(message));
-    }
-}
-public abstract class FilePluginAction<TData> : GPluginAction<TaskFileInput, TaskFileOutput, TData>
-{
-    public abstract IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
-    protected abstract OperationResult ValidateOutputFiles(TaskFilesCheckData files, TData data);
-
-    protected sealed override void ValidateInput(TaskFileInput input, TData data) =>
-        FilePluginAction.ValidateInput(input, InputFileFormats);
-
-    protected sealed override void ValidateOutput(TaskFileInput input, TData data, TaskFileOutput output)
-    {
-        input.Files.AssertListValid("output");
-
-        if (output.Files.Count == 0)
-            validate(new TaskFilesCheckData(input.Files, new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())));
-        else
-            foreach (var outfiles in output)
-                validate(new TaskFilesCheckData(input.Files, outfiles));
-
-
-        void validate(TaskFilesCheckData input)
-        {
-            ValidateOutputFiles(input, data)
-                .Next(() => OperationResult.WrapException(() => input.OutputFiles.ValidateFileList("output")))
-                .ThrowIfError(message => new TaskFailedException($"Output file validation failed: {message}"));
-        }
     }
 }

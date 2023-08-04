@@ -1,9 +1,10 @@
 namespace Node.Tasks.Exec.Actions;
 
-public class GenerateImageByPrompt : FilePluginAction<GenerateImageByPromptInfo>
+public class GenerateImageByPrompt : FilePluginActionInfo<GenerateImageByPromptInfo>
 {
     public override TaskAction Name => TaskAction.GenerateImageByPrompt;
     public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.StableDiffusion);
+    protected override Type ExecutorType => typeof(Executor);
 
     public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
         new[] { new[] { FileFormat.Png }, new[] { FileFormat.Jpeg }, Array.Empty<FileFormat>() };
@@ -12,26 +13,30 @@ public class GenerateImageByPrompt : FilePluginAction<GenerateImageByPromptInfo>
         files.EnsureSingleOutputFile()
             .Next(output => TaskRequirement.EnsureFormat(output, FileFormat.Png));
 
-    public override async Task<TaskFileOutput> ExecuteUnchecked(TaskFileInput input, GenerateImageByPromptInfo data)
+
+    class Executor : ExecutorBase
     {
-        var inputfile = input.FirstOrDefault();
-
-        var launchinfo = new StableDiffusionLaunchInfo()
+        public override async Task<TaskFileOutput> ExecuteUnchecked(TaskFileInput input, GenerateImageByPromptInfo data)
         {
-            Prompt = data.Prompt,
-            NegativePrompt = data.NegativePrompt,
-            Width = data.Width,
-            Height = data.Height,
-            Seed = data.Seed,
-        };
+            var inputfile = input.FirstOrDefault();
 
-        var output = new TaskFileOutput(input.ResultDirectory);
-        var outfiles = output.Files.New();
+            var launchinfo = new StableDiffusionLaunchInfo()
+            {
+                Prompt = data.Prompt,
+                NegativePrompt = data.NegativePrompt,
+                Width = data.Width,
+                Height = data.Height,
+                Seed = data.Seed,
+            };
 
-        if (inputfile is not null)
-            await StableDiffusionLauncher.LaunchImg2ImgAsync(launchinfo, inputfile.Path, outfiles, PluginList, ProgressSetter, Logger);
-        else await StableDiffusionLauncher.LaunchTxt2ImgAsync(launchinfo, outfiles, PluginList, ProgressSetter, Logger);
+            var output = new TaskFileOutput(input.ResultDirectory);
+            var outfiles = output.Files.New();
 
-        return output;
+            if (inputfile is not null)
+                await StableDiffusionLauncher.LaunchImg2ImgAsync(launchinfo, inputfile.Path, outfiles, PluginList, ProgressSetter, Logger);
+            else await StableDiffusionLauncher.LaunchTxt2ImgAsync(launchinfo, outfiles, PluginList, ProgressSetter, Logger);
+
+            return output;
+        }
     }
 }

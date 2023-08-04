@@ -3,6 +3,7 @@ namespace Node.Tasks.Exec.Actions;
 public class EditRaster : FFMpegMediaEditAction<EditRasterInfo>
 {
     public override TaskAction Name => TaskAction.EditRaster;
+    protected override Type ExecutorType => typeof(Executor);
 
     public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
         new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Png } };
@@ -12,14 +13,18 @@ public class EditRaster : FFMpegMediaEditAction<EditRasterInfo>
         .Next(input => files.EnsureSingleOutputFile()
         .Next(output => TaskRequirement.EnsureSameFormat(output, input)));
 
-    protected override void AddFilters(EditRasterInfo data, TaskFileListList output, FileWithFormat input, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
-    {
-        base.AddFilters(data, output, input, ffprobe, launcher);
 
-        launcher.Outputs.Add(new FFmpegLauncherOutput()
+    class Executor : FFmpegExecutor
+    {
+        protected override void AddFilters(EditRasterInfo data, TaskFileListList output, FileWithFormat input, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
         {
-            Codec = FFmpegLauncher.CodecFromStream(ffprobe.VideoStream),
-            Output = output.New().New(input.Format).Path,
-        });
+            base.AddFilters(data, output, input, ffprobe, launcher);
+
+            launcher.Outputs.Add(new FFmpegLauncherOutput()
+            {
+                Codec = FFmpegLauncher.CodecFromStream(ffprobe.VideoStream),
+                Output = output.New().New(input.Format).Path,
+            });
+        }
     }
 }
