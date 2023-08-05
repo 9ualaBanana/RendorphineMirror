@@ -1,18 +1,24 @@
-﻿using NLog.Targets;
+using NLog.Targets;
 
 namespace Common;
 
 internal static class Logging
 {
-    readonly static string _layout = $"${{time:universalTime=true}} ${{pad:padding=-7:inner=[${{level:uppercase=true}}]}} ${{message:withException=true:exceptionSeparator=\n\n}}";
+    readonly static string _layout = "${time:universalTime=true} [${level:uppercase=true} @ ${logger:shortName=true}] ${message:withException=true:exceptionSeparator=\n\n}";
+
 
     internal static void Configure(bool isDebug)
     {
         LogManager.AutoShutdown = true;
         LogManager.GlobalThreshold = LogLevel.Trace;
         LogManager.Setup().SetupLogFactory(config => config.SetTimeSourcAccurateUtc());
-        SetupFileRuleWith(LogLevel.Debug, maxArchiveDays: 3);
-        SetupFileRuleWith(LogLevel.Trace, maxArchiveDays: 1);
+
+        if (Initializer.LogToFile)
+        {
+            SetupFileRuleWith(LogLevel.Debug, maxArchiveDays: 3);
+            SetupFileRuleWith(LogLevel.Trace, maxArchiveDays: 1);
+        }
+
         LogManager.Setup().LoadConfiguration(rule => rule.ForLogger()
                 .FilterMinLevel(isDebug ? LogLevel.Trace : LogLevel.Info)
                 .WriteTo(_console));
@@ -38,12 +44,12 @@ internal static class Logging
         Layout = _layout,
         ArchiveEvery = FileArchivePeriod.Day,
         ArchiveDateFormat = "yyyyMMdd",
-        ArchiveFileName = $"{_LogDirFor}log.{{#}}{_fileExtension}",
+        ArchiveFileName = $"{_LogDirFor(logLevel)}log.{{#}}{_fileExtension}",
         ArchiveNumbering = ArchiveNumberingMode.Date,
         MaxArchiveDays = maxArchiveDays
     };
 
     static string _LogDirFor(LogLevel logLevel) => $"{_logDir}{logLevel.Name}${{dir-separator}}";
-    readonly static string _logDir = "logs${dir-separator}";
+    readonly static string _logDir = "logs${dir-separator}${processname}${dir-separator}";
     readonly static string _fileExtension = ".log";
 }

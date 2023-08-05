@@ -1,0 +1,18 @@
+﻿using Newtonsoft.Json;
+
+namespace Telegram.MPlus.Security;
+
+public record MPlusPublicSessionInfo(
+    [JsonProperty(PropertyName = "sid")] string SessionId,
+    [JsonProperty(PropertyName = "guid")] string Guid,
+    [JsonProperty(PropertyName = "userid")] string UserId,
+    [JsonProperty(PropertyName = "email")] string Email,
+    [JsonProperty(PropertyName = "adminlevel")] AccessLevel AccessLevel)
+{
+}
+
+static class MPlusPublicSessionInfoExtensions
+{
+    internal static MPlusIdentity ToMPlusIdentity(this MPlusPublicSessionInfo publicSessionInfo)
+        => new(publicSessionInfo.Email, publicSessionInfo.UserId, publicSessionInfo.SessionId, publicSessionInfo.AccessLevel);
+}

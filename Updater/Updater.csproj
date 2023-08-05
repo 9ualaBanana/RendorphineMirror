@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <SelfContained>true</SelfContained>
+    <!--<PublishReadyToRun>true</PublishReadyToRun>-->
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+
+    <!--
+      <PublishTrimmed>true</PublishTrimmed>
+      <TrimMode>Link</TrimMode>
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UpdaterCommon\UpdaterCommon.csproj" />
+    <ProjectReference Include="..\Common\Common.csproj" />
+    <TrimmerRootAssembly Include="UpdaterCommon" />
+    <TrimmerRootAssembly Include="Common" />
+  </ItemGroup>
+
+</Project>

@@ -18,6 +18,7 @@ public record GPU(
         get
         {
             if (IsNvidia) return NvidiaGPU.Info;
+            else return Stub;
             throw new NotSupportedException("Installed GPU is not supported.");
         }
     }
@@ -34,4 +35,6 @@ public record GPU(
             catch { return false; }
         }
     }
+
+    static List<GPU> Stub => new(1) { new(Guid.NewGuid(), "Stub", 0, 0, 0, 0, 0, 0, 0) };
 }

@@ -1,5 +1,5 @@
-﻿using Telegram.Models;
-using Telegram.Telegram;
+﻿using Telegram.Infrastructure.Bot;
+using Telegram.Models;
 
 namespace Telegram.Services.GitHub;
 

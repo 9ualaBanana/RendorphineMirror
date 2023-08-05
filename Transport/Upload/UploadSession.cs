@@ -1,5 +1,4 @@
 ﻿using Common;
-using Newtonsoft.Json.Linq;
 using NLog;
 using Transport.Models;
 
@@ -16,7 +15,7 @@ internal record UploadSession(
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-    bool _finalized;
+    string? _iid;
     IEnumerable<LongRange>? _notUploadedBytes;
     internal IEnumerable<LongRange> NotUploadedBytes
     {
@@ -79,19 +78,8 @@ internal record UploadSession(
     }
 
     static async Task<UploadSession> InitializeAsyncCore(
-        UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken)
-    {
-        var httpResponse = await httpClient.PostAsync(sessionData.Endpoint, sessionData.HttpContent, cancellationToken).ConfigureAwait(false);
-        var response = await Api.GetJsonFromResponseIfSuccessfulAsync(httpResponse);
-        return new(
-            sessionData,
-            (string)response["fileid"]!,
-            (string)response["host"]!,
-            (long)response["uploadedbytes"]!,
-            response["uploadedchunks"]!.ToObject<UploadedPacket[]>()!,
-            httpClient,
-            cancellationToken);
-    }
+        UploadSessionData sessionData, HttpClient httpClient, CancellationToken cancellationToken) =>
+            await sessionData.UseToRequestUploadSessionAsyncUsing(httpClient, cancellationToken);
 
     public async ValueTask DisposeAsync()
     {
@@ -99,16 +87,21 @@ internal record UploadSession(
         GC.SuppressFinalize(this);
     }
 
-    internal async ValueTask FinalizeAsync()
+    /// <returns>The <c>iid</c> of the media file uploaded to M+.</returns>
+    internal async ValueTask<string> FinalizeAsync()
     {
-        if (_finalized) { _logger.Warn("Upload session is already finalized"); return; }
+        if (_iid is null)
+        {
+            var response = await HttpClient.PostAsync(
+                $"https://{Host}/content/vcupload/finish",
+                new FormUrlEncodedContent(new Dictionary<string, string>() { ["fileid"] = FileId })
+                ).ConfigureAwait(false);
+            _iid = (string)(await response.GetJsonIfSuccessfulAsync())["iid"]!;
 
-        await HttpClient.PostAsync(
-            $"https://{Host}/content/vcupload/finish",
-            new FormUrlEncodedContent(new Dictionary<string, string>() { ["fileid"] = FileId })
-            ).ConfigureAwait(false);
+            _logger.Debug("Upload session is successfully finalized");
+        }
+        else _logger.Warn("Upload session is already finalized");
 
-        _logger.Debug("Upload session is successfully finalized");
-        _finalized = true;
+        return _iid;
     }
 }

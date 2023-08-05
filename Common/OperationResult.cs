@@ -1,17 +1,26 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Runtime.CompilerServices;
 
 namespace Common
 {
+    public readonly record struct HttpOperationResult(HttpResponseMessage Response, int? ErrorCode)
+    {
+        public HttpStatusCode StatusCode => Response.StatusCode;
+        public bool IsSuccessStatusCode => (int) StatusCode >= 200 && (int) StatusCode < 300;
+    }
+
     public readonly struct OperationResult
     {
         public readonly bool Success;
         public readonly string? Message;
+        public readonly HttpOperationResult? HttpData { get; init; }
 
         public OperationResult(bool success, string? message)
         {
             Success = success;
             Message = message;
+            HttpData = null;
         }
 
         [MethodImpl(256)] public string AsString() => Message ?? string.Empty;
@@ -24,6 +33,7 @@ namespace Common
         public static OperationResult Err<T>(T obj) where T : notnull => Err(obj.ToString());
         public static OperationResult Err(Exception ex) => new OperationResult(false, ex.Message);
         public static OperationResult<T> Err<T>(string? msg = null) => Err(msg);
+        public static OperationResult Succ() => new OperationResult(true, null);
         public static OperationResult<T> Succ<T>(T value) => new OperationResult<T>(value);
 
         public static OperationResult WrapException(Action func, string? info = null) => WrapException(() => { func(); return true; }, info);
@@ -62,6 +72,7 @@ namespace Common
         public bool Success => EString.Success;
         public string? Message => EString.Message;
         public T Result => Value;
+        public readonly HttpOperationResult? HttpData => EString.HttpData;
 
         public readonly OperationResult EString;
         [AllowNull] public readonly T Value;
@@ -94,7 +105,7 @@ namespace Common
 
     public static class OperationResultExtensions
     {
-        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+        static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         public static OperationResult<T> AsOpResult<T>(this T value) => OperationResult.Succ(value);
         public static ref readonly OperationResult GetResult<T>(in this OperationResult<T> estring) => ref estring.EString;
@@ -102,35 +113,63 @@ namespace Common
         public static Task<T> AsTask<T>(this T value) => Task.FromResult(value);
         public static ValueTask<OperationResult<T>> AsTaskResult<T>(this T value) => value.AsOpResult().AsVTask();
 
-        public static OperationResult ThrowIfError(in this OperationResult opr, string? format = null)
+        public static void ThrowIfError(this OperationResult opr, string? format = null)
         {
-            if (!opr)
-            {
-                if (format is not null) throw new Exception(string.Format(format, opr.AsString()));
-                else throw new Exception(opr.AsString());
-            }
-
-            return opr;
+            opr.ThrowIfError(message =>
+                format is not null
+                ? new Exception(string.Format(format, message))
+                : new Exception(message)
+            );
         }
-        public static T ThrowIfError<T>(in this OperationResult<T> opr, string? format = null)
+        public static T ThrowIfError<T>(this OperationResult<T> opr, string? format = null)
         {
             opr.GetResult().ThrowIfError(format);
             return opr.Value;
         }
-        public static async ValueTask<OperationResult> ThrowIfError(this ValueTask<OperationResult> opr, string? format = null) => (await opr).ThrowIfError();
-        public static async ValueTask<T> ThrowIfError<T>(this ValueTask<OperationResult<T>> opr, string? format = null) => (await opr).ThrowIfError();
+        public static async ValueTask ThrowIfError(this ValueTask<OperationResult> opr, string? format = null) => (await opr).ThrowIfError(format);
+        public static async ValueTask<T> ThrowIfError<T>(this ValueTask<OperationResult<T>> opr, string? format = null) => (await opr).ThrowIfError(format);
 
-        public static OperationResult LogIfError(in this OperationResult opr, string? format = null)
+        public static void ThrowIfError(this OperationResult opr, Func<string, Exception> createfunc)
+        {
+            if (opr) return;
+            throw createfunc(opr.AsString());
+        }
+        public static T ThrowIfError<T>(this OperationResult<T> opr, Func<string, Exception> createfunc)
+        {
+            opr.GetResult().ThrowIfError(createfunc);
+            return opr.Value;
+        }
+        public static async ValueTask ThrowIfError(this ValueTask<OperationResult> opr, Func<string, Exception> createfunc) => (await opr).ThrowIfError(createfunc);
+        public static async ValueTask<T> ThrowIfError<T>(this ValueTask<OperationResult<T>> opr, Func<string, Exception> createfunc) => (await opr).ThrowIfError(createfunc);
+
+        [return: NotNullIfNotNull(nameof(def))]
+        public static T? GetValueOrDefault<T>(this OperationResult<T> opr, T? def = default)
+        {
+            if (!opr) return def;
+            return opr.Value;
+        }
+        [return: NotNullIfNotNull(nameof(def))]
+        public static async ValueTask<T?> GetValueOrDefault<T>(this ValueTask<OperationResult<T>> opr, T? def = default) => (await opr).GetValueOrDefault(def);
+
+        public static OperationResult LogIfError(in this OperationResult opr, string? format = null, ILoggable? loggable = null)
         {
             if (!opr)
             {
-                if (format is not null) _logger.Error(string.Format(format, opr.AsString()));
-                else _logger.Error(opr.AsString());
+                var text = opr.AsString();
+                if (format is not null)
+                    text = string.Format(format, text);
+
+                if (loggable is not null) loggable.LogErr(text);
+                else Logger.Error(text);
             }
 
             return opr;
         }
-        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null) => opr.GetResult().LogIfError(format);
+        public static OperationResult<T> LogIfError<T>(in this OperationResult<T> opr, string? format = null, ILoggable? loggable = null)
+        {
+            opr.EString.LogIfError(format, loggable);
+            return opr;
+        }
 
 
         #region Next
@@ -285,19 +324,97 @@ namespace Common
 
             return true;
         }
-        public static OperationResult<T[]> MergeResults<T>(this IEnumerable<OperationResult<T>> results)
-        {
-            List<T> output;
-            if (results.TryGetNonEnumeratedCount(out var count)) output = new(count);
-            else output = new();
 
+        static OperationResult MergeResults<TIn>(this IEnumerable<OperationResult<TIn>> results, Action<TIn> func)
+        {
             foreach (var result in results)
             {
                 if (!result) return result.EString;
-                output.Add(result.Value);
+                func(result.Value);
             }
 
-            return output.ToArray();
+            return true;
+        }
+        static OperationResult<List<TOut>> MergeResults<TOut, TIn>(this IEnumerable<OperationResult<TIn>> results, Action<List<TOut>, TIn> func)
+        {
+            List<TOut> output;
+            if (results.TryGetNonEnumeratedCount(out var count)) output = new(count);
+            else output = new();
+
+            return results
+                .MergeResults(result => func(output, result))
+                .Next(() => output.AsOpResult());
+        }
+        public static OperationResult<List<T>> MergeResults<T>(this IEnumerable<OperationResult<T>> results) =>
+            results.MergeResults<T, T>((output, value) => output.Add(value));
+        public static OperationResult<List<T>> MergeArrResults<T>(this IEnumerable<OperationResult<List<T>>> results) =>
+            results.MergeResults<T, List<T>>((output, value) => output.AddRange(value));
+        public static OperationResult<Dictionary<TKey, TVal>> MergeDictResults<TKey, TVal>(this IEnumerable<OperationResult<(TKey key, TVal value)>> results) where TKey : notnull
+        {
+            var dict = new Dictionary<TKey, TVal>();
+            return results
+                .MergeResults(value => dict[value.key] = value.value)
+                .Next(() => dict.AsOpResult());
+        }
+        public static OperationResult<Dictionary<TKey, TVal>> MergeDictResults<TKey, TVal>(this IEnumerable<OperationResult<Dictionary<TKey, TVal>>> results) where TKey : notnull
+        {
+            var dict = new Dictionary<TKey, TVal>();
+            return results
+                .MergeResults(dic =>
+                {
+                    foreach (var (key, value) in dic)
+                        dict[key] = value;
+                })
+                .Next(() => dict.AsOpResult());
+        }
+        public static OperationResult<Dictionary<TKey, TVal>> MergeDictResults<TKey, TVal>(this IEnumerable<OperationResult<KeyValuePair<TKey, TVal>>> results) where TKey : notnull
+        {
+            var dict = new Dictionary<TKey, TVal>();
+            return results
+                .MergeResults(dic => dict[dic.Key] = dic.Value)
+                .Next(() => dict.AsOpResult());
+        }
+
+        public static async ValueTask<OperationResult<List<T>>> MergeResults<T>(this IEnumerable<Task<OperationResult<T>>> results) =>
+            (await Task.WhenAll(results)).MergeResults();
+        public static async ValueTask<OperationResult<List<T>>> MergeArrResults<T>(this IEnumerable<Task<OperationResult<List<T>>>> results) =>
+            (await Task.WhenAll(results)).MergeArrResults();
+        public static async ValueTask<OperationResult<Dictionary<TKey, TVal>>> MergeDictResults<TKey, TVal>(this IEnumerable<Task<OperationResult<(TKey key, TVal value)>>> results) where TKey : notnull =>
+            (await Task.WhenAll(results)).MergeDictResults();
+        public static async ValueTask<OperationResult<Dictionary<TKey, TVal>>> MergeDictResults<TKey, TVal>(this IEnumerable<Task<OperationResult<Dictionary<TKey, TVal>>>> results) where TKey : notnull =>
+            (await Task.WhenAll(results)).MergeDictResults();
+
+        public static async ValueTask<OperationResult> MergeParallel(this IEnumerable<ValueTask<OperationResult>> tasks, int limit)
+        {
+            var result = await MergeParallel(tasks.Select(async x => (await x).As(0)).Select(x => new ValueTask<OperationResult<int>>(x)), limit);
+            return result.GetResult();
+        }
+        public static async ValueTask<OperationResult<T[]>> MergeParallel<T>(this IEnumerable<ValueTask<OperationResult<T>>> tasks, int limit)
+        {
+            using var throttler = new SemaphoreSlim(Math.Max(1, limit));
+            var cancel = false;
+
+            var newtasks = tasks.Select(async task =>
+            {
+                try
+                {
+                    await throttler.WaitAsync();
+                    if (cancel) return OperationResult.Err<T>();
+
+                    var result = await task;
+                    if (!result) cancel = true;
+
+                    return result;
+                }
+                catch (Exception ex) { return OperationResult.Err(ex); }
+                finally { throttler.Release(); }
+            }).ToArray();
+
+
+            var results = await Task.WhenAll(newtasks);
+            if (cancel) return results.First(x => !x.Success).GetResult();
+
+            return results.Select(x => x.Value).ToArray();
         }
 
         #endregion

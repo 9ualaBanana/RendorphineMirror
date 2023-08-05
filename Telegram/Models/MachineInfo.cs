@@ -1,4 +1,4 @@
-﻿using Telegram.Services.Telegram.Updates.Commands;
+﻿using Telegram.Infrastructure.Commands;
 
 namespace Telegram.Models;
 

@@ -1,0 +1,339 @@
+global using System.Collections.Immutable;
+global using Common;
+global using Machine;
+global using NLog;
+global using Node.Common;
+global using Node.Common.Models;
+global using Node.Plugins;
+global using Node.Plugins.Models;
+global using Node.Registry;
+global using Node.Tasks;
+global using Node.Tasks.Exec;
+global using Node.Tasks.Handlers;
+global using Node.Tasks.Models;
+global using Node.Tasks.Watching;
+global using NodeCommon;
+global using NodeCommon.ApiModel;
+global using NodeCommon.Tasks;
+global using NodeCommon.Tasks.Model;
+global using NodeCommon.Tasks.Watching;
+global using NodeToUI;
+using Node;
+using Node.Heartbeat;
+using Node.Listeners;
+using Node.Profiling;
+using Node.Tasks.Exec.Actions;
+
+
+Initializer.AppName = "renderfin";
+ConsoleHide.Hide();
+
+if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
+    foreach (var proc in FileList.GetAnotherInstances())
+        proc.Kill(true);
+
+Init.Initialize();
+var logger = LogManager.GetCurrentClassLogger();
+var captured = new List<object>();
+
+
+await startReconnect();
+async Task startReconnect()
+{
+    var logger = new NamedLogger("Reconnect", new LoggableLogger(LogManager.GetCurrentClassLogger()));
+
+    await cancelTransferredTasks();
+    await Api.Default.ApiGet($"{Api.TaskManagerEndpoint}/nodereconnected", "Reconnecting the node", Node.Apis.Default.AddSessionId(("guid", Settings.Guid)))
+        .ThrowIfError();
+
+
+    async Task cancelTransferredTasks()
+    {
+        var shardtasks = NodeSettings.QueuedTasks.Values.GroupBy(t => t.HostShard);
+
+        foreach (var tasks in shardtasks)
+        {
+            var shard = tasks.Key;
+            var tasksarr = tasks.ToArray();
+
+            if (shard is null)
+            {
+                logger.Error($"[Reconnecting] Found {tasksarr.Length} tasks without shard being set: {string.Join(", ", tasksarr.Select(t => t.Id))}");
+                continue;
+            }
+
+            while (true)
+            {
+                var canceltasks = await Api.Default.ApiPost<ImmutableArray<string>>(
+                    $"https://{shard}/rphtasklauncher/nodereconnected",
+                    "canceltasks",
+                    "Getting list of transferred tasks",
+                    Node.Apis.Default.AddSessionId(
+                        ("guid", Settings.Guid),
+                        ("taskids", JsonConvert.SerializeObject(tasksarr.Select(t => t.Id)))
+                    )
+                ).ThrowIfError();
+
+                foreach (var cancel in canceltasks)
+                    NodeSettings.QueuedTasks.Remove(cancel);
+
+                break;
+            }
+
+        }
+    }
+}
+
+
+var halfrelease = args.Contains("release");
+var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
+var pluginChecker = new PluginChecker(new SoftwareList());
+var pluginDeployer = new PluginDeployer(pluginManager);
+InitializeSettings();
+
+_ = new ProcessesingModeSwitch().StartMonitoringAsync();
+
+{
+    var localport = UpdatePort("127.0.0.1", Settings.BLocalListenPort, "Local")
+        .ContinueWith(_ => new LocalListener(pluginManager, pluginChecker, pluginDeployer).Start());
+
+    var publicports = PortForwarding.GetPublicIPAsync()
+        .ContinueWith(ip => Task.WhenAll(
+            UpdatePort(ip.Result.ToString(), Settings.BUPnpPort, "Public"),
+            UpdatePort(ip.Result.ToString(), Settings.BUPnpServerPort, "Server")
+        )).Unwrap();
+
+    var pluginsinit = InitializePlugins();
+    var plugindiscover = pluginManager.GetInstalledPluginsAsync();
+
+    await Task.WhenAll(
+        pluginsinit,
+        plugindiscover,
+        publicports,
+        localport
+    );
+}
+
+new NodeStateListener().Start();
+if (Settings.SessionId is not null)
+    logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
+else
+{
+    await WaitForAuth().ConfigureAwait(false);
+    logger.Info("Authentication completed");
+}
+
+if (!Init.IsDebug || halfrelease)
+    PortForwarder.Initialize();
+
+if (!Init.IsDebug || halfrelease)
+{
+    if (!Init.IsDebug)
+    {
+        // removing old service
+        try { SystemService.Stop("renderphinepinger"); }
+        catch { }
+        SystemService.Start();
+
+        var reepoHeartbeat = new Heartbeat(
+            new HttpRequestMessage(HttpMethod.Post, $"{Settings.ServerUrl}/node/ping") { Content = await MachineInfo.AsJsonContentAsync(pluginManager) },
+            TimeSpan.FromMinutes(5), Api.GlobalClient);
+        _ = reepoHeartbeat.StartAsync();
+
+        captured.Add(reepoHeartbeat);
+
+        //(await Api.Client.PostAsync($"{Settings.ServerUrl}/node/profile", Profiler.Run())).EnsureSuccessStatusCode();
+    }
+
+    var mPlusTaskManagerHeartbeat = new Heartbeat(new MPlusHeartbeatGenerator(pluginManager), TimeSpan.FromMinutes(1), Api.GlobalClient);
+    _ = mPlusTaskManagerHeartbeat.StartAsync();
+
+    captured.Add(mPlusTaskManagerHeartbeat);
+
+    var userSettingsHeartbeat = new Heartbeat(new PluginsUpdater(pluginManager, pluginChecker, pluginDeployer), TimeSpan.FromMinutes(1), Api.GlobalClient);
+    _ = userSettingsHeartbeat.StartAsync();
+
+    captured.Add(userSettingsHeartbeat);
+}
+
+new TaskReceiver().Start();
+new DirectUploadListener().Start();
+new DirectDownloadListener().Start();
+
+new PublicListener().Start();
+new TaskListener().Start();
+new DirectoryDiffListener().Start();
+new DownloadListener().Start();
+new PublicPagesListener().Start();
+
+if (Init.DebugFeatures) new DebugListener(pluginManager).Start();
+
+PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
+{
+    var ip = t.Result.ToString();
+    logger.Info("Public IP: {Ip}; Public port: {PublicPort}; Web server port: {ServerPort}", ip, Settings.UPnpPort, Settings.UPnpServerPort);
+
+    var ports = new[] { Settings.UPnpPort, Settings.UPnpServerPort };
+    foreach (var port in ports)
+    {
+        var open = await PortForwarding.IsPortOpenAndListening(ip, port).ConfigureAwait(false);
+
+        if (open) logger.Info("Port {Port} is open and listening", port);
+        else logger.Error("Port {Port} is either not open or not listening", port);
+    }
+}).Consume();
+
+
+logger.Info(@$"Tasks found
+    {NodeSettings.CompletedTasks.Count} self-completed
+    {NodeSettings.WatchingTasks.Count} watching
+    {NodeSettings.QueuedTasks.Count} queued
+    {NodeSettings.PlacedTasks.Count} placed
+    {NodeSettings.PlacedTasks.Values.Count(x => !x.State.IsFinished())} non-finished placed
+".TrimLines().Replace("\n", "; ").Replace("\r", string.Empty));
+
+
+NodeCommon.Tasks.TaskRegistration.TaskRegistered += NodeSettings.PlacedTasks.Add;
+
+//var taskhandler = new TaskHandler2(NodeSettings.QueuedTasks.Bindable, NodeGlobalState.Instance.ExecutingTasks, NodeSettings.CompletedTasks.Bindable);
+
+TaskHandler.InitializePlacedTasksAsync().Consume();
+TaskHandler.StartUpdatingPlacedTasks();
+TaskHandler.StartWatchingTasks();
+TaskHandler.StartListening(pluginManager);
+
+new Thread(() =>
+{
+    while (true)
+    {
+        OperationResult.WrapException(() => AutoCleanup.Start()).LogIfError();
+        Thread.Sleep(60 * 60 * 24 * 1000);
+    }
+})
+{ IsBackground = true }.Start();
+
+new Thread(() =>
+{
+    while (true)
+    {
+        var root = Path.GetPathRoot(ReceivedTask.FSTaskDataDirectory());
+        var drive = DriveInfo.GetDrives().First(d => d.RootDirectory.Name == root);
+
+        if (drive.AvailableFreeSpace < 16L * 1024 * 1024 * 1024)
+        {
+            // creating new thread for logging in case of 0 bytes free space available
+            // because then the logger wouldn't be able to write into log file and might just freeze
+            // and not let the cleanup happen
+            new Thread(() => logger.Info($"Low free space ({drive.AvailableFreeSpace / 1024 / 1024f} MB), starting a cleanup..")) { IsBackground = true }.Start();
+
+            OperationResult.WrapException(() => AutoCleanup.CleanForLowFreeSpace()).LogIfError();
+        }
+
+        Thread.Sleep(60 * 1000);
+    }
+})
+{ IsBackground = true }.Start();
+
+Thread.Sleep(-1);
+GC.KeepAlive(captured);
+
+
+void InitializeSettings()
+{
+    var state = NodeGlobalState.Instance;
+
+    state.WatchingTasks.Bind(NodeSettings.WatchingTasks.Bindable);
+    state.PlacedTasks.Bind(NodeSettings.PlacedTasks.Bindable);
+    NodeSettings.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(NodeSettings.QueuedTasks.Values), true);
+    Settings.BenchmarkResult.Bindable.SubscribeChanged(() => state.BenchmarkResult.Value = Settings.BenchmarkResult.Value is null ? null : JObject.FromObject(Settings.BenchmarkResult.Value), true);
+    pluginManager.CachedPluginsBindable.SubscribeChanged(() => NodeGlobalState.Instance.InstalledPlugins.SetRange(pluginManager.CachedPluginsBindable.Value ?? Array.Empty<Plugin>()), true);
+    state.TaskAutoDeletionDelayDays.Bind(Settings.TaskAutoDeletionDelayDays.Bindable);
+
+    state.BServerUrl.Bind(Settings.BServerUrl.Bindable);
+    state.BLocalListenPort.Bind(Settings.BLocalListenPort.Bindable);
+    state.BUPnpPort.Bind(Settings.BUPnpPort.Bindable);
+    state.BUPnpServerPort.Bind(Settings.BUPnpServerPort.Bindable);
+    state.BDhtPort.Bind(Settings.BDhtPort.Bindable);
+    state.BTorrentPort.Bind(Settings.BTorrentPort.Bindable);
+    state.BNodeName.Bind(Settings.BNodeName.Bindable);
+    state.BAuthInfo.Bind(Settings.BAuthInfo.Bindable);
+
+
+    Software.StartUpdating(null, default);
+    Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Directories.Data, "lport"), Settings.LocalListenPort.ToString()), true);
+}
+
+/// <summary> Try to connect to the port and change it if someone is already listening there </summary>
+async Task UpdatePort(string ip, DatabaseValue<ushort> port, string description)
+{
+    logger.Info($"[PORTCHECK] Checking {description.ToLowerInvariant()} port {port.Value}");
+
+    while (true)
+    {
+        var open = await PortForwarding.IsPortOpenAndListening(ip, port.Value, new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
+        if (!open)
+        {
+            logger.Info($"[PORTCHECK] {description} port: {port.Value}");
+            break;
+        }
+
+        logger.Warn($"[PORTCHECK] {description} port {port.Value} is already listening, skipping");
+        port.Value++;
+    }
+}
+async Task InitializePlugins()
+{
+    Directory.CreateDirectory("plugins");
+
+
+    TaskList.Add(new IPluginAction[]
+    {
+        new EditRaster(), new EditVideo(),
+        new EsrganUpscale(),
+        new GreenscreenBackground(),
+        new VeeeVectorize(),
+        new GenerateQSPreview(),
+        new GenerateTitleKeywords(),
+        new GenerateImageByMeta(),
+        new GenerateImageByPrompt(),
+        new Topaz(),
+    });
+
+    TaskHandler.AutoInitializeHandlers();
+}
+async ValueTask WaitForAuth()
+{
+    logger.Warn(@$"You are not authenticated. Please use NodeUI app to authenticate or create an 'login' file with username and password separated by newline");
+
+    while (true)
+    {
+        await Task.Delay(1000).ConfigureAwait(false);
+        if (File.Exists("login"))
+        {
+            var data = File.ReadAllText("login").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (data.Length < 2) continue;
+
+            var login = data[0];
+            var password = data[1];
+
+            var auth = await SessionManager.AuthAsync(login, password);
+            auth.LogIfError();
+            if (!auth) continue;
+
+            return;
+        }
+
+        if (Settings.SessionId is null) continue;
+        if (Settings.NodeName is null) continue;
+        if (Settings.Guid is null) continue;
+        if (Settings.UserId is null) continue;
+
+        return;
+    }
+}
+
+
+class SoftwareList : ISoftwareListProvider
+{
+    public IReadOnlyDictionary<string, SoftwareDefinition> Software => NodeGlobalState.Instance.Software.Value;
+}

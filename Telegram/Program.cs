@@ -1,44 +1,63 @@
 global using Common;
+global using Node.Common.Models;
+global using Node.Plugins.Models;
+global using Node.Tasks.Models;
+global using Node.Tasks.Models.ExecInfo;
+global using NodeCommon;
+global using NodeCommon.Tasks;
+global using NodeCommon.Tasks.Model;
 using NLog.Web;
+using Telegram.Commands;
+using Telegram.Infrastructure.Bot;
+using Telegram.Localization;
+using Telegram.MediaFiles.Images;
+using Telegram.MediaFiles.Videos;
+using Telegram.Security.Authentication;
+using Telegram.Security.Authorization;
 using Telegram.Services.GitHub;
-using Telegram.Telegram;
-using Telegram.Telegram.Authentication.Services;
-using Telegram.Telegram.Updates;
-using Telegram.Telegram.Updates.Tasks.ResultsPreview.Services;
+using Telegram.Services.Node;
+using Telegram.StableDiffusion;
+using Telegram.TrialUsers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Logging.ClearProviders();
-builder.Host.UseNLog();
+builder.WebHost
+    .ConfigureTelegramBot(_ => _
+        .AddCommands()
+        .AddImages()
+        .AddVideos()
+        .AddMPlusAuthentication()
+        .AddMPlusAuthorization()
+        .ConfigureExceptionHandlerOptions())
 
-// Telegram.Bot works only with Newtonsoft.
-builder.Services.AddControllers().AddNewtonsoftJson();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddHttpClient();
-builder.Services.AddSwaggerGen();
-builder.Services.AddTelegramUpdateHandlers();
+    .ConfigureServices(_ => _
+        .AddTrialUsers()
+        .AddStableDiffusion()
+        .AddRequestLocalization_()
+        .AddSwaggerGen()
 
-Task<TelegramBot> botInitialization = TelegramBot.Initialize(
-    builder.Configuration["BotToken"], builder.Configuration["Host"]);
+        .AddSingleton<UserNodes>()
+        .AddScoped<GitHubEventForwarder>())
 
-builder.Services.AddScoped<ChatAuthenticator>().AddDbContext<AuthenticatedUsersDbContext>();
-builder.Services.AddScoped<TaskResultsPreviewer>();
-builder.Services.AddScoped<GitHubEventForwarder>();
-builder.Services.AddSingleton(await botInitialization);
+    .UseNLog_();
 
 var app = builder.Build();
 
-app.Services.GetRequiredService<TelegramBot>()
-    .UseLoggerFrom(app.Services)
-    .UseMessageChunkerFrom(app.Services);
+app.UseTelegramBot()
+    .UseAuthentication()
+    .UseAuthorization()
+    .UseRequestLocalization();
+if (!app.Environment.IsDevelopment())
+    app.UseTelegramBotExceptionHandler();
+else app.UseDeveloperExceptionPage()
+        .UseSwagger().UseSwaggerUI();
 
-if (app.Environment.IsDevelopment())
+await app.RunAsync_();
+
+
+static class Startup
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    /// <inheritdoc cref="AspNetExtensions.UseNLog(IHostBuilder)"/>
+    internal static IWebHostBuilder UseNLog_(this IWebHostBuilder builder)
+        => builder.UseNLog(new() { ReplaceLoggerFactory = true });
 }
-
-app.UseHttpsRedirection();
-app.MapControllers();
-
-app.Run(builder.Configuration["HostListener"]);

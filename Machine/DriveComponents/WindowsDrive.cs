@@ -1,4 +1,5 @@
-﻿using System.Management;
+﻿using NLog;
+using System.Management;
 using System.Runtime.Versioning;
 
 namespace Machine;
@@ -6,6 +7,8 @@ namespace Machine;
 [SupportedOSPlatform("Windows")]
 internal static class WindowsDrive
 {
+    static readonly ILogger _logger = LogManager.GetCurrentClassLogger();
+
     internal static List<Drive> Info
     {
         get
@@ -49,7 +52,7 @@ internal static class WindowsDrive
         {
             if (logicalDiskOnDrive.Any(its => its.Name == logicalDisk.Name))
             {
-                totalSpace += (ulong)logicalDisk.TotalSize;
+                totalSpace += logicalDisk.Size(DiskSpace.Total);
             }
         }
         return totalSpace;
@@ -64,7 +67,7 @@ internal static class WindowsDrive
         {
             if (logicalDisksOnDrive.Any(its => its.Name == logicalDisk.Name))
             {
-                freeSpaceOnDrive += (ulong)logicalDisk.AvailableFreeSpace;
+                freeSpaceOnDrive += logicalDisk.Size(DiskSpace.Free);
             }
         }
         return freeSpaceOnDrive;
@@ -115,4 +118,25 @@ internal static class WindowsDrive
             null,
             driveToPartition["Dependent"].ToString()!.SkipWhile(c => c != '"').Skip(1).Take(2));
     }
+
+
+    static ulong Size(this DriveInfo logicalDisk, DiskSpace diskSpace)
+    {
+        try
+        {
+            return diskSpace switch
+            {
+                DiskSpace.Total => (ulong)logicalDisk.TotalSize,
+                DiskSpace.Free => (ulong)logicalDisk.AvailableFreeSpace,
+                _ => throw new NotImplementedException()
+            };
+        }
+        catch (IOException ex)
+        {
+            _logger.Error(ex, "{TotalSize} of {LogicalDisk} logical disk couldn't be read.", nameof(DriveInfo.TotalSize), logicalDisk.Name);
+            return 0;
+        }
+    }
 }
+
+enum DiskSpace { Total, Free }

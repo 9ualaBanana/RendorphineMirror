@@ -1,8 +1,8 @@
 ﻿using Telegram.Models;
 using System.Collections.Specialized;
-using Telegram.Services.Telegram.Updates.Commands;
-using Telegram.Telegram.Authentication.Services;
-using Telegram.Telegram;
+using Telegram.Infrastructure.Commands;
+using Telegram.Infrastructure.Persistence;
+using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Services.Node;
 
@@ -15,27 +15,27 @@ public class NodeSupervisor
     readonly object _lock = new();
     readonly ILogger<NodeSupervisor> _logger;
     readonly TelegramBot _bot;
-    readonly AuthenticatedUsersDbContext _authenticatedUsers;
+    readonly TelegramBotDbContext _database;
 
 
-    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot, AuthenticatedUsersDbContext users)
+    public NodeSupervisor(ILogger<NodeSupervisor> logger, IConfiguration configuration, TelegramBot bot, TelegramBotDbContext users)
     {
         AllNodes = new();
         NodesOnline = new(configuration.ReadIdleTimeBeforeGoingOfflineFrom(logger));
         NodesOnline.ItemStorageTimeElapsed += OnNodeWentOffline;
         _logger = logger;
         _bot = bot;
-        _authenticatedUsers = users;
+        _database = users;
     }
 
 
     internal async Task UpdateNodeStatusAsync(MachineInfo nodeInfo)
     {
-        _logger.LogDebug("Updating node status...");
+        _logger.LogTrace("Updating node status...");
 
         await AddOrUpdateNodeAsync(nodeInfo);
 
-        _logger.LogDebug("Node status is updated");
+        _logger.LogTrace("Node status is updated");
     }
 
     async Task AddOrUpdateNodeAsync(MachineInfo nodeInfo)
@@ -55,10 +55,10 @@ public class NodeSupervisor
         {
             if (versionIsUpdated)
             {
-                var userChatAuthenticationTokens = _authenticatedUsers.Users.Where(user => user.MPlus.UserId == nodeInfo.UserId);
+                var userChatAuthenticationTokens = _database.Users.Where(user => user.MPlusIdentity.UserId == nodeInfo.UserId);
                 if (userChatAuthenticationTokens.Any())
                     foreach (var chatAuthenticationToken in userChatAuthenticationTokens)
-                        await _bot.TrySendMessageAsync(chatAuthenticationToken.ChatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline!.Version}* *=>* v.*{nodeInfo.Version}*.");
+                        await _bot.SendMessageAsync_(chatAuthenticationToken.ChatId, $"{nodeInfo.BriefInfoMDv2} was updated: v.*{nodeOnline!.Version}* *=>* v.*{nodeInfo.Version}*.");
             }
         }
         else _logger.LogDebug("New node is online: {Node}", nodeInfo.BriefInfoMDv2);
@@ -67,7 +67,7 @@ public class NodeSupervisor
     void OnNodeWentOffline(object? sender, AutoStorageItem<MachineInfo> e)
     {
         _logger.LogWarning("{Node} went offline after {Time} ms since the last ping.",
-            e.Value.BriefInfoMDv2, e.Timer.Interval);
+            e.Value.BriefInfoMDv2, (double?)e.Timer.Interval);
     }
 
     /// <returns>

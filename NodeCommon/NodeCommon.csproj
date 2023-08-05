@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Packaging" Version="7.0.0" />
+    <PackageReference Include="UnitsNet" Version="4.145.0" />
+    <PackageReference Include="TaskScheduler" Version="2.10.1" />
+    <PackageReference Include="MonoTorrent" Version="2.0.7" />
+    <PackageReference Include="System.Data.SQLite" Version="1.0.117" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\Node\Node.Common\Node.Common.csproj" />
+    <ProjectReference Include="..\Node\Node.Common.Models\Node.Common.Models.csproj" />
+    <ProjectReference Include="..\Node\Node.Tasks.Models\Node.Tasks.Models.csproj" />
+    <ProjectReference Include="..\Node\Node.Plugins.Models\Node.Plugins.Models.csproj" />
+  </ItemGroup>
+
+</Project>
