@@ -2,6 +2,8 @@ namespace Node;
 
 public class ReconnectTarget
 {
+    public required AuthenticatedTarget AuthenticatedTarget { get; init; }
+
     readonly NodeCommon.Apis Api;
     readonly IQueuedTasksStorage QueuedTasksStorage;
     readonly ILogger Logger;

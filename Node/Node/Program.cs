@@ -66,10 +66,13 @@ builder.RegisterType<NodeSettingsInstance>()
     .SingleInstance();
 
 
-builder.RegisterType<ReconnectTarget>()
+builder.RegisterType<AuthenticatedTarget>()
     .SingleInstance()
     .OnActivating(async t => await t.Instance.Execute());
 
+builder.RegisterType<ReconnectTarget>()
+    .SingleInstance()
+    .OnActivating(async t => await t.Instance.Execute());
 
 
 var halfrelease = args.Contains("release");
@@ -111,15 +114,6 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 }
 
 registerListener<NodeStateListener>();
-
-
-if (Settings.SessionId is not null)
-    logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");
-else
-{
-    await WaitForAuth().ConfigureAwait(false);
-    logger.Info("Authentication completed");
-}
 
 builder.RegisterType<PortForwarder>()
     .SingleInstance()
@@ -292,36 +286,6 @@ void InitializePlugins()
         new GenerateImageByPrompt(),
         new Topaz(),
     });
-}
-async ValueTask WaitForAuth()
-{
-    logger.Warn(@$"You are not authenticated. Please use NodeUI app to authenticate or create an 'login' file with username and password separated by newline");
-
-    while (true)
-    {
-        await Task.Delay(1000).ConfigureAwait(false);
-        if (File.Exists("login"))
-        {
-            var data = File.ReadAllText("login").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (data.Length < 2) continue;
-
-            var login = data[0];
-            var password = data[1];
-
-            var auth = await SessionManager.AuthAsync(login, password);
-            auth.LogIfError();
-            if (!auth) continue;
-
-            return;
-        }
-
-        if (Settings.SessionId is null) continue;
-        if (Settings.NodeName is null) continue;
-        if (Settings.Guid is null) continue;
-        if (Settings.UserId is null) continue;
-
-        return;
-    }
 }
 
 
