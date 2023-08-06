@@ -27,7 +27,8 @@ public abstract class PluginActionInfo<TInput, TOutput, TData> : IPluginActionIn
 
     public async Task<TOutput> Execute(ILifetimeScope container, TInput input, TData data)
     {
-        var logger = container.Resolve<ILogger<TData>>();
+        var logger = container.ResolveLogger(this);
+        using var _logscope = logger.BeginScope("Execution");
 
         logger.LogInformation($"Validating input");
         try { ValidateInput(input, data); }
@@ -36,16 +37,9 @@ public abstract class PluginActionInfo<TInput, TOutput, TData> : IPluginActionIn
         var sw = System.Diagnostics.Stopwatch.StartNew();
         logger.LogInformation($"Executing {Name}");
 
-        using var ctx = container.BeginLifetimeScope(ctx =>
-        {
-            ctx.RegisterType(ExecutorType)
-                .As<IPluginActionExecutor<TInput, TOutput, TData>>()
-                .SingleInstance();
-        });
-        var executor = ctx.Resolve<IPluginActionExecutor<TInput, TOutput, TData>>();
-
+        using var ctx = container.ResolveForeign<ExecutorBase>(ExecutorType, out var executor);
         var output = await executor.ExecuteUnchecked(input, data).ConfigureAwait(false);
-        (executor as ExecutorBase)?.ProgressSetter.Set(1);
+        executor.ProgressSetter.Set(1);
         logger.LogInformation($"Execution {Name} completed in {sw.Elapsed}");
 
         logger.LogInformation($"Validating output");
@@ -57,7 +51,7 @@ public abstract class PluginActionInfo<TInput, TOutput, TData> : IPluginActionIn
     }
 
 
-    protected abstract class ExecutorBase : IPluginActionExecutor<TInput, TOutput, TData>
+    protected abstract class ExecutorBase
     {
         public required IProgressSetter ProgressSetter { get; init; }
         public required PluginList PluginList { get; init; }

@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Web;
-using Autofac;
+using Node.Tasks.IO;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -25,49 +25,6 @@ public class TaskExecutor
     }
 
 
-
-    interface ITaskInputExecutionContext : ILoggable
-    {
-        ITaskInputInfo Input { get; }
-        ITaskInputHandler Handler { get; }
-
-        Task SetActiveAsync(ReadOnlyTaskFileList files);
-    }
-    record TaskInputExecutionContext(ReceivedTask Task, ITaskInputHandler Handler, NodeCommon.Apis Apis) : ApiTaskContextBase(Task, Apis), ITaskInputExecutionContext
-    {
-        public ITaskInputInfo Input => Task.Info.Input;
-
-        public async Task SetActiveAsync(ReadOnlyTaskFileList files)
-        {
-            Task.InputFileList = files;
-            await ChangeStateAsync(TaskState.Active);
-        }
-    }
-
-    static async Task DownloadInput(ITaskInputExecutionContext context)
-    {
-        // TODO:: delete
-        var task = ((TaskInputExecutionContext) context).Task;
-
-        context.LogInfo($"Downloading input");
-        var inputfiles = await context.Handler.Download(task).ConfigureAwait(false);
-        context.LogInfo($"Input downloaded from {Newtonsoft.Json.JsonConvert.SerializeObject(context.Input, Newtonsoft.Json.Formatting.None)}");
-
-        // fix jpegs that are rotated using metadata which doesn't do well with some tools
-        foreach (var jpeg in inputfiles.Where(f => f.Format == FileFormat.Jpeg).ToArray())
-        {
-            using var img = Image.Load<Rgba32>(jpeg.Path);
-            if (img.Metadata.ExifProfile?.TryGetValue(ExifTag.Orientation, out var exif) == true && exif is not null)
-            {
-                img.Mutate(ctx => ctx.AutoOrient());
-                await img.SaveAsJpegAsync(jpeg.Path, new JpegEncoder() { Quality = 100 });
-            }
-        }
-
-        await context.SetActiveAsync(inputfiles);
-    }
-
-
     interface ITaskOutputExecutionContext : ILoggable
     {
         ITaskOutputInfo Output { get; }
@@ -87,8 +44,8 @@ public class TaskExecutor
         // TODO:: delete
         var task = ((TaskOutputExecutionContext) context).Task;
 
-        CheckFileList(task.InputFileList, "input");
-        CheckFileListList(task.OutputFileListList, "output");
+        task.InputFileList.AssertListValid("input");
+        task.OutputFileListList.AssertListValid("output");
 
         context.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(context.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
         context.LogInfo($"Results: {string.Join(" | ", task.OutputFileListList.Select(l => string.Join(", ", l)))}");
@@ -111,10 +68,23 @@ public class TaskExecutor
     }
 
 
-    public async Task Execute(ReceivedTask task)
+    public async Task Execute(ReceivedTask task, CancellationToken token)
     {
+        using var _logscope = Logger.BeginScope($"Task {task}");
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.None)}");
-        var apis = Apis.Default;
+
+        using var scope = LifetimeScope.BeginLifetimeScope(builder =>
+        {
+            builder.RegisterInstance(task)
+                .As<IRegisteredTask>()
+                .As<IRegisteredTaskApi>()
+                .SingleInstance();
+
+            builder.Register(ctx => new ThrottledProgressSetter(5, new TaskProgressSetter(ctx.Resolve<NodeCommon.Apis>(), task)))
+                .As<IProgressSetter>()
+                .SingleInstance();
+        });
+
 
         if (task.State <= TaskState.Input)
         {
@@ -123,7 +93,8 @@ public class TaskExecutor
             var info = isqspreview ? "qspinput" : "input";
             using var _ = await WaitDisposed(semaphore, task, info);
 
-            await DownloadInput(new TaskInputExecutionContext(task, TaskHandlerList.GetInputHandler(task), apis));
+            task.DownloadedInput = await DownloadInput(scope, task, token);
+            await task.ChangeStateAsync(TaskState.Active);
         }
         else task.LogInfo($"Input seems to be already downloaded");
 
@@ -131,8 +102,13 @@ public class TaskExecutor
         {
             using var _ = await WaitDisposed(ActiveSemaphore, task);
 
-            var input = task.Info.Data.ToObject(TaskHandlerList.GetInputHandler(task).ResultType).ThrowIfNull();
-            task.Result = await Execute(task, input);
+            var input = task.DownloadedInput
+                .ThrowIfNull("No task input downloaded")
+                .ToObject(TaskHandlerList.GetInputHandler(task).ResultType)
+                .ThrowIfNull();
+
+            task.Result = await Execute(scope, task, input);
+            await task.ChangeStateAsync(TaskState.Output);
         }
         else task.LogInfo($"Task execution seems to be already finished");
 
@@ -143,47 +119,33 @@ public class TaskExecutor
         }
         else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
 
-        await MaybeNotifyTelegramBotOfTaskCompletion(task);
+        await MaybeNotifyTelegramBotOfTaskCompletion(task, token);
     }
 
-    async Task<IReadOnlyList<object>> Execute(ReceivedTask task, object input)
+
+    async Task<object> DownloadInput(IComponentContext container, ReceivedTask task, CancellationToken token)
     {
-        using var _ = Logger.BeginScope($"Task {task}");
-        using var scope = LifetimeScope.BeginLifetimeScope(builder =>
+        var input = await container.Resolve<TaskInputHandlerByData>()
+            .Download(task.Input, task.Info.Object, token);
+
+        // fix jpegs that are rotated using metadata which doesn't do well with some tools
+        // TODO: move somewhere else maybe
+        foreach (var jpeg in input.Where(f => f.Format == FileFormat.Jpeg).ToArray())
         {
-            builder.RegisterInstance(task)
-                .SingleInstance();
+            using var img = Image.Load<Rgba32>(jpeg.Path);
+            if (img.Metadata.ExifProfile?.TryGetValue(ExifTag.Orientation, out var exif) == true && exif is not null)
+            {
+                img.Mutate(ctx => ctx.AutoOrient());
+                await img.SaveAsJpegAsync(jpeg.Path, new JpegEncoder() { Quality = 100 });
+            }
+        }
 
-            builder.Register(ctx => new ThrottledProgressSetter(5, new TaskProgressSetter(ctx.Resolve<NodeCommon.Apis>(), task)))
-                .As<IProgressSetter>()
-                .SingleInstance();
-        });
-
-        return await scope.Resolve<TaskExecutorByData>()
+        return input;
+    }
+    static async Task<IReadOnlyList<object>> Execute(IComponentContext container, ReceivedTask task, object input) =>
+        await container.Resolve<TaskExecutorByData>()
             .Execute(input, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
-    }
 
-
-    /// <summary> Asserts that the provided list isn't empty and all files are present </summary>
-    static void CheckFileListList([System.Diagnostics.CodeAnalysis.NotNull] IReadOnlyTaskFileListList? lists, string type)
-    {
-        if (lists is null)
-            throw new NodeTaskFailedException($"Task {type} file list list was null or empty");
-
-        foreach (var list in lists)
-            CheckFileList(list, type);
-    }
-
-    /// <inheritdoc cref="CheckFileListList"/>
-    static void CheckFileList([System.Diagnostics.CodeAnalysis.NotNull] ReadOnlyTaskFileList? files, string type)
-    {
-        if (files is null)
-            throw new NodeTaskFailedException($"Task {type} file list was null or empty");
-
-        foreach (var file in files)
-            if (!File.Exists(file.Path))
-                throw new NodeTaskFailedException($"Task {type} file {file} does not exists");
-    }
 
 
     static async ValueTask MaybeNotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)

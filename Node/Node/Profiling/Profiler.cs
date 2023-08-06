@@ -8,13 +8,11 @@ public class Profiler
     Profile? _cachedProfile;
 
     readonly IComponentContext ComponentContext;
-    readonly TaskHandlerList TaskHandlerList;
     readonly ILogger Logger;
 
-    public Profiler(IComponentContext componentContext, TaskHandlerList taskHandlerList, ILogger<Profiler> logger)
+    public Profiler(IComponentContext componentContext, ILogger<Profiler> logger)
     {
         ComponentContext = componentContext;
-        TaskHandlerList = taskHandlerList;
         Logger = logger;
     }
 
@@ -29,8 +27,8 @@ public class Profiler
             Ip = (await ip).ToString(),
             Software = await software,
             AllowedTypes = await types,
-            AllowedInputs = TaskHandlerList.InputHandlerList.ToDictionary(x => x.Type, _ => 1),
-            AllowedOutputs = TaskHandlerList.OutputHandlerList.ToDictionary(x => x.Type, _ => 1),
+            AllowedInputs = Enum.GetValues<TaskInputType>().ToDictionary(x => x, _ => 1),
+            AllowedOutputs = Enum.GetValues<TaskOutputType>().ToDictionary(x => x, _ => 1),
             Pricing = new
             {
                 minunitprice = new

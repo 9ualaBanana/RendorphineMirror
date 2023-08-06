@@ -5,12 +5,12 @@ namespace Node.Tasks.Exec;
 
 public class TaskHandlerList
 {
-    public IEnumerable<ITaskInputHandler> InputHandlerList => InputHandlers.Values;
-    public IEnumerable<ITaskOutputHandler> OutputHandlerList => OutputHandlers.Values;
+    public IEnumerable<ITaskInputHandlerInfo> InputHandlerList => InputHandlers.Values;
+    public IEnumerable<ITaskOutputHandlerInfo> OutputHandlerList => OutputHandlers.Values;
     public IReadOnlyDictionary<WatchingTaskInputType, Func<WatchingTask, IWatchingTaskInputHandler>> WatchingHandlerList => WatchingHandlers;
 
-    readonly Dictionary<TaskInputType, ITaskInputHandler> InputHandlers = new();
-    readonly Dictionary<TaskOutputType, ITaskOutputHandler> OutputHandlers = new();
+    readonly Dictionary<TaskInputType, ITaskInputHandlerInfo> InputHandlers = new();
+    readonly Dictionary<TaskOutputType, ITaskOutputHandlerInfo> OutputHandlers = new();
     readonly Dictionary<WatchingTaskInputType, Func<WatchingTask, IWatchingTaskInputHandler>> WatchingHandlers = new();
 
     public required IComponentContext ComponentContext { get; init; }
@@ -53,8 +53,8 @@ public class TaskHandlerList
         }
     }
 
-    public ITaskInputHandler GetInputHandler(TaskBase task) => GetHandler(task.Input.Type);
-    public ITaskOutputHandler GetOutputHandler(TaskBase task) => GetHandler(task.Output.Type);
-    public ITaskInputHandler GetHandler(TaskInputType type) => InputHandlers[type];
-    public ITaskOutputHandler GetHandler(TaskOutputType type) => OutputHandlers[type];
+    public ITaskInputHandlerInfo GetInputHandler(TaskBase task) => GetHandler(task.Input.Type);
+    public ITaskOutputHandlerInfo GetOutputHandler(TaskBase task) => GetHandler(task.Output.Type);
+    public ITaskInputHandlerInfo GetHandler(TaskInputType type) => InputHandlers[type];
+    public ITaskOutputHandlerInfo GetHandler(TaskOutputType type) => OutputHandlers[type];
 }

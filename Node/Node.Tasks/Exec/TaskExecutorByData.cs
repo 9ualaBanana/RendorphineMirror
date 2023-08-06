@@ -16,8 +16,6 @@ public class TaskExecutorByData
 
     public async Task<IReadOnlyList<object>> Execute(object firstinput, IReadOnlyList<JObject> datas)
     {
-        using var _ = Logger.BeginScope("Execution");
-
         var results = new[] { firstinput };
 
         var index = 0;
@@ -37,17 +35,17 @@ public class TaskExecutorByData
                 _ => new[] { result },
             });
 
-            results = await Task.WhenAll(inputs.Select(async input => await ExecuteSingle(scope, input, data)));
+            results = await Task.WhenAll(inputs.Select(async input => await ExecuteSingle(scope, input, data, index.ToStringInvariant())));
             index++;
         }
 
         ProgressSetter.Set(1);
         return results;
     }
-    async Task<object> ExecuteSingle(ILifetimeScope container, object input, JObject data)
+    async Task<object> ExecuteSingle(ILifetimeScope container, object input, JObject data, string? loginfo = null)
     {
         var tasktype = GetTaskName(data);
-        using var _ = Logger.BeginScope(tasktype);
+        using var _ = Logger.BeginScope($"{tasktype}{(loginfo is null ? null : $" {loginfo}")}");
 
         var info = container.ResolveKeyed<IPluginActionInfo>(tasktype);
         return await info.Execute(container, input, data);

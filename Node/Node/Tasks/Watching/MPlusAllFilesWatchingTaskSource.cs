@@ -1,3 +1,4 @@
+using Node.Tasks.IO.GHandlers.Output;
 using Node.Tasks.Models.ExecInfo;
 
 namespace Node.Tasks.Watching;
@@ -46,14 +47,14 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
                 data = new[]
                 {
                     ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString()),
-                    ("minver", QSPreviewTaskHandler.Version)
+                    ("minver", QSPreviewTaskHandlerInfo.Version)
                 };
             else
                 data = new[]
                 {
                     ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString()),
                     ("userids", JsonConvert.SerializeObject(userids)),
-                    ("minver", QSPreviewTaskHandler.Version)
+                    ("minver", QSPreviewTaskHandlerInfo.Version)
                 };
 
             return Api.Default.ApiGet<ImmutableArray<QwertyStockItem>>(

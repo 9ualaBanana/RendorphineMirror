@@ -2,6 +2,7 @@ namespace Node.Tasks.Exec;
 
 public class TaskHandler
 {
+    public required ILifetimeScope ComponentContext { get; init; }
     public required IPlacedTasksStorage PlacedTasks { get; init; }
     public required IQueuedTasksStorage QueuedTasks { get; init; }
     public required ICompletedTasksStorage CompletedTasks { get; init; }
@@ -46,7 +47,7 @@ public class TaskHandler
 
                 try
                 {
-                    await TaskHandlerList.GetInputHandler(task).UploadInputFiles(task);
+                    await TaskHandlerList.GetInputHandler(task).UploadInputFiles(ComponentContext, task.Input);
                     return;
                 }
                 catch (Exception ex)
@@ -176,10 +177,10 @@ public class TaskHandler
             }
 
             var handler = TaskHandlerList.GetOutputHandler(task);
-            var completed = await handler.CheckCompletion(task);
+            var completed = handler.CheckCompletion(ComponentContext, task.Output, task.State);
             if (!completed) return;
 
-            await handler.OnPlacedTaskCompleted(task);
+            await handler.OnPlacedTaskCompleted(ComponentContext, task.Output);
             await task.ChangeStateAsync(TaskState.Finished).ThrowIfError();
             remove(task, errmsg);
         }
@@ -261,7 +262,7 @@ public class TaskHandler
             try
             {
                 var starttime = DateTimeOffset.Now;
-                await TaskExecutor.Execute(task).ConfigureAwait(false);
+                await TaskExecutor.Execute(task, cancellationToken).ConfigureAwait(false);
 
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");

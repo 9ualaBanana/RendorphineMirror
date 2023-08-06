@@ -2,9 +2,8 @@ namespace Node.Tasks;
 
 public class NodeTaskRegistration
 {
-    readonly TaskHandlerList TaskHandlerList;
-
-    public NodeTaskRegistration(TaskHandlerList taskHandlerList) => TaskHandlerList = taskHandlerList;
+    public required ILifetimeScope ComponentContext { get; init; }
+    public required TaskHandlerList TaskHandlerList { get; init; }
 
     public ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, ILoggable? log = null) =>
         TaskRegisterAsync(info, log).Next(t => t.Id.AsOpResult());
@@ -14,7 +13,7 @@ public class NodeTaskRegistration
         {
             var input = TaskModels.DeserializeInput(info.Input);
             var handler = TaskHandlerList.GetHandler(input.Type);
-            var taskobj = await handler.GetTaskObject(input);
+            var taskobj = await handler.GetTaskObject(ComponentContext, input, default);
             if (!taskobj) return taskobj.GetResult();
 
             info.TaskObject = taskobj.Value;

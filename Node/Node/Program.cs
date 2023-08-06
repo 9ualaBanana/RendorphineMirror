@@ -12,6 +12,7 @@ global using Node.Registry;
 global using Node.Tasks;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Handlers;
+global using Node.Tasks.IO;
 global using Node.Tasks.Models;
 global using Node.Tasks.Watching;
 global using NodeCommon;
@@ -110,6 +111,7 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
             UpdatePort(ip.Result.ToString(), Settings.BUPnpServerPort, "Server")
         )).Unwrap();
 
+    RegisterIO();
     RegisterTasks();
 }
 
@@ -272,23 +274,47 @@ async Task UpdatePort(string ip, DatabaseValue<ushort> port, string description)
         port.Value++;
     }
 }
+void RegisterIO()
+{
+    void registerin<T>() where T : ITaskInputHandlerInfo =>
+        builder.RegisterType<T>()
+            .Keyed<ITaskInputHandlerInfo>(Enum.Parse<TaskInputType>(typeof(T).Name[..^"TaskHandlerInfo".Length]))
+            .SingleInstance();
+
+    void registerout<T>() where T : ITaskOutputHandlerInfo =>
+        builder.RegisterType<T>()
+            .Keyed<ITaskOutputHandlerInfo>(Enum.Parse<TaskOutputType>(typeof(T).Name[..^"TaskHandlerInfo".Length]))
+            .SingleInstance();
+
+    registerin<Node.Tasks.IO.GHandlers.Input.DownloadLinkTaskHandlerInfo>();
+    registerin<Node.Tasks.IO.GHandlers.Input.MPlusTaskHandlerInfo>();
+    registerin<Node.Tasks.IO.GHandlers.Input.StubTaskHandlerInfo>();
+    registerin<Node.Tasks.IO.GHandlers.Input.TitleKeywordsTaskHandlerInfo>();
+    registerin<Node.Tasks.IO.GHandlers.Input.TorrentTaskHandlerInfo>();
+
+    registerout<Node.Tasks.IO.GHandlers.Output.DirectDownloadTaskHandlerInfo>();
+    registerout<Node.Tasks.IO.GHandlers.Output.MPlusTaskHandlerInfo>();
+    registerout<Node.Tasks.IO.GHandlers.Output.QSPreviewTaskHandlerInfo>();
+    registerout<Node.Tasks.IO.GHandlers.Output.TitleKeywordsTaskHandlerInfo>();
+    registerout<Node.Tasks.IO.GHandlers.Output.TorrentTaskHandlerInfo>();
+}
 void RegisterTasks()
 {
-    void registertask<T>() where T : IPluginActionInfo =>
+    void register<T>() where T : IPluginActionInfo =>
         builder.RegisterType<T>()
             .Keyed<IPluginActionInfo>(Enum.Parse<TaskAction>(typeof(T).Name))
             .SingleInstance();
 
-    registertask<EditRaster>();
-    registertask<EditVideo>();
-    registertask<EsrganUpscale>();
-    registertask<GreenscreenBackground>();
-    registertask<VeeeVectorize>();
-    registertask<GenerateQSPreview>();
-    registertask<GenerateTitleKeywords>();
+    register<EditRaster>();
+    register<EditVideo>();
+    register<EsrganUpscale>();
+    register<GreenscreenBackground>();
+    register<VeeeVectorize>();
+    register<GenerateQSPreview>();
+    register<GenerateTitleKeywords>();
     //registertask<GenerateImageByMeta>();
-    registertask<GenerateImageByPrompt>();
-    registertask<Topaz>();
+    register<GenerateImageByPrompt>();
+    register<Topaz>();
 }
 
 

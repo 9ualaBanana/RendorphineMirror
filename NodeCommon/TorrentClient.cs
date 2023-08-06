@@ -96,10 +96,14 @@ public class TorrentClient
     public async Task<(byte[] data, TorrentManager manager)> CreateAddTorrent(string path)
     {
         var data = await CreateTorrent(path).ConfigureAwait(false);
+        return await CreateAddTorrent(data, path);
+    }
+    public async Task<(byte[] data, TorrentManager manager)> CreateAddTorrent(byte[] data, string targetpath)
+    {
         var torrent = await Torrent.LoadAsync(data).ConfigureAwait(false);
-        Logger.Info($"Added torrent for {(File.Exists(path) ? "file" : "directory")} {path}: {torrent.InfoHash.ToHex()}");
+        Logger.Info($"Added torrent for {(File.Exists(targetpath) ? "file" : "directory")} {targetpath}: {torrent.InfoHash.ToHex()}");
 
-        var manager = await AddOrGetTorrent(torrent, path).ConfigureAwait(false);
+        var manager = await AddOrGetTorrent(torrent, targetpath).ConfigureAwait(false);
         return (data, manager);
     }
 
