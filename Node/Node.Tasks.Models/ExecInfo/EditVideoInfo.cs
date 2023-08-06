@@ -5,12 +5,12 @@ public class EditVideoInfo : MediaEditInfo
     [JsonProperty("spd")]
     public FFMpegSpeed? Speed;
 
-    [JsonProperty("startFrame")]
+    [JsonProperty("cutfromframe")]
     [Default(0d)]
-    public double? StartFrame;
+    public double? CutFromFrame;
 
-    [JsonProperty("endFrame")]
-    public double? EndFrame;
+    [JsonProperty("cuttoframe")]
+    public double? CutToFrame;
 
     [JsonProperty("cutframeat")]
     public double? CutFrameAt;

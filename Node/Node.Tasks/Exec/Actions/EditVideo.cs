@@ -102,11 +102,11 @@ public class EditVideo : FFMpegMediaEditAction<EditVideoInfo>
             launcher.Outputs[^1].Args.Add("-r", Math.Max(fps, fps * data.Speed.Speed).ToString(NumberFormat));
         }
 
-        if (data.StartFrame is not null || data.EndFrame is not null)
+        if (data.CutFromFrame is not null || data.CutToFrame is not null)
         {
             var trim = new List<string>();
-            if (data.StartFrame is not null) trim.Add($"start_frame={data.StartFrame.Value.ToString(NumberFormat)}");
-            if (data.EndFrame is not null) trim.Add($"end_frame={data.EndFrame.Value.ToString(NumberFormat)}");
+            if (data.CutFromFrame is not null) trim.Add($"start_frame={data.CutFromFrame.Value.ToString(NumberFormat)}");
+            if (data.CutToFrame is not null) trim.Add($"end_frame={data.CutToFrame.Value.ToString(NumberFormat)}");
             if (trim.Count != 0) launcher.VideoFilters.Add($"trim={string.Join(';', trim)}");
         }
 
