@@ -4,22 +4,41 @@ namespace _3DProductsPublish._3DModelDS;
 
 internal static class _3DModelArchiver
 {
-    internal static async Task<string> ArchiveAsync(_3DModel _3DModel, CancellationToken cancellationToken) =>
+    internal static async ValueTask<string> ArchiveAsync(_3DModel _3DModel, CancellationToken cancellationToken) =>
         await Task.Run(() => Archive(_3DModel), cancellationToken);
-
     internal static string Archive(_3DModel _3DModel)
     {
-        DirectoryInfo tempDirectoryToArchive = CreateTempDirectoryThatWillBeArchived();
-        _3DModel.Files.CopyTo(tempDirectoryToArchive);
-        var archivePath = Path.ChangeExtension(tempDirectoryToArchive.FullName, ".zip");
-        tempDirectoryToArchive.DeleteAfter(
-            () => ZipFile.CreateFromDirectory(tempDirectoryToArchive.FullName, archivePath)
-            );
+        if (_3DModel.OriginalContainer is _3DModel.ContainerType.Archive)
+            return _3DModel.OriginalPath;
+        else
+        {
+            DirectoryInfo archiveBuffer = TempDirectory();
+            _3DModel.Files.CopyTo(archiveBuffer);
+            var archivePath = Path.ChangeExtension(archiveBuffer.FullName, ".zip");
+            archiveBuffer.DeleteAfter(
+                () => ZipFile.CreateFromDirectory(archiveBuffer.FullName, archivePath)
+                );
 
-        return archivePath;
+            return archivePath;
+        }
     }
 
-    static DirectoryInfo CreateTempDirectoryThatWillBeArchived()
+    internal static async ValueTask<string> UnpackAsync(_3DModel _3DModel, CancellationToken cancellationToken)
+        => await Task.Run(() => Unpack(_3DModel), cancellationToken);
+    internal static string Unpack(_3DModel _3DModel)
+    {
+        if (_3DModel.OriginalContainer is _3DModel.ContainerType.Directory)
+            return _3DModel.OriginalPath;
+        else
+        {
+            DirectoryInfo unpacked3DModel = TempDirectory();
+            ZipFile.ExtractToDirectory(_3DModel.OriginalPath, unpacked3DModel.FullName);
+            return unpacked3DModel.FullName;
+        }
+    }
+
+
+    static DirectoryInfo TempDirectory()
     {
         string tempDirectoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         var tempDirectory = new DirectoryInfo(tempDirectoryPath);
@@ -34,10 +53,8 @@ static class _3DModelFilesExtensions
     {
         foreach (string filePath in files)
         {
-            string _3DModelFilePathInsideDestinationDirectory = Path.Combine(
-                directory.FullName, Path.GetFileName(filePath)
-                );
-            File.Copy(filePath, _3DModelFilePathInsideDestinationDirectory);
+            string destinationFilePath = Path.Combine(directory.FullName, Path.GetFileName(filePath));
+            File.Copy(filePath, destinationFilePath);
         }
     }
 }

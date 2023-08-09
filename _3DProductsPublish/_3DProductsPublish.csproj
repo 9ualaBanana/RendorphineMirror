@@ -11,6 +11,7 @@
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\Node\Node.Common.Models\Node.Common.Models.csproj" />
     <ProjectReference Include="..\Node\NodeToUI\NodeToUI.csproj" />
+	<InternalsVisibleTo Include="_3DProductsPublish.Tests" />
   </ItemGroup>
 
 </Project>

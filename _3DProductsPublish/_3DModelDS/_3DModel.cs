@@ -1,16 +1,16 @@
-﻿using System.IO.Compression;
-
-namespace _3DProductsPublish._3DModelDS;
+﻿namespace _3DProductsPublish._3DModelDS;
 
 /// <summary>
 /// Wraps either directory or archive in which 3D model parts are stored.
 /// </summary>
-public class _3DModel : IDisposable
+public partial class _3DModel : IDisposable
 {
+    internal ContainerType OriginalContainer;
+
     /// <summary>
     /// Refers to the path from which this <see cref="_3DModel"/> was initialized.
     /// </summary>
-    public string OriginalPath => _directoryPath is not null ? _directoryPath : _archivePath!;
+    public readonly string OriginalPath;
     string? _directoryPath;
     string? _archivePath;
 
@@ -21,16 +21,8 @@ public class _3DModel : IDisposable
     /// is initialized from a directory (i.e. <see cref="OriginalPath"/> referes to a directory).
     /// </summary>
     /// <returns>Path to the archive where this <see cref="_3DModel"/> is stored.</returns>
-    public async ValueTask<string> ArchiveAsync(CancellationToken cancellationToken = default)
-    {
-        if (_archivePath is null)
-        {
-            _archivePath = await _3DModelArchiver.ArchiveAsync(this, cancellationToken);
-            _archiveIsTemp = true;
-        }
-
-        return _archivePath;
-    }
+    internal async ValueTask<string> ArchiveAsync(CancellationToken cancellationToken = default)
+        => _archivePath ??= await _3DModelArchiver.ArchiveAsync(this, cancellationToken);
 
     /// <remarks>
     /// Creates a temporary directory to which the files are extracted if the <see cref="_3DModel"/>
@@ -38,19 +30,7 @@ public class _3DModel : IDisposable
     /// </remarks>
     /// <returns>Paths of files that make up this <see cref="_3DModel"/>.</returns>
     public IEnumerable<string> Files
-    {
-        get
-        {
-            if (_directoryPath is null)
-            {
-                _directoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                ZipFile.ExtractToDirectory(_archivePath!, _directoryPath);
-                _directoryIsTemp = true;
-            }
-
-            return Directory.EnumerateFiles(_directoryPath);
-        }
-    }
+        => Directory.EnumerateFiles(_directoryPath ??= _3DModelArchiver.Unpack(this));
 
     #endregion
 
@@ -61,9 +41,9 @@ public class _3DModel : IDisposable
     _3DModel(string containerPath, bool disposeTemps = true)
     {
         if (Directory.Exists(containerPath))
-            _directoryPath = containerPath;
-        else if (_3DModelArchive.Exists(containerPath))
-            _archivePath = containerPath;
+        { OriginalPath = _directoryPath = containerPath; OriginalContainer = ContainerType.Directory; }
+        else if (Archive.Exists(containerPath))
+        { OriginalPath = _archivePath = containerPath; OriginalContainer = ContainerType.Archive; }
         else throw new ArgumentException("Container must reference either directory or archive.", nameof(containerPath));
 
         _disposeTemps = disposeTemps;
@@ -74,7 +54,7 @@ public class _3DModel : IDisposable
     internal static IEnumerable<_3DModel> EnumerateIn(string directoryPath, bool disposeTemps = true)
     {
         var _3DModelContainers = Directory.EnumerateDirectories(directoryPath).ToList();
-        _3DModelContainers.AddRange(_3DModelArchive.EnumerateIn(directoryPath));
+        _3DModelContainers.AddRange(Archive.EnumerateIn(directoryPath));
 
         return _3DModelContainers.Select(containerPath => new _3DModel(containerPath, disposeTemps));
     }
@@ -92,10 +72,15 @@ public class _3DModel : IDisposable
             {
                 if (!_isDisposed)
                 {
-                    if (_directoryIsTemp)
-                    { try { new DirectoryInfo(_directoryPath!).Delete(DeletionMode.Wipe); } catch { } }
-                    if (_archiveIsTemp)
-                    { try { File.Delete(_archivePath!); } catch { } }
+                    switch (OriginalContainer)
+                    {
+                        case ContainerType.Archive:
+                            try { new DirectoryInfo(_directoryPath!).Delete(DeletionMode.Wipe); } catch { };
+                            break;
+                        case ContainerType.Directory:
+                            try { File.Delete(_archivePath!); } catch { };
+                            break;
+                    }
 
                     _isDisposed = true;
                 }
@@ -104,11 +89,26 @@ public class _3DModel : IDisposable
     }
     bool _isDisposed;
     readonly bool _disposeTemps;
-    bool _directoryIsTemp;
-    bool _archiveIsTemp;
 
     #endregion
 
     public static implicit operator _3DModel(string containerPath) =>
         new(containerPath);
+
+
+    internal enum ContainerType
+    { Archive, Directory }
+
+    internal static class Archive
+    {
+        internal static IEnumerable<string> EnumerateIn(string directoryPath) =>
+            Directory.EnumerateFiles(directoryPath).Where(HasValidExtension);
+
+        internal static bool Exists(string path) => File.Exists(path) && HasValidExtension(path);
+
+        static bool HasValidExtension(string pathOrExtension) =>
+            _validExtensions.Contains(Path.GetExtension(pathOrExtension));
+
+        readonly static string[] _validExtensions = { ".zip", ".rar" };
+    }
 }
