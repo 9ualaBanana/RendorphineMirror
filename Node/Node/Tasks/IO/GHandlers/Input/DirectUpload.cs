@@ -4,32 +4,30 @@ public interface IDirectUploadTaskServerProvider
 {
     Task<OperationResult<string>> GetServerAsync(string taskid);
 }
-public class DirectUploadTaskHandlerInfo : FileTaskInputHandlerInfo<DirectDownloadTaskInputInfo>
+public static class DirectUpload
 {
-    public override TaskInputType Type => throw new NotImplementedException();
-    protected override Type HandlerType => typeof(Handler);
-    protected override Type TaskObjectProviderType => typeof(TaskObjectProvider);
-    protected override Type? InputUploaderType => typeof(InputUploader);
-
-
-    class Handler : FileHandlerBase
+    public class InputDownloader : FileTaskInputDownloader<DirectUploadTaskInputInfo>, ITypedTaskInput
     {
-        public required IRegisteredTaskApi ApiTask { get; init; }
+        public static TaskInputType Type => TaskInputType.DirectUpload;
 
-        public override async Task<ReadOnlyTaskFileList> Download(DirectDownloadTaskInputInfo input, TaskObject obj, CancellationToken token) =>
+        public required IRegisteredTaskApi ApiTask { get; init; }
+        public required IDirectUploadTaskServerProvider DirectUploadTaskServerProvider { get; init; }
+
+        protected override async Task<ReadOnlyTaskFileList> DownloadImpl(DirectUploadTaskInputInfo input, TaskObject obj, CancellationToken token) =>
             await Listeners.DirectUploadListener.WaitForFiles(TaskDirectoryProvider.InputDirectory, ApiTask.Id, obj, token);
     }
-    class TaskObjectProvider : TaskObjectProviderBase
+    public class TaskObjectProvider : LocalFileTaskObjectProvider<DirectUploadTaskInputInfo>, ITypedTaskInput
     {
-        public override Task<OperationResult<TaskObject>> GetTaskObject(DirectDownloadTaskInputInfo input, CancellationToken token) =>
-            GetLocalFileTaskObject(input.Path).AsOpResult().AsTask();
+        public static TaskInputType Type => TaskInputType.DirectUpload;
     }
-    class InputUploader : InputUploaderBase
+    public class InputUploader : FileTaskInputUploader<DirectUploadTaskInputInfo>, ITypedTaskInput
     {
+        public static TaskInputType Type => TaskInputType.DirectUpload;
+
         public required NodeCommon.Apis Api { get; init; }
         public required IRegisteredTaskApi ApiTask { get; init; }
 
-        public override async Task UploadInputFiles(DirectDownloadTaskInputInfo input)
+        public override async Task Upload(DirectUploadTaskInputInfo input)
         {
             while (true)
             {

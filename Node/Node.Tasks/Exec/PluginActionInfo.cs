@@ -2,7 +2,9 @@ namespace Node.Tasks.Exec;
 
 public interface IPluginActionInfo
 {
+    Type InputType { get; }
     Type DataType { get; }
+
     TaskAction Name { get; }
     ImmutableArray<PluginType> RequiredPlugins { get; }
 
@@ -10,6 +12,7 @@ public interface IPluginActionInfo
 }
 public abstract class PluginActionInfo<TInput, TOutput, TData> : IPluginActionInfo where TOutput : notnull
 {
+    Type IPluginActionInfo.InputType => typeof(TInput);
     Type IPluginActionInfo.DataType => typeof(TData);
     public abstract TaskAction Name { get; }
     public abstract ImmutableArray<PluginType> RequiredPlugins { get; }

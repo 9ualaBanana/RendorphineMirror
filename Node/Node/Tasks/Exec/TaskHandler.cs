@@ -10,7 +10,6 @@ public class TaskHandler
     public required PluginManager PluginManager { get; init; }
     public required NodeCommon.Apis Api { get; init; }
     public required NodeGlobalState NodeGlobalState { get; init; }
-    public required TaskHandlerList TaskHandlerList { get; init; }
     public required WatchingTaskHandler WatchingTaskHandler { get; init; }
     public required TaskExecutor TaskExecutor { get; init; }
     public required ILogger<TaskHandler> Logger { get; init; }
@@ -42,12 +41,13 @@ public class TaskHandler
                     await Task.Delay(2_000);
                 }
 
-                if (timeout < DateTime.Now) task.ThrowFailed("Could not get shard info for 5 min");
+                if (timeout < DateTime.Now) throw new TaskFailedException("Could not get shard info for 5 min");
                 if (task.State > TaskState.Input) return;
 
                 try
                 {
-                    await TaskHandlerList.GetInputHandler(task).UploadInputFiles(ComponentContext, task.Input);
+                    var handler = ComponentContext.ResolveKeyed<ITaskInputUploader>(task.Input.Type);
+                    await handler.Upload(task.Input);
                     return;
                 }
                 catch (Exception ex)
@@ -176,11 +176,12 @@ public class TaskHandler
                 return;
             }
 
-            var handler = TaskHandlerList.GetOutputHandler(task);
-            var completed = handler.CheckCompletion(ComponentContext, task.Output, task.State);
+            var checker = ComponentContext.ResolveKeyed<ITaskCompletionChecker>(task.Input.Type);
+            var completed = checker.CheckCompletion(task.Output, task.State);
             if (!completed) return;
 
-            await handler.OnPlacedTaskCompleted(ComponentContext, task.Output);
+            var handler = ComponentContext.ResolveKeyed<ITaskCompletionHandler>(task.Input.Type);
+            await handler.OnPlacedTaskCompleted(task.Output);
             await task.ChangeStateAsync(TaskState.Finished).ThrowIfError();
             remove(task, errmsg);
         }

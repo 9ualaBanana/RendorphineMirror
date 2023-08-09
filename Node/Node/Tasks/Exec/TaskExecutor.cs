@@ -1,11 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Web;
-using Node.Tasks.IO;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 
 namespace Node.Tasks.Exec;
 
@@ -16,62 +11,37 @@ public class TaskExecutor
     static readonly SemaphoreSlim ActiveSemaphore = new SemaphoreSlim(1);
     static readonly SemaphoreSlim OutputSemaphore = new SemaphoreSlim(5);
 
-    static async Task<FuncDispose> WaitDisposed(SemaphoreSlim semaphore, ILoggable task, [CallerArgumentExpression(nameof(semaphore))] string? info = null)
+    async Task<FuncDispose> WaitDisposed(SemaphoreSlim semaphore, [CallerArgumentExpression(nameof(semaphore))] string? info = null)
     {
-        task.LogInfo($"Waiting for {info} lock ({semaphore.CurrentCount})");
+        Logger.LogInformation($"Waiting for {info} lock ({semaphore.CurrentCount})");
 
         await semaphore.WaitAsync();
         return FuncDispose.Create(semaphore.Release);
     }
 
 
-    interface ITaskOutputExecutionContext : ILoggable
-    {
-        ITaskOutputInfo Output { get; }
-        ITaskOutputHandler Handler { get; }
-
-        Task SetValidationAsync();
-    }
-    record TaskOutputExecutionContext(ReceivedTask Task, ITaskOutputHandler Handler, NodeCommon.Apis Apis) : ApiTaskContextBase(Task, Apis), ITaskOutputExecutionContext
-    {
-        public ITaskOutputInfo Output => Task.Info.Output;
-
-        public async Task SetValidationAsync() => await ChangeStateAsync(TaskState.Validation);
-    }
-
-    static async Task UploadResult(ITaskOutputExecutionContext context)
-    {
-        // TODO:: delete
-        var task = ((TaskOutputExecutionContext) context).Task;
-
-        task.InputFileList.AssertListValid("input");
-        task.OutputFileListList.AssertListValid("output");
-
-        context.LogInfo($"Uploading result to {Newtonsoft.Json.JsonConvert.SerializeObject(context.Output, Newtonsoft.Json.Formatting.None)} ... (wh {OutputSemaphore.CurrentCount})");
-        context.LogInfo($"Results: {string.Join(" | ", task.OutputFileListList.Select(l => string.Join(", ", l)))}");
-        await context.Handler.UploadResult(task, new ReadOnlyTaskFileList(task.OutputFileListList.SelectMany(l => l)) { OutputJson = task.OutputFileListList.Select(t => t.OutputJson).SingleOrDefault(t => t is not null) }).ConfigureAwait(false);
-        context.LogInfo($"Result uploaded");
-
-        await context.SetValidationAsync();
-    }
-
-
-    readonly TaskHandlerList TaskHandlerList;
     readonly ILifetimeScope LifetimeScope;
     readonly ILogger Logger;
 
-    public TaskExecutor(TaskHandlerList taskHandlerList, ILifetimeScope lifetimeScope, ILogger<TaskExecutor> logger)
+    public TaskExecutor(ILifetimeScope lifetimeScope, ILogger<TaskExecutor> logger)
     {
-        TaskHandlerList = taskHandlerList;
         LifetimeScope = lifetimeScope;
         Logger = logger;
     }
 
 
+    /// <summary> Ensures all input/active/output types are compatible </summary>
+    void CheckCompatibility(ReceivedTask task)
+    {
+        // TODO::
+    }
+
     public async Task Execute(ReceivedTask task, CancellationToken token)
     {
         using var _logscope = Logger.BeginScope($"Task {task}");
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.None)}");
+
+        CheckCompatibility(task);
 
         using var scope = LifetimeScope.BeginLifetimeScope(builder =>
         {
@@ -85,67 +55,53 @@ public class TaskExecutor
                 .SingleInstance();
         });
 
-
         if (task.State <= TaskState.Input)
         {
             var isqspreview = TaskExecutorByData.GetTaskName(task.Info.Data) == TaskAction.GenerateQSPreview;
             var semaphore = isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore;
             var info = isqspreview ? "qspinput" : "input";
-            using var _ = await WaitDisposed(semaphore, task, info);
+            using var _ = await WaitDisposed(isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore, info);
 
-            task.DownloadedInput = await DownloadInput(scope, task, token);
+            var inputhandler = scope.ResolveKeyed<ITaskInputDownloader>(task.Input.Type);
+            task.DownloadedInput = JObject.FromObject(await inputhandler.Download(task.Input, task.Info.Object, token));
             await task.ChangeStateAsync(TaskState.Active);
         }
         else task.LogInfo($"Input seems to be already downloaded");
 
         if (task.State <= TaskState.Active)
         {
-            using var _ = await WaitDisposed(ActiveSemaphore, task);
+            using var _ = await WaitDisposed(ActiveSemaphore);
 
+            var firstaction = scope.ResolveKeyed<IPluginActionInfo>(TaskExecutorByData.GetTaskName(task.Info.Data));
             var input = task.DownloadedInput
                 .ThrowIfNull("No task input downloaded")
-                .ToObject(TaskHandlerList.GetInputHandler(task).ResultType)
+                .ToObject(firstaction.InputType)
                 .ThrowIfNull();
 
-            task.Result = await Execute(scope, task, input);
+            var executor = scope.Resolve<TaskExecutorByData>();
+            task.Result = JObject.FromObject(await executor.Execute(input, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray()));
+
             await task.ChangeStateAsync(TaskState.Output);
         }
         else task.LogInfo($"Task execution seems to be already finished");
 
         if (task.State <= TaskState.Output)
         {
-            using var _ = await WaitDisposed(OutputSemaphore, task);
-            await UploadResult(new TaskOutputExecutionContext(task, TaskHandlerList.GetOutputHandler(task), apis));
+            using var _ = await WaitDisposed(OutputSemaphore);
+
+            var outputhandler = scope.ResolveKeyed<ITaskUploadHandler>(task.Output.Type);
+            var result = task.DownloadedInput
+                .ThrowIfNull("No task result")
+                .ToObject(outputhandler.ResultType)
+                .ThrowIfNull();
+
+            await outputhandler.UploadResult(task.Output, result, token);
+            await task.ChangeStateAsync(TaskState.Validation);
         }
         else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
 
         await MaybeNotifyTelegramBotOfTaskCompletion(task, token);
     }
-
-
-    async Task<object> DownloadInput(IComponentContext container, ReceivedTask task, CancellationToken token)
-    {
-        var input = await container.Resolve<TaskInputHandlerByData>()
-            .Download(task.Input, task.Info.Object, token);
-
-        // fix jpegs that are rotated using metadata which doesn't do well with some tools
-        // TODO: move somewhere else maybe
-        foreach (var jpeg in input.Where(f => f.Format == FileFormat.Jpeg).ToArray())
-        {
-            using var img = Image.Load<Rgba32>(jpeg.Path);
-            if (img.Metadata.ExifProfile?.TryGetValue(ExifTag.Orientation, out var exif) == true && exif is not null)
-            {
-                img.Mutate(ctx => ctx.AutoOrient());
-                await img.SaveAsJpegAsync(jpeg.Path, new JpegEncoder() { Quality = 100 });
-            }
-        }
-
-        return input;
-    }
-    static async Task<IReadOnlyList<object>> Execute(IComponentContext container, ReceivedTask task, object input) =>
-        await container.Resolve<TaskExecutorByData>()
-            .Execute(input, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
-
 
 
     static async ValueTask MaybeNotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
@@ -169,20 +125,6 @@ public class TaskExecutor
 
         try { await Api.GlobalClient.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to Telegram bot: " + ex); }
-    }
-
-
-    abstract record TaskContextBase(ReceivedTask Task) : ILoggable
-    {
-        public void Log(LogLevel level, string text) => Task.Log(level, text);
-    }
-    abstract record ApiTaskContextBase(ReceivedTask Task, NodeCommon.Apis Apis) : TaskContextBase(Task)
-    {
-        protected async Task ChangeStateAsync(TaskState state)
-        {
-            await Apis.ChangeStateAsync(Task, state).ThrowIfError();
-            NodeSettings.QueuedTasks.Save(Task);
-        }
     }
 
 

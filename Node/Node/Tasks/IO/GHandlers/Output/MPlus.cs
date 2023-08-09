@@ -2,18 +2,14 @@ using Transport.Upload;
 
 namespace Node.Tasks.IO.GHandlers.Output;
 
-public class MPlusTaskHandlerInfo : FileTaskOutputHandlerInfo<MPlusTaskOutputInfo>
+public static class MPlus
 {
-    public override TaskOutputType Type => TaskOutputType.MPlus;
-    protected override Type UploadHandlerType => typeof(UploadHandler);
-    protected override Type CompletionCheckerType => typeof(CompletionChecker);
-
-
-    class UploadHandler : UploadHandlerBase
+    public class UploadHandler : FileTaskUploadHandler<MPlusTaskOutputInfo>, ITypedTaskOutput
     {
+        public static TaskOutputType Type => TaskOutputType.MPlus;
         public required IRegisteredTaskApi ApiTask { get; init; }
 
-        public override async Task UploadResult(MPlusTaskOutputInfo info, ReadOnlyTaskFileList result, CancellationToken token)
+        protected override async Task UploadResultImpl(MPlusTaskOutputInfo info, ReadOnlyTaskFileList result, CancellationToken token)
         {
             // example: files=["input.g.jpg", "input.t.jpg"] returns "input."
             var commonprefix = result.Paths.Select(Path.GetFileNameWithoutExtension).Cast<string>().Aggregate((seed, z) => string.Join("", seed.TakeWhile((v, i) => z.Length > i && v == z[i])));
@@ -36,8 +32,10 @@ public class MPlusTaskHandlerInfo : FileTaskOutputHandlerInfo<MPlusTaskOutputInf
             }
         }
     }
-    class CompletionChecker : CompletionCheckerBase
+    public class CompletionChecker : TaskCompletionChecker<MPlusTaskOutputInfo>, ITypedTaskOutput
     {
+        public static TaskOutputType Type => TaskOutputType.MPlus;
+
         public override bool CheckCompletion(MPlusTaskOutputInfo info, TaskState state) =>
             state == TaskState.Validation && info.IngesterHost is not null;
     }

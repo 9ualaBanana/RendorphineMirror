@@ -1,19 +1,16 @@
 namespace Node.Tasks.IO.GHandlers.Input;
 
-public class MPlusTaskHandlerInfo : FileTaskInputHandlerInfo<MPlusTaskInputInfo>
+public static class MPlus
 {
-    public override TaskInputType Type => TaskInputType.MPlus;
-    protected override Type HandlerType => typeof(Handler);
-    protected override Type TaskObjectProviderType => typeof(TaskObjectProvider);
-
-
-    class Handler : FileHandlerBase
+    public class InputDownloader : FileTaskInputDownloader<MPlusTaskInputInfo>, ITypedTaskInput
     {
+        public static TaskInputType Type => TaskInputType.MPlus;
+
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required NodeCommon.Apis Api { get; init; }
         public required IComponentContext ComponentContext { get; init; }
 
-        public override async Task<ReadOnlyTaskFileList> Download(MPlusTaskInputInfo input, TaskObject obj, CancellationToken tokenn)
+        protected override async Task<ReadOnlyTaskFileList> DownloadImpl(MPlusTaskInputInfo input, TaskObject obj, CancellationToken tokenn)
         {
             var files = new TaskFileList(TaskDirectoryProvider.InputDirectory);
             var lastex = null as Exception;
@@ -55,8 +52,10 @@ public class MPlusTaskHandlerInfo : FileTaskInputHandlerInfo<MPlusTaskInputInfo>
             }
         }
     }
-    class TaskObjectProvider : TaskObjectProviderBase
+    public class TaskObjectProvider : TaskObjectProvider<MPlusTaskInputInfo>, ITypedTaskInput
     {
+        public static TaskInputType Type => TaskInputType.MPlus;
+
         public override async Task<OperationResult<TaskObject>> GetTaskObject(MPlusTaskInputInfo input, CancellationToken token) =>
             await input.GetFileInfo(Settings.SessionId, Settings.UserId);
     }

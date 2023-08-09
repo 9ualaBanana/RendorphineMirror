@@ -13,6 +13,8 @@ global using Node.Tasks;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Handlers;
 global using Node.Tasks.IO;
+global using Node.Tasks.IO.Input;
+global using Node.Tasks.IO.Output;
 global using Node.Tasks.Models;
 global using Node.Tasks.Watching;
 global using NodeCommon;
@@ -111,7 +113,7 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
             UpdatePort(ip.Result.ToString(), Settings.BUPnpServerPort, "Server")
         )).Unwrap();
 
-    RegisterIO();
+    IOList.RegisterAll(builder);
     RegisterTasks();
 }
 
@@ -188,10 +190,6 @@ builder.RegisterInstance(NodeGlobalState.Instance)
 builder.RegisterType<NodeGlobalStateInitializedTarget>()
     .SingleInstance()
     .OnActivating(s => s.Instance.Execute());
-
-builder.RegisterType<TaskHandlerList>()
-    .SingleInstance()
-    .OnActivating(h => h.Instance.AutoInitializeHandlers());
 
 builder.RegisterType<NodeTaskRegistration>()
     .SingleInstance();
@@ -273,30 +271,6 @@ async Task UpdatePort(string ip, DatabaseValue<ushort> port, string description)
         logger.Warn($"[PORTCHECK] {description} port {port.Value} is already listening, skipping");
         port.Value++;
     }
-}
-void RegisterIO()
-{
-    void registerin<T>() where T : ITaskInputHandlerInfo =>
-        builder.RegisterType<T>()
-            .Keyed<ITaskInputHandlerInfo>(Enum.Parse<TaskInputType>(typeof(T).Name[..^"TaskHandlerInfo".Length]))
-            .SingleInstance();
-
-    void registerout<T>() where T : ITaskOutputHandlerInfo =>
-        builder.RegisterType<T>()
-            .Keyed<ITaskOutputHandlerInfo>(Enum.Parse<TaskOutputType>(typeof(T).Name[..^"TaskHandlerInfo".Length]))
-            .SingleInstance();
-
-    registerin<Node.Tasks.IO.GHandlers.Input.DownloadLinkTaskHandlerInfo>();
-    registerin<Node.Tasks.IO.GHandlers.Input.MPlusTaskHandlerInfo>();
-    registerin<Node.Tasks.IO.GHandlers.Input.StubTaskHandlerInfo>();
-    registerin<Node.Tasks.IO.GHandlers.Input.TitleKeywordsTaskHandlerInfo>();
-    registerin<Node.Tasks.IO.GHandlers.Input.TorrentTaskHandlerInfo>();
-
-    registerout<Node.Tasks.IO.GHandlers.Output.DirectDownloadTaskHandlerInfo>();
-    registerout<Node.Tasks.IO.GHandlers.Output.MPlusTaskHandlerInfo>();
-    registerout<Node.Tasks.IO.GHandlers.Output.QSPreviewTaskHandlerInfo>();
-    registerout<Node.Tasks.IO.GHandlers.Output.TitleKeywordsTaskHandlerInfo>();
-    registerout<Node.Tasks.IO.GHandlers.Output.TorrentTaskHandlerInfo>();
 }
 void RegisterTasks()
 {

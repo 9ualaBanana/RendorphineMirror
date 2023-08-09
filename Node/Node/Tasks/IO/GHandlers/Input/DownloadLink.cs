@@ -2,16 +2,13 @@ using System.Net;
 
 namespace Node.Tasks.IO.GHandlers.Input;
 
-public class DownloadLinkTaskHandlerInfo : FileTaskInputHandlerInfo<DownloadLinkTaskInputInfo>
+public static class DownloadLink
 {
-    public override TaskInputType Type => TaskInputType.DownloadLink;
-    protected override Type HandlerType => typeof(Handler);
-    protected override Type TaskObjectProviderType => typeof(TaskObjectProvider);
-
-
-    class Handler : FileHandlerBase
+    public class InputDownloader : FileTaskInputDownloader<DownloadLinkTaskInputInfo>, ITypedTaskInput
     {
-        public override async Task<ReadOnlyTaskFileList> Download(DownloadLinkTaskInputInfo data, TaskObject obj, CancellationToken token)
+        public static TaskInputType Type => TaskInputType.DownloadLink;
+
+        protected override async Task<ReadOnlyTaskFileList> DownloadImpl(DownloadLinkTaskInputInfo data, TaskObject obj, CancellationToken token)
         {
             using var response = await Api.Default.Get(data.Url);
             if (data.Url.Contains("t.microstock.plus") && response.StatusCode == HttpStatusCode.NotFound)
@@ -79,8 +76,9 @@ public class DownloadLinkTaskHandlerInfo : FileTaskInputHandlerInfo<DownloadLink
             }
         }
     }
-    class TaskObjectProvider : TaskObjectProviderBase
+    public class TaskObjectProvider : TaskObjectProvider<DownloadLinkTaskInputInfo>, ITypedTaskInput
     {
+        public static TaskInputType Type => TaskInputType.DownloadLink;
         public required Api Api { get; init; }
 
         public override async Task<OperationResult<TaskObject>> GetTaskObject(DownloadLinkTaskInputInfo input, CancellationToken token)

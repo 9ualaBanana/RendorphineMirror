@@ -2,23 +2,18 @@ using MonoTorrent;
 
 namespace Node.Tasks.IO.GHandlers.Output;
 
-public class TorrentTaskHandlerInfo : FileTaskOutputHandlerInfo<TorrentTaskOutputInfo>
+public static class Torrent
 {
-    public override TaskOutputType Type => TaskOutputType.Torrent;
-    protected override Type UploadHandlerType => typeof(UploadHandler);
-    protected override Type CompletionCheckerType => typeof(CompletionChecker);
-    protected override Type CompletedHandlerType => typeof(CompletedHandler);
-
-
-    class UploadHandler : UploadHandlerBase
+    public class UploadHandler : FileTaskUploadHandler<TorrentTaskOutputInfo>, ITypedTaskOutput
     {
+        public static TaskOutputType Type => TaskOutputType.Torrent;
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required NodeCommon.Apis Api { get; init; }
         public required IQueuedTasksStorage QueuedTasks { get; init; }
         public required TorrentClient TorrentClient { get; init; }
         public required ITaskOutputDirectoryProvider ResultDirectoryProvider { get; init; }
 
-        public override async Task UploadResult(TorrentTaskOutputInfo info, ReadOnlyTaskFileList result, CancellationToken token)
+        protected override async Task UploadResultImpl(TorrentTaskOutputInfo info, ReadOnlyTaskFileList result, CancellationToken token)
         {
             // TODO: fix uploading FSOutputDirectory instead of outputfiles
 
@@ -85,13 +80,16 @@ public class TorrentTaskHandlerInfo : FileTaskOutputHandlerInfo<TorrentTaskOutpu
             }
         }
     }
-    class CompletionChecker : CompletionCheckerBase
+    public class CompletionChecker : TaskCompletionChecker<TorrentTaskOutputInfo>, ITypedTaskOutput
     {
+        public static TaskOutputType Type => TaskOutputType.Torrent;
+
         public override bool CheckCompletion(TorrentTaskOutputInfo info, TaskState state) =>
             info.Link is not null;
     }
-    class CompletedHandler : CompletedHandlerBase
+    public class CompletionHandler : TaskCompletionHandler<TorrentTaskOutputInfo>, ITypedTaskOutput
     {
+        public static TaskOutputType Type => TaskOutputType.Torrent;
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required TorrentClient TorrentClient { get; init; }
         public required ITaskOutputDirectoryProvider ResultDirectoryProvider { get; init; }

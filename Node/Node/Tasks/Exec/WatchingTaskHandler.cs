@@ -1,24 +1,28 @@
-using Autofac;
-
 namespace Node.Tasks.Exec;
 
 public class WatchingTaskHandler
 {
-    readonly TaskHandlerList TaskHandlerList;
-    readonly IComponentContext ComponentContext;
+    readonly ILifetimeScope ComponentContext;
     readonly NodeTaskRegistration TaskRegistration;
     readonly IWatchingTasksStorage WatchingTasks;
 
-    public WatchingTaskHandler(TaskHandlerList taskHandlerList, IComponentContext componentContext, NodeTaskRegistration taskRegistration, IWatchingTasksStorage watchingTasks)
+    public WatchingTaskHandler(ILifetimeScope componentContext, NodeTaskRegistration taskRegistration, IWatchingTasksStorage watchingTasks)
     {
-        TaskHandlerList = taskHandlerList;
         ComponentContext = componentContext;
         TaskRegistration = taskRegistration;
         WatchingTasks = watchingTasks;
     }
 
-    public IWatchingTaskInputHandler CreateWatchingHandler(WatchingTask task) =>
-        TaskHandlerList.WatchingHandlerList[task.Source.Type](task).With(c => ComponentContext.InjectUnsetProperties(c));
+    public IWatchingTaskInputHandler CreateWatchingHandler(WatchingTask task)
+    {
+        using var scope = ComponentContext.BeginLifetimeScope(builder =>
+        {
+            builder.RegisterInstance(task)
+                .SingleInstance();
+        });
+
+        return scope.ResolveKeyed<IWatchingTaskInputHandler>(Enum.Parse<TaskAction>(task.TaskAction));
+    }
 
     public void StartWatcher(WatchingTask task)
     {

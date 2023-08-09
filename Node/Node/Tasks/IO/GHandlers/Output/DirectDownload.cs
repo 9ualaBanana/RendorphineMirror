@@ -2,33 +2,31 @@ using System.IO.Compression;
 
 namespace Node.Tasks.IO.GHandlers.Output;
 
-public class DirectDownloadTaskHandlerInfo : FileTaskOutputHandlerInfo<DirectUploadTaskOutputInfo>
+public static class DirectDownload
 {
-    public override TaskOutputType Type => TaskOutputType.DirectDownload;
-
-    protected override Type UploadHandlerType => typeof(UploadHandler);
-    protected override Type CompletionCheckerType => typeof(CompletionChecker);
-    protected override Type CompletedHandlerType => typeof(CompletedHandler);
-
-
-    class UploadHandler : UploadHandlerBase
+    public class UploadHandler : FileTaskUploadHandler<DirectDownloadTaskOutputInfo>, ITypedTaskOutput
     {
+        public static TaskOutputType Type => TaskOutputType.DirectDownload;
         public required IRegisteredTaskApi ApiTask { get; init; }
 
-        public override async Task UploadResult(DirectUploadTaskOutputInfo info, ReadOnlyTaskFileList result, CancellationToken token) =>
+        protected override async Task UploadResultImpl(DirectDownloadTaskOutputInfo info, ReadOnlyTaskFileList result, CancellationToken token) =>
             await Listeners.DirectDownloadListener.WaitForUpload(ApiTask.Id, token);
     }
-    class CompletionChecker : CompletionCheckerBase
+    public class CompletionChecker : TaskCompletionChecker<DirectDownloadTaskOutputInfo>, ITypedTaskOutput
     {
-        public override bool CheckCompletion(DirectUploadTaskOutputInfo info, TaskState state) => state >= TaskState.Output;
+        public static TaskOutputType Type => TaskOutputType.DirectDownload;
+
+        public override bool CheckCompletion(DirectDownloadTaskOutputInfo info, TaskState state) =>
+            state >= TaskState.Output;
     }
-    class CompletedHandler : CompletedHandlerBase
+    public class CompletionHandler : TaskCompletionHandler<DirectDownloadTaskOutputInfo>, ITypedTaskOutput
     {
+        public static TaskOutputType Type => TaskOutputType.DirectDownload;
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required NodeCommon.Apis Api { get; init; }
         public required ITaskOutputDirectoryProvider DirectoryProvider { get; init; }
 
-        public override async Task OnPlacedTaskCompleted(DirectUploadTaskOutputInfo info)
+        public override async Task OnPlacedTaskCompleted(DirectDownloadTaskOutputInfo info)
         {
             var state = await Api.GetTaskStateAsync(ApiTask).ThrowIfError();
             if (state is null) return;

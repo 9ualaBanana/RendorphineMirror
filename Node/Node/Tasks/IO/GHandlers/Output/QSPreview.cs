@@ -1,20 +1,16 @@
 namespace Node.Tasks.IO.GHandlers.Output;
 
-public class QSPreviewTaskHandlerInfo : FileTaskOutputHandlerInfo<QSPreviewOutputInfo>
+public static class QSPreview
 {
     public const string Version = "7";
 
-    public override TaskOutputType Type => TaskOutputType.QSPreview;
-    protected override Type UploadHandlerType => typeof(UploadHandler);
-    protected override Type CompletionCheckerType => typeof(CompletionChecker);
-
-
-    class UploadHandler : UploadHandlerBase
+    public class UploadHandler : FileTaskUploadHandler<QSPreviewOutputInfo>, ITypedTaskOutput
     {
+        public static TaskOutputType Type => TaskOutputType.QSPreview;
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required NodeCommon.Apis Apis { get; init; }
 
-        public override async Task UploadResult(QSPreviewOutputInfo info, ReadOnlyTaskFileList files, CancellationToken token)
+        protected override async Task UploadResultImpl(QSPreviewOutputInfo info, ReadOnlyTaskFileList files, CancellationToken token)
         {
             var jpegfooter = files.First(f => f.Format == FileFormat.Jpeg && Path.GetFileNameWithoutExtension(f.Path) == "pj_footer");
             var jpegqr = files.FirstOrDefault(f => f.Format == FileFormat.Jpeg && Path.GetFileNameWithoutExtension(f.Path) == "pj_qr");
@@ -79,8 +75,10 @@ public class QSPreviewTaskHandlerInfo : FileTaskOutputHandlerInfo<QSPreviewOutpu
 
         record InitOutputResult(string UploadId, string Host);
     }
-    class CompletionChecker : CompletionCheckerBase
+    public class CompletionChecker : TaskCompletionChecker<QSPreviewOutputInfo>, ITypedTaskOutput
     {
+        public static TaskOutputType Type => TaskOutputType.QSPreview;
+
         public override bool CheckCompletion(QSPreviewOutputInfo info, TaskState state) =>
             state == TaskState.Validation && info.IngesterHost is not null;
     }

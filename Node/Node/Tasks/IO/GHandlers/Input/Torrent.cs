@@ -2,20 +2,16 @@ using MonoTorrent;
 
 namespace Node.Tasks.IO.GHandlers.Input;
 
-public class TorrentTaskHandlerInfo : FileTaskInputHandlerInfo<TorrentTaskInputInfo>
+public static class Torrent
 {
-    public override TaskInputType Type => TaskInputType.Torrent;
-    protected override Type HandlerType => typeof(Handler);
-    protected override Type TaskObjectProviderType => typeof(TaskObjectProvider);
-    protected override Type InputUploaderType => typeof(InputUploader);
-
-
-    class Handler : FileHandlerBase
+    public class InputDownloader : FileTaskInputDownloader<TorrentTaskInputInfo>, ITypedTaskInput
     {
+        public static TaskInputType Type => TaskInputType.Torrent;
+
         public required TorrentClient TorrentClient { get; init; }
         public required IRegisteredTaskApi ApiTask { get; init; }
 
-        public override async Task<ReadOnlyTaskFileList> Download(TorrentTaskInputInfo input, TaskObject obj, CancellationToken token)
+        protected override async Task<ReadOnlyTaskFileList> DownloadImpl(TorrentTaskInputInfo input, TaskObject obj, CancellationToken token)
         {
             if (ApiTask.IsFromSameNode())
                 return new ReadOnlyTaskFileList(FileWithFormat.FromLocalPath(input.Path));
@@ -29,17 +25,18 @@ public class TorrentTaskHandlerInfo : FileTaskInputHandlerInfo<TorrentTaskInputI
             return new ReadOnlyTaskFileList(FileWithFormat.FromLocalPath(dir));
         }
     }
-    class TaskObjectProvider : TaskObjectProviderBase
+    public class TaskObjectProvider : LocalFileTaskObjectProvider<TorrentTaskInputInfo>, ITypedTaskInput
     {
-        public override Task<OperationResult<TaskObject>> GetTaskObject(TorrentTaskInputInfo input, CancellationToken token) =>
-            GetLocalFileTaskObject(input.Path).AsOpResult().AsTask();
+        public static TaskInputType Type => TaskInputType.Torrent;
     }
-    class InputUploader : InputUploaderBase
+    public class InputUploader : FileTaskInputUploader<TorrentTaskInputInfo>, ITypedTaskInput
     {
+        public static TaskInputType Type => TaskInputType.Torrent;
+
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required TorrentClient TorrentClient { get; init; }
 
-        public override async Task UploadInputFiles(TorrentTaskInputInfo input)
+        public override async Task Upload(TorrentTaskInputInfo input)
         {
             Logger.LogInformation("Starting torrent upload");
 
