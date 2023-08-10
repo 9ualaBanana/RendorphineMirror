@@ -4,6 +4,8 @@ namespace Node.Listeners;
 
 public abstract class ExecutableListenerBase : ListenerBase
 {
+    protected ExecutableListenerBase(ILogger logger) : base(logger) { }
+
     protected sealed override async ValueTask Execute(HttpListenerContext context)
     {
         var path = GetPath(context);

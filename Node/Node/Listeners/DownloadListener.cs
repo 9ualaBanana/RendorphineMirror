@@ -9,6 +9,8 @@ public class DownloadListener : ExecutableListenerBase
     protected override bool RequiresAuthentication => true;
     protected override string? Prefix => "download";
 
+    public DownloadListener(ILogger<DownloadListener> logger) : base(logger) { }
+
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {

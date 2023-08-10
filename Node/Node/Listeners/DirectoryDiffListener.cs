@@ -4,6 +4,8 @@ namespace Node.Listeners;
 
 public class DirectoryDiffListener : ExecutableListenerBase
 {
+    public DirectoryDiffListener(ILogger<DirectoryDiffListener> logger) : base(logger) { }
+
     protected override ListenTypes ListenType => ListenTypes.Public;
     protected override bool RequiresAuthentication => true;
     protected override string? Prefix => "dirdiff";

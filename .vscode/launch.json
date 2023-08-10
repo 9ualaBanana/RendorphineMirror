@@ -114,7 +114,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "buildpinger",
-            "program": "${workspaceFolder}/Pinger/bin/Debug/net7.0/Pinger.dll",
+            "program": "${workspaceFolder}/Node/Node.Pinger/bin/Debug/net7.0/Node.Pinger.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",

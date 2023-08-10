@@ -136,7 +136,7 @@ internal class CGTraderApi : IBaseAddressProvider
     async Task<string> _CreateNewModelDraftAsyncCore(CancellationToken cancellationToken)
     {
         string requestUri = QueryHelpers.AddQueryString(
-            (this as IBaseAddressProvider).Endpoint($"/api/internal/items/current-draft/cg"), new Dictionary<string, string>()
+            (this as IBaseAddressProvider).Endpoint($"/api/internal/items/current-draft"), new Dictionary<string, string>()
             { { "nocache", CaptchaRequestArguments.rt } }
 );
         return (string)JObject.Parse(

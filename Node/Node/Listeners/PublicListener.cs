@@ -10,6 +10,8 @@ public class PublicListener : ExecutableListenerBase
 {
     protected override ListenTypes ListenType => ListenTypes.Public;
 
+    public PublicListener(ILogger<PublicListener> logger) : base(logger) { }
+
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
         var request = context.Request;

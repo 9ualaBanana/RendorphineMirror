@@ -5,6 +5,8 @@ namespace Node.Listeners;
 
 public abstract class MultipartListenerBase : ListenerBase
 {
+    protected MultipartListenerBase(ILogger logger) : base(logger) { }
+
     protected sealed override async ValueTask Execute(HttpListenerContext context)
     {
         if (context.Request.HttpMethod != "POST") return;

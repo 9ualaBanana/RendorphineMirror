@@ -151,6 +151,20 @@ namespace Common
         [return: NotNullIfNotNull(nameof(def))]
         public static async ValueTask<T?> GetValueOrDefault<T>(this ValueTask<OperationResult<T>> opr, T? def = default) => (await opr).GetValueOrDefault(def);
 
+        public static OperationResult LogIfError(in this OperationResult opr, Microsoft.Extensions.Logging.ILogger logger, string? format = null)
+        {
+            if (!opr)
+            {
+                var text = opr.AsString();
+                if (format is not null)
+                    text = string.Format(format, text);
+
+                if (logger is not null) logger.LogError(text);
+                else Logger.Error(text);
+            }
+
+            return opr;
+        }
         public static OperationResult LogIfError(in this OperationResult opr, string? format = null, ILoggable? loggable = null)
         {
             if (!opr)

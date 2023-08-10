@@ -10,18 +10,19 @@ namespace Node.Listeners;
 
 public class LocalListener : ExecutableListenerBase
 {
-    readonly HttpClient Client = new();
     protected override ListenTypes ListenType => ListenTypes.Local;
 
     readonly PluginManager PluginManager;
     readonly PluginChecker PluginChecker;
     readonly PluginDeployer PluginDeployer;
+    readonly Profiler Profiler;
 
-    public LocalListener(PluginManager pluginManager, PluginChecker pluginChecker, PluginDeployer pluginDeployer)
+    public LocalListener(PluginManager pluginManager, PluginChecker pluginChecker, PluginDeployer pluginDeployer, Profiler profiler, ILogger<LocalListener> logger) : base(logger)
     {
         PluginManager = pluginManager;
         PluginChecker = pluginChecker;
         PluginDeployer = pluginDeployer;
+        Profiler = profiler;
     }
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
@@ -81,7 +82,7 @@ public class LocalListener : ExecutableListenerBase
                 Settings.DhtPort = ushort.Parse(dhtport);
 
                 var changed = new { port = Settings.UPnpPort, webport = Settings.UPnpServerPort, torrentport = Settings.TorrentPort, dhtport = Settings.DhtPort };
-                _logger.Info($"Settings changed: {JsonConvert.SerializeObject(changed)}");
+                Logger.Info($"Settings changed: {JsonConvert.SerializeObject(changed)}");
 
                 _ = Task.Delay(500).ContinueWith(_ => ListenerBase.RestartAll());
                 return await WriteSuccess(response).ConfigureAwait(false);

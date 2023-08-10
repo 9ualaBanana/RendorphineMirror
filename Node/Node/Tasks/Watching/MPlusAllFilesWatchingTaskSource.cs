@@ -86,7 +86,7 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
             .ThrowIfError();
 
         var data = new QSPreviewInfo(qid.Result[input.Iid].ToStringInvariant());
-        return await Task.RegisterTask(input, output, tobj, data);
+        return await TaskHandlerList.RegisterTask(Task, input, output, tobj, data);
     }
 
     record QwertyFileIdResult(

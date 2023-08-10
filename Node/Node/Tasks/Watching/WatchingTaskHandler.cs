@@ -7,6 +7,8 @@ public abstract class WatchingTaskHandler<TInput> : IWatchingTaskInputHandler wh
     public abstract WatchingTaskInputType Type { get; }
     protected readonly CancellationTokenSource CancellationToken = new();
 
+    public required WatchingTaskHandler TaskHandlerList { get; init; }
+
     [JsonIgnore] public WatchingTask Task { get; }
     [JsonIgnore] protected TInput Input => (TInput) Task.Source;
 

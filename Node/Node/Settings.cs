@@ -1,11 +1,7 @@
-﻿using Node.Profiling;
-
-namespace Node;
+﻿namespace Node;
 
 public static class Settings
 {
-    public static event Action? AnyChanged;
-
     public static string SessionId => AuthInfo?.SessionId!;
     public static string? Email => AuthInfo?.Email;
     public static string Guid => AuthInfo?.Guid!;
@@ -21,47 +17,19 @@ public static class Settings
     public static ushort TorrentPort { get => BTorrentPort.Value; set => BTorrentPort.Value = value; }
     public static string NodeName { get => BNodeName.Value!; set => BNodeName.Value = value!; }
 
-    public static readonly DatabaseValue<string> BServerUrl;
-    public static readonly DatabaseValue<ushort> BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort;
-    public static readonly DatabaseValue<string?> BNodeName;
-    public static readonly DatabaseValue<AuthInfo?> BAuthInfo;
+    public static DatabaseValue<string> BServerUrl => Instance.BServerUrl;
+    public static DatabaseValue<ushort> BLocalListenPort => Instance.BLocalListenPort;
+    public static DatabaseValue<ushort> BUPnpPort => Instance.BUPnpPort;
+    public static DatabaseValue<ushort> BUPnpServerPort => Instance.BUPnpServerPort;
+    public static DatabaseValue<ushort> BDhtPort => Instance.BDhtPort;
+    public static DatabaseValue<ushort> BTorrentPort => Instance.BTorrentPort;
+    public static DatabaseValue<string?> BNodeName => Instance.BNodeName;
+    public static DatabaseValue<AuthInfo?> BAuthInfo => Instance.BAuthInfo;
 
-    public static readonly DatabaseValue<ImmutableArray<TaskAction>> DisabledTaskTypes;
-    public static readonly DatabaseValue<bool> AcceptTasks;
-    public static readonly DatabaseValue<uint> TaskAutoDeletionDelayDays;
-    public static readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
+    public static DatabaseValue<ImmutableArray<TaskAction>> DisabledTaskTypes => Instance.DisabledTaskTypes;
+    public static DatabaseValue<bool> AcceptTasks => Instance.AcceptTasks;
+    public static DatabaseValue<uint> TaskAutoDeletionDelayDays => Instance.TaskAutoDeletionDelayDays;
+    public static DatabaseValue<SettingsInstance.BenchmarkInfo?> BenchmarkResult => Instance.BenchmarkResult;
 
-    static Settings()
-    {
-        static ushort randomized(ushort port) => (ushort) (port + Random.Shared.Next(80));
-
-        var db = new Database(Path.Combine(Directories.Data, "config.db"));
-
-        BServerUrl = new(db, nameof(ServerUrl), "https://t.microstock.plus:8443");
-        BLocalListenPort = new(db, nameof(LocalListenPort), randomized(5123));
-        BUPnpPort = new(db, nameof(UPnpPort), randomized(5223));
-        BUPnpServerPort = new(db, nameof(UPnpServerPort), randomized(5323));
-        BDhtPort = new(db, nameof(DhtPort), randomized(6223));
-        BTorrentPort = new(db, nameof(TorrentPort), randomized(6323));
-        BAuthInfo = new(db, nameof(AuthInfo), default);
-        BNodeName = new(db, nameof(NodeName), null);
-
-        DisabledTaskTypes = new(db, nameof(DisabledTaskTypes), ImmutableArray<TaskAction>.Empty);
-        AcceptTasks = new(db, nameof(AcceptTasks), true);
-        TaskAutoDeletionDelayDays = new(db, nameof(TaskAutoDeletionDelayDays), 4);
-        BenchmarkResult = new(db, nameof(BenchmarkResult), default);
-
-
-        typeof(Settings).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)
-            .Where(x => x.FieldType.IsAssignableTo(typeof(IBindable)))
-            .Select(x => ((IBindable) x.GetValue(null)!, x.Name))
-            .ToList()
-            .ForEach(x => x.Item1.Changed += () => AnyChanged?.Invoke());
-
-        foreach (var bindable in new[] { BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort })
-            bindable.Save();
-    }
-
-
-    public readonly record struct BenchmarkInfo(Version Version, BenchmarkData Data);
+    public static readonly SettingsInstance Instance = new();
 }

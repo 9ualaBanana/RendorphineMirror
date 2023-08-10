@@ -41,33 +41,38 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
     public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, QSPreviewInfo data)
     {
         var id = data.Qid;
-        using var qr = await GenerateQR($"https://qwertystock.com/item?id={id}");
-
         var outfiles = files.OutputFiles.New();
 
         var jpeg = files.InputFiles.TryFirst(FileFormat.Jpeg);
         var mov = files.InputFiles.TryFirst(FileFormat.Mov);
+
+        var qrtext = $"https://qwertystock.com/{id}";
 
         if (jpeg is not null)
         {
             await ProcessPreviewFooter(id, jpeg.Path, outfiles.New(FileFormat.Jpeg, "pj_footer").Path);
 
             if (mov is null)
+            {
+                using var qr = await GenerateQR(qrtext, "assets/qswatermark/qwerty_logo.png");
                 await ProcessPreviewQr(jpeg.Path, qr, outfiles.New(FileFormat.Jpeg, "pj_qr").Path);
+            }
         }
 
         if (mov is not null)
         {
             using var _ = Directories.TempFile(out var qrfile, "qsprveiew_qr");
-            await qr.SaveAsPngAsync(qrfile);
 
-            await ProcessVideoPreview(context, mov.Path, qrfile, qr, outfiles.New(FileFormat.Mov, "pv1").Path);
+            using (var qr = await GenerateQR(qrtext, "assets/qswatermark/qwerty_logo.png"))
+                await qr.SaveAsPngAsync(qrfile);
+
+            await ProcessVideoPreview(context, mov.Path, qrfile, outfiles.New(FileFormat.Mov, "pv1").Path);
         }
     }
 
 
-    async Task<Image<Rgba32>> GenerateQR(string data) =>
-        QRGenerator.Generate(data, QwertyLogoImage ??= await Image.LoadAsync<Rgba32>("assets/qswatermark/qwerty_logo.png"), 1, 1, .2f);
+    async Task<Image<Rgba32>> GenerateQR(string data, string logo) =>
+        QRGenerator.Generate(data, QwertyLogoImage ??= await Image.LoadAsync<Rgba32>(logo), 1, 1, .2f);
 
 
     async Task ProcessPreviewQr(string input, Image qr, string output)
@@ -81,11 +86,11 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
         var (outwidth, outheight) = Scale(image.Width, image.Height, MaximumPixels);
 
         var ww = outwidth * maxByWidth;
-        var wh = ww / (WatermarkImage.Width / WatermarkImage.Height);
-        if (outwidth * maxByWidth / (WatermarkImage.Width / WatermarkImage.Height) > outheight * maxByHeight)
+        var wh = ww / ((double) WatermarkImage.Width / WatermarkImage.Height);
+        if (outwidth * maxByWidth / ((double) WatermarkImage.Width / WatermarkImage.Height) > outheight * maxByHeight)
         {
             wh = outheight * maxByHeight;
-            ww = wh * (WatermarkImage.Width / WatermarkImage.Height);
+            ww = wh * ((double) WatermarkImage.Width / WatermarkImage.Height);
         }
 
         using var watermark = WatermarkImage.Clone(ctx => ctx.Resize((int) ww, (int) wh));
@@ -132,29 +137,22 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
         await image.SaveAsJpegAsync(output, new JpegEncoder() { Quality = 90 });
     }
 
-    async Task ProcessVideoPreview(ITaskExecutionContext context, string input, string qr, Image qrimage, string output)
+    static async Task ProcessVideoPreview(ITaskExecutionContext context, string input, string qr, string output)
     {
-        await (await buildLauncher()).Execute();
+        await buildLauncher().Execute();
 
 
-        async Task<FFmpegLauncher> buildLauncher()
+        FFmpegLauncher buildLauncher()
         {
             const double fadeTime = 0.3;
             const int watermarkWaitTime = 6;
 
-            var qrsize = qrimage.Width;
-            const double maxsizebywidthH = 0.45;
-            const double maxsizebywidthV = 0.6;
+            const double maxsizebywidth = 0.6;
             const double maxsizebyheight = 0.3;
-
-            var ffprobe = await FFProbe.Get(input, context);
-
-            var vertical = ffprobe.VideoStream.Width < ffprobe.VideoStream.Height;
-            var maxsizebywidth = vertical ? maxsizebywidthV : maxsizebywidthH;
 
             var wshift = Random.Shared.NextDouble() * (Math.PI * 2);
             var xshift = .97;
-            var yshift = .6777;
+            var yshift = xshift;
 
             var launcher = new FFmpegLauncher(context.GetPlugin(PluginType.FFmpeg).Path)
             {
@@ -164,7 +162,7 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
                 {
                     input,
                     new FFmpegLauncherInput("assets/qswatermark/watermark.png") { Args = { "-loop", "1" } },
-                    qr,
+                    new FFmpegLauncherInput(qr) { Args = { "-loop", "1" } },
                 },
                 Outputs =
                 {
@@ -213,38 +211,19 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
                                     )
                                     """),
                         },
-                        !vertical
-                            ? new FFmpegFilter.Block(ImmutableArray.Create("txt"), ImmutableArray.Create("txt"))
-                            {
-                                new FFmpegFilter.Filter("format")
-                                    .Add("rgba"),
-                                new FFmpegFilter.Filter("pad")
-                                    .Set("x", qrsize)
-                                    .Set("y", "iw/2 - oh/2")
-                                    .Set("w", $"iw+{qrsize}")
-                                    .Set("h", $@"max(ih\, {qrsize})")
-                                    .Set("color", "#00000000"),
-                            }
-                            : new FFmpegFilter.Block(ImmutableArray.Create("txt"), ImmutableArray.Create("txt"))
-                            {
-                                new FFmpegFilter.Filter("format")
-                                    .Add("rgba"),
-                                new FFmpegFilter.Filter("pad")
-                                    .Set("y", qrsize)
-                                    .Set("h", $"ih+{qrsize}")
-                                    .Set("color", "#00000000"),
-                            },
-                        new FFmpegFilter.Block(ImmutableArray.Create("txt", "2"), ImmutableArray.Create("wtr"))
+                        new FFmpegFilter.Block(ImmutableArray.Create("txt"), ImmutableArray.Create("txt"))
                         {
-                            !vertical
-                                ? new FFmpegFilter.Filter("overlay")
-                                    .Set("y", @"(main_h - overlay_h) / 2")
-                                : new FFmpegFilter.Filter("overlay")
-                                    .Set("x", @"(main_w - overlay_w) / 2"),
-                            new FFmpegFilter.Filter("colorchannelmixer")
-                                .Set("aa", WatermarkTransparency),
                             new FFmpegFilter.Filter("format")
                                 .Add("rgba"),
+                            new FFmpegFilter.Filter("colorchannelmixer")
+                                .Set("aa", WatermarkTransparency),
+                        },
+                        new FFmpegFilter.Block(ImmutableArray.Create("2"), ImmutableArray.Create("qr"))
+                        {
+                            new FFmpegFilter.Filter("format")
+                                .Add("rgba"),
+                            new FFmpegFilter.Filter("colorchannelmixer")
+                                .Set("aa", WatermarkTransparency),
                             new FFmpegFilter.Filter("fade")
                                 .Set("t", "in")
                                 .Set("d", fadeTime)
@@ -255,15 +234,39 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
                                 .Set("st", watermarkWaitTime - fadeTime),
                             new FFmpegFilter.Filter("trim")
                                 .Set("duration", watermarkWaitTime),
+                            new FFmpegFilter.Filter("setpts")
+                                .Add($"PTS - {fadeTime} / TB"),
                             new FFmpegFilter.Filter("loop")
                                 .Add(-1)
                                 .Set("size", 9999),
                         },
-                        new FFmpegFilter.Block(ImmutableArray.Create("vid", "wtr"), ImmutableArray<string>.Empty)
+                        new FFmpegFilter.Block(ImmutableArray.Create("vid", "txt"), ImmutableArray.Create("vid"))
                         {
                             new FFmpegFilter.Filter("overlay")
-                                .Set("x", $@"((cos({wshift} + floor(t / {watermarkWaitTime}) * {1.25 * Math.PI}) / 2 + 0.5) * {xshift} + {(1 - xshift) / 2}) * (main_w - overlay_w)")
-                                .Set("y", $@"((sin({wshift} + floor(t / {watermarkWaitTime}) * {1.25 * Math.PI}) / 2 + 0.5) * {yshift} + {(1 - yshift) / 2}) * (main_h - overlay_h)")
+                                .Set("x", $@"(main_w - overlay_w) / 2")
+                                .Set("y", $@"main_h / 3 * 2 - overlay_h / 2")
+                                .Set("shortest", "1")
+                                .Set("format", "yuv420")
+                        },
+                        new FFmpegFilter.Block(ImmutableArray.Create("vid", "qr"), ImmutableArray<string>.Empty)
+                        {
+                            new FFmpegFilter.Filter("overlay")
+                                .Set("x", $"""
+                                    st(1\, cos({wshift} + floor((t + {fadeTime}) / {watermarkWaitTime}) * {1.25 * Math.PI}))\;
+                                    (
+                                        (
+                                            pow(abs(ld(1))\, 1 / 3) * sgn(ld(1)) / 2 + 0.5
+                                        ) * {xshift} + {(1 - xshift) / 2}
+                                    ) * (main_w - overlay_w)
+                                    """)
+                                .Set("y", $"""
+                                    st(1\, sin({wshift} + floor((t + {fadeTime}) / {watermarkWaitTime}) * {1.25 * Math.PI}))\;
+                                    (
+                                        (
+                                            pow(abs(ld(1))\, 1 / 3) * sgn(ld(1)) / 2 + 0.5
+                                        ) * {yshift} + {(1 - yshift) / 2}
+                                    ) * (main_h - overlay_h)
+                                    """)
                                 .Set("shortest", "1")
                                 .Set("format", "yuv420")
                         },
@@ -311,6 +314,7 @@ public class GenerateQSPreview : PluginAction<QSPreviewInfo>
                     Width = width,
                     Height = height,
                     ErrorCorrection = ZXing.QrCode.Internal.ErrorCorrectionLevel.L,
+                    QrCompact = true,
                     Margin = 1,
                     NoPadding = true,
                 },

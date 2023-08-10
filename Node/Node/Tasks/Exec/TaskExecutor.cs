@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Node.Tasks.Exec;
 
-public static class TaskExecutor
+public class TaskExecutor
 {
     static readonly SemaphoreSlim QSPreviewInputSemaphore = new SemaphoreSlim(3);
     static readonly SemaphoreSlim NonQSPreviewInputSemaphore = new SemaphoreSlim(2);
@@ -32,10 +32,9 @@ public static class TaskExecutor
 
         Task SetActiveAsync(ReadOnlyTaskFileList files);
     }
-    record TaskInputExecutionContext(ReceivedTask Task, NodeCommon.Apis Apis) : ApiTaskContextBase(Task, Apis), ITaskInputExecutionContext
+    record TaskInputExecutionContext(ReceivedTask Task, ITaskInputHandler Handler, NodeCommon.Apis Apis) : ApiTaskContextBase(Task, Apis), ITaskInputExecutionContext
     {
         public ITaskInputInfo Input => Task.Info.Input;
-        public ITaskInputHandler Handler => Task.Info.Input.Type.GetHandler();
 
         public async Task SetActiveAsync(ReadOnlyTaskFileList files)
         {
@@ -132,10 +131,9 @@ public static class TaskExecutor
 
         Task SetValidationAsync();
     }
-    record TaskOutputExecutionContext(ReceivedTask Task, NodeCommon.Apis Apis) : ApiTaskContextBase(Task, Apis), ITaskOutputExecutionContext
+    record TaskOutputExecutionContext(ReceivedTask Task, ITaskOutputHandler Handler, NodeCommon.Apis Apis) : ApiTaskContextBase(Task, Apis), ITaskOutputExecutionContext
     {
         public ITaskOutputInfo Output => Task.Info.Output;
-        public ITaskOutputHandler Handler => Task.Info.Output.Type.GetHandler();
 
         public async Task SetValidationAsync() => await ChangeStateAsync(TaskState.Validation);
     }
@@ -157,8 +155,12 @@ public static class TaskExecutor
     }
 
 
-    [Obsolete("Use TaskHandler instead")]
-    public static async Task Execute(ReceivedTask task, PluginManager pluginManager)
+    readonly TaskHandlerList TaskHandlerList;
+
+    public TaskExecutor(TaskHandlerList taskHandlerList) => TaskHandlerList = taskHandlerList;
+
+
+    public async Task Execute(ReceivedTask task, PluginManager pluginManager)
     {
         task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.None)}");
         var apis = Apis.Default;
@@ -170,7 +172,7 @@ public static class TaskExecutor
             var info = isqspreview ? "qspinput" : "input";
             using var _ = await WaitDisposed(semaphore, task, info);
 
-            await DownloadInput(new TaskInputExecutionContext(task, apis));
+            await DownloadInput(new TaskInputExecutionContext(task, TaskHandlerList.GetInputHandler(task), apis));
         }
         else task.LogInfo($"Input seems to be already downloaded");
 
@@ -184,7 +186,7 @@ public static class TaskExecutor
         if (task.State <= TaskState.Output)
         {
             using var _ = await WaitDisposed(OutputSemaphore, task);
-            await UploadResult(new TaskOutputExecutionContext(task, apis));
+            await UploadResult(new TaskOutputExecutionContext(task, TaskHandlerList.GetOutputHandler(task), apis));
         }
         else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
 

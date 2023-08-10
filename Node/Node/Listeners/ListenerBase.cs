@@ -16,14 +16,16 @@ public abstract class ListenerBase
 {
     static readonly List<ListenerBase> Listeners = new();
 
-    protected readonly Logger _logger = LogManager.GetCurrentClassLogger();
-
     protected virtual string? Prefix => null;
     protected abstract ListenTypes ListenType { get; }
     protected virtual bool RequiresAuthentication => false;
 
+    protected readonly ILogger Logger;
+
     int StartIndex = 0;
     HttpListener? Listener;
+
+    protected ListenerBase(ILogger logger) => Logger = logger;
 
     public void Start() => _Start(true);
     void _Start(bool firsttime)
@@ -48,12 +50,12 @@ public abstract class ListenerBase
         Listener = new();
         foreach (var prefix in prefixes)
             Listener.Prefixes.Add(prefix);
-        _logger.Info($"{(firsttime ? null : "(re)")}Starting HTTP {GetType().Name} on {string.Join(", ", prefixes)}");
+        Logger.Info($"{(firsttime ? null : "(re)")}Starting HTTP {GetType().Name} on {string.Join(", ", prefixes)}");
 
         try { Listener.Start(); }
         catch (Exception ex) when (firsttime && Initializer.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            _logger.Error($"Could not start HttpListener: {ex.Message}, bypassing...");
+            Logger.Error($"Could not start HttpListener: {ex.Message}, bypassing...");
 
             var args = string.Join(';', prefixes.Select(p => $"netsh http add urlacl url={p} user={WindowsIdentity.GetCurrent().Name}"));
             using (var proc = Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{args}\"") { UseShellExecute = true, Verb = "runas", }).ThrowIfNull("Could not bypass httplistener rights: {0}"))
@@ -91,7 +93,7 @@ public abstract class ListenerBase
                         }
                         catch (Exception ex)
                         {
-                            _logger.Error(ex.ToString());
+                            Logger.Error(ex.ToString());
                             await WriteErr(context.Response, ex.Message).ConfigureAwait(false);
 
                             context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
@@ -99,7 +101,7 @@ public abstract class ListenerBase
                         }
                     });
                 }
-                catch (Exception ex) { _logger.Error(ex.ToString()); }
+                catch (Exception ex) { Logger.Error(ex.ToString()); }
             }
         })
         { IsBackground = true }.Start();
@@ -161,7 +163,7 @@ public abstract class ListenerBase
     }
 
 
-    protected void LogRequest(HttpListenerRequest request) => _logger.Trace(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
+    protected void LogRequest(HttpListenerRequest request) => Logger.Trace(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
     protected static Task<HttpStatusCode> WriteSuccess(HttpListenerResponse response) => _Write(response, JsonApi.Success());
     protected static Task<HttpStatusCode> WriteJson<T>(HttpListenerResponse response, in OperationResult<T> result) => _Write(response, JsonApi.JsonFromOpResult(result));
     protected static Task<HttpStatusCode> WriteJson(HttpListenerResponse response, in OperationResult result) => _Write(response, JsonApi.JsonFromOpResult(result));

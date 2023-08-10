@@ -1,15 +1,17 @@
-using System.Diagnostics;
 using System.Management.Automation;
 
 namespace Node.Plugins;
 
 public class PluginDeployer
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-
     readonly IInstalledPluginsProvider InstalledPlugins;
+    readonly ILogger Logger;
 
-    public PluginDeployer(IInstalledPluginsProvider installedPlugins) => InstalledPlugins = installedPlugins;
+    public PluginDeployer(IInstalledPluginsProvider installedPlugins, ILogger<PluginDeployer> logger)
+    {
+        InstalledPlugins = installedPlugins;
+        Logger = logger;
+    }
 
 
     /// <param name="version"> Plugin version or null if any </param>
@@ -43,14 +45,14 @@ public class PluginDeployer
     /// <remarks> Deploys even if installed </remarks>
     public void Deploy(PluginType type, PluginVersion version, SoftwareInstallation installation)
     {
-        Logger.Info($"Installing {type} {version}");
+        Logger.LogInformation($"Installing {type} {version}");
 
         if (installation.Script is not null)
             InstallWithPowershell(type, version, installation.Script);
         if (installation.CondaEnvInfo is not null)
             InstallWithConda(type, version, installation.CondaEnvInfo);
 
-        Logger.Info($"Installed {type} {version}");
+        Logger.LogInformation($"Installed {type} {version}");
     }
 
     static void InstallWithPowershell(PluginType type, PluginVersion version, string script)

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac" Version="7.0.1" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.PowerShell.Sdk" Version="7.3.4" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="5.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\NodeCommon\NodeCommon.csproj" />
+    <ProjectReference Include="..\..\Benchmark\Benchmark.csproj" />
+    <ProjectReference Include="..\..\Machine\Machine.csproj" />
+    <ProjectReference Include="..\..\Transport\Transport.csproj" />
+    <ProjectReference Include="..\..\_3DProductsPublish\_3DProductsPublish.csproj" />
+
+    <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
+    <ProjectReference Include="..\Node.Tasks\Node.Tasks.csproj" />
+    <ProjectReference Include="..\Node.Plugins\Node.Plugins.csproj" />
+  </ItemGroup>
+
+</Project>

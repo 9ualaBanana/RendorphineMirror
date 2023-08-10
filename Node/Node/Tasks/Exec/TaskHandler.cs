@@ -1,34 +1,35 @@
-using System.Runtime.Serialization;
-
 namespace Node.Tasks.Exec;
 
-public static class TaskHandler
+public class TaskHandler
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    public required IPlacedTasksStorage PlacedTasks { get; init; }
+    public required IQueuedTasksStorage QueuedTasks { get; init; }
+    public required ICompletedTasksStorage CompletedTasks { get; init; }
+    public required IWatchingTasksStorage WatchingTasks { get; init; }
+    public required PluginManager PluginManager { get; init; }
+    public required NodeCommon.Apis Api { get; init; }
+    public required NodeGlobalState NodeGlobalState { get; init; }
+    public required TaskHandlerList TaskHandlerList { get; init; }
+    public required WatchingTaskHandler WatchingTaskHandler { get; init; }
+    public required TaskExecutor TaskExecutor { get; init; }
+    public required ILogger<TaskHandler> Logger { get; init; }
 
-    public static IEnumerable<ITaskInputHandler> InputHandlerList => InputHandlers.Values;
-    public static IEnumerable<ITaskOutputHandler> OutputHandlerList => OutputHandlers.Values;
 
-    static readonly Dictionary<TaskInputType, ITaskInputHandler> InputHandlers = new();
-    static readonly Dictionary<TaskOutputType, ITaskOutputHandler> OutputHandlers = new();
-    static readonly Dictionary<WatchingTaskInputType, Func<WatchingTask, IWatchingTaskInputHandler>> WatchingHandlers = new();
-
-
-    public static async Task InitializePlacedTasksAsync()
+    public async Task InitializePlacedTasksAsync()
     {
         NodeCommon.Tasks.TaskRegistration.TaskRegistered += task => UploadInputFiles(task).Consume();
-        await Task.WhenAll(NodeSettings.PlacedTasks.Values.ToArray().Select(UploadInputFiles));
+        await Task.WhenAll(PlacedTasks.PlacedTasks.Values.ToArray().Select(UploadInputFiles));
 
 
-        static async Task UploadInputFiles(DbTaskFullState task)
+        async Task UploadInputFiles(DbTaskFullState task)
         {
             while (true)
             {
                 var timeout = DateTime.Now.AddMinutes(5);
                 while (timeout > DateTime.Now)
                 {
-                    var state = await Apis.Default.WithNoErrorLog().GetTaskStateAsync(task);
-                    NodeSettings.PlacedTasks.Save(task);
+                    var state = await Api.WithNoErrorLog().GetTaskStateAsync(task);
+                    PlacedTasks.PlacedTasks.Save(task);
                     if (task.State.IsFinished()) return;
 
                     if (state && state.Value is not null)
@@ -45,7 +46,7 @@ public static class TaskHandler
 
                 try
                 {
-                    await task.GetInputHandler().UploadInputFiles(task);
+                    await TaskHandlerList.GetInputHandler(task).UploadInputFiles(task);
                     return;
                 }
                 catch (Exception ex)
@@ -57,24 +58,24 @@ public static class TaskHandler
         }
     }
 
-    /// <summary> Subscribes to <see cref="NodeSettings.QueuedTasks"/> and starts all the tasks from it </summary>
-    public static void StartListening(PluginManager pluginManager)
+    /// <summary> Subscribes to <see cref="QueuedTasks.QueuedTasks"/> and starts all the tasks from it </summary>
+    public void StartListening()
     {
         new Thread(async () =>
         {
             while (true)
             {
                 await Task.Delay(2_000);
-                if (NodeSettings.QueuedTasks.Count == 0) continue;
+                if (QueuedTasks.QueuedTasks.Count == 0) continue;
 
-                foreach (var task in NodeSettings.QueuedTasks.Values.ToArray())
-                    HandleAsync(task, pluginManager).Consume();
+                foreach (var task in QueuedTasks.QueuedTasks.Values.ToArray())
+                    HandleAsync(task).Consume();
             }
         })
         { IsBackground = true }.Start();
     }
     /// <summary> Polls all non-finished placed tasks, sets their state to Finished, Canceled, Failed if needed </summary>
-    public static void StartUpdatingPlacedTasks()
+    public void StartUpdatingPlacedTasks()
     {
         var scguid = null as string;
 
@@ -93,27 +94,27 @@ public static class TaskHandler
 
         async ValueTask checkAll()
         {
-            if (NodeSettings.PlacedTasks.Count == 0) return;
+            if (PlacedTasks.PlacedTasks.Count == 0) return;
 
-            var copy = NodeSettings.PlacedTasks.Values.ToArray();
+            var copy = PlacedTasks.PlacedTasks.Values.ToArray();
             var emptysharded = copy.Where(x => x.HostShard is null).ToArray();
-            await Apis.Default.UpdateTaskShardsAsync(emptysharded).ThrowIfError();
+            await Api.UpdateTaskShardsAsync(emptysharded).ThrowIfError();
 
             foreach (var es in emptysharded)
-                NodeSettings.PlacedTasks.Save(es);
+                PlacedTasks.PlacedTasks.Save(es);
 
             copy = copy.Where(x => x.HostShard is not null).ToArray();
 
             var checkedtasks = new List<string>();
             foreach (var group in copy.GroupBy(x => x.HostShard))
             {
-                var act = await Apis.Default.GetTasksOnShardAsync(group.Key!).ThrowIfError();
+                var act = await Api.GetTasksOnShardAsync(group.Key!).ThrowIfError();
                 if (scguid is null) scguid = act.ScGuid;
                 else if (scguid != act.ScGuid)
                 {
                     scguid = act.ScGuid;
                     Logger.Info($"!! Task configuration changed ({act.ScGuid}), resetting all task shards...");
-                    foreach (var task in NodeSettings.PlacedTasks)
+                    foreach (var task in PlacedTasks.PlacedTasks)
                         task.Value.HostShard = null;
 
                     return;
@@ -126,7 +127,7 @@ public static class TaskHandler
 
                 async ValueTask process(TaskState state, ImmutableArray<TMTaskStateInfo> tasks)
                 {
-                    var changed = tasks.Where(x => NodeSettings.PlacedTasks.TryGetValue(x.Id, out var task) && task.State != state).Select(x => x.Id).ToArray();
+                    var changed = tasks.Where(x => PlacedTasks.PlacedTasks.TryGetValue(x.Id, out var task) && task.State != state).Select(x => x.Id).ToArray();
                     if (changed.Length != 0)
                         Logger.Info($"Tasks changed to {state}: {string.Join(", ", changed)}");
 
@@ -136,14 +137,14 @@ public static class TaskHandler
                 }
             }
 
-            var finished = await Apis.Default.GetFinishedTasksStatesAsync(copy.Select(x => x.Id).Except(checkedtasks)).ThrowIfError();
+            var finished = await Api.GetFinishedTasksStatesAsync(copy.Select(x => x.Id).Except(checkedtasks)).ThrowIfError();
             foreach (var (id, state) in finished)
                 await processTask(id, state, null);
 
 
             async ValueTask processTask(string taskid, ITaskStateInfo state, TaskState? newstate)
             {
-                if (!NodeSettings.PlacedTasks.TryGetValue(taskid, out var task)) return;
+                if (!PlacedTasks.PlacedTasks.TryGetValue(taskid, out var task)) return;
 
                 task.State = newstate ?? task.State;
                 task.Populate(state);
@@ -174,7 +175,7 @@ public static class TaskHandler
                 return;
             }
 
-            var handler = task.GetOutputHandler();
+            var handler = TaskHandlerList.GetOutputHandler(task);
             var completed = await handler.CheckCompletion(task);
             if (!completed) return;
 
@@ -185,12 +186,12 @@ public static class TaskHandler
         bool remove(DbTaskFullState task, string? errmsg)
         {
             task.LogInfo($"{task.State}, removing" + (errmsg is null ? null : $" ({errmsg})"));
-            NodeSettings.PlacedTasks.Remove(task);
+            PlacedTasks.PlacedTasks.Remove(task);
 
-            foreach (var wtask in NodeSettings.WatchingTasks.Values.ToArray())
+            foreach (var wtask in WatchingTasks.WatchingTasks.Values.ToArray())
             {
                 wtask.PlacedNonCompletedTasks.Remove(task.Id);
-                NodeSettings.WatchingTasks.Save(wtask);
+                WatchingTasks.WatchingTasks.Save(wtask);
             }
 
             if (errmsg?.Contains("There is no such user.", StringComparison.Ordinal) == true)
@@ -200,12 +201,12 @@ public static class TaskHandler
                 {
                     task.LogWarn($"Found nonexistent user {tuid}, hiding");
 
-                    foreach (var wtask in NodeSettings.WatchingTasks.Values.ToArray())
+                    foreach (var wtask in WatchingTasks.WatchingTasks.Values.ToArray())
                     {
                         if (wtask.Source is MPlusAllFilesWatchingTaskHandler handler)
                             handler.NonexistentUsers.Add(tuid);
 
-                        NodeSettings.WatchingTasks.Save(wtask);
+                        WatchingTasks.WatchingTasks.Save(wtask);
                     }
                 }
             }
@@ -214,43 +215,43 @@ public static class TaskHandler
         }
     }
 
-    public static void StartWatchingTasks()
+    public void StartWatchingTasks()
     {
-        foreach (var task in NodeSettings.WatchingTasks.Values)
-            task.StartWatcher();
+        foreach (var task in WatchingTasks.WatchingTasks.Values)
+            WatchingTaskHandler.StartWatcher(task);
     }
 
 
-    static async Task HandleAsync(ReceivedTask task, PluginManager pluginManager, CancellationToken cancellationToken = default)
+    async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         if (task is null)
         {
             // i dont even know
-            NodeGlobalState.Instance.QueuedTasks.Remove(task!);
+            NodeGlobalState.QueuedTasks.Remove(task!);
             return;
         }
 
-        if (NodeGlobalState.Instance.ExecutingTasks.Contains(task))
+        if (NodeGlobalState.ExecutingTasks.Contains(task))
             return;
 
         if (await isFinishedOnServer())
         {
             task.LogInfo($"{task.State}, removing");
-            NodeSettings.QueuedTasks.Remove(task);
+            QueuedTasks.QueuedTasks.Remove(task);
 
             return;
         }
 
         const int maxattempts = 3;
-        lock (NodeGlobalState.Instance.ExecutingTasks)
+        lock (NodeGlobalState.ExecutingTasks)
         {
-            if (NodeGlobalState.Instance.ExecutingTasks.Contains(task))
+            if (NodeGlobalState.ExecutingTasks.Contains(task))
                 return;
 
-            NodeGlobalState.Instance.ExecutingTasks.Add(task);
+            NodeGlobalState.ExecutingTasks.Add(task);
         }
 
-        using var _ = new FuncDispose(() => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
+        using var _ = new FuncDispose(() => NodeGlobalState.ExecutingTasks.Remove(task));
         task.LogInfo($"Execution started");
 
         var lastexception = null as Exception;
@@ -260,20 +261,20 @@ public static class TaskHandler
             try
             {
                 var starttime = DateTimeOffset.Now;
-                await TaskExecutor.Execute(task, pluginManager).ConfigureAwait(false);
+                await TaskExecutor.Execute(task, PluginManager).ConfigureAwait(false);
 
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
 
-                NodeSettings.CompletedTasks.Remove(task.Id);
-                NodeSettings.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt });
+                CompletedTasks.CompletedTasks.Remove(task.Id);
+                CompletedTasks.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt });
 
                 task.LogInfo($"Completed, removing");
 
                 task.LogInfo($"Deleting {task.FSDataDirectory()}");
                 Directory.Delete(task.FSDataDirectory(), true);
 
-                NodeSettings.QueuedTasks.Remove(task);
+                QueuedTasks.QueuedTasks.Remove(task);
                 return;
             }
             catch (NodeTaskFailedException ex)
@@ -304,7 +305,7 @@ public static class TaskHandler
             Directory.Delete(task.FSOutputDirectory(), true);
             */
 
-            NodeSettings.QueuedTasks.Remove(task);
+            QueuedTasks.QueuedTasks.Remove(task);
         }
         async ValueTask<bool> isFinishedOnServer()
         {
@@ -330,43 +331,4 @@ public static class TaskHandler
             return finished;
         }
     }
-
-    public static void AutoInitializeHandlers()
-    {
-        var types = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(ass => ass.GetTypes())
-            .Where(x => x.IsAssignableTo(typeof(ITaskHandler)))
-            .Where(x => x.IsClass && !x.IsAbstract);
-
-        foreach (var type in types)
-            AddHandler(type);
-    }
-    public static void AddHandler(Type type)
-    {
-        if (type.IsAssignableTo(typeof(ITaskInputHandler)))
-        {
-            var handler = (ITaskInputHandler) Activator.CreateInstance(type)!;
-            InputHandlers[handler.Type] = handler;
-        }
-        if (type.IsAssignableTo(typeof(ITaskOutputHandler)))
-        {
-            var handler = (ITaskOutputHandler) Activator.CreateInstance(type)!;
-            OutputHandlers[handler.Type] = handler;
-        }
-        if (type.IsAssignableTo(typeof(IWatchingTaskInputHandler)))
-        {
-            // FormatterServices.GetSafeUninitializedObject is being used to create valid object for getting only the .Type property
-            // since all IWatchingTaskInputHandler object implement Type property using `=>` and not `{ get; } =`
-
-            WatchingHandlers[((IWatchingTaskInputHandler) FormatterServices.GetSafeUninitializedObject(type)).Type] =
-                task => (IWatchingTaskInputHandler) Activator.CreateInstance(type, new object?[] { task })!;
-        }
-    }
-
-
-    public static ITaskInputHandler GetInputHandler(this TaskBase task) => task.Input.Type.GetHandler();
-    public static ITaskOutputHandler GetOutputHandler(this TaskBase task) => task.Output.Type.GetHandler();
-    public static ITaskInputHandler GetHandler(this TaskInputType type) => InputHandlers[type];
-    public static ITaskOutputHandler GetHandler(this TaskOutputType type) => OutputHandlers[type];
-    public static IWatchingTaskInputHandler CreateWatchingHandler(this WatchingTask task) => WatchingHandlers[task.Source.Type](task);
 }

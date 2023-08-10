@@ -7,6 +7,8 @@ public class DirectDownloadListener : ExecutableListenerBase
 {
     static Dictionary<string, TaskCompletionSource> TasksToReceive = new();
 
+    public DirectDownloadListener(ILogger<DirectDownloadListener> logger) : base(logger) { }
+
     protected override ListenTypes ListenType => ListenTypes.Public;
     protected override string? Prefix => "rphtaskexec/downloadoutput";
 

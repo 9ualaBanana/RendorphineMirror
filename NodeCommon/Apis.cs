@@ -5,7 +5,7 @@ namespace NodeCommon;
 public partial record Apis(Api Api, string SessionId, bool LogErrors = true)
 {
     public const string RegistryUrl = "https://t.microstock.plus:7898";
-    const string TaskManagerEndpoint = Common.Api.TaskManagerEndpoint;
+    public string TaskManagerEndpoint => Common.Api.TaskManagerEndpoint;
 
 
     public static Apis DefaultWithSessionId(string sid, CancellationToken token = default) => new(Common.Api.Default with { CancellationToken = token }, sid);
