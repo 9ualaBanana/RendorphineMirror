@@ -47,14 +47,14 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
                 data = new[]
                 {
                     ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString()),
-                    ("minver", QSPreviewTaskHandlerInfo.Version)
+                    ("minver", QSPreview.Version)
                 };
             else
                 data = new[]
                 {
                     ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString()),
                     ("userids", JsonConvert.SerializeObject(userids)),
-                    ("minver", QSPreviewTaskHandlerInfo.Version)
+                    ("minver", QSPreview.Version)
                 };
 
             return Api.Default.ApiGet<ImmutableArray<QwertyStockItem>>(

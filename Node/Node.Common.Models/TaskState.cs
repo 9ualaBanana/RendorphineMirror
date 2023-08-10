@@ -1,7 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-
-namespace NodeCommon.Tasks;
+﻿namespace Node.Common.Models;
 
 [JsonConverter(typeof(StringEnumConverter))]
 public enum TaskState

@@ -20,14 +20,8 @@ public class TaskExecutor
     }
 
 
-    readonly ILifetimeScope LifetimeScope;
-    readonly ILogger Logger;
-
-    public TaskExecutor(ILifetimeScope lifetimeScope, ILogger<TaskExecutor> logger)
-    {
-        LifetimeScope = lifetimeScope;
-        Logger = logger;
-    }
+    public required ILifetimeScope LifetimeScope { get; init; }
+    public required ILogger<TaskExecutor> Logger { get; init; }
 
 
     /// <summary> Ensures all input/active/output types are compatible </summary>
@@ -48,6 +42,7 @@ public class TaskExecutor
             builder.RegisterInstance(task)
                 .As<IRegisteredTask>()
                 .As<IRegisteredTaskApi>()
+                .As<IMPlusTask>()
                 .SingleInstance();
 
             builder.Register(ctx => new ThrottledProgressSetter(5, new TaskProgressSetter(ctx.Resolve<NodeCommon.Apis>(), task)))
@@ -154,9 +149,9 @@ public class TaskExecutor
     class TaskProgressSetter : IProgressSetter
     {
         readonly NodeCommon.Apis Api;
-        readonly ReceivedTask Task;
+        readonly IMPlusTask Task;
 
-        public TaskProgressSetter(NodeCommon.Apis api, ReceivedTask task)
+        public TaskProgressSetter(NodeCommon.Apis api, IMPlusTask task)
         {
             Api = api;
             Task = task;
@@ -164,7 +159,7 @@ public class TaskExecutor
 
         public void Set(double progress)
         {
-            Task.Progress = progress;
+            if (Task is ReceivedTask rt) rt.Progress = progress;
             Api.SendTaskProgressAsync(Task).Consume();
         }
     }

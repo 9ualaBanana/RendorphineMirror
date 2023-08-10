@@ -1,5 +1,6 @@
 global using System.Collections.Immutable;
 global using Autofac;
+global using Autofac.Features.Indexed;
 global using Common;
 global using Machine;
 global using Microsoft.Extensions.Logging;

@@ -3,19 +3,6 @@
 namespace NodeCommon.Tasks;
 
 /// <summary>
-/// Task that has a unique <see cref="Id"/>.
-/// </summary>
-public interface IRegisteredTask
-{
-    public string Id { get; }
-}
-
-public interface IRegisteredTaskApi : IRegisteredTask, ILoggable
-{
-    string? HostShard { get; set; }
-}
-
-/// <summary>
 /// <see cref="IRegisteredTask"/> with known <see cref="Action"/>.
 /// </summary>
 public interface ITypedRegisteredTask : IRegisteredTask
