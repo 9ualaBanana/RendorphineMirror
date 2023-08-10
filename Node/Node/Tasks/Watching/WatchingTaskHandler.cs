@@ -7,7 +7,7 @@ public abstract class WatchingTaskHandler<TInput> : IWatchingTaskInputHandler wh
 
     public required NodeTaskRegistration TaskRegistration { get; init; }
 
-    [JsonIgnore] public WatchingTask Task { get; }
+    [JsonIgnore] public required WatchingTask Task { get; init; }
     [JsonIgnore] protected TInput Input => (TInput) Task.Source;
 
     protected WatchingTaskHandler(WatchingTask task) => Task = task;

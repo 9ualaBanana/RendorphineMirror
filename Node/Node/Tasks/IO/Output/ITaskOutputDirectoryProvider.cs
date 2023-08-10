@@ -1,4 +1,4 @@
-namespace Node.Tasks.IO;
+namespace Node.Tasks.IO.Output;
 
 public interface ITaskOutputDirectoryProvider
 {

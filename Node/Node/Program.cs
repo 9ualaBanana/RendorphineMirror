@@ -12,7 +12,6 @@ global using Node.Plugins.Models;
 global using Node.Registry;
 global using Node.Tasks;
 global using Node.Tasks.Exec;
-global using Node.Tasks.Handlers;
 global using Node.Tasks.IO;
 global using Node.Tasks.IO.Input;
 global using Node.Tasks.IO.Output;

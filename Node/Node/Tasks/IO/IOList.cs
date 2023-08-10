@@ -52,6 +52,13 @@ public static class IOList
         builder.Register<TCH, ITaskCompletionHandler>(TCH.Type);
     }
 
+    static void RegisterWatchingInput<T>(this ContainerBuilder builder)
+        where T : IWatchingTaskInputHandler
+    {
+
+    }
+
+
     public static void RegisterAll(ContainerBuilder builder)
     {
         builder.RegisterInput<DirectUpload.InputDownloader, DirectUpload.TaskObjectProvider, DirectUpload.InputUploader>();
