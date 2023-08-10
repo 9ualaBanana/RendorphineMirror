@@ -1,5 +1,5 @@
-using Node.Tasks.IO.GHandlers.Input;
-using Node.Tasks.IO.GHandlers.Output;
+using Node.Tasks.IO.Handlers.Input;
+using Node.Tasks.IO.Handlers.Output;
 
 namespace Node.Tasks.IO;
 
@@ -56,15 +56,15 @@ public static class IOList
     {
         builder.RegisterInput<DirectUpload.InputDownloader, DirectUpload.TaskObjectProvider, DirectUpload.InputUploader>();
         builder.RegisterInput<DownloadLink.InputDownloader, DownloadLink.TaskObjectProvider>();
-        builder.RegisterInput<GHandlers.Input.MPlus.InputDownloader, GHandlers.Input.MPlus.TaskObjectProvider>();
+        builder.RegisterInput<Handlers.Input.MPlus.InputDownloader, Handlers.Input.MPlus.TaskObjectProvider>();
         builder.RegisterInput<Stub.InputDownloader, Stub.TaskObjectProvider>();
-        builder.RegisterInput<GHandlers.Input.TitleKeywords.InputDownloader, GHandlers.Input.TitleKeywords.TaskObjectProvider>();
-        builder.RegisterInput<GHandlers.Input.Torrent.InputDownloader, GHandlers.Input.Torrent.TaskObjectProvider, GHandlers.Input.Torrent.InputUploader>();
+        builder.RegisterInput<Handlers.Input.TitleKeywords.InputDownloader, Handlers.Input.TitleKeywords.TaskObjectProvider>();
+        builder.RegisterInput<Handlers.Input.Torrent.InputDownloader, Handlers.Input.Torrent.TaskObjectProvider, Handlers.Input.Torrent.InputUploader>();
 
         builder.RegisterOutput<DirectDownload.UploadHandler, DirectDownload.CompletionChecker, DirectDownload.CompletionHandler>();
-        builder.RegisterOutput<GHandlers.Output.MPlus.UploadHandler, GHandlers.Output.MPlus.CompletionChecker>();
+        builder.RegisterOutput<Handlers.Output.MPlus.UploadHandler, Handlers.Output.MPlus.CompletionChecker>();
         builder.RegisterOutput<QSPreview.UploadHandler, QSPreview.CompletionChecker>();
-        builder.RegisterOutput<GHandlers.Output.TitleKeywords.UploadHandler>();
-        builder.RegisterOutput<GHandlers.Output.Torrent.UploadHandler, GHandlers.Output.Torrent.CompletionChecker, GHandlers.Output.Torrent.CompletionHandler>();
+        builder.RegisterOutput<Handlers.Output.TitleKeywords.UploadHandler>();
+        builder.RegisterOutput<Handlers.Output.Torrent.UploadHandler, Handlers.Output.Torrent.CompletionChecker, Handlers.Output.Torrent.CompletionHandler>();
     }
 }

@@ -1,6 +1,6 @@
 using MonoTorrent;
 
-namespace Node.Tasks.IO.GHandlers.Input;
+namespace Node.Tasks.IO.Handlers.Input;
 
 public static class Torrent
 {

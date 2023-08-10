@@ -3,64 +3,30 @@ using Node.Listeners;
 
 namespace Node;
 
+#pragma warning disable CA1707
+
 /// <summary> A modular collection of classes to require to start the node. </summary>
 public static class ServiceTargets
 {
-    public class BaseMain
-    {
-        public required UI UI { get; init; }
-        public required ReadyToExecuteTasks ReadyToExecuteTasks { get; init; }
-    }
-    public class DebugMain
-    {
-        public required BaseMain Base { get; init; }
-        public required Debug Debug { get; init; }
-    }
-    public class ReleaseMain
-    {
-        public required BaseMain Base { get; init; }
-        public required ConnectedToMPlus ConnectedToMPlus { get; init; }
-        public required PublicListeners PublicListeners { get; init; }
-        public required ReadyToReceiveTasks ReadyToReceiveTasks { get; init; }
+    public record BaseMain(UI UI, ReadyToExecuteTasks ReadyToExecuteTasks);
 
-        public required AutoCleanup AutoCleanup { get; init; }
-    }
-    public class PublishMain
-    {
-        public required ReleaseMain Base { get; init; }
+    public record DebugMain(BaseMain Base, Debug Debug);
 
-        public required SystemTimerStartedTarget SystemTimerStartedTarget { get; init; }
-    }
+    public record ReleaseMain(BaseMain Base, ConnectedToMPlus ConnectedToMPlus, PublicListeners PublicListeners, ReadyToReceiveTasks ReadyToReceiveTasks, AutoCleanup AutoCleanup);
+
+    public record PublishMain(ReleaseMain Base, SystemTimerStartedTarget SystemTimerStartedTarget);
 
 
     /// <summary> Target to connect to the task server </summary>
-    public class ConnectedToMPlus
-    {
-        public ConnectedToMPlus(ReconnectTarget _1, PortForwarder _2, MPlusHeartbeat _3, UserSettingsHeartbeat _4, TelegramBotHeartbeat _5) { }
-    }
+    public record ConnectedToMPlus(ReconnectTarget _1, PortForwarder _2, MPlusHeartbeat _3, UserSettingsHeartbeat _4, TelegramBotHeartbeat _5);
 
     /// <summary> Target to enable Node.UI support </summary>
-    public class UI
-    {
-        public UI(LocalListener _1, NodeStateListener _2, NodeGlobalStateInitializedTarget _3) { }
-    }
+    public record UI(LocalListener _1, NodeStateListener _2, NodeGlobalStateInitializedTarget _3);
 
-    public class PublicListeners
-    {
-        public PublicListeners(DownloadListener _1, PublicListener _2, PublicPagesListener _3, DirectoryDiffListener _4) { }
-    }
+    public record PublicListeners(DownloadListener _1, PublicListener _2, PublicPagesListener _3, DirectoryDiffListener _4);
 
-    public class ReadyToExecuteTasks
-    {
-        public ReadyToExecuteTasks(TaskHandler _1) { }
-    }
-    public class ReadyToReceiveTasks
-    {
-        public ReadyToReceiveTasks(TaskReceiver _1, DirectUploadListener _2, DirectDownloadListener _3) { }
-    }
+    public record ReadyToExecuteTasks(TaskHandler _1);
+    public record ReadyToReceiveTasks(TaskReceiver _1, DirectUploadListener _2, DirectDownloadListener _3);
 
-    public class Debug
-    {
-        public Debug(DebugListener _1) { }
-    }
+    public record Debug(DebugListener _1);
 }

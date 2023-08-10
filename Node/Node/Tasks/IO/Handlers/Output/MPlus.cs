@@ -1,6 +1,6 @@
 using Transport.Upload;
 
-namespace Node.Tasks.IO.GHandlers.Output;
+namespace Node.Tasks.IO.Handlers.Output;
 
 public static class MPlus
 {
