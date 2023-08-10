@@ -152,7 +152,7 @@ public class TaskHandler
                     task.Populate(await task.GetTaskStateAsyncOrThrow().ThrowIfError());
 
                 try { await check(task, (state as TMOldTaskStateInfo)?.ErrMsg); }
-                catch (NodeTaskFailedException ex)
+                catch (TaskFailedException ex)
                 {
                     await task.ChangeStateAsync(TaskState.Canceled).ThrowIfError();
                     remove(task, ex.Message);
@@ -298,7 +298,7 @@ public class TaskHandler
                 QueuedTasks.QueuedTasks.Remove(task);
                 return;
             }
-            catch (NodeTaskFailedException ex)
+            catch (TaskFailedException ex)
             {
                 await fail(ex.Message, $"{ex.FullError}; at {ex.TargetSite}; {ex}");
                 return;
