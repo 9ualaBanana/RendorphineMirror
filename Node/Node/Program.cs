@@ -17,6 +17,7 @@ global using Node.Tasks.IO.Input;
 global using Node.Tasks.IO.Output;
 global using Node.Tasks.Models;
 global using Node.Tasks.Watching;
+global using Node.Tasks.Watching.Input;
 global using NodeCommon;
 global using NodeCommon.ApiModel;
 global using NodeCommon.Tasks;

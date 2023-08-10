@@ -1,3 +1,5 @@
+using Node.Tasks.Watching.Handlers.Input;
+
 namespace Node.Tasks.Exec;
 
 public class TaskHandler
@@ -204,7 +206,7 @@ public class TaskHandler
 
                     foreach (var wtask in WatchingTasks.WatchingTasks.Values.ToArray())
                     {
-                        if (wtask.Source is MPlusAllFilesWatchingTaskHandler handler)
+                        if (wtask.Source is MPlusAllFilesWatchingTaskInputInfo handler)
                             handler.NonexistentUsers.Add(tuid);
 
                         WatchingTasks.WatchingTasks.Save(wtask);
@@ -226,7 +228,6 @@ public class TaskHandler
         Logger.LogInformation($"Watcher started; Data: {JsonConvert.SerializeObject(task, Init.DebugFeatures ? JsonSettings.Typed : new JsonSerializerSettings())}");
 
         var handler = CreateWatchingHandler(task);
-        task.Handler = handler;
         handler.StartListening();
 
 

@@ -1,7 +1,11 @@
 using Node.Tasks.IO.Handlers.Input;
 using Node.Tasks.IO.Handlers.Output;
+using Node.Tasks.Watching.Handlers.Input;
+using IN = Node.Tasks.IO.Handlers.Input;
+using IWatchingTaskInputHandler = Node.Tasks.Watching.Input.IWatchingTaskInputHandler;
+using OUT = Node.Tasks.IO.Handlers.Output;
 
-namespace Node.Tasks.IO;
+namespace Node.Tasks;
 
 public static class IOList
 {
@@ -53,9 +57,9 @@ public static class IOList
     }
 
     static void RegisterWatchingInput<T>(this ContainerBuilder builder)
-        where T : IWatchingTaskInputHandler
+        where T : IWatchingTaskInputHandler, ITypedTaskWatchingInput
     {
-
+        builder.Register<T, IWatchingTaskInputHandler>(T.Type);
     }
 
 
@@ -63,15 +67,20 @@ public static class IOList
     {
         builder.RegisterInput<DirectUpload.InputDownloader, DirectUpload.TaskObjectProvider, DirectUpload.InputUploader>();
         builder.RegisterInput<DownloadLink.InputDownloader, DownloadLink.TaskObjectProvider>();
-        builder.RegisterInput<Handlers.Input.MPlus.InputDownloader, Handlers.Input.MPlus.TaskObjectProvider>();
+        builder.RegisterInput<IN.MPlus.InputDownloader, IN.MPlus.TaskObjectProvider>();
         builder.RegisterInput<Stub.InputDownloader, Stub.TaskObjectProvider>();
-        builder.RegisterInput<Handlers.Input.TitleKeywords.InputDownloader, Handlers.Input.TitleKeywords.TaskObjectProvider>();
-        builder.RegisterInput<Handlers.Input.Torrent.InputDownloader, Handlers.Input.Torrent.TaskObjectProvider, Handlers.Input.Torrent.InputUploader>();
+        builder.RegisterInput<IN.TitleKeywords.InputDownloader, IN.TitleKeywords.TaskObjectProvider>();
+        builder.RegisterInput<IN.Torrent.InputDownloader, IN.Torrent.TaskObjectProvider, IN.Torrent.InputUploader>();
 
         builder.RegisterOutput<DirectDownload.UploadHandler, DirectDownload.CompletionChecker, DirectDownload.CompletionHandler>();
-        builder.RegisterOutput<Handlers.Output.MPlus.UploadHandler, Handlers.Output.MPlus.CompletionChecker>();
+        builder.RegisterOutput<OUT.MPlus.UploadHandler, OUT.MPlus.CompletionChecker>();
         builder.RegisterOutput<QSPreview.UploadHandler, QSPreview.CompletionChecker>();
-        builder.RegisterOutput<Handlers.Output.TitleKeywords.UploadHandler>();
-        builder.RegisterOutput<Handlers.Output.Torrent.UploadHandler, Handlers.Output.Torrent.CompletionChecker, Handlers.Output.Torrent.CompletionHandler>();
+        builder.RegisterOutput<OUT.TitleKeywords.UploadHandler>();
+        builder.RegisterOutput<OUT.Torrent.UploadHandler, OUT.Torrent.CompletionChecker, OUT.Torrent.CompletionHandler>();
+
+        builder.RegisterWatchingInput<LocalWatchingTaskInputHandler>();
+        builder.RegisterWatchingInput<MPlusWatchingTaskHandler>();
+        builder.RegisterWatchingInput<QSWatchingTaskHandler>();
+        builder.RegisterWatchingInput<OtherUserWatchingTaskHandler>();
     }
 }

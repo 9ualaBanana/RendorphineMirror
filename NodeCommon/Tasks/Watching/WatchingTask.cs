@@ -14,8 +14,6 @@ public class WatchingTask : ILoggable
     public bool IsPaused = false;
     public ImmutableArray<TaskSoftwareRequirement>? SoftwareRequirements { get; init; }
 
-    [JsonIgnore] public IDisposable? Handler;
-
     public readonly List<string> PlacedNonCompletedTasks = new();
 
 #pragma warning disable CS8618 // field are not set

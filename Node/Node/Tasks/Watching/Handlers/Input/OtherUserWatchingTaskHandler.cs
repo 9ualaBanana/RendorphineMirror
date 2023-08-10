@@ -1,15 +1,14 @@
 using System.Web;
 using Node.Listeners;
 
-namespace Node.Tasks.Watching;
+namespace Node.Tasks.Watching.Handlers.Input;
 
-public class OtherUserWatchingTaskHandler : WatchingTaskHandler<OtherUserWatchingTaskInputInfo>
+public class OtherUserWatchingTaskHandler : WatchingTaskInputHandler<OtherUserWatchingTaskInputInfo>, ITypedTaskWatchingInput
 {
-    public override WatchingTaskInputType Type => WatchingTaskInputType.OtherNode;
-
-    public OtherUserWatchingTaskHandler(WatchingTask task) : base(task) { }
+    public static WatchingTaskInputType Type => WatchingTaskInputType.OtherNode;
 
     public override void StartListening() => Start().Consume();
+
     async Task Start()
     {
         var node = await Apis.Default.GetNodeAsync(Input.NodeId).ThrowIfError();
@@ -19,7 +18,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskHandler<OtherUserWatchin
         StartThreadRepeated(60_000, tick);
 
 
-        async ValueTask tick()
+        async Task tick()
         {
             var check = await Api.Default.ApiGet<DirectoryDiffListener.DiffOutput>($"{url}/{path}", "value", "Getting directory diff", ("lastcheck", Input.LastCheck.ToString()));
             check.LogIfError();

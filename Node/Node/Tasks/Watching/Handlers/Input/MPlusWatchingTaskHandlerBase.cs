@@ -1,11 +1,11 @@
-namespace Node.Tasks.Watching;
+namespace Node.Tasks.Watching.Handlers.Input;
 
-public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TData> where TData : IMPlusWatchingTaskInputInfo
+public abstract class MPlusWatchingTaskHandlerBase<TInput> : WatchingTaskInputHandler<TInput>
+    where TInput : IMPlusWatchingTaskInputInfo
 {
-    protected MPlusWatchingTaskHandler(WatchingTask task) : base(task) { }
-
     public override void StartListening() => StartThreadRepeated(60_000, Tick);
-    protected virtual async ValueTask Tick()
+
+    protected virtual async Task Tick()
     {
         var items = (await FetchItemsAsync()).ThrowIfError();
         if (items.Length == 0) return;
@@ -32,9 +32,9 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
 
         if (Task.PlacedNonCompletedTasks.Count == 0) await Tick();
     }
-    protected abstract ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync();
+    protected abstract Task<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync();
 
-    protected virtual async ValueTask TickItem(MPlusNewItem item, TaskObject taskobj)
+    protected virtual async Task TickItem(MPlusNewItem item, TaskObject taskobj)
     {
         var fileName = item.Files.Jpeg.FileName;
         Task.LogInfo($"Adding new file [userid: {item.UserId}; iid: {item.Iid}] {Path.ChangeExtension(fileName, null)}");
@@ -50,6 +50,6 @@ public abstract class MPlusWatchingTaskHandler<TData> : WatchingTaskHandler<TDat
         SaveTask();
     }
 
-    protected virtual async ValueTask<DbTaskFullState> Register(MPlusTaskInputInfo input, ITaskOutputInfo output, TaskObject tobj) =>
+    protected virtual async Task<DbTaskFullState> Register(MPlusTaskInputInfo input, ITaskOutputInfo output, TaskObject tobj) =>
         await TaskRegistration.RegisterAsync(Task, input, output, tobj);
 }

@@ -1,17 +1,13 @@
-using Node.Tasks.IO.Handlers.Output;
 using Node.Tasks.Models.ExecInfo;
 
-namespace Node.Tasks.Watching;
+namespace Node.Tasks.Watching.Handlers.Input;
 
-public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAllFilesWatchingTaskInputInfo>
+public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesWatchingTaskInputInfo>, ITypedTaskWatchingInput
 {
-    public override WatchingTaskInputType Type => WatchingTaskInputType.MPlusAllFiles;
+    public static WatchingTaskInputType Type => WatchingTaskInputType.MPlusAllFiles;
     readonly HashSet<string> ProcessedIids = new();
-    public readonly HashSet<string> NonexistentUsers = new();
 
-    public MPlusAllFilesWatchingTaskHandler(WatchingTask task) : base(task) { }
-
-    protected override async ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync()
+    protected override async Task<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync()
     {
         var qwertykey = File.ReadAllText("qwertykey").Trim();
         var mpluskey = File.ReadAllText("mpluskey").Trim();
@@ -40,21 +36,21 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
 
         ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> getQSItems(IEnumerable<string>? userids)
         {
-            userids = userids?.Except(NonexistentUsers);
+            userids = userids?.Except(Input.NonexistentUsers);
 
             (string, string)[] data;
             if (userids is null)
                 data = new[]
                 {
                     ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString()),
-                    ("minver", QSPreview.Version)
+                    ("minver", IO.Handlers.Output.QSPreview.Version)
                 };
             else
                 data = new[]
                 {
                     ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString()),
                     ("userids", JsonConvert.SerializeObject(userids)),
-                    ("minver", QSPreview.Version)
+                    ("minver", IO.Handlers.Output.QSPreview.Version)
                 };
 
             return Api.Default.ApiGet<ImmutableArray<QwertyStockItem>>(
@@ -68,7 +64,7 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
                 Api.SignRequest(mpluskey, ("userid", userid), ("iids", JsonConvert.SerializeObject(iids))));
     }
 
-    protected override async ValueTask Tick()
+    protected override async Task Tick()
     {
         // fetch new items only if there is less than N ptasks pending
         const int taskFetchingThreshold = 500 - 1;
@@ -80,7 +76,7 @@ public class MPlusAllFilesWatchingTaskHandler : MPlusWatchingTaskHandler<MPlusAl
         await base.Tick();
     }
 
-    protected override async ValueTask<DbTaskFullState> Register(MPlusTaskInputInfo input, ITaskOutputInfo output, TaskObject tobj)
+    protected override async Task<DbTaskFullState> Register(MPlusTaskInputInfo input, ITaskOutputInfo output, TaskObject tobj)
     {
         var qid = await Api.Default.ApiGet<QwertyFileIdResult>($"https://qwertystock.com/search/getiids", null, "getting qs file id",
             Api.SignRequest(File.ReadAllText("qwertykey").Trim(), ("mpiids", JsonConvert.SerializeObject(new[] { input.Iid }))))

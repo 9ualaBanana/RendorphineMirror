@@ -1,17 +1,15 @@
-namespace Node.Tasks.Watching;
+namespace Node.Tasks.Watching.Handlers.Input;
 
-public class LocalWatchingTaskHandler : WatchingTaskHandler<LocalWatchingTaskInputInfo>
+public class LocalWatchingTaskInputHandler : WatchingTaskInputHandler<LocalWatchingTaskInputInfo>, ITypedTaskWatchingInput
 {
-    public override WatchingTaskInputType Type => WatchingTaskInputType.Local;
-
-    public LocalWatchingTaskHandler(WatchingTask task) : base(task) { }
+    public static WatchingTaskInputType Type => WatchingTaskInputType.Local;
 
     public override void StartListening()
     {
         StartThreadRepeated(60_000, tick);
 
 
-        async ValueTask tick()
+        async Task tick()
         {
             var files = System.IO.Directory.GetFiles(Input.Directory, "*", SearchOption.AllDirectories)
                 .Where(x => new DateTimeOffset(File.GetCreationTimeUtc(x)).ToUnixTimeMilliseconds() > Input.LastCheck);
@@ -19,7 +17,7 @@ public class LocalWatchingTaskHandler : WatchingTaskHandler<LocalWatchingTaskInp
             foreach (var file in files)
                 await start(file);
         }
-        async ValueTask start(string file)
+        async Task start(string file)
         {
             if (!File.Exists(file)) return;
 
