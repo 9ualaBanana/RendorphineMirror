@@ -195,9 +195,6 @@ builder.RegisterType<NodeGlobalStateInitializedTarget>()
 builder.RegisterType<NodeTaskRegistration>()
     .SingleInstance();
 
-builder.RegisterType<WatchingTaskHandler>()
-    .SingleInstance();
-
 builder.RegisterType<TaskExecutor>()
     .SingleInstance();
 

@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace Node.Tasks.Watching;
 
 public abstract class WatchingTaskHandler<TInput> : IWatchingTaskInputHandler where TInput : IWatchingTaskInputInfo
@@ -7,7 +5,7 @@ public abstract class WatchingTaskHandler<TInput> : IWatchingTaskInputHandler wh
     public abstract WatchingTaskInputType Type { get; }
     protected readonly CancellationTokenSource CancellationToken = new();
 
-    public required WatchingTaskHandler TaskHandlerList { get; init; }
+    public required NodeTaskRegistration TaskRegistration { get; init; }
 
     [JsonIgnore] public WatchingTask Task { get; }
     [JsonIgnore] protected TInput Input => (TInput) Task.Source;

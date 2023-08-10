@@ -39,7 +39,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskHandler<OtherUserWatchin
                 using (var writer = File.OpenWrite(fsfile))
                     await download.CopyToAsync(writer);
 
-                await TaskHandlerList.RegisterTask(Task, fsfile, new TorrentTaskInputInfo(fsfile), new TaskObject(Path.GetFileName(file.Path), file.Size));
+                await TaskRegistration.RegisterAsync(Task, fsfile, new TorrentTaskInputInfo(fsfile), new TaskObject(Path.GetFileName(file.Path), file.Size));
                 Input.LastCheck = file.ModifTime;
                 SaveTask();
             }

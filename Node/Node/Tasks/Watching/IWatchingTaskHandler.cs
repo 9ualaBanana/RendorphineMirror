@@ -1,6 +1,6 @@
 namespace Node.Tasks.Watching;
 
-public interface IWatchingTaskHandler : ITaskHandler { }
+public interface IWatchingTaskHandler { }
 public interface IWatchingTaskInputHandler : IWatchingTaskHandler, IDisposable
 {
     WatchingTaskInputType Type { get; }

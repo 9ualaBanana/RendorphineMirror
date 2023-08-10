@@ -10,7 +10,6 @@ public class TaskHandler
     public required PluginManager PluginManager { get; init; }
     public required NodeCommon.Apis Api { get; init; }
     public required NodeGlobalState NodeGlobalState { get; init; }
-    public required WatchingTaskHandler WatchingTaskHandler { get; init; }
     public required TaskExecutor TaskExecutor { get; init; }
     public required ILogger<TaskHandler> Logger { get; init; }
 
@@ -220,7 +219,27 @@ public class TaskHandler
     public void StartWatchingTasks()
     {
         foreach (var task in WatchingTasks.WatchingTasks.Values)
-            WatchingTaskHandler.StartWatcher(task);
+            StartWatchingTask(task);
+    }
+    public void StartWatchingTask(WatchingTask task)
+    {
+        Logger.LogInformation($"Watcher started; Data: {JsonConvert.SerializeObject(task, Init.DebugFeatures ? JsonSettings.Typed : new JsonSerializerSettings())}");
+
+        var handler = CreateWatchingHandler(task);
+        task.Handler = handler;
+        handler.StartListening();
+
+
+        IWatchingTaskInputHandler CreateWatchingHandler(WatchingTask task)
+        {
+            using var scope = ComponentContext.BeginLifetimeScope(builder =>
+            {
+                builder.RegisterInstance(task)
+                    .SingleInstance();
+            });
+
+            return scope.ResolveKeyed<IWatchingTaskInputHandler>(Enum.Parse<TaskAction>(task.TaskAction));
+        }
     }
 
 
