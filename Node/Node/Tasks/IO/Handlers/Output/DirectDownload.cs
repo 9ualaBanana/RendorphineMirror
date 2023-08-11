@@ -23,7 +23,7 @@ public static class DirectDownload
     {
         public static TaskOutputType Type => TaskOutputType.DirectDownload;
         public required IRegisteredTaskApi ApiTask { get; init; }
-        public required NodeCommon.Apis Api { get; init; }
+        public required Apis Api { get; init; }
         public required ITaskOutputDirectoryProvider DirectoryProvider { get; init; }
 
         public override async Task OnPlacedTaskCompleted(DirectDownloadTaskOutputInfo info)

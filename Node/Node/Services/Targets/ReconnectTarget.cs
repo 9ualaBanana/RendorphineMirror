@@ -1,25 +1,23 @@
-namespace Node;
+namespace Node.Services.Targets;
 
-public class ReconnectTarget
+public class ReconnectTarget : IServiceTarget
 {
-    public required AuthenticatedTarget AuthenticatedTarget { get; init; }
+    public static void CreateRegistrations(ContainerBuilder builder) { }
 
-    readonly NodeCommon.Apis Api;
-    readonly IQueuedTasksStorage QueuedTasksStorage;
-    readonly ILogger Logger;
+    public required AuthenticatedTarget Authenticated { get; init; }
+    public required Apis Api { get; init; }
+    public required IQueuedTasksStorage QueuedTasksStorage { get; init; }
+    public required ILogger<ReconnectTarget> Logger { get; init; }
 
-    public ReconnectTarget(NodeCommon.Apis api, IQueuedTasksStorage queuedTasksStorage, ILogger<ReconnectTarget> logger)
+    public async Task ExecuteAsync()
     {
-        Api = api;
-        QueuedTasksStorage = queuedTasksStorage;
-        Logger = logger;
-    }
+        Logger.LogInformation("Reconnecting to M+");
 
-    public async Task Execute()
-    {
         await cancelTransferredTasks();
         await Api.Api.ApiGet($"{Api.TaskManagerEndpoint}/nodereconnected", "Reconnecting the node", Api.AddSessionId(("guid", Settings.Guid)))
             .ThrowIfError();
+
+        Logger.LogInformation("Reconnected");
 
 
         async Task cancelTransferredTasks()

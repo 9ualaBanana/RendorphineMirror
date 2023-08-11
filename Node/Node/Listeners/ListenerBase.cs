@@ -1,5 +1,4 @@
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -7,8 +6,7 @@ using System.Text;
 using System.Web;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using Node.Services.Targets;
 
 namespace Node.Listeners;
 
@@ -21,6 +19,7 @@ public abstract class ListenerBase
     protected virtual bool RequiresAuthentication => false;
 
     protected readonly ILogger Logger;
+    public required IComponentContext ComponentContext { private get; init; }
 
     int StartIndex = 0;
     HttpListener? Listener;
@@ -34,9 +33,22 @@ public abstract class ListenerBase
             Listeners.Add(this);
 
         var prefixes = new List<string>();
-        if (ListenType.HasFlag(ListenTypes.Local)) addprefix($"127.0.0.1:{Settings.LocalListenPort}");
-        if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{Settings.UPnpPort}");
-        if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{Settings.UPnpServerPort}");
+        if (ListenType.HasFlag(ListenTypes.Local))
+        {
+            ComponentContext.Resolve<PortsUpdatedTarget.LocalPortsUpdatedTarget>();
+            addprefix($"127.0.0.1:{Settings.LocalListenPort}");
+        }
+        if (ListenType.HasFlag(ListenTypes.Public))
+        {
+            ComponentContext.Resolve<PortsUpdatedTarget.PublicPortsUpdatedTarget>();
+            addprefix($"+:{Settings.UPnpPort}");
+        }
+        if (ListenType.HasFlag(ListenTypes.WebServer))
+        {
+            ComponentContext.Resolve<PortsUpdatedTarget.WebPortsUpdatedTarget>();
+            addprefix($"+:{Settings.UPnpServerPort}");
+        }
+
         void addprefix(string prefix)
         {
             prefix = $"http://{prefix}/{Prefix}";
@@ -122,7 +134,7 @@ public abstract class ListenerBase
     static readonly Dictionary<string, bool> CachedAuthentications = new();
 
     /// <summary> Returns true if provided sessionid is also from ours user </summary>
-    static async ValueTask<bool> CheckAuthentication(string sid)
+    async ValueTask<bool> CheckAuthentication(string sid)
     {
         var check = await docheck();
         CachedAuthentications[sid] = check;
@@ -137,7 +149,7 @@ public abstract class ListenerBase
             if (CachedAuthentications.TryGetValue(sid, out var cached))
                 return cached;
 
-            var nodes = await Apis.Default.WithSessionId(sid).GetMyNodesAsync().ConfigureAwait(false);
+            var nodes = await ComponentContext.Resolve<Apis>().WithSessionId(sid).GetMyNodesAsync().ConfigureAwait(false);
             if (!nodes) return false;
 
             var theiruserid = nodes.Result.Select(x => x.UserId).FirstOrDefault();

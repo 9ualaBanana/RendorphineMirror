@@ -2,17 +2,9 @@ namespace Node.Tasks.Exec;
 
 public class TaskExecutorByData
 {
-    readonly ILifetimeScope LifetimeScope;
-    readonly ITaskProgressSetter ProgressSetter;
-    readonly ILogger Logger;
-
-    public TaskExecutorByData(ILifetimeScope lifetimeScope, ITaskProgressSetter progressSetter, ILogger<TaskExecutorByData> logger)
-    {
-        LifetimeScope = lifetimeScope;
-        ProgressSetter = progressSetter;
-        Logger = logger;
-    }
-
+    public required ILifetimeScope LifetimeScope { get; init; }
+    public required ITaskProgressSetter ProgressSetter { get; init; }
+    public required ILogger<TaskExecutorByData> Logger { get; init; }
 
     public async Task<IReadOnlyList<object>> Execute(object firstinput, IReadOnlyList<JObject> datas)
     {

@@ -6,20 +6,14 @@ public class MPlusHeartbeat : Heartbeat
 {
     protected override TimeSpan Interval { get; } = TimeSpan.FromMinutes(1);
 
-    readonly Api Api;
-    readonly PluginManager PluginManager;
-    readonly Profiler Profiler;
+    public required Api Api { get; init; }
+    public required Profiler Profiler { get; init; }
 
-    public MPlusHeartbeat(Api api, PluginManager pluginManager, Profiler profiler, ILogger<MPlusHeartbeat> logger) : base(logger)
-    {
-        Api = api;
-        PluginManager = pluginManager;
-        Profiler = profiler;
-    }
+    public MPlusHeartbeat(ILogger<MPlusHeartbeat> logger) : base(logger) { }
 
     protected override async Task Execute()
     {
-        var content = await Profiler.GetAsync(PluginManager);
+        var content = await Profiler.GetAsync();
         var result = await Api.ApiPost($"{Api.TaskManagerEndpoint}/pheartbeat", "Sending a heartbeat", content);
 
         // upon receiving an error -195 from heartbeat, the node should switch to reconnect mode

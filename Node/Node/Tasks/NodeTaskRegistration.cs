@@ -4,6 +4,8 @@ public class NodeTaskRegistration
 {
     public required ILifetimeScope ComponentContext { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }
+    public required IPlacedTasksStorage PlacedTasks { get; init; }
+    public required TaskHandler TaskHandler { get; init; }
 
     public ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, ILoggable? log = null, CancellationToken token = default) =>
         TaskRegisterAsync(info, log, token).Next(t => t.Id.AsOpResult());
@@ -19,7 +21,14 @@ public class NodeTaskRegistration
             info.TaskObject = taskobj.Value;
         }
 
-        return await NodeCommon.Tasks.TaskRegistration.TaskRegisterAsync(info, Settings.SessionId, log);
+        return await TaskRegistration.TaskRegisterAsync(info, Settings.SessionId, log)
+            .Next(task =>
+            {
+                PlacedTasks.PlacedTasks.Add(task);
+                TaskHandler.UploadInputFiles(task).Consume();
+
+                return task.AsOpResult();
+            });
     }
 
 

@@ -1,5 +1,4 @@
 using System.Reflection;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
 namespace NodeCommon.Tasks;
@@ -15,7 +14,6 @@ public static class TaskRegistration
 
 
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-    public static event Action<DbTaskFullState> TaskRegistered = delegate { };
 
 
     public static async ValueTask<OperationResult<TypedRegisteredTask>> RegisterAsync(TaskCreationInfo info, string sessionId) =>
@@ -63,10 +61,7 @@ public static class TaskRegistration
         if (!idr) return idr.GetResult();
 
         _logger.Info("Task registered with ID {Id}", idr.Value);
-        var task = new DbTaskFullState(idr.Value, new TaskInfo(taskobj, input, output, data, info.Policy));
-        TaskRegistered(task);
-
-        return task;
+        return new DbTaskFullState(idr.Value, new TaskInfo(taskobj, input, output, data, info.Policy));
     }
 
 

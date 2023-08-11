@@ -1,5 +1,3 @@
-using Node.Tasks.Watching.Handlers.Input;
-
 namespace Node.Tasks.Exec;
 
 public class TaskHandler
@@ -10,51 +8,48 @@ public class TaskHandler
     public required ICompletedTasksStorage CompletedTasks { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }
     public required PluginManager PluginManager { get; init; }
-    public required NodeCommon.Apis Api { get; init; }
+    public required Apis Api { get; init; }
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required ILogger<TaskHandler> Logger { get; init; }
 
 
     public async Task InitializePlacedTasksAsync()
     {
-        NodeCommon.Tasks.TaskRegistration.TaskRegistered += task => UploadInputFiles(task).Consume();
         await Task.WhenAll(PlacedTasks.PlacedTasks.Values.ToArray().Select(UploadInputFiles));
-
-
-        async Task UploadInputFiles(DbTaskFullState task)
+    }
+    public async Task UploadInputFiles(DbTaskFullState task)
+    {
+        while (true)
         {
-            while (true)
+            var timeout = DateTime.Now.AddMinutes(5);
+            while (timeout > DateTime.Now)
             {
-                var timeout = DateTime.Now.AddMinutes(5);
-                while (timeout > DateTime.Now)
+                var state = await Api.WithNoErrorLog().GetTaskStateAsync(task);
+                PlacedTasks.PlacedTasks.Save(task);
+                if (task.State.IsFinished()) return;
+
+                if (state && state.Value is not null)
                 {
-                    var state = await Api.WithNoErrorLog().GetTaskStateAsync(task);
-                    PlacedTasks.PlacedTasks.Save(task);
-                    if (task.State.IsFinished()) return;
-
-                    if (state && state.Value is not null)
-                    {
-                        task.State = state.Value.State;
-                        break;
-                    }
-
-                    await Task.Delay(2_000);
+                    task.State = state.Value.State;
+                    break;
                 }
 
-                if (timeout < DateTime.Now) throw new TaskFailedException("Could not get shard info for 5 min");
-                if (task.State > TaskState.Input) return;
+                await Task.Delay(2_000);
+            }
 
-                try
-                {
-                    var handler = ComponentContext.ResolveKeyed<ITaskInputUploader>(task.Input.Type);
-                    await handler.Upload(task.Input);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    task.LogErr(ex);
-                    await Task.Delay(10_000);
-                }
+            if (timeout < DateTime.Now) throw new TaskFailedException("Could not get shard info for 5 min");
+            if (task.State > TaskState.Input) return;
+
+            try
+            {
+                var handler = ComponentContext.ResolveKeyed<ITaskInputUploader>(task.Input.Type);
+                await handler.Upload(task.Input);
+                return;
+            }
+            catch (Exception ex)
+            {
+                task.LogErr(ex);
+                await Task.Delay(10_000);
             }
         }
     }
@@ -150,12 +145,12 @@ public class TaskHandler
                 task.State = newstate ?? task.State;
                 task.Populate(state);
                 if (task.State == TaskState.Validation)
-                    task.Populate(await task.GetTaskStateAsyncOrThrow().ThrowIfError());
+                    task.Populate(await Api.GetTaskStateAsyncOrThrow(task).ThrowIfError());
 
                 try { await check(task, (state as TMOldTaskStateInfo)?.ErrMsg); }
                 catch (TaskFailedException ex)
                 {
-                    await task.ChangeStateAsync(TaskState.Canceled).ThrowIfError();
+                    await Api.ChangeStateAsync(task, TaskState.Canceled).ThrowIfError();
                     remove(task, ex.Message);
                 }
                 catch (Exception ex) { task.LogErr(ex); }
@@ -182,7 +177,7 @@ public class TaskHandler
 
             var handler = ComponentContext.ResolveKeyed<ITaskCompletionHandler>(task.Input.Type);
             await handler.OnPlacedTaskCompleted(task.Output);
-            await task.ChangeStateAsync(TaskState.Finished).ThrowIfError();
+            await Api.ChangeStateAsync(task, TaskState.Finished).ThrowIfError();
             remove(task, errmsg);
         }
         bool remove(DbTaskFullState task, string? errmsg)
@@ -283,7 +278,7 @@ public class TaskHandler
             {
                 var starttime = DateTimeOffset.Now;
 
-                using var scope = ComponentContext.BeginLifetimeScope(builder =>
+                using var scope = ComponentContext.BeginLifetimeScope(Node.Services.Targets.TaskExecutorTarget.TaskExecutionScope, builder =>
                 {
                     builder.RegisterInstance(task)
                         .AsSelf()
@@ -291,12 +286,6 @@ public class TaskHandler
                         .As<IRegisteredTaskApi>()
                         .As<IMPlusTask>()
                         .SingleInstance();
-
-                    builder.RegisterType<TaskProgressSetter>()
-                        .As<ITaskProgressSetter>()
-                        .SingleInstance();
-
-                    builder.RegisterDecorator<ITaskProgressSetter>((ctx, parameters, instance) => new ThrottledProgressSetter(TimeSpan.FromSeconds(5), instance));
                 });
 
                 var executor = scope.Resolve<TaskExecutor>();
@@ -336,7 +325,7 @@ public class TaskHandler
         async ValueTask fail(string errmsg, string fullerrmsg)
         {
             task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {fullerrmsg}");
-            await task.FailTaskAsync(errmsg, fullerrmsg).ThrowIfError();
+            await Api.FailTaskAsync(task, errmsg, fullerrmsg).ThrowIfError();
 
             /*
             task.LogInfo($"Deleting {task.FSInputDirectory()} {task.FSOutputDirectory()}");
@@ -348,7 +337,7 @@ public class TaskHandler
         }
         async ValueTask<bool> isFinishedOnServer()
         {
-            var state = await task.GetTaskStateAsync().ThrowIfError();
+            var state = await Api.GetTaskStateAsync(task).ThrowIfError();
             // Since we are the executor, if state is null, then task state can only be Canceled. Or Finished, but that would be a bug from the task creator node.
 
             if (state is not null)
@@ -368,25 +357,6 @@ public class TaskHandler
             if (finished && state is not null) task.State = state.State;
 
             return finished;
-        }
-    }
-
-
-    class TaskProgressSetter : ITaskProgressSetter
-    {
-        readonly NodeCommon.Apis Api;
-        readonly IMPlusTask Task;
-
-        public TaskProgressSetter(NodeCommon.Apis api, IMPlusTask task)
-        {
-            Api = api;
-            Task = task;
-        }
-
-        public void Set(double progress)
-        {
-            if (Task is ReceivedTask rt) rt.Progress = progress;
-            Api.SendTaskProgressAsync(Task).Consume();
         }
     }
 }

@@ -8,7 +8,7 @@ public static class QSPreview
     {
         public static TaskOutputType Type => TaskOutputType.QSPreview;
         public required IRegisteredTaskApi ApiTask { get; init; }
-        public required NodeCommon.Apis Apis { get; init; }
+        public required Apis Apis { get; init; }
 
         protected override async Task UploadResultImpl(QSPreviewOutputInfo info, ReadOnlyTaskFileList files, CancellationToken token)
         {

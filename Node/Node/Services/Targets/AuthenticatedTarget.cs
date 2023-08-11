@@ -1,16 +1,18 @@
 using Node.Listeners;
 
-namespace Node;
+namespace Node.Services.Targets;
 
-public class AuthenticatedTarget
+public class AuthenticatedTarget : IServiceTarget
 {
     public required LocalListener LocalListener { get; init; }
+    public required ILogger<AuthenticatedTarget> Logger { get; init; }
 
-    readonly ILogger Logger;
+    public static void CreateRegistrations(ContainerBuilder builder)
+    {
 
-    public AuthenticatedTarget(ILogger<AuthenticatedTarget> logger) => Logger = logger;
+    }
 
-    public async Task Execute()
+    public async Task ExecuteAsync()
     {
         if (Settings.SessionId is not null)
             Logger.Info($"Session ID is present. Email: {Settings.Email ?? "<not saved>"}; User ID: {Settings.UserId}; {(Settings.IsSlave == true ? "slave" : "non-slave")}");

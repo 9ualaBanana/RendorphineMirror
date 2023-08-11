@@ -7,7 +7,7 @@ public static class MPlus
         public static TaskInputType Type => TaskInputType.MPlus;
 
         public required IRegisteredTaskApi ApiTask { get; init; }
-        public required NodeCommon.Apis Api { get; init; }
+        public required Apis Api { get; init; }
         public required IComponentContext ComponentContext { get; init; }
 
         protected override async Task<ReadOnlyTaskFileList> DownloadImpl(MPlusTaskInputInfo input, TaskObject obj, CancellationToken tokenn)

@@ -7,10 +7,7 @@ public class DebugListener : ExecutableListenerBase
     protected override ListenTypes ListenType => ListenTypes.Local;
     protected override string Prefix => "debug";
 
-    readonly PluginManager PluginManager;
-
-    public DebugListener(PluginManager pluginManager, ILogger<DebugListener> logger) : base(logger) =>
-        PluginManager = pluginManager;
+    public DebugListener(ILogger<DebugListener> logger) : base(logger) { }
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {

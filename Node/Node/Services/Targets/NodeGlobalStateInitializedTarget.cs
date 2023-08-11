@@ -1,17 +1,13 @@
-namespace Node;
+namespace Node.Services.Targets;
 
-public class NodeGlobalStateInitializedTarget
+public class NodeGlobalStateInitializedTarget : IServiceTarget
 {
-    readonly NodeGlobalState NodeGlobalState;
-    readonly PluginManager PluginManager;
+    public static void CreateRegistrations(ContainerBuilder builder) { }
 
-    public NodeGlobalStateInitializedTarget(NodeGlobalState nodeGlobalState, PluginManager pluginManager)
-    {
-        NodeGlobalState = nodeGlobalState;
-        PluginManager = pluginManager;
-    }
+    public required NodeGlobalState NodeGlobalState { get; init; }
+    public required PluginManager PluginManager { get; init; }
 
-    public void Execute()
+    public Task ExecuteAsync()
     {
         var state = NodeGlobalState;
 
@@ -34,5 +30,7 @@ public class NodeGlobalStateInitializedTarget
 
         Software.StartUpdating(null, default);
         Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Directories.Data, "lport"), Settings.LocalListenPort.ToString()), true);
+
+        return Task.CompletedTask;
     }
 }

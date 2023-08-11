@@ -7,11 +7,13 @@ public class OtherUserWatchingTaskHandler : WatchingTaskInputHandler<OtherUserWa
 {
     public static WatchingTaskInputType Type => WatchingTaskInputType.OtherNode;
 
+    public required Apis Api { get; init; }
+
     public override void StartListening() => Start().Consume();
 
     async Task Start()
     {
-        var node = await Apis.Default.GetNodeAsync(Input.NodeId).ThrowIfError();
+        var node = await Api.GetNodeAsync(Input.NodeId).ThrowIfError();
         var url = $"http://{node.Info.Ip}:{node.Info.Port}";
         var path = $"dirdiff?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(Input.Directory)}";
 
@@ -20,7 +22,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskInputHandler<OtherUserWa
 
         async Task tick()
         {
-            var check = await Api.Default.ApiGet<DirectoryDiffListener.DiffOutput>($"{url}/{path}", "value", "Getting directory diff", ("lastcheck", Input.LastCheck.ToString()));
+            var check = await Api.Api.ApiGet<DirectoryDiffListener.DiffOutput>($"{url}/{path}", "value", "Getting directory diff", ("lastcheck", Input.LastCheck.ToString()));
             check.LogIfError();
             if (!check) return;
 
@@ -32,7 +34,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskInputHandler<OtherUserWa
 
             foreach (var file in files)
             {
-                var download = await Api.Default.Download($"{url}/download?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(file.Path)}");
+                var download = await Api.Api.Download($"{url}/download?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(file.Path)}");
 
                 var fsfile = Path.Combine(Task.FSDataDirectory(), Path.GetFileName(file.Path));
                 using (var writer = File.OpenWrite(fsfile))

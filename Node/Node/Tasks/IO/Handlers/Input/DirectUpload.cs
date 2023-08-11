@@ -24,7 +24,7 @@ public static class DirectUpload
     {
         public static TaskInputType Type => TaskInputType.DirectUpload;
 
-        public required NodeCommon.Apis Api { get; init; }
+        public required Apis Api { get; init; }
         public required IRegisteredTaskApi ApiTask { get; init; }
 
         public override async Task Upload(DirectUploadTaskInputInfo input)

@@ -21,6 +21,7 @@ public class TaskExecutor
 
 
     public required ReceivedTask Task { get; init; }
+    public required Apis Api { get; init; }
     public required IIndex<TaskInputType, ITaskInputDownloader> InputDownloaders { get; init; }
     public required IIndex<TaskAction, IPluginActionInfo> Actions { get; init; }
     public required IIndex<TaskOutputType, ITaskUploadHandler> ResultUploaders { get; init; }
@@ -50,7 +51,7 @@ public class TaskExecutor
 
             var inputhandler = InputDownloaders[Task.Input.Type];
             Task.DownloadedInput = JObject.FromObject(await inputhandler.Download(Task.Input, Task.Info.Object, token));
-            await Task.ChangeStateAsync(TaskState.Active);
+            await Api.ChangeStateAsync(Task, TaskState.Active);
         }
         else Logger.LogInformation($"Input seems to be already downloaded");
 
@@ -66,7 +67,7 @@ public class TaskExecutor
 
             Task.Result = JObject.FromObject(await Executor.Execute(input, (Task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(Task.Info.Data).ToArray()));
 
-            await Task.ChangeStateAsync(TaskState.Output);
+            await Api.ChangeStateAsync(Task, TaskState.Output);
         }
         else Logger.LogInformation($"Task execution seems to be already finished");
 
@@ -81,7 +82,7 @@ public class TaskExecutor
                 .ThrowIfNull();
 
             await outputhandler.UploadResult(Task.Output, result, token);
-            await Task.ChangeStateAsync(TaskState.Validation);
+            await Api.ChangeStateAsync(Task, TaskState.Validation);
         }
         else Logger.LogWarning($"Task result seems to be already uploaded (??????????????)");
 
@@ -89,7 +90,7 @@ public class TaskExecutor
     }
 
 
-    static async ValueTask MaybeNotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
+    async ValueTask MaybeNotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         if (task.Output.Type != TaskOutputType.MPlus) return;
         if (task.Info.Next is not null) return;
@@ -97,7 +98,7 @@ public class TaskExecutor
 
         await NotifyTelegramBotOfTaskCompletion(task, cancellationToken);
     }
-    static async Task NotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
+    async Task NotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
         var endpoint = new Uri(new Uri(Settings.ServerUrl), "tasks/result").ToString();
         var uploadedFiles = string.Join('&', task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(fileInfo => $"uploadedfiles={fileInfo.Iid}"));
@@ -108,7 +109,7 @@ public class TaskExecutor
             $"hostshard={HttpUtility.UrlDecode(task.HostShard)}&" +
             $"executor={HttpUtility.UrlDecode(Settings.NodeName)}";
 
-        try { await Api.GlobalClient.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
+        try { await Api.Api.Client.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to Telegram bot: " + ex); }
     }
 }

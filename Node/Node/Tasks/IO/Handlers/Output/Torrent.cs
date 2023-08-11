@@ -8,7 +8,7 @@ public static class Torrent
     {
         public static TaskOutputType Type => TaskOutputType.Torrent;
         public required IRegisteredTaskApi ApiTask { get; init; }
-        public required NodeCommon.Apis Api { get; init; }
+        public required Apis Api { get; init; }
         public required IQueuedTasksStorage QueuedTasks { get; init; }
         public required TorrentClient TorrentClient { get; init; }
         public required ITaskOutputDirectoryProvider ResultDirectoryProvider { get; init; }

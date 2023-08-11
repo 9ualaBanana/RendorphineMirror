@@ -5,8 +5,11 @@ using System.Web;
 
 namespace Common;
 
-public record Api(HttpClient Client, bool LogRequests = true, CancellationToken CancellationToken = default)
+public record Api(HttpClient Client)
 {
+    public bool LogRequests { get; init; } = true;
+    public CancellationToken CancellationToken { get; init; } = default;
+
     public const string ServerUri = "https://tasks.microstock.plus";
     public const string TaskManagerEndpoint = $"{ServerUri}/rphtaskmgr";
     public static readonly Uri TaskLauncherEndpoint = new($"{ServerUri}/rphtasklauncher/");
