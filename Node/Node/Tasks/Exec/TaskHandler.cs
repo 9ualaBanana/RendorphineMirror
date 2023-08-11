@@ -12,7 +12,6 @@ public class TaskHandler
     public required PluginManager PluginManager { get; init; }
     public required NodeCommon.Apis Api { get; init; }
     public required NodeGlobalState NodeGlobalState { get; init; }
-    public required TaskExecutor TaskExecutor { get; init; }
     public required ILogger<TaskHandler> Logger { get; init; }
 
 
@@ -283,7 +282,25 @@ public class TaskHandler
             try
             {
                 var starttime = DateTimeOffset.Now;
-                await TaskExecutor.Execute(task, cancellationToken).ConfigureAwait(false);
+
+                using var scope = ComponentContext.BeginLifetimeScope(builder =>
+                {
+                    builder.RegisterInstance(task)
+                        .AsSelf()
+                        .As<IRegisteredTask>()
+                        .As<IRegisteredTaskApi>()
+                        .As<IMPlusTask>()
+                        .SingleInstance();
+
+                    builder.RegisterType<TaskProgressSetter>()
+                        .As<IProgressSetter>()
+                        .SingleInstance();
+
+                    builder.RegisterDecorator<IProgressSetter>((ctx, parameters, instance) => new ThrottledProgressSetter(TimeSpan.FromSeconds(5), instance));
+                });
+
+                var executor = scope.Resolve<TaskExecutor>();
+                await executor.Execute(cancellationToken).ConfigureAwait(false);
 
                 var endtime = DateTimeOffset.Now;
                 task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
@@ -351,6 +368,25 @@ public class TaskHandler
             if (finished && state is not null) task.State = state.State;
 
             return finished;
+        }
+    }
+
+
+    class TaskProgressSetter : IProgressSetter
+    {
+        readonly NodeCommon.Apis Api;
+        readonly IMPlusTask Task;
+
+        public TaskProgressSetter(NodeCommon.Apis api, IMPlusTask task)
+        {
+            Api = api;
+            Task = task;
+        }
+
+        public void Set(double progress)
+        {
+            if (Task is ReceivedTask rt) rt.Progress = progress;
+            Api.SendTaskProgressAsync(Task).Consume();
         }
     }
 }

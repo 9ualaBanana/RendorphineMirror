@@ -37,7 +37,7 @@ public abstract class MPlusWatchingTaskHandlerBase<TInput> : WatchingTaskInputHa
     protected virtual async Task TickItem(MPlusNewItem item, TaskObject taskobj)
     {
         var fileName = item.Files.Jpeg.FileName;
-        Task.LogInfo($"Adding new file [userid: {item.UserId}; iid: {item.Iid}] {Path.ChangeExtension(fileName, null)}");
+        Logger.LogInformation($"Adding new file [userid: {item.UserId}; iid: {item.Iid}] {Path.ChangeExtension(fileName, null)}");
 
         var output =
             (Task.Output as IMPlusWatchingTaskOutputInfo)?.CreateOutput(Task, item, fileName)

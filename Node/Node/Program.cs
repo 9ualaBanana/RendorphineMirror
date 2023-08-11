@@ -196,7 +196,7 @@ builder.RegisterType<NodeTaskRegistration>()
     .SingleInstance();
 
 builder.RegisterType<TaskExecutor>()
-    .SingleInstance();
+    .InstancePerDependency();
 
 builder.RegisterType<TaskHandler>()
     .SingleInstance()

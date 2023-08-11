@@ -20,7 +20,11 @@ public class TaskExecutor
     }
 
 
-    public required ILifetimeScope LifetimeScope { get; init; }
+    public required ReceivedTask Task { get; init; }
+    public required IIndex<TaskInputType, ITaskInputDownloader> InputDownloaders { get; init; }
+    public required IIndex<TaskAction, IPluginActionInfo> Actions { get; init; }
+    public required IIndex<TaskOutputType, ITaskUploadHandler> ResultUploaders { get; init; }
+    public required TaskExecutorByData Executor { get; init; }
     public required ILogger<TaskExecutor> Logger { get; init; }
 
 
@@ -30,72 +34,58 @@ public class TaskExecutor
         // TODO::
     }
 
-    public async Task Execute(ReceivedTask task, CancellationToken token)
+    public async Task Execute(CancellationToken token)
     {
-        using var _logscope = Logger.BeginScope($"Task {task}");
-        task.LogInfo($"Task info: {JsonConvert.SerializeObject(task, Formatting.None)}");
+        using var _logscope = Logger.BeginScope($"Task {Task}");
+        Logger.LogInformation($"Task info: {JsonConvert.SerializeObject(Task, Formatting.None)}");
 
-        CheckCompatibility(task);
+        CheckCompatibility(Task);
 
-        using var scope = LifetimeScope.BeginLifetimeScope(builder =>
+        if (Task.State <= TaskState.Input)
         {
-            builder.RegisterInstance(task)
-                .As<IRegisteredTask>()
-                .As<IRegisteredTaskApi>()
-                .As<IMPlusTask>()
-                .SingleInstance();
-
-            builder.Register(ctx => new ThrottledProgressSetter(5, new TaskProgressSetter(ctx.Resolve<NodeCommon.Apis>(), task)))
-                .As<IProgressSetter>()
-                .SingleInstance();
-        });
-
-        if (task.State <= TaskState.Input)
-        {
-            var isqspreview = TaskExecutorByData.GetTaskName(task.Info.Data) == TaskAction.GenerateQSPreview;
+            var isqspreview = TaskExecutorByData.GetTaskName(Task.Info.Data) == TaskAction.GenerateQSPreview;
             var semaphore = isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore;
             var info = isqspreview ? "qspinput" : "input";
             using var _ = await WaitDisposed(isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore, info);
 
-            var inputhandler = scope.ResolveKeyed<ITaskInputDownloader>(task.Input.Type);
-            task.DownloadedInput = JObject.FromObject(await inputhandler.Download(task.Input, task.Info.Object, token));
-            await task.ChangeStateAsync(TaskState.Active);
+            var inputhandler = InputDownloaders[Task.Input.Type];
+            Task.DownloadedInput = JObject.FromObject(await inputhandler.Download(Task.Input, Task.Info.Object, token));
+            await Task.ChangeStateAsync(TaskState.Active);
         }
-        else task.LogInfo($"Input seems to be already downloaded");
+        else Logger.LogInformation($"Input seems to be already downloaded");
 
-        if (task.State <= TaskState.Active)
+        if (Task.State <= TaskState.Active)
         {
             using var _ = await WaitDisposed(ActiveSemaphore);
 
-            var firstaction = scope.ResolveKeyed<IPluginActionInfo>(TaskExecutorByData.GetTaskName(task.Info.Data));
-            var input = task.DownloadedInput
+            var firstaction = Actions[TaskExecutorByData.GetTaskName(Task.Info.Data)];
+            var input = Task.DownloadedInput
                 .ThrowIfNull("No task input downloaded")
                 .ToObject(firstaction.InputType)
                 .ThrowIfNull();
 
-            var executor = scope.Resolve<TaskExecutorByData>();
-            task.Result = JObject.FromObject(await executor.Execute(input, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray()));
+            Task.Result = JObject.FromObject(await Executor.Execute(input, (Task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(Task.Info.Data).ToArray()));
 
-            await task.ChangeStateAsync(TaskState.Output);
+            await Task.ChangeStateAsync(TaskState.Output);
         }
-        else task.LogInfo($"Task execution seems to be already finished");
+        else Logger.LogInformation($"Task execution seems to be already finished");
 
-        if (task.State <= TaskState.Output)
+        if (Task.State <= TaskState.Output)
         {
             using var _ = await WaitDisposed(OutputSemaphore);
 
-            var outputhandler = scope.ResolveKeyed<ITaskUploadHandler>(task.Output.Type);
-            var result = task.DownloadedInput
+            var outputhandler = ResultUploaders[Task.Output.Type];
+            var result = Task.DownloadedInput
                 .ThrowIfNull("No task result")
                 .ToObject(outputhandler.ResultType)
                 .ThrowIfNull();
 
-            await outputhandler.UploadResult(task.Output, result, token);
-            await task.ChangeStateAsync(TaskState.Validation);
+            await outputhandler.UploadResult(Task.Output, result, token);
+            await Task.ChangeStateAsync(TaskState.Validation);
         }
-        else task.LogWarn($"Task result seems to be already uploaded (??????????????)");
+        else Logger.LogWarning($"Task result seems to be already uploaded (??????????????)");
 
-        await MaybeNotifyTelegramBotOfTaskCompletion(task, token);
+        await MaybeNotifyTelegramBotOfTaskCompletion(Task, token);
     }
 
 
@@ -120,47 +110,5 @@ public class TaskExecutor
 
         try { await Api.GlobalClient.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
         catch (Exception ex) { task.LogErr("Error sending result to Telegram bot: " + ex); }
-    }
-
-
-    class ThrottledProgressSetter : IProgressSetter
-    {
-        readonly int ProgressSendDelaySec;
-        readonly IProgressSetter Progress;
-
-        public ThrottledProgressSetter(int progressSendDelaySec, IProgressSetter progress)
-        {
-            ProgressSendDelaySec = progressSendDelaySec;
-            Progress = progress;
-        }
-
-        DateTime ProgressWriteTime = DateTime.MinValue;
-        public void Set(double progress)
-        {
-            var now = DateTime.Now;
-            if (progress >= .98 || ProgressWriteTime < now)
-            {
-                Progress.Set(progress);
-                ProgressWriteTime = DateTime.Now.AddSeconds(ProgressSendDelaySec);
-            }
-        }
-    }
-
-    class TaskProgressSetter : IProgressSetter
-    {
-        readonly NodeCommon.Apis Api;
-        readonly IMPlusTask Task;
-
-        public TaskProgressSetter(NodeCommon.Apis api, IMPlusTask task)
-        {
-            Api = api;
-            Task = task;
-        }
-
-        public void Set(double progress)
-        {
-            if (Task is ReceivedTask rt) rt.Progress = progress;
-            Api.SendTaskProgressAsync(Task).Consume();
-        }
     }
 }

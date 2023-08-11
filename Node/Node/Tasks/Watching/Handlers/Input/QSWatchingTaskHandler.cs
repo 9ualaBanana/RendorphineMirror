@@ -72,7 +72,7 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
         if (Task.PlacedNonCompletedTasks.Count > taskFetchingThreshold)
             return;
 
-        Task.LogInfo($"Found {Task.PlacedNonCompletedTasks.Count} unfinished ptasks, fetching new items");
+        Logger.LogInformation($"Found {Task.PlacedNonCompletedTasks.Count} unfinished ptasks, fetching new items");
         await base.Tick();
     }
 

@@ -28,7 +28,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskInputHandler<OtherUserWa
             if (files.Length == 0) return;
             files = files.Where(x => x.ModifTime > Input.LastCheck).OrderBy(x => x.ModifTime).ToImmutableArray();
 
-            Task.LogInfo($"Found {files.Length} new files: {string.Join("; ", files)}");
+            Logger.LogInformation($"Found {files.Length} new files: {string.Join("; ", files)}");
 
             foreach (var file in files)
             {
