@@ -1,6 +1,6 @@
 namespace Node.Tests;
 
-public class ConsoleProgressSetter : IProgressSetter
+public class ConsoleProgressSetter : ITaskProgressSetter
 {
     public required ILogger<ConsoleProgressSetter> Logger { get; init; }
 

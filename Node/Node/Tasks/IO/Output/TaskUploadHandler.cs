@@ -19,7 +19,7 @@ public abstract class TaskUploadHandler<TData, TResult> : ITaskUploadHandler<TDa
 {
     Type ITaskUploadHandler.ResultType => typeof(TResult);
 
-    public required IProgressSetter ProgressSetter { get; init; }
+    public required ITaskProgressSetter ProgressSetter { get; init; }
     public required ILogger<TaskUploadHandler<TData, TResult>> Logger { get; init; }
 
     async Task ITaskUploadHandler.UploadResult(ITaskOutputInfo info, object result, CancellationToken token) =>

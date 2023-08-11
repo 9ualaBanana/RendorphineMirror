@@ -56,7 +56,7 @@ public abstract class PluginActionInfo<TInput, TOutput, TData> : IPluginActionIn
 
     protected abstract class ExecutorBase
     {
-        public required IProgressSetter ProgressSetter { get; init; }
+        public required ITaskProgressSetter ProgressSetter { get; init; }
         public required PluginList PluginList { get; init; }
         public required ILogger<TData> Logger { get; init; }
 

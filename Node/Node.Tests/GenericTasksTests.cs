@@ -30,7 +30,7 @@ public static partial class GenericTasksTests
         var builder = Container.CreateBuilder();
 
         builder.RegisterType<ConsoleProgressSetter>()
-            .As<IProgressSetter>()
+            .AsImplementedInterfaces()
             .SingleInstance();
 
         builder.RegisterType<TaskExecutorByData>()

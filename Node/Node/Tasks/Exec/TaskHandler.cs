@@ -293,10 +293,10 @@ public class TaskHandler
                         .SingleInstance();
 
                     builder.RegisterType<TaskProgressSetter>()
-                        .As<IProgressSetter>()
+                        .As<ITaskProgressSetter>()
                         .SingleInstance();
 
-                    builder.RegisterDecorator<IProgressSetter>((ctx, parameters, instance) => new ThrottledProgressSetter(TimeSpan.FromSeconds(5), instance));
+                    builder.RegisterDecorator<ITaskProgressSetter>((ctx, parameters, instance) => new ThrottledProgressSetter(TimeSpan.FromSeconds(5), instance));
                 });
 
                 var executor = scope.Resolve<TaskExecutor>();
@@ -372,7 +372,7 @@ public class TaskHandler
     }
 
 
-    class TaskProgressSetter : IProgressSetter
+    class TaskProgressSetter : ITaskProgressSetter
     {
         readonly NodeCommon.Apis Api;
         readonly IMPlusTask Task;

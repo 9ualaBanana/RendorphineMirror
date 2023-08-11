@@ -1,11 +1,11 @@
 namespace Node.Tasks.Exec;
 
-public class ThrottledProgressSetter : IProgressSetter
+public class ThrottledProgressSetter : ITaskProgressSetter
 {
     readonly TimeSpan ProgressSendDelay;
-    readonly IProgressSetter Progress;
+    readonly ITaskProgressSetter Progress;
 
-    public ThrottledProgressSetter(TimeSpan progressSendDelay, IProgressSetter progress)
+    public ThrottledProgressSetter(TimeSpan progressSendDelay, ITaskProgressSetter progress)
     {
         ProgressSendDelay = progressSendDelay;
         Progress = progress;

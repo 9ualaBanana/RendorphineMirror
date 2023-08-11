@@ -3,10 +3,10 @@ namespace Node.Tasks.Exec;
 public class TaskExecutorByData
 {
     readonly ILifetimeScope LifetimeScope;
-    readonly IProgressSetter ProgressSetter;
+    readonly ITaskProgressSetter ProgressSetter;
     readonly ILogger Logger;
 
-    public TaskExecutorByData(ILifetimeScope lifetimeScope, IProgressSetter progressSetter, ILogger<TaskExecutorByData> logger)
+    public TaskExecutorByData(ILifetimeScope lifetimeScope, ITaskProgressSetter progressSetter, ILogger<TaskExecutorByData> logger)
     {
         LifetimeScope = lifetimeScope;
         ProgressSetter = progressSetter;
@@ -23,9 +23,7 @@ public class TaskExecutorByData
         {
             using var scope = LifetimeScope.BeginLifetimeScope(builder =>
             {
-                builder.Register(ctx => new ProgressSetterSubtaskOverlay(index, datas.Count, LifetimeScope.Resolve<IProgressSetter>()))
-                    .As<IProgressSetter>()
-                    .SingleInstance();
+                builder.RegisterDecorator<ITaskProgressSetter>((ctx, parameters, instance) => new ProgressSetterSubtaskOverlay(index, datas.Count, instance));
             });
 
             var inputs = results.SelectMany(result => result switch
@@ -63,7 +61,7 @@ public class TaskExecutorByData
     }
 
 
-    record ProgressSetterSubtaskOverlay(int Subtask, int MaxSubtasks, IProgressSetter Setter) : IProgressSetter
+    record ProgressSetterSubtaskOverlay(int Subtask, int MaxSubtasks, ITaskProgressSetter Setter) : ITaskProgressSetter
     {
         public void Set(double progress)
         {

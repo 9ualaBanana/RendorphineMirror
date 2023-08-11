@@ -15,7 +15,7 @@ public abstract class TaskInputDownloader<TInput, TResult> : ITaskInputDownloade
     where TInput : ITaskInputInfo
     where TResult : notnull
 {
-    public required IProgressSetter ProgressSetter { get; init; }
+    public required ITaskProgressSetter ProgressSetter { get; init; }
     public required ILogger<TaskInputDownloader<TInput, TResult>> Logger { get; init; }
 
     async Task<object> ITaskInputDownloader.Download(ITaskInputInfo input, TaskObject obj, CancellationToken token) =>
