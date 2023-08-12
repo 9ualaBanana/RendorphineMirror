@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Infrastructure.Authorization;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Security.Authorization;
@@ -21,7 +22,7 @@ public class PaginatorCommand
             {
             }
 
-        internal override Command Target => CommandFactory.Create("adminpaginator");
+        public override Command Target => CommandFactory.Create("adminpaginator");
 
         public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder()
             .Add(AccessLevelRequirement.Admin)

@@ -3,6 +3,7 @@ using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Localization.Resources;
+using Telegram.Persistence;
 using Telegram.Security.Authentication;
 
 namespace Telegram.Commands.Handlers;
@@ -33,7 +34,7 @@ public class LoginCommand : CommandHandler
         _localizedAuthenticationText = localizedAuthenticationMessage;
     }
 
-    internal override Command Target => CommandFactory.Create("login");
+    public override Command Target => CommandFactory.Create("login");
 
     protected override async Task HandleAsync(Command receivedCommand)
     {
@@ -46,7 +47,7 @@ public class LoginCommand : CommandHandler
         else await TryAuthenticateByMPlusAsync(user);
 
 
-        async Task TryAuthenticateByMPlusAsync(TelegramBot.User.Entity user)
+        async Task TryAuthenticateByMPlusAsync(TelegramBotUserEntity user)
         {
             var arguments = receivedCommand.UnquotedArguments.ToImmutableArray();
             if (arguments.Length == 2)

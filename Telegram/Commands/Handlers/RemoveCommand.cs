@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using System.Text;
+using Telegram.Infrastructure.Authorization;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.MPlus.Security;
@@ -24,7 +25,7 @@ public class RemoveCommand : CommandHandler, IAuthorizationPolicyProtected
         _userNodes = userNodes;
     }
 
-    internal override Command Target => CommandFactory.Create("remove");
+    public override Command Target => CommandFactory.Create("remove");
 
     public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 

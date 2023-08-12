@@ -1,8 +1,8 @@
 ﻿using Telegram.Models;
 using System.Collections.Specialized;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Persistence;
 using Telegram.Infrastructure.Bot;
+using Telegram.Persistence;
 
 namespace Telegram.Services.Node;
 
@@ -83,7 +83,7 @@ public class NodeSupervisor
 
     internal int TryRemoveNodesWithNames(params string[] nodeNames)
     {
-        var namesToRemove = nodeNames.Select(nodeName => nodeName.CaseInsensitive());
+        var namesToRemove = nodeNames.Select(nodeName => nodeName.ToLowerInvariant());
         int removedNodes = 0;
         lock (_lock)
         {
@@ -97,7 +97,7 @@ public class NodeSupervisor
     }
 
     internal IEnumerable<MachineInfo> GetNodesByName(string nodeNameStart) =>
-        AllNodes.Where(node => node.NodeName.CaseInsensitive().StartsWith(nodeNameStart.CaseInsensitive()));
+        AllNodes.Where(node => node.NodeName.ToLowerInvariant().StartsWith(nodeNameStart.ToLowerInvariant()));
 }
 
 static class IConfigurationExtensions

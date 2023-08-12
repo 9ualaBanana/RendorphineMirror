@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Telegram.Infrastructure.Authorization;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Security.Authorization;
@@ -29,7 +30,7 @@ public partial class OnlineCommand
             .Add(AccessLevelRequirement.Admin)
             .Build();
 
-        internal override Command Target => CommandFactory.Create("adminonline");
+        public override Command Target => CommandFactory.Create("adminonline");
 
         protected override async Task HandleAsync(Command receivedCommand)
         {

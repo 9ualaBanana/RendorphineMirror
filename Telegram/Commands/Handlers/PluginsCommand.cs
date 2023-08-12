@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using System.Text;
+using Telegram.Infrastructure.Authorization;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Models;
@@ -25,7 +26,7 @@ public partial class PluginsCommand : CommandHandler, IAuthorizationPolicyProtec
         _userNodes = userNodes;
     }
 
-    internal override Command Target => CommandFactory.Create("plugins");
+    public override Command Target => CommandFactory.Create("plugins");
 
     public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 

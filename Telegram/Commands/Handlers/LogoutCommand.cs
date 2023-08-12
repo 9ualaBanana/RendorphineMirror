@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Telegram.Infrastructure.Authorization;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Persistence;
 using Telegram.Localization.Resources;
+using Telegram.Persistence;
 using Telegram.Security.Authentication;
 using Telegram.Security.Authorization;
 
@@ -30,13 +31,13 @@ public class LogoutCommand : CommandHandler, IAuthorizationPolicyProtected
         _localizedAuthenticationText = localizedAuthenticationText;
     }
 
-    internal override Command Target => CommandFactory.Create("logout");
+    public override Command Target => CommandFactory.Create("logout");
 
     public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 
     protected override async Task HandleAsync(Command receivedCommand)
     {
-        if (await _authenticationManager.GetBotUserAsyncWith(ChatId) is TelegramBot.User.Entity user && user.IsAuthenticatedByMPlus)
+        if (await _authenticationManager.GetBotUserAsyncWith(ChatId) is TelegramBotUserEntity user && user.IsAuthenticatedByMPlus)
         {
             _database.Remove(user.MPlusIdentity);
             await _database.SaveChangesAsync(RequestAborted);

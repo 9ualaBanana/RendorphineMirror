@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Telegram.Infrastructure.Authorization;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.MPlus.Security;
@@ -26,7 +27,7 @@ public class DeployCommand : CommandHandler, IAuthorizationPolicyProtected
         _httpClient = httpClientFactory.CreateClient();
     }
 
-    internal override Command Target => CommandFactory.Create("deploy");
+    public override Command Target => CommandFactory.Create("deploy");
 
     public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 

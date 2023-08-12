@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using System.Text;
+using Telegram.Infrastructure.Authorization;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Security.Authorization;
@@ -26,7 +27,7 @@ public partial class PingCommand
             _userNodes = userNodes;
         }
 
-        internal override Command Target => CommandFactory.Create("adminping");
+        public override Command Target => CommandFactory.Create("adminping");
 
         public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder()
             .Add(AccessLevelRequirement.Admin)
@@ -36,7 +37,7 @@ public partial class PingCommand
         {
             var messageBuilder = new StringBuilder().AppendHeader(Header);
 
-            var nodeNames = receivedCommand.QuotedArguments.Select(nodeName => nodeName.CaseInsensitive()).ToHashSet();
+            var nodeNames = receivedCommand.QuotedArguments.Select(nodeName => nodeName.ToLowerInvariant()).ToHashSet();
             foreach (var theUserNodes in _userNodes)
                 messageBuilder.AppendLine(ListOnlineNodes(theUserNodes.Value, nodeNames).ToString());
 

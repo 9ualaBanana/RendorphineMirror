@@ -25,7 +25,7 @@ public class MeCommand : CommandHandler
         _localizedAuthenticationText = localizedAuthenticationMessage;
     }
 
-    internal override Command Target => CommandFactory.Create("me");
+    public override Command Target => CommandFactory.Create("me");
 
     protected override async Task HandleAsync(Command receivedCommand)
     {

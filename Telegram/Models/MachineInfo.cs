@@ -20,15 +20,15 @@ public class MachineInfo : IEquatable<MachineInfo>
     public MachineInfo WithVersionUpdatedTo(string version) { Version = version; return this; }
 
     public bool NameContainsAny(IEnumerable<string> names) =>
-        names.Select(name => name.CaseInsensitive())
-        .Any(name => NodeName.CaseInsensitive().Contains(name));
+        names.Select(name => name.ToLowerInvariant())
+        .Any(name => NodeName.ToLowerInvariant().Contains(name));
 
     #region EqualityContract
     public static bool operator ==(MachineInfo this_, MachineInfo other) => this_.Equals(other);
     public static bool operator !=(MachineInfo this_, MachineInfo other) => !this_.Equals(other);
 
     public override bool Equals(object? obj) => Equals(obj as MachineInfo);
-    public bool Equals(MachineInfo? other) => NodeName.CaseInsensitive() == other?.NodeName.CaseInsensitive();
-    public override int GetHashCode() => NodeName.CaseInsensitive().GetHashCode();
+    public bool Equals(MachineInfo? other) => NodeName.ToLowerInvariant() == other?.NodeName.ToLowerInvariant();
+    public override int GetHashCode() => NodeName.ToLowerInvariant().GetHashCode();
     #endregion
 }

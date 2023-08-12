@@ -1,37 +1,32 @@
 ﻿using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
+using Telegram.Infrastructure.Media;
+using Telegram.Infrastructure.Media.Images;
 using Telegram.Infrastructure.MediaFiles;
-using Telegram.Infrastructure.Messages;
 using Telegram.Localization.Resources;
 using Telegram.MPlus.Security;
 using Telegram.Tasks;
 
 namespace Telegram.MediaFiles.Images;
 
-public class ProcessingMethodSelectorImageHandler : MessageHandler_
+public class ProcessingMethodSelectorImageHandler : ImageHandler_
 {
     readonly TaskPrice _taskPrice;
-    readonly MediaFilesCache _mediaFilesCache;
-    readonly MediaFile.Factory _mediaFileFactory;
-    readonly CallbackQuerySerializer _serializer;
     readonly LocalizedText.Media _localizedMediaText;
 
     public ProcessingMethodSelectorImageHandler(
         TaskPrice taskPrice,
-        MediaFilesCache mediaFilesCache,
-        MediaFile.Factory mediaFileFactory,
+        MediaFilesCache cache,
+        MediaFile.Factory factory,
         CallbackQuerySerializer serializer,
         LocalizedText.Media localizedMediaText,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<ProcessingMethodSelectorImageHandler> logger)
-        : base(bot, httpContextAccessor, logger)
+        : base(cache, factory, serializer, bot, httpContextAccessor, logger)
     {
         _taskPrice = taskPrice;
-        _mediaFilesCache = mediaFilesCache;
-        _mediaFileFactory = mediaFileFactory;
-        _serializer = serializer;
         _localizedMediaText = localizedMediaText;
     }
 
@@ -39,9 +34,11 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler_
     {
         try
         {
-            var receivedImage = await _mediaFileFactory.CreateAsyncFrom(Message, RequestAborted);
-            var cachedImage = await _mediaFilesCache.AddAsync(receivedImage, RequestAborted);
-
+            var receivedImage = await MediaFile.CreateAsyncFrom(Message, RequestAborted);
+            if (!Enum.TryParse<Extension>(receivedImage.Extension.TrimStart('.'), ignoreCase: true, out var _))
+            { await Bot.SendMessageAsync_(ChatId, $"Images with {receivedImage.Extension} extension are not supported for processing."); return; }
+            
+            var cachedImage = await Cache.AddAsync(receivedImage, RequestAborted);
             await Bot.SendMessageAsync_(ChatId, $"*{_localizedMediaText.ChooseHowToProcess}*",
                 await BuildReplyMarkupAsyncFor(cachedImage)
                 );
@@ -62,7 +59,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler_
             new InlineKeyboardButton[]
             {
                 InlineKeyboardButton.WithCallbackData(_localizedMediaText.UploadButton,
-                _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
+                CallbackQuery.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)
                 .Build()))
@@ -70,7 +67,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler_
             new InlineKeyboardButton[]
             {
                 InlineKeyboardButton.WithCallbackData($"{_localizedMediaText.UpscaleButton}{await PriceFor(TaskAction.EsrganUpscale)}",
-                _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
+                CallbackQuery.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.UpscaleImage | ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)
                 .Build()))
@@ -78,7 +75,7 @@ public class ProcessingMethodSelectorImageHandler : MessageHandler_
             new InlineKeyboardButton[]
             {
                 InlineKeyboardButton.WithCallbackData($"{_localizedMediaText.VectorizeButton}{await PriceFor(TaskAction.VeeeVectorize)}",
-                _serializer.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
+                CallbackQuery.Serialize(new ImageProcessingCallbackQuery.Builder<ImageProcessingCallbackQuery>()
                 .Data(ImageProcessingCallbackData.VectorizeImage | ImageProcessingCallbackData.UploadImage)
                 .Arguments(cachedImage.Index)
                 .Build()))

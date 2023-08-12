@@ -1,49 +1,50 @@
 ﻿using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
+using Telegram.Infrastructure.Media;
+using Telegram.Infrastructure.Media.Videos;
 using Telegram.Infrastructure.MediaFiles;
-using Telegram.Infrastructure.Messages;
 using Telegram.Localization.Resources;
 
 namespace Telegram.MediaFiles.Videos;
 
-public class ProcessingMethodSelectorVideoHandler : MessageHandler_
+public class ProcessingMethodSelectorVideoHandler : VideoHandler_
 {
-    readonly MediaFilesCache _mediaFilesCache;
-    readonly MediaFile.Factory _mediaFileFactory;
-    readonly CallbackQuerySerializer _callbackQuerySerializer;
     readonly LocalizedText.Media _localizedMediaText;
 
     public ProcessingMethodSelectorVideoHandler(
-        MediaFilesCache mediaFilesCache,
-        MediaFile.Factory mediaFileFactory,
-        CallbackQuerySerializer callbackQuerySerializer,
+        MediaFilesCache cache,
+        MediaFile.Factory factory,
+        CallbackQuerySerializer serializer,
         LocalizedText.Media localizedMediaText,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<ProcessingMethodSelectorVideoHandler> logger)
-        : base(bot, httpContextAccessor, logger)
+        : base(cache, factory, serializer, bot, httpContextAccessor, logger)
     {
-        _mediaFilesCache = mediaFilesCache;
-        _mediaFileFactory = mediaFileFactory;
-        _callbackQuerySerializer = callbackQuerySerializer;
         _localizedMediaText = localizedMediaText;
     }
 
     public override async Task HandleAsync()
-        => await Bot.SendMessageAsync_(ChatId, $"*{_localizedMediaText.ChooseHowToProcess}*",
-            await BuildReplyMarkupAsyncFor(await _mediaFileFactory.CreateAsyncFrom(Message, RequestAborted), RequestAborted)
+    {
+        var receivedVideo = await MediaFile.CreateAsyncFrom(Message, RequestAborted);
+        if (!Enum.TryParse<Extension>(receivedVideo.Extension.TrimStart('.'), ignoreCase: true, out var _))
+        { await Bot.SendMessageAsync_(ChatId, $"Videos with {receivedVideo.Extension} extension are not supported for processing."); return; }
+
+        await Bot.SendMessageAsync_(ChatId, $"*{_localizedMediaText.ChooseHowToProcess}*",
+            await BuildReplyMarkupAsyncFor(receivedVideo, RequestAborted)
             );
+    }
 
     async Task<InlineKeyboardMarkup> BuildReplyMarkupAsyncFor(MediaFile receivedVideo, CancellationToken cancellationToken)
     {
-        var cachedVideo = await _mediaFilesCache.AddAsync(receivedVideo, cancellationToken);
+        var cachedVideo = await Cache.AddAsync(receivedVideo, cancellationToken);
         return new(new InlineKeyboardButton[][]
         {
             new InlineKeyboardButton[]
             {
                 InlineKeyboardButton.WithCallbackData(_localizedMediaText.UploadButton,
-                _callbackQuerySerializer.Serialize(new VideoProcessingCallbackQuery.Builder<VideoProcessingCallbackQuery>()
+                CallbackQuery.Serialize(new VideoProcessingCallbackQuery.Builder<VideoProcessingCallbackQuery>()
                 .Data(VideoProcessingCallbackData.UploadVideo)
                 .Arguments(cachedVideo.Index)
                 .Build()))

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using System.Text;
+using Telegram.Infrastructure.Authorization;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Models;
@@ -25,7 +26,7 @@ public partial class PingCommand : CommandHandler, IAuthorizationPolicyProtected
         _userNodes = userNodes;
     }
 
-    internal override Command Target => CommandFactory.Create("ping");
+    public override Command Target => CommandFactory.Create("ping");
 
     public AuthorizationPolicy AuthorizationPolicy { get; } = new MPlusAuthorizationPolicyBuilder().Build();
 
@@ -36,7 +37,7 @@ public partial class PingCommand : CommandHandler, IAuthorizationPolicyProtected
 
         var messageBuilder = new StringBuilder().AppendHeader(Header);
 
-        var nodeNames = receivedCommand.QuotedArguments.Select(nodeName => nodeName.CaseInsensitive()).ToHashSet();
+        var nodeNames = receivedCommand.QuotedArguments.Select(nodeName => nodeName.ToLowerInvariant()).ToHashSet();
         messageBuilder.AppendLine(ListOnlineNodes(userNodesSupervisor, nodeNames).ToString());
 
         await Bot.SendMessageAsync_(ChatId, messageBuilder.ToString());
@@ -50,7 +51,7 @@ public partial class PingCommand : CommandHandler, IAuthorizationPolicyProtected
 
         if (nodeNames.Any())
             onlineNodesToList = onlineNodesToList.Where(
-                nodeInfo => nodeNames.Any(nodeName => nodeInfo.NodeName.CaseInsensitive().Contains(nodeName))
+                nodeInfo => nodeNames.Any(nodeName => nodeInfo.NodeName.ToLowerInvariant().Contains(nodeName))
                 );
 
         return ListSpecifiedOnlineNodes(nodeSupervisor, onlineNodesToList);

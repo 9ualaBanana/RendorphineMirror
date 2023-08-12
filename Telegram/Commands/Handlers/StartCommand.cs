@@ -43,7 +43,7 @@ public class StartCommand : CommandHandler
         _localizedAuthenticationText = localizedAuthenticationText;
     }
 
-    internal override Command Target => CommandFactory.Create("start");
+    public override Command Target => CommandFactory.Create("start");
 
     protected override async Task HandleAsync(Command receivedCommand)
     {

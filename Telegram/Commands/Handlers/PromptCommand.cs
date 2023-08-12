@@ -21,7 +21,7 @@ public class PromptCommand : CommandHandler
         _midjourneyPrompt = midjourneyPrompt;
     }
 
-    internal override Command Target => CommandFactory.Create("prompt");
+    public override Command Target => CommandFactory.Create("prompt");
 
     protected override async Task HandleAsync(Command receivedCommand)
     {

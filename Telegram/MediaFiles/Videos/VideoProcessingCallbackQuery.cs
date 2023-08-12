@@ -1,6 +1,6 @@
 ﻿using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.MediaFiles;
+using Telegram.Infrastructure.Media;
 using Telegram.Localization.Resources;
 
 namespace Telegram.MediaFiles.Videos;

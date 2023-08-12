@@ -3,7 +3,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.MediaFiles;
+using Telegram.Infrastructure.Media;
 using Telegram.MediaFiles.Images;
 
 namespace Telegram.StableDiffusion;

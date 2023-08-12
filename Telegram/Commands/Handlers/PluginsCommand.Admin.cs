@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using System.Text;
+using Telegram.Infrastructure.Authorization;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Commands;
 using Telegram.Security.Authorization;
@@ -30,7 +31,7 @@ public partial class PluginsCommand
             .Add(AccessLevelRequirement.Admin)
             .Build();
 
-        internal override Command Target => CommandFactory.Create("adminplugins");
+        public override Command Target => CommandFactory.Create("adminplugins");
 
         protected override async Task HandleAsync(Command receivedCommand)
         {

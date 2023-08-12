@@ -10,11 +10,6 @@ static class CommandsExtensions
 {
     internal static ITelegramBotBuilder AddCommands(this ITelegramBotBuilder builder)
         => builder
-        .AddCommandsCore()
-        .AddCommandHandlers();
-
-    static ITelegramBotBuilder AddCommandHandlers(this ITelegramBotBuilder builder)
-        => builder
         .AddCommandHandler<StartCommand>()
         .AddCommandHandler<LoginCommand>()
         .AddCommandHandler<LogoutCommand>()
