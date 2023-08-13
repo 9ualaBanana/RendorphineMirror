@@ -1,5 +1,7 @@
 ﻿using System.Text;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.InputFiles;
 using Telegram.Infrastructure.Middleware.UpdateRouting;
 
 namespace Telegram.Infrastructure.Bot;
@@ -23,8 +25,17 @@ public static class TelegramBotExtensions
     public static WebApplication UseTelegramBot(this WebApplication app)
         => app.UseUpdateRouting();
 
-    public static async Task RunAsync_(this WebApplication app)
-    { await app.Services.GetRequiredService<TelegramBot>().InitializeAsync(); app.Run(); }
+    public static async Task RunAsync_(this WebApplication app,
+        InputFileStream? certificate = default,
+        int? maxConnections = default,
+        IEnumerable<UpdateType>? allowedUpdates = default,
+        bool? dropPendingUpdates = default,
+        CancellationToken cancellationToken = default)
+    {
+        await app.Services.GetRequiredService<TelegramBot>()
+            .InitializeAsync(certificate, maxConnections, allowedUpdates, dropPendingUpdates, cancellationToken);
+        app.Run();
+    }
 
     #region Properties
 

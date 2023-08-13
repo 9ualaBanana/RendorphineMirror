@@ -29,11 +29,14 @@ public partial class TelegramBot : TelegramBotClient
     /// <summary>
     /// Must be called before <see cref="WebApplication.Run(string?)"/>.
     /// </summary>
-    internal async Task InitializeAsync()
+    internal async Task InitializeAsync(
+        InputFileStream? certificate = default,
+        int? maxConnections = default,
+        IEnumerable<UpdateType>? allowedUpdates = default,
+        bool? dropPendingUpdates = default,
+        CancellationToken cancellationToken = default)
     {
-        await this.SetWebhookAsync(_options.WebhookUri.ToString(),
-            allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery },
-            dropPendingUpdates: true);
+        await this.SetWebhookAsync(_options.WebhookUri.ToString(), certificate, default, maxConnections, allowedUpdates, dropPendingUpdates, cancellationToken);
         Logger.LogTrace("Webhook is set for {Host}", _options.WebhookUri);
     }
 

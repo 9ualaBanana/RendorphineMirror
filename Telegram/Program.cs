@@ -7,6 +7,7 @@ global using NodeCommon;
 global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
 using NLog.Web;
+using Telegram.Bot.Types.Enums;
 using Telegram.Commands;
 using Telegram.Infrastructure.Bot;
 using Telegram.Localization;
@@ -52,7 +53,9 @@ if (!app.Environment.IsDevelopment())
 else app.UseDeveloperExceptionPage()
         .UseSwagger().UseSwaggerUI();
 
-await app.RunAsync_();
+await app.RunAsync_(
+    allowedUpdates: new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery },
+    dropPendingUpdates: true);
 
 
 static class Startup
