@@ -1,9 +1,11 @@
 ﻿using System.Collections;
 
-namespace Telegram.Models;
+namespace Telegram.Infrastructure.Bot;
 
 public class Subscriptions : ICollection<long>
 {
+    internal static readonly Subscriptions _ = new("subscriptions.txt");
+
     readonly string _fileName;
     readonly HashSet<long> _subscriptions;
 

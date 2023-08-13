@@ -58,7 +58,8 @@ public class PushGitHubEventForwarder
             }
         });
 
-        await _bot.NotifySubscribersAsync(text, replyMarkup: replyMarkup);
+        foreach (var subscriber in Subscriptions._)
+            await _bot.SendMessageAsync_(subscriber, text, replyMarkup: replyMarkup);
     }
 
     static IEnumerable<string> GetCommitMessages(JToken commits)

@@ -16,8 +16,6 @@ public partial class TelegramBot : TelegramBotClient
     readonly Options _options;
     readonly MessagePaginator _messagePaginator;
 
-    public Subscriptions Subscriptions = new("subscriptions.txt");
-
     public TelegramBot(IOptions<Options> options, MessagePaginator messagePaginator, ILogger<TelegramBot> logger)
         : base(options.Value.Token)
     {
@@ -38,12 +36,6 @@ public partial class TelegramBot : TelegramBotClient
     {
         await this.SetWebhookAsync(_options.WebhookUri.ToString(), certificate, default, maxConnections, allowedUpdates, dropPendingUpdates, cancellationToken);
         Logger.LogTrace("Webhook is set for {Host}", _options.WebhookUri);
-    }
-
-    public async Task NotifySubscribersAsync(string text, InlineKeyboardMarkup? replyMarkup = null)
-    {
-        foreach (var subscriber in Subscriptions)
-            await SendMessageAsync_(subscriber, text, replyMarkup: replyMarkup);
     }
 
     public async Task<Message> SendImageAsync_(
