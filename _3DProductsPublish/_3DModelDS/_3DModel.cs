@@ -3,7 +3,7 @@
 /// <summary>
 /// Wraps either directory or archive in which 3D model parts are stored.
 /// </summary>
-public partial class _3DModel : IDisposable
+public partial class _3DModel : I3DProductAsset, IDisposable
 {
     internal ContainerType OriginalContainer;
 
@@ -47,6 +47,22 @@ public partial class _3DModel : IDisposable
         else throw new ArgumentException("Container must reference either directory or archive.", nameof(containerPath));
 
         _disposeTemps = disposeTemps;
+    }
+
+    protected _3DModel(_3DModel prototype)
+    {
+        switch (prototype.OriginalContainer)
+        {
+            case ContainerType.Directory:
+                OriginalPath = _directoryPath = prototype.OriginalPath;
+                break;
+            case ContainerType.Archive:
+                OriginalPath = _archivePath = prototype.OriginalPath;
+                break;
+            default:
+                throw new ArgumentException($"{nameof(_3DModel)} must reference either directory or archive.", nameof(prototype));
+        }
+        _disposeTemps = prototype._disposeTemps;
     }
 
     #endregion

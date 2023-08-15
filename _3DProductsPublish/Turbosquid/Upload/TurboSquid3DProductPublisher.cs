@@ -23,6 +23,6 @@ internal class TurboSquid3DProductPublisher : I3DProductPublisher
         var credential_ = await TurboSquidNetworkCredential._RequestAsyncUsing(_api, credential, cancellationToken);
         await _api._LoginAsyncUsing(credential_, cancellationToken);
         var productUploadSessionContext = await _api._RequestProductUploadSessionContextAsyncFor(_3DProduct, credential_, cancellationToken);
-        await _api._UploadAssetsAsyncUsing(productUploadSessionContext, cancellationToken);
+        var uploadedAssets = await _api._UploadAssetsAsyncUsing(productUploadSessionContext, cancellationToken);
     }
 }

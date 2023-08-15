@@ -4,8 +4,6 @@ using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using _3DProductsPublish.Turbosquid.Upload;
 using CefSharp.OffScreen;
 using Microsoft.Net.Http.Headers;
-using Newtonsoft.Json.Linq;
-using NLog;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -121,11 +119,11 @@ internal class TurboSquidApi
 
     #endregion
 
-    internal async Task _UploadAssetsAsyncUsing(
+    internal async Task<TurboSquidUploaded3DProductAssets>_UploadAssetsAsyncUsing(
         TurboSquid3DProductUploadSessionContext productUploadSessionContext,
         CancellationToken cancellationToken)
     {
         var uploadApi = new TurboSquidUploadApi(_httpClient, productUploadSessionContext);
-        await uploadApi.UploadAssetsAsync(cancellationToken);
+        return await uploadApi.UploadAssetsAsync(cancellationToken);
     }
 }

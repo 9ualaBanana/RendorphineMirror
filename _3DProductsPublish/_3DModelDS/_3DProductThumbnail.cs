@@ -3,7 +3,7 @@ using System.Net.Mime;
 
 namespace _3DProductsPublish._3DModelDS;
 
-public record _3DProductThumbnail
+public record _3DProductThumbnail : I3DProductAsset
 {
     public readonly string FilePath;
     public readonly string FileName;

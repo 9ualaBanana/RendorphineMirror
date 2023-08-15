@@ -8,6 +8,7 @@
     <PackageReference Include="CefSharp.OffScreen.NETCore" Version="115.3.110" />
     <PackageReference Include="Direx" Version="0.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
+    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 
   <ItemGroup>
