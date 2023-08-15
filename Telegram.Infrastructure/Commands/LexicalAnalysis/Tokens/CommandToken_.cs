@@ -1,6 +1,6 @@
-﻿using Telegram.Infrastructure.Tokenization;
+﻿using GIBS.Tokenization;
 
-namespace Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
+namespace GIBS.Commands.LexicalAnalysis.Tokens;
 
 public abstract record CommandToken_ : Token
 {

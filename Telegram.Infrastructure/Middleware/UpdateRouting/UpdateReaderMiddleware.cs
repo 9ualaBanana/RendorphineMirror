@@ -1,9 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using GIBS.Middleware.UpdateRouting.UpdateTypeRouting;
+using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot.Types;
-using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.Middleware.UpdateRouting;
+namespace GIBS.Middleware.UpdateRouting;
 
 public class UpdateReaderMiddleware : IMiddleware
 {

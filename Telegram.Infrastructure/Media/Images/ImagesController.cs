@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Telegram.Infrastructure.Media.Images;
+namespace GIBS.Media.Images;
 
 [ApiController]
 [Route($"/{PathFragment}")]

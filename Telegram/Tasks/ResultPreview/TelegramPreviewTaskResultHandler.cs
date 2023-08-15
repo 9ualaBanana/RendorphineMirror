@@ -1,9 +1,7 @@
-﻿using System.Text;
-using Telegram.Bot.Types;
+﻿using GIBS.Media;
+using GIBS.MediaFiles;
+using System.Text;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Media;
-using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
 using Telegram.Models;
 using Telegram.MPlus.Clients;

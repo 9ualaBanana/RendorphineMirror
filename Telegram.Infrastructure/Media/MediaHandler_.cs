@@ -1,10 +1,10 @@
-﻿using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.MediaFiles;
-using Telegram.Infrastructure.Messages;
+﻿using GIBS.Bot;
+using GIBS.CallbackQueries.Serialization;
+using GIBS.MediaFiles;
+using GIBS.Messages;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.Media;
+namespace GIBS.Media;
 
 public abstract class MediaHandler_ : MessageHandler_
 {

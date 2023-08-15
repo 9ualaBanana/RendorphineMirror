@@ -1,8 +1,7 @@
-﻿using Microsoft.Extensions.Options;
+﻿using GIBS.CallbackQueries.Serialization;
+using GIBS.Media;
+using Microsoft.Extensions.Options;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.Media;
 using Telegram.Infrastructure.Tasks;
 using Telegram.Localization.Resources;
 using Telegram.MPlus.Security;

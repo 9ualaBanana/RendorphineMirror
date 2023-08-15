@@ -1,7 +1,6 @@
-﻿using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.Media;
+﻿using GIBS.CallbackQueries;
+using GIBS.CallbackQueries.Serialization;
+using GIBS.Media;
 using Telegram.Localization.Resources;
 using Telegram.MPlus.Security;
 using Transport.Upload;

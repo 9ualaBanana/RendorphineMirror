@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using File = System.IO.File;
 
 namespace Telegram.Infrastructure.Bot;
 

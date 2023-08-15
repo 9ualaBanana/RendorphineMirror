@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace Node;
+﻿namespace Node;
 
 public class ProcessesingModeSwitch
 {

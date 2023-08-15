@@ -1,9 +1,9 @@
-﻿using Telegram.Bot.Types;
+﻿using GIBS.Middleware.UpdateRouting.UpdateTypeRouting;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
+namespace GIBS.Middleware.UpdateRouting.MessageRouting;
 
 public class MessageRouterMiddleware : IUpdateTypeRouter
 {

@@ -1,7 +1,7 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
+﻿using GIBS.Middleware.UpdateRouting.MessageRouting;
+using Telegram.Bot.Types;
 
-namespace Telegram.Infrastructure.Media.Videos;
+namespace GIBS.Media.Videos;
 
 public class VideosRouterMiddleware : MessageRouter
 {

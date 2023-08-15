@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
-using Telegram.Infrastructure.Tokenization;
+﻿using GIBS.Bot;
+using GIBS.Commands.LexicalAnalysis.Tokens;
+using GIBS.Tokenization;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Telegram.Infrastructure.Commands.LexicalAnalysis;
+namespace GIBS.Commands.LexicalAnalysis;
 
 static class CommandsLexicalAnalysisExtensions
 {
@@ -18,5 +18,5 @@ static class CommandsLexicalAnalysisExtensions
 
         return builder;
     }
-        
+
 }

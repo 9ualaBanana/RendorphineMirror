@@ -1,6 +1,4 @@
-﻿using NLog;
-
-namespace _3DProductsPublish.CGTrader.Network.Captcha;
+﻿namespace _3DProductsPublish.CGTrader.Network.Captcha;
 
 internal static class CGTraderCaptchaSiteKey
 {

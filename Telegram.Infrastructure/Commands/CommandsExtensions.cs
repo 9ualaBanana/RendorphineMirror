@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Commands.SyntacticAnalysis;
-using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
+﻿using GIBS.Bot;
+using GIBS.Commands.SyntacticAnalysis;
+using GIBS.Middleware.UpdateRouting.MessageRouting;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Telegram.Infrastructure.Commands;
+namespace GIBS.Commands;
 
 static class CommandsExtensions
 {

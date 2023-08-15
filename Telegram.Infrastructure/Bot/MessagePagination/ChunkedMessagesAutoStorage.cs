@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot.Types;
 
-namespace Telegram.Infrastructure.Bot.MessagePagination;
+namespace GIBS.Bot.MessagePagination;
 
 /// <summary>
 /// Stores <see cref="ChunkedMessage"/>s for a configured amount of time

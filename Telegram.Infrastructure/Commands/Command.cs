@@ -1,6 +1,6 @@
-﻿using Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
+﻿using GIBS.Commands.LexicalAnalysis.Tokens;
 
-namespace Telegram.Infrastructure.Commands;
+namespace GIBS.Commands;
 
 public partial class Command : IEquatable<Command>, IEquatable<string>
 {

@@ -1,10 +1,10 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+﻿using GIBS.Bot;
+using GIBS.CallbackQueries.Serialization;
+using GIBS.Middleware.UpdateRouting.UpdateTypeRouting;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Telegram.Callbacks;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
 
-namespace Telegram.Infrastructure.CallbackQueries;
+namespace GIBS.CallbackQueries;
 
 static class CallbackQueriesExtensions
 {

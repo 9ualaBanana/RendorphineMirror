@@ -1,6 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using Telegram.Bot.Types;
-using Telegram.Infrastructure.Bot;
 
 namespace Telegram.TrialUsers;
 

@@ -1,6 +1,6 @@
 ﻿using Telegram.Bot.Types;
 
-namespace Telegram.Infrastructure.Media.Videos;
+namespace GIBS.Media.Videos;
 
 static class VideosHelper
 {

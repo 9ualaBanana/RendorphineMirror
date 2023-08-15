@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using Telegram.Infrastructure.CallbackQueries;
+﻿using GIBS.CallbackQueries;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Telegram.Infrastructure.Bot.MessagePagination;
+namespace GIBS.Bot.MessagePagination;
 
 static class MessagePaginationExtensions
 {

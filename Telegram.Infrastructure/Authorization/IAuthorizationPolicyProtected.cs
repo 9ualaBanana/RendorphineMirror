@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 
-namespace Telegram.Infrastructure.Authorization;
+namespace GIBS.Authorization;
 
 /// <summary>
 /// Allows services to provide class-specific <see cref="Microsoft.AspNetCore.Authorization.AuthorizationPolicy"/>

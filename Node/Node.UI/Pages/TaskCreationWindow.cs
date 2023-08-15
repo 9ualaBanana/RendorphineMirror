@@ -1,6 +1,4 @@
 using Avalonia.Controls.Templates;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using TaskCreationInfo = NodeCommon.Tasks.UITaskCreationInfo;
 
 namespace Node.UI.Pages

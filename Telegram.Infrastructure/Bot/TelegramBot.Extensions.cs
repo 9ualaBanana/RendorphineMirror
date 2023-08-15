@@ -1,10 +1,10 @@
-﻿using System.Text;
+﻿using GIBS.Middleware.UpdateRouting;
+using System.Text;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
-using Telegram.Infrastructure.Middleware.UpdateRouting;
 
-namespace Telegram.Infrastructure.Bot;
+namespace GIBS.Bot;
 
 public static class TelegramBotExtensions
 {

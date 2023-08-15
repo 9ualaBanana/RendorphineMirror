@@ -1,13 +1,10 @@
 ﻿using _3DProductsPublish._3DModelDS;
 using _3DProductsPublish.CGTrader._3DModelComponents;
-using _3DProductsPublish.CGTrader.Api;
 using _3DProductsPublish.CGTrader.Network;
 using _3DProductsPublish.CGTrader.Network.Captcha;
 using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.CGTrader.Upload.SessionData;
 using Microsoft.AspNetCore.WebUtilities;
-using Newtonsoft.Json.Linq;
-using NLog;
 using System.Net.Http.Json;
 
 namespace _3DProductsPublish.CGTrader.Api;

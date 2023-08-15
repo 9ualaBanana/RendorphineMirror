@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
+﻿using GIBS.Bot;
+using GIBS.Middleware.UpdateRouting.UpdateTypeRouting;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Telegram.Infrastructure.Middleware.UpdateRouting;
+namespace GIBS.Middleware.UpdateRouting;
 
 internal static class UpdateRoutingExtensions
 {
@@ -14,7 +14,7 @@ internal static class UpdateRoutingExtensions
 
         return builder;
     }
-        
+
 
     internal static WebApplication UseUpdateRouting(this WebApplication app)
     {
@@ -22,5 +22,5 @@ internal static class UpdateRoutingExtensions
         app.UseMiddleware<UpdateRoutingMiddleware>().UseRouting();
         return app;
     }
-        
+
 }

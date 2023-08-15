@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Telegram.Services.GitHub;
 using Telegram.Models;
+using Telegram.Services.GitHub;
 
 namespace Telegram.Controllers;
 

@@ -1,9 +1,9 @@
-﻿using Telegram.Bot;
+﻿using GIBS.CallbackQueries;
+using GIBS.CallbackQueries.Serialization;
+using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
-using Telegram.Infrastructure.CallbackQueries;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
 
-namespace Telegram.Infrastructure.Bot.MessagePagination;
+namespace GIBS.Bot.MessagePagination;
 
 public class MessagePaginatorCallbackQueryHandler : CallbackQueryHandler<MessagePaginatorCallbackQuery, MessagePaginatorCallbackData>
 {

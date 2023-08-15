@@ -1,4 +1,4 @@
-﻿namespace Telegram.Infrastructure;
+﻿namespace GIBS;
 
 /// <summary>
 /// Allows <typeparamref name="TService"/> to be used like a switch case along with its other implementations

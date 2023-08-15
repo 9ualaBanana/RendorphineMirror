@@ -1,5 +1,4 @@
 ﻿using NodeCommon;
-using NLog;
 using System.Diagnostics;
 
 namespace Transport.Upload;

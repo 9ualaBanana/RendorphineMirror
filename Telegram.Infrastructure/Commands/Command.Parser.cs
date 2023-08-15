@@ -1,7 +1,7 @@
-﻿using Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
-using Telegram.Infrastructure.Tokenization;
+﻿using GIBS.Commands.LexicalAnalysis.Tokens;
+using GIBS.Tokenization;
 
-namespace Telegram.Infrastructure.Commands;
+namespace GIBS.Commands;
 
 public partial class Command
 {

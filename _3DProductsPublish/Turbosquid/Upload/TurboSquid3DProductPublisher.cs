@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish;
-using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DModelDS;
 using _3DProductsPublish.Turbosquid.Api;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using System.Net;

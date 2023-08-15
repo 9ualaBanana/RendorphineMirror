@@ -1,6 +1,4 @@
-﻿using NLog;
-
-namespace Transport.Upload;
+﻿namespace Transport.Upload;
 
 public static class PacketsTransporter
 {

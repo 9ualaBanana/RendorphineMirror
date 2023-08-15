@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Telegram.Infrastructure.Bot;
 
 namespace Telegram.Security.Authorization;
 

@@ -1,9 +1,9 @@
-﻿using System.Security.Claims;
+﻿using GIBS.Bot;
+using System.Security.Claims;
 using Telegram.Bot.Types;
-using Telegram.Infrastructure.Bot;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure;
+namespace GIBS;
 
 public abstract class UpdateHandler_ : IHandler
 {

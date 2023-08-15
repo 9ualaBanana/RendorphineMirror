@@ -1,5 +1,4 @@
 ﻿using NLog;
-using Telegram.Infrastructure.Bot;
 using ILogger = NLog.ILogger;
 
 namespace Telegram.Infrastructure.Tasks;

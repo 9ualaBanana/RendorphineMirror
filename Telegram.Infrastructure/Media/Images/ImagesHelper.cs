@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot.Types;
 
-namespace Telegram.Infrastructure.Media.Images;
+namespace GIBS.Media.Images;
 
 static class ImagesHelper
 {

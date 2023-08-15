@@ -1,6 +1,6 @@
+using GIBS.Media;
 using HeyRed.Mime;
 using Microsoft.AspNetCore.Mvc;
-using Telegram.Infrastructure.Media;
 using Telegram.Tasks.ResultPreview;
 
 namespace Telegram.Infrastructure.Tasks;

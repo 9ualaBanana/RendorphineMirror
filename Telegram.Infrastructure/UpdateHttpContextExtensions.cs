@@ -1,9 +1,8 @@
-﻿using NLog;
+﻿using GIBS.Middleware.UpdateRouting;
 using Telegram.Bot.Types;
-using Telegram.Infrastructure.Middleware.UpdateRouting;
 using ILogger = NLog.ILogger;
 
-namespace Telegram.Infrastructure;
+namespace GIBS;
 
 public static class UpdateHttpContextExtensions
 {

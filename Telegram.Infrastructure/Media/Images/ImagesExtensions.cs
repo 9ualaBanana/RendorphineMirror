@@ -1,8 +1,7 @@
-﻿using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Messages;
-using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
+﻿using GIBS.Bot;
+using GIBS.Middleware.UpdateRouting.MessageRouting;
 
-namespace Telegram.Infrastructure.Media.Images;
+namespace GIBS.Media.Images;
 
 static class ImagesExtensions
 {

@@ -1,7 +1,7 @@
-using System.Management.Automation;
 using MonoTorrent;
 using MonoTorrent.BEncoding;
 using MonoTorrent.Client;
+using System.Management.Automation;
 
 namespace Node.Registry;
 

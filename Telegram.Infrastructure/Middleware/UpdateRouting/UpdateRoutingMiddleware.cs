@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.Options;
+﻿using GIBS.Bot;
+using Microsoft.Extensions.Options;
 using Telegram.Bot.Types;
-using Telegram.Infrastructure.Bot;
 
-namespace Telegram.Infrastructure.Middleware.UpdateRouting;
+namespace GIBS.Middleware.UpdateRouting;
 
 /// <summary>
 /// Redirects requests from Telegram containing <see cref="Update"/>s to corresponding update routing branch.

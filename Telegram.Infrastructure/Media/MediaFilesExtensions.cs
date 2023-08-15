@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.MediaFiles;
+﻿using GIBS.Bot;
+using GIBS.MediaFiles;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Telegram.Infrastructure.Media;
+namespace GIBS.Media;
 
 static class MediaFilesExtensions
 {

@@ -1,6 +1,4 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Messages;
+﻿using GIBS.Messages;
 using Telegram.Localization.Resources;
 
 namespace Telegram.Security.Authentication;

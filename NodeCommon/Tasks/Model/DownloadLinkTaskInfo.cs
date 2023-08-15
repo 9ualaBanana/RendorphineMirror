@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-namespace NodeCommon.Tasks.Model;
+﻿namespace NodeCommon.Tasks.Model;
 
 public class DownloadLinkTaskInputInfo : ITaskInputInfo
 {

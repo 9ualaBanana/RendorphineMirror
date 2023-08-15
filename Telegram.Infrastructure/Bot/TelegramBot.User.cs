@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using Telegram.Bot.Types;
 
-namespace Telegram.Infrastructure.Bot;
+namespace GIBS.Bot;
 
 public partial class TelegramBot
 {

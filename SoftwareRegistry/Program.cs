@@ -1,5 +1,3 @@
-global using System.Collections.Immutable;
-global using System.Diagnostics.CodeAnalysis;
 global using Common;
 global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.AspNetCore.Mvc;
@@ -7,6 +5,8 @@ global using MonoTorrent;
 global using Node.Common;
 global using Node.Plugins.Models;
 global using NodeCommon;
+global using System.Collections.Immutable;
+global using System.Diagnostics.CodeAnalysis;
 global using ILogger = Microsoft.Extensions.Logging.ILogger;
 using NLog.Web;
 using SoftwareRegistry;

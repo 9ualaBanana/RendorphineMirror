@@ -1,5 +1,5 @@
-﻿using Telegram.Infrastructure;
-using Telegram.Infrastructure.CallbackQueries;
+﻿using GIBS;
+using GIBS.CallbackQueries;
 
 namespace Telegram.StableDiffusion;
 

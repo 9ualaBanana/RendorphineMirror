@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Telegram.Infrastructure.Bot;
+namespace GIBS.Bot;
 
 public partial class TelegramBot
 {

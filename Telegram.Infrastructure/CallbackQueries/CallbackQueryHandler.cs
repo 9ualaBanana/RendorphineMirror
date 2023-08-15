@@ -1,11 +1,11 @@
-﻿using Telegram.Bot;
+﻿using GIBS.Bot;
+using GIBS.CallbackQueries.Serialization;
+using GIBS.Messages;
+using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.Messages;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.CallbackQueries;
+namespace GIBS.CallbackQueries;
 
 /// <summary>
 /// Service type of <see cref="CallbackQueryHandler{TCallbackQuery, ECallbackData}"/> implementations.

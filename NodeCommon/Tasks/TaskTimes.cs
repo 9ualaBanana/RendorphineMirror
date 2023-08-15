@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-namespace NodeCommon.Tasks;
+﻿namespace NodeCommon.Tasks;
 
 public record TaskTimes(long? Input = null, long? Active = null, long? Output = null, long? Validation = null, long? Finished = null, long? Canceled = null, long? Failed = null)
 {

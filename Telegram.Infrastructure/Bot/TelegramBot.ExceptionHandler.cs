@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 using System.Text;
 using ILogger = NLog.ILogger;
 
-namespace Telegram.Infrastructure.Bot;
+namespace GIBS.Bot;
 
 public static partial class TelegramBotExceptionHandler
 {

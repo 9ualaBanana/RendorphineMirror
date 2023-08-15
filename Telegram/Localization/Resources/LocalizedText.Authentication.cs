@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Localization;
 using System.Text;
-using Telegram.Bot.Types;
 using Telegram.MPlus.Clients;
 using Telegram.MPlus.Security;
 using Telegram.TrialUsers;

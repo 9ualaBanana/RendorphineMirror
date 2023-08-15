@@ -1,6 +1,3 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 namespace NodeCommon.ApiModel;
 
 public record ServerTaskFullState : DbTaskFullState, ILoggable

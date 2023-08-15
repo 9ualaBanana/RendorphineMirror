@@ -1,4 +1,4 @@
-﻿namespace Telegram.Infrastructure.Tokenization;
+﻿namespace GIBS.Tokenization;
 
 internal class TokenizerInput
 {

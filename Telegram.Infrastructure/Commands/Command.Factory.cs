@@ -1,7 +1,7 @@
-﻿using Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
+﻿using GIBS.Commands.LexicalAnalysis.Tokens;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.Commands;
+namespace GIBS.Commands;
 
 public partial class Command
 {

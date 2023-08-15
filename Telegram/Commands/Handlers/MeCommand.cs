@@ -1,5 +1,4 @@
-﻿using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Commands;
+﻿using GIBS.Commands;
 using Telegram.Localization.Resources;
 using Telegram.MPlus.Clients;
 using Telegram.MPlus.Security;

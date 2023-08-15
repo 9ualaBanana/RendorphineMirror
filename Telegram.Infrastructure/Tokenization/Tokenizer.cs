@@ -1,4 +1,4 @@
-﻿namespace Telegram.Infrastructure.Tokenization;
+﻿namespace GIBS.Tokenization;
 
 /// <summary>
 /// Uses registered <see cref="LexemeScanner{TToken}"/> implementations

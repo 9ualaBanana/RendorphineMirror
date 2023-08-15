@@ -1,9 +1,9 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Messages;
+﻿using GIBS.Bot;
+using GIBS.Messages;
+using Telegram.Bot.Types;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.Commands;
+namespace GIBS.Commands;
 
 /// <summary>
 /// Base class for <see cref="CommandHandler"/>s that should be used to handle <see cref="Target"/> and

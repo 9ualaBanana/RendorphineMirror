@@ -1,5 +1,4 @@
 using _3DProductsPublish.CGTrader._3DModelComponents;
-using Newtonsoft.Json.Linq;
 
 namespace Node.UI.Pages.MainWindowTabs;
 

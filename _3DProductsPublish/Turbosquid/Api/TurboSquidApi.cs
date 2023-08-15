@@ -4,8 +4,6 @@ using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using _3DProductsPublish.Turbosquid.Upload;
 using CefSharp.OffScreen;
 using Microsoft.Net.Http.Headers;
-using Newtonsoft.Json.Linq;
-using NLog;
 using System.Net;
 using System.Net.Http.Json;
 

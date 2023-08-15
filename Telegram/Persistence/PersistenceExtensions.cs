@@ -1,6 +1,4 @@
-﻿using Telegram.Infrastructure.Bot;
-
-namespace Telegram.Persistence;
+﻿namespace Telegram.Persistence;
 
 static class PersistenceExtensions
 {

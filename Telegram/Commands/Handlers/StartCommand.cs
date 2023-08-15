@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
+﻿using GIBS.Commands;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
-using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Commands;
 using Telegram.Localization.Resources;
 using Telegram.MPlus.Clients;
 using Telegram.MPlus.Security;

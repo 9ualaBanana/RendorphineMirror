@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Telegram.Infrastructure.Tokenization;
+namespace GIBS.Tokenization;
 
 /// <summary>
 /// Builder responsible for construction of concrete <typeparamref name="TToken"/>s from scanned lexemes that represent them.

@@ -1,6 +1,4 @@
-﻿using _3DProductsPublish.Turbosquid.Network;
-
-namespace _3DProductsPublish.Turbosquid.Network.Authenticity;
+﻿namespace _3DProductsPublish.Turbosquid.Network.Authenticity;
 
 internal static class TurboSquidCaptchaVerifiedToken
 {

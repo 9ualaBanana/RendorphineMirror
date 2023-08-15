@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Management.Automation;
 
 namespace Node.Common;

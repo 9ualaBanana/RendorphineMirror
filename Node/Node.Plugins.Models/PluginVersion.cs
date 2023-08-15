@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace Node.Plugins.Models;
 
 [JsonConverter(typeof(JsonSerializer))]

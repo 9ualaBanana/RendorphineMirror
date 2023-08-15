@@ -1,5 +1,3 @@
-using Avalonia.Controls.ApplicationLifetimes;
-
 namespace Node.UI.Pages
 {
     public class LoginWindow : LoginWindowUI

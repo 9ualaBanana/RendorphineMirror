@@ -1,8 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using Telegram.Infrastructure;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries;
-using Telegram.Infrastructure.Media.Videos;
+﻿using GIBS;
+using GIBS.CallbackQueries;
+using GIBS.Media.Videos;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Telegram.Tasks;
 
 namespace Telegram.MediaFiles.Videos;

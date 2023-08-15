@@ -1,8 +1,8 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
+﻿using GIBS.CallbackQueries.Serialization;
+using Telegram.Bot.Types;
 using ILogger = NLog.ILogger;
 
-namespace Telegram.Infrastructure.CallbackQueries;
+namespace GIBS.CallbackQueries;
 
 /// <summary>
 /// <see cref="CallbackQuery.Data"/> wrapper that contains type-specific <typeparamref name="ECallbackData"/>

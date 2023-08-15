@@ -1,5 +1,3 @@
-using Newtonsoft.Json.Linq;
-
 namespace Node.UI.Pages.MainWindowTabs;
 
 public class SettingsTab : Panel

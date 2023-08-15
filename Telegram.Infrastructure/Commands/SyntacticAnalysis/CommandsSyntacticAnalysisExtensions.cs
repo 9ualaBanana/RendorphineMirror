@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Commands.LexicalAnalysis;
+﻿using GIBS.Bot;
+using GIBS.Commands.LexicalAnalysis;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Telegram.Infrastructure.Commands.SyntacticAnalysis;
+namespace GIBS.Commands.SyntacticAnalysis;
 
 internal static class CommandsSyntacticAnalysisExtensions
 {

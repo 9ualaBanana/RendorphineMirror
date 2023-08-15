@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace NodeCommon.Tasks.Watching;
 
 public interface IWatchingTaskInputOutputInfo { }

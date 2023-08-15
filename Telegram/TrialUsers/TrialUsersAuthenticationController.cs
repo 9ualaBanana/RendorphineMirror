@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Telegram.Infrastructure.Bot;
 
 namespace Telegram.TrialUsers;
 

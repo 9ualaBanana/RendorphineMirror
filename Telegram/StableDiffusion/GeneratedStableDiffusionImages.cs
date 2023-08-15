@@ -1,9 +1,7 @@
-﻿using System.Runtime.CompilerServices;
-using Telegram.Bot.Types;
+﻿using GIBS.CallbackQueries.Serialization;
+using GIBS.Media;
+using System.Runtime.CompilerServices;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.Media;
 using Telegram.MediaFiles.Images;
 
 namespace Telegram.StableDiffusion;

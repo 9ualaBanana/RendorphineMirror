@@ -1,4 +1,5 @@
 global using Common;
+global using GIBS.Bot;
 global using Node.Common.Models;
 global using Node.Plugins.Models;
 global using Node.Tasks.Models;
@@ -6,10 +7,10 @@ global using Node.Tasks.Models.ExecInfo;
 global using NodeCommon;
 global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
+global using Telegram.Bot.Types;
 using NLog.Web;
 using Telegram.Bot.Types.Enums;
 using Telegram.Commands;
-using Telegram.Infrastructure.Bot;
 using Telegram.Localization;
 using Telegram.MediaFiles.Images;
 using Telegram.MediaFiles.Videos;

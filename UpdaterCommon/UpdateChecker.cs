@@ -1,13 +1,8 @@
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Web;
-using Common;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using NLog;
 
 namespace UpdaterCommon;
 

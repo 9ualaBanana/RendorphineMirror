@@ -2,7 +2,6 @@
 using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload;
 using _3DProductsPublish.Turbosquid.Upload.Requests;
-using Newtonsoft.Json.Linq;
 using System.Net.Http.Json;
 
 namespace _3DProductsPublish.Turbosquid.Api;

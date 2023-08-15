@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Telegram.Infrastructure;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Messages;
+﻿using GIBS;
+using GIBS.Messages;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Telegram.Security.Authentication;
 

@@ -1,7 +1,7 @@
 ﻿using HeyRed.Mime;
 using Telegram.Bot.Types.InputFiles;
 
-namespace Telegram.Infrastructure.MediaFiles;
+namespace GIBS.MediaFiles;
 
 /// <summary>
 /// Represents a media file stored in one of the supported by Telegram forms.

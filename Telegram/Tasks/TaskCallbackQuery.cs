@@ -1,7 +1,6 @@
-﻿using System.Text;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
+﻿using GIBS.CallbackQueries;
+using GIBS.CallbackQueries.Serialization;
+using System.Text;
 using Telegram.MPlus.Security;
 
 namespace Telegram.Tasks;

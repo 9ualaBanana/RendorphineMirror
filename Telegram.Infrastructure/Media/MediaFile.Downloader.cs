@@ -1,7 +1,7 @@
-﻿using Telegram.Bot;
-using Telegram.Infrastructure.Bot;
+﻿using GIBS.Bot;
+using Telegram.Bot;
 
-namespace Telegram.Infrastructure.MediaFiles;
+namespace GIBS.MediaFiles;
 
 public sealed partial class MediaFile
 {

@@ -1,8 +1,8 @@
-﻿global using System.Collections.Immutable;
+﻿global using Common;
+global using Newtonsoft.Json.Linq;
+global using System.Collections.Immutable;
 global using System.Diagnostics;
 global using System.IO.Compression;
-global using Common;
-global using Newtonsoft.Json.Linq;
 global using UpdaterCommon;
 using Uploader;
 

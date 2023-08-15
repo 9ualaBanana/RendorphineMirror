@@ -1,4 +1,4 @@
-﻿namespace Telegram.Infrastructure;
+﻿namespace GIBS;
 
 static class WebHostBuilderExtensions
 {

@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using GIBS.Authorization;
+using GIBS.Commands;
+using Microsoft.AspNetCore.Authorization;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.Authorization;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Commands;
 using Telegram.Security.Authorization;
 using static Telegram.Security.Authorization.MPlusAuthorizationPolicyBuilder;
 

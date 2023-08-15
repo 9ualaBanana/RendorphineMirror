@@ -1,6 +1,6 @@
 ﻿using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
+namespace GIBS.Middleware.UpdateRouting.UpdateTypeRouting;
 
 public class UpdateTypeRouterMiddleware : IMiddleware
 {

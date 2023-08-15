@@ -1,6 +1,6 @@
 ﻿using ILogger = NLog.ILogger;
 
-namespace Telegram.Infrastructure.Commands;
+namespace GIBS.Commands;
 
 public partial class Command
 {

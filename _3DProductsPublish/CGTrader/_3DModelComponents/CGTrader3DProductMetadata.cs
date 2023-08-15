@@ -1,6 +1,5 @@
-﻿using System.Net.Http.Json;
-using _3DProductsPublish._3DModelDS;
-using Newtonsoft.Json;
+﻿using _3DProductsPublish._3DModelDS;
+using System.Net.Http.Json;
 
 namespace _3DProductsPublish.CGTrader._3DModelComponents;
 

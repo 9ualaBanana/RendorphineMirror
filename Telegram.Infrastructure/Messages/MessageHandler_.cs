@@ -1,8 +1,8 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Infrastructure.Bot;
+﻿using GIBS.Bot;
+using Telegram.Bot.Types;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.Messages;
+namespace GIBS.Messages;
 
 public abstract class MessageHandler_ : UpdateHandler_
 {

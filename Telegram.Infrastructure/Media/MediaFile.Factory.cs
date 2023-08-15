@@ -1,9 +1,9 @@
-﻿using HeyRed.Mime;
+﻿using GIBS.Media.Images;
+using HeyRed.Mime;
 using Telegram.Bot.Types;
-using Telegram.Infrastructure.Media.Images;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.MediaFiles;
+namespace GIBS.MediaFiles;
 
 public sealed partial class MediaFile
 {

@@ -1,4 +1,4 @@
-﻿namespace Telegram.Infrastructure;
+﻿namespace GIBS;
 
 public interface IHandler
 {

@@ -1,7 +1,7 @@
-﻿using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
+﻿using GIBS.Bot;
+using GIBS.Middleware.UpdateRouting.MessageRouting;
 
-namespace Telegram.Infrastructure.Media.Videos;
+namespace GIBS.Media.Videos;
 
 static class VideosExtensions
 {

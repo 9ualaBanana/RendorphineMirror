@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Logging;
-
 namespace Node;
 
 public static class LogExtensions

@@ -1,8 +1,8 @@
-﻿using Telegram.Bot.Types;
+﻿using GIBS.Middleware.UpdateRouting.UpdateTypeRouting;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
 
-namespace Telegram.Infrastructure.CallbackQueries;
+namespace GIBS.CallbackQueries;
 
 public class CallbackQueryRouterMiddleware : IUpdateTypeRouter
 {

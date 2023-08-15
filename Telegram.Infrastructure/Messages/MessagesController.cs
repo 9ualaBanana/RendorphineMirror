@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Telegram.Infrastructure.Messages;
+namespace GIBS.Messages;
 
 [ApiController]
 [Route($"/{PathFragment}")]

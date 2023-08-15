@@ -1,6 +1,4 @@
-﻿using Telegram.Infrastructure.Commands;
-
-namespace Telegram.Models;
+﻿namespace Telegram.Models;
 
 public class MachineInfo : IEquatable<MachineInfo>
 {

@@ -1,8 +1,8 @@
-﻿using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
-using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
+﻿using GIBS.Bot;
+using GIBS.Middleware.UpdateRouting.MessageRouting;
+using GIBS.Middleware.UpdateRouting.UpdateTypeRouting;
 
-namespace Telegram.Infrastructure.Messages;
+namespace GIBS.Messages;
 
 static class MessagesExtensions
 {

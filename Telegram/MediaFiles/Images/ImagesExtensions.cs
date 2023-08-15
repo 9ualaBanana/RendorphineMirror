@@ -1,7 +1,6 @@
-﻿using Telegram.Infrastructure;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries;
-using Telegram.Infrastructure.Media.Images;
+﻿using GIBS;
+using GIBS.CallbackQueries;
+using GIBS.Media.Images;
 using Telegram.Tasks;
 
 namespace Telegram.MediaFiles.Images;

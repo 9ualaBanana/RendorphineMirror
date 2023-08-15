@@ -1,6 +1,4 @@
-﻿using Telegram.Bot.Types;
-
-namespace Telegram.StableDiffusion;
+﻿namespace Telegram.StableDiffusion;
 
 /// <summary>
 /// Stable Diffusion prompt received inside the <see cref="Bot.Types.Message"/>.

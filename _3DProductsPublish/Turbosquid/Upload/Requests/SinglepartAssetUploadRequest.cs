@@ -1,6 +1,4 @@
-﻿using Common;
-
-namespace _3DProductsPublish.Turbosquid.Upload.Requests;
+﻿namespace _3DProductsPublish.Turbosquid.Upload.Requests;
 
 internal class SinglepartAssetUploadRequest : AssetUploadRequest
 {

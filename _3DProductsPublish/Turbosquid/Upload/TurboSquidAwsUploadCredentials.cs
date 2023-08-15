@@ -1,5 +1,4 @@
 ﻿using AwsSignatureVersion4.Private;
-using Newtonsoft.Json.Linq;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 

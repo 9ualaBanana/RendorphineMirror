@@ -1,9 +1,7 @@
-using System.Globalization;
 using Avalonia.Controls.Utils;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia.Interactivity;
-using Newtonsoft.Json;
 
 namespace Node.UI.Pages.MainWindowTabs;
 

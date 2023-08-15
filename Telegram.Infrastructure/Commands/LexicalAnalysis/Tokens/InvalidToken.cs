@@ -1,7 +1,7 @@
-﻿using System.Text.RegularExpressions;
-using Telegram.Infrastructure.Tokenization;
+﻿using GIBS.Tokenization;
+using System.Text.RegularExpressions;
 
-namespace Telegram.Infrastructure.Commands.LexicalAnalysis.Tokens;
+namespace GIBS.Commands.LexicalAnalysis.Tokens;
 
 internal record InvalidToken : CommandToken_
 {

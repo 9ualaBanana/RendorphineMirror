@@ -1,5 +1,4 @@
 using Avalonia.Controls.ApplicationLifetimes;
-using Newtonsoft.Json;
 
 namespace Node.UI.Pages.MainWindowTabs;
 

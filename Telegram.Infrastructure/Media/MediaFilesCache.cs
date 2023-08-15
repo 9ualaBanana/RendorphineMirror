@@ -1,8 +1,8 @@
-﻿using HeyRed.Mime;
+﻿using GIBS.MediaFiles;
+using HeyRed.Mime;
 using Microsoft.Extensions.Caching.Memory;
-using Telegram.Infrastructure.MediaFiles;
 
-namespace Telegram.Infrastructure.Media;
+namespace GIBS.Media;
 
 public class MediaFilesCache
 {

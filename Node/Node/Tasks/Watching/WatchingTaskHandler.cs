@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace Node.Tasks.Watching;
 
 public abstract class WatchingTaskHandler<TInput> : IWatchingTaskInputHandler where TInput : IWatchingTaskInputInfo

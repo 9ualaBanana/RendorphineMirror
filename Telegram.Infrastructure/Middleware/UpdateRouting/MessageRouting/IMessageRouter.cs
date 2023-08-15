@@ -1,8 +1,8 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Middleware.UpdateRouting.UpdateTypeRouting;
+﻿using GIBS.Bot;
+using GIBS.Middleware.UpdateRouting.UpdateTypeRouting;
+using Telegram.Bot.Types;
 
-namespace Telegram.Infrastructure.Middleware.UpdateRouting.MessageRouting;
+namespace GIBS.Middleware.UpdateRouting.MessageRouting;
 
 public interface IMessageRouter : ISwitchableMiddleware<IMessageRouter, Message>
 {

@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using GIBS.Authorization;
 using Microsoft.AspNetCore.Authorization;
-using Telegram.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Telegram.Infrastructure.Commands;
+namespace GIBS.Commands;
 
 [ApiController]
 [Route($"/{PathFragment}")]

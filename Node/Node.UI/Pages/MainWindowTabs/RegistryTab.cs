@@ -1,6 +1,3 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 namespace Node.UI.Pages.MainWindowTabs;
 
 [Obsolete("Disabled until stuff gets fixed")]

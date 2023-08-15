@@ -1,12 +1,12 @@
-﻿using Telegram.Infrastructure.Bot.MessagePagination;
-using Telegram.Infrastructure.CallbackQueries;
-using Telegram.Infrastructure.Commands;
-using Telegram.Infrastructure.Media.Images;
-using Telegram.Infrastructure.Media.Videos;
-using Telegram.Infrastructure.Messages;
-using Telegram.Infrastructure.Middleware.UpdateRouting;
+﻿using GIBS.Bot.MessagePagination;
+using GIBS.CallbackQueries;
+using GIBS.Commands;
+using GIBS.Media.Images;
+using GIBS.Media.Videos;
+using GIBS.Messages;
+using GIBS.Middleware.UpdateRouting;
 
-namespace Telegram.Infrastructure.Bot;
+namespace GIBS.Bot;
 
 public interface ITelegramBotBuilder
 {

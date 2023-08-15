@@ -2,7 +2,7 @@
 using Telegram.Bot.Types;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.CallbackQueries;
+namespace GIBS.CallbackQueries;
 
 [ApiController]
 [Route($"/{PathFragment}")]

@@ -1,8 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+﻿using GIBS;
+using GIBS.Commands;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Telegram.Commands.Handlers;
-using Telegram.Infrastructure;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Commands;
 
 namespace Telegram.Commands;
 

@@ -1,4 +1,4 @@
-﻿namespace Telegram.Infrastructure.Middleware;
+﻿namespace GIBS.Middleware;
 
 /// <summary>
 /// Allows <typeparamref name="TMiddleware"/> to be used like a switch case along with its other implementations

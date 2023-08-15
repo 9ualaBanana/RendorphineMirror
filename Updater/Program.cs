@@ -1,8 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Common;
-using Newtonsoft.Json.Linq;
-using NLog;
 using UpdaterCommon;
 
 

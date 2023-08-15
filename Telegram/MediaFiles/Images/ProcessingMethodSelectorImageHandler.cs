@@ -1,9 +1,8 @@
-﻿using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.Media;
-using Telegram.Infrastructure.Media.Images;
-using Telegram.Infrastructure.MediaFiles;
+﻿using GIBS.CallbackQueries.Serialization;
+using GIBS.Media;
+using GIBS.Media.Images;
+using GIBS.MediaFiles;
+using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Localization.Resources;
 using Telegram.MPlus.Security;
 using Telegram.Tasks;

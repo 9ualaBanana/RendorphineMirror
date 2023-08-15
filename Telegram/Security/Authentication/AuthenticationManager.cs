@@ -1,6 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using Telegram.Bot.Types;
-using Telegram.Infrastructure.Bot;
 using Telegram.Localization.Resources;
 using Telegram.MPlus;
 using Telegram.MPlus.Clients;

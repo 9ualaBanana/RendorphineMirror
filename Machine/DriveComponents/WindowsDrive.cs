@@ -1,5 +1,4 @@
-﻿using NLog;
-using System.Management;
+﻿using System.Management;
 using System.Runtime.Versioning;
 
 namespace Machine;

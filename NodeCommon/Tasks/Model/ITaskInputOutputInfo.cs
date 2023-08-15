@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace NodeCommon.Tasks.Model;
 
 public interface ITaskInputOutputInfo

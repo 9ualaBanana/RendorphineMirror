@@ -30,10 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Common\Common.csproj" />
-    <ProjectReference Include="..\MimeTypesMap\src\MimeTypesMap\MimeTypesMap.csproj" />
-    <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
-    <ProjectReference Include="..\Telegram.Infrastructure\Telegram.Infrastructure.csproj" />
+    <ProjectReference Include="..\Telegram.Infrastructure\GIBS.csproj" />
     <ProjectReference Include="..\Transport\Transport.csproj" />
   </ItemGroup>
 

@@ -1,13 +1,13 @@
-﻿using Microsoft.Extensions.Options;
+﻿using GIBS.Bot.MessagePagination;
+using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.Bot.MessagePagination;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Telegram.Infrastructure.Bot;
+namespace GIBS.Bot;
 
 public partial class TelegramBot : TelegramBotClient
 {

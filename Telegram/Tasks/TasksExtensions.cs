@@ -1,7 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
-using Telegram.Infrastructure;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries;
+﻿using GIBS;
+using GIBS.CallbackQueries;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Telegram.Infrastructure.Tasks;
 using Telegram.MPlus;
 using Telegram.Tasks.ResultPreview;
