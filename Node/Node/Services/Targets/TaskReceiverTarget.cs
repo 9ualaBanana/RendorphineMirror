@@ -4,12 +4,7 @@ namespace Node.Services.Targets;
 
 public class TaskReceiverTarget : IServiceTarget
 {
-    public static void CreateRegistrations(ContainerBuilder builder)
-    {
-        builder.RegisterListener<TaskReceiver>();
-        builder.RegisterListener<DirectUploadListener>();
-        builder.RegisterListener<DirectDownloadListener>();
-    }
+    public static void CreateRegistrations(ContainerBuilder builder) { }
 
     public required TaskExecutorTarget TaskExecutor { get; init; }
     public required TaskReceiver TaskReceiver { get; init; }

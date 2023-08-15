@@ -2,7 +2,11 @@ namespace Node.Services.Targets;
 
 public class NodeGlobalStateInitializedTarget : IServiceTarget
 {
-    public static void CreateRegistrations(ContainerBuilder builder) { }
+    public static void CreateRegistrations(ContainerBuilder builder)
+    {
+        builder.RegisterInstance(NodeGlobalState.Instance)
+            .SingleInstance();
+    }
 
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required PluginManager PluginManager { get; init; }

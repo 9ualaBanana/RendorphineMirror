@@ -12,8 +12,6 @@ public class BaseTarget : IServiceTarget
 
         builder.RegisterType<NodeTaskRegistration>()
             .SingleInstance();
-
-        builder.RegisterListener<TaskListener>();
     }
 
     public required ApiTarget Api { get; init; }

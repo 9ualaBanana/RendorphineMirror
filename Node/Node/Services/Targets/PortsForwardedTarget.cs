@@ -1,19 +1,15 @@
 using Mono.Nat;
 
-namespace Node;
+namespace Node.Services.Targets;
 
-public class PortForwarder
+public class PortsForwardedTarget : IServiceTarget
 {
-    readonly SettingsInstance Settings;
-    readonly ILogger Logger;
+    public static void CreateRegistrations(ContainerBuilder builder) { }
 
-    public PortForwarder(SettingsInstance settings, ILogger<PortForwarder> logger)
-    {
-        Settings = settings;
-        Logger = logger;
-    }
+    public required SettingsInstance Settings { get; init; }
+    public required ILogger<PortsForwardedTarget> Logger { get; init; }
 
-    public void Start()
+    public async Task ExecuteAsync()
     {
         const int mapTimeSec = 60 * 30;
 

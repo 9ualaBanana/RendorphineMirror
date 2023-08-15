@@ -4,13 +4,7 @@ namespace Node.Services.Targets;
 
 public class PublicListenersTarget : IServiceTarget
 {
-    public static void CreateRegistrations(ContainerBuilder builder)
-    {
-        builder.RegisterListener<DownloadListener>();
-        builder.RegisterListener<PublicListener>();
-        builder.RegisterListener<PublicPagesListener>();
-        builder.RegisterListener<DirectoryDiffListener>();
-    }
+    public static void CreateRegistrations(ContainerBuilder builder) { }
 
     public required DownloadListener DownloadListener { get; init; }
     public required PublicListener PublicListener { get; init; }

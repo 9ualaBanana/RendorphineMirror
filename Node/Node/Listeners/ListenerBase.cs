@@ -6,11 +6,12 @@ using System.Text;
 using System.Web;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
+using Node.Services;
 using Node.Services.Targets;
 
 namespace Node.Listeners;
 
-public abstract class ListenerBase
+public abstract class ListenerBase : IServiceTarget
 {
     static readonly List<ListenerBase> Listeners = new();
 
@@ -25,6 +26,9 @@ public abstract class ListenerBase
     HttpListener? Listener;
 
     protected ListenerBase(ILogger logger) => Logger = logger;
+
+    static void IServiceTarget.CreateRegistrations(ContainerBuilder builder) { }
+    async Task IServiceTarget.ExecuteAsync() => Start();
 
     public void Start() => _Start(true);
     void _Start(bool firsttime)

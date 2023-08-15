@@ -37,6 +37,7 @@ public class Database : IDisposable
             OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA cache=shared;")).LogIfError();
             OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA optimize;")).LogIfError();
             OperationResult.WrapException(() => ExecuteNonQuery("vacuum;")).LogIfError();
+            Logger.Info($"[Database {dbpath}] Optimized");
         }
     }
 
