@@ -48,7 +48,7 @@ public class TaskHandler
             }
             catch (Exception ex)
             {
-                task.LogErr(ex);
+                Logger.LogError(ex, "");
                 await Task.Delay(10_000);
             }
         }
@@ -153,7 +153,7 @@ public class TaskHandler
                     await Api.ChangeStateAsync(task, TaskState.Canceled).ThrowIfError();
                     remove(task, ex.Message);
                 }
-                catch (Exception ex) { task.LogErr(ex); }
+                catch (Exception ex) { Logger.LogError(ex, ""); }
             }
         }
         async ValueTask check(DbTaskFullState task, string? errmsg)
@@ -182,7 +182,7 @@ public class TaskHandler
         }
         bool remove(DbTaskFullState task, string? errmsg)
         {
-            task.LogInfo($"{task.State}, removing" + (errmsg is null ? null : $" ({errmsg})"));
+            Logger.LogInformation($"{task.State}, removing" + (errmsg is null ? null : $" ({errmsg})"));
             PlacedTasks.PlacedTasks.Remove(task);
 
             foreach (var wtask in WatchingTasks.WatchingTasks.Values.ToArray())
@@ -196,7 +196,7 @@ public class TaskHandler
                 var tuid = (task.Output as MPlusTaskOutputInfo)?.TUid ?? (task.Output as QSPreviewOutputInfo)?.TUid;
                 if (tuid is not null)
                 {
-                    task.LogWarn($"Found nonexistent user {tuid}, hiding");
+                    Logger.LogWarning($"Found nonexistent user {tuid}, hiding");
 
                     foreach (var wtask in WatchingTasks.WatchingTasks.Values.ToArray())
                     {
@@ -240,6 +240,8 @@ public class TaskHandler
 
     async Task HandleAsync(ReceivedTask task, CancellationToken cancellationToken = default)
     {
+        using var _logscope = Logger.BeginScope($"Task {task.Id}");
+
         if (task is null)
         {
             // i dont even know
@@ -252,7 +254,7 @@ public class TaskHandler
 
         if (await isFinishedOnServer())
         {
-            task.LogInfo($"{task.State}, removing");
+            Logger.LogInformation($"{task.State}, removing");
             QueuedTasks.QueuedTasks.Remove(task);
 
             return;
@@ -268,7 +270,7 @@ public class TaskHandler
         }
 
         using var _ = new FuncDispose(() => NodeGlobalState.ExecutingTasks.Remove(task));
-        task.LogInfo($"Execution started");
+        Logger.LogInformation($"Execution started");
 
         var lastexception = null as Exception;
         int attempt;
@@ -292,14 +294,14 @@ public class TaskHandler
                 await executor.Execute(cancellationToken).ConfigureAwait(false);
 
                 var endtime = DateTimeOffset.Now;
-                task.LogInfo($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
+                Logger.LogInformation($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
 
                 CompletedTasks.CompletedTasks.Remove(task.Id);
                 CompletedTasks.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt });
 
-                task.LogInfo($"Completed, removing");
+                Logger.LogInformation($"Completed, removing");
 
-                task.LogInfo($"Deleting {task.FSDataDirectory()}");
+                Logger.LogInformation($"Deleting {task.FSDataDirectory()}");
                 Directory.Delete(task.FSDataDirectory(), true);
 
                 QueuedTasks.QueuedTasks.Remove(task);
@@ -312,8 +314,8 @@ public class TaskHandler
             }
             catch (Exception ex)
             {
-                task.LogErr(ex);
-                task.LogInfo($"Failed to execute task, retrying... ({attempt + 1}/{maxattempts})");
+                Logger.LogError(ex, "");
+                Logger.LogInformation($"Failed to execute task, retrying... ({attempt + 1}/{maxattempts})");
 
                 lastexception = ex;
             }
@@ -324,11 +326,11 @@ public class TaskHandler
 
         async ValueTask fail(string errmsg, string fullerrmsg)
         {
-            task.LogInfo($"Task was failed ({attempt + 1}/{maxattempts}): {fullerrmsg}");
+            Logger.LogInformation($"Task was failed ({attempt + 1}/{maxattempts}): {fullerrmsg}");
             await Api.FailTaskAsync(task, errmsg, fullerrmsg).ThrowIfError();
 
             /*
-            task.LogInfo($"Deleting {task.FSInputDirectory()} {task.FSOutputDirectory()}");
+            Logger.LogInformation($"Deleting {task.FSInputDirectory()} {task.FSOutputDirectory()}");
             Directory.Delete(task.FSInputDirectory(), true);
             Directory.Delete(task.FSOutputDirectory(), true);
             */
@@ -342,14 +344,14 @@ public class TaskHandler
 
             if (state is not null)
             {
-                task.LogInfo($"R {state.State}/L {task.State}");
+                Logger.LogInformation($"R {state.State}/L {task.State}");
                 if (task.State == TaskState.Queued)
                     task.State = state.State;
             }
 
             if (state?.State == TaskState.Finished && task.State == TaskState.Validation)
             {
-                task.LogErr($"Server task state was set to finished, but the result hasn't been uploaded yet (!! bug from the task creator node !!)");
+                Logger.LogError($"Server task state was set to finished, but the result hasn't been uploaded yet (!! bug from the task creator node !!)");
                 return false;
             }
 

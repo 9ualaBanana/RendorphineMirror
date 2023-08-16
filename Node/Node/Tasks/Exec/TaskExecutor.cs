@@ -110,6 +110,6 @@ public class TaskExecutor
             $"executor={HttpUtility.UrlDecode(Settings.NodeName)}";
 
         try { await Api.Api.Client.PostAsync($"{endpoint}?{queryString}", content: null, cancellationToken); }
-        catch (Exception ex) { task.LogErr("Error sending result to Telegram bot: " + ex); }
+        catch (Exception ex) { Logger.LogError("Error sending result to Telegram bot: " + ex); }
     }
 }

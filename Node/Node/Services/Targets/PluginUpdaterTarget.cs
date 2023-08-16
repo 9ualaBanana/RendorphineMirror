@@ -20,6 +20,9 @@ public class PluginUpdaterTarget : IServiceTarget
         builder.RegisterType<PluginChecker>()
             .SingleInstance();
 
+        builder.RegisterType<CondaManager>()
+            .SingleInstance();
+
         builder.RegisterType<PluginDeployer>()
             .SingleInstance();
 

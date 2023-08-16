@@ -18,6 +18,7 @@ public class TaskReceiver : ListenerBase
         if (!Settings.AcceptTasks.Value) return;
         if (context.Request.HttpMethod != "POST") return;
         using var response = context.Response;
+        if (NodeSettings.QueuedTasks.Count > 0) return;
 
         var querystr = await new StreamReader(context.Request.InputStream).ReadToEndAsync().ConfigureAwait(false);
         var query = HttpUtility.ParseQueryString(querystr);

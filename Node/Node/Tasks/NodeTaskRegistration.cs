@@ -6,10 +6,11 @@ public class NodeTaskRegistration
     public required IWatchingTasksStorage WatchingTasks { get; init; }
     public required IPlacedTasksStorage PlacedTasks { get; init; }
     public required TaskHandler TaskHandler { get; init; }
+    public required ILogger<NodeTaskRegistration> Logger { get; init; }
 
-    public ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, ILoggable? log = null, CancellationToken token = default) =>
-        TaskRegisterAsync(info, log, token).Next(t => t.Id.AsOpResult());
-    public async ValueTask<OperationResult<DbTaskFullState>> TaskRegisterAsync(TaskCreationInfo info, ILoggable? log = null, CancellationToken token = default)
+    public ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, CancellationToken token = default) =>
+        TaskRegisterAsync(info, token).Next(t => t.Id.AsOpResult());
+    public async ValueTask<OperationResult<DbTaskFullState>> TaskRegisterAsync(TaskCreationInfo info, CancellationToken token = default)
     {
         if (info.TaskObject is null)
         {
@@ -21,7 +22,7 @@ public class NodeTaskRegistration
             info.TaskObject = taskobj.Value;
         }
 
-        return await TaskRegistration.TaskRegisterAsync(info, Settings.SessionId, log)
+        return await TaskRegistration.TaskRegisterAsync(info, Settings.SessionId, Logger)
             .Next(task =>
             {
                 PlacedTasks.PlacedTasks.Add(task);
@@ -47,7 +48,7 @@ public class NodeTaskRegistration
     public async Task<DbTaskFullState> RegisterAsync(WatchingTask task, ITaskInputInfo input, ITaskOutputInfo output, TaskObject tobj, object data)
     {
         var taskinfo = createTaskInfo(task, input, output, tobj, data);
-        var register = await TaskRegisterAsync(taskinfo, task).ConfigureAwait(false);
+        var register = await TaskRegisterAsync(taskinfo).ConfigureAwait(false);
         var newtask = register.ThrowIfError().ThrowIfNull();
         WatchingTasks.WatchingTasks.Save(task);
 

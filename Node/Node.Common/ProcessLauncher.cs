@@ -73,11 +73,11 @@ public class ProcessLauncher
         foreach (var (key, value) in EnvVariables)
             procinfo.EnvironmentVariables[key] = value;
 
-        Logging.Logger?.LogInfo($"Starting {WrapWithSpaces(procinfo.FileName)} {string.Join(' ', procinfo.ArgumentList.Select(WrapWithSpaces))}");
-        Logging.ILogger?.LogInformation($"Starting {WrapWithSpaces(procinfo.FileName)} {string.Join(' ', procinfo.ArgumentList.Select(WrapWithSpaces))}");
+        Logging.ILogger.LogInformation($"Starting {WrapWithSpaces(procinfo.FileName)} {string.Join(' ', procinfo.ArgumentList.Select(WrapWithSpaces))}");
         var process = new Process() { StartInfo = procinfo };
-
         process.Start();
+
+        using var _logscope = Logging.ILogger.BeginScope($"Process {process.Id}");
         readingtask = Task.WhenAll(
             startReading(process, true),
             startReading(process, false)
@@ -100,8 +100,7 @@ public class ProcessLauncher
                     if (err && ThrowOnStdErr)
                         throw new Exception(line);
 
-                    Logging.Logger?.Log(err ? Logging.StdErr : Logging.StdOut, $"[Process {process.Id}] {line}");
-                    Logging.ILogger?.Log(err ? Logging.StdErr : Logging.StdOut, $"[Process {process.Id}] {line}");
+                    Logging.ILogger.Log(err ? Logging.StdErr : Logging.StdOut, $"[Process {process.Id}] {line}");
                     StringBuilder?.AppendLine(line);
                     OnRead?.Invoke(process, err, line);
                 }
@@ -205,8 +204,7 @@ public class ProcessLauncher
 
     public class ProcessLogging
     {
-        public ILoggable? Logger { get; set; }
-        public ILogger? ILogger { get; set; }
+        public ILogger ILogger { get; set; }
         public LogLevel StdOut { get; set; } = LogLevel.Trace;
         public LogLevel StdErr { get; set; } = LogLevel.Error;
     }

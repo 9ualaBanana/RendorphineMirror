@@ -5,14 +5,14 @@ namespace NodeCommon;
 public partial record Apis(Api Api, string SessionId, bool LogErrors = true)
 {
     public const string RegistryUrl = "https://t.microstock.plus:7898";
-    public string TaskManagerEndpoint => Common.Api.TaskManagerEndpoint;
+    public string TaskManagerEndpoint => Api.TaskManagerEndpoint;
 
 
-    public static Apis DefaultWithSessionId(string sid, CancellationToken token = default) => new(Common.Api.Default with { CancellationToken = token }, sid);
+    public static Apis DefaultWithSessionId(string sid, CancellationToken token = default) => new(Api.Default with { CancellationToken = token }, sid);
     public Apis WithSessionId(string sid) => this with { SessionId = sid };
     public Apis WithNoErrorLog() => this with { LogErrors = false };
 
-    public (string, string)[] AddSessionId(params (string, string)[] values) => Common.Api.AddSessionId(SessionId, values);
+    public (string, string)[] AddSessionId(params (string, string)[] values) => Api.AddSessionId(SessionId, values);
 
     public ValueTask<OperationResult> ShardPost(IRegisteredTaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
         ShardPost<JToken>(task, url, property, errorDetails, content).Next(j => true);
@@ -280,7 +280,7 @@ public partial record Apis(Api Api, string SessionId, bool LogErrors = true)
         var result = await ShardGet(task, "mytaskstatechanged", "Changing task state", data).ConfigureAwait(false);
 
 
-        result.LogIfError("Error while changing task state: {0}", task);
+        result.LogIfError("Error while changing task state: {0}", task as ILoggable);
         if (result && task is TaskBase rtask)
         {
             rtask.State = state;

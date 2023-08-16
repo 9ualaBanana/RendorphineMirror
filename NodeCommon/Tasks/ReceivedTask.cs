@@ -49,11 +49,8 @@ public record ExecutedTask : TypedRegisteredTask
 /// <summary>
 /// Default implementation of <see cref="IRegisteredTaskApi"/>.
 /// </summary>
-public record TaskApi(string Id) : IRegisteredTaskApi, ILoggable
+public record TaskApi(string Id) : IRegisteredTaskApi
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-    void ILoggable.Log(LogLevel level, string text) => Logger.Log(level, text);
-
     public string? HostShard { get; set; }
 
     public static TaskApi For(IRegisteredTask task)
@@ -62,11 +59,8 @@ public record TaskApi(string Id) : IRegisteredTaskApi, ILoggable
     public bool Equals(IRegisteredTask? other) => Id == other?.Id;
 }
 
-public record ExecutedTaskApi : ExecutedTask, IRegisteredTaskApi, ILoggable
+public record ExecutedTaskApi : ExecutedTask, IRegisteredTaskApi
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-    void ILoggable.Log(LogLevel level, string text) => Logger.Log(level, text);
-
     public ExecutedTaskApi(string Id = default!, TaskAction Action = default!)
         : base(Id, Action)
     {

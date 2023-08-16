@@ -13,12 +13,9 @@ public static class TaskRegistration
     };
 
 
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
-
-    public static async ValueTask<OperationResult<TypedRegisteredTask>> RegisterAsync(TaskCreationInfo info, string sessionId) =>
-        await TaskRegisterAsync(info, sessionId).Next(task => TypedRegisteredTask.With(task.Id, Enum.Parse<TaskAction>(info.Action)).AsOpResult());
-    public static async ValueTask<OperationResult<DbTaskFullState>> TaskRegisterAsync(TaskCreationInfo info, string sessionId, ILoggable? log = null)
+    public static async ValueTask<OperationResult<TypedRegisteredTask>> RegisterAsync(TaskCreationInfo info, string sessionId, ILogger? log = null) =>
+        await TaskRegisterAsync(info, sessionId, log).Next(task => TypedRegisteredTask.With(task.Id, Enum.Parse<TaskAction>(info.Action)).AsOpResult());
+    public static async ValueTask<OperationResult<DbTaskFullState>> TaskRegisterAsync(TaskCreationInfo info, string sessionId, ILogger? log = null)
     {
         if (info.PriceMultiplication < 1) return OperationResult.Err("Could not create task with price multiplication being less than 1");
 
@@ -54,13 +51,12 @@ public static class TaskRegistration
             values.Add(("autoremovetimer", mPlusOutput.AutoremoveTimer.ToString()!));
 
         var logtext = $"Registering task: {string.Join("; ", values.Skip(1).Select(x => x.Item1 + ": " + x.Item2))}";
-        if (log is not null) log.LogInfo(logtext);
-        else _logger.Info(logtext);
+        log?.LogInformation(logtext);
 
         var idr = await Api.Default.ApiPost<string>($"{Api.TaskManagerEndpoint}/registermytask", "taskid", "Registering task", values.ToArray());
         if (!idr) return idr.GetResult();
 
-        _logger.Info("Task registered with ID {Id}", idr.Value);
+        log?.LogInformation("Task registered with ID {Id}", idr.Value);
         return new DbTaskFullState(idr.Value, new TaskInfo(taskobj, input, output, data, info.Policy));
     }
 

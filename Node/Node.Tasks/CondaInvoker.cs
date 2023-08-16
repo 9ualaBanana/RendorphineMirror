@@ -21,8 +21,7 @@ public static class CondaInvoker
             script,
             (obj, log) => { log(); onRead?.Invoke(false, obj); },
             (obj, log) => { log(); onRead?.Invoke(true, obj); },
-            null,
-            logger: logger
+            logger
         );
     }
 }

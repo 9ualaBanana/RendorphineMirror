@@ -113,9 +113,21 @@ public class PluginDeployerTests
 
 
 
-        static IEnumerable<PluginToInstall> gettree(PluginType type, string? version, PluginChecker checker, IReadOnlyCollection<Plugin> installed) =>
-            checker.GetInstallationTree(type, version)
-                .Where(p => !new PluginDeployer(new InstalledPlugins(installed), Container.Instance.Resolve<ILogger<PluginDeployer>>()).IsInstalled(p.Type, p.Version));
+        static IEnumerable<PluginToInstall> gettree(PluginType type, string? version, PluginChecker checker, IReadOnlyCollection<Plugin> installed)
+        {
+            var deployer = new PluginDeployer()
+            {
+                InstalledPlugins = (new InstalledPlugins(installed)),
+                CondaManager = new CondaManager()
+                {
+                    Logger = Container.Instance.Resolve<ILogger<CondaManager>>(),
+                },
+                Logger = Container.Instance.Resolve<ILogger<PluginDeployer>>(),
+            };
+
+            return checker.GetInstallationTree(type, version)
+                .Where(p => !deployer.IsInstalled(p.Type, p.Version));
+        }
     }
 
 
