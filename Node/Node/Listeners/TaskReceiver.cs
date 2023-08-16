@@ -1,5 +1,6 @@
 using System.Net;
 using System.Web;
+using Node.Services.Targets;
 
 namespace Node.Listeners;
 
@@ -7,6 +8,8 @@ public class TaskReceiver : ListenerBase
 {
     protected override ListenTypes ListenType => ListenTypes.Public;
     protected override string? Prefix => "rphtaskexec/launchtask";
+
+    public required PortsForwardedTarget PortsForwarded { get; init; }
 
     public TaskReceiver(ILogger<TaskReceiver> logger) : base(logger) { }
 

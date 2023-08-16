@@ -17,7 +17,6 @@ public class ConnectedToMPlusTarget : IServiceTarget
     }
 
     public required ReconnectTarget Reconnect { get; init; }
-    public required PortsForwardedTarget PortsForwarded { get; init; }
     public required MPlusHeartbeat MPlusHeartbeat { get; init; }
     public required TelegramBotHeartbeat TelegramBotHeartbeat { get; init; }
 
