@@ -7,10 +7,11 @@ public static class DownloadLink
     public class InputDownloader : FileTaskInputDownloader<DownloadLinkTaskInputInfo>, ITypedTaskInput
     {
         public static TaskInputType Type => TaskInputType.DownloadLink;
+        public required Api Api { get; init; }
 
         protected override async Task<ReadOnlyTaskFileList> DownloadImpl(DownloadLinkTaskInputInfo data, TaskObject obj, CancellationToken token)
         {
-            using var response = await Api.Default.Get(data.Url);
+            using var response = await Api.Get(data.Url);
             if (data.Url.Contains("t.microstock.plus") && response.StatusCode == HttpStatusCode.NotFound)
                 throw new TaskFailedException("Got 404 when trying to get image from the tg bot");
 

@@ -3,6 +3,8 @@ namespace Node.Tasks.Watching.Handlers.Input;
 public abstract class MPlusWatchingTaskHandlerBase<TInput> : WatchingTaskInputHandler<TInput>
     where TInput : IMPlusWatchingTaskInputInfo
 {
+    public required Api Api { get; init; }
+
     public override void StartListening() => StartThreadRepeated(60_000, Tick);
 
     protected virtual async Task Tick()
@@ -12,7 +14,7 @@ public abstract class MPlusWatchingTaskHandlerBase<TInput> : WatchingTaskInputHa
 
         var taskobjs = await items
             .GroupBy(i => i.UserId)
-            .Select(async g => await MPlusTaskInputInfo.GetFilesInfoDict(Settings.SessionId, g.Key, g.Select(i => i.Iid)))
+            .Select(async g => await MPlusTaskInputInfo.GetFilesInfoDict(Api, Settings.SessionId, g.Key, g.Select(i => i.Iid)))
             .MergeDictResults()
             .ThrowIfError();
 
@@ -20,7 +22,7 @@ public abstract class MPlusWatchingTaskHandlerBase<TInput> : WatchingTaskInputHa
         {
             if (!taskobjs.ContainsKey(item.Iid))
             {
-                Task.LogWarn($"Task objects does not contain item {item.Iid} {item}");
+                Logger.LogWarning($"Task objects does not contain item {item.Iid} {item}");
                 continue;
             }
 

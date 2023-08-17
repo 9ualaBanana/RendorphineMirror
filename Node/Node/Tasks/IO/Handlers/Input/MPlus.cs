@@ -55,8 +55,9 @@ public static class MPlus
     public class TaskObjectProvider : TaskObjectProvider<MPlusTaskInputInfo>, ITypedTaskInput
     {
         public static TaskInputType Type => TaskInputType.MPlus;
+        public required Api Api { get; init; }
 
         public override async Task<OperationResult<TaskObject>> GetTaskObject(MPlusTaskInputInfo input, CancellationToken token) =>
-            await input.GetFileInfo(Settings.SessionId, Settings.UserId);
+            await input.GetFileInfo(Api, Settings.SessionId, Settings.UserId);
     }
 }

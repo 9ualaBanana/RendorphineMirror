@@ -31,7 +31,7 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
             .Next(result => result.SelectMany(i => i.Values).ToImmutableArray().AsOpResult());
 
         ValueTask<OperationResult<ImmutableArray<string>>> getUsers() =>
-            Api.Default.ApiGet<ImmutableArray<string>>($"{Api.ContentDBEndpoint}/users/getqwertystockusers", "users", "Getting sale content without preview",
+            Api.ApiGet<ImmutableArray<string>>($"{Api.ContentDBEndpoint}/users/getqwertystockusers", "users", "Getting sale content without preview",
                 Api.SignRequest(qwertykey, ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString())));
 
         ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> getQSItems(IEnumerable<string>? userids)
@@ -53,14 +53,14 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
                     ("minver", IO.Handlers.Output.QSPreview.Version)
                 };
 
-            return Api.Default.ApiGet<ImmutableArray<QwertyStockItem>>(
+            return Api.ApiGet<ImmutableArray<QwertyStockItem>>(
                 $"{Api.ContentDBEndpoint}/content/getonsalewithoutpv", "list", "Getting sale content without preview",
                 Api.SignRequest(qwertykey, data)
             );
         }
 
         ValueTask<OperationResult<ImmutableDictionary<string, MPlusNewItem>>> getMPItems(string userid, IEnumerable<string> iids) =>
-            Api.Default.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.ContentDBEndpoint}/content/getitems", "items", "Getting m+ items info",
+            Api.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.ContentDBEndpoint}/content/getitems", "items", "Getting m+ items info",
                 Api.SignRequest(mpluskey, ("userid", userid), ("iids", JsonConvert.SerializeObject(iids))));
     }
 
@@ -78,7 +78,7 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
 
     protected override async Task<DbTaskFullState> Register(MPlusTaskInputInfo input, ITaskOutputInfo output, TaskObject tobj)
     {
-        var qid = await Api.Default.ApiGet<QwertyFileIdResult>($"https://qwertystock.com/search/getiids", null, "getting qs file id",
+        var qid = await Api.ApiGet<QwertyFileIdResult>($"https://qwertystock.com/search/getiids", null, "getting qs file id",
             Api.SignRequest(File.ReadAllText("qwertykey").Trim(), ("mpiids", JsonConvert.SerializeObject(new[] { input.Iid }))))
             .ThrowIfError();
 

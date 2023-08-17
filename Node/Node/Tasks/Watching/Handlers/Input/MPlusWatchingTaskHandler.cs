@@ -5,6 +5,6 @@ public class MPlusWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusWatchi
     public static WatchingTaskInputType Type => WatchingTaskInputType.MPlus;
 
     protected override async Task<OperationResult<ImmutableArray<MPlusNewItem>>> FetchItemsAsync() =>
-        await Api.Default.ApiGet<ImmutableArray<MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmynewitems", "items", "Getting new items",
+        await Api.ApiGet<ImmutableArray<MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmynewitems", "items", "Getting new items",
             ("sessionid", Settings.SessionId!), ("sinceiid", Input.SinceIid ?? string.Empty), ("directory", Input.Directory));
 }

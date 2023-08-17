@@ -66,6 +66,32 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 }
 
 using var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
+
+#if DEBUG
+var tracer = new Autofac.Diagnostics.DotGraph.DotDiagnosticTracer();
+tracer.OperationCompleted += (sender, args) =>
+{
+    try
+    {
+        if (args.Operation.InitiatingRequest?.Service is not IServiceWithType service) return;
+
+        using var file = File.OpenWrite($"{Directories.CreatedNew("temp/dot")}/{service.ServiceType.Name}.dot");
+        using var writer = new StreamWriter(file);
+
+        // removing ILogger entries
+        var content = args.TraceContent
+            .Split('\n')
+            .Select(s => s.ContainsOrdinal("label=<ILogger`1>") ? string.Empty : s)
+            .Select(s => s.ContainsOrdinal("label=<ILoggerProvider>") ? string.Empty : s)
+            .Select(s => s.ContainsOrdinal("Microsoft.Extensions.Logging.ILogger&lt") ? string.Empty : s);
+
+        writer.WriteLine(string.Join('\n', content));
+    }
+    catch { }
+};
+container.SubscribeToDiagnostics(tracer);
+#endif
+
 IServiceTarget main = (Init.IsDebug, args.Contains("release")) switch
 {
     (true, false) => container.Resolve<DebugMainTarget>(),

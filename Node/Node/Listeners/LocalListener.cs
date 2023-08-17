@@ -15,6 +15,7 @@ public class LocalListener : ExecutableListenerBase
     public required PluginManager PluginManager { get; init; }
     public required PluginChecker PluginChecker { get; init; }
     public required PluginDeployer PluginDeployer { get; init; }
+    public required SessionManager SessionManager { get; init; }
     public required Profiler Profiler { get; init; }
 
     public LocalListener(ILogger<LocalListener> logger) : base(logger) { }
@@ -43,7 +44,7 @@ public class LocalListener : ExecutableListenerBase
                 OperationResult resp;
                 using (var _ = Profiler.LockHeartbeat())
                 {
-                    resp = SessionManager.RenameServerAsync(newname: nick, oldname: Settings.NodeName).ConfigureAwait(false).GetAwaiter().GetResult();
+                    resp = await SessionManager.RenameServerAsync(newname: nick, oldname: Settings.NodeName).ConfigureAwait(false);
                     if (resp) Settings.NodeName = nick;
                 }
 

@@ -5,6 +5,7 @@ namespace Node.Services.Targets;
 public class AuthenticatedTarget : IServiceTarget
 {
     public required LocalListener LocalListener { get; init; }
+    public required SessionManager SessionManager { get; init; }
     public required ILogger<AuthenticatedTarget> Logger { get; init; }
 
     public static void CreateRegistrations(ContainerBuilder builder)

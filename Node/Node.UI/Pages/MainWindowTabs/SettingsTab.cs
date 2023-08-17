@@ -4,6 +4,8 @@ namespace Node.UI.Pages.MainWindowTabs;
 
 public class SettingsTab : Panel
 {
+    public required LocalApi LocalApi { get; init; }
+
     public SettingsTab()
     {
         var scroll = new ScrollViewer()
@@ -40,7 +42,7 @@ public class SettingsTab : Panel
                 return;
             }
 
-            var set = await LocalApi.Default.Get("setnick", "Changing node nickname", ("nick", nick));
+            var set = await LocalApi.Get("setnick", "Changing node nickname", ("nick", nick));
             await self.Flash(set);
         };
 
@@ -92,7 +94,7 @@ public class SettingsTab : Panel
                         setting!.UpdateValue();
 
                         var data = new[] { "port", "webport", "torrentport", "dhtport" }.Select(x => (x, json[x]!.Value<ushort>().ToString())).ToArray();
-                        var update = await LocalApi.Default.Get("updateports", "Updating ports config", data);
+                        var update = await LocalApi.Get("updateports", "Updating ports config", data);
                         await self.Flash(update);
                     },
                 },

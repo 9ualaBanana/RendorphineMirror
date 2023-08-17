@@ -28,7 +28,7 @@ public abstract class WatchingTaskInputHandler<TInput> : IWatchingTaskInputHandl
                 if (!Task.IsPaused)
                 {
                     try { await action(); }
-                    catch (Exception ex) { Task.LogErr(ex); }
+                    catch (Exception ex) { Logger.LogError(ex, ""); }
                 }
 
                 await System.Threading.Tasks.Task.Delay(msrepeat);

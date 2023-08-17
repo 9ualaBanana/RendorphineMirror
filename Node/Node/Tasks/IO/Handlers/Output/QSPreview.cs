@@ -61,7 +61,7 @@ public static class QSPreview
             }
 
 
-            var uploadres = await Api.Default.ApiPost($"{AddSchemeIfNeeded(result.Host, "https")}/content/upload/qspreviews/", "Uploading qs preview", content);
+            var uploadres = await Apis.Api.ApiPost($"{AddSchemeIfNeeded(result.Host, "https")}/content/upload/qspreviews/", "Uploading qs preview", content);
             uploadres.ThrowIfError();
         }
         static string AddSchemeIfNeeded(string url, string scheme)

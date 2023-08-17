@@ -22,7 +22,7 @@ public class LogsTab : Panel
         public LogViewer(string logName, LogLevel level)
         {
             var flogname = logName;
-            string getlogdir() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, level.Name, "log.log").Replace("Node.UI", flogname);
+            string getlogdir() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, level.ToString(), "log.log").Replace("Node.UI", flogname);
 
             var dir = getlogdir();
             if (!File.Exists(dir))

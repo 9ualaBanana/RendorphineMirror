@@ -7,6 +7,8 @@ public class DebugListener : ExecutableListenerBase
     protected override ListenTypes ListenType => ListenTypes.Local;
     protected override string Prefix => "debug";
 
+    public required SessionManager SessionManager { get; init; }
+
     public DebugListener(ILogger<DebugListener> logger) : base(logger) { }
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)

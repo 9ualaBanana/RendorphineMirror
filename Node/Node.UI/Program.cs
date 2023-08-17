@@ -17,7 +17,7 @@ global using Avalonia.Styling;
 global using Avalonia.Threading;
 global using Avalonia.VisualTree;
 global using Common;
-global using NLog;
+global using Microsoft.Extensions.Logging;
 global using Node.Common;
 global using Node.Common.Models;
 global using Node.Plugins.Models;
@@ -30,6 +30,8 @@ global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
 global using APath = Avalonia.Controls.Shapes.Path;
+global using Logger = NLog.Logger;
+global using LogManager = NLog.LogManager;
 global using Path = System.IO.Path;
 using Avalonia.Controls.ApplicationLifetimes;
 
