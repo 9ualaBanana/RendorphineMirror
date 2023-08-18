@@ -281,7 +281,7 @@ void InitializePlugins()
         new GreenscreenBackground(),
         new VeeeVectorize(),
         new GenerateQSPreview(),
-        new GenerateTitleKeywords(),
+        new GenerateTKD(),
         new GenerateImageByMeta(),
         new GenerateImageByPrompt(),
         new Topaz(),
