@@ -1,6 +1,5 @@
 ﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader.Upload;
-using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Network;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using _3DProductsPublish.Turbosquid.Upload;
@@ -144,10 +143,11 @@ internal class TurboSquidApi
     }
 
     internal async Task _UploadMetadataAsync(
-        TurboSquid3DProductUploadSessionContext productUploadSessionContext,    // Probably this is the argument that shall be passed. Just a guess.
+        TurboSquid3DProductUploadSessionContext productUploadSessionContext,
+        TurboSquidUploaded3DProductAssets uploadedAssets,
         CancellationToken cancellationToken)
     {
-        //await _httpClient.PatchAsJsonAsync(
-        //    new Uri(_BaseUri, $"turbosquid/products/{productUploadSessionContext.ProductDraft._ID}/product_files/{productUploadSessionContext.ProductDraft._Product}"))
+        var api = new TurboSquidMetadataUploadApi(productUploadSessionContext);
+        await api.UploadAsync(uploadedAssets, cancellationToken);
     }
 }

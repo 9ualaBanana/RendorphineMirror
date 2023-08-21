@@ -1,6 +1,7 @@
 ﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.CGTrader.Upload;
+using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload;
 using System.Net;
 
@@ -18,8 +19,8 @@ public static class _3DProductPublisher
         {
             CGTrader3DProductMetadata =>
                 new CGTrader3DProductPublisher().PublishAsync(_3DProduct, credential, cancellationToken),
-            //TurboSquid3DModelMetadata =>
-            //    new TurboSquid3DModelUploader(httpClient).UploadAsync(credential, composite3DModel, cancellationToken),
+            TurboSquid3DProductMetadata =>
+                new TurboSquid3DProductPublisher().PublishAsync(_3DProduct, credential, cancellationToken),
             { } unsupportedType => throw new ArgumentOutOfRangeException(
                 nameof(unsupportedType), unsupportedType.GetType(), "Unsupported metadata type."
                 )
