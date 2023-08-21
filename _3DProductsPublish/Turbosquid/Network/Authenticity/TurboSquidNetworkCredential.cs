@@ -20,7 +20,7 @@ internal class TurboSquidNetworkCredential : NetworkCredential
         CancellationToken cancellationToken) =>
             await api._RequestTurboSquidNetworkCredentialAsync(credential, cancellationToken);
 
-    internal TurboSquidNetworkCredential _WithUpdatedCsrfToken(string csrfToken) =>
+    internal TurboSquidNetworkCredential WithUpdated(string csrfToken) =>
         new(UserName, Password, csrfToken, _ApplicationUserID, _CaptchaVerifiedToken);
 
     internal TurboSquidNetworkCredential(

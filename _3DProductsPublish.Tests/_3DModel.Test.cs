@@ -1,4 +1,4 @@
-using _3DProductsPublish._3DModelDS;
+using _3DProductsPublish._3DProductDS;
 using FluentAssertions;
 
 namespace _3DProductsPublish.Tests;

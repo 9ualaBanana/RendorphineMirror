@@ -1,4 +1,9 @@
-﻿namespace _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish.CGTrader._3DModelComponents;
+using _3DProductsPublish.CGTrader.Upload;
+using _3DProductsPublish.Turbosquid.Upload;
+using System.Net;
+
+namespace _3DProductsPublish._3DProductDS;
 
 public record _3DProduct : IDisposable
 {

@@ -1,18 +1,17 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Api;
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 
-namespace _3DProductsPublish.Turbosquid.Upload;
+namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
-internal class TurboSquid3DProductAssetsProcessor
+internal partial class TurboSquid3DProductAssetsProcessing
 {
     readonly HttpClient _httpClient;
     readonly TurboSquid3DProductUploadSessionContext _uploadSessionContext;
 
-    internal TurboSquid3DProductAssetsProcessor(
+    internal TurboSquid3DProductAssetsProcessing(
         HttpClient httpClient,
         TurboSquid3DProductUploadSessionContext uploadSessionContext)
     {
@@ -23,20 +22,18 @@ internal class TurboSquid3DProductAssetsProcessor
     internal async Task<Task_<_3DModel>> RunAsyncOn(_3DModel _3DModel, string assetUploadKey, CancellationToken cancellationToken)
     {
         using var archived3DModel = File.OpenRead(await _3DModel.ArchiveAsync(cancellationToken));
-        var processingPayload = TurboSquid3DProductAssetProcessingPayload.For(archived3DModel, assetUploadKey, _uploadSessionContext,
+        var processingPayload = Payload.For(archived3DModel, assetUploadKey, _uploadSessionContext,
             string.Empty, string.Empty, string.Empty, false);
 
         return await CreateTaskAsync(processingPayload, _3DModel, cancellationToken);
     }
 
     internal async Task<Task_<TurboSquid3DProductThumbnail>> RunAsyncOn(TurboSquid3DProductThumbnail thumbnail, string assetUploadKey, CancellationToken cancellationToken)
-    {
-        var processingPayload = TurboSquid3DProductAssetProcessingPayload.For(thumbnail, assetUploadKey, _uploadSessionContext);
+        => await CreateTaskAsync(
+            Payload.For(thumbnail, assetUploadKey, _uploadSessionContext),
+            thumbnail, cancellationToken);
 
-        return await CreateTaskAsync(processingPayload, thumbnail, cancellationToken);
-    }
-
-    async Task<Task_<TAsset>> CreateTaskAsync<TAsset>(TurboSquid3DProductAssetProcessingPayload processingPayload, TAsset asset, CancellationToken cancellationToken)
+    async Task<Task_<TAsset>> CreateTaskAsync<TAsset>(Payload processingPayload, TAsset asset, CancellationToken cancellationToken)
         where TAsset : I3DProductAsset
     {
         var taskJson = await
@@ -62,6 +59,12 @@ internal class TurboSquid3DProductAssetsProcessor
                 if (task.IsCompleted)
                 { processingTasks.Remove(task); yield return task.ToProcessedAsset(); }
     }
+    internal async IAsyncEnumerable<ITurboSquidProcessed3DProductAsset<TAsset>> AwaitAsyncOn<TAsset>(IEnumerable<Task<Task_<TAsset>>> processingTasks, [EnumeratorCancellation] CancellationToken cancellationToken)
+        where TAsset : I3DProductAsset
+    {
+        await foreach (var processedTask in AwaitAsyncOn((await Task.WhenAll(processingTasks)).ToList(), cancellationToken))
+            yield return processedTask;
+    }
 
     async Task<Task_<TAsset>> UpdatedAsync<TAsset>(Task_<TAsset> processingTask, CancellationToken cancellationToken)
         where TAsset : I3DProductAsset
@@ -83,42 +86,5 @@ internal class TurboSquid3DProductAssetsProcessor
             .Select(_ => new { UpdatedTask = _.First, _.Second.Asset })
             .Select(_ => Task_<TAsset>.Create(_.UpdatedTask, _.Asset))
             .ToList();
-    }
-
-
-    internal class Task_<TAsset> : IEquatable<Task_<TAsset>>
-        where TAsset : I3DProductAsset
-    {
-        internal static Task_<TAsset> Create(JToken taskJson, TAsset asset)
-        {
-            var task = taskJson.ToObject<Task_<TAsset>>()!; task.Asset = asset;
-            return task;
-        }
-
-        internal TAsset Asset { get; private set; } = default!;
-
-        [JsonProperty("id")]
-        internal string Id { get; init; } = default!;
-
-        internal bool IsCompleted => Status == "success";
-
-        [JsonProperty("status")]
-        string Status { get; init; } = default!;
-
-        [JsonProperty("file_id")]
-        [MemberNotNullWhen(true, nameof(IsCompleted))]
-        internal string? FileId { get; init; } = default!;
-
-        internal ITurboSquidProcessed3DProductAsset<TAsset> ToProcessedAsset()
-            => IsCompleted ? TurboSquidProcessed3DProductAssetFactory.Create(Asset, FileId!)
-            : throw new InvalidOperationException($"{Asset.GetType()} asset is not processed yet.");
-
-        #region EqualityContract
-
-        public override bool Equals(object? obj) => Equals(obj as Task_<TAsset>);
-        public bool Equals(Task_<TAsset>? other) => Id.Equals(other?.Id);
-        public override int GetHashCode() => Id.GetHashCode();
-
-        #endregion
     }
 }

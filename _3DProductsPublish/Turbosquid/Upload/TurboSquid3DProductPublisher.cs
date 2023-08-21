@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish;
-using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.Turbosquid.Api;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using System.Net;
@@ -22,7 +21,7 @@ internal class TurboSquid3DProductPublisher : I3DProductPublisher
     {
         var credential_ = await TurboSquidNetworkCredential._RequestAsyncUsing(_api, credential, cancellationToken);
         await _api._LoginAsyncUsing(credential_, cancellationToken);
-        var productUploadSessionContext = await _api._RequestProductUploadSessionContextAsyncFor(_3DProduct, credential_, cancellationToken);
-        var uploadedAssets = await _api._UploadAssetsAsyncUsing(productUploadSessionContext, cancellationToken);
+        var productUploadSessionContext = await _api.RequestProductUploadSessionContextAsyncFor(_3DProduct, credential_, cancellationToken);
+        await _api._UploadAssetsAsyncUsing(productUploadSessionContext, cancellationToken);
     }
 }

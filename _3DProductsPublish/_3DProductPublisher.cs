@@ -1,4 +1,4 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid.Upload;
@@ -9,7 +9,7 @@ namespace _3DProductsPublish;
 public static class _3DProductPublisher
 {
     public static async Task PublishAsync(
-        _3DProduct _3DProduct,
+        this _3DProduct _3DProduct,
         NetworkCredential credential,
         CancellationToken cancellationToken = default)
     {

@@ -1,4 +1,4 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 

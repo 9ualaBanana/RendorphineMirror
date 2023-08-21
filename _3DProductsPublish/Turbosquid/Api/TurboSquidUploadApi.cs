@@ -1,19 +1,20 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload;
+using _3DProductsPublish.Turbosquid.Upload.Processing;
 using _3DProductsPublish.Turbosquid.Upload.Requests;
 
 namespace _3DProductsPublish.Turbosquid.Api;
 
 internal class TurboSquidUploadApi
 {
-    readonly TurboSquid3DProductAssetsProcessor _assetsProcessor;
+    readonly TurboSquid3DProductAssetsProcessing _assetsProcessing;
     readonly HttpClient _httpClient;
     readonly TurboSquid3DProductUploadSessionContext _uploadSessionContext;
 
     internal TurboSquidUploadApi(HttpClient httpClient, TurboSquid3DProductUploadSessionContext uploadSessionContext)
     {
-        _assetsProcessor = new(httpClient, uploadSessionContext);
+        _assetsProcessing = new(httpClient, uploadSessionContext);
         _httpClient = httpClient;
         _uploadSessionContext = uploadSessionContext;
     }
@@ -33,9 +34,10 @@ internal class TurboSquidUploadApi
                 {
                     var archived3DModelPath = await _3DModel.ArchiveAsync(cancellationToken);
                     string uploadKey = await UploadAssetAsyncAt(archived3DModelPath, cancellationToken);
-                    return await _assetsProcessor.RunAsyncOn(_3DModel, uploadKey, cancellationToken);
-                });
-            await foreach (var processedAsset in _assetsProcessor.AwaitAsyncOn((await Task.WhenAll(modelsUpload)).ToList(), cancellationToken))
+                    return await _assetsProcessing.RunAsyncOn(_3DModel, uploadKey, cancellationToken);
+                })
+                .ToList();  // Convert to IList for awaiting and actually launch processing by iteration.
+            await foreach (var processedAsset in _assetsProcessing.AwaitAsyncOn(modelsUpload, cancellationToken))
                 yield return processedAsset;
         }
 
@@ -45,9 +47,10 @@ internal class TurboSquidUploadApi
                 .Select(async thumbnail =>
                 {
                     string uploadKey = await UploadAssetAsyncAt(thumbnail.FilePath, cancellationToken);
-                    return await _assetsProcessor.RunAsyncOn(thumbnail, uploadKey, cancellationToken);
-                });
-            await foreach (var processedAsset in _assetsProcessor.AwaitAsyncOn((await Task.WhenAll(thumbnailsUpload)).ToList(), cancellationToken))
+                    return await _assetsProcessing.RunAsyncOn(thumbnail, uploadKey, cancellationToken);
+                })
+                .ToList();  // Convert to IList for awaiting and actually launch processing by iteration.
+            await foreach (var processedAsset in _assetsProcessing.AwaitAsyncOn(thumbnailsUpload, cancellationToken))
                 yield return processedAsset;
         }
     }

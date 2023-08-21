@@ -1,4 +1,6 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.CGTrader.Upload;
+using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Network;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using _3DProductsPublish.Turbosquid.Upload;
@@ -43,31 +45,33 @@ internal class TurboSquidApi
             string errorMessage = $"{nameof(TurboSquidNetworkCredential)} request failed.";
             _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
         }
-    }
 
-    async Task<TurboSquidNetworkCredential> _RequestTurboSquidNetworkCredentialAsyncCore(NetworkCredential credential, CancellationToken cancellationToken)
-    {
-        TurboSquidNetworkCredential credential_ = null!;
-        var thread = new Thread(() =>
+
+        async Task<TurboSquidNetworkCredential> _RequestTurboSquidNetworkCredentialAsyncCore(NetworkCredential credential, CancellationToken cancellationToken)
         {
-            using var browser = new ChromiumWebBrowser(new Uri(_BaseUri, "auth/keymaster").AbsoluteUri);
-            // Consider using ResourceRequestHandlerFactory.
-            browser.RequestHandler = new TurboSquidRequestHandler();
+            TurboSquidNetworkCredential credential_ = null!;
+            var thread = new Thread(() =>
+            {
+                using var browser = new ChromiumWebBrowser(new Uri(_BaseUri, "auth/keymaster").AbsoluteUri);
+                // Consider using ResourceRequestHandlerFactory.
+                browser.RequestHandler = new TurboSquidRequestHandler();
+                _ = browser.WaitForInitialLoadAsync().Result;
 
-            string credentialResponse = TurboSquidNetworkCredential._CapturedCefResponse.GetAsync(cancellationToken).Result;
-            string csrfToken = CsrfToken._ParseFromMetaTag(credentialResponse);
-            string applicationUserId = TurboSquidApplicationUserID._Parse(credentialResponse);
-            string captchaVerifiedTokenResponse = TurboSquidCaptchaVerifiedToken._CapturedCefResponse.GetAsync(cancellationToken).Result;
-            string captchaVerifiedToken = TurboSquidCaptchaVerifiedToken._Parse(captchaVerifiedTokenResponse);
+                string credentialResponse = TurboSquidNetworkCredential._CapturedCefResponse.GetAsync(cancellationToken).Result;
+                string csrfToken = CsrfToken._ParseFromMetaTag(credentialResponse);
+                string applicationUserId = TurboSquidApplicationUserID._Parse(credentialResponse);
+                string captchaVerifiedTokenResponse = TurboSquidCaptchaVerifiedToken._CapturedCefResponse.GetAsync(cancellationToken).Result;
+                string captchaVerifiedToken = TurboSquidCaptchaVerifiedToken._Parse(captchaVerifiedTokenResponse);
 
-            browser._DumpCookiesTo(_socketsHttpHandler.CookieContainer);
+                browser._DumpCookiesTo(_socketsHttpHandler.CookieContainer);
 
-            credential_ = new(credential, csrfToken, applicationUserId, captchaVerifiedToken);
-        });
-        thread.Start();
-        await Task.Run(thread.Join, cancellationToken);
+                credential_ = new(credential, csrfToken, applicationUserId, captchaVerifiedToken);
+            });
+            thread.Start();
+            await Task.Run(thread.Join, cancellationToken);
 
-        return credential_;
+            return credential_;
+        }
     }
 
     #endregion
@@ -81,41 +85,53 @@ internal class TurboSquidApi
 
     #region DraftCreation
 
-    internal async Task<TurboSquid3DProductUploadSessionContext> _RequestProductUploadSessionContextAsyncFor(
+    internal async Task<TurboSquid3DProductUploadSessionContext> RequestProductUploadSessionContextAsyncFor(
         _3DProduct _3DProduct,
         TurboSquidNetworkCredential credential,
         CancellationToken cancellationToken)
     {
-        string csrfToken = await _RequestUploadInitializingCsrfTokenAsync(cancellationToken);
-        string productDraftId = await _CreateNewProductDraftAsync(cancellationToken);
-        var awsUploadCredentials = await _RequestAwsUploadCredentialsAsync(csrfToken, cancellationToken);
+        string csrfToken = await RequestUploadInitializingAuthenticityTokenAsync(cancellationToken);
+        string productDraftId = await CreateNewProductDraftAsync(cancellationToken);
+        var awsUploadCredentials = await RequestAwsUploadCredentialsAsync(csrfToken, cancellationToken);
 
-        return new(new(_3DProduct, productDraftId), credential._WithUpdatedCsrfToken(csrfToken), awsUploadCredentials);
+        return new TurboSquid3DProductUploadSessionContext(
+            new _3DProductDraft(_3DProduct, productDraftId),
+            credential.WithUpdated(csrfToken),
+            awsUploadCredentials);
+
+
+        /// <returns>CSRF token that must be passed to each request that is part of uploading process that follows.</returns>
+        async Task<string> RequestUploadInitializingAuthenticityTokenAsync(CancellationToken cancellationToken) =>
+            CsrfToken._ParseFromMetaTag(
+                await _httpClient.GetStringAsync(
+                    new Uri(_BaseUri, "turbosquid/products/new"),
+                    cancellationToken)
+                );
+
+        /// <returns>The ID of newly created model draft.</returns>
+        async Task<string> CreateNewProductDraftAsync(CancellationToken cancellationToken) =>
+            (string)JObject.Parse(
+                await _httpClient.GetStringAsync(
+                    new Uri(_BaseUri, "turbosquid/products/0/create_draft"),
+                    cancellationToken)
+                )["id"]!;
+
+        async Task<TurboSquidAwsUploadCredentials> RequestAwsUploadCredentialsAsync(
+            string csrfToken,
+            CancellationToken cancellationToken)
+        {
+            var response = await
+                (await _httpClient.PostAsJsonAsync(
+                    new Uri(_BaseUri, "turbosquid/uploads//credentials"),
+                    new { authenticity_token = csrfToken },
+                    cancellationToken)
+                )
+                .EnsureSuccessStatusCode()
+                .Content.ReadAsStringAsync(cancellationToken);
+            
+            return TurboSquidAwsUploadCredentials.Parse(response);
+        }
     }
-
-    async Task<string> _RequestUploadInitializingCsrfTokenAsync(CancellationToken cancellationToken) =>
-        CsrfToken._ParseFromMetaTag(
-            await _httpClient.GetStringAsync(
-                new Uri(_BaseUri, "turbosquid/products/new"),
-                cancellationToken)
-            );
-
-    /// <returns>The ID of newly created model draft.</returns>
-    async Task<string> _CreateNewProductDraftAsync(CancellationToken cancellationToken) =>
-        (string)JObject.Parse(
-            await _httpClient.GetStringAsync(
-                new Uri(_BaseUri, "turbosquid/products/0/create_draft"),
-                cancellationToken)
-            )["id"]!;
-
-    async Task<TurboSquidAwsUploadCredentials> _RequestAwsUploadCredentialsAsync(
-        string csrfToken,
-        CancellationToken cancellationToken) => await TurboSquidAwsUploadCredentials._AsyncFrom(
-            await _httpClient.PostAsJsonAsync(
-                new Uri(_BaseUri, "turbosquid/uploads//credentials"),
-                new { authenticity_token = csrfToken },
-                cancellationToken)
-            );
 
     #endregion
 
@@ -125,5 +141,13 @@ internal class TurboSquidApi
     {
         var uploadApi = new TurboSquidUploadApi(_httpClient, productUploadSessionContext);
         return await uploadApi.UploadAssetsAsync(cancellationToken);
+    }
+
+    internal async Task _UploadMetadataAsync(
+        TurboSquid3DProductUploadSessionContext productUploadSessionContext,    // Probably this is the argument that shall be passed. Just a guess.
+        CancellationToken cancellationToken)
+    {
+        //await _httpClient.PatchAsJsonAsync(
+        //    new Uri(_BaseUri, $"turbosquid/products/{productUploadSessionContext.ProductDraft._ID}/product_files/{productUploadSessionContext.ProductDraft._Product}"))
     }
 }

@@ -66,17 +66,18 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
     async Task _SignInWith2FAAsync(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
     {
         var _2faForm = await _Get2FAFormAsync(cancellationToken);
-        var updatedCsrfToken = CsrfToken._ParseFromMetaTag(await _2faForm.Content.ReadAsStringAsync(cancellationToken));
+        var updatedCsrfToken = CsrfToken._ParseFromMetaTag(_2faForm);
         string verificationCode = (await NodeGui.Request<string>(new InputRequest("TODO: we send you mesag to email please respond"), cancellationToken)).Result;
 
-        await _SignInWith2FAAsyncCore(verificationCode, credential._WithUpdatedCsrfToken(updatedCsrfToken), cancellationToken);
+        await _SignInWith2FAAsyncCore(verificationCode, credential.WithUpdated(updatedCsrfToken), cancellationToken);
     }
 
-    async Task<HttpResponseMessage> _Get2FAFormAsync(CancellationToken cancellationToken) =>
+    async Task<string> _Get2FAFormAsync(CancellationToken cancellationToken) => await
         (await _httpClient.GetAsync(
             (this as IBaseAddressProvider).Endpoint("/users/two_factor_authentication?locale=en"),
             cancellationToken))
-        .EnsureSuccessStatusCode();
+        .EnsureSuccessStatusCode()
+        .Content.ReadAsStringAsync(cancellationToken);
 
     async Task _SignInWith2FAAsyncCore(string verificationCode, TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
     {

@@ -1,7 +1,7 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
 
-namespace _3DProductsPublish.Turbosquid.Upload;
+namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
 internal interface ITurboSquidProcessed3DProductAsset<TAsset>
     where TAsset : I3DProductAsset

@@ -1,6 +1,5 @@
 ﻿using System.Net.Http.Json;
-using _3DProductsPublish._3DModelDS;
-using Newtonsoft.Json;
+using _3DProductsPublish._3DProductDS;
 
 namespace _3DProductsPublish.CGTrader._3DModelComponents;
 
@@ -200,7 +199,7 @@ public record CGTrader3DProductMetadata : _3DModelMetadata
     #endregion
 
     /// <exception cref="InvalidOperationException">
-    /// <see cref="CGTrader3DProductMetadata"/> doesn't describe a product  with <see cref="ProductType.cg"/> <see cref="ProductType"/>.
+    /// <see cref="CGTrader3DProductMetadata"/> doesn't describe a product with <see cref="ProductType.cg"/> <see cref="ProductType"/>.
     /// </exception>
     internal JsonContent _AsCGJsonContent
     {

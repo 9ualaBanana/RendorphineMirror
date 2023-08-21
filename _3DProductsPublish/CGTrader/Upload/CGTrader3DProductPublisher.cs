@@ -1,4 +1,4 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader.Api;
 using _3DProductsPublish.CGTrader.Network;
 using System.Net;

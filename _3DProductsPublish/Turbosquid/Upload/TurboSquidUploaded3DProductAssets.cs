@@ -1,5 +1,6 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
+using _3DProductsPublish.Turbosquid.Upload.Processing;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 

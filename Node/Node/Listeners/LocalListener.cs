@@ -1,7 +1,7 @@
 using System.Net;
 using System.Reflection;
 using _3DProductsPublish;
-using _3DProductsPublish._3DModelDS;
+using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.CGTrader.Network;
 using Node.Profiling;

@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
 
-namespace _3DProductsPublish._3DModelDS;
+namespace _3DProductsPublish._3DProductDS;
 
 internal static class _3DModelArchiver
 {

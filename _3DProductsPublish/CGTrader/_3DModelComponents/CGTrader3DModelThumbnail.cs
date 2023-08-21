@@ -1,4 +1,4 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
 using System.Security.Cryptography;
 
 namespace _3DProductsPublish.CGTrader._3DModelComponents;

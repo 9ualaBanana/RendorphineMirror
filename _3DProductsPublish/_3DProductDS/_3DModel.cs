@@ -1,4 +1,4 @@
-﻿namespace _3DProductsPublish._3DModelDS;
+﻿namespace _3DProductsPublish._3DProductDS;
 
 /// <summary>
 /// Wraps either directory or archive in which 3D model parts are stored.

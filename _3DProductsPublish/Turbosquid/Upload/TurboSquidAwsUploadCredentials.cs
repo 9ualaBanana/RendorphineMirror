@@ -19,9 +19,9 @@ internal record TurboSquidAwsUploadCredentials
     internal readonly string SecretKey;
     internal readonly string SessionToken;
 
-    internal static async Task<TurboSquidAwsUploadCredentials> _AsyncFrom(HttpResponseMessage response)
+    internal static TurboSquidAwsUploadCredentials Parse(string response)
     {
-        var uploadCredentialsJson = JObject.Parse(await response.Content.ReadAsStringAsync());
+        var uploadCredentialsJson = JObject.Parse(response);
         return new(
             (string)uploadCredentialsJson["access_key"]!,
             (string)uploadCredentialsJson["bucket"]!,

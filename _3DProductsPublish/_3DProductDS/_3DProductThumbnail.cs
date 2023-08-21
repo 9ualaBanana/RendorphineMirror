@@ -1,7 +1,7 @@
 ﻿using Node.Common.Models;
 using System.Net.Mime;
 
-namespace _3DProductsPublish._3DModelDS;
+namespace _3DProductsPublish._3DProductDS;
 
 public record _3DProductThumbnail : I3DProductAsset
 {
