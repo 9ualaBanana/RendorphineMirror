@@ -31,8 +31,8 @@ public static class ContainerExtensions
         container.ComponentRegistry.Registrations
             .SelectMany(r => r.Services)
             .OfType<KeyedService>()
-            .Where(s => s.ServiceType == typeof(TKey))
-            .Select(k => (TKey) k.ServiceKey)
+            .Select(s => s.ServiceKey)
+            .OfType<TKey>()
             .Distinct();
 
     public static IEnumerable<T> ResolveAllKeyed<T, TKey>(this IComponentContext container)

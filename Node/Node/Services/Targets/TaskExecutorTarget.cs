@@ -11,19 +11,6 @@ public class TaskExecutorTarget : IServiceTarget
         builder.RegisterType<TaskHandler>()
             .SingleInstance();
 
-        builder.RegisterType<TaskExecutor>()
-            .InstancePerMatchingLifetimeScope(TaskExecutionScope);
-
-        builder.RegisterType<TaskExecutorByData>()
-            .InstancePerMatchingLifetimeScope(TaskExecutionScope);
-
-
-        builder.RegisterType<TaskProgressSetter>()
-            .As<ITaskProgressSetter>()
-            .InstancePerMatchingLifetimeScope(TaskExecutionScope);
-
-        builder.RegisterDecorator<ITaskProgressSetter>((ctx, parameters, instance) => new ThrottledProgressSetter(TimeSpan.FromSeconds(5), instance));
-
         IOList.RegisterAll(builder);
         registerTasks();
 
@@ -71,20 +58,5 @@ public class TaskExecutorTarget : IServiceTarget
             {PlacedTasks.PlacedTasks.Count} placed
             {PlacedTasks.PlacedTasks.Values.Count(x => !x.State.IsFinished())} non-finished placed
             """.Replace("\n", "; ").Replace("\r", string.Empty));
-    }
-
-
-
-
-    class TaskProgressSetter : ITaskProgressSetter
-    {
-        public required Apis Api { get; init; }
-        public required IMPlusTask Task { get; init; }
-
-        public void Set(double progress)
-        {
-            if (Task is ReceivedTask rt) rt.Progress = progress;
-            Api.SendTaskProgressAsync(Task).Consume();
-        }
     }
 }

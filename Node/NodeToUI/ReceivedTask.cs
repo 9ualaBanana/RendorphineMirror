@@ -4,7 +4,8 @@ public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info)
 {
     public readonly HashSet<IUploadedFileInfo> UploadedFiles = new();
 
-    public JObject? DownloadedInput, Result;
+    [JsonConverter(typeof(TypedJsonConverter))]
+    public object? DownloadedInput, Result;
 
     [Obsolete("DELETE")] public ReadOnlyTaskFileList? InputFileList;
 

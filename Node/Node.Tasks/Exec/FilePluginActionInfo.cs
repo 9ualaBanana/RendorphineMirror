@@ -6,7 +6,7 @@ public interface IFilePluginActionInfo : IPluginActionInfo
 {
     IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
 }
-public abstract class FilePluginActionInfo<TData> : PluginActionInfo<TaskFileInput, TaskFileOutput, TData>
+public abstract class FilePluginActionInfo<TData> : PluginActionInfo<TaskFileInput, TaskFileOutput, TData>, IFilePluginActionInfo
 {
     public abstract IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
     protected abstract OperationResult ValidateOutputFiles(TaskFilesCheckData files, TData data);

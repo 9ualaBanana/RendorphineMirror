@@ -2,6 +2,7 @@ using System.Collections;
 
 namespace Node.Tasks.Exec.Input;
 
+[JsonObject]
 public class TaskFileInput : IEnumerable<FileWithFormat>
 {
     public ReadOnlyTaskFileList Files { get; }

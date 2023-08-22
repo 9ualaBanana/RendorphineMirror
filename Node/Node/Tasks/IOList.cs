@@ -14,7 +14,7 @@ public static class IOList
         where TInterface : notnull =>
         builder.RegisterType<TType>()
             .Keyed<TInterface>(type)
-            .SingleInstance();
+            .InstancePerDependency();
 
     static void RegisterInput<TID, TOP>(this ContainerBuilder builder)
         where TID : ITaskInputDownloader, ITypedTaskInput

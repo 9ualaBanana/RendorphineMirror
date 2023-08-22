@@ -28,6 +28,9 @@ public class PluginUpdaterTarget : IServiceTarget
 
         builder.RegisterType<UserSettingsHeartbeat>()
             .SingleInstance();
+
+        builder.Register(ctx => new PluginList(ctx.Resolve<PluginManager>().GetInstalledPluginsAsync().GetAwaiter().GetResult()))
+            .SingleInstance();
     }
 
     public required UserSettingsHeartbeat UserSettingsHeartbeat { get; init; }

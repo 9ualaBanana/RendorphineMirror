@@ -1,9 +1,14 @@
 namespace Node.Tasks.IO.Output;
 
-public abstract class FileTaskUploadHandler<TData> : TaskUploadHandler<TData, ReadOnlyTaskFileList>
+public abstract class FileTaskUploadHandler<TData> : FileTaskUploadHandler<TData, ReadOnlyTaskFileList>
     where TData : ITaskOutputInfo
+{ }
+
+public abstract class FileTaskUploadHandler<TData, TResult> : TaskUploadHandler<TData, TResult>
+    where TData : ITaskOutputInfo
+    where TResult : IEnumerable<FileWithFormat>
 {
-    public override async Task UploadResult(TData info, ReadOnlyTaskFileList result, CancellationToken token)
+    public override async Task UploadResult(TData info, TResult result, CancellationToken token)
     {
         result.AssertListValid("output");
         Logger.LogInformation($"Result files: {string.Join(", ", result)}");

@@ -6,7 +6,7 @@ public class TaskExecutorByData
     public required ITaskProgressSetter ProgressSetter { get; init; }
     public required ILogger<TaskExecutorByData> Logger { get; init; }
 
-    public async Task<IReadOnlyList<object>> Execute(object firstinput, IReadOnlyList<JObject> datas)
+    public async Task<object> Execute(object firstinput, IReadOnlyList<JObject> datas)
     {
         var results = new[] { firstinput };
 
@@ -30,6 +30,12 @@ public class TaskExecutorByData
         }
 
         ProgressSetter.Set(1);
+
+        if (results.All(r => r is TaskFileOutput))
+            return new ReadOnlyTaskFileList(results.Cast<TaskFileOutput>().SelectMany(t => t.Files).SelectMany(f => f));
+        if (results.Length == 1)
+            return results[0];
+
         return results;
     }
     async Task<object> ExecuteSingle(ILifetimeScope container, object input, JObject data, string? loginfo = null)

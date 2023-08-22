@@ -7,14 +7,17 @@ using ZXing.QrCode;
 
 namespace Node.Tasks.Exec.Actions;
 
-public class GenerateQSPreview : PluginActionInfo<TaskFileInput, QSPreviewOutput, QSPreviewInfo>
+public class GenerateQSPreview : PluginActionInfo<TaskFileInput, QSPreviewOutput, QSPreviewInfo>, IFilePluginActionInfo
 {
     public override TaskAction Name => TaskAction.GenerateQSPreview;
     public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.FFmpeg);
     protected override Type ExecutorType => typeof(Executor);
 
-    protected override void ValidateInput(TaskFileInput input, QSPreviewInfo data) =>
-        input.ValidateInput(new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov }, new[] { FileFormat.Jpeg, FileFormat.Mov } });
+    public IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+        new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov }, new[] { FileFormat.Jpeg, FileFormat.Mov } };
+
+    protected sealed override void ValidateInput(TaskFileInput input, QSPreviewInfo data) =>
+        input.ValidateInput(InputFileFormats);
 
     protected override void ValidateOutput(TaskFileInput input, QSPreviewInfo data, QSPreviewOutput output)
     {

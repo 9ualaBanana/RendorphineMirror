@@ -68,6 +68,8 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 using var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
 
 #if DEBUG
+Directories.CreatedNew("temp/dot");
+
 var tracer = new Autofac.Diagnostics.DotGraph.DotDiagnosticTracer();
 tracer.OperationCompleted += (sender, args) =>
 {
@@ -75,7 +77,7 @@ tracer.OperationCompleted += (sender, args) =>
     {
         if (args.Operation.InitiatingRequest?.Service is not IServiceWithType service) return;
 
-        using var file = File.OpenWrite($"{Directories.CreatedNew("temp/dot")}/{service.ServiceType.Name}.dot");
+        using var file = File.OpenWrite($"temp/dot/{service.ServiceType.Name}.dot");
         using var writer = new StreamWriter(file);
 
         // removing ILogger entries

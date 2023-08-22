@@ -280,7 +280,7 @@ public class TaskHandler
             {
                 var starttime = DateTimeOffset.Now;
 
-                using var scope = ComponentContext.BeginLifetimeScope(Node.Services.Targets.TaskExecutorTarget.TaskExecutionScope, builder =>
+                using var scope = ComponentContext.BeginLifetimeScope(builder =>
                 {
                     builder.RegisterInstance(task)
                         .AsSelf()
@@ -288,6 +288,26 @@ public class TaskHandler
                         .As<IRegisteredTaskApi>()
                         .As<IMPlusTask>()
                         .SingleInstance();
+
+                    builder.RegisterType<TaskExecutor>()
+                        .SingleInstance();
+
+                    builder.RegisterType<TaskExecutorByData>()
+                        .SingleInstance();
+
+                    builder.RegisterType<TaskInputDirectoryProvider>()
+                        .As<ITaskInputDirectoryProvider>()
+                        .SingleInstance();
+
+                    builder.RegisterType<TaskOutputDirectoryProvider>()
+                        .As<ITaskOutputDirectoryProvider>()
+                        .SingleInstance();
+
+                    builder.RegisterType<TaskProgressSetter>()
+                        .As<ITaskProgressSetter>()
+                        .SingleInstance();
+
+                    builder.RegisterDecorator<ITaskProgressSetter>((ctx, parameters, instance) => new ThrottledProgressSetter(TimeSpan.FromSeconds(5), instance));
                 });
 
                 var executor = scope.Resolve<TaskExecutor>();
@@ -360,5 +380,28 @@ public class TaskHandler
 
             return finished;
         }
+    }
+
+
+    class TaskProgressSetter : ITaskProgressSetter
+    {
+        public required Apis Api { get; init; }
+        public required IMPlusTask Task { get; init; }
+
+        public void Set(double progress)
+        {
+            if (Task is ReceivedTask rt) rt.Progress = progress;
+            Api.SendTaskProgressAsync(Task).Consume();
+        }
+    }
+    class TaskInputDirectoryProvider : ITaskInputDirectoryProvider
+    {
+        public required ReceivedTask Task { get; init; }
+        public string InputDirectory => Task.FSInputDirectory();
+    }
+    class TaskOutputDirectoryProvider : ITaskOutputDirectoryProvider
+    {
+        public required ReceivedTask Task { get; init; }
+        public string OutputDirectory => Task.FSOutputDirectory();
     }
 }

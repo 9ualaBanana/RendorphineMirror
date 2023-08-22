@@ -58,7 +58,7 @@ public static partial class GenericTasksTests
         return await action.Execute(container, input, data);
     }
 
-    public static async Task<IReadOnlyList<object>> ExecuteMulti(object input, params JObject[] datas)
+    public static async Task<object> ExecuteMulti(object input, params JObject[] datas)
     {
         using var container = CreateTaskBuilder().Build();
         return await container.Resolve<TaskExecutorByData>()

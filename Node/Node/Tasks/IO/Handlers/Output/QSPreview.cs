@@ -1,21 +1,22 @@
+using Node.Tasks.Exec.Output;
+
 namespace Node.Tasks.IO.Handlers.Output;
 
 public static class QSPreview
 {
     public const string Version = "7";
 
-    public class UploadHandler : FileTaskUploadHandler<QSPreviewOutputInfo>, ITypedTaskOutput
+    public class UploadHandler : FileTaskUploadHandler<QSPreviewOutputInfo, QSPreviewOutput>, ITypedTaskOutput
     {
         public static TaskOutputType Type => TaskOutputType.QSPreview;
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required Apis Apis { get; init; }
 
-        protected override async Task UploadResultImpl(QSPreviewOutputInfo info, ReadOnlyTaskFileList files, CancellationToken token)
+        protected override async Task UploadResultImpl(QSPreviewOutputInfo info, QSPreviewOutput files, CancellationToken token)
         {
-            var jpegfooter = files.First(f => f.Format == FileFormat.Jpeg && Path.GetFileNameWithoutExtension(f.Path) == "pj_footer");
-            var jpegqr = files.FirstOrDefault(f => f.Format == FileFormat.Jpeg && Path.GetFileNameWithoutExtension(f.Path) == "pj_qr");
-
-            var mov = files.TrySingle(FileFormat.Mov);
+            var jpegfooter = files.ImageFooter.ThrowIfNull();
+            var jpegqr = files.ImageQr;
+            var mov = files.Video;
 
             var res = await Apis.ShardPost<InitOutputResult>(ApiTask, "initqspreviewoutput", null, "Initializing qs preview result upload", ("taskid", ApiTask.Id));
             if (!res && res.Message?.Contains("There is no such user", StringComparison.OrdinalIgnoreCase) == true)

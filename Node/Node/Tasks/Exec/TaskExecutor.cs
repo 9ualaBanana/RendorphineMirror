@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Web;
+using Node.Tasks.Exec.Input;
 using SixLabors.ImageSharp;
 
 namespace Node.Tasks.Exec;
@@ -22,6 +23,7 @@ public class TaskExecutor
 
     public required ReceivedTask Task { get; init; }
     public required Apis Api { get; init; }
+    public required IQueuedTasksStorage QueuedTasks { get; init; }
     public required IIndex<TaskInputType, ITaskInputDownloader> InputDownloaders { get; init; }
     public required IIndex<TaskAction, IPluginActionInfo> Actions { get; init; }
     public required IIndex<TaskOutputType, ITaskUploadHandler> ResultUploaders { get; init; }
@@ -37,7 +39,7 @@ public class TaskExecutor
 
     public async Task Execute(CancellationToken token)
     {
-        using var _logscope = Logger.BeginScope($"Task {Task}");
+        using var _logscope = Logger.BeginScope($"Task {Task.Id}");
         Logger.LogInformation($"Task info: {JsonConvert.SerializeObject(Task, Formatting.None)}");
 
         CheckCompatibility(Task);
@@ -50,8 +52,9 @@ public class TaskExecutor
             using var _ = await WaitDisposed(isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore, info);
 
             var inputhandler = InputDownloaders[Task.Input.Type];
-            Task.DownloadedInput = JObject.FromObject(await inputhandler.Download(Task.Input, Task.Info.Object, token));
+            Task.DownloadedInput = await inputhandler.Download(Task.Input, Task.Info.Object, token);
             await Api.ChangeStateAsync(Task, TaskState.Active);
+            QueuedTasks.QueuedTasks.Save(Task);
         }
         else Logger.LogInformation($"Input seems to be already downloaded");
 
@@ -60,14 +63,14 @@ public class TaskExecutor
             using var _ = await WaitDisposed(ActiveSemaphore);
 
             var firstaction = Actions[TaskExecutorByData.GetTaskName(Task.Info.Data)];
-            var input = Task.DownloadedInput
-                .ThrowIfNull("No task input downloaded")
-                .ToObject(firstaction.InputType)
-                .ThrowIfNull();
+            var input = Task.DownloadedInput.ThrowIfNull("No task input downloaded");
 
-            Task.Result = JObject.FromObject(await Executor.Execute(input, (Task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(Task.Info.Data).ToArray()));
+            if (input is ReadOnlyTaskFileList files)
+                input = new TaskFileInput(files, Task.FSOutputDirectory());
 
+            Task.Result = await Executor.Execute(input, (Task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(Task.Info.Data).ToArray());
             await Api.ChangeStateAsync(Task, TaskState.Output);
+            QueuedTasks.QueuedTasks.Save(Task);
         }
         else Logger.LogInformation($"Task execution seems to be already finished");
 
@@ -76,10 +79,7 @@ public class TaskExecutor
             using var _ = await WaitDisposed(OutputSemaphore);
 
             var outputhandler = ResultUploaders[Task.Output.Type];
-            var result = Task.DownloadedInput
-                .ThrowIfNull("No task result")
-                .ToObject(outputhandler.ResultType)
-                .ThrowIfNull();
+            var result = Task.Result.ThrowIfNull("No task result");
 
             await outputhandler.UploadResult(Task.Output, result, token);
             await Api.ChangeStateAsync(Task, TaskState.Validation);
