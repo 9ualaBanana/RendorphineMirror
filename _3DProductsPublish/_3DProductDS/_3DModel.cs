@@ -5,7 +5,7 @@
 /// </summary>
 public partial class _3DModel : I3DProductAsset, IDisposable
 {
-    internal ContainerType OriginalContainer;
+    internal readonly ContainerType OriginalContainer;
 
     /// <summary>
     /// Refers to the path from which this <see cref="_3DModel"/> was initialized.
