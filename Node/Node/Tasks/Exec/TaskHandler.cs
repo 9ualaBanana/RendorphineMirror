@@ -42,8 +42,8 @@ public class TaskHandler
 
             try
             {
-                var handler = ComponentContext.ResolveKeyed<ITaskInputUploader>(task.Input.Type);
-                await handler.Upload(task.Input);
+                var handler = ComponentContext.ResolveOptionalKeyed<ITaskInputUploader>(task.Input.Type);
+                await (handler?.Upload(task.Input) ?? Task.CompletedTask);
                 return;
             }
             catch (Exception ex)
@@ -171,12 +171,14 @@ public class TaskHandler
                 return;
             }
 
-            var checker = ComponentContext.ResolveKeyed<ITaskCompletionChecker>(task.Input.Type);
-            var completed = checker.CheckCompletion(task.Output, task.State);
+            var checker = ComponentContext.ResolveOptionalKeyed<ITaskCompletionChecker>(task.Output.Type);
+            var completed = checker?.CheckCompletion(task.Output, task.State) ?? (task.State == TaskState.Validation);
             if (!completed) return;
 
-            var handler = ComponentContext.ResolveKeyed<ITaskCompletionHandler>(task.Input.Type);
-            await handler.OnPlacedTaskCompleted(task.Output);
+            var handler = ComponentContext.ResolveOptionalKeyed<ITaskCompletionHandler>(task.Output.Type);
+            if (handler is not null)
+                await handler.OnPlacedTaskCompleted(task.Output);
+
             await Api.ChangeStateAsync(task, TaskState.Finished).ThrowIfError();
             remove(task, errmsg);
         }
@@ -233,7 +235,7 @@ public class TaskHandler
                     .SingleInstance();
             });
 
-            return scope.ResolveKeyed<IWatchingTaskInputHandler>(Enum.Parse<TaskAction>(task.TaskAction));
+            return scope.ResolveKeyed<IWatchingTaskInputHandler>(task.Source.Type);
         }
     }
 
