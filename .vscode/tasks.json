@@ -44,6 +44,12 @@
             "args": [ "build", "${workspaceFolder}/RApi/RApi.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
+            "label": "buildchatgptapi",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "build", "${workspaceFolder}/ChatGptApi/ChatGptApi.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
+        },
+        {
             "label": "buildpinger",
             "command": "dotnet",
             "type": "process",

@@ -18,9 +18,11 @@ public class TitleKeywordsTaskHandler : ITaskInputHandler, ITaskOutputHandler
         // TODO:: TEMPORARY AND WILL BE REFACTORED
         var title = (files.OutputJson?["Title"]?.Value<string>()).ThrowIfNull();
         var keywords = (files.OutputJson?["Keywords"]?.ToObject<string[]>()).ThrowIfNull();
+        var description = files.OutputJson?["Description"]?.ToObject<string>();
 
-        await Api.Default.ApiPost($"{Api.ServerUri}/rphtasklauncher/settaskoutputtitlekeywords", "setting task output title&keywords",
-            Apis.Default.AddSessionId(("taskid", task.Id), ("title", title), ("keywords", JsonConvert.SerializeObject(keywords)))
-        ).ThrowIfError();
+        var args = Apis.Default.AddSessionId(("taskid", task.Id), ("title", title), ("keywords", JsonConvert.SerializeObject(keywords)));
+        if (description is not null) args = args.Append(("description", description)).ToArray();
+
+        await Api.Default.ApiPost($"{Api.ServerUri}/rphtasklauncher/settaskoutputtitlekeywords", "setting task output title&keywords", args).ThrowIfError();
     }
 }

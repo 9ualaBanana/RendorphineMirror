@@ -20,4 +20,5 @@ public class TitleKeywordsOutputInfo : ITaskOutputInfo
 
     public readonly string? Title;
     public readonly string[]? Keywords;
+    public readonly string? Description;
 }
