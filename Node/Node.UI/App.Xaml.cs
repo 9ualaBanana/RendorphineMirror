@@ -1,8 +1,11 @@
 using Autofac;
 using Autofac.Builder;
 using Autofac.Core;
+using Autofac.Extensions.DependencyInjection;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Microsoft.Extensions.DependencyInjection;
+using NLog.Extensions.Logging;
 
 namespace Node.UI
 {
@@ -25,6 +28,9 @@ namespace Node.UI
 
             var builder = new ContainerBuilder();
 
+            // logging
+            builder.Populate(new ServiceCollection().With(services => services.AddLogging(l => l.AddNLog())));
+
             builder.RegisterSource<AutoControlInstantiator>();
 
             builder.RegisterInstance(this)
@@ -43,11 +49,20 @@ namespace Node.UI
             builder.RegisterType<MainWindowUpdater>()
                 .SingleInstance();
 
+            builder.RegisterType<TrayIndicator>()
+                .SingleInstance();
+
+            builder.RegisterInstance(Api.Default)
+                .SingleInstance();
+
+            builder.RegisterType<LocalApi>()
+                .SingleInstance();
+
             builder.RegisterType<Startup>()
                 .SingleInstance();
 
-            using var container = builder.Build();
-            container.Resolve<Startup>();
+            var container = builder.Build();
+            container.Resolve<Startup>().Start();
 
             base.OnFrameworkInitializationCompleted();
         }
