@@ -23,7 +23,7 @@ internal partial class TurboSquid3DProductAssetsProcessing
     {
         using var archived3DModel = File.OpenRead(await _3DModel.ArchiveAsync(cancellationToken));
         var processingPayload = Payload.For(archived3DModel, assetUploadKey, _uploadSessionContext,
-            string.Empty, string.Empty, string.Empty, false);
+            "3ds_max", string.Empty, string.Empty, string.Empty, false);
 
         return await CreateTaskAsync(processingPayload, _3DModel, cancellationToken);
     }
