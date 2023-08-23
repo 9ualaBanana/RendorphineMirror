@@ -23,7 +23,7 @@ public class TasksTab2 : Panel
 
     abstract class TaskManager<T> : Panel
     {
-        protected NodeCommon.Apis Api => Apis.Default;
+        protected Node.Common.Apis Api => Apis.Default;
 
         public TaskManager()
         {

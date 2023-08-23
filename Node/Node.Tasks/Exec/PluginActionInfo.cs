@@ -21,12 +21,33 @@ public abstract class PluginActionInfo<TInput, TOutput, TData> : IPluginActionIn
     protected abstract void ValidateInput(TInput input, TData data);
     protected abstract void ValidateOutput(TInput input, TData data, TOutput output);
 
-    async Task<object> IPluginActionInfo.Execute(ILifetimeScope container, object input, JObject data) =>
-        await Execute(
+    async Task<object> IPluginActionInfo.Execute(ILifetimeScope container, object input, JObject data)
+    {
+        if (isAssignableToOpenGeneric(typeof(TInput), typeof(EitherTaskInput<,>)))
+            input = Activator.CreateInstance(typeof(TInput), new object[] { input }).ThrowIfNull();
+
+        return await Execute(
             container,
             (TInput) input,
             data.ToObject<TData>().ThrowIfNull($"Could not deserialize task data: {data}")
         );
+
+
+        static bool isAssignableToOpenGeneric(Type type, Type genericType)
+        {
+            foreach (var it in type.GetInterfaces())
+                if (it.IsGenericType && it.GetGenericTypeDefinition() == genericType)
+                    return true;
+
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == genericType)
+                return true;
+
+            var baseType = type.BaseType;
+            if (baseType is null) return false;
+
+            return isAssignableToOpenGeneric(baseType, genericType);
+        }
+    }
 
     public async Task<TOutput> Execute(ILifetimeScope container, TInput input, TData data)
     {

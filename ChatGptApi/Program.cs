@@ -1,4 +1,5 @@
 global using Microsoft.AspNetCore.Mvc;
+global using Node.Common;
 global using Node.Tasks.Models;
 global using NodeCommon;
 global using NodeCommon.Tasks;

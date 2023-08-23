@@ -16,7 +16,8 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
 
     protected class Executor : ExecutorBase
     {
-        public required IMPlusApi MPlusApi { get; init; }
+        public required IRegisteredTaskApi ApiTask { get; init; }
+        public required Apis Api { get; init; }
 
         public override async Task<TitleKeywordsOutput> ExecuteUnchecked(EitherFileTaskInput<TitleKeywordsInput> input, GenerateTitleKeywordsInfo data)
         {
@@ -24,18 +25,18 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                 async files =>
                 {
                     var file = files.First();
-                    var query = Api.ToGetContent(Api.AddSessionId(MPlusApi.SessionId, ("taskid", MPlusApi.TaskId)));
+                    var query = global::Common.Api.ToGetContent(Api.AddSessionId(("taskid", ApiTask.Id)));
 
                     using var stream = File.OpenRead(file.Path);
                     using var content = new MultipartFormDataContent() { { new StreamContent(stream), "img", file.Format.ToMime() } };
 
-                    return await MPlusApi.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/generatetkd?{query}", "value", "generating tkd using gcloud vision + openai", content)
+                    return await Api.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/generatetkd?{query}", "value", "generating tkd using gcloud vision + openai", content)
                         .ThrowIfError();
                 },
                 async tk =>
                 {
-                    var parameters = Api.AddSessionId(MPlusApi.SessionId, ("taskid", MPlusApi.TaskId), ("title", tk.Title), ("keywords", JsonConvert.SerializeObject(tk.Keywords)));
-                    return await MPlusApi.Api.ApiPost<TitleKeywordsOutput>("https://t.microstock.plus:7899/openai/generatebettertk", "value", "generating better tk using openai", parameters)
+                    var parameters = Api.AddSessionId(("taskid", ApiTask.Id), ("title", tk.Title), ("keywords", JsonConvert.SerializeObject(tk.Keywords)));
+                    return await Api.Api.ApiPost<TitleKeywordsOutput>("https://t.microstock.plus:7899/openai/generatebettertk", "value", "generating better tk using openai", parameters)
                         .ThrowIfError();
                 }
             );

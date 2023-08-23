@@ -17,7 +17,7 @@ public static class TitleKeywords
             if (result.Description is not null)
                 args = args.Append(("description", result.Description)).ToArray();
 
-            await Api.Api.ApiPost($"{Api.TaskManagerEndpoint}/rphtasklauncher/settaskoutputtitlekeywords", "setting task output title&keywords", args).ThrowIfError();
+            await Api.ShardPost(ApiTask, "settaskoutputtitlekeywords", "setting task output title&keywords", args).ThrowIfError();
         }
     }
 }

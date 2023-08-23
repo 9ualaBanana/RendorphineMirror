@@ -6,7 +6,7 @@ public abstract class FileTaskUploadHandler<TData> : FileTaskUploadHandler<TData
 
 public abstract class FileTaskUploadHandler<TData, TResult> : TaskUploadHandler<TData, TResult>
     where TData : ITaskOutputInfo
-    where TResult : IEnumerable<FileWithFormat>
+    where TResult : IReadOnlyTaskFileList
 {
     public override async Task UploadResult(TData info, TResult result, CancellationToken token)
     {

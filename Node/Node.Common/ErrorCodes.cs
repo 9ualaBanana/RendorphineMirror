@@ -1,4 +1,4 @@
-namespace NodeCommon;
+namespace Node.Common;
 
 public static class ErrorCodes
 {
