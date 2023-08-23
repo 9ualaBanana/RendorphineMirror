@@ -1,10 +1,7 @@
 namespace NodeCommon.Tasks.Watching;
 
-public class WatchingTask : ILoggable
+public class WatchingTask
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-    void ILoggable.Log(LogLevel level, string text) => Logger.Log(level, $"[WTask {Id}] {text}");
-
     public string Id { get; init; }
     public IWatchingTaskInputInfo Source { get; init; }
     public IWatchingTaskOutputInfo Output { get; init; }
@@ -13,8 +10,6 @@ public class WatchingTask : ILoggable
     public TaskPolicy Policy { get; init; }
     public bool IsPaused = false;
     public ImmutableArray<TaskSoftwareRequirement>? SoftwareRequirements { get; init; }
-
-    [JsonIgnore] public IDisposable? Handler;
 
     public readonly List<string> PlacedNonCompletedTasks = new();
 

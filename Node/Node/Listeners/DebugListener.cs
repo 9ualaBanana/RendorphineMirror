@@ -7,10 +7,9 @@ public class DebugListener : ExecutableListenerBase
     protected override ListenTypes ListenType => ListenTypes.Local;
     protected override string Prefix => "debug";
 
-    readonly PluginManager PluginManager;
+    public required SessionManager SessionManager { get; init; }
 
-    public DebugListener(PluginManager pluginManager, ILogger<DebugListener> logger) : base(logger) =>
-        PluginManager = pluginManager;
+    public DebugListener(ILogger<DebugListener> logger) : base(logger) { }
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
@@ -54,31 +53,5 @@ public class DebugListener : ExecutableListenerBase
         }
 
         return await base.ExecuteGet(path, context);
-    }
-    protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
-    {
-        var response = context.Response;
-
-        if (path == "execute")
-        {
-            return await TestPost(await CreateCached(context.Request), response, "task", async taskj =>
-            {
-                var data = JsonConvert.DeserializeObject<LocalTaskCreationInfo>(taskj).ThrowIfNull();
-
-                var taskid = Guid.NewGuid().ToString();
-                var context = new LocalTaskExecutionContext(
-                    await PluginManager.GetInstalledPluginsAsync(),
-                    new NamedLogger($"LTask {taskid}", new LoggableLogger(LogManager.GetCurrentClassLogger())),
-                    null
-                );
-
-                var action = TaskList.GetAction(TaskInfo.GetTaskType(data.Data));
-                await action.Execute(context, new TaskFiles(data.Input, data.Output), data.Data);
-
-                return await WriteJson(response, data.Output.AsOpResult());
-            });
-        }
-
-        return await base.ExecutePost(path, context);
     }
 }

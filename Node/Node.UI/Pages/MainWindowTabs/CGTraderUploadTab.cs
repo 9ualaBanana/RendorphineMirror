@@ -5,7 +5,7 @@ namespace Node.UI.Pages.MainWindowTabs;
 
 public class CGTraderUploadTab : Panel
 {
-    public CGTraderUploadTab()
+    public CGTraderUploadTab(LocalApi localApi)
     {
         var dirpicker = new LocalDirSetting();
         var username = new TextBox() { Text = "username" };
@@ -33,7 +33,7 @@ public class CGTraderUploadTab : Panel
                         ProcessObject(meta);
                         ProcessObject(meta); // two times yes
 
-                        var result = await LocalApi.Default.Get("uploadcgtrader", "Uploading CG trader item",
+                        var result = await localApi.Get("uploadcgtrader", "Uploading CG trader item",
                             ("username", username.Text), ("password", password.Text), ("directory", dirpicker.Dir), ("meta",meta.ToString(Newtonsoft.Json.Formatting.None)));
                         await self.FlashErrorIfErr(result);
                     },

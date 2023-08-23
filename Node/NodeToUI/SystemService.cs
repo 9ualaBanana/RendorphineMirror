@@ -156,7 +156,7 @@ public static class SystemService
     }
 
 
-    static Process Launch(string executable, string arguments) => Process.Start(executable, arguments);
+    static void Launch(string executable, string arguments) => Process.Start(executable, arguments).WaitForExit();
     static void ExecuteForOs(System.Action? windows, System.Action? linux, System.Action? mac)
     {
         if (OperatingSystem.IsWindows()) windows?.Invoke();

@@ -2,12 +2,14 @@ namespace Node.Common;
 
 public static class FFProbe
 {
-    public static async Task<FFProbeInfo> Get(string file, ILoggable? logobj)
+    public static async Task<FFProbeInfo> Get(string file, ILogger logger)
     {
+        using var _ = logger.BeginScope("FFprobe");
+
         // TODO:: get from plugin list
         var ffprobe = File.Exists("/bin/ffprobe") ? "/bin/ffprobe" : "assets/ffprobe.exe";
 
-        var str = await new ProcessLauncher(ffprobe) { Logging = { Logger = NamedLogger.TryFrom("FFprobe", logobj) } }
+        var str = await new ProcessLauncher(ffprobe) { Logging = { ILogger = logger } }
             .WithArgs(args => args.Add(
                 $"-hide_banner",
                 $"-v", $"quiet",

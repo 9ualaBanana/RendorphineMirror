@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Remove="NLog" />
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\Node\Node.Common\Node.Common.csproj" />
     <ProjectReference Include="..\Node\Node.Common.Models\Node.Common.Models.csproj" />

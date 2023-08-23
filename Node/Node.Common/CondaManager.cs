@@ -1,12 +1,10 @@
-using System.Diagnostics;
 using System.Management.Automation;
 
 namespace Node.Common;
 
-public static class CondaManager
+public class CondaManager
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-
+    public required ILogger<CondaManager> Logger { get; init; }
 
     public static bool IsEnvironmentCreated(string name)
     {
@@ -23,7 +21,7 @@ public static class CondaManager
 
 
     /// <remarks> Overwrites the environments if exists. </remarks>
-    public static void InitializeEnvironment(string condapath, string name, string pyversion, IReadOnlyCollection<string> requirements, IReadOnlyCollection<string> channels, IReadOnlyCollection<string>? piprequirements)
+    public void InitializeEnvironment(string condapath, string name, string pyversion, IReadOnlyCollection<string> requirements, IReadOnlyCollection<string> channels, IReadOnlyCollection<string>? piprequirements)
     {
         {
             var log = $"Initializing conda environment {name} with python={pyversion} {string.Join(' ', requirements)}";
@@ -31,7 +29,7 @@ public static class CondaManager
             if (piprequirements is not null)
                 log += $"; pip {string.Join(' ', piprequirements)}";
 
-            Logger.Info(log);
+            Logger.LogInformation(log);
         }
 
         var script = $"""
@@ -42,12 +40,14 @@ public static class CondaManager
         try
         {
             var sw = Stopwatch.StartNew();
-            PowerShellInvoker.Invoke(script, onread, onerr, LogManager.GetLogger($"Conda init {name}").AsLoggable());
-            Logger.Info($"Conda environment '{name}' initialized succesfully in {sw.Elapsed}.");
+
+            using var _logscope = Logger.BeginScope($"Conda init {name}");
+            PowerShellInvoker.Invoke(script, onread, onerr, Logger);
+            Logger.LogInformation($"Conda environment '{name}' initialized succesfully in {sw.Elapsed}.");
         }
         catch (Exception ex)
         {
-            Logger.Info($"Could not initialize conda environment '{name}': {ex}");
+            Logger.LogInformation($"Could not initialize conda environment '{name}': {ex}");
         }
 
 

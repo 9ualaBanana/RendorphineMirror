@@ -1,3 +1,4 @@
+using Autofac;
 using Avalonia.Controls.Templates;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -7,7 +8,7 @@ namespace Node.UI.Pages
 {
     public class TaskCreationWindow : Window
     {
-        public TaskCreationWindow()
+        public TaskCreationWindow(IComponentContext ctx)
         {
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
@@ -16,7 +17,7 @@ namespace Node.UI.Pages
             Title = App.AppName;
             Icon = App.Icon;
 
-            Content = new TaskCreationPanel();
+            Content = ctx.Resolve<TaskCreationPanel>();
         }
 
         static Task Post(Action action) => Dispatcher.UIThread.InvokeAsync(action);
@@ -144,6 +145,7 @@ namespace Node.UI.Pages
             public abstract LocalizedString Title { get; }
             public abstract TaskPart? Next { get; }
 
+            public required IComponentContext ComponentContext { get; init; }
             protected readonly TaskCreationInfo Builder;
 
             protected TaskPart(TaskCreationInfo builder) => Builder = builder;
@@ -339,6 +341,8 @@ namespace Node.UI.Pages
             public override LocalizedString Title => new("Waiting");
             public override TaskPart? Next => null;
 
+            public required LocalApi LocalApi { get; init; }
+
             protected abstract string StartTaskEndpoint { get; }
 
             readonly TextBlock StatusTextBlock;
@@ -377,7 +381,7 @@ namespace Node.UI.Pages
                 ProcessObject(Builder.Output);
 
                 var serialized = JsonConvert.SerializeObject(Builder, JsonSettings.LowercaseIgnoreNull);
-                var taskid = await LocalApi.Default.Post<string>(StartTaskEndpoint, "Starting a task", new StringContent(serialized)).ConfigureAwait(false);
+                var taskid = await LocalApi.Post<string>(StartTaskEndpoint, "Starting a task", new StringContent(serialized)).ConfigureAwait(false);
                 if (!taskid)
                 {
                     Dispatcher.UIThread.Post(() => StatusTextBlock.Text = $"error {taskid}");
@@ -391,7 +395,16 @@ namespace Node.UI.Pages
 
         class TaskCreationPanel : Panel
         {
-            public TaskCreationPanel() => Children.Add(new TaskPartContainer(new ChooseTypePart()));
+            public TaskCreationPanel(ILifetimeScope ctx)
+            {
+                using var scope = ctx.BeginLifetimeScope(builder =>
+                {
+                    builder.RegisterInstance(new TaskCreationInfo())
+                        .SingleInstance();
+                });
+
+                Children.Add(new TaskPartContainer(scope.Resolve<ChooseTypePart>()));
+            }
 
 
             class ChooseTypePart : TaskCreationWindow.TaskPart
@@ -401,14 +414,14 @@ namespace Node.UI.Pages
 
                 public override TaskPart? Next => TypesList.SelectedItem switch
                 {
-                    TaskCreationType.Normal => new NormalTaskCreationPanel.LocalRemotePart(new()),
-                    TaskCreationType.WatchingRepeating => new WatchingTaskCreationPanel.LocalRemotePart(new()),
+                    TaskCreationType.Normal => ComponentContext.Resolve<NormalTaskCreationPanel.LocalRemotePart>(),
+                    TaskCreationType.WatchingRepeating => ComponentContext.Resolve<WatchingTaskCreationPanel.LocalRemotePart>(),
                     _ => throw new InvalidOperationException(),
                 };
 
                 readonly TypedListBox<TaskCreationType> TypesList;
 
-                public ChooseTypePart() : base(new())
+                public ChooseTypePart(TaskCreationInfo builder) : base(builder)
                 {
                     TypesList = new TypedListBox<TaskCreationType>(Enum.GetValues<TaskCreationType>(), t => new TextBlock() { Text = t.ToString() });
                     TypesList.SelectionChanged += (obj, e) => OnChoose?.Invoke(TypesList.SelectedItems.Count != 0);
@@ -426,29 +439,29 @@ namespace Node.UI.Pages
         {
             public class LocalRemotePart : TaskCreationWindow.PolicyTaskPart
             {
-                public override TaskPart? Next => new ChoosePluginPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChoosePluginPart>();
                 public LocalRemotePart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
             {
-                public override TaskPart? Next => new ChooseVersionPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChooseVersionPart>();
                 public ChoosePluginPart(TaskCreationInfo info) : base(info) { }
             }
 
             class ChooseVersionPart : TaskCreationWindow.ChooseVersionPart
             {
-                public override TaskPart? Next => new ChooseActionPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChooseActionPart>();
                 public ChooseVersionPart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChooseActionPart : TaskCreationWindow.ChooseActionPart
             {
-                public override TaskPart? Next => new ChooseInputPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChooseInputPart>();
                 public ChooseActionPart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChooseInputPart : ChooseInputOutputPart
             {
                 public override LocalizedString Title => new("Choose Input");
-                public override TaskPart? Next => new ChooseOutputPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChooseOutputPart>();
 
                 public ChooseInputPart(TaskCreationInfo builder) : base(builder) { }
 
@@ -462,7 +475,7 @@ namespace Node.UI.Pages
             class ChooseOutputPart : TaskCreationWindow.ChooseInputOutputPart
             {
                 public override LocalizedString Title => new("Choose Output");
-                public override TaskPart? Next => new ChooseParametersPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChooseParametersPart>();
 
                 public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
 
@@ -475,7 +488,7 @@ namespace Node.UI.Pages
             }
             class ChooseParametersPart : TaskCreationWindow.ParametersPart
             {
-                public override TaskPart? Next => new EndPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<EndPart>();
                 public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
             }
             class EndPart : TaskCreationWindow.EndPart
@@ -489,29 +502,29 @@ namespace Node.UI.Pages
         {
             public class LocalRemotePart : TaskCreationWindow.PolicyTaskPart
             {
-                public override TaskPart? Next => new ChoosePluginPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChoosePluginPart>();
                 public LocalRemotePart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChoosePluginPart : TaskCreationWindow.ChoosePluginPart
             {
-                public override TaskPart? Next => new ChooseVersionPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChooseVersionPart>();
 
                 public ChoosePluginPart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChooseVersionPart : TaskCreationWindow.ChooseVersionPart
             {
-                public override TaskPart? Next => new ChooseActionPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChooseActionPart>();
                 public ChooseVersionPart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChooseActionPart : TaskCreationWindow.ChooseActionPart
             {
-                public override TaskPart? Next => new ChooseInputPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChooseInputPart>();
                 public ChooseActionPart(TaskCreationInfo builder) : base(builder) { }
             }
             class ChooseInputPart : ChooseInputOutputPart
             {
                 public override LocalizedString Title => new("Choose Input");
-                public override TaskPart? Next => new ChooseOutputPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChooseOutputPart>();
 
                 public ChooseInputPart(TaskCreationInfo builder) : base(builder) { }
 
@@ -525,7 +538,7 @@ namespace Node.UI.Pages
             class ChooseOutputPart : TaskCreationWindow.ChooseInputOutputPart
             {
                 public override LocalizedString Title => new("Choose Output");
-                public override TaskPart? Next => new ChooseParametersPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<ChooseParametersPart>();
 
                 public ChooseOutputPart(TaskCreationInfo builder) : base(builder) { }
 
@@ -538,7 +551,7 @@ namespace Node.UI.Pages
             }
             class ChooseParametersPart : TaskCreationWindow.ParametersPart
             {
-                public override TaskPart? Next => new EndPart(Builder);
+                public override TaskPart? Next => ComponentContext.Resolve<EndPart>();
                 public ChooseParametersPart(TaskCreationInfo builder) : base(builder) { }
             }
 

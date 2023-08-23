@@ -26,7 +26,7 @@ catch (Exception ex)
 
 void restart(string errmsg)
 {
-    LogManager.GetCurrentClassLogger().Info(errmsg);
+    NLog.LogManager.GetCurrentClassLogger().Info(errmsg);
 
     FileList.KillProcesses();
     updater.StartApp();
