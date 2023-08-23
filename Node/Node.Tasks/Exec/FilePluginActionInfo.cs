@@ -6,23 +6,29 @@ public interface IFilePluginActionInfo : IPluginActionInfo
 {
     IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
 }
-public abstract class FilePluginActionInfo<TData> : PluginActionInfo<TaskFileInput, TaskFileOutput, TData>, IFilePluginActionInfo
+public abstract class FilePluginActionInfo<TInput, TOutput, TData> : PluginActionInfo<TInput, TOutput, TData>, IFilePluginActionInfo
+    where TInput : IReadOnlyTaskFileList
+    where TOutput : notnull
 {
     public abstract IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats { get; }
+
+    protected sealed override void ValidateInput(TInput input, TData data) =>
+        input.ValidateInput(InputFileFormats);
+}
+public abstract class FilePluginActionInfo<TInput, TData> : FilePluginActionInfo<TInput, TaskFileOutput, TData>
+    where TInput : IReadOnlyTaskFileList
+{
     protected abstract OperationResult ValidateOutputFiles(TaskFilesCheckData files, TData data);
 
-    protected sealed override void ValidateInput(TaskFileInput input, TData data) =>
-        input.ValidateInput(InputFileFormats);
-
-    protected sealed override void ValidateOutput(TaskFileInput input, TData data, TaskFileOutput output)
+    protected sealed override void ValidateOutput(TInput input, TData data, TaskFileOutput output)
     {
-        input.Files.AssertListValid("output");
+        input.AssertListValid("output");
 
-        if (output.Files.Count == 0)
-            validate(new TaskFilesCheckData(input.Files, new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())));
+        if (output.Count == 0)
+            validate(new TaskFilesCheckData(input, new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>())));
         else
             foreach (var outfiles in output)
-                validate(new TaskFilesCheckData(input.Files, outfiles));
+                validate(new TaskFilesCheckData(input, outfiles));
 
 
         void validate(TaskFilesCheckData input)
@@ -33,11 +39,12 @@ public abstract class FilePluginActionInfo<TData> : PluginActionInfo<TaskFileInp
         }
     }
 }
+public abstract class FilePluginActionInfo<TData> : FilePluginActionInfo<TaskFileInput, TData> { }
 
 public static class FilePluginActionExtensions
 {
     /// <inheritdoc cref="AssertListValid(IReadOnlyTaskFileListList?, string?)"/>
-    public static void AssertListValid([NotNull] this IEnumerable<FileWithFormat>? files, [CallerArgumentExpression(nameof(files))] string? type = null)
+    public static void AssertListValid([NotNull] this IReadOnlyTaskFileList? files, [CallerArgumentExpression(nameof(files))] string? type = null)
     {
         if (files is null)
             throw new TaskValidationException($"Task {type} file list was null or empty");
@@ -57,12 +64,12 @@ public static class FilePluginActionExtensions
             list.AssertListValid(type);
     }
 
-    public static void ValidateInput(this TaskFileInput input, IReadOnlyCollection<IReadOnlyCollection<FileFormat>> formats)
+    public static void ValidateInput(this IReadOnlyTaskFileList input, IReadOnlyCollection<IReadOnlyCollection<FileFormat>> formats)
     {
-        input.Files.AssertListValid("input");
+        input.AssertListValid("input");
 
-        TaskRequirement.EnsureFormats(input.Files, "input", formats)
-            .Next(() => OperationResult.WrapException(() => input.Files.ValidateFileList("input")))
+        TaskRequirement.EnsureFormats(input, "input", formats)
+            .Next(() => OperationResult.WrapException(() => input.ValidateFileList("input")))
             .ThrowIfError(message => new TaskValidationException(message));
     }
 }

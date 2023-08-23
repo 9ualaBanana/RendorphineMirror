@@ -3,8 +3,10 @@ using System.Collections;
 namespace Node.Tasks.Exec.Output;
 
 [JsonObject]
-public class QSPreviewOutput : IEnumerable<FileWithFormat>
+public class QSPreviewOutput : IReadOnlyTaskFileList
 {
+    public int Count => this.AsEnumerable().Count();
+
     public FileWithFormat? ImageFooter { get; private set; }
     public FileWithFormat? ImageQr { get; private set; }
     public FileWithFormat? Video { get; private set; }

@@ -3,8 +3,10 @@ using System.Collections;
 namespace Node.Tasks.Exec.Input;
 
 [JsonObject]
-public class TaskFileInput : IEnumerable<FileWithFormat>
+public class TaskFileInput : IReadOnlyTaskFileList
 {
+    public int Count => Files.Count;
+
     public ReadOnlyTaskFileList Files { get; }
     public string ResultDirectory { get; }
 

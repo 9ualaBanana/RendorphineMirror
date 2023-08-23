@@ -2,8 +2,11 @@ using System.Collections;
 
 namespace Node.Tasks.Exec.Output;
 
-public class TaskFileOutput : IConvertibleToMultiInput, IEnumerable<ReadOnlyTaskFileList>
+public class TaskFileOutput : IConvertibleToMultiInput, IReadOnlyTaskFileListList
 {
+    public int Count => Files.Count;
+    public string Directory => Files.Directory;
+
     public TaskFileListList Files { get; }
 
     public TaskFileOutput(string directory) : this(new TaskFileListList(directory)) { }

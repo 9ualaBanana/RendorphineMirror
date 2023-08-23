@@ -19,7 +19,7 @@ public static class TaskRequirement
     public static OperationResult EnsureOutputFormats(this TaskFilesCheckData files, IReadOnlyCollection<IReadOnlyCollection<FileFormat>> formats) => EnsureFormats(files.OutputFiles, "output", formats);
     public static OperationResult EnsureInputFormats(this TaskFilesCheckData files, params FileFormat[][] formats) => EnsureFormats(files.InputFiles, "input", formats);
     public static OperationResult EnsureOutputFormats(this TaskFilesCheckData files, params FileFormat[][] formats) => EnsureFormats(files.OutputFiles, "output", formats);
-    public static OperationResult EnsureFormats(ReadOnlyTaskFileList files, string info, IReadOnlyCollection<IReadOnlyCollection<FileFormat>> expected)
+    public static OperationResult EnsureFormats(IReadOnlyTaskFileList files, string info, IReadOnlyCollection<IReadOnlyCollection<FileFormat>> expected)
     {
         if (expected.Count == 0)
             return true;
@@ -46,9 +46,9 @@ public static class TaskRequirement
     }
     public static OperationResult ErrorInputFormats(this TaskFilesCheckData task) => ErrorFormats(task.InputFiles, "input");
     public static OperationResult ErrorOutputFormats(this TaskFilesCheckData task) => ErrorFormats(task.OutputFiles, "output");
-    static OperationResult ErrorFormats(ReadOnlyTaskFileList files, string info) =>
+    static OperationResult ErrorFormats(IReadOnlyTaskFileList files, string info) =>
         OperationResult.Err($"Invalid {info} file formats ({string.Join(", ", files.Select(f => f.Format))})");
-    static OperationResult ErrorFormats(ReadOnlyTaskFileList files, IEnumerable<IReadOnlyCollection<FileFormat>> expected, string info) =>
+    static OperationResult ErrorFormats(IReadOnlyTaskFileList files, IEnumerable<IReadOnlyCollection<FileFormat>> expected, string info) =>
         OperationResult.Err($"{ErrorFormats(files, info).Message}; Expected: ({string.Join(", ", expected.Select(f => $"({string.Join(", ", f)})"))})");
 
     public static OperationResult<FileWithFormat> EnsureSingleInputFile(this TaskFilesCheckData task) => EnsureInputFileCount(task, 1);
@@ -58,9 +58,9 @@ public static class TaskRequirement
     public static OperationResult<FileWithFormat> EnsureInputFileCount(this TaskFilesCheckData task, int min, int max) => EnsureFileCount(task.InputFiles, "input", min, max);
     public static OperationResult<FileWithFormat> EnsureOutputFileCount(this TaskFilesCheckData task, int min, int max) => EnsureFileCount(task.OutputFiles, "output", min, max);
 
-    public static OperationResult<FileWithFormat> EnsureSingle(ReadOnlyTaskFileList files, string info) => EnsureFileCount(files, info, 1, 1);
+    public static OperationResult<FileWithFormat> EnsureSingle(IReadOnlyTaskFileList files, string info) => EnsureFileCount(files, info, 1, 1);
 
-    static OperationResult<FileWithFormat> EnsureFileCount(ReadOnlyTaskFileList files, string info, int min, int max)
+    static OperationResult<FileWithFormat> EnsureFileCount(IReadOnlyTaskFileList files, string info, int min, int max)
     {
         if (files.Count < min)
             return OperationResult.Err($"Not enough {info} files: {files.Count}; should be at least {min}");

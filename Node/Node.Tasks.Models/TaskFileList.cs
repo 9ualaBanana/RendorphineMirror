@@ -3,8 +3,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Node.Tasks.Models;
 
+public interface IReadOnlyTaskFileList : IEnumerable<FileWithFormat>
+{
+    int Count { get; }
+}
+
 [JsonObject]
-public class ReadOnlyTaskFileList : IEnumerable<FileWithFormat>
+public class ReadOnlyTaskFileList : IReadOnlyTaskFileList
 {
     [Obsolete("DELETE")]
     // TODO:: TEMPORARY AND WILL BE REFACTORED
@@ -62,7 +67,7 @@ public static class TaskFileListExtensions
     }
 
     /// <summary> Ensure files exist </summary>
-    public static void ValidateFileList([NotNull] this ReadOnlyTaskFileList? files, string type)
+    public static void ValidateFileList([NotNull] this IReadOnlyTaskFileList? files, string type)
     {
         if (files is null)
             throw new Exception($"Task {type} file list was null or empty");

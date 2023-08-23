@@ -1,32 +1,44 @@
 namespace Node.Tasks.Exec.Actions;
 
-public record TitleKeywords(string Title, ImmutableArray<string> Keywords);
-public class GenerateTitleKeywords : PluginActionInfo<TitleKeywords, TitleKeywords, GenerateTitleKeywordsInfo>
+public record TitleKeywordsInput(string Title, ImmutableArray<string> Keywords);
+public record TitleKeywordsOutput(string Title, ImmutableArray<string> Keywords, string? Description = null);
+public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<TitleKeywordsInput>, TitleKeywordsOutput, GenerateTitleKeywordsInfo>
 {
     public override TaskAction Name => TaskAction.GenerateTitleKeywords;
     public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray<PluginType>.Empty;
     protected override Type ExecutorType => typeof(Executor);
 
-    protected override void ValidateInput(TitleKeywords input, GenerateTitleKeywordsInfo data) { }
-    protected override void ValidateOutput(TitleKeywords input, GenerateTitleKeywordsInfo data, TitleKeywords output) { }
+    public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
+        new[] { Array.Empty<FileFormat>(), new[] { FileFormat.Jpeg }, new[] { FileFormat.Png } };
+
+    protected override void ValidateOutput(EitherFileTaskInput<TitleKeywordsInput> input, GenerateTitleKeywordsInfo data, TitleKeywordsOutput output) { }
 
 
     protected class Executor : ExecutorBase
     {
         public required IMPlusApi MPlusApi { get; init; }
 
-        public override async Task<TitleKeywords> ExecuteUnchecked(TitleKeywords input, GenerateTitleKeywordsInfo data)
+        public override async Task<TitleKeywordsOutput> ExecuteUnchecked(EitherFileTaskInput<TitleKeywordsInput> input, GenerateTitleKeywordsInfo data)
         {
-            var api = MPlusApi.ThrowIfNull();
+            return await input.If(
+                async files =>
+                {
+                    var file = files.First();
+                    var query = Api.ToGetContent(Api.AddSessionId(MPlusApi.SessionId, ("taskid", MPlusApi.TaskId)));
 
-            var parameters = Api.AddSessionId(api.SessionId,
-                ("taskid", api.TaskId),
-                ("title", input.Title),
-                ("keywords", JsonConvert.SerializeObject(input.Keywords))
+                    using var stream = File.OpenRead(file.Path);
+                    using var content = new MultipartFormDataContent() { { new StreamContent(stream), "img", file.Format.ToMime() } };
+
+                    return await MPlusApi.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/generatetkd?{query}", "value", "generating tkd using gcloud vision + openai", content)
+                        .ThrowIfError();
+                },
+                async tk =>
+                {
+                    var parameters = Api.AddSessionId(MPlusApi.SessionId, ("taskid", MPlusApi.TaskId), ("title", tk.Title), ("keywords", JsonConvert.SerializeObject(tk.Keywords)));
+                    return await MPlusApi.Api.ApiPost<TitleKeywordsOutput>("https://t.microstock.plus:7899/openai/generatebettertk", "value", "generating better tk using openai", parameters)
+                        .ThrowIfError();
+                }
             );
-
-            return await api.Api.ApiPost<TitleKeywords>("https://t.microstock.plus:7899/openai/generatetitlekeywords", "value", "getting better title&kws using openai", parameters)
-                .ThrowIfError();
         }
     }
 }

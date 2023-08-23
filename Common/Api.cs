@@ -162,8 +162,8 @@ public record Api(HttpClient Client)
         return OperationResult.Err(retmsg) with { HttpData = new(response, errcode) };
     }
 
-    static HttpContent ToContent((string, string)[] values) => new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
-    static string ToGetContent((string, string)[] values) => string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
+    public static HttpContent ToContent((string, string)[] values) => new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
+    public static string ToGetContent((string, string)[] values) => string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
 
     public async Task<HttpResponseMessage> JustPost(string url, (string, string)[] values)
     {
