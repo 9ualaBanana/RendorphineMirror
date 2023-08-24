@@ -5,7 +5,7 @@ public class NodeTaskRegistration
     public required ILifetimeScope ComponentContext { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }
     public required IPlacedTasksStorage PlacedTasks { get; init; }
-    public required TaskHandler TaskHandler { get; init; }
+    public required PlacedTasksHandler TaskHandler { get; init; }
     public required ILogger<NodeTaskRegistration> Logger { get; init; }
 
     public ValueTask<OperationResult<string>> RegisterAsync(TaskCreationInfo info, CancellationToken token = default) =>

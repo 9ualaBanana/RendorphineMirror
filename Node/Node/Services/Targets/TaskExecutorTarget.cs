@@ -8,7 +8,11 @@ public class TaskExecutorTarget : IServiceTarget
 
     public static void CreateRegistrations(ContainerBuilder builder)
     {
-        builder.RegisterType<TaskHandler>()
+        builder.RegisterType<PlacedTasksHandler>()
+            .SingleInstance();
+        builder.RegisterType<ReceivedTasksHandler>()
+            .SingleInstance();
+        builder.RegisterType<WatchingTasksHandler>()
             .SingleInstance();
 
         IOList.RegisterAll(builder);
@@ -35,7 +39,9 @@ public class TaskExecutorTarget : IServiceTarget
         }
     }
 
-    public required TaskHandler TaskHandler { get; init; }
+    public required PlacedTasksHandler PlacedTasksHandler { get; init; }
+    public required ReceivedTasksHandler ReceivedTasksHandler { get; init; }
+    public required WatchingTasksHandler WatchingTasksHandler { get; init; }
 
     public required ICompletedTasksStorage CompletedTasks { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }
@@ -45,10 +51,10 @@ public class TaskExecutorTarget : IServiceTarget
 
     public async Task ExecuteAsync()
     {
-        TaskHandler.InitializePlacedTasksAsync().Consume();
-        TaskHandler.StartUpdatingPlacedTasks();
-        TaskHandler.StartWatchingTasks();
-        TaskHandler.StartListening();
+        PlacedTasksHandler.InitializePlacedTasksAsync().Consume();
+        PlacedTasksHandler.StartUpdatingPlacedTasks();
+        WatchingTasksHandler.StartWatchingTasks();
+        ReceivedTasksHandler.StartListening();
 
         Logger.Info($"""
             Tasks found

@@ -8,7 +8,7 @@ public class TaskListener : ExecutableListenerBase
     protected override bool RequiresAuthentication => true;
     protected override string? Prefix => "tasks";
 
-    public required TaskHandler TaskHandler { get; init; }
+    public required WatchingTasksHandler WatchingTasksHandler { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }
     public required NodeTaskRegistration TaskRegistration { get; init; }
 
@@ -59,7 +59,7 @@ public class TaskListener : ExecutableListenerBase
 
             var wt = new WatchingTask(task.Action, task.Data, input, output, task.Policy) { SoftwareRequirements = task.SoftwareRequirements };
             WatchingTasks.WatchingTasks.Add(wt);
-            TaskHandler.StartWatchingTask(wt);
+            WatchingTasksHandler.StartWatchingTask(wt);
 
             return await WriteJson(response, wt.Id.AsOpResult()).ConfigureAwait(false);
         }
