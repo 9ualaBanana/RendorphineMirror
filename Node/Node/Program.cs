@@ -1,4 +1,5 @@
 global using System.Collections.Immutable;
+global using System.Runtime.Versioning;
 global using Autofac;
 global using Autofac.Core;
 global using Autofac.Features.Indexed;

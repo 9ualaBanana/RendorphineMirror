@@ -286,7 +286,6 @@ public static class ApiExtensions
                         {
                             // TODO: log instead of throw
                             throw new Exception($"Unknown plugin type {type}");
-                            continue;
                         }
 
                         result.Add(plugintype, versions.Keys.ToHashSet());

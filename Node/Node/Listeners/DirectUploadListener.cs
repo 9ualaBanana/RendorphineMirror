@@ -20,7 +20,7 @@ public class DirectUploadListener : MultipartListenerBase
         }
     }
 
-    static Dictionary<string, FileList> TasksToReceive = new();
+    static readonly Dictionary<string, FileList> TasksToReceive = new();
 
     protected override ListenTypes ListenType => ListenTypes.Public;
     protected override string? Prefix => "rphtaskexec/uploadinput";
@@ -41,7 +41,7 @@ public class DirectUploadListener : MultipartListenerBase
 
             ttoken.ThrowIfCancellationRequested();
             ttoken.ThrowIfStuck($"Did not receive input files");
-            await Task.Delay(2000);
+            await Task.Delay(2000, token);
         }
 
         return filelist.Files;

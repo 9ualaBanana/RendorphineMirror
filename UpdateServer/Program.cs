@@ -181,7 +181,7 @@ async ValueTask WaitWhileUpdating()
 }
 void LogRequest(HttpRequest request)
 {
-    logger.Info(@$"{Pad(22, request.HttpContext.Connection.RemoteIpAddress).Substring("::ffff:".Length)}:{Pad(5, request.HttpContext.Connection.RemotePort)} {request.Method} {request.Path}{request.QueryString}");
+    logger.Info(@$"{Pad(22, request.HttpContext.Connection.RemoteIpAddress.ThrowIfNull()).Substring("::ffff:".Length)}:{Pad(5, request.HttpContext.Connection.RemotePort)} {request.Method} {request.Path}{request.QueryString}");
 
     static string Pad<T>(int amount, T text) where T : notnull
     {
@@ -228,7 +228,7 @@ async ValueTask Download(string path, string app, HttpRequest request, HttpRespo
     using var zipfile = File.Open(Path.Combine(basedir, actualPath), FileMode.Open, FileAccess.Read, FileShare.Read);
     response.Headers.ContentLength = zipfile.Length;
 
-    await zipfile.CopyToAsync(response.Body).ConfigureAwait(false);
+    await zipfile.CopyToAsync(response.Body, token).ConfigureAwait(false);
 }
 void DoLog(HttpRequest request, HttpResponse response)
 {

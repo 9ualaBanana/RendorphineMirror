@@ -5,7 +5,7 @@ namespace Node.Listeners;
 
 public class DirectDownloadListener : ExecutableListenerBase
 {
-    static Dictionary<string, TaskCompletionSource> TasksToReceive = new();
+    static readonly Dictionary<string, TaskCompletionSource> TasksToReceive = new();
 
     public DirectDownloadListener(ILogger<DirectDownloadListener> logger) : base(logger) { }
 
@@ -26,7 +26,7 @@ public class DirectDownloadListener : ExecutableListenerBase
 
             ttoken.ThrowIfCancellationRequested();
             ttoken.ThrowIfStuck($"Could not upload result");
-            await Task.Delay(2000);
+            await Task.Delay(2000, token);
         }
     }
 

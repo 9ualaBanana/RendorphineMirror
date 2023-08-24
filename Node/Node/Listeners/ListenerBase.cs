@@ -73,7 +73,10 @@ public abstract class ListenerBase : IServiceTarget
         {
             Logger.Error($"Could not start HttpListener: {ex.Message}, bypassing...");
 
+#pragma warning disable CA1416 // WindowsIdentity.GetCurrent() is supported only in windows
             var args = string.Join(';', prefixes.Select(p => $"netsh http add urlacl url={p} user={WindowsIdentity.GetCurrent().Name}"));
+#pragma warning restore CA1416
+
             using (var proc = Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{args}\"") { UseShellExecute = true, Verb = "runas", }).ThrowIfNull("Could not bypass httplistener rights: {0}"))
                 proc.WaitForExit();
 
@@ -361,7 +364,7 @@ public abstract class ListenerBase : IServiceTarget
                 var reader = new MultipartReader(Boundary, stream);
                 var section = null as MultipartSection;
                 for (int j = 0; j < i; j++)
-                    section = await reader.ReadNextSectionAsync();
+                    section = await reader.ReadNextSectionAsync(cancellationToken);
 
                 if (section is null || section.ContentDisposition is null)
                 {

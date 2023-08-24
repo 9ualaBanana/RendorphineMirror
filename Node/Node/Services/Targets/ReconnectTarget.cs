@@ -14,7 +14,7 @@ public class ReconnectTarget : IServiceTarget
         Logger.LogInformation("Reconnecting to M+");
 
         await cancelTransferredTasks();
-        await Api.Api.ApiGet($"{Api.TaskManagerEndpoint}/nodereconnected", "Reconnecting the node", Api.AddSessionId(("guid", Settings.Guid)))
+        await Api.Api.ApiGet($"{Apis.TaskManagerEndpoint}/nodereconnected", "Reconnecting the node", Api.AddSessionId(("guid", Settings.Guid)))
             .ThrowIfError();
 
         Logger.LogInformation("Reconnected");
