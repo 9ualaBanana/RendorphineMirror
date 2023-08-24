@@ -14,6 +14,7 @@ public enum PluginType
     Esrgan,
     RobustVideoMatting,
     StableDiffusion,
+    Yolov7,
 
     NvidiaDriver,
     Conda,
