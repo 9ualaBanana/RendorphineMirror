@@ -1,4 +1,5 @@
 global using Autofac;
+global using Autofac.Core;
 global using Microsoft.Extensions.Logging;
 global using Node.Common;
 global using Node.Common.Models;

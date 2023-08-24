@@ -11,6 +11,10 @@ public static class ContainerExtensions
     public static ILogger ResolveLogger(this IComponentContext container, Type type) =>
         (ILogger) container.Resolve(typeof(ILogger<>).MakeGenericType(type));
 
+    public static ILifetimeScope ResolveForeign<T>(this ILifetimeScope container, out T obj)
+        where T : notnull =>
+        container.ResolveForeign<T>(typeof(T), out obj);
+
     public static ILifetimeScope ResolveForeign<T>(this ILifetimeScope container, Type type, out T obj)
         where T : notnull
     {
