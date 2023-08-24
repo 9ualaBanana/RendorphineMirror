@@ -1,3 +1,5 @@
+using Autofac.Core;
+
 namespace Node.Tasks.Exec;
 
 public class TaskExecutorByData
@@ -16,6 +18,10 @@ public class TaskExecutorByData
             using var scope = LifetimeScope.BeginLifetimeScope(builder =>
             {
                 builder.RegisterDecorator<ITaskProgressSetter>((ctx, parameters, instance) => new ProgressSetterSubtaskOverlay(index, datas.Count, instance));
+
+                builder.Register(ctx => ctx.Resolve<ITaskProgressSetter>())
+                    .As<IProgressSetter>()
+                    .SingleInstance();
             });
 
             var inputs = results.SelectMany(result => result switch
@@ -40,11 +46,18 @@ public class TaskExecutorByData
     }
     async Task<object> ExecuteSingle(ILifetimeScope container, object input, JObject data, string? loginfo = null)
     {
+        using var scope = container.BeginLifetimeScope(builder =>
+        {
+            builder.Register(ctx => ctx.Resolve<ITaskProgressSetter>())
+                .As<IProgressSetter>()
+                .SingleInstance();
+        });
+
         var tasktype = GetTaskName(data);
         using var _ = Logger.BeginScope($"{tasktype}{(loginfo is null ? null : $" {loginfo}")}");
 
-        var info = container.ResolveKeyed<IPluginActionInfo>(tasktype);
-        return await info.Execute(container, input, data);
+        var info = scope.ResolveKeyed<IPluginActionInfo>(tasktype);
+        return await info.Execute(scope, input, data);
     }
 
     public static TaskAction GetTaskName(JObject data)

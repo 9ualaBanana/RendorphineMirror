@@ -16,8 +16,11 @@ public class GenerateImageByPrompt : FilePluginActionInfo<GenerateImageByPromptI
 
     class Executor : ExecutorBase
     {
+        public required ILifetimeScope Container { get; init; }
+
         public override async Task<TaskFileOutput> ExecuteUnchecked(TaskFileInput input, GenerateImageByPromptInfo data)
         {
+            using var ctx = Container.ResolveForeign<StableDiffusionLauncher>(out var launcher);
             var inputfile = input.FirstOrDefault();
 
             var launchinfo = new StableDiffusionLaunchInfo()
@@ -33,8 +36,8 @@ public class GenerateImageByPrompt : FilePluginActionInfo<GenerateImageByPromptI
             var outfiles = output.Files.New();
 
             if (inputfile is not null)
-                await StableDiffusionLauncher.LaunchImg2ImgAsync(launchinfo, inputfile.Path, outfiles, PluginList, ProgressSetter, Logger);
-            else await StableDiffusionLauncher.LaunchTxt2ImgAsync(launchinfo, outfiles, PluginList, ProgressSetter, Logger);
+                await launcher.LaunchImg2ImgAsync(launchinfo, inputfile.Path, outfiles);
+            else await launcher.LaunchTxt2ImgAsync(launchinfo, outfiles);
 
             return output;
         }
