@@ -9,6 +9,7 @@
     <PackageReference Include="Direx" Version="0.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+    <PackageReference Include="Tomlyn" Version="0.16.2" />
   </ItemGroup>
 
   <ItemGroup>

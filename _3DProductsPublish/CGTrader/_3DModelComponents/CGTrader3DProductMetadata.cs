@@ -3,7 +3,7 @@ using _3DProductsPublish._3DProductDS;
 
 namespace _3DProductsPublish.CGTrader._3DModelComponents;
 
-public record CGTrader3DProductMetadata : _3DModelMetadata
+public record CGTrader3DProductMetadata : _3DProductMetadata
 {
     const double DefaultPrice = 2.0;
 

@@ -1,9 +1,4 @@
-﻿using _3DProductsPublish.CGTrader._3DModelComponents;
-using _3DProductsPublish.CGTrader.Upload;
-using _3DProductsPublish.Turbosquid.Upload;
-using System.Net;
-
-namespace _3DProductsPublish._3DProductDS;
+﻿namespace _3DProductsPublish._3DProductDS;
 
 public record _3DProduct : IDisposable
 {
@@ -13,18 +8,18 @@ public record _3DProduct : IDisposable
     public readonly string ContainerPath;
     public IEnumerable<_3DModel> _3DModels { get; }
     public IEnumerable<_3DProductThumbnail> Thumbnails { get; }
-    public _3DModelMetadata Metadata { get; }
+    public _3DProductMetadata Metadata { get; }
 
     #region Initialization
 
-    public static _3DProduct FromDirectory(string directoryPath, _3DModelMetadata metadata) => new(
+    public static _3DProduct FromDirectory(string directoryPath, _3DProductMetadata metadata) => new(
         directoryPath,
         _3DModel.EnumerateIn(directoryPath)
             .Select(_3DModelContainer => _3DModel.FromContainer(_3DModelContainer.OriginalPath)),
         _3DProductThumbnail.EnumerateIn(directoryPath),
         metadata);
 
-    _3DProduct(string containerPath, IEnumerable<_3DModel> _3DModels, IEnumerable<_3DProductThumbnail> thumbnails, _3DModelMetadata metadata)
+    _3DProduct(string containerPath, IEnumerable<_3DModel> _3DModels, IEnumerable<_3DProductThumbnail> thumbnails, _3DProductMetadata metadata)
     {
         ContainerPath = containerPath;
         this._3DModels = _3DModels;

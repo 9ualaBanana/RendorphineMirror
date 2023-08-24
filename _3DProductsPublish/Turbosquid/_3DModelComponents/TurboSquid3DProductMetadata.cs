@@ -2,7 +2,7 @@
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
-public record TurboSquid3DProductMetadata : _3DModelMetadata
+public record TurboSquid3DProductMetadata : _3DProductMetadata
 {
     public required string Title { get; init; }
     public required string Description { get; init; }
@@ -20,59 +20,63 @@ public record TurboSquid3DProductMetadata : _3DModelMetadata
         }
     }
     string[] _tags = null!;
-    public required int Price { get; init; }
+    public required double Price { get; init; }
     public required TurboSquidLicense License { get; init; }
-    public bool Animated { get; } = false;
-    public bool Rigged { get; } = false;
-    public Geometry? Geometry { get; } = default;   // sent as 0 in JSON
+    public Geometry? Geometry { get; } = default;
     public required int Polygons
     {
         get => _polygons;
-        init => _polygons = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(Polygons), "Should be greater than 0");
+        init => _polygons = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(Polygons), "Must be greater than 0");
     }
     int _polygons;
     public required int Vertices
     {
         get => _vertices;
-        init => _vertices = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(Vertices), "Should be greater than 0");
+        init => _vertices = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(Vertices), "Must be greater than 0");
     }
     int _vertices;
+    public bool Animated { get; } = false;
+    public bool Rigged { get; } = false;
     public bool Textures { get; } = false;
     public bool Materials { get; } = false;
     public bool UVMapped { get; } = false;
-    public UnwrappedUVs? UnwrappedUVs { get; } = default;   // sent as 0 in JSON
+    public UnwrappedUVs? UnwrappedUVs { get; } = default;
 
     public JObject ToProductForm(string draftId)
-        => JObject.FromObject(new
+    {
+        var productForm = JObject.FromObject(new
         {
-            alpha_channel = false.ToString(),
+            alpha_channel = false,
             animated = Animated,
-            biped = false.ToString(),
+            biped = false,
             certifications = Array.Empty<string>(),
             color_depth = 0,
             description = Description,
             display_tags = string.Join(' ', Tags),
             draft_id = draftId,
             frame_rate = 0,
-            geometry = Geometry ?? 0,
             height = (string?)null,
             length = (string?)null,
             license = License.ToString(),
-            loopable = false.ToString(),
-            materials = Materials.ToString(),
-            multiple_layers = false.ToString(),
+            loopable = false,
+            materials = Materials,
+            multiple_layers = false,
             name = Title,
-            polygons = Polygons,
-            price = Price,
-            rigged = Rigged.ToString(),
+            polygons = Polygons.ToString(),
+            price = Price.ToString("0.00"),
+            rigged = Rigged,
             status = "draft",
-            textures = Textures.ToString(),
-            tileable = false.ToString(),
-            unwrapped_u_vs = UnwrappedUVs?.ToString() ?? "0",
-            uv_mapped = UVMapped.ToString(),
-            vertices = Vertices,
+            textures = Textures,
+            tileable = false,
+            uv_mapped = UVMapped,
+            vertices = Vertices.ToString(),
             width = (string?)null
         });
+        productForm.Add("geometry", Geometry is not null ? new JValue(Geometry.ToString()) : new JValue(0));
+        productForm.Add("unwrapped_u_vs", UnwrappedUVs is not null ? new JValue(UnwrappedUVs.ToString()) : new JValue(0));
+
+        return productForm;
+    }
 }
 
 public enum TurboSquidLicense

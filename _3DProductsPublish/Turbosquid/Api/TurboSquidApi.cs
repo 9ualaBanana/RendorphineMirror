@@ -147,7 +147,7 @@ internal class TurboSquidApi
         TurboSquidUploaded3DProductAssets uploadedAssets,
         CancellationToken cancellationToken)
     {
-        var api = new TurboSquidMetadataUploadApi(productUploadSessionContext);
+        var api = new TurboSquidMetadataUploadApi(_httpClient, productUploadSessionContext);
         await api.UploadAsync(uploadedAssets, cancellationToken);
     }
 }
