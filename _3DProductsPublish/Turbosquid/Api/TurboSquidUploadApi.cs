@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.Turbosquid._3DModelComponents;
+﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 using _3DProductsPublish.Turbosquid.Upload.Requests;
@@ -19,17 +18,16 @@ internal class TurboSquidUploadApi
         _uploadSessionContext = uploadSessionContext;
     }
 
-    internal async Task<TurboSquidUploaded3DProductAssets>
-        UploadAssetsAsync(CancellationToken cancellationToken)
+    internal async Task<TurboSquidUploaded3DProductAssets>UploadAssetsAsync(CancellationToken cancellationToken)
     {
         var uploadedModels = await UploadModelsAsync().ToListAsync(cancellationToken);
         var uploadedThumbnails = await UploadThumbnailsAsync().ToListAsync(cancellationToken);
         return new(uploadedModels, uploadedThumbnails);
 
 
-        async IAsyncEnumerable<ITurboSquidProcessed3DProductAsset<_3DModel>> UploadModelsAsync()
+        async IAsyncEnumerable<ITurboSquidProcessed3DProductAsset<TurboSquid3DModel>> UploadModelsAsync()
         {
-            var modelsUpload = _uploadSessionContext.ProductDraft._Product._3DModels
+            var modelsUpload = _uploadSessionContext.Metadata.Models
                 .Select(async _3DModel =>
                 {
                     var archived3DModelPath = await _3DModel.ArchiveAsync(cancellationToken);

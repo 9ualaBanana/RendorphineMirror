@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.Turbosquid._3DModelComponents;
+﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
@@ -16,10 +15,23 @@ static class TurboSquidProcessed3DProductAssetFactory
         where TAsset : I3DProductAsset
         => asset switch
         {
-            _3DModel _3DModel => (new TurboSquidProcessed3DModel(_3DModel, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
+            TurboSquid3DModel _3DModel => (new TurboSquidProcessed3DModel(_3DModel, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
             TurboSquid3DProductThumbnail thumbnail => (new TurboSquidProcessed3DProductThumbnail(thumbnail, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
             _ => throw new ArgumentException("Unsupported asset type.")
         };
+}
+
+internal class TurboSquidProcessed3DModel
+    : TurboSquid3DModel, ITurboSquidProcessed3DProductAsset<TurboSquid3DModel>
+{
+    public string FileId { get; }
+    public TurboSquid3DModel Asset => this;
+
+    internal TurboSquidProcessed3DModel(TurboSquid3DModel _3DModel, string fileId)
+        : base(_3DModel)
+    {
+        FileId = fileId;
+    }
 }
 
 internal record TurboSquidProcessed3DProductThumbnail
@@ -35,15 +47,15 @@ internal record TurboSquidProcessed3DProductThumbnail
     }
 }
 
-internal class TurboSquidProcessed3DModel
-    : _3DModel, ITurboSquidProcessed3DProductAsset<_3DModel>
+static class TurboSquidProcessed3DProductThumbnailExtensions
 {
-    public string FileId { get; }
-    public _3DModel Asset => this;
-
-    internal TurboSquidProcessed3DModel(_3DModel _3DModel, string fileId)
-        : base(_3DModel)
+    internal static ProcessedThumbnailType Type(this ITurboSquidProcessed3DProductAsset<TurboSquid3DProductThumbnail> processedThumbnail)
+        => processedThumbnail.Asset.Type switch
     {
-        FileId = fileId;
-    }
+        ThumbnailType.regular => ProcessedThumbnailType.image,
+        ThumbnailType.wireframe => ProcessedThumbnailType.wireframe,
+        _ => throw new NotImplementedException()
+    };
 }
+
+enum ProcessedThumbnailType { image, wireframe }

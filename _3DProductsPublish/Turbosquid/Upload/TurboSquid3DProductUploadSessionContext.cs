@@ -1,10 +1,12 @@
 ﻿using _3DProductsPublish.CGTrader.Upload;
+using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
 internal record TurboSquid3DProductUploadSessionContext(
     _3DProductDraft ProductDraft,
+    TurboSquid3DProductMetadata Metadata,
     TurboSquidNetworkCredential Credential,
     TurboSquidAwsUploadCredentials AwsUploadCredentials)
 {

@@ -1,9 +1,12 @@
 ﻿using _3DProductsPublish._3DProductDS;
+using Tomlyn;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
 public record TurboSquid3DProductMetadata : _3DProductMetadata
 {
+    internal const string FileName = "turbosquid.meta";
+
     public required string Title { get; init; }
     public required string Description { get; init; }
     public required string[] Tags
@@ -41,6 +44,22 @@ public record TurboSquid3DProductMetadata : _3DProductMetadata
     public bool Materials { get; } = false;
     public bool UVMapped { get; } = false;
     public UnwrappedUVs? UnwrappedUVs { get; } = default;
+    internal IEnumerable<TurboSquid3DModel> Models { get; private set; }
+
+    internal static TurboSquid3DProductMetadata For(_3DProduct _3DProduct)
+    {
+        var metadataFilePath = Path.Combine(_3DProduct.ContainerPath, TurboSquid3DProductMetadata.FileName);
+        var modelsMetadata = Toml.Parse(File.ReadAllText(metadataFilePath))
+            .Tables
+            .Select(TurboSquid3DModel.Metadata.Read)
+            .Zip(_3DProduct._3DModels)
+            .Select(_ => new TurboSquid3DModel(_.Second, _.First));
+
+        if (modelsMetadata.Count() == _3DProduct._3DModels.Count())
+            // TODO: Fix the hack
+            return (_3DProduct.Metadata as TurboSquid3DProductMetadata)! with { Models = modelsMetadata };
+        else throw new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({metadataFilePath}).");
+    }
 
     public JObject ToProductForm(string draftId)
     {

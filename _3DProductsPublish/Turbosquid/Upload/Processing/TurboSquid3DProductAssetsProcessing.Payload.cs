@@ -14,15 +14,19 @@ internal partial class TurboSquid3DProductAssetsProcessing
         readonly long size;
         readonly string authenticity_token;
 
-        internal static Payload For(FileStream archived3DModel, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext, string fileFormat, string formatVersion, string renderer, string? rendererVersion, bool isNative)
-            => For(archived3DModel, uploadKey, uploadSessionContext.ProductDraft._ID, uploadSessionContext.Credential._CsrfToken, fileFormat, formatVersion, renderer, rendererVersion, isNative);
-        internal static Payload For(FileStream archived3DModel, string uploadKey, string draftId, string authenticityToken, string fileFormat, string formatVersion, string renderer, string? rendererVersion, bool isNative)
-            => new _3DModel(uploadKey, draftId, archived3DModel.Name, archived3DModel.Length, authenticityToken, fileFormat, formatVersion, renderer, rendererVersion, isNative);
+        internal static async Task<Payload> For(TurboSquid3DModel _3DModel, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext, CancellationToken cancellationToken)
+            => await For(_3DModel, uploadKey, uploadSessionContext.ProductDraft._ID, uploadSessionContext.Credential._CsrfToken, cancellationToken);
+        internal static async Task<Payload> For(TurboSquid3DModel _3DModel, string uploadKey, string draftId, string authenticityToken, CancellationToken cancellationToken)
+        {
+            using var archived3DModel = File.OpenRead(await _3DModel.ArchiveAsync(cancellationToken));
+            return new Payload._3DModel(uploadKey, draftId, archived3DModel.Name, archived3DModel.Length, authenticityToken,
+                _3DModel.Metadata_.FileFormat, _3DModel.Metadata_.FormatVersion, _3DModel.Metadata_.Renderer, _3DModel.Metadata_.RendererVersion, _3DModel.Metadata_.IsNative);
+        }
 
         internal static Payload For(TurboSquid3DProductThumbnail thumbnail, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext)
             => For(thumbnail, uploadKey, uploadSessionContext.ProductDraft._ID, uploadSessionContext.Credential._CsrfToken);
         internal static Payload For(TurboSquid3DProductThumbnail thumbnail, string uploadKey, string draftId, string authenticityToken)
-            => new Thumbnail(uploadKey, draftId, thumbnail.FileName, thumbnail.Size, thumbnail.Type.ToString(), authenticityToken);
+            => new Payload.Thumbnail(uploadKey, draftId, thumbnail.FileName, thumbnail.Size, thumbnail.Type.ToString(), authenticityToken);
 
         internal Payload(
             string uploadKey,
@@ -54,7 +58,7 @@ internal partial class TurboSquid3DProductAssetsProcessing
         {
             readonly string file_format;
             readonly string format_version;
-            readonly string renderer;
+            readonly string? renderer;
             readonly string? renderer_version;
             readonly bool is_native;
 
@@ -65,16 +69,16 @@ internal partial class TurboSquid3DProductAssetsProcessing
                 long size,
                 string authenticityToken,
                 string fileFormat,
-                string formatVersion,
-                string renderer,
-                string? rendererVersion,
+                double formatVersion,
+                string? renderer,
+                double? rendererVersion,
                 bool isNative)
                 : base(uploadKey, "product_files", draftId, name, size, authenticityToken)
             {
                 file_format = fileFormat;
-                format_version = formatVersion;
+                format_version = formatVersion.ToString();
                 this.renderer = renderer;
-                renderer_version = rendererVersion;
+                renderer_version = rendererVersion?.ToString();
                 is_native = isNative;
             }
 
