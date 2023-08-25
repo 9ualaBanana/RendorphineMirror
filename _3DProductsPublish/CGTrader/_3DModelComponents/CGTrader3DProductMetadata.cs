@@ -1,9 +1,8 @@
 ﻿using System.Net.Http.Json;
-using _3DProductsPublish._3DProductDS;
 
 namespace _3DProductsPublish.CGTrader._3DModelComponents;
 
-public record CGTrader3DProductMetadata : _3DProductMetadata
+public record CGTrader3DProductMetadata
 {
     const double DefaultPrice = 2.0;
 
@@ -224,7 +223,7 @@ public record CGTrader3DProductMetadata : _3DProductMetadata
                     embed_ids = string.Empty,
                     free = Free.ToString(),
                     game_ready = GameReady.ToString(),
-                    geometry_type = Info?.GeometryType?.ToString() ?? null,
+                    geometry_type = Info?.Geometry?.ToString() ?? null,
                     image_ids = UploadedPreviewImagesIDs,
                     license = License.ToString(),
                     materials = Info?.Materials.ToString() ?? false.ToString(),

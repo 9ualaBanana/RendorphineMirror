@@ -1,4 +1,5 @@
-﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
+﻿using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 using Microsoft.Net.Http.Headers;
@@ -31,7 +32,7 @@ internal class TurboSquidPublishApi
                 cancellationToken);
 
 
-        StringContent MetadataFormFor(ITurboSquidProcessed3DProductAsset<TurboSquid3DModel> processedThumbnail)
+        StringContent MetadataFormFor(ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>> processedThumbnail)
         {
             using var archived3DModel = File.OpenRead(processedThumbnail.Asset.ArchiveAsync(CancellationToken.None).Result);
             // Explicit conversions of numbers to strings are required.
@@ -91,4 +92,3 @@ internal class TurboSquidPublishApi
             ).ToJsonContent();
         }
     }
-}

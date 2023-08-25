@@ -1,4 +1,5 @@
-﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
+﻿using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.Turbosquid._3DModelComponents;
 using System.Net.Http.Json;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Processing;
@@ -14,9 +15,9 @@ internal partial class TurboSquid3DProductAssetsProcessing
         readonly long size;
         readonly string authenticity_token;
 
-        internal static async Task<Payload> For(TurboSquid3DModel _3DModel, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext, CancellationToken cancellationToken)
+        internal static async Task<Payload> For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext, CancellationToken cancellationToken)
             => await For(_3DModel, uploadKey, uploadSessionContext.ProductDraft._ID, uploadSessionContext.Credential._CsrfToken, cancellationToken);
-        internal static async Task<Payload> For(TurboSquid3DModel _3DModel, string uploadKey, string draftId, string authenticityToken, CancellationToken cancellationToken)
+        internal static async Task<Payload> For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, string draftId, string authenticityToken, CancellationToken cancellationToken)
         {
             using var archived3DModel = File.OpenRead(await _3DModel.ArchiveAsync(cancellationToken));
             return new Payload._3DModel(uploadKey, draftId, archived3DModel.Name, archived3DModel.Length, authenticityToken,

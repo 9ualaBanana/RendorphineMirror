@@ -1,4 +1,5 @@
-﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
+﻿using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Api;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
@@ -18,7 +19,7 @@ internal partial class TurboSquid3DProductAssetsProcessing
         _uploadSessionContext = uploadSessionContext;
     }
 
-    internal async Task<Task_<TurboSquid3DModel>> RunAsyncOn(TurboSquid3DModel _3DModel, string assetUploadKey, CancellationToken cancellationToken)
+    internal async Task<Task_<_3DModel<TurboSquid3DModelMetadata>>> RunAsyncOn(_3DModel<TurboSquid3DModelMetadata> _3DModel, string assetUploadKey, CancellationToken cancellationToken)
     {
         var processingPayload = await Payload.For(_3DModel, assetUploadKey, _uploadSessionContext, cancellationToken);
 

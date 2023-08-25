@@ -1,4 +1,5 @@
-﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
+﻿using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.Turbosquid._3DModelComponents;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
@@ -15,19 +16,19 @@ static class TurboSquidProcessed3DProductAssetFactory
         where TAsset : I3DProductAsset
         => asset switch
         {
-            TurboSquid3DModel _3DModel => (new TurboSquidProcessed3DModel(_3DModel, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
+            _3DModel<TurboSquid3DModelMetadata> _3DModel => (new TurboSquidProcessed3DModel(_3DModel, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
             TurboSquid3DProductThumbnail thumbnail => (new TurboSquidProcessed3DProductThumbnail(thumbnail, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
             _ => throw new ArgumentException("Unsupported asset type.")
         };
 }
 
 internal class TurboSquidProcessed3DModel
-    : TurboSquid3DModel, ITurboSquidProcessed3DProductAsset<TurboSquid3DModel>
+    : _3DModel<TurboSquid3DModelMetadata>, ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>>
 {
     public string FileId { get; }
-    public TurboSquid3DModel Asset => this;
+    public _3DModel<TurboSquid3DModelMetadata> Asset => this;
 
-    internal TurboSquidProcessed3DModel(TurboSquid3DModel _3DModel, string fileId)
+    internal TurboSquidProcessed3DModel(_3DModel<TurboSquid3DModelMetadata> _3DModel, string fileId)
         : base(_3DModel)
     {
         FileId = fileId;

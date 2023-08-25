@@ -128,3 +128,20 @@ public partial class _3DModel : I3DProductAsset, IDisposable
         readonly static string[] _validExtensions = { ".zip", ".rar" };
     }
 }
+
+internal partial class _3DModel<TMetadata> : _3DModel
+{
+    internal readonly TMetadata Metadata_;
+
+    internal _3DModel(_3DModel _3DModel, TMetadata metadata)
+        : base(_3DModel)
+    {
+        Metadata_ = metadata;
+    }
+
+    protected _3DModel(_3DModel<TMetadata> _3DModel)
+        : base(_3DModel)
+    {
+        Metadata_ = _3DModel.Metadata_;
+    }
+}

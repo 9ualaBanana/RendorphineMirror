@@ -4,7 +4,7 @@ using _3DProductsPublish.Turbosquid._3DModelComponents;
 
 namespace _3DProductsPublish.CGTrader.Upload;
 
-internal record _3DProductDraft(_3DProduct _Product, string _ID)
+internal record _3DProductDraft<TMetadata>(_3DProduct<TMetadata> _Product, string _ID)
 {
     internal IEnumerable<T> UpcastThumbnailsTo<T>() where T : _3DProductThumbnail
     {

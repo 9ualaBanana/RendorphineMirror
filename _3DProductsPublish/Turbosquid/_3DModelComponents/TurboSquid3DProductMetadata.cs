@@ -3,7 +3,7 @@ using Tomlyn;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
-public record TurboSquid3DProductMetadata : _3DProductMetadata
+public record TurboSquid3DProductMetadata
 {
     internal const string FileName = "turbosquid.meta";
 
@@ -24,8 +24,8 @@ public record TurboSquid3DProductMetadata : _3DProductMetadata
     }
     string[] _tags = null!;
     public required double Price { get; init; }
-    public required TurboSquidLicense License { get; init; }
-    public Geometry? Geometry { get; } = default;
+    public required License_ License { get; init; }
+    public Geometry_? Geometry { get; init; } = default;
     public required int Polygons
     {
         get => _polygons;
@@ -38,28 +38,20 @@ public record TurboSquid3DProductMetadata : _3DProductMetadata
         init => _vertices = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(Vertices), "Must be greater than 0");
     }
     int _vertices;
-    public bool Animated { get; } = false;
-    public bool Rigged { get; } = false;
-    public bool Textures { get; } = false;
-    public bool Materials { get; } = false;
-    public bool UVMapped { get; } = false;
-    public UnwrappedUVs? UnwrappedUVs { get; } = default;
-    internal IEnumerable<TurboSquid3DModel> Models { get; private set; }
+    public bool Animated { get; init; } = false;
+    public bool Rigged { get; init; } = false;
+    public bool Textures { get; init; } = false;
+    public bool Materials { get; init; } = false;
+    public bool UVMapped { get; init; } = false;
+    public UnwrappedUVs_? UnwrappedUVs { get; init; } = default;
+    internal IEnumerable<_3DModel<TurboSquid3DModelMetadata>> Models { get; }
 
-    internal static TurboSquid3DProductMetadata For(_3DProduct _3DProduct)
+
+    internal TurboSquid3DProductMetadata(IEnumerable<_3DModel<TurboSquid3DModelMetadata>> models)
     {
-        var metadataFilePath = Path.Combine(_3DProduct.ContainerPath, TurboSquid3DProductMetadata.FileName);
-        var modelsMetadata = Toml.Parse(File.ReadAllText(metadataFilePath))
-            .Tables
-            .Select(TurboSquid3DModel.Metadata.Read)
-            .Zip(_3DProduct._3DModels)
-            .Select(_ => new TurboSquid3DModel(_.Second, _.First));
-
-        if (modelsMetadata.Count() == _3DProduct._3DModels.Count())
-            // TODO: Fix the hack
-            return (_3DProduct.Metadata as TurboSquid3DProductMetadata)! with { Models = modelsMetadata };
-        else throw new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({metadataFilePath}).");
+        Models = models;
     }
+
 
     public JObject ToProductForm(string draftId)
     {
@@ -96,31 +88,97 @@ public record TurboSquid3DProductMetadata : _3DProductMetadata
 
         return productForm;
     }
+
+
+    public enum License_
+    {
+        royalty_free_all_extended_uses,
+        royalty_free_editorial_uses_only
+    }
+
+    public enum Geometry_
+    {
+        polygonal_quads_only,
+        polygonal_quads_tris,
+        polygonal_tris_only,
+        polygonal_ngons_used,
+        polygonal,
+        subdivision,
+        nurbs,
+        unknown
+    }
+
+    public enum UnwrappedUVs_
+    {
+        yes_non_overlapping,
+        yes_overlapping,
+        mixed,
+        no,
+        unknown
+    }
 }
 
-public enum TurboSquidLicense
+static class TurboSquid3DProductMetadataExtensions
 {
-    royalty_free_all_extended_uses,
-    royalty_free_editorial_uses_only
-}
+    internal static TurboSquid3DProductMetadata NecessaryFor(this _3DProduct.Metadata_ _, _3DProduct product)
+    {
+        var metadataFilePath = Path.Combine(product.ContainerPath, TurboSquid3DProductMetadata.FileName);
+        var modelsMetadata = Toml.Parse(File.ReadAllText(metadataFilePath))
+            .Tables
+            .Select(TurboSquid3DModelMetadata.Read)
+            .Zip(product._3DModels)
+            .Select(_ => new _3DModel<TurboSquid3DModelMetadata>(_.Second, _.First));
 
-public enum Geometry
-{
-    polygonal_quads_only,
-    polygonal_quads_tris,
-    polygonal_tris_only,
-    polygonal_ngons_used,
-    polygonal,
-    subdivision,
-    nurbs,
-    unknown
-}
+        if (modelsMetadata.Count() == product._3DModels.Count())
+            return new(modelsMetadata)
+            {
+                Title = _.Title,
+                Description = _.Description,
+                Tags = _.Tags,
+                Price = _.Price,
+                License = License(),
+                Geometry = Geometry(),
+                Polygons = _.Polygons,
+                Vertices = _.Vertices,
+                Animated = _.Animated,
+                Rigged = _.Rigged,
+                Textures = _.Textures,
+                Materials = _.Materials,
+                UVMapped = _.UVMapped,
+                UnwrappedUVs = UnwrappedUVs(),
+            };
+        else throw new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({metadataFilePath}).");
 
-public enum UnwrappedUVs
-{
-    yes_non_overlapping,
-    yes_overlapping,
-    mixed,
-    no,
-    unknown
+
+
+        TurboSquid3DProductMetadata.License_ License() => _.License switch
+        {
+            _3DProduct.Metadata_.License_.RoyaltyFree => TurboSquid3DProductMetadata.License_.royalty_free_all_extended_uses,
+            _3DProduct.Metadata_.License_.Editorial => TurboSquid3DProductMetadata.License_.royalty_free_editorial_uses_only,
+            _ => throw new NotImplementedException()
+        };
+
+        TurboSquid3DProductMetadata.Geometry_ Geometry() => _.Geometry switch
+        {
+            _3DProduct.Metadata_.Geometry_.PolygonalQuadsOnly => TurboSquid3DProductMetadata.Geometry_.polygonal_quads_only,
+            _3DProduct.Metadata_.Geometry_.PolygonalQuadsTris => TurboSquid3DProductMetadata.Geometry_.polygonal_quads_tris,
+            _3DProduct.Metadata_.Geometry_.PolygonalTrisOnly => TurboSquid3DProductMetadata.Geometry_.polygonal_tris_only,
+            _3DProduct.Metadata_.Geometry_.PolygonalNgonsUsed => TurboSquid3DProductMetadata.Geometry_.polygonal_ngons_used,
+            _3DProduct.Metadata_.Geometry_.Polygonal => TurboSquid3DProductMetadata.Geometry_.polygonal,
+            _3DProduct.Metadata_.Geometry_.Subdivision => TurboSquid3DProductMetadata.Geometry_.subdivision,
+            _3DProduct.Metadata_.Geometry_.Nurbs => TurboSquid3DProductMetadata.Geometry_.nurbs,
+            _3DProduct.Metadata_.Geometry_.Unknown => TurboSquid3DProductMetadata.Geometry_.unknown,
+            _ => throw new NotImplementedException()
+        };
+
+        TurboSquid3DProductMetadata.UnwrappedUVs_ UnwrappedUVs() => _.UnwrappedUVs switch
+        {
+            _3DProduct.Metadata_.UnwrappedUVs_.NonOverlapping => TurboSquid3DProductMetadata.UnwrappedUVs_.yes_non_overlapping,
+            _3DProduct.Metadata_.UnwrappedUVs_.Overlapping => TurboSquid3DProductMetadata.UnwrappedUVs_.yes_overlapping,
+            _3DProduct.Metadata_.UnwrappedUVs_.Mixed => TurboSquid3DProductMetadata.UnwrappedUVs_.mixed,
+            _3DProduct.Metadata_.UnwrappedUVs_.No => TurboSquid3DProductMetadata.UnwrappedUVs_.no,
+            _3DProduct.Metadata_.UnwrappedUVs_.Unknown => TurboSquid3DProductMetadata.UnwrappedUVs_.unknown,
+            _ => throw new NotImplementedException()
+        };
+    }
 }

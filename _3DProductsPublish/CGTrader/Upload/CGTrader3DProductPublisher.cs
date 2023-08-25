@@ -1,11 +1,12 @@
 ﻿using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.CGTrader.Api;
 using _3DProductsPublish.CGTrader.Network;
 using System.Net;
 
 namespace _3DProductsPublish.CGTrader.Upload;
 
-internal class CGTrader3DProductPublisher : I3DProductPublisher
+internal class CGTrader3DProductPublisher : I3DProductPublisher<CGTrader3DProductMetadata>
 {
     readonly CGTraderApi _api;
 
@@ -15,7 +16,7 @@ internal class CGTrader3DProductPublisher : I3DProductPublisher
     }
 
     public async Task PublishAsync(
-        _3DProduct _3DModel,
+        _3DProduct<CGTrader3DProductMetadata> _3DModel,
         NetworkCredential credential,
         CancellationToken cancellationToken)
     {
