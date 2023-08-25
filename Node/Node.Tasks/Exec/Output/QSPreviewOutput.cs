@@ -16,7 +16,7 @@ public class QSPreviewOutput : IReadOnlyTaskFileList
 
     public FileWithFormat InitializeImageFooter() => ImageFooter ??= TaskFileList.NewFile(Directory, FileFormat.Jpeg, "pjfooter");
     public FileWithFormat InitializeImageQr() => ImageQr ??= TaskFileList.NewFile(Directory, FileFormat.Jpeg, "pjqr");
-    public FileWithFormat InitializeVideo() => Video ??= TaskFileList.NewFile(Directory, FileFormat.Jpeg, "pm");
+    public FileWithFormat InitializeVideo() => Video ??= TaskFileList.NewFile(Directory, FileFormat.Mov, "pm");
 
     public IEnumerator<FileWithFormat> GetEnumerator()
     {
