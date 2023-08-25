@@ -99,7 +99,7 @@ public class ReceivedTasksHandler
                 });
 
                 var executor = scope.Resolve<TaskExecutor>();
-                await executor.Execute(cancellationToken).ConfigureAwait(false);
+                await executor.Execute(task, cancellationToken).ConfigureAwait(false);
 
                 var endtime = DateTimeOffset.Now;
                 Logger.LogInformation($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");

@@ -21,7 +21,6 @@ public class TaskExecutor
     }
 
 
-    public required ReceivedTask Task { get; init; }
     public required Apis Api { get; init; }
     public required IQueuedTasksStorage QueuedTasks { get; init; }
     public required IIndex<TaskInputType, ITaskInputDownloader> InputDownloaders { get; init; }
@@ -37,56 +36,54 @@ public class TaskExecutor
         // TODO::
     }
 
-    public async Task Execute(CancellationToken token)
+    public async Task Execute(ReceivedTask task, CancellationToken token)
     {
-        using var _logscope = Logger.BeginScope($"Task {Task.Id}");
-        Logger.LogInformation($"Task info: {JsonConvert.SerializeObject(Task, Formatting.None)}");
+        Logger.LogInformation($"Task info: {JsonConvert.SerializeObject(task, Formatting.None)}");
+        CheckCompatibility(task);
 
-        CheckCompatibility(Task);
-
-        if (Task.State <= TaskState.Input)
+        if (task.State <= TaskState.Input)
         {
-            var isqspreview = TaskExecutorByData.GetTaskName(Task.Info.Data) == TaskAction.GenerateQSPreview;
+            var isqspreview = TaskExecutorByData.GetTaskName(task.Info.Data) == TaskAction.GenerateQSPreview;
             var semaphore = isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore;
             var info = isqspreview ? "qspinput" : "input";
             using var _ = await WaitDisposed(isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore, info);
 
-            var inputhandler = InputDownloaders[Task.Input.Type];
-            Task.DownloadedInput = await inputhandler.Download(Task.Input, Task.Info.Object, token);
-            await Api.ChangeStateAsync(Task, TaskState.Active);
-            QueuedTasks.QueuedTasks.Save(Task);
+            var inputhandler = InputDownloaders[task.Input.Type];
+            task.DownloadedInput = await inputhandler.Download(task.Input, task.Info.Object, token);
+            await Api.ChangeStateAsync(task, TaskState.Active);
+            QueuedTasks.QueuedTasks.Save(task);
         }
         else Logger.LogInformation($"Input seems to be already downloaded");
 
-        if (Task.State <= TaskState.Active)
+        if (task.State <= TaskState.Active)
         {
             using var _ = await WaitDisposed(ActiveSemaphore);
 
-            var firstaction = Actions[TaskExecutorByData.GetTaskName(Task.Info.Data)];
-            var input = Task.DownloadedInput.ThrowIfNull("No task input downloaded");
+            var firstaction = Actions[TaskExecutorByData.GetTaskName(task.Info.Data)];
+            var input = task.DownloadedInput.ThrowIfNull("No task input downloaded");
 
             if (input is ReadOnlyTaskFileList files)
-                input = new TaskFileInput(files, Task.FSOutputDirectory());
+                input = new TaskFileInput(files, task.FSOutputDirectory());
 
-            Task.Result = await Executor.Execute(input, (Task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(Task.Info.Data).ToArray());
-            await Api.ChangeStateAsync(Task, TaskState.Output);
-            QueuedTasks.QueuedTasks.Save(Task);
+            task.Result = await Executor.Execute(input, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
+            await Api.ChangeStateAsync(task, TaskState.Output);
+            QueuedTasks.QueuedTasks.Save(task);
         }
         else Logger.LogInformation($"Task execution seems to be already finished");
 
-        if (Task.State <= TaskState.Output)
+        if (task.State <= TaskState.Output)
         {
             using var _ = await WaitDisposed(OutputSemaphore);
 
-            var outputhandler = ResultUploaders[Task.Output.Type];
-            var result = Task.Result.ThrowIfNull("No task result");
+            var outputhandler = ResultUploaders[task.Output.Type];
+            var result = task.Result.ThrowIfNull("No task result");
 
-            await outputhandler.UploadResult(Task.Output, result, token);
-            await Api.ChangeStateAsync(Task, TaskState.Validation);
+            await outputhandler.UploadResult(task.Output, result, token);
+            await Api.ChangeStateAsync(task, TaskState.Validation);
         }
         else Logger.LogWarning($"Task result seems to be already uploaded (??????????????)");
 
-        await MaybeNotifyTelegramBotOfTaskCompletion(Task, token);
+        await MaybeNotifyTelegramBotOfTaskCompletion(task, token);
     }
 
 
