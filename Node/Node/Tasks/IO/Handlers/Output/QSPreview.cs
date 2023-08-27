@@ -4,7 +4,7 @@ namespace Node.Tasks.IO.Handlers.Output;
 
 public static class QSPreview
 {
-    public const string Version = "7";
+    public const int Version = 7;
 
     public class UploadHandler : FileTaskUploadHandler<QSPreviewOutputInfo, QSPreviewOutput>, ITypedTaskOutput
     {
@@ -26,7 +26,7 @@ public static class QSPreview
             using var content = new MultipartFormDataContent()
             {
                 { new StringContent(result.UploadId), "uploadid" },
-                { new StringContent(Version), "version" },
+                { new StringContent(Version.ToStringInvariant()), "version" },
                 new StreamContent(File.OpenRead(jpegfooter.Path))
                 {
                     Headers =

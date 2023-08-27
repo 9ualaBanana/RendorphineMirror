@@ -170,6 +170,9 @@ public class PlacedTasksHandler
 
             foreach (var wtask in WatchingTasks.WatchingTasks.Values.ToArray())
             {
+                if (!wtask.PlacedNonCompletedTasks.Contains(task.Id)) continue;
+
+                wtask.Complete(task);
                 wtask.PlacedNonCompletedTasks.Remove(task.Id);
                 WatchingTasks.WatchingTasks.Save(wtask);
             }

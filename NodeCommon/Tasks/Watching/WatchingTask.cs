@@ -2,6 +2,8 @@ namespace NodeCommon.Tasks.Watching;
 
 public class WatchingTask
 {
+    public event Action<DbTaskFullState>? OnCompleted;
+
     public string Id { get; init; }
     public IWatchingTaskInputInfo Source { get; init; }
     public IWatchingTaskOutputInfo Output { get; init; }
@@ -28,6 +30,7 @@ public class WatchingTask
         Policy = policy;
     }
 
+    public void Complete(DbTaskFullState task) => OnCompleted?.Invoke(task);
 
     public string FSDataDirectory() => Directories.Created(Path.Combine(Directories.Data, "watchingtasks", Id));
 }

@@ -3,6 +3,7 @@ namespace Node.Tasks.Watching.Input;
 public interface IWatchingTaskInputHandler
 {
     void StartListening();
+    void OnCompleted(DbTaskFullState task);
 }
 
 public abstract class WatchingTaskInputHandler<TInput> : IWatchingTaskInputHandler
@@ -39,6 +40,8 @@ public abstract class WatchingTaskInputHandler<TInput> : IWatchingTaskInputHandl
             IsBackground = true
         }.Start();
     }
+
+    public virtual void OnCompleted(DbTaskFullState task) { }
 
     protected void SaveTask() => WatchingTasks.WatchingTasks.Save(Task);
 

@@ -17,6 +17,7 @@ public class WatchingTasksHandler
 
         var handler = CreateWatchingHandler(task);
         handler.StartListening();
+        task.OnCompleted += handler.OnCompleted;
 
 
         IWatchingTaskInputHandler CreateWatchingHandler(WatchingTask task)

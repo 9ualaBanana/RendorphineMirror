@@ -12,7 +12,26 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
         var qwertykey = File.ReadAllText("qwertykey").Trim();
         var mpluskey = File.ReadAllText("mpluskey").Trim();
 
-        return await process(getUsers().Next(users => getQSItems(users)));
+        Logger.Info($"Fetching items (updatingfornewversion: {Input.IsUpdatingForNewVersion})");
+        return await process(getUsers().Next(users => getQSItems(users)))
+            .Next(async files =>
+            {
+                var isnewversion = files.Any(f => f.QSPreviewVersion != IO.Handlers.Output.QSPreview.Version);
+                Logger.Info($"Fetched {files.Length} items (isnewversion: {isnewversion}, updatingfornewversion: {Input.IsUpdatingForNewVersion})");
+
+                if (!Input.IsUpdatingForNewVersion && isnewversion)
+                {
+                    return await NotifyQSPreviewVersion(true)
+                        .Next(() =>
+                        {
+                            Input.IsUpdatingForNewVersion = true;
+                            SaveTask();
+                            return files.AsOpResult();
+                        });
+                }
+
+                return files.AsOpResult();
+            });
 
 
         ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> process(ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> qitems) =>
@@ -43,14 +62,14 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
                 data = new[]
                 {
                     ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString()),
-                    ("minver", IO.Handlers.Output.QSPreview.Version)
+                    ("minver", IO.Handlers.Output.QSPreview.Version.ToStringInvariant())
                 };
             else
                 data = new[]
                 {
                     ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString()),
                     ("userids", JsonConvert.SerializeObject(userids)),
-                    ("minver", IO.Handlers.Output.QSPreview.Version)
+                    ("minver", IO.Handlers.Output.QSPreview.Version.ToStringInvariant())
                 };
 
             return Api.ApiGet<ImmutableArray<QwertyStockItem>>(
@@ -62,6 +81,29 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
         ValueTask<OperationResult<ImmutableDictionary<string, MPlusNewItem>>> getMPItems(string userid, IEnumerable<string> iids) =>
             Api.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.ContentDBEndpoint}/content/getitems", "items", "Getting m+ items info",
                 Api.SignRequest(mpluskey, ("userid", userid), ("iids", JsonConvert.SerializeObject(iids))));
+    }
+    ValueTask<OperationResult> NotifyQSPreviewVersion(bool updatingFiles) =>
+        Api.ApiPost($"https://qwertystock.com/search/notifypreviewversion", "Notifying QS about preview version updates",
+            Api.SignRequest(File.ReadAllText("qwertykey").Trim(), ("version", IO.Handlers.Output.QSPreview.Version.ToStringInvariant()), ("isneedupdate", "false"), ("isfinished", (!updatingFiles).ToString()))
+        );
+
+
+    public override void OnCompleted(DbTaskFullState task)
+    {
+        base.OnCompleted(task);
+
+        if (Input.IsUpdatingForNewVersion && Task.PlacedNonCompletedTasks.Count == 0)
+        {
+            NotifyQSPreviewVersion(false)
+                .Next(() =>
+                {
+                    Input.IsUpdatingForNewVersion = false;
+                    SaveTask();
+                    return true;
+                })
+                .ThrowIfError()
+                .Consume();
+        }
     }
 
     protected override async Task Tick()
