@@ -15,6 +15,8 @@ public class PlacedTasksHandler
 
     public async Task UploadInputFiles(DbTaskFullState task)
     {
+        using var _logscope = Logger.BeginScope($"PTask {task.Id}");
+
         while (true)
         {
             var timeout = DateTime.Now.AddMinutes(5);
@@ -122,6 +124,7 @@ public class PlacedTasksHandler
             {
                 if (!PlacedTasks.PlacedTasks.TryGetValue(taskid, out var task)) return;
 
+                using var _logscope = Logger.BeginScope($"PTask {task.Id}");
                 task.State = newstate ?? task.State;
                 task.Populate(state);
                 if (task.State == TaskState.Validation)
