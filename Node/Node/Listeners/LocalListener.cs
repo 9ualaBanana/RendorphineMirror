@@ -4,6 +4,7 @@ using _3DProductsPublish;
 using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.CGTrader.Network;
+using _3DProductsPublish.CGTrader.Upload;
 using Node.Profiling;
 
 namespace Node.Listeners;
@@ -94,10 +95,10 @@ public class LocalListener : ExecutableListenerBase
             return await Test(request, response, "username", "password", "directory", "meta", async (username, password, dir, metastr) =>
             {
                 var meta = JsonConvert.DeserializeObject<CGTrader3DProductMetadata>(metastr).ThrowIfNull();
-                var model = _3DProduct.FromDirectory(dir, meta);
+                var model = _3DProduct.FromDirectory(dir).With(meta);
                 var cred = new CGTraderNetworkCredential(username, password, false);
 
-                await _3DProductPublisher.PublishAsync(model, cred);
+                await new CGTrader3DProductPublisher().PublishAsync(model, cred, default);
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }

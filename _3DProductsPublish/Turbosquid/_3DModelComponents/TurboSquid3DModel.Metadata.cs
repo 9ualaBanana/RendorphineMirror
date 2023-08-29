@@ -1,9 +1,10 @@
-﻿using Tomlyn;
+﻿using _3DProductsPublish._3DProductDS;
+using Tomlyn;
 using Tomlyn.Syntax;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
-public partial record TurboSquid3DModelMetadata
+public partial record TurboSquid3DModelMetadata : I3DModelMetadata
 {
     public string Name { get; private init; } = default!;
     public string FileFormat { get; private init; } = default!;

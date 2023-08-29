@@ -28,7 +28,7 @@ internal class TurboSquidUploadApi
 
         async IAsyncEnumerable<ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>>> UploadModelsAsync()
         {
-            var modelsUpload = _uploadSessionContext.ProductDraft._Product.Metadata.Models
+            var modelsUpload = _uploadSessionContext.ProductDraft._Product._3DModels
                 .Select(async _3DModel =>
                 {
                     var archived3DModelPath = await _3DModel.ArchiveAsync(cancellationToken);

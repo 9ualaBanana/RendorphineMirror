@@ -21,3 +21,16 @@ internal record _3DProductDraft<TMetadata>(_3DProduct<TMetadata> _Product, strin
         return _Product.Thumbnails.Select(upcaster);
     }
 }
+
+internal record _3DProductDraft<TProductMetadata, TModelsMetadata>
+    : _3DProductDraft<TProductMetadata>
+    where TModelsMetadata : I3DModelMetadata
+{
+    new internal _3DProduct<TProductMetadata, TModelsMetadata> _Product;
+
+    internal _3DProductDraft(_3DProduct<TProductMetadata, TModelsMetadata> product, string id)
+        : base(product, id)
+    {
+        _Product = product;
+    }
+}

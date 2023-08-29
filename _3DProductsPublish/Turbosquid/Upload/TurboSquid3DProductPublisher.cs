@@ -6,7 +6,7 @@ using System.Net;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
-internal class TurboSquid3DProductPublisher : I3DProductPublisher<TurboSquid3DProductMetadata>
+internal class TurboSquid3DProductPublisher : I3DProductPublisher<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>
 {
     readonly TurboSquidApi _api;
 
@@ -16,7 +16,7 @@ internal class TurboSquid3DProductPublisher : I3DProductPublisher<TurboSquid3DPr
     }
 
     public async Task PublishAsync(
-        _3DProduct<TurboSquid3DProductMetadata> _3DProduct,
+        _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> _3DProduct,
         NetworkCredential credential,
         CancellationToken cancellationToken)
     {

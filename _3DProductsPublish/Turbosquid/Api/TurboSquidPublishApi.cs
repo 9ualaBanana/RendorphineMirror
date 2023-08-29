@@ -51,7 +51,7 @@ internal class TurboSquidPublishApi
             {
                 metadataForm.Add("renderer", renderer);
                 if (processedThumbnail.Asset.Metadata_.RendererVersion is double version)
-                    metadataForm.Add("renderer_version", version);
+                    metadataForm.Add("renderer_version", version.ToString());
             }
 
             return metadataForm.ToJsonContent();
@@ -88,7 +88,8 @@ internal class TurboSquidPublishApi
                 {
                     name = string.Empty,
                     website = string.Empty
-                }))
+                })),
+                new JProperty("publish", string.Empty)
             ).ToJsonContent();
         }
     }

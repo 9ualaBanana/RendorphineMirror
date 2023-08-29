@@ -5,7 +5,7 @@ using _3DProductsPublish.Turbosquid.Network.Authenticity;
 namespace _3DProductsPublish.Turbosquid.Upload;
 
 internal record TurboSquid3DProductUploadSessionContext(
-    _3DProductDraft<TurboSquid3DProductMetadata> ProductDraft,
+    _3DProductDraft<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> ProductDraft,
     TurboSquidNetworkCredential Credential,
     TurboSquidAwsUploadCredentials AwsUploadCredentials)
 {

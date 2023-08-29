@@ -49,20 +49,27 @@ public partial record _3DProduct : IDisposable
     #endregion
 }
 
-public record _3DProduct<TProductMetadata> : _3DProduct
+public record _3DProduct<TMetadata> : _3DProduct
 {
-    //new public IEnumerable<_3DModel<TModelMetadata>> _3DModels { get; }
-    public readonly TProductMetadata Metadata;
+    public readonly TMetadata Metadata;
 
-    internal _3DProduct(_3DProduct _3DProduct, TProductMetadata metadata)
+    internal _3DProduct(_3DProduct _3DProduct, TMetadata metadata)
         : base(_3DProduct)
     {
         Metadata = metadata;
     }
 }
 
-static class _3DProductExtensions
+public record _3DProduct<TProductMetadata, TModelsMetadata> : _3DProduct<TProductMetadata>
+    where TModelsMetadata : I3DModelMetadata
 {
-    internal static _3DProduct<TMetadata> With<TMetadata>(this _3DProduct _3DProduct, TMetadata metadata)
-        => new(_3DProduct, metadata);
+    new public IEnumerable<_3DModel<TModelsMetadata>> _3DModels { get; }
+
+    internal _3DProduct(_3DProduct<TProductMetadata> _3DProduct, IEnumerable<TModelsMetadata> modelsMetadata)
+        : base(_3DProduct)
+    {
+        _3DModels = _3DProduct._3DModels.OrderBy(_ => _.Name)
+            .Zip(modelsMetadata.OrderBy(_ => _.Name))
+            .Select(_ => new _3DModel<TModelsMetadata>(_.First, _.Second));
+    }
 }

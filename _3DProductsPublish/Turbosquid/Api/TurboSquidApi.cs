@@ -86,7 +86,7 @@ internal class TurboSquidApi
     #region DraftCreation
 
     internal async Task<TurboSquid3DProductUploadSessionContext> RequestProductUploadSessionContextAsyncFor(
-        _3DProduct<TurboSquid3DProductMetadata> _3DProduct,
+        _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> _3DProduct,
         TurboSquidNetworkCredential credential,
         CancellationToken cancellationToken)
     {
@@ -95,7 +95,7 @@ internal class TurboSquidApi
         var awsUploadCredentials = await RequestAwsUploadCredentialsAsync(csrfToken, cancellationToken);
 
         return new TurboSquid3DProductUploadSessionContext(
-            new _3DProductDraft<TurboSquid3DProductMetadata>(_3DProduct, productDraftId),
+            new _3DProductDraft<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>(_3DProduct, productDraftId),
             credential.WithUpdated(csrfToken),
             awsUploadCredentials);
 

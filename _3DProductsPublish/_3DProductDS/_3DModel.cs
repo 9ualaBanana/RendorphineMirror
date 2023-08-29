@@ -7,6 +7,7 @@ public partial class _3DModel : I3DProductAsset, IDisposable
 {
     internal readonly ContainerType OriginalContainer;
 
+    public string Name => Path.GetFileNameWithoutExtension(OriginalPath);
     /// <summary>
     /// Refers to the path from which this <see cref="_3DModel"/> was initialized.
     /// </summary>
@@ -129,7 +130,8 @@ public partial class _3DModel : I3DProductAsset, IDisposable
     }
 }
 
-internal partial class _3DModel<TMetadata> : _3DModel
+public partial class _3DModel<TMetadata> : _3DModel
+    where TMetadata : I3DModelMetadata
 {
     internal readonly TMetadata Metadata_;
 
@@ -144,4 +146,9 @@ internal partial class _3DModel<TMetadata> : _3DModel
     {
         Metadata_ = _3DModel.Metadata_;
     }
+}
+
+public interface I3DModelMetadata
+{
+    string Name { get; }
 }
