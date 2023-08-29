@@ -4,7 +4,7 @@ namespace Node.Tasks.IO.Handlers.Output;
 
 public static class QSPreview
 {
-    public const int Version = 7;
+    public const int Version = 8;
 
     public class UploadHandler : FileTaskUploadHandler<QSPreviewOutputInfo, QSPreviewOutput>, ITypedTaskOutput
     {
