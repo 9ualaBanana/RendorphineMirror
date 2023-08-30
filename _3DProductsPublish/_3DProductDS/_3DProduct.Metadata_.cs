@@ -35,17 +35,17 @@ public partial record _3DProduct
             init => _vertices = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(Vertices), "Must be greater than 0");
         }
         int _vertices;
-        public bool Animated { get; } = false;
-        public bool Rigged { get; } = false;
-        public bool Textures { get; } = false;
-        public bool Materials { get; } = false;
-        public bool UVMapped { get; } = false;
-        public UnwrappedUVs_? UnwrappedUVs { get; } = default;
-        public bool? GameReady { get; } = default;
-        public bool? PhysicallyBasedRendering { get; } = default;
-        public bool? AdultContent { get; } = default;
-        public bool? Collection { get; } = default;
-        public bool PluginsUsed { get; } = false;
+        public bool Animated { get; init; } = false;
+        public bool Collection { get; init; } = false;
+        public bool Rigged { get; init; } = false;
+        public bool Textures { get; init; } = false;
+        public bool Materials { get; init; } = false;
+        public bool UVMapped { get; init; } = false;
+        public UnwrappedUVs_? UnwrappedUVs { get; init; } = default;
+        public bool? GameReady { get; init; } = default;
+        public bool? PhysicallyBasedRendering { get; init; } = default;
+        public bool? AdultContent { get; init; } = default;
+        public bool PluginsUsed { get; init; } = false;
 
 
         public enum License_ { RoyaltyFree, Editorial }
