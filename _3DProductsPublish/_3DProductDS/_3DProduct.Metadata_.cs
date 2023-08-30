@@ -75,37 +75,42 @@ public partial record _3DProduct
 
 public static class _3DProductMetadataExtensions
 {
-    internal static _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> WithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _)
+    internal static async Task<_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, CancellationToken cancellationToken)
     {
-        var metadataFilePath = Path.Combine(_3DProduct.ContainerPath, TurboSquid3DProductMetadata.FileName);
-        var modelsMetadata = Toml.Parse(File.ReadAllText(metadataFilePath))
-            .Tables
-            .Select(TurboSquid3DModelMetadata.Read);
+        var productMetadata = await TurboSquid3DProductMetadata.ProvideAsync(
+            _.Title,
+            _.Description,
+            _.Tags,
+            _.Polygons,
+            _.Vertices,
+            _.Price,
+            License(),
+            _.Animated,
+            _.Collection,
+            Geometry(),
+            _.Materials,
+            _.Rigged,
+            _.Textures,
+            _.UVMapped,
+            UnwrappedUVs(),
+            cancellationToken
+        );
+        return _3DProduct.With(productMetadata).And(ModelsMetadata());
 
-        if (modelsMetadata.Count() == _3DProduct._3DModels.Count())
+
+        IEnumerable<TurboSquid3DModelMetadata> ModelsMetadata()
         {
-            var productMetadata = new TurboSquid3DProductMetadata()
-            {
-                Title = _.Title,
-                Description = _.Description,
-                Tags = _.Tags,
-                Price = _.Price,
-                License = License(),
-                Geometry = Geometry(),
-                Polygons = _.Polygons,
-                Vertices = _.Vertices,
-                Animated = _.Animated,
-                Rigged = _.Rigged,
-                Textures = _.Textures,
-                Materials = _.Materials,
-                UVMapped = _.UVMapped,
-                UnwrappedUVs = UnwrappedUVs(),
-            };
-            return _3DProduct.With(productMetadata).And(modelsMetadata);
+            var metadataFilePath = Path.Combine(_3DProduct.ContainerPath, TurboSquid3DProductMetadata.FileName);
+            var modelsMetadata = Toml.Parse(File.ReadAllText(metadataFilePath))
+                .Tables
+                .Select(TurboSquid3DModelMetadata.Read);
+
+            if (modelsMetadata.Count() == _3DProduct._3DModels.Count())
+                if (modelsMetadata.Count(_ => _.IsNative) is 1)
+                    return modelsMetadata;
+                else throw new InvalidDataException($"Metadata file can mark only one {nameof(_3DModel)} as native.");
+            else throw new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({metadataFilePath}).");
         }
-        else throw new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({metadataFilePath}).");
-
-
 
         TurboSquid3DProductMetadata.License_ License() => _.License switch
         {

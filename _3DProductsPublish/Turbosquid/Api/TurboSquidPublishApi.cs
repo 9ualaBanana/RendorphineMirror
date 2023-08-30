@@ -74,7 +74,7 @@ internal class TurboSquidPublishApi
         StringContent ProductForm()
             => new JObject(
                 new JProperty("authenticity_token", _uploadSessionContext.Credential._CsrfToken),
-                new JProperty("turbosquid_product_form", (_uploadSessionContext.ProductDraft._Product.Metadata as TurboSquid3DProductMetadata)!.ToProductForm(_uploadSessionContext.ProductDraft._ID)),
+                new JProperty("turbosquid_product_form", _uploadSessionContext.ProductDraft._Product.Metadata.ToProductForm(_uploadSessionContext.ProductDraft._ID)),
                 new JProperty("previews", new JObject(
                     _uploadedAssets.Thumbnails.Select(_ => new JProperty(
                         _.FileId, JObject.FromObject(new
@@ -83,7 +83,7 @@ internal class TurboSquidPublishApi
                             image_type = _.Type().ToString()
                         }))
                     ))),
-                new JProperty("feature_ids", new int[] { 191, 27964 }),
+                new JProperty("feature_ids", _uploadSessionContext.ProductDraft._Product.Metadata.Features.Values.ToArray()),
                 new JProperty("missing_brand", JObject.FromObject(new
                 {
                     name = string.Empty,
