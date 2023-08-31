@@ -7,7 +7,6 @@ global using Node.Common.Models;
 global using Node.DataStorage;
 global using Node.Plugins;
 global using Node.Plugins.Models;
-global using Node.Registry;
 global using Node.Tasks;
 global using Node.Tasks.Exec;
 global using Node.Tasks.Handlers;
@@ -22,8 +21,11 @@ global using NodeToUI;
 global using Logger = NLog.Logger;
 global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
+using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.CGTrader.Network;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using CefSharp.OffScreen;
 using Microsoft.Extensions.DependencyInjection;
 using NLog.Extensions.Logging;
 using Node;
@@ -31,6 +33,7 @@ using Node.Heartbeat;
 using Node.Listeners;
 using Node.Profiling;
 using Node.Tasks.Exec.Actions;
+using Tomlyn.Syntax;
 
 
 Initializer.AppName = "renderfin";
@@ -248,6 +251,13 @@ object main = (Init.IsDebug, halfrelease) switch
     (true, true) => container.Resolve<ServiceTargets.ReleaseMain>(),
     (false, _) => container.Resolve<ServiceTargets.PublishMain>(),
 };
+
+var settings = new CefSettings();
+CefSharp.Cef.Initialize(new CefSettings());
+await _3DProductsPublish._3DProductPublisher.PublishAsync(
+    _3DProduct.FromDirectory("D:\\Development\\test_model"),
+    new _3DProduct.Metadata_ { Title = "title", Description = "description", Tags = Enumerable.Range(1, 5).Select(_ => _.ToString()).ToArray(), Price = 1, License = _3DProduct.Metadata_.License_.RoyaltyFree, Polygons = 1, Vertices = 1 },
+    new CGTraderNetworkCredential("vfxcgartist@gmail.com", "Zaebaliuzhe88", false));
 
 Thread.Sleep(-1);
 GC.KeepAlive(captured);
