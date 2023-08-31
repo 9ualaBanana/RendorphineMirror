@@ -15,17 +15,17 @@ internal partial class TurboSquid3DProductAssetsProcessing
         readonly long size;
         readonly string authenticity_token;
 
-        internal static async Task<Payload> For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext, CancellationToken cancellationToken)
-            => await For(_3DModel, uploadKey, uploadSessionContext.ProductDraft._ID, uploadSessionContext.Credential._CsrfToken, cancellationToken);
-        internal static async Task<Payload> For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, string draftId, string authenticityToken, CancellationToken cancellationToken)
+        internal static Payload For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext)
+            => Payload.For(_3DModel, uploadKey, uploadSessionContext.ProductDraft._ID, uploadSessionContext.Credential._CsrfToken);
+        internal static Payload For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, string draftId, string authenticityToken)
         {
-            using var archived3DModel = File.OpenRead(await _3DModel.ArchiveAsync(cancellationToken));
+            using var archived3DModel = File.OpenRead(_3DModel.ArchiveAsync(CancellationToken.None).Result!);
             return new Payload._3DModel(uploadKey, draftId, archived3DModel.Name, archived3DModel.Length, authenticityToken,
-                _3DModel.Metadata_.FileFormat, _3DModel.Metadata_.FormatVersion, _3DModel.Metadata_.Renderer, _3DModel.Metadata_.RendererVersion, _3DModel.Metadata_.IsNative);
+                _3DModel.Metadata.FileFormat, _3DModel.Metadata.FormatVersion, _3DModel.Metadata.Renderer, _3DModel.Metadata.RendererVersion, _3DModel.Metadata.IsNative);
         }
 
         internal static Payload For(TurboSquid3DProductThumbnail thumbnail, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext)
-            => For(thumbnail, uploadKey, uploadSessionContext.ProductDraft._ID, uploadSessionContext.Credential._CsrfToken);
+            => Payload.For(thumbnail, uploadKey, uploadSessionContext.ProductDraft._ID, uploadSessionContext.Credential._CsrfToken);
         internal static Payload For(TurboSquid3DProductThumbnail thumbnail, string uploadKey, string draftId, string authenticityToken)
             => new Payload.Thumbnail(uploadKey, draftId, thumbnail.FileName, thumbnail.Size, thumbnail.Type.ToString(), authenticityToken);
 

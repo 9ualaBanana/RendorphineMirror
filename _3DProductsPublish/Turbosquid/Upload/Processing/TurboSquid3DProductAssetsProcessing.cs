@@ -20,11 +20,7 @@ internal partial class TurboSquid3DProductAssetsProcessing
     }
 
     internal async Task<Task_<_3DModel<TurboSquid3DModelMetadata>>> RunAsyncOn(_3DModel<TurboSquid3DModelMetadata> _3DModel, string assetUploadKey, CancellationToken cancellationToken)
-    {
-        var processingPayload = await Payload.For(_3DModel, assetUploadKey, _uploadSessionContext, cancellationToken);
-
-        return await CreateTaskAsync(processingPayload, _3DModel, cancellationToken);
-    }
+        => await CreateTaskAsync(Payload.For(_3DModel, assetUploadKey, _uploadSessionContext), _3DModel, cancellationToken);
 
     internal async Task<Task_<TurboSquid3DProductThumbnail>> RunAsyncOn(TurboSquid3DProductThumbnail thumbnail, string assetUploadKey, CancellationToken cancellationToken)
         => await CreateTaskAsync(

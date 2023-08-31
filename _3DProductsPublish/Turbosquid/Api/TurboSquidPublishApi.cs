@@ -34,23 +34,23 @@ internal class TurboSquidPublishApi
 
         StringContent MetadataFormFor(ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>> processedThumbnail)
         {
-            using var archived3DModel = File.OpenRead(processedThumbnail.Asset.ArchiveAsync(CancellationToken.None).Result);
+            using var archived3DModel = File.OpenRead(processedThumbnail.Asset.ArchiveAsync(CancellationToken.None).Result!);
             // Explicit conversions of numbers to strings are required.
             var metadataForm = new JObject(
                 new JProperty("authenticity_token", _uploadSessionContext.Credential._CsrfToken),
                 new JProperty("draft_id", _uploadSessionContext.ProductDraft._ID),
-                new JProperty("file_format", processedThumbnail.Asset.Metadata_.FileFormat),
-                new JProperty("format_version", processedThumbnail.Asset.Metadata_.FormatVersion.ToString()),
+                new JProperty("file_format", processedThumbnail.Asset.Metadata.FileFormat),
+                new JProperty("format_version", processedThumbnail.Asset.Metadata.FormatVersion.ToString()),
                 new JProperty("id", processedThumbnail.FileId),
-                new JProperty("is_native", processedThumbnail.Asset.Metadata_.IsNative),
+                new JProperty("is_native", processedThumbnail.Asset.Metadata.IsNative),
                 new JProperty("name", Path.GetFileName(archived3DModel.Name)),
                 new JProperty("product_id", 0.ToString()),
                 new JProperty("size", archived3DModel.Length)
                 );
-            if (processedThumbnail.Asset.Metadata_.Renderer is string renderer)
+            if (processedThumbnail.Asset.Metadata.Renderer is string renderer)
             {
                 metadataForm.Add("renderer", renderer);
-                if (processedThumbnail.Asset.Metadata_.RendererVersion is double version)
+                if (processedThumbnail.Asset.Metadata.RendererVersion is double version)
                     metadataForm.Add("renderer_version", version.ToString());
             }
 
