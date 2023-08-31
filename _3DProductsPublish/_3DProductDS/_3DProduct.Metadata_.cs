@@ -1,5 +1,4 @@
 ﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
-using Tomlyn;
 
 namespace _3DProductsPublish._3DProductDS;
 
@@ -95,22 +94,8 @@ public static class _3DProductMetadataExtensions
             UnwrappedUVs(),
             cancellationToken
         );
-        return _3DProduct.With(productMetadata).And(ModelsMetadata());
+        return _3DProduct.With(productMetadata);
 
-
-        IEnumerable<TurboSquid3DModelMetadata> ModelsMetadata()
-        {
-            var metadataFilePath = Path.Combine(_3DProduct.ContainerPath, TurboSquid3DProductMetadata.FileName);
-            var modelsMetadata = Toml.Parse(File.ReadAllText(metadataFilePath))
-                .Tables
-                .Select(TurboSquid3DModelMetadata.Read);
-
-            if (modelsMetadata.Count() == _3DProduct._3DModels.Count())
-                if (modelsMetadata.Count(_ => _.IsNative) is 1)
-                    return modelsMetadata;
-                else throw new InvalidDataException($"Metadata file can mark only one {nameof(_3DModel)} as native.");
-            else throw new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({metadataFilePath}).");
-        }
 
         TurboSquid3DProductMetadata.License_ License() => _.License switch
         {
@@ -145,10 +130,15 @@ public static class _3DProductMetadataExtensions
         };
     }
 
-    public static _3DProduct<TMetadata> With<TMetadata>(this _3DProduct _3DProduct, TMetadata metadata)
-        => new(_3DProduct, metadata);
+    static _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> With(this _3DProduct _3DProduct, TurboSquid3DProductMetadata metadata)
+    {
+        var turboSquid3DProduct = _3DProduct.With_(metadata);
+        var turboSquidMetadataFile = TurboSquid3DProductMetadata.File.For(turboSquid3DProduct);
+        if (!File.Exists(turboSquidMetadataFile.Path))
+            turboSquidMetadataFile.Populate();
+        return new(turboSquid3DProduct, turboSquidMetadataFile.Read());
+    }
 
-    internal static _3DProduct<TProductMetadata, TModelsMetadata> And<TProductMetadata, TModelsMetadata>(this _3DProduct<TProductMetadata> _3DProduct, IEnumerable<TModelsMetadata> modelsMetadata)
-        where TModelsMetadata : I3DModelMetadata
-        => new(_3DProduct, modelsMetadata);
+    public static _3DProduct<TMetadata> With_<TMetadata>(this _3DProduct _3DProduct, TMetadata metadata)
+        => new(_3DProduct, metadata);
 }

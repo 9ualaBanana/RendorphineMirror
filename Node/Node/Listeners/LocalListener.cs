@@ -95,7 +95,7 @@ public class LocalListener : ExecutableListenerBase
             return await Test(request, response, "username", "password", "directory", "meta", async (username, password, dir, metastr) =>
             {
                 var meta = JsonConvert.DeserializeObject<CGTrader3DProductMetadata>(metastr).ThrowIfNull();
-                var model = _3DProduct.FromDirectory(dir).With(meta);
+                var model = _3DProduct.FromDirectory(dir).With_(meta);
                 var cred = new CGTraderNetworkCredential(username, password, false);
 
                 await new CGTrader3DProductPublisher().PublishAsync(model, cred, default);

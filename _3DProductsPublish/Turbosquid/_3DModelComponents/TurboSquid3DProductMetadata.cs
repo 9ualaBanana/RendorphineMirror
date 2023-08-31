@@ -5,7 +5,7 @@ using System.Net;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
-public record TurboSquid3DProductMetadata
+public partial record TurboSquid3DProductMetadata
 {
     internal const string FileName = "turbosquid.meta";
 
