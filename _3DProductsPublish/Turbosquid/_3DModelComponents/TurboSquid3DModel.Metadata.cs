@@ -18,6 +18,7 @@ public partial record TurboSquid3DModelMetadata : I3DModelMetadata
         var modelName = table.Name?.ToString();
         ArgumentException.ThrowIfNullOrEmpty(modelName, nameof(modelName));
 
+        // FileFormat can be null.
         return Toml.ToModel<TurboSquid3DModelMetadata>(table.Items.ToString()) with { Name = modelName };
     }
     public TurboSquid3DModelMetadata() { }

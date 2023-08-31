@@ -8,13 +8,11 @@ namespace _3DProductsPublish.Turbosquid.Api;
 
 internal class TurboSquidUploadApi
 {
-    readonly TurboSquid3DProductAssetsProcessing _assetsProcessing;
     readonly HttpClient _httpClient;
     readonly TurboSquid3DProductUploadSessionContext _uploadSessionContext;
 
     internal TurboSquidUploadApi(HttpClient httpClient, TurboSquid3DProductUploadSessionContext uploadSessionContext)
     {
-        _assetsProcessing = new(httpClient, uploadSessionContext);
         _httpClient = httpClient;
         _uploadSessionContext = uploadSessionContext;
     }
@@ -28,28 +26,30 @@ internal class TurboSquidUploadApi
 
         async IAsyncEnumerable<ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>>> UploadModelsAsync()
         {
-            var modelsUpload = _uploadSessionContext.ProductDraft._Product._3DModels
+            var modelsUpload = await _uploadSessionContext.ProductDraft._Product._3DModels
                 .Select(async _3DModel =>
                 {
                     var archived3DModelPath = await _3DModel.ArchiveAsync(cancellationToken);
                     string uploadKey = await UploadAssetAsyncAt(archived3DModelPath, cancellationToken);
-                    return await _assetsProcessing.RunAsyncOn(_3DModel, uploadKey, cancellationToken);
+                    return await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>
+                        .RunAsync(_3DModel, uploadKey, _uploadSessionContext, _httpClient, cancellationToken);
                 })
-                .ToList();  // Convert to IList for awaiting and actually launch processing by iteration.
-            await foreach (var processedAsset in _assetsProcessing.AwaitAsyncOn(modelsUpload, cancellationToken))
+                .RunAsync();
+            foreach (var processedAsset in await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.WhenAll(modelsUpload))
                 yield return processedAsset;
         }
 
         async IAsyncEnumerable<ITurboSquidProcessed3DProductAsset<TurboSquid3DProductThumbnail>> UploadThumbnailsAsync()
         {
-            var thumbnailsUpload = _uploadSessionContext.ProductDraft.UpcastThumbnailsTo<TurboSquid3DProductThumbnail>()
+            var thumbnailsUpload = await _uploadSessionContext.ProductDraft.UpcastThumbnailsTo<TurboSquid3DProductThumbnail>()
                 .Select(async thumbnail =>
                 {
                     string uploadKey = await UploadAssetAsyncAt(thumbnail.FilePath, cancellationToken);
-                    return await _assetsProcessing.RunAsyncOn(thumbnail, uploadKey, cancellationToken);
+                    return await TurboSquid3DProductAssetProcessing.Task_<TurboSquid3DProductThumbnail>
+                        .RunAsync(thumbnail, uploadKey, _uploadSessionContext, _httpClient, cancellationToken);
                 })
-                .ToList();  // Convert to IList for awaiting and actually launch processing by iteration.
-            await foreach (var processedAsset in _assetsProcessing.AwaitAsyncOn(thumbnailsUpload, cancellationToken))
+                .RunAsync();
+            foreach (var processedAsset in await TurboSquid3DProductAssetProcessing.Task_<TurboSquid3DProductThumbnail>.WhenAll(thumbnailsUpload))
                 yield return processedAsset;
         }
     }

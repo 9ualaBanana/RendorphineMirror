@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
-internal partial class TurboSquid3DProductAssetsProcessing
+internal partial class TurboSquid3DProductAssetProcessing
 {
     abstract class Payload
     {
@@ -13,7 +13,16 @@ internal partial class TurboSquid3DProductAssetsProcessing
         readonly string draft_id;
         readonly string name;
         readonly long size;
-        readonly string authenticity_token;
+        internal readonly string authenticity_token;
+
+        internal static Payload For<TAsset>(TAsset asset, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext)
+            where TAsset : I3DProductAsset
+            => asset switch
+            {
+                _3DModel<TurboSquid3DModelMetadata> _3DModel => Payload.For(_3DModel, uploadKey, uploadSessionContext),
+                TurboSquid3DProductThumbnail thumbnail => Payload.For(thumbnail, uploadKey, uploadSessionContext),
+                _ => throw new NotImplementedException()
+            };
 
         internal static Payload For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext)
             => Payload.For(_3DModel, uploadKey, uploadSessionContext.ProductDraft._ID, uploadSessionContext.Credential._CsrfToken);
