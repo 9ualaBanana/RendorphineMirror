@@ -53,9 +53,13 @@ internal partial class TurboSquid3DProductAssetsProcessing
         where TAsset : I3DProductAsset
     {
         while (processingTasks.Any())
+        {
             foreach (var task in await UpdatedAsync(processingTasks, cancellationToken))
                 if (task.IsCompleted)
                 { processingTasks.Remove(task); yield return task.ToProcessedAsset(); }
+            if (processingTasks.Any())
+                await Task.Delay(500, cancellationToken);
+        }
     }
     internal async IAsyncEnumerable<ITurboSquidProcessed3DProductAsset<TAsset>> AwaitAsyncOn<TAsset>(IEnumerable<Task<Task_<TAsset>>> processingTasks, [EnumeratorCancellation] CancellationToken cancellationToken)
         where TAsset : I3DProductAsset
