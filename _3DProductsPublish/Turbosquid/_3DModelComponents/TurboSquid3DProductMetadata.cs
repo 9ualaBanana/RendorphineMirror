@@ -1,6 +1,7 @@
 ﻿using NodeToUI.Requests;
 using NodeToUI;
 using _3DProductsPublish.Turbosquid.Api;
+using System.Net;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
@@ -38,10 +39,12 @@ public record TurboSquid3DProductMetadata
                 categoryPrompt = (await NodeGui.Request<string>(new InputRequest("Please specify 3D product category"), cancellationToken)).Result;
                 var suggestions = JArray.Parse(
                     await httpClient.GetStringAsync(
-                        new Uri(TurboSquidApi._BaseUri, $"features/suggestions?fields%5Btags_and_synonyms%5D={categoryPrompt}&assignable=true&assignable_restricted=false&ancestry=1%2F6&limit=25"), cancellationToken)
+                        new Uri(TurboSquidApi._BaseUri, $"features/suggestions?fields%5Btags_and_synonyms%5D={WebUtility.UrlEncode(categoryPrompt)}&assignable=true&assignable_restricted=false&ancestry=1%2F6&limit=25"), cancellationToken)
                     );
-                if (suggestions.FirstOrDefault() is JToken suggestion && suggestion["text"]?.Value<string>() is string category && suggestion["id"]?.Value<int>() is int id)
-                    return new(category, id);
+                if (suggestions.FirstOrDefault() is JToken suggestion &&
+                    suggestion["text"]?.Value<string>() is string category &&
+                    suggestion["id"]?.Value<int>() is int id)
+                        return new(category, id);
             }
         }
     }
