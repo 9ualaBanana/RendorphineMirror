@@ -18,8 +18,11 @@ public partial record TurboSquid3DModelMetadata : I3DModelMetadata
         var modelName = table.Name?.ToString();
         ArgumentException.ThrowIfNullOrEmpty(modelName, nameof(modelName));
 
-        // FileFormat can be null.
-        return Toml.ToModel<TurboSquid3DModelMetadata>(table.Items.ToString()) with { Name = modelName };
+        return (Toml.ToModel<TurboSquid3DModelMetadata>(table.Items.ToString()) with { Name = modelName }).Validated();
     }
     public TurboSquid3DModelMetadata() { }
+
+    TurboSquid3DModelMetadata Validated()
+        => FileFormat is not null ? this
+        : throw new InvalidDataException($"{nameof(FileFormat)} is not specified for {Name}.");
 }
