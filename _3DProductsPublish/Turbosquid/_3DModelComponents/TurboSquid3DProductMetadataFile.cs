@@ -32,44 +32,47 @@ public partial record TurboSquid3DProductMetadata
             foreach (var _3DModel in _3DProduct._3DModels)
                 DescribedAndSerialized(_3DModel).WriteTo(file);
 
-
+            
             static DocumentSyntax DescribedAndSerialized(_3DModel _3DModel)
             {
                 var metadata = new DocumentSyntax();
                 var table = new TableSyntax(_3DModel.Name);
-                table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.FileFormat)), FileFormat());
-                table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.FormatVersion)), "formatversion");
-                table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.IsNative)), "isnative");
-                table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.Renderer)), "renderer");
-                table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.RendererVersion)), "rendererversion");
+                var fileFormat = FileFormat_();
+                table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.FileFormat)), fileFormat.ToString_());
+                if (fileFormat.IsNative())
+                    // Instantiate corresponding `NativeFileFormatMetadata` object here by requesting data from user and add its properties to the `table` as well.
+                    ; // example: table.Items.Add(new _3ds_max(formatVersion: 1.0, renderer: _3ds_max.Renderer_.arion, rendererVersion: 1.0));
+
+                // Request this flag value from user.
+                table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.IsNative)), false);
                 metadata.Tables.Add(table);
                 metadata.AddTrailingTriviaNewLine();
 
                 return metadata;
 
 
-                string FileFormat()
+                FileFormat FileFormat_()
                 {
                     foreach (var file in _3DModel.Files)
-                        if (DeduceFromExtension(file) is string fileFormat)
+                        if (DeduceFromExtension(file) is FileFormat fileFormat)
                             return fileFormat;
                     
                     throw new InvalidDataException($"{nameof(TurboSquid3DModelMetadata.FileFormat)} of {nameof(_3DModel)} ({_3DModel.Name}) can't be deduced.");
 
 
-                    string? DeduceFromExtension(string path)
+                    FileFormat? DeduceFromExtension(string path)
                         => System.IO.Path.GetExtension(path).ToLowerInvariant() switch
                         {
-                            ".blend" => "blender",
-                            ".c4d" => "cinema_4d",
-                            ".max" => "3ds_max",
-                            ".dwg" => "autocad_drawing",
-                            ".lwo" => "lightwave",
-                            ".fbx" => "fbx",
-                            ".ma" or ".mb" => "maya",
-                            ".hrc" or ".scn" => "softimage",
-                            ".rfa" or ".rvt" => "revit_family",
-                            ".obj" or ".mtl" => "obj",
+                            ".blend" => FileFormat.blender,
+                            ".c4d" => FileFormat.cinema_4d,
+                            ".max" => FileFormat._3ds_max,
+                            ".dwg" => FileFormat.autocad_drawing,
+                            ".lwo" => FileFormat.lightwave,
+                            ".fbx" => FileFormat.fbx,
+                            ".ma" or ".mb" => FileFormat.maya,
+                            ".hrc" or ".scn" => FileFormat.softimage,
+                            ".rfa" or ".rvt" => FileFormat.revit_family,
+                            ".obj" or ".mtl" => FileFormat.obj,
                             _ => null
                         };
                 }
@@ -85,7 +88,7 @@ public partial record TurboSquid3DProductMetadata
             if (modelsMetadata.Count() == _3DProduct._3DModels.Count())
                 if (modelsMetadata.Count(_ => _.IsNative) is 1)
                     return modelsMetadata;
-                else throw new InvalidDataException($"Metadata file can mark only one {nameof(_3DModel)} as native.");
+                else throw new InvalidDataException($"Metadata file must mark one {nameof(_3DModel)} as native.");
             else throw new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({Path}).");
         }
     }

@@ -176,5 +176,4 @@ static class TurboSquid3DAssetsProcessingExtensions
     internal static async Task<List<Task_<TAsset>>> RunAsync<TAsset>(this IEnumerable<Task<Task_<TAsset>>> tasks)
         where TAsset : I3DProductAsset
         => (await Task.WhenAll(tasks)).ToList();
-    // Conversion to array is required to actually launch tasks by iteration.
 }
