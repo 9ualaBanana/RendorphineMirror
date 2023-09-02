@@ -7,7 +7,7 @@ public class Topaz : FilePluginActionInfo<TopazInfo>
     protected override Type ExecutorType => typeof(Executor);
 
     public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
-        new[] { new[] { FileFormat.Mov } };
+        new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Png }, new[] { FileFormat.Mov } };
 
     protected override OperationResult ValidateOutputFiles(TaskFilesCheckData files, TopazInfo data) =>
         files.EnsureSingleInputFile()
