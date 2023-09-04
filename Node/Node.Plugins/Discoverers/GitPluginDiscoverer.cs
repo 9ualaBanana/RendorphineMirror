@@ -1,6 +1,6 @@
 namespace Node.Plugins.Discoverers;
 
-public class GitPluginDiscoverer : IPluginDiscoverer
+internal class GitPluginDiscoverer : IPluginDiscoverer
 {
     public async Task<IEnumerable<Plugin>> DiscoverAsync()
     {
