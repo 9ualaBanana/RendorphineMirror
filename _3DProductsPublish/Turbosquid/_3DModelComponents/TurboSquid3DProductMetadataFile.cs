@@ -84,12 +84,19 @@ public partial record TurboSquid3DProductMetadata
             var modelsMetadata = Toml.Parse(System.IO.File.ReadAllText(Path))
                 .Tables
                 .Select(TurboSquid3DModelMetadata.Read);
+            return Validated(modelsMetadata);
+        }
 
+        IEnumerable<TurboSquid3DModelMetadata> Validated(IEnumerable<TurboSquid3DModelMetadata> modelsMetadata)
+        {
+            Exception? exception;
             if (modelsMetadata.Count() == _3DProduct._3DModels.Count())
                 if (modelsMetadata.Count(_ => _.IsNative) is 1)
                     return modelsMetadata;
-                else throw new InvalidDataException($"Metadata file must mark one {nameof(_3DModel)} as native.");
-            else throw new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({Path}).");
+                else exception = new InvalidDataException($"Metadata file must mark one {nameof(_3DModel)} as native.");
+            else exception = new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({Path}).");
+            System.IO.File.Delete(Path);
+            throw exception;
         }
     }
 }
