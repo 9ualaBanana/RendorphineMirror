@@ -62,7 +62,7 @@ public record Api(HttpClient Client)
                     var result = await send().ConfigureAwait(false);
 
                     // true only when http code is non-success (except 400) and there's no response json
-                    var httperr = result.EString.HttpData is
+                    var httperr = result.Error is HttpError
                     {
                         IsSuccessStatusCode: false,
                         //StatusCode: not System.Net.HttpStatusCode.BadRequest,
@@ -157,9 +157,9 @@ public record Api(HttpClient Client)
 
 
         if (response.IsSuccessStatusCode && ok)
-            return new OperationResult<JToken>(OperationResult.Succ() with { HttpData = new(response, null) }, responseJson);
+            return new OperationResult<JToken>(OperationResult.Succ(), responseJson);
 
-        return OperationResult.Err(retmsg) with { HttpData = new(response, errcode) };
+        return OperationResult.Err(new HttpError(errmsg, response, errcode));
     }
 
     public static HttpContent ToContent((string, string)[] values) => new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));

@@ -70,6 +70,6 @@ public static class FilePluginActionExtensions
 
         TaskRequirement.EnsureFormats(input, "input", formats)
             .Next(() => OperationResult.WrapException(() => input.ValidateFileList("input")))
-            .ThrowIfError(message => new TaskValidationException(message));
+            .ThrowIfError(message => new TaskValidationException(message.ToString()));
     }
 }

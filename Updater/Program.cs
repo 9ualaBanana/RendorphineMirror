@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Common;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using NLog;
 using UpdaterCommon;
@@ -58,7 +59,8 @@ if (doupdate)
 while (true)
 {
     var update = await checker.Update();
-    update.LogIfError("Caught an error while updating: {0}; Restarting in a second...");
+    var logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<Program>();
+    update.LogIfError(logger, "Caught an error while updating: {0}; Restarting in a second...");
     if (update)
     {
         if (!FileList.IsProcessRunning(FileList.GetNodeExe()))

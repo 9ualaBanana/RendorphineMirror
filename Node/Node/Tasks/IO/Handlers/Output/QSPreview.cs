@@ -19,8 +19,8 @@ public static class QSPreview
             var mov = files.Video;
 
             var res = await Apis.ShardPost<InitOutputResult>(ApiTask, "initqspreviewoutput", null, "Initializing qs preview result upload", ("taskid", ApiTask.Id));
-            if (!res && res.Message?.Contains("There is no such user", StringComparison.OrdinalIgnoreCase) == true)
-                throw new TaskFailedException(res.Message);
+            if (!res && res.ToString()?.Contains("There is no such user", StringComparison.OrdinalIgnoreCase) == true)
+                throw new TaskFailedException(res.ToString());
 
             var result = res.ThrowIfError();
             using var content = new MultipartFormDataContent()

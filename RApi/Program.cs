@@ -91,13 +91,13 @@ async Task<string> GetResult([FromQuery] string sessionid, [FromQuery] string ta
     var apis = Apis.DefaultWithSessionId(sessionid);
     var task = TaskApi.For(RegisteredTask.With(taskid));
 
-    var getMplusItems = () => apis.ShardGet<ImmutableArray<ReceivedContentItemLite>>(task, "getmytaskmpitems", "items", "Getting task m+ results", ("sessionid", sessionid), ("taskid", taskid));
+    var getMplusItems = async () => await apis.ShardGet<ImmutableArray<ReceivedContentItemLite>>(task, "getmytaskmpitems", "items", "Getting task m+ results", ("sessionid", sessionid), ("taskid", taskid));
     var getUrls = async (ReceivedContentItemLite item) =>
         await apis.GetMPlusItemDownloadLinkAsync(task, item.Iid, extension)
             .Next(url => (item.Iid, new { filename = getitem(item.Files).Filename, size = getitem(item.Files).Size, url = url }).AsOpResult());
 
     var items = await getMplusItems()
-        .Next(items => items.Select(getUrls).MergeDictResults());
+        .Next(items => items.Select(getUrls).Aggregate());
 
     return JsonApi.JsonFromOpResult(items, "items").ToString(Newtonsoft.Json.Formatting.None);
 

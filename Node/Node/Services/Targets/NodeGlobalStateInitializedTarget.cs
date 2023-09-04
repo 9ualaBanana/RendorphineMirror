@@ -10,6 +10,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
 
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required PluginManager PluginManager { get; init; }
+    public required ILogger<NodeGlobalStateInitializedTarget> Logger { get; init; }
 
     public Task ExecuteAsync()
     {
@@ -32,7 +33,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         state.BAuthInfo.Bind(Settings.BAuthInfo.Bindable);
 
 
-        Software.StartUpdating(null, default);
+        Software.StartUpdating(null, Logger, default);
         Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Directories.Data, "lport"), Settings.LocalListenPort.ToString()), true);
 
         return Task.CompletedTask;

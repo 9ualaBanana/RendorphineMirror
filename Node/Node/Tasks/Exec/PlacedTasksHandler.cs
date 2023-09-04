@@ -26,7 +26,7 @@ public class PlacedTasksHandler
                 PlacedTasks.PlacedTasks.Save(task);
                 if (task.State.IsFinished()) return;
 
-                if (state && state.Value is not null)
+                if (state.Success && state.Value is not null)
                 {
                     task.State = state.Value.State;
                     break;

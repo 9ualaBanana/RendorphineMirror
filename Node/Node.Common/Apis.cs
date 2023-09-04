@@ -13,14 +13,14 @@ public record Apis(Api Api, string SessionId, bool LogErrors = true)
     public (string, string)[] AddSessionId(params (string, string)[] values) => Api.AddSessionId(SessionId, values);
 
     public ValueTask<OperationResult> ShardPost(IRegisteredTaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
-        ShardPost<JToken>(task, url, property, errorDetails, content).Next(j => true);
+        ShardPost<JToken>(task, url, property, errorDetails, content).Next(j => OperationResult.Succ());
     public ValueTask<OperationResult<T>> ShardPost<T>(IRegisteredTaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
         ShardSend(task, url, url => Api.ApiPost<T>(url, property, errorDetails, content));
 
     public ValueTask<OperationResult> ShardGet(IRegisteredTaskApi task, string url, string errorDetails, params (string, string)[] values) =>
-        ShardGet<JToken>(task, url, null, errorDetails, values).Next(j => true);
+        ShardGet<JToken>(task, url, null, errorDetails, values).Next(j => OperationResult.Succ());
     public ValueTask<OperationResult> ShardPost(IRegisteredTaskApi task, string url, string errorDetails, params (string, string)[] values) =>
-        ShardPost<JToken>(task, url, null, errorDetails, values).Next(j => true);
+        ShardPost<JToken>(task, url, null, errorDetails, values).Next(j => OperationResult.Succ());
     public ValueTask<OperationResult<T>> ShardGet<T>(IRegisteredTaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
         ShardSend(task, url, url => Api.ApiGet<T>(url, property, errorDetails, AddSessionId(values)));
     public ValueTask<OperationResult<T>> ShardPost<T>(IRegisteredTaskApi task, string url, string? property, string errorDetails, params (string, string)[] values) =>
@@ -50,9 +50,9 @@ public record Apis(Api Api, string SessionId, bool LogErrors = true)
             if (result) return result;
 
             // only if an API error
-            if (result.GetResult().HttpData is { } httpdata)
+            if (result.Error is HttpError httpdata)
             {
-                if (LogErrors) (task as ILoggable)?.LogErr($"Got error {httpdata.ToString().ReplaceLineEndings(" ")} in ({result.Message})");
+                if (LogErrors) (task as ILoggable)?.LogErr($"Got error {httpdata.ToString().ReplaceLineEndings(" ")} in ({result})");
 
                 // if nonsuccess, refetch shard host, retry
                 if (!httpdata.IsSuccessStatusCode)
@@ -63,7 +63,7 @@ public record Apis(Api Api, string SessionId, bool LogErrors = true)
                 }
 
                 // "No shard is known for this task. The shard could be restarting, try again in 30 seconds"
-                if (httpdata.ErrorCode == ErrorCodes.Error && result.Message!.Contains("shard", StringComparison.OrdinalIgnoreCase))
+                if (httpdata.ErrorCode == ErrorCodes.Error && result.ToString()!.Contains("shard", StringComparison.OrdinalIgnoreCase))
                 {
                     var host = await UpdateTaskShardAsync(task);
                     if (!host) return host;
@@ -85,7 +85,7 @@ public record Apis(Api Api, string SessionId, bool LogErrors = true)
             {
                 (task as ILoggable)?.LogTrace($"Shard was updated to {s}");
                 task.HostShard = s;
-                return true;
+                return OperationResult.Succ();
             });
 
     /// <summary> Get shard host for a task. Might take a long time to process. Should never return an error, but who knows... </summary>
@@ -94,10 +94,10 @@ public record Apis(Api Api, string SessionId, bool LogErrors = true)
         var shard = await Api.ApiGet<string>($"{TaskManagerEndpoint}/gettaskshard", "host", $"Getting {taskid} task shard", AddSessionId(("taskid", taskid)));
         if (!shard)
         {
-            var httpdata = shard.GetResult().HttpData;
-            if (httpdata is null) return shard;
+            if (shard.Error is not HttpError httpdata)
+                return shard;
 
-            if (!httpdata.Value.IsSuccessStatusCode)
+            if (!httpdata.IsSuccessStatusCode)
             {
                 await Task.Delay(30_000);
                 return await GetTaskShardAsync(taskid);
@@ -105,7 +105,7 @@ public record Apis(Api Api, string SessionId, bool LogErrors = true)
         }
 
         // TODO: fix -72 check
-        if (!shard && shard.Message!.Contains("-72 error code", StringComparison.Ordinal))
+        if (!shard && shard.ToString()!.Contains("-72 error code", StringComparison.Ordinal))
         {
             await Task.Delay(30_000);
             return await GetTaskShardAsync(taskid);
@@ -120,7 +120,7 @@ public record Apis(Api Api, string SessionId, bool LogErrors = true)
         var shard = await Api.ApiGet<string>($"{TaskManagerEndpoint}/gettaskshard", "host", $"Getting {taskid} task shard", AddSessionId(("taskid", taskid)));
 
         // TODO: fix -72 check
-        if (!shard && shard.Message!.Contains("-72 error code", StringComparison.Ordinal))
+        if (!shard && shard.ToString()!.Contains("-72 error code", StringComparison.Ordinal))
             return null as string;
 
         return shard!;
@@ -136,6 +136,6 @@ public record Apis(Api Api, string SessionId, bool LogErrors = true)
 
         return await taskids.Chunk(100)
             .Select(sel)
-            .MergeDictResults();
+            .AggregateMany();
     }
 }

@@ -86,7 +86,7 @@ public static class DownloadLink
         {
             var headers = await Api.Client.GetAsync(input.Url, HttpCompletionOption.ResponseHeadersRead, token);
             if (!headers.IsSuccessStatusCode)
-                return OperationResult.Err() with { HttpData = new(headers, null) };
+                return OperationResult.Err(new HttpError(null, headers, null));
 
             return new TaskObject(Path.GetFileName(input.Url), headers.Content.Headers.ContentLength!.Value);
         }

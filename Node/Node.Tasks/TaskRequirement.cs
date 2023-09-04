@@ -28,7 +28,7 @@ public static class TaskRequirement
             if (check(format.ToList())) //.ToList() to create a copy
                 return true;
 
-        return ErrorFormats(files, expected, info);
+        return OperationResult.Err(ErrorFormats(files, expected, info));
 
 
         bool check(List<FileFormat> formats)
@@ -44,12 +44,12 @@ public static class TaskRequirement
             return formats.Count == 0;
         }
     }
-    public static OperationResult ErrorInputFormats(this TaskFilesCheckData task) => ErrorFormats(task.InputFiles, "input");
-    public static OperationResult ErrorOutputFormats(this TaskFilesCheckData task) => ErrorFormats(task.OutputFiles, "output");
-    static OperationResult ErrorFormats(IReadOnlyTaskFileList files, string info) =>
-        OperationResult.Err($"Invalid {info} file formats ({string.Join(", ", files.Select(f => f.Format))})");
-    static OperationResult ErrorFormats(IReadOnlyTaskFileList files, IEnumerable<IReadOnlyCollection<FileFormat>> expected, string info) =>
-        OperationResult.Err($"{ErrorFormats(files, info).Message}; Expected: ({string.Join(", ", expected.Select(f => $"({string.Join(", ", f)})"))})");
+    public static StringError ErrorInputFormats(this TaskFilesCheckData task) => ErrorFormats(task.InputFiles, "input");
+    public static StringError ErrorOutputFormats(this TaskFilesCheckData task) => ErrorFormats(task.OutputFiles, "output");
+    static StringError ErrorFormats(IReadOnlyTaskFileList files, string info) =>
+        new StringError($"Invalid {info} file formats ({string.Join(", ", files.Select(f => f.Format))})");
+    static StringError ErrorFormats(IReadOnlyTaskFileList files, IEnumerable<IReadOnlyCollection<FileFormat>> expected, string info) =>
+        new StringError($"{ErrorFormats(files, info)}; Expected: ({string.Join(", ", expected.Select(f => $"({string.Join(", ", f)})"))})");
 
     public static OperationResult<FileWithFormat> EnsureSingleInputFile(this TaskFilesCheckData task) => EnsureInputFileCount(task, 1);
     public static OperationResult<FileWithFormat> EnsureSingleOutputFile(this TaskFilesCheckData task) => EnsureOutputFileCount(task, 1);

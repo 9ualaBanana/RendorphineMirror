@@ -5,7 +5,7 @@ namespace NodeToUI;
 
 public static class LocalPipe
 {
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+    readonly static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
     public static Task<Stream> SendAsync(string uri) => SendAsync(new HttpRequestMessage(HttpMethod.Get, uri));
     public static async Task<Stream> SendAsync(HttpRequestMessage msg)

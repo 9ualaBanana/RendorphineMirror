@@ -19,7 +19,7 @@ public class MPlusHeartbeat : Heartbeat
         // upon receiving an error -195 from heartbeat, the node should switch to reconnect mode
         // i don't know how to do this easily, like pausing all tasks and stuff like that
         // so we just exit and let the pinger restart the node
-        if (!result && result.HttpData?.ErrorCode == -195)
+        if (!result && result.Error is HttpError { ErrorCode: -195 })
             Environment.Exit(0);
 
         result.ThrowIfError();

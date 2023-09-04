@@ -15,7 +15,7 @@ public abstract class MPlusWatchingTaskHandlerBase<TInput> : WatchingTaskInputHa
         var taskobjs = await items
             .GroupBy(i => i.UserId)
             .Select(async g => await MPlusTaskInputInfo.GetFilesInfoDict(Api, Settings.SessionId, g.Key, g.Select(i => i.Iid)))
-            .MergeDictResults()
+            .AggregateMany()
             .ThrowIfError();
 
         foreach (var item in items)

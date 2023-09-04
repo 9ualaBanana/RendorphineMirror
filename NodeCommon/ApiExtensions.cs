@@ -69,7 +69,7 @@ public static class ApiExtensions
     /// <inheritdoc cref="GetTasksOnShardAsync(string, string)"/>
     public static async ValueTask<OperationResult<ImmutableDictionary<TaskState, ImmutableArray<TMTaskStateInfo>>>> GetTasksOnShardsAsync(this Apis api, IEnumerable<string> shards)
     {
-        var result = await shards.Select(async shard => await api.GetTasksOnShardAsync(shard)).MergeResults();
+        var result = await shards.Select(async shard => await api.GetTasksOnShardAsync(shard)).Aggregate();
         if (!result) return result.GetResult();
 
         return new Dictionary<TaskState, ImmutableArray<TMTaskStateInfo>>()
@@ -89,7 +89,7 @@ public static class ApiExtensions
 
         return await taskids.Chunk(100)
             .Select(sel)
-            .MergeDictResults();
+            .AggregateMany();
     }
 
 
@@ -100,7 +100,7 @@ public static class ApiExtensions
         bool exists(string errmsg) => !errmsg.Contains("There is no task with such ID", StringComparison.Ordinal) && !errmsg.Contains("No shard known for this task", StringComparison.Ordinal);
 
         var state = await get();
-        if (!state && !exists(state.Message!))
+        if (!state && !exists(state.ToString()!))
             return null as ServerTaskState;
 
         if (task is TaskBase rtask)
@@ -146,8 +146,8 @@ public static class ApiExtensions
         var result = await api.ShardGet(task, "mytaskstatechanged", "Changing task state", data).ConfigureAwait(false);
 
 
-        result.LogIfError("Error while changing task state: {0}", task as ILoggable);
-        if (result && task is TaskBase rtask)
+        result.LogIfError($"Error while changing task {task.Id} state: {0}");
+        if (result.Success && task is TaskBase rtask)
         {
             rtask.State = state;
             rtask.SetStateTime(state);
@@ -171,7 +171,7 @@ public static class ApiExtensions
     public static ValueTask<OperationResult<Dictionary<TaskState, List<ServerTaskFullState>>>> GetAllMyTasksAsync(this Apis api, TaskState[] states)
     {
         return api.GetShardListAsync()
-            .Next(shards => OperationResult.WrapException(() => states.Select(async state => (state, (await next(shards, state, null)).ToList()).AsOpResult()).MergeDictResults()));
+            .Next(async shards => await OperationResult.WrapException(() => states.Select(async state => KeyValuePair.Create(state, (await next(shards, state, null)).ToList()).AsOpResult()).Aggregate()));
 
 
         async ValueTask<IEnumerable<ServerTaskFullState>> next(ImmutableArray<string> shards, TaskState state, string? afterId)
@@ -185,7 +185,7 @@ public static class ApiExtensions
     /// <returns> User tasks by state, up to 500 per state </returns>
     public static ValueTask<OperationResult<List<ServerTaskFullState>>> GetMyTasksAsync(this Apis api, TaskState[] states, string? afterId = null) =>
         api.GetShardListAsync()
-            .Next(shards => states.Select(async state => await api.GetMyTasksAsync(shards, state, afterId)).MergeArrResults());
+            .Next(async shards => await states.Select(async state => await api.GetMyTasksAsync(shards, state, afterId)).AggregateMany());
     /// <returns> User tasks by state, up to 500 </returns>
     static ValueTask<OperationResult<List<ServerTaskFullState>>> GetMyTasksAsync(this Apis api, TaskState state, string? afterId = null) =>
         api.GetShardListAsync().Next(shards => api.GetMyTasksAsync(shards, state, afterId));
@@ -195,7 +195,7 @@ public static class ApiExtensions
         var getfunc = (string shard) => api.Api.ApiGet<List<ServerTaskFullState>>($"https://{shard}/rphtasklauncher/gettasklist", "list", "Getting task list",
             api.AddSessionId(("state", state.ToString().ToLowerInvariant()), ("afterid", afterId ?? string.Empty)));
 
-        return await shards.Select(async shard => await getfunc(shard)).MergeArrResults();
+        return await shards.Select(async shard => await getfunc(shard)).AggregateMany();
     }
 
 

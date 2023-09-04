@@ -32,7 +32,7 @@ public class NodeStateUpdater
                 File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, JsonSettings.Typed)));
         }
 
-        Software.StartUpdating(IsConnectedToNode, default);
+        Software.StartUpdating(IsConnectedToNode, Logger, default);
 
         var cancel = false;
         var consecutive = 0;

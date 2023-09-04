@@ -34,7 +34,7 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
             });
 
 
-        ValueTask<OperationResult<ImmutableArray<MPlusNewItem>>> process(ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> qitems) =>
+        Task<OperationResult<ImmutableArray<MPlusNewItem>>> process(Task<OperationResult<ImmutableArray<QwertyStockItem>>> qitems) =>
             qitems
             .Next(qitems =>
             {
@@ -46,14 +46,14 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
                 return items.AsOpResult();
             })
             .Next(qitems => qitems.GroupBy(i => i.UserId).AsOpResult())
-            .Next(qitems => qitems.Select(async i => await getMPItems(i.Key, i.Select(i => i.Iid))).MergeResults())
+            .Next(qitems => qitems.Select(async i => await getMPItems(i.Key, i.Select(i => i.Iid))).Aggregate())
             .Next(result => result.SelectMany(i => i.Values).ToImmutableArray().AsOpResult());
 
-        ValueTask<OperationResult<ImmutableArray<string>>> getUsers() =>
-            Api.ApiGet<ImmutableArray<string>>($"{Api.ContentDBEndpoint}/users/getqwertystockusers", "users", "Getting sale content without preview",
+        async Task<OperationResult<ImmutableArray<string>>> getUsers() =>
+            await Api.ApiGet<ImmutableArray<string>>($"{Api.ContentDBEndpoint}/users/getqwertystockusers", "users", "Getting sale content without preview",
                 Api.SignRequest(qwertykey, ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString())));
 
-        ValueTask<OperationResult<ImmutableArray<QwertyStockItem>>> getQSItems(IEnumerable<string>? userids)
+        async Task<OperationResult<ImmutableArray<QwertyStockItem>>> getQSItems(IEnumerable<string>? userids)
         {
             userids = userids?.Except(Input.NonexistentUsers);
 
@@ -72,7 +72,7 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
                     ("minver", IO.Handlers.Output.QSPreview.Version.ToStringInvariant())
                 };
 
-            return Api.ApiGet<ImmutableArray<QwertyStockItem>>(
+            return await Api.ApiGet<ImmutableArray<QwertyStockItem>>(
                 $"{Api.ContentDBEndpoint}/content/getonsalewithoutpv", "list", "Getting sale content without preview",
                 Api.SignRequest(qwertykey, data)
             );
@@ -82,8 +82,8 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
             Api.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.ContentDBEndpoint}/content/getitems", "items", "Getting m+ items info",
                 Api.SignRequest(mpluskey, ("userid", userid), ("iids", JsonConvert.SerializeObject(iids))));
     }
-    ValueTask<OperationResult> NotifyQSPreviewVersion(bool updatingFiles) =>
-        Api.ApiPost($"https://qwertystock.com/search/notifypreviewversion", "Notifying QS about preview version updates",
+    async Task<OperationResult> NotifyQSPreviewVersion(bool updatingFiles) =>
+        await Api.ApiPost($"https://qwertystock.com/search/notifypreviewversion", "Notifying QS about preview version updates",
             Api.SignRequest(File.ReadAllText("qwertykey").Trim(), ("version", IO.Handlers.Output.QSPreview.Version.ToStringInvariant()), ("isneedupdate", "false"), ("isfinished", (!updatingFiles).ToString()))
         );
 
@@ -99,7 +99,7 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
                 {
                     Input.IsUpdatingForNewVersion = false;
                     SaveTask();
-                    return true;
+                    return OperationResult.Succ();
                 })
                 .ThrowIfError()
                 .Consume();
