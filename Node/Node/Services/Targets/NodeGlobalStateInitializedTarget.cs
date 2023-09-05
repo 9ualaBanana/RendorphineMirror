@@ -10,6 +10,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
 
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required PluginManager PluginManager { get; init; }
+    public required IIndex<TaskAction, IPluginActionInfo> Actions { get; init; }
     public required ILogger<NodeGlobalStateInitializedTarget> Logger { get; init; }
 
     public Task ExecuteAsync()
@@ -35,6 +36,30 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
 
         Software.StartUpdating(null, Logger, default);
         Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Directories.Data, "lport"), Settings.LocalListenPort.ToString()), true);
+
+
+        state.TaskDefinitions.Value = serializeActions();
+        TasksFullDescriber serializeActions()
+        {
+            return new TasksFullDescriber(
+                Enum.GetValues<TaskAction>()
+                    .Select(type => Actions.TryGetValue(type, out var info) ? info : null)
+                    .WhereNotNull()
+                    .Select(serializeaction)
+                    .ToImmutableArray(),
+                serialize(TaskModels.Inputs),
+                serialize(TaskModels.Outputs),
+                serialize(TaskModels.WatchingInputs),
+                serialize(TaskModels.WatchingOutputs)
+            );
+
+
+            static TaskActionDescriber serializeaction(IPluginActionInfo action) => new TaskActionDescriber(action.RequiredPlugins, action.Name.ToString(), new ObjectDescriber(action.DataType));
+            static ImmutableArray<TaskInputOutputDescriber> serialize<T>(ImmutableDictionary<T, Type> dict) where T : struct, Enum =>
+                dict.Select(x => new TaskInputOutputDescriber(x.Key.ToString(), new ObjectDescriber(x.Value))).ToImmutableArray();
+        }
+
+
 
         return Task.CompletedTask;
     }
