@@ -6,6 +6,7 @@ public class AuthenticatedTarget : IServiceTarget
 {
     public static void CreateRegistrations(ContainerBuilder builder) { }
 
+    public required UITarget UI { get; init; }
     public required LocalListener LocalListener { get; init; }
     public required SessionManager SessionManager { get; init; }
     public required ILogger<AuthenticatedTarget> Logger { get; init; }

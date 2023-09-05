@@ -12,6 +12,6 @@ public class UITarget : IServiceTarget
 
     public async Task ExecuteAsync()
     {
-
+        Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Directories.Data, "lport"), Settings.LocalListenPort.ToString()), true);
     }
 }

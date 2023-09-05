@@ -35,7 +35,6 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
 
 
         Software.StartUpdating(null, Logger, default);
-        Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Directories.Data, "lport"), Settings.LocalListenPort.ToString()), true);
 
 
         state.TaskDefinitions.Value = serializeActions();
