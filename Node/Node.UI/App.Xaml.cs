@@ -36,7 +36,7 @@ namespace Node.UI
                 this.InitializeTrayIndicator();
                 MainTheme.Apply(Resources, Styles);
 
-                if (true)
+                if (false)
                 {
                     desktop.MainWindow = new TurboSquidModelInfoInputWindow(new NodeToUI.Requests.InputTurboSquidModelInfoRequest(
                         ImmutableArray<NodeToUI.Requests.InputTurboSquidModelInfoRequest.ModelInfo>.Empty
