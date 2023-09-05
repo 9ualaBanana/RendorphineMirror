@@ -1,8 +1,8 @@
 using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NodeToUI.Requests;
 using Node.UI.Pages.MainWindowTabs;
+using NodeToUI.Requests;
 
 namespace Node.UI.Pages
 {
@@ -113,28 +113,19 @@ namespace Node.UI.Pages
 
                 void handle(string reqid, GuiRequest request)
                 {
-                    if (request is CaptchaRequest captchareq) handleCaptchaRequest(captchareq);
-                    else if (request is InputRequest inputreq) handleInputRequest(inputreq);
-
-
-                    void handleCaptchaRequest(CaptchaRequest req)
+                    Dispatcher.UIThread.Post(() =>
                     {
-                        Dispatcher.UIThread.Post(() =>
+                        GuiRequestWindow window = request switch
                         {
-                            var window = new CaptchaWindow(req.Base64Image, v => sendResponse(v));
-                            req.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
-                            window.Show();
-                        });
-                    }
-                    void handleInputRequest(InputRequest req)
-                    {
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            var window = new InputWindow(req.Text, v => sendResponse(v));
-                            req.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
-                            window.Show();
-                        });
-                    }
+                            CaptchaRequest req => new CaptchaWindow(req.Base64Image, v => sendResponse(v)),
+                            InputRequest req => new InputWindow(req.Text, v => sendResponse(v)),
+                            InputTurboSquidModelInfoRequest req => new TurboSquidModelInfoInputWindow(req, v => sendResponse(v)),
+                            _ => throw new InvalidOperationException("Unknown request type " + request),
+                        };
+
+                        request.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
+                        window.Show();
+                    });
 
 
                     async Task sendResponse(JToken token)

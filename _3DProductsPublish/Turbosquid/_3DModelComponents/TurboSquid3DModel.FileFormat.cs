@@ -91,10 +91,16 @@ abstract class NativeFileFormatMetadata
 
     protected NativeFileFormatMetadata(FileFormat fileFormat, double formatVersion = 1.0, string? renderer = null, double? rendererVersion = null)
     {
+        FileFormat = fileFormat;
         FormatVersion = formatVersion;
         Renderer = renderer ?? "other";
         RendererVersion = rendererVersion;
     }
+}
+abstract class NativeFileFormatMetadata<TRenderer> : NativeFileFormatMetadata where TRenderer : struct, Enum
+{
+    protected NativeFileFormatMetadata(FileFormat fileFormat, double formatVersion = 1.0, TRenderer? renderer = null, double? rendererVersion = null)
+        : base(fileFormat, formatVersion, renderer?.ToString(), rendererVersion) { }
 }
 
 static class NativeFileFormatMetadataExtensions
@@ -108,10 +114,10 @@ static class NativeFileFormatMetadataExtensions
     }
 }
 
-class _3ds_max : NativeFileFormatMetadata
+class _3ds_max : NativeFileFormatMetadata<_3ds_max.Renderer_>
 {
     public _3ds_max(double formatVersion = 1.0, Renderer_? renderer = null, double? rendererVersion = null)
-        : base(FileFormat._3ds_max, formatVersion, renderer.ToString(), rendererVersion)
+        : base(FileFormat._3ds_max, formatVersion, renderer, rendererVersion)
     {
     }
 
@@ -134,10 +140,10 @@ class _3ds_max : NativeFileFormatMetadata
     }
 }
 
-class blender : NativeFileFormatMetadata
+class blender : NativeFileFormatMetadata<blender.Renderer_>
 {
     public blender(double formatVersion = 1.0, Renderer_? renderer = null, double? rendererVersion = null)
-        : base(FileFormat.blender, formatVersion, renderer.ToString(), rendererVersion)
+        : base(FileFormat.blender, formatVersion, renderer, rendererVersion)
     {
     }
 
@@ -149,10 +155,10 @@ class blender : NativeFileFormatMetadata
     }
 }
 
-class cinema_4d : NativeFileFormatMetadata
+class cinema_4d : NativeFileFormatMetadata<cinema_4d.Renderer_>
 {
     public cinema_4d(double formatVersion = 1.0, Renderer_? renderer = null, double? rendererVersion = null)
-    : base(FileFormat.cinema_4d, formatVersion, renderer.ToString(), rendererVersion)
+    : base(FileFormat.cinema_4d, formatVersion, renderer, rendererVersion)
     {
     }
 
@@ -175,10 +181,10 @@ class cinema_4d : NativeFileFormatMetadata
     }
 }
 
-class lightwave : NativeFileFormatMetadata
+class lightwave : NativeFileFormatMetadata<lightwave.Renderer_>
 {
     public lightwave(double formatVersion = 1.0, Renderer_? renderer = null, double? rendererVersion = null)
-        : base(FileFormat.lightwave, formatVersion, renderer.ToString(), rendererVersion)
+        : base(FileFormat.lightwave, formatVersion, renderer, rendererVersion)
     {
     }
 
@@ -191,10 +197,10 @@ class lightwave : NativeFileFormatMetadata
     }
 }
 
-class maya : NativeFileFormatMetadata
+class maya : NativeFileFormatMetadata<maya.Renderer_>
 {
     public maya(double formatVersion = 1.0, Renderer_? renderer = null, double? rendererVersion = null)
-    : base(FileFormat.maya, formatVersion, renderer.ToString(), rendererVersion)
+    : base(FileFormat.maya, formatVersion, renderer, rendererVersion)
     {
     }
 
@@ -216,10 +222,10 @@ class maya : NativeFileFormatMetadata
     }
 }
 
-class softimage : NativeFileFormatMetadata
+class softimage : NativeFileFormatMetadata<softimage.Renderer_>
 {
     public softimage(double formatVersion = 1.0, Renderer_? renderer = null, double? rendererVersion = null)
-        : base(FileFormat.softimage, formatVersion, renderer.ToString(), rendererVersion)
+        : base(FileFormat.softimage, formatVersion, renderer, rendererVersion)
     {
     }
 
@@ -236,12 +242,12 @@ class softimage : NativeFileFormatMetadata
     }
 }
 
-class usd : NativeFileFormatMetadata
+class usd : NativeFileFormatMetadata<usd.Renderer_>
 {
     public const string Name = "usd";
 
     public usd(double formatVersion = 1.0, Renderer_? renderer = null, double? rendererVersion = null)
-        : base(FileFormat.usd, formatVersion, renderer.ToString(), rendererVersion)
+        : base(FileFormat.usd, formatVersion, renderer, rendererVersion)
     {
     }
 

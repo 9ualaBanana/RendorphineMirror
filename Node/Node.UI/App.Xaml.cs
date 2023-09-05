@@ -36,6 +36,19 @@ namespace Node.UI
                 this.InitializeTrayIndicator();
                 MainTheme.Apply(Resources, Styles);
 
+                if (true)
+                {
+                    desktop.MainWindow = new TurboSquidModelInfoInputWindow(new NodeToUI.Requests.InputTurboSquidModelInfoRequest(
+                        ImmutableArray<NodeToUI.Requests.InputTurboSquidModelInfoRequest.ModelInfo>.Empty
+                            .Add(new NodeToUI.Requests.InputTurboSquidModelInfoRequest.ModelInfo("Aboba"))
+                            .Add(new NodeToUI.Requests.InputTurboSquidModelInfoRequest.ModelInfo("Abeba")),
+                        ImmutableDictionary<string, ImmutableArray<string>>.Empty
+                            .Add("eps", ImmutableArray.Create("eps1", "eps2"))
+                            .Add("blend", ImmutableArray.Create("blend1", "blend2"))
+                        ), null!);
+                    return;
+                }
+
                 if (Environment.GetCommandLineArgs().Contains("registryeditor"))
                 {
                     desktop.MainWindow = new Window() { Content = new Pages.MainWindowTabs.JsonRegistryTab(), };

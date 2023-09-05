@@ -1,15 +1,12 @@
 namespace Node.UI.Pages;
 
-public class InputWindow : Window
+public class InputWindow : GuiRequestWindow
 {
-    bool DoClose = false;
-
     public InputWindow(string text, Func<string, Task> onClick)
     {
         Width = 600;
         Height = 400;
         this.Bind(TitleProperty, "Input");
-        this.Closing += (_, e) => e.Cancel |= !DoClose;
 
         var input = new TextBox()
         {
@@ -39,19 +36,12 @@ public class InputWindow : Window
                             OnClick = async () =>
                             {
                                 await onClick(input.Text.Trim());
-                                DoClose = true;
-                                Dispatcher.UIThread.Post(Close);
+                                Dispatcher.UIThread.Post(ForceClose);
                             },
                         }.WithColumn(1),
                     }
                 }.WithRow(1),
             },
         };
-    }
-
-    public void ForceClose()
-    {
-        DoClose = true;
-        Close();
     }
 }

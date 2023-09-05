@@ -50,8 +50,11 @@ public abstract class BindableBase<T> : IReadOnlyBindable<T>
 
     void InternalSet(T value, BindableBase<T> eventSource)
     {
+        var eq = EqualityComparer<T>.Default.Equals(Value, value);
         _Value = value;
-        Changed?.Invoke();
+
+        if (!eq)
+            Changed?.Invoke();
 
         // TODO: remove weakrefs
         foreach (var weak in References)

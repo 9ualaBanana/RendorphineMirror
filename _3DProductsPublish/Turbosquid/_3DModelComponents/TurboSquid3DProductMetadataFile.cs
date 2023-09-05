@@ -1,4 +1,5 @@
-﻿using _3DProductsPublish._3DProductDS;
+﻿using System.Reflection;
+using _3DProductsPublish._3DProductDS;
 using NodeToUI;
 using NodeToUI.Requests;
 using Tomlyn;
@@ -29,19 +30,40 @@ public partial record TurboSquid3DProductMetadata
             using var _file = System.IO.File.OpenWrite(Path);
             using var file = new StreamWriter(_file);
 
-            foreach (var _3DModel in _3DProduct._3DModels)
-                DescribedAndSerialized(_3DModel).WriteTo(file);
+            var nativeformats = _3DProduct._3DModels.Where(m => FileFormat_(m).IsNative()).ToImmutableArray();
+            var reqinput = new InputTurboSquidModelInfoRequest(
+                nativeformats.Select(f => new InputTurboSquidModelInfoRequest.ModelInfo(f.Name)).ToImmutableArray(),
+                Assembly.GetAssembly(typeof(File)).ThrowIfNull().GetTypes()
+                    .Where(t => t.IsAssignableToOpenGeneric(typeof(NativeFileFormatMetadata<>)))
+                    .Select(t => KeyValuePair.Create(t.Name, Enum.GetNames(t.GetGenericArguments()[0]).ToImmutableArray()))
+                    .ToImmutableDictionary()
+            );
+            var response = NodeGui.Request<InputTurboSquidModelInfoRequest.Response>(reqinput, default)
+                .AsTask().GetAwaiter().GetResult().ThrowIfError().Infos.Zip(nativeformats);
 
-            
-            static DocumentSyntax DescribedAndSerialized(_3DModel _3DModel)
+            foreach (var (userinfo, model) in response)
+                DescribedAndSerialized(userinfo, model).WriteTo(file);
+
+
+            static DocumentSyntax DescribedAndSerialized(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo userinfo, _3DModel _3DModel)
             {
                 var metadata = new DocumentSyntax();
                 var table = new TableSyntax(_3DModel.Name);
-                var fileFormat = FileFormat_();
+                var fileFormat = FileFormat_(_3DModel);
                 table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.FileFormat)), fileFormat.ToString_());
                 if (fileFormat.IsNative())
-                    // Instantiate corresponding `NativeFileFormatMetadata` object here by requesting data from user and add its properties to the `table` as well.
-                    ; // example: table.Items.Add(new _3ds_max(formatVersion: 1.0, renderer: _3ds_max.Renderer_.arion, rendererVersion: 1.0));
+                {
+                    var type = Assembly.GetAssembly(typeof(_3ds_max)).ThrowIfNull().GetType(userinfo.Format).ThrowIfNull();
+                    var renderertype = type.GetGenericArguments()[0];
+                    var renderer = Enum.Parse(renderertype, userinfo.Renderer);
+
+                    var instance = (NativeFileFormatMetadata) Activator.CreateInstance(
+                        Assembly.GetAssembly(typeof(_3ds_max)).ThrowIfNull().GetType(userinfo.Format).ThrowIfNull(),
+                        new object[] { userinfo.FormatVersion, renderer, userinfo.RendererVersion }
+                    ).ThrowIfNull();
+
+                    table.Items.Add(instance);
+                }
 
                 // Request this flag value from user.
                 table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.IsNative)), false);
@@ -49,33 +71,31 @@ public partial record TurboSquid3DProductMetadata
                 metadata.AddTrailingTriviaNewLine();
 
                 return metadata;
+            }
+            static FileFormat FileFormat_(_3DModel model)
+            {
+                foreach (var file in model.Files)
+                    if (DeduceFromExtension(file) is FileFormat fileFormat)
+                        return fileFormat;
+
+                throw new InvalidDataException($"{nameof(TurboSquid3DModelMetadata.FileFormat)} of {nameof(_3DModel)} ({model.Name}) can't be deduced.");
 
 
-                FileFormat FileFormat_()
-                {
-                    foreach (var file in _3DModel.Files)
-                        if (DeduceFromExtension(file) is FileFormat fileFormat)
-                            return fileFormat;
-                    
-                    throw new InvalidDataException($"{nameof(TurboSquid3DModelMetadata.FileFormat)} of {nameof(_3DModel)} ({_3DModel.Name}) can't be deduced.");
-
-
-                    FileFormat? DeduceFromExtension(string path)
-                        => System.IO.Path.GetExtension(path).ToLowerInvariant() switch
-                        {
-                            ".blend" => FileFormat.blender,
-                            ".c4d" => FileFormat.cinema_4d,
-                            ".max" => FileFormat._3ds_max,
-                            ".dwg" => FileFormat.autocad_drawing,
-                            ".lwo" => FileFormat.lightwave,
-                            ".fbx" => FileFormat.fbx,
-                            ".ma" or ".mb" => FileFormat.maya,
-                            ".hrc" or ".scn" => FileFormat.softimage,
-                            ".rfa" or ".rvt" => FileFormat.revit_family,
-                            ".obj" or ".mtl" => FileFormat.obj,
-                            _ => null
-                        };
-                }
+                static FileFormat? DeduceFromExtension(string path)
+                    => System.IO.Path.GetExtension(path).ToLowerInvariant() switch
+                    {
+                        ".blend" => FileFormat.blender,
+                        ".c4d" => FileFormat.cinema_4d,
+                        ".max" => FileFormat._3ds_max,
+                        ".dwg" => FileFormat.autocad_drawing,
+                        ".lwo" => FileFormat.lightwave,
+                        ".fbx" => FileFormat.fbx,
+                        ".ma" or ".mb" => FileFormat.maya,
+                        ".hrc" or ".scn" => FileFormat.softimage,
+                        ".rfa" or ".rvt" => FileFormat.revit_family,
+                        ".obj" or ".mtl" => FileFormat.obj,
+                        _ => null
+                    };
             }
         }
 
