@@ -1,9 +1,8 @@
 namespace NodeCommon.Tasks.Watching;
 
-public class WatchingTask : ILoggable
+public class WatchingTask
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-    void ILoggable.Log(LogLevel level, string text) => Logger.Log(level, $"[WTask {Id}] {text}");
+    public event Action<DbTaskFullState>? OnCompleted;
 
     public string Id { get; init; }
     public IWatchingTaskInputInfo Source { get; init; }
@@ -13,8 +12,6 @@ public class WatchingTask : ILoggable
     public TaskPolicy Policy { get; init; }
     public bool IsPaused = false;
     public ImmutableArray<TaskSoftwareRequirement>? SoftwareRequirements { get; init; }
-
-    [JsonIgnore] public IDisposable? Handler;
 
     public readonly List<string> PlacedNonCompletedTasks = new();
 
@@ -33,6 +30,7 @@ public class WatchingTask : ILoggable
         Policy = policy;
     }
 
+    public void Complete(DbTaskFullState task) => OnCompleted?.Invoke(task);
 
     public string FSDataDirectory() => Directories.Created(Path.Combine(Directories.Data, "watchingtasks", Id));
 }

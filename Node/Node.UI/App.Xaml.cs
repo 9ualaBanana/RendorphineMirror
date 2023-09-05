@@ -1,5 +1,7 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Microsoft.Extensions.DependencyInjection;
+using NLog.Extensions.Logging;
 
 namespace Node.UI
 {

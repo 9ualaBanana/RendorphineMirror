@@ -80,7 +80,8 @@
             "preLaunchTask": "buildregistry",
             "program": "${workspaceFolder}/SoftwareRegistry/bin/Debug/net7.0/SoftwareRegistry.dll",
             "args": [],
-            "cwd": "${workspaceFolder}",
+            "env": { "ASPNETCORE_ENVIRONMENT": "Development" },
+            "cwd": "${workspaceFolder}/Registry",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "stopAtEntry": false
@@ -104,7 +105,21 @@
             "preLaunchTask": "buildrapi",
             "program": "${workspaceFolder}/RApi/bin/Debug/net7.0/RApi.dll",
             "args": [],
-            "cwd": "${workspaceFolder}",
+            "env": { "ASPNETCORE_ENVIRONMENT": "Development" },
+            "cwd": "${workspaceFolder}/RApi",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
+            "name": "ChatGptApi",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildchatgptapi",
+            "program": "${workspaceFolder}/ChatGptApi/bin/Debug/net7.0/ChatGptApi.dll",
+            "args": [],
+            "env": { "ASPNETCORE_ENVIRONMENT": "Development" },
+            "cwd": "${workspaceFolder}/ChatGptApi",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "stopAtEntry": false
@@ -140,7 +155,8 @@
             "preLaunchTask": "buildupdateserver",
             "program": "${workspaceFolder}/UpdateServer/bin/Debug/net7.0/UpdateServer.dll",
             "args": [],
-            "cwd": "${workspaceFolder}",
+            "env": { "ASPNETCORE_ENVIRONMENT": "Development" },
+            "cwd": "${workspaceFolder}/UpdateServer",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "stopAtEntry": false

@@ -5,8 +5,11 @@ using System.Web;
 
 namespace Common;
 
-public record Api(HttpClient Client, bool LogRequests = true, CancellationToken CancellationToken = default)
+public record Api(HttpClient Client)
 {
+    public bool LogRequests { get; init; } = true;
+    public CancellationToken CancellationToken { get; init; } = default;
+
     public const string ServerUri = "https://tasks.microstock.plus";
     public const string TaskManagerEndpoint = $"{ServerUri}/rphtaskmgr";
     public static readonly Uri TaskLauncherEndpoint = new($"{ServerUri}/rphtasklauncher/");
@@ -59,7 +62,7 @@ public record Api(HttpClient Client, bool LogRequests = true, CancellationToken 
                     var result = await send().ConfigureAwait(false);
 
                     // true only when http code is non-success (except 400) and there's no response json
-                    var httperr = result.EString.HttpData is
+                    var httperr = result.Error is HttpError
                     {
                         IsSuccessStatusCode: false,
                         //StatusCode: not System.Net.HttpStatusCode.BadRequest,
@@ -154,13 +157,13 @@ public record Api(HttpClient Client, bool LogRequests = true, CancellationToken 
 
 
         if (response.IsSuccessStatusCode && ok)
-            return new OperationResult<JToken>(OperationResult.Succ() with { HttpData = new(response, null) }, responseJson);
+            return new OperationResult<JToken>(OperationResult.Succ(), responseJson);
 
-        return OperationResult.Err(retmsg) with { HttpData = new(response, errcode) };
+        return OperationResult.Err(new HttpError(errmsg, response, errcode));
     }
 
-    static HttpContent ToContent((string, string)[] values) => new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
-    static string ToGetContent((string, string)[] values) => string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
+    public static HttpContent ToContent((string, string)[] values) => new FormUrlEncodedContent(values.Select(x => KeyValuePair.Create(x.Item1, x.Item2)));
+    public static string ToGetContent((string, string)[] values) => string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
 
     public async Task<HttpResponseMessage> JustPost(string url, (string, string)[] values)
     {

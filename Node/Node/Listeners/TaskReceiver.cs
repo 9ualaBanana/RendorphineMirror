@@ -1,5 +1,6 @@
 using System.Net;
 using System.Web;
+using Node.Services.Targets;
 
 namespace Node.Listeners;
 
@@ -8,13 +9,14 @@ public class TaskReceiver : ListenerBase
     protected override ListenTypes ListenType => ListenTypes.Public;
     protected override string? Prefix => "rphtaskexec/launchtask";
 
+    public required PortsForwardedTarget PortsForwarded { get; init; }
+
     public TaskReceiver(ILogger<TaskReceiver> logger) : base(logger) { }
 
     protected override async ValueTask Execute(HttpListenerContext context)
     {
         if (!Settings.AcceptTasks.Value) return;
         if (context.Request.HttpMethod != "POST") return;
-
         using var response = context.Response;
 
         var querystr = await new StreamReader(context.Request.InputStream).ReadToEndAsync().ConfigureAwait(false);

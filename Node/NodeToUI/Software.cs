@@ -10,7 +10,7 @@ public static class Software
             .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
 
 
-    public static void StartUpdating(IReadOnlyBindable<bool>? skipupdate, CancellationToken token)
+    public static void StartUpdating(IReadOnlyBindable<bool>? skipupdate, ILogger logger, CancellationToken token)
     {
         new Thread(async () =>
         {
@@ -21,7 +21,7 @@ public static class Software
                 if (token.IsCancellationRequested) return;
 
                 if (skipupdate?.Value != true)
-                    (await OperationResult.WrapException(update)).LogIfError();
+                    (await OperationResult.WrapException(update)).LogIfError(logger);
 
                 await Task.Delay(interval);
 

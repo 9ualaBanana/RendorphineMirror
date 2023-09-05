@@ -15,6 +15,9 @@
     <PackageReference Include="Microsoft.PowerShell.Sdk" Version="7.3.4" />
     <PackageReference Include="NLog.Extensions.Logging" Version="5.1.0" />
   </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <PackageReference Include="Autofac.Diagnostics.DotGraph" Version="1.0.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\NodeCommon\NodeCommon.csproj" />

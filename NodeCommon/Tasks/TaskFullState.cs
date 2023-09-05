@@ -7,9 +7,7 @@ public record TaskInfo(TaskObject Object, ITaskInputInfo Input, ITaskOutputInfo 
     public static string GetTaskType(JObject data) => data.Property("type", StringComparison.OrdinalIgnoreCase)!.Value.Value<string>()!;
 }
 public record TaskServer(string Host, string Userid, string Nickname);
-public record DbTaskFullState(string Id, TaskInfo Info) : TaskBase(Id, Info), ILoggable
+public record DbTaskFullState(string Id, TaskInfo Info) : TaskBase(Id, Info)
 {
-    protected override string LogName => $"PTask";
-
     public long Registered { get; set; } = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 }

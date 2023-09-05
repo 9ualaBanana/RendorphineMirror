@@ -7,28 +7,30 @@ public class DirectUploadListener : MultipartListenerBase
 {
     class FileList
     {
-        public readonly TaskCompletionSource Completion = new();
-        public readonly TaskFileList Files;
-        public readonly ReceivedTask Task;
+        public TaskCompletionSource Completion { get; } = new();
+        public TaskFileList Files { get; }
+        public string TaskId { get; }
+        public TaskObject TaskObject { get; }
 
-        public FileList(ReceivedTask task)
+        public FileList(string directory, string taskid, TaskObject taskobject)
         {
-            Files = new(task.FSInputDirectory());
-            Task = task;
+            Files = new(directory);
+            TaskId = taskid;
+            TaskObject = taskobject;
         }
     }
 
-    static Dictionary<string, FileList> TasksToReceive = new();
+    static readonly Dictionary<string, FileList> TasksToReceive = new();
 
     protected override ListenTypes ListenType => ListenTypes.Public;
     protected override string? Prefix => "rphtaskexec/uploadinput";
 
     public DirectUploadListener(ILogger<DirectUploadListener> logger) : base(logger) { }
 
-    public static async Task<TaskFileList> WaitForFiles(ReceivedTask task, CancellationToken token)
+    public static async Task<ReadOnlyTaskFileList> WaitForFiles(string directory, string taskid, TaskObject obj, CancellationToken token)
     {
-        var filelist = new FileList(task);
-        TasksToReceive.Add(task.Id, filelist);
+        var filelist = new FileList(directory, taskid, obj);
+        TasksToReceive.Add(taskid, filelist);
 
         var ttoken = new TimeoutCancellationToken(token, TimeSpan.FromHours(1));
 
@@ -39,7 +41,7 @@ public class DirectUploadListener : MultipartListenerBase
 
             ttoken.ThrowIfCancellationRequested();
             ttoken.ThrowIfStuck($"Did not receive input files");
-            await Task.Delay(2000);
+            await Task.Delay(2000, token);
         }
 
         return filelist.Files;
@@ -62,7 +64,7 @@ public class DirectUploadListener : MultipartListenerBase
         if (filelist.Files.Count == 0 && last)
         {
             var length = long.Parse(file.Headers["Content-Length"]);
-            if (Math.Abs(filelist.Task.Info.Object.Size - length) > 1024 * 1024)
+            if (Math.Abs(filelist.TaskObject.Size - length) > 1024 * 1024)
                 return await WriteErr(context.Response, "Invalid input file length");
         }
 

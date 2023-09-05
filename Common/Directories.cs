@@ -16,6 +16,13 @@ public static class Directories
     /// <summary> Temp directory; {<see cref="Data"/>}/temp/[...<paramref name="subdirs"/>]. Cleaned every launch </summary>
     public static string Temp(params string[] subdirs) => Created(Data, "temp", Path.Combine(subdirs));
 
+    /// <summary> Temp directory; {<see cref="Data"/>}/temp/[...<paramref name="subdirs"/>]. Cleaned every launch </summary>
+    public static FuncDispose TempDispose(out string dir, params string[] subdirs)
+    {
+        dir = Created(Data, "temp", Path.Combine(subdirs));
+        return DisposeDelete(dir);
+    }
+
     /// <summary> Temp file; {<see cref="Data"/>}/temp/[...<paramref name="subdirs"/>]/{randomname} </summary>
     /// <returns> Struct that will delete the file when disposed </returns>
     public static FuncDispose TempFile(out string tempfile, params string[] subdirs)

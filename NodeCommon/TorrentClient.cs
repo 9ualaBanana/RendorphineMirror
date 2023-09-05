@@ -7,13 +7,13 @@ namespace NodeCommon;
 public record JsonPeer(string PeerId, ImmutableArray<ushort> Ports);
 public class TorrentClient
 {
-    readonly static Logger Logger = LogManager.GetCurrentClassLogger();
-
     static readonly ImmutableArray<string> Trackers = ImmutableArray.Create(
         "http://t.microstock.plus:5120/announce/",
         "udp://t.microstock.plus:5121/"
     );
     static readonly TorrentCreator Creator;
+
+    public required ILogger<TorrentClient> Logger { get; init; }
 
     public readonly ushort DhtPort, ListenPort;
     public BEncodedString PeerId => Client.PeerId;
@@ -49,7 +49,7 @@ public class TorrentClient
             foreach (var tracker in Trackers)
                 await manager.TrackerManager.AddTrackerAsync(new Uri(tracker));
         }
-        catch (Exception ex) { LogManager.GetCurrentClassLogger().Error($"Could not add trackers to {manager.InfoHash.ToHex()}: {ex}"); }
+        catch (Exception ex) { Logger.LogError($"Could not add trackers to {manager.InfoHash.ToHex()}: {ex}"); }
 
         if (announce) await Announce(manager);
     }
@@ -61,11 +61,11 @@ public class TorrentClient
     }
     void AddLoggers(TorrentManager manager)
     {
-        manager.PeersFound += (obj, e) => Logger.Trace("PeersFound " + manager.InfoHash.ToHex() + " " + e.GetType().Name + " " + e.NewPeers + " " + string.Join(", ", manager.GetPeersAsync().Result.Select(x => x.Uri)));
-        manager.PeerConnected += (obj, e) => Logger.Trace("PeerConnected " + manager.InfoHash.ToHex() + " " + e.Peer.Uri);
-        manager.PeerDisconnected += (obj, e) => Logger.Trace("PeerDisconnected " + manager.InfoHash.ToHex() + " " + e.Peer.Uri);
-        manager.TorrentStateChanged += (obj, e) => Logger.Trace("TorrentStateChanged " + manager.InfoHash.ToHex() + " " + e.NewState);
-        manager.ConnectionAttemptFailed += (obj, e) => Logger.Trace("ConnectionAttemptFailed " + manager.InfoHash.ToHex() + " " + e.Peer.ConnectionUri + " " + e.Reason);
+        manager.PeersFound += (obj, e) => Logger.LogTrace("PeersFound " + manager.InfoHash.ToHex() + " " + e.GetType().Name + " " + e.NewPeers + " " + string.Join(", ", manager.GetPeersAsync().Result.Select(x => x.Uri)));
+        manager.PeerConnected += (obj, e) => Logger.LogTrace("PeerConnected " + manager.InfoHash.ToHex() + " " + e.Peer.Uri);
+        manager.PeerDisconnected += (obj, e) => Logger.LogTrace("PeerDisconnected " + manager.InfoHash.ToHex() + " " + e.Peer.Uri);
+        manager.TorrentStateChanged += (obj, e) => Logger.LogTrace("TorrentStateChanged " + manager.InfoHash.ToHex() + " " + e.NewState);
+        manager.ConnectionAttemptFailed += (obj, e) => Logger.LogTrace("ConnectionAttemptFailed " + manager.InfoHash.ToHex() + " " + e.Peer.ConnectionUri + " " + e.Reason);
     }
 
     public Task<TorrentManager> StartMagnet(string magnet, string targetdir) => StartMagnet(MagnetLink.FromUri(new Uri(magnet)), targetdir);
@@ -74,14 +74,14 @@ public class TorrentClient
         if (Client.DhtEngine.State == MonoTorrent.Dht.DhtState.NotReady)
             _ = Client.DhtEngine.StartAsync();
 
-        Logger.Info($"Adding magnet {magnet.ToV1String()}");
+        Logger.LogInformation($"Adding magnet {magnet.ToV1String()}");
 
         var manager = TryGetManager(magnet.InfoHash) ?? await Client.AddAsync(magnet, targetdir, new TorrentSettingsBuilder() { CreateContainingDirectory = false }.ToSettings());
         AddLoggers(manager);
 
         if (manager.State is not (TorrentState.Starting or TorrentState.Seeding or TorrentState.Downloading))
         {
-            Logger.Info($"Starting magnet {magnet.ToV1String()}");
+            Logger.LogInformation($"Starting magnet {magnet.ToV1String()}");
 
             if (manager.HasMetadata && !manager.Complete)
                 await manager.HashCheckAsync(autoStart: true);
@@ -96,10 +96,14 @@ public class TorrentClient
     public async Task<(byte[] data, TorrentManager manager)> CreateAddTorrent(string path)
     {
         var data = await CreateTorrent(path).ConfigureAwait(false);
+        return await CreateAddTorrent(data, path);
+    }
+    public async Task<(byte[] data, TorrentManager manager)> CreateAddTorrent(byte[] data, string targetpath)
+    {
         var torrent = await Torrent.LoadAsync(data).ConfigureAwait(false);
-        Logger.Info($"Added torrent for {(File.Exists(path) ? "file" : "directory")} {path}: {torrent.InfoHash.ToHex()}");
+        Logger.LogInformation($"Added torrent for {(File.Exists(targetpath) ? "file" : "directory")} {targetpath}: {torrent.InfoHash.ToHex()}");
 
-        var manager = await AddOrGetTorrent(torrent, path).ConfigureAwait(false);
+        var manager = await AddOrGetTorrent(torrent, targetpath).ConfigureAwait(false);
         return (data, manager);
     }
 
@@ -114,20 +118,20 @@ public class TorrentClient
         if (Client.DhtEngine.State == MonoTorrent.Dht.DhtState.NotReady)
             _ = Client.DhtEngine.StartAsync();
 
-        Logger.Info($"Adding torrent {torrent.InfoHash.ToHex()}");
+        Logger.LogInformation($"Adding torrent {torrent.InfoHash.ToHex()}");
 
         manager = TryGetManager(torrent.InfoHash) ?? await Client.AddAsync(torrent, targetdir, new TorrentSettingsBuilder() { CreateContainingDirectory = false }.ToSettings());
         AddLoggers(manager);
 
         await manager.HashCheckAsync(autoStart: true).ConfigureAwait(false);
-        Logger.Info($"{torrent.InfoHash.ToHex()} {manager.State}");
+        Logger.LogInformation($"{torrent.InfoHash.ToHex()} {manager.State}");
 
         return manager;
     }
 
     public async Task WaitForCompletion(TorrentManager manager, TimeoutCancellationToken token)
     {
-        Logger.Info($"Waiting for download of {manager.InfoHash.ToHex()}");
+        Logger.LogInformation($"Waiting for download of {manager.InfoHash.ToHex()}");
 
         var progress = 0d;
         while (true)
@@ -142,6 +146,6 @@ public class TorrentClient
         }
 
         await manager.StopAsync(TimeSpan.FromSeconds(10));
-        Logger.Info($"Torrent {manager.InfoHash.ToHex()} was successfully downloaded, stopping");
+        Logger.LogInformation($"Torrent {manager.InfoHash.ToHex()} was successfully downloaded, stopping");
     }
 }

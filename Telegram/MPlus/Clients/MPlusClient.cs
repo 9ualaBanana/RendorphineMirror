@@ -18,7 +18,7 @@ public class MPlusClient
         ExecutedTaskApi executedTaskApi,
         MPlusFileAccessor fileAccessor,
         CancellationToken cancellationToken)
-        => await RequestTaskResultAsyncUsing(Apis.DefaultWithSessionId(fileAccessor.SessionId), executedTaskApi, fileAccessor, cancellationToken);
+        => await RequestTaskResultAsyncUsing(Apis.DefaultWithSessionId(fileAccessor.SessionId, cancellationToken), executedTaskApi, fileAccessor, cancellationToken);
 
     public async Task<TaskResultFromMPlus> RequestTaskResultAsyncUsing(
         Apis api,

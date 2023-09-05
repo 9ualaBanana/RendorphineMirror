@@ -1,5 +1,4 @@
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -7,12 +6,12 @@ using System.Text;
 using System.Web;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using Node.Services;
+using Node.Services.Targets;
 
 namespace Node.Listeners;
 
-public abstract class ListenerBase
+public abstract class ListenerBase : IServiceTarget
 {
     static readonly List<ListenerBase> Listeners = new();
 
@@ -21,11 +20,15 @@ public abstract class ListenerBase
     protected virtual bool RequiresAuthentication => false;
 
     protected readonly ILogger Logger;
+    public required IComponentContext ComponentContext { private get; init; }
 
     int StartIndex = 0;
     HttpListener? Listener;
 
     protected ListenerBase(ILogger logger) => Logger = logger;
+
+    static void IServiceTarget.CreateRegistrations(ContainerBuilder builder) { }
+    async Task IServiceTarget.ExecuteAsync() => Start();
 
     public void Start() => _Start(true);
     void _Start(bool firsttime)
@@ -34,9 +37,22 @@ public abstract class ListenerBase
             Listeners.Add(this);
 
         var prefixes = new List<string>();
-        if (ListenType.HasFlag(ListenTypes.Local)) addprefix($"127.0.0.1:{Settings.LocalListenPort}");
-        if (ListenType.HasFlag(ListenTypes.Public)) addprefix($"+:{Settings.UPnpPort}");
-        if (ListenType.HasFlag(ListenTypes.WebServer)) addprefix($"+:{Settings.UPnpServerPort}");
+        if (ListenType.HasFlag(ListenTypes.Local))
+        {
+            ComponentContext.Resolve<PortsUpdatedTarget.LocalPortsUpdatedTarget>();
+            addprefix($"127.0.0.1:{Settings.LocalListenPort}");
+        }
+        if (ListenType.HasFlag(ListenTypes.Public))
+        {
+            ComponentContext.Resolve<PortsUpdatedTarget.PublicPortsUpdatedTarget>();
+            addprefix($"+:{Settings.UPnpPort}");
+        }
+        if (ListenType.HasFlag(ListenTypes.WebServer))
+        {
+            ComponentContext.Resolve<PortsUpdatedTarget.WebPortsUpdatedTarget>();
+            addprefix($"+:{Settings.UPnpServerPort}");
+        }
+
         void addprefix(string prefix)
         {
             prefix = $"http://{prefix}/{Prefix}";
@@ -57,7 +73,10 @@ public abstract class ListenerBase
         {
             Logger.Error($"Could not start HttpListener: {ex.Message}, bypassing...");
 
+#pragma warning disable CA1416 // WindowsIdentity.GetCurrent() is supported only in windows
             var args = string.Join(';', prefixes.Select(p => $"netsh http add urlacl url={p} user={WindowsIdentity.GetCurrent().Name}"));
+#pragma warning restore CA1416
+
             using (var proc = Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{args}\"") { UseShellExecute = true, Verb = "runas", }).ThrowIfNull("Could not bypass httplistener rights: {0}"))
                 proc.WaitForExit();
 
@@ -122,7 +141,7 @@ public abstract class ListenerBase
     static readonly Dictionary<string, bool> CachedAuthentications = new();
 
     /// <summary> Returns true if provided sessionid is also from ours user </summary>
-    static async ValueTask<bool> CheckAuthentication(string sid)
+    async ValueTask<bool> CheckAuthentication(string sid)
     {
         var check = await docheck();
         CachedAuthentications[sid] = check;
@@ -137,7 +156,7 @@ public abstract class ListenerBase
             if (CachedAuthentications.TryGetValue(sid, out var cached))
                 return cached;
 
-            var nodes = await Apis.Default.WithSessionId(sid).GetMyNodesAsync().ConfigureAwait(false);
+            var nodes = await ComponentContext.Resolve<Apis>().WithSessionId(sid).GetMyNodesAsync().ConfigureAwait(false);
             if (!nodes) return false;
 
             var theiruserid = nodes.Result.Select(x => x.UserId).FirstOrDefault();
@@ -345,7 +364,7 @@ public abstract class ListenerBase
                 var reader = new MultipartReader(Boundary, stream);
                 var section = null as MultipartSection;
                 for (int j = 0; j < i; j++)
-                    section = await reader.ReadNextSectionAsync();
+                    section = await reader.ReadNextSectionAsync(cancellationToken);
 
                 if (section is null || section.ContentDisposition is null)
                 {

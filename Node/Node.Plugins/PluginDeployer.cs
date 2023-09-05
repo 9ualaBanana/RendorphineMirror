@@ -4,14 +4,9 @@ namespace Node.Plugins;
 
 public class PluginDeployer
 {
-    readonly IInstalledPluginsProvider InstalledPlugins;
-    readonly ILogger Logger;
-
-    public PluginDeployer(IInstalledPluginsProvider installedPlugins, ILogger<PluginDeployer> logger)
-    {
-        InstalledPlugins = installedPlugins;
-        Logger = logger;
-    }
+    public required IInstalledPluginsProvider InstalledPlugins { get; init; }
+    public required CondaManager CondaManager { get; init; }
+    public required ILogger<PluginDeployer> Logger { get; init; }
 
 
     /// <param name="version"> Plugin version or null if any </param>
