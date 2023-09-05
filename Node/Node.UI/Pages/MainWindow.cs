@@ -1,153 +1,155 @@
 using System.Web;
-using Autofac;
-using Node.UI.Pages.MainWindowTabs;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NodeToUI.Requests;
+using Node.UI.Pages.MainWindowTabs;
 
-namespace Node.UI.Pages;
-
-public partial class MainWindow : Window
+namespace Node.UI.Pages
 {
-    public required LocalApi LocalApi { get; init; }
-
-    public MainWindow(NodeStateUpdater nodeStateUpdater,IComponentContext ctx)
+    public partial class MainWindow : Window
     {
-        WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        this.FixStartupLocation();
-        Width = 692;
-        Height = 410;
-        Title = App.AppName;
-        Icon = App.Icon;
+        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-        TrayIndicator.PreventClosing(this);
-        SubscribeToStateChanges();
-
-
-        var tabs = new TabbedControl();
-        tabs.Add("tasks", ctx.Resolve<TasksTab2>());
-        tabs.Add("tab.dashboard", ctx.Resolve<DashboardTab>());
-        tabs.Add("tab.plugins", ctx.Resolve<PluginsTab>());
-        tabs.Add("menu.settings", ctx.Resolve<SettingsTab>());
-        tabs.Add("logs", new LogsTab());
-        if (Init.DebugFeatures) tabs.Add("registry", new JsonRegistryTab());
-        tabs.Add("cgtraderupload", ctx.Resolve<CGTraderUploadTab>());
-        tabs.Add("3dupload", new ModelUploader());
-
-        var statustb = new TextBlock()
+        public MainWindow()
         {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            FontWeight = FontWeight.Bold,
-        };
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            this.FixStartupLocation();
+            Width = 692;
+            Height = 410;
+            Title = App.AppName;
+            Icon = App.Icon;
 
-        Content = new Grid()
-        {
-            RowDefinitions = RowDefinitions.Parse("Auto *"),
-            Children =
+            this.PreventClosing();
+            SubscribeToStateChanges();
+
+
+            var tabs = new TabbedControl();
+            tabs.Add("tasks", new TasksTab2());
+            tabs.Add("tab.dashboard", new DashboardTab());
+            tabs.Add("tab.plugins", new PluginsTab());
+            tabs.Add("menu.settings", new SettingsTab());
+            tabs.Add("logs", new LogsTab());
+            if (Init.DebugFeatures) tabs.Add("registry", new JsonRegistryTab());
+            tabs.Add("cgtraderupload", new CGTraderUploadTab());
+            tabs.Add("3dupload", new ModelUploader());
+
+            var statustb = new TextBlock()
             {
-                statustb.WithRow(0),
-                tabs.WithRow(1),
-            },
-        };
+                HorizontalAlignment = HorizontalAlignment.Center,
+                FontWeight = FontWeight.Bold,
+            };
 
-
-        nodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
-        {
-            if (nodeStateUpdater.IsConnectedToNode.Value) statustb.Text = null;
-            else
+            Content = new Grid()
             {
-                statustb.Text = "!!! No connection to node !!!";
-                statustb.Foreground = Brushes.Red;
-            }
-        }), true);
-    }
-
-    void SubscribeToStateChanges()
-    {
-        IMessageBox? benchmb = null;
-        NodeGlobalState.Instance.ExecutingBenchmarks.Changed += () => Dispatcher.UIThread.Post(() =>
-        {
-            var benchs = NodeGlobalState.Instance.ExecutingBenchmarks;
-
-            if (benchs.Count != 0)
-            {
-                if (benchmb is null)
+                RowDefinitions = RowDefinitions.Parse("Auto *"),
+                Children =
                 {
-                    benchmb = new MessageBox(new("Hide"));
-                    benchmb.Show();
-                }
+                    statustb.WithRow(0),
+                    tabs.WithRow(1),
+                },
+            };
 
-                benchmb.Text = new(@$"
+
+            NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            {
+                if (NodeStateUpdater.IsConnectedToNode.Value) statustb.Text = null;
+                else
+                {
+                    statustb.Text = "!!! No connection to node !!!";
+                    statustb.Foreground = Brushes.Red;
+                }
+            }), true);
+        }
+
+        void SubscribeToStateChanges()
+        {
+            IMessageBox? benchmb = null;
+            NodeGlobalState.Instance.ExecutingBenchmarks.Changed += () => Dispatcher.UIThread.Post(() =>
+            {
+                var benchs = NodeGlobalState.Instance.ExecutingBenchmarks;
+
+                if (benchs.Count != 0)
+                {
+                    if (benchmb is null)
+                    {
+                        benchmb = new MessageBox(new("Hide"));
+                        benchmb.Show();
+                    }
+
+                    benchmb.Text = new(@$"
                         Benchmarking your system...
                         {benchs.Count} completed: {JsonConvert.SerializeObject(benchs)}
                     ".TrimLines());
-            }
-            else
-            {
-                benchmb?.Close();
-                benchmb = null;
-            }
-        });
-
-
-        var receivedrequests = new Dictionary<string, GuiRequest>();
-        NodeGlobalState.Instance.Requests.Changed += () => Dispatcher.UIThread.Post(() =>
-        {
-            var requests = NodeGlobalState.Instance.Requests.Value;
-            foreach (var req in receivedrequests.ToArray())
-            {
-                if (requests.ContainsKey(req.Key)) continue;
-
-                receivedrequests.Remove(req.Key);
-                req.Value.OnRemoved();
-            }
-            foreach (var req in requests)
-            {
-                if (receivedrequests.ContainsKey(req.Key)) continue;
-
-                // added
-                receivedrequests.Add(req.Key, req.Value);
-                handle(req.Key, req.Value);
-            }
-
-
-
-            void handle(string reqid, GuiRequest request)
-            {
-                if (request is CaptchaRequest captchareq) handleCaptchaRequest(captchareq);
-                else if (request is InputRequest inputreq) handleInputRequest(inputreq);
-
-
-                void handleCaptchaRequest(CaptchaRequest req)
+                }
+                else
                 {
-                    Dispatcher.UIThread.Post(() =>
+                    benchmb?.Close();
+                    benchmb = null;
+                }
+            });
+
+
+            var receivedrequests = new Dictionary<string, GuiRequest>();
+            NodeGlobalState.Instance.Requests.Changed += () => Dispatcher.UIThread.Post(() =>
+            {
+                var requests = NodeGlobalState.Instance.Requests.Value;
+                foreach (var req in receivedrequests.ToArray())
+                {
+                    if (requests.ContainsKey(req.Key)) continue;
+
+                    receivedrequests.Remove(req.Key);
+                    req.Value.OnRemoved();
+                }
+                foreach (var req in requests)
+                {
+                    if (receivedrequests.ContainsKey(req.Key)) continue;
+
+                    // added
+                    receivedrequests.Add(req.Key, req.Value);
+                    handle(req.Key, req.Value);
+                }
+
+
+
+                void handle(string reqid, GuiRequest request)
+                {
+                    if (request is CaptchaRequest captchareq) handleCaptchaRequest(captchareq);
+                    else if (request is InputRequest inputreq) handleInputRequest(inputreq);
+
+
+                    void handleCaptchaRequest(CaptchaRequest req)
                     {
-                        var window = new CaptchaWindow(req.Base64Image, v => sendResponse(v));
-                        req.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
-                        window.Show();
-                    });
-                }
-                void handleInputRequest(InputRequest req)
-                {
-                    Dispatcher.UIThread.Post(() =>
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            var window = new CaptchaWindow(req.Base64Image, v => sendResponse(v));
+                            req.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
+                            window.Show();
+                        });
+                    }
+                    void handleInputRequest(InputRequest req)
                     {
-                        var window = new InputWindow(req.Text, v => sendResponse(v));
-                        req.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
-                        window.Show();
-                    });
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            var window = new InputWindow(req.Text, v => sendResponse(v));
+                            req.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
+                            window.Show();
+                        });
+                    }
+
+
+                    async Task sendResponse(JToken token)
+                    {
+                        token = new JObject() { ["value"] = token };
+
+                        using var content = new StringContent(token.ToString());
+                        var reqtype = NodeGui.GuiRequestNames[request.GetType()];
+                        var post = await LocalApi.Default.Post($"{reqtype}?reqid={HttpUtility.UrlEncode(reqid)}", $"Sending {reqtype} request", content);
+                        post.LogIfError();
+
+                        receivedrequests.Remove(reqid);
+                    }
                 }
-
-
-                async Task sendResponse(JToken token)
-                {
-                    token = new JObject() { ["value"] = token };
-
-                    using var content = new StringContent(token.ToString());
-                    var reqtype = NodeGui.GuiRequestNames[request.GetType()];
-                    var post = await LocalApi.Post($"{reqtype}?reqid={HttpUtility.UrlEncode(reqid)}", $"Sending {reqtype} request", content);
-                    post.LogIfError();
-
-                    receivedrequests.Remove(reqid);
-                }
-            }
-        });
+            });
+        }
     }
 }

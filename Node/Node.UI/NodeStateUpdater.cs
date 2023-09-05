@@ -1,13 +1,13 @@
 namespace Node.UI;
 
-public class NodeStateUpdater
+public static class NodeStateUpdater
 {
-    public required ILogger<NodeStateUpdater> Logger { get; init; }
+    readonly static Logger Logger = LogManager.GetCurrentClassLogger();
 
-    public readonly Bindable<string> NodeHost = new("127.0.0.1:5123");
-    public readonly Bindable<bool> IsConnectedToNode = new(false);
+    public static readonly Bindable<string> NodeHost = new("127.0.0.1:5123");
+    public static readonly Bindable<bool> IsConnectedToNode = new(false);
 
-    public NodeStateUpdater()
+    static NodeStateUpdater()
     {
         var portfile = new[] { Directories.DataFor("renderfin"), Directories.Data, }
             .Select(p => Path.Combine(p, "lport"))
@@ -19,8 +19,8 @@ public class NodeStateUpdater
         catch { }
     }
 
-    public void Start() => _Start().Consume();
-    async Task _Start()
+    public static void Start() => _Start().Consume();
+    static async Task _Start()
     {
         var loadcache = Init.IsDebug;
         var cacheloaded = !loadcache;
@@ -32,7 +32,7 @@ public class NodeStateUpdater
                 File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, JsonSettings.Typed)));
         }
 
-        Software.StartUpdating(IsConnectedToNode, Logger, default);
+        Software.StartUpdating(IsConnectedToNode, new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger(nameof(NodeStateUpdater)), default);
 
         var cancel = false;
         var consecutive = 0;
@@ -46,7 +46,7 @@ public class NodeStateUpdater
                 using var _ = new FuncDispose(host.UnsubsbribeAll);
                 host.Changed += () =>
                 {
-                    Logger.LogInformation($"Node host was changed to {host.Value}; Restarting /getstate ...");
+                    Logger.Info($"Node host was changed to {host.Value}; Restarting /getstate ...");
                     cancel = true;
                     stream.Close();
                 };
@@ -63,7 +63,7 @@ public class NodeStateUpdater
                     if (cancel) return;
 
                     var jtoken = await JToken.LoadAsync(reader);
-                    Logger.LogTrace($"Node state updated: {string.Join(", ", (jtoken as JObject)?.Properties().Select(x => x.Name) ?? new[] { jtoken.ToString(Formatting.None) })}");
+                    Logger.Trace($"Node state updated: {string.Join(", ", (jtoken as JObject)?.Properties().Select(x => x.Name) ?? new[] { jtoken.ToString(Formatting.None) })}");
                     cacheloaded = true;
 
                     using var tokenreader = jtoken.CreateReader();
@@ -75,8 +75,8 @@ public class NodeStateUpdater
                 if (cancel) return;
 
                 IsConnectedToNode.Value = false;
-                if (consecutive < 3) Logger.LogError($"Could not read node state: {ex.Message}, reconnecting...");
-                else if (consecutive == 3) Logger.LogError($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
+                if (consecutive < 3) Logger.Error($"Could not read node state: {ex.Message}, reconnecting...");
+                else if (consecutive == 3) Logger.Error($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
 
                 consecutive++;
 

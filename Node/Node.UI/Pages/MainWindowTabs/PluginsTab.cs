@@ -1,10 +1,8 @@
-using Autofac;
-
 namespace Node.UI.Pages.MainWindowTabs;
 
 public class PluginsTab : Panel
 {
-    public PluginsTab(IComponentContext ctx)
+    public PluginsTab()
     {
         var scroll = new ScrollViewer()
         {
@@ -14,7 +12,7 @@ public class PluginsTab : Panel
                 Spacing = 20,
                 Children =
                 {
-                    ctx.Resolve<InstallPluginPanel>().Named("Install plugins"),
+                    new InstallPluginPanel().Named("Install plugins"),
                     new UserSettingsPluginPanel().Named("User settings (temp)"),
                     NamedList.Create("Stats", NodeGlobalState.Instance.SoftwareStats, softStatToControl),
                     NamedList.Create("Registry", NodeGlobalState.Instance.Software, softToControl),
@@ -76,7 +74,7 @@ public class PluginsTab : Panel
     {
         readonly IBindable GCBindable;
 
-        public InstallPluginPanel(LocalApi localApi)
+        public InstallPluginPanel()
         {
             var stats = NodeGlobalState.Instance.Software.GetBoundCopy();
             GCBindable = stats;
@@ -99,7 +97,7 @@ public class PluginsTab : Panel
                 Text = "Install",
                 OnClickSelf = async self =>
                 {
-                    var res = await localApi.Get("deploy", "Installing plugin", ("type", pluginslist.SelectedItem), ("version", versionslist.SelectedItem.ToString()));
+                    var res = await LocalApi.Default.Get("deploy", "Installing plugin", ("type", pluginslist.SelectedItem), ("version", versionslist.SelectedItem.ToString()));
                     await self.FlashErrorIfErr(res);
                 },
             };

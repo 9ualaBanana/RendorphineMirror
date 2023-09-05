@@ -1,5 +1,4 @@
 using System.Globalization;
-using Autofac;
 using Avalonia.Controls.Utils;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
@@ -10,11 +9,11 @@ namespace Node.UI.Pages.MainWindowTabs;
 
 public class TasksTab2 : Panel
 {
-    public TasksTab2(IComponentContext ctx)
+    public TasksTab2()
     {
         var tabs = new TabbedControl();
         tabs.Add("Local", new LocalTaskManager());
-        tabs.Add("Watching", ctx.Resolve<WatchingTaskManager>());
+        tabs.Add("Watching", new WatchingTaskManager());
         tabs.Add("Remote", new RemoteTaskManager());
 
         Children.Add(tabs);
@@ -107,8 +106,6 @@ public class TasksTab2 : Panel
     }
     class WatchingTaskManager : TaskManager<WatchingTask>
     {
-        public required LocalApi LocalApi { get; init; }
-
         protected override void CreateColumns(DataGrid data)
         {
             data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(WatchingTask.Id)) });
@@ -125,7 +122,7 @@ public class TasksTab2 : Panel
                 Text = "Delete",
                 SelfAction = async (task, self) =>
                 {
-                    var result = await LocalApi.Get("tasks/delwatching", "Deleting watching task", ("taskid", task.Id));
+                    var result = await LocalApi.Default.Get("tasks/delwatching", "Deleting watching task", ("taskid", task.Id));
                     await self.FlashErrorIfErr(result);
 
                     if (result) await LoadSetItems(data);
@@ -137,7 +134,7 @@ public class TasksTab2 : Panel
                 Text = "Pause/Unpause",
                 SelfAction = async (task, self) =>
                 {
-                    var result = await LocalApi.Get<WatchingTask>("tasks/pausewatching", "Pausing watching task", ("taskid", task.Id));
+                    var result = await LocalApi.Default.Get<WatchingTask>("tasks/pausewatching", "Pausing watching task", ("taskid", task.Id));
                     await self.FlashErrorIfErr(result);
 
                     if (result) await LoadSetItems(data);

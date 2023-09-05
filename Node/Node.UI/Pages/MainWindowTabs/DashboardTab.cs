@@ -1,4 +1,3 @@
-using Autofac;
 using Avalonia.Controls.ApplicationLifetimes;
 using Newtonsoft.Json;
 
@@ -6,7 +5,7 @@ namespace Node.UI.Pages.MainWindowTabs;
 
 public class DashboardTab : Panel
 {
-    public DashboardTab(LocalApi localApi, IClassicDesktopStyleApplicationLifetime lifetime, Func<LoginWindow> loginWindowCreator, IComponentContext ctx)
+    public DashboardTab()
     {
         var starttime = DateTimeOffset.Now;
         var infotb = new TextBlock()
@@ -37,7 +36,7 @@ public class DashboardTab : Panel
                             : new MPButton()
                             {
                                 Text = new("Create a task"),
-                                OnClick = () => ctx.Resolve<TaskCreationWindow>().Show(),
+                                OnClick = () => new TaskCreationWindow().Show(),
                             },
                         new MPButton()
                         {
@@ -49,11 +48,11 @@ public class DashboardTab : Panel
                             Text = new("Log out"),
                             OnClickSelf = async self =>
                             {
-                                var logout = await localApi.Get("logout", "Logging out");
+                                var logout = await LocalApi.Default.Get("logout", "Logging out");
                                 if (await self.FlashErrorIfErr(logout))
                                     return;
 
-                                lifetime.MainWindow = loginWindowCreator();
+                                ((IClassicDesktopStyleApplicationLifetime) Application.Current!.ApplicationLifetime!).MainWindow = new LoginWindow();
                                 ((Window) VisualRoot!).Close();
                             },
                         },
