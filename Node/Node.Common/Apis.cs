@@ -1,9 +1,14 @@
 namespace Node.Common;
 
-public record Apis(Api Api, string SessionId, bool LogErrors = true)
+public record Apis(Api Api, bool LogErrors = true)
 {
     public const string RegistryUrl = "https://t.microstock.plus:7898";
     public static string TaskManagerEndpoint => Api.TaskManagerEndpoint;
+
+    public virtual string SessionId { get; init; } = null!;
+
+    public Apis(Api api, string sessionid, bool logErrors = true) : this(api, logErrors) =>
+        SessionId = sessionid;
 
 
     public static Apis DefaultWithSessionId(string sid, CancellationToken token = default) => new(Api.Default with { CancellationToken = token }, sid);
