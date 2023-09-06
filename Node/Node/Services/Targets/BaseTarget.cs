@@ -24,6 +24,7 @@ public class BaseTarget : IServiceTarget
     public required ApiTarget Api { get; init; }
     public required DatabaseTarget Database { get; init; }
     public required TaskExecutorTarget TaskExecutor { get; init; }
+    public required PluginUpdaterTarget PluginUpdater { get; init; }
     public required TaskListener TaskListener { get; init; }
 
     public async Task ExecuteAsync()
