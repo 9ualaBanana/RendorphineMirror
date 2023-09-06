@@ -1,4 +1,6 @@
+using Node.Heartbeat;
 using Node.Listeners;
+using Node.Profiling;
 
 namespace Node.Services.Targets;
 
@@ -11,11 +13,16 @@ public class AuthenticatedTarget : IServiceTarget
     public required SessionManager SessionManager { get; init; }
     public required ILogger<AuthenticatedTarget> Logger { get; init; }
 
+    public required Api Api { get; init; }
+
     public async Task ExecuteAsync()
     {
         if (Settings.SessionId is null)
         {
             await WaitForAuth().ConfigureAwait(false);
+            await MPlusHeartbeat.Send(Api, await Profiler.CreateDummyAsync())
+                .ThrowIfError();
+
             Logger.Info("Authentication completed");
         }
 

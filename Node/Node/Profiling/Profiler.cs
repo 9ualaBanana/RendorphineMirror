@@ -36,6 +36,29 @@ public class Profiler
             Hardware = Settings.BenchmarkResult.Value?.Data ?? throw new Exception("Could not create Profile without benchmark data"),
         };
     }
+    public static async Task<Profile> CreateDummyAsync()
+    {
+        return new Profile()
+        {
+            Ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
+            Software = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>(),
+            AllowedTypes = new Dictionary<string, int>(),
+            AllowedInputs = new Dictionary<TaskInputType, int>(),
+            AllowedOutputs = new Dictionary<TaskOutputType, int>(),
+            Pricing = new
+            {
+                minunitprice = new { ffmpeg = -1, },
+                minbwprice = -1,
+                minstorageprice = -1,
+            },
+            Hardware = new(
+                new(1, new(1)) { Load = 0.0001 },
+                new(1, new(1)) { Load = 0.0001 },
+                new(1) { Free = 1 },
+                new[] { new DriveBenchmarkResult(0, 1) { FreeSpace = 1 } }.ToList()
+            ),
+        };
+    }
 
     async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes()
     {
@@ -72,7 +95,7 @@ public class Profiler
         return new FuncDispose(() => HeartbeatLocked = false);
     }
 
-    internal async Task<HttpContent> GetAsync()
+    internal async Task<Profile> GetAsync()
     {
         if (Benchmark.ShouldBeRun)
         {
@@ -86,7 +109,7 @@ public class Profiler
         return await BuildProfileAsync();
     }
 
-    async Task<FormUrlEncodedContent> BuildProfileAsync()
+    async Task<Profile> BuildProfileAsync()
     {
         _cachedProfile ??= await CreateDefault();
         Benchmark.UpdateValues(_cachedProfile.Hardware);
@@ -102,11 +125,6 @@ public class Profiler
                 _cachedProfile.AllowedTypes.Clear();
         }
 
-        var payloadContent = new Dictionary<string, string>()
-        {
-            ["sessionid"] = Settings.SessionId!,
-            ["info"] = JsonConvert.SerializeObject(_cachedProfile, JsonSettings.Lowercase),
-        };
-        return new FormUrlEncodedContent(payloadContent);
+        return _cachedProfile;
     }
 }

@@ -13,8 +13,7 @@ public class MPlusHeartbeat : Heartbeat
 
     protected override async Task Execute()
     {
-        var content = await Profiler.GetAsync();
-        var result = await Api.ApiPost($"{Api.TaskManagerEndpoint}/pheartbeat", "Sending a heartbeat", content);
+        var result = await Send(Api, await Profiler.GetAsync());
 
         // upon receiving an error -195 from heartbeat, the node should switch to reconnect mode
         // i don't know how to do this easily, like pausing all tasks and stuff like that
@@ -23,5 +22,17 @@ public class MPlusHeartbeat : Heartbeat
             Environment.Exit(0);
 
         result.ThrowIfError();
+    }
+
+    public static async Task<OperationResult> Send(Api api, Profile profile)
+    {
+        var payloadContent = new Dictionary<string, string>()
+        {
+            ["sessionid"] = Settings.SessionId!,
+            ["info"] = JsonConvert.SerializeObject(profile, JsonSettings.Lowercase),
+        };
+
+        using var content = new FormUrlEncodedContent(payloadContent);
+        return await api.ApiPost($"{Api.TaskManagerEndpoint}/pheartbeat", "Sending a heartbeat", content);
     }
 }
