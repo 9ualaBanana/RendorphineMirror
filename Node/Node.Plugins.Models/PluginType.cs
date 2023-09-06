@@ -15,6 +15,7 @@ public enum PluginType
     RobustVideoMatting,
     StableDiffusion,
     Yolov7,
+    ImageDetector,
 
     NvidiaDriver,
     Conda,

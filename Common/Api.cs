@@ -65,7 +65,7 @@ public record Api(HttpClient Client)
                     var httperr = result.Error is HttpError
                     {
                         IsSuccessStatusCode: false,
-                        //StatusCode: not System.Net.HttpStatusCode.BadRequest,
+                        StatusCode: not System.Net.HttpStatusCode.BadRequest,
                         ErrorCode: null,
                     };
 

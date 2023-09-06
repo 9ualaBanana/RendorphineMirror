@@ -23,7 +23,7 @@ public class WatchingTasksHandler
 
         IWatchingTaskInputHandler CreateWatchingHandler(WatchingTask task)
         {
-            using var scope = Container.BeginLifetimeScope(builder =>
+            var scope = Container.BeginLifetimeScope(builder =>
             {
                 builder.RegisterInstance(task)
                     .SingleInstance();
