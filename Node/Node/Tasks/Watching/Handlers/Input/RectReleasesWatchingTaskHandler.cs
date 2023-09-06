@@ -24,45 +24,36 @@ public class RectReleasesWatchingTaskHandler : WatchingTaskInputHandler<RectRele
                 Api.SignRequest(key, ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString())))
                 .ThrowIfError();
 
-            await Parallel.ForEachAsync(releases, new ParallelOptions() { MaxDegreeOfParallelism = 4 }, fullProcess);
+            var downloaded = await releases
+                .Select(async r => (r, await download(r)).AsOpResult())
+                .AggregateParallel(6)
+                .ThrowIfError();
+
+            using var _files = Directories.DisposeDelete(downloaded.Select(d => d.Item2).ToArray());
+            foreach (var (release, file) in downloaded)
+                await process(release, file, Token.Token);
 
 
-            async ValueTask fullProcess(ReleaseWithoutRect release, CancellationToken token)
+            async Task<string> download(ReleaseWithoutRect release)
             {
-                using var _logscope = Logger.BeginScope($"Release {release.Id}");
+                Logger.LogInformation($"Downloading release {release.Id}");
+                Directories.TempFile(out var target, "releaseswithoutrect");
 
-                var rect = await generateRect(release);
-                await assignRect(release, rect);
+                using var stream = await HttpClient.GetStreamAsync(release.Files["release"].Location.Url, Token.Token);
+                using var file = File.OpenWrite(target);
+                await stream.CopyToAsync(file, Token.Token);
 
+                return target;
+            }
+            async Task process(ReleaseWithoutRect release, string file, CancellationToken token)
+            {
+                Logger.LogInformation($"Processing release {release.Id}");
+                var rect = await launcher.GenerateRectAsync(file);
 
-                async Task<ImageDetectorRect> generateRect(ReleaseWithoutRect release)
-                {
-                    Logger.LogInformation("Processing");
-                    var file = await download(release);
-                    using var _ = Directories.DisposeDelete(file);
-
-                    return await launcher.GenerateRectAsync(file);
-
-
-                    async Task<string> download(ReleaseWithoutRect release)
-                    {
-                        Logger.LogInformation("Downloading");
-                        Directories.TempFile(out var target, "releaseswithoutrect");
-
-                        using var stream = await HttpClient.GetStreamAsync(release.Files["release"].Location.Url, token);
-                        using var file = File.OpenWrite(target);
-                        await stream.CopyToAsync(file, token);
-
-                        return target;
-                    }
-                }
-                async Task assignRect(ReleaseWithoutRect release, ImageDetectorRect rect)
-                {
-                    Logger.LogInformation("Assigning");
-                    await Api.Default.ApiPost($"{Api.ContentDBEndpoint}/releases/assignphotorect", $"Assigning rect {rect} to release {release.Id}",
-                        Api.SignRequest(key, ("userid", release.UserId), ("iid", release.Iid), ("rect", JsonConvert.SerializeObject(rect, JsonSettings.Lowercase)), ("version", Version.ToStringInvariant())))
-                        .ThrowIfError();
-                }
+                Logger.LogInformation($"Assigning release {release.Id}");
+                await Api.Default.ApiPost($"{Api.ContentDBEndpoint}/releases/assignphotorect", $"Assigning rect {rect} to release {release.Id}",
+                    Api.SignRequest(key, ("userid", release.UserId), ("iid", release.Iid), ("rect", JsonConvert.SerializeObject(rect, JsonSettings.Lowercase)), ("version", Version.ToStringInvariant())))
+                    .ThrowIfError();
             }
         }
     }
