@@ -5,7 +5,7 @@ namespace NodeToUI;
 
 public static class LocalPipe
 {
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+    readonly static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
     public static Task<Stream> SendAsync(string uri) => SendAsync(new HttpRequestMessage(HttpMethod.Get, uri));
     public static async Task<Stream> SendAsync(HttpRequestMessage msg)
@@ -25,9 +25,9 @@ public static class LocalPipe
             {
                 if (token.IsCancellationRequested) return;
 
-                var read = await reader.ReadAsync().ConfigureAwait(false);
+                var read = await reader.ReadAsync(token).ConfigureAwait(false);
                 if (!read) return;
-                var tk = await JToken.LoadAsync(reader).ConfigureAwait(false);
+                var tk = await JToken.LoadAsync(reader, token).ConfigureAwait(false);
 
                 onReceive(tk);
             }

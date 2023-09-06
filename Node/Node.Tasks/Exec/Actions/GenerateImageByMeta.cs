@@ -1,3 +1,4 @@
+/*
 namespace Node.Tasks.Exec.Actions;
 
 public class GenerateImageByMeta : PluginAction<GenerateImageByMetaInfo>
@@ -25,3 +26,4 @@ public class GenerateImageByMeta : PluginAction<GenerateImageByMetaInfo>
         await StableDiffusionLauncher.LaunchTxt2ImgAsync(context, launchinfo, files.OutputFiles.New());
     }
 }
+*/

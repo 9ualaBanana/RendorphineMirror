@@ -1,15 +1,11 @@
 namespace NodeCommon.Tasks;
 
-public abstract record TaskBase(string Id, TaskInfo Info) : IRegisteredTaskApi, ILoggable
+public abstract record TaskBase(string Id, TaskInfo Info) : IMPlusTask
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-    protected virtual string LogName => GetType().Name;
-    public void Log(LogLevel level, string text) => Logger.Log(level, $"[{LogName} {Id}] {text}");
-
     public string? HostShard { get; set; }
 
     // 0-1
-    public double Progress = 0;
+    public double Progress { get; set; } = 0;
     public TaskState State { get; set; } = TaskState.Queued;
     public TaskTimes Times { get; set; } = new();
 

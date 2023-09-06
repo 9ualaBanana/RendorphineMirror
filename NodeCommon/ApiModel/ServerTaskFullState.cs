@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 
 namespace NodeCommon.ApiModel;
 
-public record ServerTaskFullState : DbTaskFullState, ILoggable
+public record ServerTaskFullState : DbTaskFullState
 {
     public TaskServer? Server { get; set; }
 

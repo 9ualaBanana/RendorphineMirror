@@ -19,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Host.UseNLog();
 builder.Services.AddControllers().AddNewtonsoftJson();
-builder.Services.AddSingleton(new TorrentClient(6229, 6230));
+builder.Services.AddSingleton(ctx => new TorrentClient(6229, 6230) { Logger = ctx.GetRequiredService<ILogger<TorrentClient>>() });
 builder.Services.AddSingleton<SoftList>();
 builder.Services.AddSingleton<TorrentManager>();
 

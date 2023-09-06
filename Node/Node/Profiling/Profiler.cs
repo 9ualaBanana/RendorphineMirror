@@ -7,28 +7,23 @@ public class Profiler
     bool HeartbeatLocked = false;
     Profile? _cachedProfile;
 
-    readonly TaskHandlerList TaskHandlerList;
-    readonly ILogger Logger;
+    public required IComponentContext ComponentContext { get; init; }
+    public required PluginManager PluginManager { get; init; }
+    public required ILogger<Profiler> Logger { get; init; }
 
-    public Profiler(TaskHandlerList taskHandlerList, ILogger<Profiler> logger)
-    {
-        TaskHandlerList = taskHandlerList;
-        Logger = logger;
-    }
-
-    async ValueTask<Profile> CreateDefault(PluginManager pluginManager)
+    async ValueTask<Profile> CreateDefault()
     {
         var ip = MachineInfo.GetPublicIPAsync();
-        var software = BuildSoftwarePayloadAsync(pluginManager);
-        var types = BuildDefaultAllowedTypes(pluginManager);
+        var software = BuildSoftwarePayloadAsync();
+        var types = BuildDefaultAllowedTypes();
 
         return new()
         {
             Ip = (await ip).ToString(),
             Software = await software,
             AllowedTypes = await types,
-            AllowedInputs = TaskHandlerList.InputHandlerList.ToDictionary(x => x.Type, _ => 1),
-            AllowedOutputs = TaskHandlerList.OutputHandlerList.ToDictionary(x => x.Type, _ => 1),
+            AllowedInputs = ComponentContext.GetAllRegisteredKeys<TaskInputType>().ToDictionary(x => x, _ => 1),
+            AllowedOutputs = ComponentContext.GetAllRegisteredKeys<TaskOutputType>().ToDictionary(x => x, _ => 1),
             Pricing = new
             {
                 minunitprice = new
@@ -41,24 +36,47 @@ public class Profiler
             Hardware = Settings.BenchmarkResult.Value?.Data ?? throw new Exception("Could not create Profile without benchmark data"),
         };
     }
-
-    static async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes(PluginManager pluginManager)
+    public static async Task<Profile> CreateDummyAsync()
     {
-        var installed = (await pluginManager.GetInstalledPluginsAsync())
+        return new Profile()
+        {
+            Ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
+            Software = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>(),
+            AllowedTypes = new Dictionary<string, int>(),
+            AllowedInputs = new Dictionary<TaskInputType, int>(),
+            AllowedOutputs = new Dictionary<TaskOutputType, int>(),
+            Pricing = new
+            {
+                minunitprice = new { ffmpeg = -1, },
+                minbwprice = -1,
+                minstorageprice = -1,
+            },
+            Hardware = new(
+                new(1, new(1)) { Load = 0.0001 },
+                new(1, new(1)) { Load = 0.0001 },
+                new(1) { Free = 1 },
+                new[] { new DriveBenchmarkResult(0, 1) { FreeSpace = 1 } }.ToList()
+            ),
+        };
+    }
+
+    async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes()
+    {
+        var installed = (await PluginManager.GetInstalledPluginsAsync())
             .Select(p => p.Type)
             .ToImmutableHashSet();
 
-        return TaskList.AllActions
+        return ComponentContext.ResolveAllKeyed<IPluginActionInfo, TaskAction>()
             .Where(a => !Settings.DisabledTaskTypes.Value.Contains(a.Name))
             .Where(a => a.RequiredPlugins.All(installed.Contains))
             .ToDictionary(a => a.Name.ToString(), _ => 1);
     }
 
     // Ridiculous.
-    static async Task<Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>> BuildSoftwarePayloadAsync(PluginManager pluginManager)
+    async Task<Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>> BuildSoftwarePayloadAsync()
     {
         var result = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>();
-        foreach (var softwareGroup in (await pluginManager.GetInstalledPluginsAsync()).GroupBy(software => software.Type))
+        foreach (var softwareGroup in (await PluginManager.GetInstalledPluginsAsync()).GroupBy(software => software.Type))
         {
             var softwareName = Enum.GetName(softwareGroup.Key)!.ToLower();
             result.Add(softwareName, new Dictionary<string, Dictionary<string, Dictionary<string, string>>>());
@@ -77,7 +95,7 @@ public class Profiler
         return new FuncDispose(() => HeartbeatLocked = false);
     }
 
-    internal async Task<HttpContent> GetAsync(PluginManager pluginManager)
+    internal async Task<Profile> GetAsync()
     {
         if (Benchmark.ShouldBeRun)
         {
@@ -88,18 +106,18 @@ public class Profiler
         while (HeartbeatLocked)
             await Task.Delay(100);
 
-        return await BuildProfileAsync(pluginManager);
+        return await BuildProfileAsync();
     }
 
-    async Task<FormUrlEncodedContent> BuildProfileAsync(PluginManager pluginManager)
+    async Task<Profile> BuildProfileAsync()
     {
-        _cachedProfile ??= await CreateDefault(pluginManager);
+        _cachedProfile ??= await CreateDefault();
         Benchmark.UpdateValues(_cachedProfile.Hardware);
 
         if (Settings.AcceptTasks.Value)
         {
             if (_cachedProfile.AllowedTypes.Count == 0)
-                _cachedProfile.AllowedTypes = await BuildDefaultAllowedTypes(pluginManager);
+                _cachedProfile.AllowedTypes = await BuildDefaultAllowedTypes();
         }
         else
         {
@@ -107,11 +125,6 @@ public class Profiler
                 _cachedProfile.AllowedTypes.Clear();
         }
 
-        var payloadContent = new Dictionary<string, string>()
-        {
-            ["sessionid"] = Settings.SessionId!,
-            ["info"] = JsonConvert.SerializeObject(_cachedProfile, JsonSettings.Lowercase),
-        };
-        return new FormUrlEncodedContent(payloadContent);
+        return _cachedProfile;
     }
 }

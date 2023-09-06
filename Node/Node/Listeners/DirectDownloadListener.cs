@@ -5,17 +5,17 @@ namespace Node.Listeners;
 
 public class DirectDownloadListener : ExecutableListenerBase
 {
-    static Dictionary<string, TaskCompletionSource> TasksToReceive = new();
+    static readonly Dictionary<string, TaskCompletionSource> TasksToReceive = new();
 
     public DirectDownloadListener(ILogger<DirectDownloadListener> logger) : base(logger) { }
 
     protected override ListenTypes ListenType => ListenTypes.Public;
     protected override string? Prefix => "rphtaskexec/downloadoutput";
 
-    public static async Task WaitForUpload(ReceivedTask task, CancellationToken token)
+    public static async Task WaitForUpload(string taskid, CancellationToken token)
     {
         var taskcs = new TaskCompletionSource();
-        TasksToReceive.Add(task.Id, taskcs);
+        TasksToReceive.Add(taskid, taskcs);
 
         var ttoken = new TimeoutCancellationToken(token, TimeSpan.FromHours(2));
 
@@ -26,7 +26,7 @@ public class DirectDownloadListener : ExecutableListenerBase
 
             ttoken.ThrowIfCancellationRequested();
             ttoken.ThrowIfStuck($"Could not upload result");
-            await Task.Delay(2000);
+            await Task.Delay(2000, token);
         }
     }
 

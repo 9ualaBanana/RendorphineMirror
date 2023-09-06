@@ -19,6 +19,7 @@ global using Avalonia.VisualTree;
 global using Common;
 global using NLog;
 global using Node.Common;
+global using Node.Common.Models;
 global using Node.Plugins.Models;
 global using Node.Tasks.Models;
 global using Node.UI.Controls;

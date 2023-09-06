@@ -1,5 +1,3 @@
-using Avalonia.Controls.ApplicationLifetimes;
-
 namespace Node.UI.Pages
 {
     public class LoginWindow : LoginWindowUI
@@ -23,7 +21,7 @@ namespace Node.UI.Pages
             async Task<OperationResult> authenticate(string? login, string? password, LoginType loginType)
             {
                 var authres = await auth(login, password, loginType);
-                if (!authres) Dispatcher.UIThread.Post(() => Login.ShowError(authres.AsString()));
+                if (!authres) Dispatcher.UIThread.Post(() => Login.ShowError(authres.ToString()));
 
                 return authres;
             }

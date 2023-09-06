@@ -32,7 +32,7 @@ public static class NodeStateUpdater
                 File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, JsonSettings.Typed)));
         }
 
-        Software.StartUpdating(IsConnectedToNode, default);
+        Software.StartUpdating(IsConnectedToNode, new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger(nameof(NodeStateUpdater)), default);
 
         var cancel = false;
         var consecutive = 0;

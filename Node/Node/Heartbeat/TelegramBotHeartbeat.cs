@@ -3,14 +3,11 @@ namespace Node.Heartbeat;
 public class TelegramBotHeartbeat : Heartbeat
 {
     protected override TimeSpan Interval { get; } = TimeSpan.FromMinutes(5);
-    readonly Api Api;
-    readonly PluginManager PluginManager;
+    
+    public required Api Api { get; init; }
+    public required PluginManager PluginManager { get; init; }
 
-    public TelegramBotHeartbeat(Api api, PluginManager pluginManager, ILogger<TelegramBotHeartbeat> logger) : base(logger)
-    {
-        Api = api;
-        PluginManager = pluginManager;
-    }
+    public TelegramBotHeartbeat(ILogger<TelegramBotHeartbeat> logger) : base(logger) { }
 
     protected override async Task Execute()
     {

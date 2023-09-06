@@ -2,11 +2,11 @@ namespace Node.Tasks;
 
 public static class CondaInvoker
 {
-    public static Task ExecutePowerShellAtWithCondaEnvAsync(ITaskExecutionContext context, PluginType pltype, string script, Action<bool, object>? onRead, ILoggable logobj) =>
-        Task.Run(() => ExecutePowerShellAtWithCondaEnv(context, pltype, script, onRead, logobj));
-    public static void ExecutePowerShellAtWithCondaEnv(ITaskExecutionContext context, PluginType pltype, string script, Action<bool, object>? onRead, ILoggable logobj)
+    public static Task ExecutePowerShellAtWithCondaEnvAsync(PluginList plugins, PluginType pltype, string script, Action<bool, object>? onRead, ILogger logger) =>
+        Task.Run(() => ExecutePowerShellAtWithCondaEnv(plugins, pltype, script, onRead, logger));
+    public static void ExecutePowerShellAtWithCondaEnv(PluginList plugins, PluginType pltype, string script, Action<bool, object>? onRead, ILogger logger)
     {
-        var plugin = context.GetPlugin(pltype);
+        var plugin = plugins.GetPlugin(pltype);
 
         var envname = $"{plugin.Type.ToString().ToLowerInvariant()}_{plugin.Version}";
         if (!CondaManager.IsEnvironmentCreated(envname))
@@ -14,14 +14,14 @@ public static class CondaInvoker
 
         script = $"""
             Set-Location '{Path.GetFullPath(Path.GetDirectoryName(plugin.Path)!)}'
-            {CondaManager.GetRunInEnvironmentScript(context.GetPlugin(PluginType.Conda).Path, envname, script)}
+            {CondaManager.GetRunInEnvironmentScript(plugins.GetPlugin(PluginType.Conda).Path, envname, script)}
             """;
 
         PowerShellInvoker.Invoke(
             script,
             (obj, log) => { log(); onRead?.Invoke(false, obj); },
             (obj, log) => { log(); onRead?.Invoke(true, obj); },
-            logobj
+            logger
         );
     }
 }

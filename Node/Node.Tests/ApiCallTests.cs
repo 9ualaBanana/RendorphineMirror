@@ -25,7 +25,7 @@ public class ApiCallTests
 
         await request(HttpStatusCode.OK, new JObject() { ["ok"] = 0, ["errorcode"] = 2, ["errormessage"] = "err" })
             .With(req => req.Success.Should().BeFalse())
-            .With(req => req.HttpData.ThrowIfValueNull()
+            .With(req => (req.Error as HttpError).ThrowIfNull()
                 .With(http => http.IsSuccessStatusCode.Should().BeTrue())
                 .With(http => http.StatusCode.Should().Be(HttpStatusCode.OK))
                 .With(http => http.ErrorCode.Should().Be(2))
@@ -34,7 +34,7 @@ public class ApiCallTests
 
         await request(HttpStatusCode.OK, new JObject() { ["ok"] = 1 })
             .With(req => req.Success.Should().BeTrue())
-            .With(req => req.HttpData.ThrowIfValueNull()
+            .With(req => (req.Error as HttpError).ThrowIfNull()
                 .With(http => http.IsSuccessStatusCode.Should().BeTrue())
                 .With(http => http.StatusCode.Should().Be(HttpStatusCode.OK))
                 .With(http => http.ErrorCode.Should().BeNull())
@@ -43,7 +43,7 @@ public class ApiCallTests
 
         await request(HttpStatusCode.BadRequest, null)
             .With(req => req.Success.Should().BeFalse())
-            .With(req => req.HttpData.ThrowIfValueNull()
+            .With(req => (req.Error as HttpError).ThrowIfNull()
                 .With(http => http.IsSuccessStatusCode.Should().BeFalse())
                 .With(http => http.StatusCode.Should().Be(HttpStatusCode.BadRequest))
                 .With(http => http.ErrorCode.Should().BeNull())
@@ -56,7 +56,7 @@ public class ApiCallTests
 
         await request(HttpStatusCode.OK, new JObject() { ["errorcode"] = 2, ["errormessage"] = "err" })
             .With(req => req.Success.Should().BeFalse())
-            .With(req => req.HttpData.ThrowIfValueNull()
+            .With(req => (req.Error as HttpError).ThrowIfNull()
                 .With(http => http.IsSuccessStatusCode.Should().BeTrue())
                 .With(http => http.StatusCode.Should().Be(HttpStatusCode.OK))
                 .With(http => http.ErrorCode.Should().Be(2))
@@ -65,7 +65,7 @@ public class ApiCallTests
 
         await request(HttpStatusCode.OK, new JObject() { })
             .With(req => req.Success.Should().BeTrue())
-            .With(req => req.HttpData.ThrowIfValueNull()
+            .With(req => (req.Error as HttpError).ThrowIfNull()
                 .With(http => http.IsSuccessStatusCode.Should().BeTrue())
                 .With(http => http.StatusCode.Should().Be(HttpStatusCode.OK))
                 .With(http => http.ErrorCode.Should().BeNull())
@@ -74,7 +74,7 @@ public class ApiCallTests
 
         await request(HttpStatusCode.BadRequest, new JObject() { ["errorcode"] = 2, ["errormessage"] = "err" })
             .With(req => req.Success.Should().BeFalse())
-            .With(req => req.HttpData.ThrowIfValueNull()
+            .With(req => (req.Error as HttpError).ThrowIfNull()
                 .With(http => http.IsSuccessStatusCode.Should().BeFalse())
                 .With(http => http.StatusCode.Should().Be(HttpStatusCode.BadRequest))
                 .With(http => http.ErrorCode.Should().Be(2))
@@ -83,7 +83,7 @@ public class ApiCallTests
 
         await request(HttpStatusCode.BadRequest, null)
             .With(req => req.Success.Should().BeFalse())
-            .With(req => req.HttpData.ThrowIfValueNull()
+            .With(req => (req.Error as HttpError).ThrowIfNull()
                 .With(http => http.IsSuccessStatusCode.Should().BeFalse())
                 .With(http => http.StatusCode.Should().Be(HttpStatusCode.BadRequest))
                 .With(http => http.ErrorCode.Should().BeNull())

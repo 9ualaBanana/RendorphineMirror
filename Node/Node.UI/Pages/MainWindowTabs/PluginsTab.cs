@@ -122,7 +122,8 @@ public class PluginsTab : Panel
             Stats = NodeGlobalState.Instance.Software.GetBoundCopy();
 
             Apis.Default.GetSettingsAsync()
-                .Next(s => { Settings.Value = s; return true; });
+                .Next(s => { Settings.Value = s; return OperationResult.Succ(); })
+                .Consume();
 
             var versionslist = TypedComboBox.Create(Array.Empty<PluginVersion>(), ver => new TextBlock() { Text = string.IsNullOrEmpty(ver.ToString()) ? "[latest]" : ver.ToString() }).With(c => c.MinWidth = 100);
             versionslist.SelectedIndex = 0;

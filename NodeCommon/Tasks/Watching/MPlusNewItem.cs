@@ -1,6 +1,9 @@
 namespace NodeCommon.Tasks.Watching;
 
-public record MPlusNewItem(string Iid, string UserId, MPlusNewItemFiles Files, long Registered);
+public record MPlusNewItem(string Iid, string UserId, MPlusNewItemFiles Files, long Registered)
+{
+    [JsonProperty("qspversion")] public required int QSPreviewVersion { get; init; }
+}
 public record MPlusNewItemFiles(MPlusNewItemFile Jpeg, MPlusNewItemFile? Mov = null)
 {
     public MPlusNewItemFile File => Mov ?? Jpeg;

@@ -18,7 +18,7 @@ public class FFmpegLauncher
     public MultiList<string> AudioFilters { get; } = new();
     public MultiList<FFmpegLauncherOutput> Outputs { get; } = new();
 
-    public ILoggable? Logger { get; init; }
+    public required ILogger ILogger { get; init; }
     public IProgressSetter? ProgressSetter { get; init; }
 
     public FFmpegLauncher(string executable) => Executable = executable;
@@ -47,26 +47,33 @@ public class FFmpegLauncher
 
     public async Task Execute()
     {
+        var fallbackCodec = false;
+        var hwaccelInput = true;
+
         try
         {
-            await launch(false);
+            await launch();
         }
-        catch (Exception ex) when (Outputs.Any(p => p.Codec?.Fallback is not null))
+        catch (Exception ex) when (!fallbackCodec || Outputs.Any(p => p.Codec?.Fallback is not null))
         {
-            Logger?.LogErr($"{ex.Message}, restarting using fallback codecs..");
-            await launch(true);
+            ILogger.LogError($"{ex.Message}, restarting using {JsonConvert.SerializeObject(new { fallbackCodec, hwaccelInput })}..");
+            await launch();
         }
 
 
-        async Task launch(bool fallback)
+        async Task launch()
         {
+            using var _logscope = ILogger.BeginScope("FFmpeg");
+
             var args = new ArgList()
             {
                 // hide useless info
                 "-hide_banner",
 
                 // enable hardware acceleration
-                "-hwaccel", "auto",
+                // but not for jpegs in fallback mode
+                // because sometimes jpegs with hwaccel return `CUDA_ERROR_INVALID_IMAGE: device kernel image is invalid`
+                hwaccelInput ? new[] { "-hwaccel", "auto" } : null,
 
                 // force rewrite output file if exists
                 "-y",
@@ -75,13 +82,12 @@ public class FFmpegLauncher
 
                 VideoFilters.Count == 0 ? null : new[] { "-filter_complex", string.Join(',', VideoFilters) },
                 AudioFilters.Count == 0 ? null : new[] { "-af", string.Join(',', AudioFilters) },
-                Outputs.SelectMany(p => p.Build(fallback)),
+                Outputs.SelectMany(p => p.Build(fallbackCodec)),
             };
 
 
-            var logger = Logger is null ? null : new NamedLogger("FFmpeg", Logger);
 
-            var duration = (await Task.WhenAll(Input.Select(f => FFProbe.Get(f.Path, logger)))).Select(ff => TimeSpan.FromSeconds(ff.Format.Duration)).Max();
+            var duration = (await Task.WhenAll(Input.Select(f => FFProbe.Get(f.Path, ILogger)))).Select(ff => TimeSpan.FromSeconds(ff.Format.Duration)).Max();
             // if speed filter is active we should alter the duration for progress
             // but noone should change speed anyway and who cares about progress
             // duration /= argholder.Rate;
@@ -89,7 +95,7 @@ public class FFmpegLauncher
             await new ProcessLauncher(Executable, args)
             {
                 ThrowOnStdErr = false,
-                Logging = { Logger = logger, StdErr = LogLevel.Trace },
+                Logging = { ILogger = ILogger, StdErr = LogLevel.Trace },
                 EnvVariables = { EnvVariables },
             }
                 .AddOnRead(onRead)
@@ -100,7 +106,16 @@ public class FFmpegLauncher
             {
                 if (line.Contains("10 bit encode not supported", StringComparison.Ordinal)
                     || line.Contains("No capable devices found", StringComparison.Ordinal))
+                {
+                    fallbackCodec = true;
                     throw new Exception(line);
+                }
+
+                if (line.Contains("CUDA_ERROR_INVALID_IMAGE: device kernel image is invalid", StringComparison.Ordinal))
+                {
+                    hwaccelInput = false;
+                    throw new Exception(line);
+                }
 
                 // frame=  502 fps=0.0 q=29.0 size=     256kB time=00:00:14.84 bitrate= 141.3kbits/s speed=29.5x
                 if (!line.StartsWith("frame=", StringComparison.Ordinal)) return;
