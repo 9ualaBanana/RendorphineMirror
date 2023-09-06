@@ -22,5 +22,6 @@ public abstract class Heartbeat
         { IsBackground = true, Name = GetType().Name }.Start();
     }
 
+    public async Task RunOnce() => await Execute();
     protected abstract Task Execute();
 }

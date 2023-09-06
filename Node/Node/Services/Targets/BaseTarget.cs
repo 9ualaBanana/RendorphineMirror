@@ -21,7 +21,6 @@ public class BaseTarget : IServiceTarget
     }
 
     public required ApiTarget Api { get; init; }
-    public required UITarget UI { get; init; }
     public required DatabaseTarget Database { get; init; }
     public required TaskExecutorTarget TaskExecutor { get; init; }
     public required TaskListener TaskListener { get; init; }

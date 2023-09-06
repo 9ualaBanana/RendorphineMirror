@@ -7,7 +7,8 @@ public class ApiTarget : IServiceTarget
         builder.RegisterInstance(Api.Default)
             .SingleInstance();
 
-        builder.RegisterInstance(new Apis(Api.Default, Settings.SessionId))
+        builder.RegisterType<NodeApis>()
+            .As<Apis>()
             .SingleInstance();
     }
 

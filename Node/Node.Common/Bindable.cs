@@ -46,7 +46,16 @@ public abstract class BindableBase<T> : IReadOnlyBindable<T>
         Changed += action;
         if (executeImmediately) TriggerValueChanged();
     }
-    public void TriggerValueChanged() => InternalSet(Value, this);
+    public void TriggerValueChanged() => TriggerValueChanged(this);
+    public void TriggerValueChanged(BindableBase<T> eventSource)
+    {
+        Changed?.Invoke();
+
+        // TODO: remove weakrefs
+        foreach (var weak in References)
+            if (weak.TryGetTarget(out var obj) && obj != eventSource)
+                obj.InternalSet(Value, this);
+    }
 
     void InternalSet(T value, BindableBase<T> eventSource)
     {
@@ -54,12 +63,7 @@ public abstract class BindableBase<T> : IReadOnlyBindable<T>
         _Value = value;
 
         if (!eq)
-            Changed?.Invoke();
-
-        // TODO: remove weakrefs
-        foreach (var weak in References)
-            if (weak.TryGetTarget(out var obj) && obj != eventSource)
-                obj.InternalSet(value, this);
+            TriggerValueChanged(eventSource);
     }
 
     public void Bind(BindableBase<T> other)
