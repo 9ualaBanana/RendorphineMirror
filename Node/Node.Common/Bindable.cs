@@ -59,8 +59,11 @@ public abstract class BindableBase<T> : IReadOnlyBindable<T>
 
     void InternalSet(T value, BindableBase<T> eventSource)
     {
+        var eq = EqualityComparer<T>.Default.Equals(Value, value);
         _Value = value;
-        TriggerValueChanged(eventSource);
+
+        if (!eq)
+            TriggerValueChanged(eventSource);
     }
 
     public void Bind(BindableBase<T> other)
