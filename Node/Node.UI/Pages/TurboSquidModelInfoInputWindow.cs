@@ -10,6 +10,10 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
 
     public TurboSquidModelInfoInputWindow(InputTurboSquidModelInfoRequest request, Func<JToken, Task> onClick)
     {
+        Width = 600;
+        Height = 400;
+        this.Bind(TitleProperty, "Input model info:");
+
         var infos = request.Infos.Select(r => new EditableModelInfo(NativeItem, r, request.FormatRenderers)).ToArray();
 
         var grid = new DataGrid() { AutoGenerateColumns = false, Items = infos, };

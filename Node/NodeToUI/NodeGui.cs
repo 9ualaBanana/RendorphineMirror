@@ -14,12 +14,13 @@ public static class NodeGui
         {
             ["captcharesponse"] = typeof(CaptchaRequest),
             ["inputresponse"] = typeof(InputRequest),
+            ["tsmiresponse"] = typeof(InputTurboSquidModelInfoRequest),
         }.ToImmutableDictionary();
 
         GuiRequestNames = GuiRequestTypes.ToImmutableDictionary(x => x.Value, x => x.Key);
     }
 
-    public static async ValueTask<OperationResult<TResult>> Request<TResult>(GuiRequest request, CancellationToken token)
+    public static async Task<OperationResult<TResult>> Request<TResult>(GuiRequest request, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 

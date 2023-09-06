@@ -31,20 +31,40 @@ public partial record TurboSquid3DProductMetadata
             using var file = new StreamWriter(_file);
 
             var nativeformats = _3DProduct._3DModels.Where(m => FileFormat_(m).IsNative()).ToImmutableArray();
-            var reqinput = new InputTurboSquidModelInfoRequest(
-                nativeformats.Select(f => new InputTurboSquidModelInfoRequest.ModelInfo(f.Name)).ToImmutableArray(),
-                Assembly.GetAssembly(typeof(File)).ThrowIfNull().GetTypes()
-                    .Where(t => t.IsAssignableToOpenGeneric(typeof(NativeFileFormatMetadata<>)))
-                    .Select(t => KeyValuePair.Create(t.Name, Enum.GetNames(t.GetGenericArguments()[0]).ToImmutableArray()))
-                    .ToImmutableDictionary()
-            );
-            var response = NodeGui.Request<InputTurboSquidModelInfoRequest.Response>(reqinput, default)
-                .AsTask().GetAwaiter().GetResult().ThrowIfError().Infos.Zip(nativeformats);
+            var info = requestInfo(nativeformats).Result.ThrowIfError();
 
-            foreach (var (userinfo, model) in response)
+            foreach (var (userinfo, model) in info)
                 DescribedAndSerialized(userinfo, model).WriteTo(file);
 
 
+            static async Task<OperationResult<IEnumerable<(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo, _3DModel)>>> requestInfo(ImmutableArray<_3DModel> nativeformats)
+            {
+                var enumdict = Assembly.GetAssembly(typeof(File)).ThrowIfNull().GetTypes()
+                    .Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(NativeFileFormatMetadata)))
+                    .Select(t =>
+                    {
+                        var enumtype = t;
+                        while (true)
+                        {
+                            enumtype = t.BaseType.ThrowIfNull();
+                            if (enumtype.IsGenericType && enumtype.GetGenericTypeDefinition() == typeof(NativeFileFormatMetadata<>))
+                                break;
+                        }
+                        enumtype = enumtype.GenericTypeArguments[0];
+
+                        return KeyValuePair.Create(t.Name, Enum.GetNames(enumtype).ToImmutableArray());
+                    })
+                    .ToImmutableDictionary();
+
+                var reqinput = new InputTurboSquidModelInfoRequest(
+                    nativeformats.Select(f => new InputTurboSquidModelInfoRequest.ModelInfo(f.Name)).ToImmutableArray(),
+                    enumdict
+                );
+
+                return await
+                    from response in NodeGui.Request<InputTurboSquidModelInfoRequest.Response>(reqinput, default)
+                    select response.Infos.Zip(nativeformats);
+            }
             static DocumentSyntax DescribedAndSerialized(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo userinfo, _3DModel _3DModel)
             {
                 var metadata = new DocumentSyntax();
