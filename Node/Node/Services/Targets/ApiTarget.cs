@@ -4,6 +4,9 @@ public class ApiTarget : IServiceTarget
 {
     public static void CreateRegistrations(ContainerBuilder builder)
     {
+        builder.RegisterInstance(Api.Default.Client)
+            .SingleInstance();
+
         builder.RegisterInstance(Api.Default)
             .SingleInstance();
 

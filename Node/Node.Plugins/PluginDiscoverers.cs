@@ -16,6 +16,7 @@ public static class PluginDiscoverers
             new PythonEsrganPluginDiscoverer(),
             new StableDiffusionPluginDiscoverer(),
             new Yolov7PluginDiscoverer(),
+            new ImageDetectorPluginDiscoverer(),
             new RobustVideoMattingPluginDiscoverer(),
             new VeeeVectorizerPluginDiscoverer(),
             new NvidiaDriverPluginDiscoverer(),
