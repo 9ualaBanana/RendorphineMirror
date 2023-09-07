@@ -82,5 +82,6 @@ public static class IOList
         builder.RegisterWatchingInput<MPlusWatchingTaskHandler>();
         builder.RegisterWatchingInput<QSWatchingTaskHandler>();
         builder.RegisterWatchingInput<OtherUserWatchingTaskHandler>();
+        builder.RegisterWatchingInput<RectReleasesWatchingTaskHandler>();
     }
 }

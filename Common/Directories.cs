@@ -60,11 +60,18 @@ public static class Directories
     }
 
 
-    /// <summary> Deletes a file or directory when disposed </summary>
-    public static FuncDispose DisposeDelete(string path) => new FuncDispose(() =>
+    /// <summary> Deletes files or directories when disposed </summary>
+    public static FuncDispose DisposeDelete(params string[] paths) => new FuncDispose(() =>
     {
-        if (File.Exists(path)) File.Delete(path);
-        if (Directory.Exists(path)) Directory.Delete(path);
+        foreach (var path in paths)
+        {
+            try
+            {
+                if (File.Exists(path)) File.Delete(path);
+                if (Directory.Exists(path)) Directory.Delete(path);
+            }
+            catch { }
+        }
     });
 
 

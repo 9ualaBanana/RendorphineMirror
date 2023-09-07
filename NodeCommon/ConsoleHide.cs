@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace NodeCommon;
@@ -10,6 +11,12 @@ public static class ConsoleHide
 
     public static void Hide()
     {
+        if (Debugger.IsAttached) return;
+
+#if DEBUG
+        return;
+#endif
+
         const int sw_hide = 0;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

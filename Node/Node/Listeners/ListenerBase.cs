@@ -61,8 +61,13 @@ public abstract class ListenerBase : IServiceTarget
             prefixes.Add(prefix);
         }
 
-        Listener?.Stop();
-        Listener?.Close();
+        try
+        {
+            Listener?.Stop();
+            Listener?.Close();
+        }
+        catch (ObjectDisposedException) { }
+
         Listener = new();
         foreach (var prefix in prefixes)
             Listener.Prefixes.Add(prefix);
@@ -73,12 +78,17 @@ public abstract class ListenerBase : IServiceTarget
         {
             Logger.Error($"Could not start HttpListener: {ex.Message}, bypassing...");
 
+            foreach (var prefix in prefixes)
+            {
 #pragma warning disable CA1416 // WindowsIdentity.GetCurrent() is supported only in windows
-            var args = string.Join(';', prefixes.Select(p => $"netsh http add urlacl url={p} user={WindowsIdentity.GetCurrent().Name}"));
+                var args = $"netsh http add urlacl url={prefix} user={WindowsIdentity.GetCurrent().Name}";
 #pragma warning restore CA1416
 
-            using (var proc = Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{args}\"") { UseShellExecute = true, Verb = "runas", }).ThrowIfNull("Could not bypass httplistener rights: {0}"))
+                using var proc = Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{args}\"") { UseShellExecute = true, Verb = "runas", })
+                    .ThrowIfNull("Could not bypass httplistener rights: {0}");
                 proc.WaitForExit();
+            }
+
 
             _Start(false);
             return;
