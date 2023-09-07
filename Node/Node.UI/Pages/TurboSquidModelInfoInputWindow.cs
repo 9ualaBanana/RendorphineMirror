@@ -45,22 +45,12 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
                             }
                             if (item.Format.Value is null)
                             {
-                                await self.FlashError("No format version");
+                                await self.FlashError("No format");
                                 return;
                             }
                             if (item.Renderer.Value is null)
                             {
-                                await self.FlashError("No renderer version");
-                                return;
-                            }
-                            if (item.FormatVersion.Value is null)
-                            {
-                                await self.FlashError("No format version");
-                                return;
-                            }
-                            if (item.RendererVersion.Value is null)
-                            {
-                                await self.FlashError("No renderer version");
+                                await self.FlashError("No renderer");
                                 return;
                             }
 
@@ -72,7 +62,7 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
                                     .ToImmutableArray()
                                 )
                             ));
-                            await self.FlashOk("OK");
+                            Dispatcher.UIThread.Post(ForceClose);
                         }
                     },
                 }.WithRow(1),
@@ -187,7 +177,7 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
         {
             if (dataItem is not EditableModelInfo item) return new Control();
 
-            var tb = new TextBox();
+            var tb = new TextBox() { Watermark = "other", };
             BindableFunc(item).SubscribeChanged(() => tb.Text = BindableFunc(item).Value, true);
             tb.Subscribe(TextBox.TextProperty, c => BindableFunc(item).Value = c);
 

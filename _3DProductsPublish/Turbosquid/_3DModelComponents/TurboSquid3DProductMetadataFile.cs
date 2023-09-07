@@ -37,23 +37,22 @@ public partial record TurboSquid3DProductMetadata
                 DescribedAndSerialized(userinfo, model).WriteTo(file);
 
 
+            static Type getRendererType(Type type)
+            {
+                while (true)
+                {
+                    type = type.BaseType.ThrowIfNull();
+                    if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(NativeFileFormatMetadata<>))
+                        break;
+                }
+
+                return type.GenericTypeArguments[0];
+            }
             static async Task<OperationResult<IEnumerable<(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo, _3DModel)>>> requestInfo(ImmutableArray<_3DModel> nativeformats)
             {
                 var enumdict = Assembly.GetAssembly(typeof(File)).ThrowIfNull().GetTypes()
                     .Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(NativeFileFormatMetadata)))
-                    .Select(t =>
-                    {
-                        var enumtype = t;
-                        while (true)
-                        {
-                            enumtype = t.BaseType.ThrowIfNull();
-                            if (enumtype.IsGenericType && enumtype.GetGenericTypeDefinition() == typeof(NativeFileFormatMetadata<>))
-                                break;
-                        }
-                        enumtype = enumtype.GenericTypeArguments[0];
-
-                        return KeyValuePair.Create(t.Name, Enum.GetNames(enumtype).ToImmutableArray());
-                    })
+                    .Select(t => KeyValuePair.Create(t.Name, Enum.GetNames(getRendererType(t)).ToImmutableArray()))
                     .ToImmutableDictionary();
 
                 var reqinput = new InputTurboSquidModelInfoRequest(
@@ -73,14 +72,9 @@ public partial record TurboSquid3DProductMetadata
                 table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.FileFormat)), fileFormat.ToString_());
                 if (fileFormat.IsNative())
                 {
-                    var type = Assembly.GetAssembly(typeof(_3ds_max)).ThrowIfNull().GetType(userinfo.Format).ThrowIfNull();
-                    var renderertype = type.GetGenericArguments()[0];
-                    var renderer = Enum.Parse(renderertype, userinfo.Renderer);
-
-                    var instance = (NativeFileFormatMetadata) Activator.CreateInstance(
-                        Assembly.GetAssembly(typeof(_3ds_max)).ThrowIfNull().GetType(userinfo.Format).ThrowIfNull(),
-                        new object[] { userinfo.FormatVersion, renderer, userinfo.RendererVersion }
-                    ).ThrowIfNull();
+                    var type = typeof(_3ds_max).Assembly.GetType($"{typeof(_3ds_max).Namespace}.{userinfo.Format}").ThrowIfNull();
+                    var renderer = Enum.Parse(getRendererType(type), userinfo.Renderer);
+                    var instance = (NativeFileFormatMetadata) Activator.CreateInstance(type, new object[] { userinfo.FormatVersion, renderer, userinfo.RendererVersion }).ThrowIfNull();
 
                     table.Items.Add(instance);
                 }
