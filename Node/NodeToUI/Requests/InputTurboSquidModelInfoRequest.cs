@@ -6,6 +6,6 @@ public record InputTurboSquidModelInfoRequest(ImmutableArray<InputTurboSquidMode
 
     public record Response(ImmutableArray<Response.ResponseModelInfo> Infos)
     {
-        public record ResponseModelInfo(bool IsNative, string Format, string Renderer, string FormatVersion, string RendererVersion);
+        public record ResponseModelInfo(bool IsNative, string Format, string Renderer, double FormatVersion, double? RendererVersion);
     }
 }
