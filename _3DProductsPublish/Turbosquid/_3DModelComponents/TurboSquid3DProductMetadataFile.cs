@@ -27,16 +27,16 @@ public partial record TurboSquid3DProductMetadata
 
         internal void Populate()
         {
-            using var _file = System.IO.File.OpenWrite(Path);
+            using var _file = System.IO.File.OpenWrite("/temp/out");
             using var file = new StreamWriter(_file);
 
-            var nativeformats = _3DProduct._3DModels.Where(m => FileFormat_(m).IsNative()).ToImmutableArray();
-            var info = requestInfo(nativeformats).Result.ThrowIfError();
-
-            foreach (var (userinfo, model) in info)
+            var infos = requestInfo(_3DProduct._3DModels.ToArray()).Result.ThrowIfError();
+            foreach (var (userinfo, model) in infos)
                 DescribedAndSerialized(userinfo, model).WriteTo(file);
 
 
+            static Type getFormatType(string name) =>
+                typeof(_3ds_max).Assembly.GetType($"{typeof(_3ds_max).Namespace}.{name}").ThrowIfNull();
             static Type getRendererType(Type type)
             {
                 while (true)
@@ -48,39 +48,44 @@ public partial record TurboSquid3DProductMetadata
 
                 return type.GenericTypeArguments[0];
             }
-            static async Task<OperationResult<IEnumerable<(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo, _3DModel)>>> requestInfo(ImmutableArray<_3DModel> nativeformats)
+
+            static async Task<OperationResult<(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo?, _3DModel)[]>> requestInfo(IReadOnlyCollection<_3DModel> models)
             {
                 var enumdict = Assembly.GetAssembly(typeof(File)).ThrowIfNull().GetTypes()
                     .Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(NativeFileFormatMetadata)))
                     .Select(t => KeyValuePair.Create(t.Name, Enum.GetNames(getRendererType(t)).ToImmutableArray()))
                     .ToImmutableDictionary();
 
-                var reqinput = new InputTurboSquidModelInfoRequest(
-                    nativeformats.Select(f => new InputTurboSquidModelInfoRequest.ModelInfo(f.Name)).ToImmutableArray(),
-                    enumdict
-                );
+                var infos = models.Select(f =>
+                {
+                    var format = FileFormat_(f);
+                    if (!format.IsNative())
+                        return new InputTurboSquidModelInfoRequest.ModelInfo(f.Name, format.ToString(), null);
+
+                    var renderertype = getRendererType(getFormatType(format.ToString()));
+                    return new InputTurboSquidModelInfoRequest.ModelInfo(f.Name, format.ToString(), Enum.GetNames(renderertype).ToImmutableArray());
+                }).ToImmutableArray();
 
                 return await
-                    from response in NodeGui.Request<InputTurboSquidModelInfoRequest.Response>(reqinput, default)
-                    select response.Infos.Zip(nativeformats);
+                    from response in NodeGui.Request<InputTurboSquidModelInfoRequest.Response>(new InputTurboSquidModelInfoRequest(infos), default)
+                    select response.Infos.Zip(models).ToArray();
             }
-            static DocumentSyntax DescribedAndSerialized(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo userinfo, _3DModel _3DModel)
+            static DocumentSyntax DescribedAndSerialized(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo? userinfo, _3DModel _3DModel)
             {
                 var metadata = new DocumentSyntax();
                 var table = new TableSyntax(_3DModel.Name);
                 var fileFormat = FileFormat_(_3DModel);
                 table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.FileFormat)), fileFormat.ToString_());
-                if (fileFormat.IsNative())
+                if (userinfo is not null && fileFormat.IsNative())
                 {
-                    var type = typeof(_3ds_max).Assembly.GetType($"{typeof(_3ds_max).Namespace}.{userinfo.Format}").ThrowIfNull();
+                    var type = getFormatType(FileFormat_(_3DModel).ToString());
                     var renderer = Enum.Parse(getRendererType(type), userinfo.Renderer);
-                    var instance = (NativeFileFormatMetadata) Activator.CreateInstance(type, new object[] { userinfo.FormatVersion, renderer, userinfo.RendererVersion }).ThrowIfNull();
+                    var instance = (NativeFileFormatMetadata) Activator.CreateInstance(type, new object?[] { userinfo.FormatVersion, renderer, userinfo.RendererVersion }).ThrowIfNull();
 
                     table.Items.Add(instance);
                 }
 
-                // Request this flag value from user.
-                table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.IsNative)), false);
+                table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.IsNative)), userinfo?.IsNative ?? false);
                 metadata.Tables.Add(table);
                 metadata.AddTrailingTriviaNewLine();
 
