@@ -176,6 +176,8 @@ public static class OperationResultCollectionExtensions
         opresults.ToAsync().Aggregate(accumulator).Result;
     public static OperationResult<TResult> Aggregate<TSeed, TResult, TItem>(this IEnumerable<OperationResult<TItem>> opresults, TSeed seed, Func<TSeed, TItem, TResult> accumulator) =>
         opresults.ToAsync().Aggregate(seed, accumulator).Result;
+    public static OperationResult Aggregate(this IEnumerable<OperationResult> opresults) =>
+        opresults.ToAsync().Aggregate().Result;
 
     public static Task<OperationResult<Dictionary<TKey, TValue>>> AggregateMany<TKey, TValue>(this IEnumerable<Task<OperationResult<Dictionary<TKey, TValue>>>> opresults) where TKey : notnull =>
         opresults.Aggregate(new Dictionary<TKey, TValue>(), (seed, items) => seed.AddRange(items));
@@ -218,6 +220,17 @@ public static class OperationResultCollectionExtensions
         }
 
         return result.AsOpResult();
+    }
+    public static async Task<OperationResult> Aggregate(this IEnumerable<Task<OperationResult>> opresults)
+    {
+        foreach (var task in opresults)
+        {
+            var opres = await task;
+            if (!opres.Success)
+                return opres;
+        }
+
+        return OperationResult.Succ();
     }
 
 

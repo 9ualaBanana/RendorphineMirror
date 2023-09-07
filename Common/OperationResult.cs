@@ -53,13 +53,6 @@ public readonly struct OperationResult : IOperationResult, IErrOperationResult<O
     public static OperationResult<T> Err<T>(Exception ex) => Err<T>(Err(ex));
 
 
-    /// <summary> Executes the provided <paramref name="action"/> and returns Success </summary>
-    public static OperationResult Execute(Action action)
-    {
-        action();
-        return Succ();
-    }
-
     public static OperationResult WrapException(Action action) =>
         WrapException(() => { action(); return Succ(); });
     public static OperationResult WrapException(Func<OperationResult> action)

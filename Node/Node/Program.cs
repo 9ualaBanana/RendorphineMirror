@@ -41,8 +41,8 @@ using Node.Profiling;
 using Node.Services;
 using Node.Services.Targets;
 using Node.Tasks.Exec.Actions;
+using Node.Tasks.Watching.Handlers.Input;
 using Tomlyn.Syntax;
-
 
 Initializer.AppName = "renderfin";
 ConsoleHide.Hide();
@@ -56,6 +56,7 @@ var builder = new ContainerBuilder();
 
 // logging
 builder.Populate(new ServiceCollection().With(services => services.AddLogging(l => l.AddNLog())));
+builder.RegisterSource<AutoServiceRegistrator>();
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 

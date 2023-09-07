@@ -1,12 +1,14 @@
 namespace Node.Tasks.Exec;
 
 public record ImageDetectorRect(int X, int Y, int W, int H);
+
+[AutoRegisteredService(true)]
 public class ImageDetectorLauncher
 {
     public required PluginList Plugins { get; init; }
     public required ILogger<ImageDetectorLauncher> Logger { get; init; }
 
-    public async Task<ImageDetectorRect> GenerateRectAsync(string file)
+    public async Task<ImageDetectorRect> GenerateRectAsync(string file, CancellationToken token)
     {
         var script = $"python main.py -i \"{file}\"";
         var result = null as ImageDetectorRect;
