@@ -22,8 +22,8 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
         grid.Columns.Add(new DataGridCheckboxColumn() { Header = "Is native", });
         grid.Columns.Add(new DataGridFormatDropdownColumn() { Header = "Format", });
         grid.Columns.Add(new DataGridRendererDropdownColumn() { Header = "Renderer", });
-        grid.Columns.Add(new DataGridTextBoxColumn(item => item.FormatVersion) { Header = "Format version", });
-        grid.Columns.Add(new DataGridTextBoxColumn(item => item.RendererVersion) { Header = "Renderer version", });
+        grid.Columns.Add(new DataGridFormatVersionColumn() { Header = "Format version", });
+        grid.Columns.Add(new DataGridRendererVersionColumn() { Header = "Renderer version", });
 
         Content = new Grid()
         {
@@ -53,11 +53,27 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
                                 await self.FlashError("No renderer");
                                 return;
                             }
+                            if (item.FormatVersion.Value is null)
+                            {
+                                await self.FlashError("No format version");
+                                return;
+                            }
+                            if (infos.Any(info => info.FormatVersion.Value is not null &&  info.FormatVersion.Value.Length != 0 && !double.TryParse(info.FormatVersion.Value, out _)))
+                            {
+                                await self.FlashError("Invalid format version");
+                                return;
+                            }
+                            if (infos.Any(info => info.RendererVersion.Value is not null &&  info.RendererVersion.Value.Length != 0 && !double.TryParse(info.RendererVersion.Value, out _)))
+                            {
+                                await self.FlashError("Invalid renderer version");
+                                return;
+                            }
 
                             await onClick(JObject.FromObject(
                                 new InputTurboSquidModelInfoRequest.Response(
                                     infos.Select(info => new InputTurboSquidModelInfoRequest.Response.ResponseModelInfo(
-                                        info.IsNative.Value, info.Format.Value, info.Renderer.Value, info.FormatVersion.Value.ThrowIfNull(), info.RendererVersion.Value.ThrowIfNull()
+                                        info.IsNative.Value, info.Format.Value, info.Renderer.Value,
+                                        double.Parse(info.FormatVersion.Value.ThrowIfNull(), CultureInfo.InvariantCulture), double.Parse(info.RendererVersion.Value.ThrowIfNull(), CultureInfo.InvariantCulture)
                                     ))
                                     .ToImmutableArray()
                                 )
@@ -78,7 +94,7 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
         public Bindable<bool> IsNative { get; }
         public Bindable<string> Format { get; }
         public Bindable<string> Renderer { get; }
-        public Bindable<string?> FormatVersion { get; }
+        public Bindable<string> FormatVersion { get; }
         public Bindable<string?> RendererVersion { get; }
 
         public EditableModelInfo(Bindable<EditableModelInfo?> nativeItem, InputTurboSquidModelInfoRequest.ModelInfo info, ImmutableDictionary<string, ImmutableArray<string>> formatRenderers)
@@ -167,19 +183,31 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
         protected override IControl GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
         protected override object PrepareCellForEdit(IControl editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
     }
-    class DataGridTextBoxColumn : DataGridColumn
+    class DataGridFormatVersionColumn : DataGridColumn
     {
-        readonly Func<EditableModelInfo, Bindable<string?>> BindableFunc;
-
-        public DataGridTextBoxColumn(Func<EditableModelInfo, Bindable<string?>> bindableFunc) => BindableFunc = bindableFunc;
-
         protected override IControl GenerateElement(DataGridCell cell, object dataItem)
         {
             if (dataItem is not EditableModelInfo item) return new Control();
 
-            var tb = new TextBox() { Watermark = "other", };
-            BindableFunc(item).SubscribeChanged(() => tb.Text = BindableFunc(item).Value, true);
-            tb.Subscribe(TextBox.TextProperty, c => BindableFunc(item).Value = c);
+            var tb = new TextBox() { Text = "1" };
+            item.RendererVersion.SubscribeChanged(() => tb.Text = item.RendererVersion.Value, true);
+            tb.Subscribe(TextBox.TextProperty, c => item.RendererVersion.Value = c);
+
+            return tb;
+        }
+
+        protected override IControl GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
+        protected override object PrepareCellForEdit(IControl editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
+    }
+    class DataGridRendererVersionColumn : DataGridColumn
+    {
+        protected override IControl GenerateElement(DataGridCell cell, object dataItem)
+        {
+            if (dataItem is not EditableModelInfo item) return new Control();
+
+            var tb = new TextBox();
+            item.FormatVersion.SubscribeChanged(() => tb.Text = item.FormatVersion.Value, true);
+            tb.Subscribe(TextBox.TextProperty, c => item.FormatVersion.Value = c);
 
             return tb;
         }
