@@ -68,7 +68,14 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
     builder.RegisterTypes(types)
         .SingleInstance()
-        .OnActivating(async l => await ((IServiceTarget) l.Instance).ExecuteAsync());
+        .OnActivating(async l =>
+        {
+            var logger = l.Context.ResolveLogger(l.Instance.GetType());
+
+            logger.LogInformation($"Resolved target {l.Instance}");
+            await ((IServiceTarget) l.Instance).ExecuteAsync();
+            logger.LogInformation($"Reached target {l.Instance}");
+        });
 
     foreach (var type in types)
         type.GetMethod(nameof(IServiceTarget.CreateRegistrations))?.Invoke(null, new object[] { builder });
