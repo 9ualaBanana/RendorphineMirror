@@ -66,9 +66,9 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
                     await self.FlashError("Invalid format version");
                     return;
                 }
-                if (item.RendererVersion.Value is null || !double.TryParse(item.RendererVersion.Value, out _))
+                if (!double.TryParse(item.RendererVersion.Value ?? "æ", out _))
                 {
-                    await self.FlashError("Invalid renderer version");
+                    await self.FlashError("Invalid format version");
                     return;
                 }
             }
@@ -79,7 +79,7 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
                         info is EditableModelInfo einfo
                         ? new InputTurboSquidModelInfoRequest.Response.ResponseModelInfo(
                             einfo.IsNative.Value, einfo.Renderer.Value,
-                            double.Parse(einfo.FormatVersion.Value.ThrowIfNull(), CultureInfo.InvariantCulture), double.Parse(einfo.RendererVersion.Value.ThrowIfNull(), CultureInfo.InvariantCulture)
+                            double.Parse(einfo.FormatVersion.Value.ThrowIfNull(), CultureInfo.InvariantCulture), double.TryParse(einfo.RendererVersion.Value.ThrowIfNull(), CultureInfo.InvariantCulture, out var rv) ? rv : null
                         )
                         : null
                     )
