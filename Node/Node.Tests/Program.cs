@@ -11,7 +11,5 @@ global using Node.Tasks.Models.ExecInfo;
 global using NodeCommon;
 
 
-Initializer.AppName = "renderfin";
-Init.Initialize();
-
+await Init.For(new Init.InitConfig("renderfin")).ExecuteAsync();
 await Node.Tests.LocalTests.RunAsync();

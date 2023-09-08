@@ -12,8 +12,8 @@ namespace Node.UI.Pages
             MinWidth = MaxWidth = Width = 692;
             MinHeight = MaxHeight = Height = 410;
             CanResize = false;
-            Title = App.AppName;
-            Icon = App.Icon;
+            Title = App.Instance.AppName;
+            Icon = App.Instance.Icon;
 
             this.PreventClosing();
 

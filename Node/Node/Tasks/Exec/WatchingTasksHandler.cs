@@ -14,7 +14,7 @@ public class WatchingTasksHandler
     public void StartWatchingTask(WatchingTask task)
     {
         using var _logscope = Logger.BeginScope($"WTask {task.Id}");
-        Logger.LogInformation($"Watcher started; Data: {JsonConvert.SerializeObject(task, Init.DebugFeatures ? JsonSettings.Typed : new JsonSerializerSettings())}");
+        Logger.LogInformation($"Watcher started; Data: {JsonConvert.SerializeObject(task)}");
 
         var handler = CreateWatchingHandler(task);
         handler.StartListening();

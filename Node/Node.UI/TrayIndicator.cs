@@ -74,7 +74,7 @@ namespace Node.UI
             }.ToImmutableArray();
 
             // TODO: remove four transparent pixels after fix
-            var icon = new TrayIcon() { ToolTipText = App.AppName, Icon = None };
+            var icon = new TrayIcon() { ToolTipText = App.Instance.AppName, Icon = None };
             icon.Clicked += (_, _) => open();
             icon.FixException();
 

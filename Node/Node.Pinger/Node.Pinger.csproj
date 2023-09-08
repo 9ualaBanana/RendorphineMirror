@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\UpdaterCommon\UpdaterCommon.csproj" />
     <ProjectReference Include="..\..\Updater\Updater.csproj" />
     <ProjectReference Include="..\..\NodeCommon\NodeCommon.csproj" />
+    <ProjectReference Include="..\Node.Common\Node.Common.csproj" />
   </ItemGroup>
 
 </Project>

@@ -43,73 +43,25 @@ using Node.Tasks.Exec.Actions;
 using Node.Tasks.Watching.Handlers.Input;
 using Tomlyn.Syntax;
 
-Initializer.AppName = "renderfin";
-ConsoleHide.Hide();
 
 if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
     foreach (var proc in FileList.GetAnotherInstances())
         proc.Kill(true);
 
-Init.Initialize();
 var builder = new ContainerBuilder();
 
-// logging
-builder.Populate(new ServiceCollection().With(services => services.AddLogging(l => l.AddNLog())));
-builder.RegisterSource<AutoServiceRegistrator>();
+builder.RegisterInstance(new Init.InitConfig("renderfin"));
+builder.RegisterType<Init>()
+    .AutoActivate();
+Init.RegisterTargets(builder, typeof(Program).Assembly);
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
 
-{
-    var types = typeof(Program).Assembly.GetTypes()
-        .Where(t => !t.IsAbstract && !t.IsInterface && t.IsAssignableTo(typeof(IServiceTarget)))
-        .ToArray();
-
-    builder.RegisterTypes(types)
-        .SingleInstance()
-        .OnActivating(async l =>
-        {
-            var logger = l.Context.ResolveLogger(l.Instance.GetType());
-
-            logger.LogInformation($"Resolved target {l.Instance}");
-            await ((IServiceTarget) l.Instance).ExecuteAsync();
-            logger.LogInformation($"Reached target {l.Instance}");
-        });
-
-    foreach (var type in types)
-        type.GetMethod(nameof(IServiceTarget.CreateRegistrations))?.Invoke(null, new object[] { builder });
-}
-
 using var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
+initializeDotTracer(container);
 
-#if DEBUG
-Directories.CreatedNew("temp/dot");
-
-var tracer = new Autofac.Diagnostics.DotGraph.DotDiagnosticTracer();
-tracer.OperationCompleted += (sender, args) =>
-{
-    try
-    {
-        if (args.Operation.InitiatingRequest?.Service is not IServiceWithType service) return;
-
-        using var file = File.OpenWrite($"temp/dot/{service.ServiceType.Name}.dot");
-        using var writer = new StreamWriter(file);
-
-        // removing ILogger entries
-        var content = args.TraceContent
-            .Split('\n')
-            .Select(s => s.ContainsOrdinal("label=<ILogger`1>") ? string.Empty : s)
-            .Select(s => s.ContainsOrdinal("label=<ILoggerProvider>") ? string.Empty : s)
-            .Select(s => s.ContainsOrdinal("Microsoft.Extensions.Logging.ILogger&lt") ? string.Empty : s);
-
-        writer.WriteLine(string.Join('\n', content));
-    }
-    catch { }
-};
-container.SubscribeToDiagnostics(tracer);
-#endif
-
-IServiceTarget main = (Init.IsDebug, args.Contains("release")) switch
+IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release")) switch
 {
     (true, false) => container.Resolve<DebugMainTarget>(),
     (true, true) => container.Resolve<ReleaseMainTarget>(),
@@ -118,3 +70,33 @@ IServiceTarget main = (Init.IsDebug, args.Contains("release")) switch
 
 Thread.Sleep(-1);
 GC.KeepAlive(main);
+
+
+[Conditional("DEBUG")]
+static void initializeDotTracer(IContainer container)
+{
+    Directories.CreatedNew("temp/dot");
+
+    var tracer = new Autofac.Diagnostics.DotGraph.DotDiagnosticTracer();
+    tracer.OperationCompleted += (sender, args) =>
+    {
+        try
+        {
+            if (args.Operation.InitiatingRequest?.Service is not IServiceWithType service) return;
+
+            using var file = File.OpenWrite($"temp/dot/{service.ServiceType.Name}.dot");
+            using var writer = new StreamWriter(file);
+
+            // removing ILogger entries
+            var content = args.TraceContent
+                .Split('\n')
+                .Select(s => s.ContainsOrdinal("label=<ILogger`1>") ? string.Empty : s)
+                .Select(s => s.ContainsOrdinal("label=<ILoggerProvider>") ? string.Empty : s)
+                .Select(s => s.ContainsOrdinal("Microsoft.Extensions.Logging.ILogger&lt") ? string.Empty : s);
+
+            writer.WriteLine(string.Join('\n', content));
+        }
+        catch { }
+    };
+    container.SubscribeToDiagnostics(tracer);
+}

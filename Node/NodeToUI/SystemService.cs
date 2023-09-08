@@ -9,10 +9,8 @@ public static class SystemService
     const string LaunchctlExe = "/usr/bin/launchctl";
     const string ServiceName = "renderfin_pinger";
 
-    static void Initialize(string? servicename = null)
+    static void Initialize(bool useAdminRights, string servicename)
     {
-        servicename ??= ServiceName;
-
         try { Stop(servicename); }
         catch { }
 
@@ -35,7 +33,7 @@ public static class SystemService
             var task = ts.NewTask();
             task.RegistrationInfo.Description = " pinger";
             task.Actions.Add(new ExecAction(pingerexe, workingDirectory: Directory.GetCurrentDirectory()));
-            if (Initializer.UseAdminRights) task.Principal.RunLevel = TaskRunLevel.Highest;
+            if (useAdminRights) task.Principal.RunLevel = TaskRunLevel.Highest;
             task.Settings.DisallowStartIfOnBatteries = false;
             task.Settings.StopIfGoingOnBatteries = false;
             task.Settings.Enabled = true;
@@ -45,10 +43,10 @@ public static class SystemService
 
             // trigger immediately & then every minute forever
             task.Triggers.Add(repeated(new RegistrationTrigger()));
-            if (Initializer.UseAdminRights) task.Triggers.Add(repeated(new BootTrigger()));
+            if (useAdminRights) task.Triggers.Add(repeated(new BootTrigger()));
 
             var logon = new LogonTrigger();
-            if (!Initializer.UseAdminRights)
+            if (!useAdminRights)
                 logon.UserId = WindowsIdentity.GetCurrent().Name;
             task.Triggers.Add(repeated(logon));
 
@@ -125,10 +123,10 @@ public static class SystemService
             File.WriteAllText(Path.Combine(configdir, @$"{servicename}.plist"), service);
         }
     }
-    public static void Start(string? servicename = null)
+    public static void Start(bool useAdminRights, string? servicename = null)
     {
         servicename ??= ServiceName;
-        Initialize();
+        Initialize(useAdminRights, servicename);
         ExecuteForOs(Windows, Linux, Mac);
 
 

@@ -28,7 +28,7 @@ public static class NodeStateUpdater
             Thread.Sleep(100);
         }
 
-        var loadcache = Init.IsDebug;
+        var loadcache = App.Instance.Init.IsDebug;
         var cacheloaded = !loadcache;
 
         var cachefile = Path.Combine(Directories.Data, "nodeinfocache");

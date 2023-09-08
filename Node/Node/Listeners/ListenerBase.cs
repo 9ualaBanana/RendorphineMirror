@@ -20,7 +20,8 @@ public abstract class ListenerBase : IServiceTarget
     protected virtual bool RequiresAuthentication => false;
 
     protected readonly ILogger Logger;
-    public required IComponentContext ComponentContext { private get; init; }
+    public required Init Init { get; init; }
+    public required IComponentContext ComponentContext { get; init; }
 
     int StartIndex = 0;
     HttpListener? Listener;
@@ -74,7 +75,7 @@ public abstract class ListenerBase : IServiceTarget
         Logger.Info($"{(firsttime ? null : "(re)")}Starting HTTP {GetType().Name} on {string.Join(", ", prefixes)}");
 
         try { Listener.Start(); }
-        catch (Exception ex) when (firsttime && Initializer.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        catch (Exception ex) when (firsttime && Init.Configuration.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             Logger.Error($"Could not start HttpListener: {ex.Message}, bypassing...");
 

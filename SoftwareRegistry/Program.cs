@@ -11,9 +11,6 @@ global using ILogger = Microsoft.Extensions.Logging.ILogger;
 using NLog.Web;
 using SoftwareRegistry;
 
-Initializer.AppName = "renderfin_registry2";
-Init.Initialize();
-
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
@@ -23,7 +20,11 @@ builder.Services.AddSingleton(ctx => new TorrentClient(6229, 6230) { Logger = ct
 builder.Services.AddSingleton<SoftList>();
 builder.Services.AddSingleton<TorrentManager>();
 
+builder.Services.AddSingleton(new Init.InitConfig("renderfin_registry2"));
+builder.Services.AddSingleton<Init>();
+
 var app = builder.Build();
+app.Services.GetRequiredService<Init>();
 
 var client = app.Services.GetRequiredService<TorrentClient>();
 app.Services.GetRequiredService<ILogger<Program>>()

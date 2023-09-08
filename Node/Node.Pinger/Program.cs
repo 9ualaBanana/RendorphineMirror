@@ -1,7 +1,9 @@
+using Node.Common;
 using UpdaterCommon;
 
 
-Init.Initialize();
+await Init.For(new Init.InitConfig("renderfin")).ExecuteAsync();
+
 var updater = UpdateChecker.LoadFromJsonOrDefault(args: new Dictionary<string, string>() { ["Node.UI"] = "hidden" });
 await updater.Update().ThrowIfError();
 

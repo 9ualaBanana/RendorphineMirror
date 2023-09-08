@@ -31,6 +31,7 @@ global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
 global using APath = Avalonia.Controls.Shapes.Path;
 global using Path = System.IO.Path;
+using Autofac;
 using Avalonia.Controls.ApplicationLifetimes;
 
 namespace Node.UI;
@@ -42,27 +43,36 @@ static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        Initializer.AppName = "renderfin-ui";
-        Init.Initialize();
-        ConsoleHide.Hide();
+        var builder = new ContainerBuilder();
+        builder.RegisterInstance(new Init.InitConfig("renderfin-ui"));
+        builder.RegisterType<Init>()
+            .AutoActivate();
+        Init.RegisterTargets(builder, typeof(Program).Assembly);
 
-        if (!Init.IsDebug && !Process.GetCurrentProcess().ProcessName.Contains("dotnet", StringComparison.Ordinal))
+        builder.RegisterType<App>()
+            .SingleInstance();
+
+        var container = builder.Build();
+
+        var init = container.Resolve<Init>();
+
+        if (!init.IsDebug && !Process.GetCurrentProcess().ProcessName.Contains("dotnet", StringComparison.Ordinal))
         {
             SendShowRequest();
             ListenForShowRequests();
         }
 
         Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
-        if (!Init.IsDebug) Task.Run(CreateShortcuts);
+        if (!init.IsDebug) Task.Run(CreateShortcuts);
 
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+
+        AppBuilder.Configure(container.Resolve<App>)
+            .UsePlatformDetect()
+            .With(new AvaloniaNativePlatformOptions { UseGpu = false }) // workaround for https://github.com/AvaloniaUI/Avalonia/issues/3533
+            .With(new X11PlatformOptions { UseDBusMenu = true })
+            .LogToTrace()
+            .StartWithClassicDesktopLifetime(args);
     }
-    static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder.Configure<App>()
-        .UsePlatformDetect()
-        .With(new AvaloniaNativePlatformOptions { UseGpu = false }) // workaround for https://github.com/AvaloniaUI/Avalonia/issues/3533
-        .With(new X11PlatformOptions { UseDBusMenu = true })
-        .LogToTrace();
 
 
     /// <summary> Check if another instance is already running, send show request to it and quit </summary>

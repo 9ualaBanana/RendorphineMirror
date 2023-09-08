@@ -11,6 +11,8 @@ public class AuthenticatedTarget : IServiceTarget
     public required UITarget UI { get; init; }
     public required LocalListener LocalListener { get; init; }
     public required SessionManager SessionManager { get; init; }
+    public required SettingsInstance Settings { get; init; }
+    public required Init Init { get; init; }
     public required ILogger<AuthenticatedTarget> Logger { get; init; }
 
     public required Api Api { get; init; }
@@ -20,7 +22,7 @@ public class AuthenticatedTarget : IServiceTarget
         if (Settings.SessionId is null)
         {
             await WaitForAuth().ConfigureAwait(false);
-            await MPlusHeartbeat.Send(Api, await Profiler.CreateDummyAsync())
+            await MPlusHeartbeat.Send(Api, await Profiler.CreateDummyAsync(Init.Version, Settings))
                 .ThrowIfError();
 
             Logger.Info("Authentication completed");

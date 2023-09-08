@@ -10,10 +10,6 @@ using Google.Cloud.Vision.V1;
 using NLog.Web;
 
 
-Initializer.AppName = "renderfin_chatgptapi";
-Init.Initialize();
-
-
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSystemd();
 
@@ -31,7 +27,11 @@ builder.Services.AddSingleton(new ImageAnnotatorClientBuilder()
     // GrpcAdapter = RestGrpcAdapter.Default
 }.Build());
 
+builder.Services.AddSingleton(new Init.InitConfig("renderfin_chatgptapi"));
+builder.Services.AddSingleton<Init>();
+
 var app = builder.Build();
+app.Services.GetRequiredService<Init>();
 
 if (app.Environment.IsDevelopment())
 {

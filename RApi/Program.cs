@@ -9,16 +9,18 @@ using NodeCommon.Tasks;
 using NodeCommon.Tasks.Model;
 
 
-Initializer.AppName = "rapi";
-Init.Initialize();
-
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Host.UseNLog();
 builder.Services.AddControllers().AddNewtonsoftJson();
 var s = builder.Services.AddControllers().Services;
 
+builder.Services.AddSingleton(new Init.InitConfig("rapi"));
+builder.Services.AddSingleton<Init>();
+
 var app = builder.Build();
+app.Services.GetRequiredService<Init>();
+
 app.MapPost("/api/login", Login);
 app.MapPost("/api/registermytask", RegisterMyTask);
 app.MapGet("/api/gettaskstate", GetTaskState);

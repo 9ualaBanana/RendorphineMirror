@@ -9,22 +9,28 @@ public class Profiler
 
     public required IComponentContext ComponentContext { get; init; }
     public required PluginManager PluginManager { get; init; }
+    public required SettingsInstance Settings { get; init; }
+    public required Init Init { get; init; }
     public required ILogger<Profiler> Logger { get; init; }
 
     async ValueTask<Profile> CreateDefault()
     {
-        var ip = MachineInfo.GetPublicIPAsync();
+        var ip = PortForwarding.GetPublicIPAsync();
         var software = BuildSoftwarePayloadAsync();
         var types = BuildDefaultAllowedTypes();
 
-        return new()
-        {
-            Ip = (await ip).ToString(),
-            Software = await software,
-            AllowedTypes = await types,
-            AllowedInputs = ComponentContext.GetAllRegisteredKeys<TaskInputType>().ToDictionary(x => x, _ => 1),
-            AllowedOutputs = ComponentContext.GetAllRegisteredKeys<TaskOutputType>().ToDictionary(x => x, _ => 1),
-            Pricing = new
+        return new(
+            Settings.UPnpPort,
+            Settings.UPnpServerPort,
+            Settings.NodeName,
+            Settings.Guid,
+            Init.Version,
+            (await ip).ToString(),
+            ComponentContext.GetAllRegisteredKeys<TaskInputType>().ToDictionary(x => x, _ => 1),
+            ComponentContext.GetAllRegisteredKeys<TaskOutputType>().ToDictionary(x => x, _ => 1),
+            await types,
+            await software,
+            new
             {
                 minunitprice = new
                 {
@@ -33,31 +39,35 @@ public class Profiler
                 minbwprice = -1,
                 minstorageprice = -1,
             },
-            Hardware = Settings.BenchmarkResult.Value?.Data ?? throw new Exception("Could not create Profile without benchmark data"),
-        };
+            Settings.BenchmarkResult.Value?.Data ?? throw new Exception("Could not create Profile without benchmark data")
+        );
     }
-    public static async Task<Profile> CreateDummyAsync()
+    public static async Task<Profile> CreateDummyAsync(string version, SettingsInstance settings)
     {
-        return new Profile()
-        {
-            Ip = (await MachineInfo.GetPublicIPAsync()).ToString(),
-            Software = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>(),
-            AllowedTypes = new Dictionary<string, int>(),
-            AllowedInputs = new Dictionary<TaskInputType, int>(),
-            AllowedOutputs = new Dictionary<TaskOutputType, int>(),
-            Pricing = new
+        return new Profile(
+            settings.UPnpPort,
+            settings.UPnpServerPort,
+            settings.NodeName,
+            settings.Guid,
+            version,
+            (await PortForwarding.GetPublicIPAsync()).ToString(),
+            new Dictionary<TaskInputType, int>(),
+            new Dictionary<TaskOutputType, int>(),
+            new Dictionary<string, int>(),
+            new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, string>>>>(),
+            new
             {
                 minunitprice = new { ffmpeg = -1, },
                 minbwprice = -1,
                 minstorageprice = -1,
             },
-            Hardware = new(
+            new(
                 new(1, new(1)) { Load = 0.0001 },
                 new(1, new(1)) { Load = 0.0001 },
                 new(1) { Free = 1 },
                 new[] { new DriveBenchmarkResult(0, 1) { FreeSpace = 1 } }.ToList()
-            ),
-        };
+            )
+        );
     }
 
     async ValueTask<Dictionary<string, int>> BuildDefaultAllowedTypes()
@@ -117,7 +127,7 @@ public class Profiler
         if (Settings.AcceptTasks.Value)
         {
             if (_cachedProfile.AllowedTypes.Count == 0)
-                _cachedProfile.AllowedTypes = await BuildDefaultAllowedTypes();
+                _cachedProfile.AllowedTypes.AddRange(await BuildDefaultAllowedTypes());
         }
         else
         {

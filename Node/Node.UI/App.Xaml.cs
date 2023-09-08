@@ -1,23 +1,20 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Microsoft.Extensions.DependencyInjection;
-using NLog.Extensions.Logging;
 
 namespace Node.UI
 {
     public class App : Application
     {
-        public static readonly string AppName, Version;
-        public static readonly WindowIcon Icon = new WindowIcon(Resource.LoadStream(typeof(App).Assembly, Environment.OSVersion.Platform == PlatformID.Win32NT ? "img.icon.ico" : "img.tray_icon.png"));
-        static bool WasConnected = false;
+        public static App Instance => (App) Current.ThrowIfNull();
 
-        static App()
-        {
-            Version = Init.Version;
-            AppName = "Renderfin   v" + Version;
-        }
+        public string Version => Init.Version;
+        public string AppName => $"Renderfin   v{Version}";
+        public WindowIcon Icon { get; } = new WindowIcon(Resource.LoadStream(typeof(App).Assembly, Environment.OSVersion.Platform == PlatformID.Win32NT ? "img.icon.ico" : "img.tray_icon.png"));
+
+        public required Init Init { get; init; }
+        bool WasConnected = false;
+
         public override void Initialize() => AvaloniaXamlLoader.Load(this);
-
         public override void OnFrameworkInitializationCompleted()
         {
             if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)

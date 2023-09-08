@@ -1,9 +1,9 @@
 ﻿using MonoTorrent.Tracker;
 using MonoTorrent.Tracker.Listeners;
+using Node.Common;
 
-Initializer.AppName = "renderfin_tracker";
-Init.Initialize();
 
+await Init.For(new Init.InitConfig("renderfin_tracker")).ExecuteAsync();
 var logger = LogManager.GetCurrentClassLogger();
 
 

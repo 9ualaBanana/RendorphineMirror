@@ -23,7 +23,7 @@ public class TorrentClient
     {
         Creator = new TorrentCreator()
         {
-            CreatedBy = "Renderfin v" + Init.Version,
+            CreatedBy = "Renderfin",
             Announces = { Trackers.ToList(), },
         };
     }
