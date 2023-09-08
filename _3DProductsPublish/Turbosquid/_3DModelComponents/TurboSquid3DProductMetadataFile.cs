@@ -27,7 +27,7 @@ public partial record TurboSquid3DProductMetadata
 
         internal void Populate()
         {
-            using var _file = System.IO.File.OpenWrite("/temp/out");
+            using var _file = System.IO.File.OpenWrite(Path);
             using var file = new StreamWriter(_file);
 
             var infos = requestInfo(_3DProduct._3DModels.ToArray()).Result.ThrowIfError();
