@@ -34,10 +34,10 @@ public record Apis(Api Api, bool LogErrors = true)
     async ValueTask<OperationResult<T>> ShardSend<T>(IRegisteredTaskApi task, string url, Func<string, ValueTask<OperationResult<T>>> func)
     {
         (task as ILoggable)?.LogTrace($"Sending shard request {url}; Shard is {task.HostShard ?? "<null>"}");
-        return await ShardSend(task, () => func($"https://{task.HostShard}/rphtasklauncher/{url}"), true);
+        return await send(task, async () => await func($"https://{task.HostShard}/rphtasklauncher/{url}"), true);
 
 
-        async ValueTask<OperationResult<T>> ShardSend(IRegisteredTaskApi task, Func<ValueTask<OperationResult<T>>> func, bool tryDefaultShard)
+        async ValueTask<OperationResult<T>> send(IRegisteredTaskApi task, Func<Task<OperationResult<T>>> func, bool tryDefaultShard)
         {
             if (tryDefaultShard)
             {
@@ -64,7 +64,7 @@ public record Apis(Api Api, bool LogErrors = true)
                 {
                     await Task.Delay(30_000);
                     await UpdateTaskShardAsync(task);
-                    return await ShardSend(task, func, tryDefaultShard);
+                    return await send(task, func, tryDefaultShard);
                 }
 
                 // "No shard is known for this task. The shard could be restarting, try again in 30 seconds"
@@ -74,7 +74,7 @@ public record Apis(Api Api, bool LogErrors = true)
                     if (!host) return host;
 
                     await Task.Delay(30_000);
-                    return await ShardSend(task, func, tryDefaultShard);
+                    return await send(task, func, tryDefaultShard);
                 }
             }
 

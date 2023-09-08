@@ -16,16 +16,17 @@ public class ReleaseRector
         await Api.ApiGet<ImmutableArray<ReleaseWithoutRect>>($"{Api.ContentDBEndpoint}/releases/getwithoutrect", "list", "Getting release without rect list",
             Api.SignRequest(Key, ("timestamp", DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString())));
 
-    public async Task<OperationResult<(ReleaseWithoutRect release, string file)[]>> DownloadReleases(IEnumerable<ReleaseWithoutRect> releases, CancellationToken token) =>
-        await releases
-            .Select(release =>
-                from path in DownloadRelease(release, token)
-                select (release, path)
-            )
-            .AggregateParallel(6);
+    public async Task<OperationResult<List<(ReleaseWithoutRect release, string? file)>>> DownloadReleases(IEnumerable<ReleaseWithoutRect> releases, CancellationToken token) =>
+        await releases.AggregateParallel(release => from path in DownloadRelease(release, token) select (release, path), 6);
 
-    public async Task<OperationResult<string>> DownloadRelease(ReleaseWithoutRect release, CancellationToken token)
+    public async Task<OperationResult<string?>> DownloadRelease(ReleaseWithoutRect release, CancellationToken token)
     {
+        if (!release.Files.ContainsKey("release"))
+        {
+            Logger.LogWarning($"No release file found for {release.Id}");
+            return null as string;
+        }
+
         Logger.LogInformation($"Downloading release {release.Id}");
         var target = Temp.File(release.Id + ".jpg");
 
@@ -33,21 +34,26 @@ public class ReleaseRector
         using var file = File.OpenWrite(target);
         await stream.CopyToAsync(file, token);
 
+        Logger.LogInformation($"Downloaded release {release.Id} to {target}");
         return target;
     }
 
-    public async Task<OperationResult> ProcessReleases(IReadOnlyCollection<(ReleaseWithoutRect release, string file)> downloaded, CancellationToken token, bool deleteFiles = true)
+    public async Task<OperationResult> ProcessReleases(IReadOnlyCollection<(ReleaseWithoutRect release, string? file)> downloaded, CancellationToken token, bool deleteFiles = true)
     {
-        using var _files = Directories.DisposeDelete(deleteFiles ? downloaded.Select(d => d.file).ToArray() : Array.Empty<string>());
+        using var _files = Directories.DisposeDelete(deleteFiles ? downloaded.Select(d => d.file).WhereNotNull().ToArray() : Array.Empty<string>());
 
         return await downloaded
             .Select(r => ProcessRelease(r.release, r.file, token))
             .Aggregate();
     }
-    public async Task<OperationResult> ProcessRelease(ReleaseWithoutRect release, string file, CancellationToken token)
+    public async Task<OperationResult> ProcessRelease(ReleaseWithoutRect release, string? file, CancellationToken token)
     {
         Logger.LogInformation($"Processing release {release.Id}");
-        var rectres = await OperationResult.WrapException(() => Launcher.GenerateRectAsync(file, token));
+        var rectres =
+            file is null
+            ? OperationResult.Err("No release file found")
+            : await OperationResult.WrapException(() => Launcher.GenerateRectAsync(file, token));
+
         if (!rectres)
         {
             Errors++;

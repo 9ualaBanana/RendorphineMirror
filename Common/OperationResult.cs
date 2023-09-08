@@ -78,14 +78,6 @@ public readonly struct OperationResult : IOperationResult, IErrOperationResult<O
         catch (Exception ex) { return Err<T>(ex.Message); }
     }
 
-    public static async ValueTask<OperationResult<T>> WrapException<T>(Func<ValueTask<T>> action) =>
-        await WrapException(new Func<ValueTask<OperationResult<T>>>(async () => Succ(await action())));
-    public static async ValueTask<OperationResult<T>> WrapException<T>(Func<ValueTask<OperationResult<T>>> action)
-    {
-        try { return await action(); }
-        catch (Exception ex) { return Err<T>(ex.Message); }
-    }
-
     public static async Task<OperationResult> WrapException(Func<Task> action) =>
         await WrapException(new Func<Task<OperationResult>>(async () => { await action(); return Succ(); }));
     public static async Task<OperationResult> WrapException(Func<Task<OperationResult>> action)

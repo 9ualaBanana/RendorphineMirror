@@ -234,37 +234,39 @@ public static class OperationResultCollectionExtensions
     }
 
 
-    public static async Task<OperationResult> AggregateParallel(this IEnumerable<Task<OperationResult>> tasks, int limit) =>
-        await
-            from result in AggregateParallel(tasks.Select(async x => new OperationResult<int>(await x, default)), limit)
-            select OperationResult.Succ();
+    public static OperationResult AggregateParallel<TIn>(this IEnumerable<TIn> values, Func<TIn, OperationResult> taskfunc, int limit) where TIn : notnull =>
+        values.AggregateParallel(input => taskfunc(input).AsTask(), limit).Result;
 
-    public static async Task<OperationResult<T[]>> AggregateParallel<T>(this IEnumerable<Task<OperationResult<T>>> tasks, int limit)
+    public static OperationResult<List<TOut>> AggregateParallel<TIn, TOut>(this IEnumerable<TIn> values, Func<TIn, OperationResult<TOut>> taskfunc, int limit) where TIn : notnull =>
+        values.AggregateParallel(input => taskfunc(input).AsTask(), limit).Result;
+
+    public static Task<OperationResult> AggregateParallel<TIn>(this IEnumerable<TIn> values, Func<TIn, Task<OperationResult>> taskfunc, int limit) where TIn : notnull =>
+        from result in values.AggregateParallel(async input => new OperationResult<int>(await taskfunc(input), default), limit)
+        select OperationResult.Succ();
+
+    public static async Task<OperationResult<List<TOut>>> AggregateParallel<TIn, TOut>(this IEnumerable<TIn> values, Func<TIn, Task<OperationResult<TOut>>> taskfunc, int limit) where TIn : notnull
     {
         using var throttler = new SemaphoreSlim(Math.Max(1, limit));
         var cancel = false;
 
-        var newtasks = tasks.Select(async task =>
+        var newtasks = values.Select(async value =>
         {
-            try
-            {
-                await throttler.WaitAsync();
-                if (cancel) return OperationResult.Err<T>(new StringError("Cancelled"));
+            await throttler.WaitAsync();
+            using var _ = new FuncDispose(() => throttler.Release());
 
-                var result = await task;
+            return await OperationResult.WrapException(async () =>
+            {
+                if (cancel)
+                    return OperationResult.Err<TOut>(new StringError("Cancelled"));
+
+                var result = await taskfunc(value);
                 if (!result) cancel = true;
 
                 return result;
-            }
-            catch (Exception ex) { return OperationResult.Err(ex); }
-            finally { throttler.Release(); }
+            });
         }).ToArray();
 
-
-        var results = await Task.WhenAll(newtasks);
-        if (cancel) return results.First(x => !x.Success).GetResult();
-
-        return results.Select(x => x.Value).ToArray();
+        return (await Task.WhenAll(newtasks)).Aggregate();
     }
 }
 

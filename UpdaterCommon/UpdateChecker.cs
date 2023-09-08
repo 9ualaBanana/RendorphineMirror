@@ -162,7 +162,7 @@ public class UpdateChecker
             _logger.Info(string.Join("; ", files.Value.Select(x => x.Path)));
 
         DownloadingStarted(files.Value);
-        var download = await files.Value.OrderByDescending(x => x.Size).Select(DownloadFileToTemp).AggregateParallel(6).ConfigureAwait(false);
+        var download = await files.Value.OrderByDescending(x => x.Size).AggregateParallel(DownloadFileToTemp, 6).ConfigureAwait(false);
         if (!download) return download;
 
         startNewUpdater();
