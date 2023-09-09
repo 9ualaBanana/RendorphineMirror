@@ -9,6 +9,14 @@ internal abstract class AssetUploadRequest
     protected readonly TurboSquidAwsUploadCredentials AwsUploadCredentials;
     string UploadKey => UploadEndpoint.AbsolutePath.TrimStart('/');
 
+    internal static async Task<AssetUploadRequest> CreateAsyncFor(FileStream asset, TurboSquid3DProductUploadSessionContext context, CancellationToken cancellationToken)
+    {
+        int partsCount = (int)Math.Ceiling(asset.Length / (double)MultipartAssetUploadRequest.MaxPartSize);
+        return partsCount == 1 ?
+            await SinglepartAssetUploadRequest.CreateAsyncFor(asset, context) :
+            await MultipartAssetUploadRequest.CreateAsyncFor(asset, context, partsCount);
+    }
+
     protected AssetUploadRequest(Uri uploadEndpoint, string unixTimestamp, TurboSquidAwsUploadCredentials awsUploadCredentials)
     {
         UploadEndpoint = uploadEndpoint;

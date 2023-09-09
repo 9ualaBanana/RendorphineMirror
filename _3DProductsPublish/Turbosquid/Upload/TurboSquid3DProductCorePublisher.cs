@@ -54,16 +54,8 @@ internal class TurboSquid3DProductCorePublisher
         async Task<string> UploadAssetAsyncAt(string assetPath, CancellationToken cancellationToken)
         {
             using var asset = File.OpenRead(assetPath);
-            int partsCount = (int)Math.Ceiling(asset.Length / (double)MultipartAssetUploadRequest.MaxPartSize);
-            return partsCount == 1 ? await UploadAssetAsSinglepartAsync() : await UploadAssetAsMultipartAsync();
-
-
-            async Task<string> UploadAssetAsSinglepartAsync() => await
-                (await SinglepartAssetUploadRequest.CreateAsyncFor(asset, _context))
-                .SendAsyncUsing(_context.HttpClient, cancellationToken);
-
-            async Task<string> UploadAssetAsMultipartAsync() => await
-                (await MultipartAssetUploadRequest.CreateAsyncFor(asset, _context, partsCount))
+            return await
+                (await AssetUploadRequest.CreateAsyncFor(asset, _context, cancellationToken))
                 .SendAsyncUsing(_context.HttpClient, cancellationToken);
         }
 
