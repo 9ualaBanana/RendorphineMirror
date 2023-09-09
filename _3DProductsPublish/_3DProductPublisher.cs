@@ -13,7 +13,9 @@ public static class _3DProductPublisher
         NetworkCredential credential,
         CancellationToken cancellationToken = default)
     {
-        await new TurboSquid3DProductPublisher().PublishAsync(await _3DProduct.AsyncWithTurboSquid(metadata, cancellationToken), credential, cancellationToken);
+        await
+            (await TurboSquid3DProductPublisher.InitializeAsync(credential, cancellationToken))
+            .PublishAsync(await _3DProduct.AsyncWithTurboSquid(metadata, cancellationToken), credential, cancellationToken);
         // It should be published to each stock and not switched on metadata as it should be generic to be used for each stock and obtain some specific metadata in further processing steps.
         //await (_3DProduct.Metadata switch
         //{

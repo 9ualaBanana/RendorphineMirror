@@ -6,7 +6,7 @@ namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
 internal partial class TurboSquid3DProductAssetProcessing
 {
-    internal class Task_<TAsset> : Task<ITurboSquidProcessed3DProductAsset<TAsset>>, IEquatable<Task_<TAsset>>
+    internal partial class Task_<TAsset> : Task<ITurboSquidProcessed3DProductAsset<TAsset>>, IEquatable<Task_<TAsset>>
         where TAsset : I3DProductAsset
     {
         new internal string Id { get; }
@@ -15,12 +15,12 @@ internal partial class TurboSquid3DProductAssetProcessing
         readonly TAsset _asset;
         readonly Context _context;
 
-        internal static async Task<Task_<TAsset>> RunAsync(TAsset asset, string uploadKey, TurboSquid3DProductUploadSessionContext context, CancellationToken cancellationToken)
-            => await RunAsync(asset, Payload.For(asset, uploadKey, context), context.HttpClient, TimeSpan.FromMilliseconds(1000), cancellationToken);
-        internal static async Task<Task_<TAsset>> RunAsync(TAsset asset, string uploadKey, TurboSquid3DProductUploadSessionContext context, TimeSpan pollInterval, CancellationToken cancellationToken)
-            => await RunAsync(asset, Payload.For(asset, uploadKey, context), context.HttpClient, pollInterval, cancellationToken);
-        static async Task<Task_<TAsset>> RunAsync(TAsset asset, Payload payload, HttpClient assetsProcessor, TimeSpan pollInterval, CancellationToken cancellationToken)
-            => await RunAsync(asset, new Context(payload, assetsProcessor, (int)pollInterval.TotalMilliseconds, cancellationToken));
+        internal static async Task<Task_<TAsset>> RunAsync(TAsset asset, string uploadKey, TurboSquid.PublishSession session)
+            => await RunAsync(asset, Payload.For(asset, uploadKey, session), session.Client, TimeSpan.FromMilliseconds(1000), session.CancellationToken);
+        internal static async Task<Task_<TAsset>> RunAsync(TAsset asset, string uploadKey, TurboSquid.PublishSession session, TimeSpan pollInterval)
+            => await RunAsync(asset, Payload.For(asset, uploadKey, session), session.Client, pollInterval, session.CancellationToken);
+        static async Task<Task_<TAsset>> RunAsync(TAsset asset, Payload payload, HttpClient client, TimeSpan pollInterval, CancellationToken cancellationToken)
+            => await RunAsync(asset, new Context(payload, client, (int)pollInterval.TotalMilliseconds, cancellationToken));
         static async Task<Task_<TAsset>> RunAsync(TAsset asset, Context context)
         {
             return new(await QueueTaskAsync(), asset, context);

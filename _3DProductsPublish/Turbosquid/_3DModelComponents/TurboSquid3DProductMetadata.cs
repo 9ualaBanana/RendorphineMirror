@@ -1,7 +1,7 @@
 ﻿using NodeToUI.Requests;
 using NodeToUI;
 using System.Net;
-using _3DProductsPublish.Turbosquid.Api;
+using _3DProductsPublish.Turbosquid.Upload;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
@@ -32,7 +32,7 @@ public partial record TurboSquid3DProductMetadata
 
         async Task<KeyValuePair<string, int>> Category()
         {
-            var httpClient = new HttpClient() { BaseAddress = TurboSquidApi.Origin};
+            var httpClient = new HttpClient() { BaseAddress = TurboSquid.Origin};
             string categoryPrompt;
             while (true)
             {

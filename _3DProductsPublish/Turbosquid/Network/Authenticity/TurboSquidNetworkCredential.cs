@@ -25,7 +25,7 @@ internal class TurboSquidNetworkCredential : NetworkCredential
     {
     }
 
-    internal TurboSquidNetworkCredential(
+    TurboSquidNetworkCredential(
         string userName,
         string password,
         string csrfToken,
