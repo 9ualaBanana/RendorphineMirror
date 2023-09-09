@@ -19,7 +19,7 @@ internal class TurboSquidApi
     readonly HttpClient _httpClient;
     readonly TurboSquidAuthenticationApi _authenticationApi;
 
-    internal static readonly Uri _BaseUri = new("https://www.squid.io");
+    internal static readonly Uri Origin = new("https://www.squid.io");
 
     internal TurboSquidApi()
     {
@@ -27,6 +27,7 @@ internal class TurboSquidApi
         _httpClient = new(_socketsHttpHandler);
         _authenticationApi = new(_socketsHttpHandler);
 
+        _httpClient.BaseAddress = Origin;
         _httpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
     }
 
@@ -52,7 +53,7 @@ internal class TurboSquidApi
             TurboSquidNetworkCredential credential_ = null!;
             var thread = new Thread(() =>
             {
-                using var browser = new ChromiumWebBrowser(new Uri(_BaseUri, "auth/keymaster").AbsoluteUri);
+                using var browser = new ChromiumWebBrowser(new Uri(Origin, "auth/keymaster").AbsoluteUri);
                 // Consider using ResourceRequestHandlerFactory.
                 browser.RequestHandler = new TurboSquidRequestHandler();
                 _ = browser.WaitForInitialLoadAsync().Result;
@@ -97,35 +98,25 @@ internal class TurboSquidApi
         return new TurboSquid3DProductUploadSessionContext(
             new _3DProductDraft<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>(_3DProduct, productDraftId),
             credential.WithUpdated(csrfToken),
-            awsUploadCredentials);
+            awsUploadCredentials,
+            _httpClient);
 
 
         /// <returns>CSRF token that must be passed to each request that is part of uploading process that follows.</returns>
-        async Task<string> RequestUploadInitializingAuthenticityTokenAsync(CancellationToken cancellationToken) =>
-            CsrfToken._ParseFromMetaTag(
-                await _httpClient.GetStringAsync(
-                    new Uri(_BaseUri, "turbosquid/products/new"),
-                    cancellationToken)
-                );
+        async Task<string> RequestUploadInitializingAuthenticityTokenAsync(CancellationToken cancellationToken)
+            => CsrfToken._ParseFromMetaTag(await _httpClient.GetStringAsync("turbosquid/products/new", cancellationToken));
 
         /// <returns>The ID of newly created model draft.</returns>
-        async Task<string> CreateNewProductDraftAsync(CancellationToken cancellationToken) =>
-            (string)JObject.Parse(
-                await _httpClient.GetStringAsync(
-                    new Uri(_BaseUri, "turbosquid/products/0/create_draft"),
-                    cancellationToken)
-                )["id"]!;
+        async Task<string> CreateNewProductDraftAsync(CancellationToken cancellationToken)
+            => JObject.Parse(await _httpClient.GetStringAsync("turbosquid/products/0/create_draft", cancellationToken))
+            ["id"]!.Value<string>()!;
 
         async Task<TurboSquidAwsUploadCredentials> RequestAwsUploadCredentialsAsync(
             string csrfToken,
             CancellationToken cancellationToken)
         {
             var response = await
-                (await _httpClient.PostAsJsonAsync(
-                    new Uri(_BaseUri, "turbosquid/uploads//credentials"),
-                    new { authenticity_token = csrfToken },
-                    cancellationToken)
-                )
+                (await _httpClient.PostAsJsonAsync("turbosquid/uploads//credentials", new { authenticity_token = csrfToken }, cancellationToken))
                 .EnsureSuccessStatusCode()
                 .Content.ReadAsStringAsync(cancellationToken);
             
@@ -134,15 +125,4 @@ internal class TurboSquidApi
     }
 
     #endregion
-
-    internal async Task PublishAsyncUsing(
-        TurboSquid3DProductUploadSessionContext productUploadSessionContext,
-        CancellationToken cancellationToken)
-    {
-        var uploadApi = new TurboSquidUploadApi(_httpClient, productUploadSessionContext);
-        var uploadedAssets = await uploadApi.UploadAssetsAsync(cancellationToken);
-        var publishApi = new TurboSquidPublishApi(_httpClient, productUploadSessionContext, uploadedAssets);
-        await publishApi.UploadMetadataAsync(cancellationToken);
-        await publishApi.PublishProductAsync(cancellationToken);
-    }
 }

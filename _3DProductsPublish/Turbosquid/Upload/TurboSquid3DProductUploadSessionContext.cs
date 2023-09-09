@@ -7,17 +7,9 @@ namespace _3DProductsPublish.Turbosquid.Upload;
 internal record TurboSquid3DProductUploadSessionContext(
     _3DProductDraft<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> ProductDraft,
     TurboSquidNetworkCredential Credential,
-    TurboSquidAwsUploadCredentials AwsUploadCredentials)
+    TurboSquidAwsUploadCredentials AwsUploadCredentials,
+    HttpClient HttpClient)
 {
     internal Uri UploadEndpointFor(FileStream asset, string unixTimestamp) =>
-        UploadEndpointFor(asset.Name, unixTimestamp);
-
-    internal Uri UploadEndpointFor(string assetPath, string unixTimestamp) =>
-        new(UploadEndpointPrefixWith(unixTimestamp), Path.GetFileName(assetPath));
-
-    Uri UploadEndpointPrefixWith(string unixTimestamp) => new(UploadEndpointPrefix, unixTimestamp + '/');
-
-    Uri UploadEndpointPrefix => _uploadEndpointPrefix ??=
-        new($"https://{AwsUploadCredentials.Bucket}.s3.amazonaws.com/{AwsUploadCredentials.KeyPrefix}");
-    Uri? _uploadEndpointPrefix;
+        new(new Uri(new($"https://{AwsUploadCredentials.Bucket}.s3.amazonaws.com/{AwsUploadCredentials.KeyPrefix}"), unixTimestamp + '/'), Path.GetFileName(asset.Name));
 }

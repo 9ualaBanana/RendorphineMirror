@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish.Turbosquid.Api;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
 using static _3DProductsPublish.Turbosquid.Upload.Processing.TurboSquid3DProductAssetProcessing;
 
@@ -16,10 +15,10 @@ internal partial class TurboSquid3DProductAssetProcessing
         readonly TAsset _asset;
         readonly Context _context;
 
-        internal static async Task<Task_<TAsset>> RunAsync(TAsset asset, string uploadKey, TurboSquid3DProductUploadSessionContext context, HttpClient assetsProcessor, CancellationToken cancellationToken)
-            => await RunAsync(asset, Payload.For(asset, uploadKey, context), assetsProcessor, TimeSpan.FromMilliseconds(1000), cancellationToken);
-        internal static async Task<Task_<TAsset>> RunAsync(TAsset asset, string uploadKey, TurboSquid3DProductUploadSessionContext context, TimeSpan pollInterval, HttpClient assetsProcessor, CancellationToken cancellationToken)
-            => await RunAsync(asset, Payload.For(asset, uploadKey, context), assetsProcessor, pollInterval, cancellationToken);
+        internal static async Task<Task_<TAsset>> RunAsync(TAsset asset, string uploadKey, TurboSquid3DProductUploadSessionContext context, CancellationToken cancellationToken)
+            => await RunAsync(asset, Payload.For(asset, uploadKey, context), context.HttpClient, TimeSpan.FromMilliseconds(1000), cancellationToken);
+        internal static async Task<Task_<TAsset>> RunAsync(TAsset asset, string uploadKey, TurboSquid3DProductUploadSessionContext context, TimeSpan pollInterval, CancellationToken cancellationToken)
+            => await RunAsync(asset, Payload.For(asset, uploadKey, context), context.HttpClient, pollInterval, cancellationToken);
         static async Task<Task_<TAsset>> RunAsync(TAsset asset, Payload payload, HttpClient assetsProcessor, TimeSpan pollInterval, CancellationToken cancellationToken)
             => await RunAsync(asset, new Context(payload, assetsProcessor, (int)pollInterval.TotalMilliseconds, cancellationToken));
         static async Task<Task_<TAsset>> RunAsync(TAsset asset, Context context)
@@ -30,7 +29,7 @@ internal partial class TurboSquid3DProductAssetProcessing
             async Task<ServerTask> QueueTaskAsync()
                 => JObject.Parse(await
                     (await context.AssetsProcessor.PostAsync(
-                        new Uri(TurboSquidApi._BaseUri, "turbosquid/uploads//process"),
+                        "turbosquid/uploads//process",
                         context.Payload.ToJson(),
                         context.CancellationToken)
                     )
@@ -82,7 +81,7 @@ internal partial class TurboSquid3DProductAssetProcessing
             if (serverTasks.Any())
             {
                 var response = await
-                    (await context.AssetsProcessor.PostAsJsonAsync(new Uri(TurboSquidApi._BaseUri, "turbosquid/uploads/bulk_poll"), new
+                    (await context.AssetsProcessor.PostAsJsonAsync("turbosquid/uploads/bulk_poll", new
                     {
                         context.Payload.authenticity_token,
                         ids = serverTasks.Select(_ => _.Id)

@@ -10,7 +10,7 @@ internal class SinglepartAssetUploadRequest : AssetUploadRequest
         FileStream asset, TurboSquid3DProductUploadSessionContext uploadSessionContext)
     {
         var unixTimestamp = DateTime.UtcNow.AsUnixTimestamp();
-        var uploadEndpoint = uploadSessionContext.UploadEndpointFor(asset.Name, unixTimestamp);
+        var uploadEndpoint = uploadSessionContext.UploadEndpointFor(asset, unixTimestamp);
         var assetUploadRequest = await new HttpRequestMessage(HttpMethod.Put, uploadEndpoint)
         { Content = new StreamContent(asset) }
         .SignAsyncWith(uploadSessionContext.AwsUploadCredentials, includeAcl: true);

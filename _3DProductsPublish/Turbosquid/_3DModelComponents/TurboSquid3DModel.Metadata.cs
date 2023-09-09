@@ -1,7 +1,6 @@
 ﻿using _3DProductsPublish._3DProductDS;
 using Tomlyn;
 using Tomlyn.Syntax;
-using static Tomlyn.Helpers.TomlNamingHelper;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
