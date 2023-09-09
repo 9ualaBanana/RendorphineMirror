@@ -149,7 +149,7 @@ class blender : NativeFileFormatMetadata<blender.Renderer_>
 
     internal enum Renderer_
     {
-        blender_renderer,
+        blender_render,
         cycles_render,
         eevee_renderer
     }
