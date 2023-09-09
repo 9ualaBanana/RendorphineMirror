@@ -1,6 +1,5 @@
 ﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader._3DModelComponents;
-using _3DProductsPublish.Turbosquid._3DModelComponents;
 
 namespace _3DProductsPublish.CGTrader.Upload;
 
@@ -13,9 +12,6 @@ internal record _3DProductDraft<TMetadata>(_3DProduct<TMetadata> _Product, strin
             Type type
             when type == typeof(CGTrader3DModelThumbnail) =>
                 thumbnail => (new CGTrader3DModelThumbnail(thumbnail.FilePath) as T)!,
-            Type type
-            when type == typeof(TurboSquid3DProductThumbnail) =>
-                thumbnail => (new TurboSquid3DProductThumbnail(thumbnail.FilePath) as T)!,
             { } => thumbnail => (thumbnail as T)!
         };
         return _Product.Thumbnails.Select(upcaster);

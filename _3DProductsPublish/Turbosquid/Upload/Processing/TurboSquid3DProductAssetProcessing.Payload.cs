@@ -20,7 +20,7 @@ internal partial class TurboSquid3DProductAssetProcessing
             => asset switch
             {
                 _3DModel<TurboSquid3DModelMetadata> _3DModel => Payload.For(_3DModel, uploadKey, uploadSessionContext),
-                TurboSquid3DProductThumbnail thumbnail => Payload.For(thumbnail, uploadKey, uploadSessionContext),
+                _3DProductThumbnail thumbnail => Payload.For(thumbnail, uploadKey, uploadSessionContext),
                 _ => throw new NotImplementedException()
             };
 
@@ -33,10 +33,10 @@ internal partial class TurboSquid3DProductAssetProcessing
                 _3DModel.Metadata.FileFormat, _3DModel.Metadata.FormatVersion, _3DModel.Metadata.Renderer, _3DModel.Metadata.RendererVersion, _3DModel.Metadata.IsNative);
         }
 
-        internal static Payload For(TurboSquid3DProductThumbnail thumbnail, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext)
+        internal static Payload For(_3DProductThumbnail thumbnail, string uploadKey, TurboSquid3DProductUploadSessionContext uploadSessionContext)
             => Payload.For(thumbnail, uploadKey, uploadSessionContext.ProductDraft._ID, uploadSessionContext.Credential._CsrfToken);
-        internal static Payload For(TurboSquid3DProductThumbnail thumbnail, string uploadKey, string draftId, string authenticityToken)
-            => new Payload.Thumbnail(uploadKey, draftId, thumbnail.FileName, thumbnail.Size, thumbnail.Type.ToString(), authenticityToken);
+        internal static Payload For(_3DProductThumbnail thumbnail, string uploadKey, string draftId, string authenticityToken)
+            => new Payload.Thumbnail(uploadKey, draftId, thumbnail.FileName, thumbnail.Size, thumbnail.TurboSquidType().ToString(), authenticityToken);
 
         internal Payload(
             string uploadKey,

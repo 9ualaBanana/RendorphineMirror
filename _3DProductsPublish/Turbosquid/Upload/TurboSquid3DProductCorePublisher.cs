@@ -38,17 +38,17 @@ internal class TurboSquid3DProductCorePublisher
                 yield return processedAsset;
         }
 
-        async Task<List<ITurboSquidProcessed3DProductAsset<TurboSquid3DProductThumbnail>>> UploadThumbnailsAsync()
+        async Task<List<ITurboSquidProcessed3DProductAsset<_3DProductThumbnail>>> UploadThumbnailsAsync()
         {
-            var thumbnailsUpload = await _context.ProductDraft.UpcastThumbnailsTo<TurboSquid3DProductThumbnail>()
+            var thumbnailsUpload = await _context.ProductDraft._Product.Thumbnails
                 .Select(async thumbnail =>
                 {
                     string uploadKey = await UploadAssetAsyncAt(thumbnail.FilePath, cancellationToken);
-                    return await TurboSquid3DProductAssetProcessing.Task_<TurboSquid3DProductThumbnail>
+                    return await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>
                         .RunAsync(thumbnail, uploadKey, _context, cancellationToken);
                 })
                 .RunAsync();
-            return await TurboSquid3DProductAssetProcessing.Task_<TurboSquid3DProductThumbnail>.WhenAll(thumbnailsUpload);
+            return await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.WhenAll(thumbnailsUpload);
         }
 
         async Task<string> UploadAssetAsyncAt(string assetPath, CancellationToken cancellationToken)
@@ -96,7 +96,7 @@ internal class TurboSquid3DProductCorePublisher
             }
         }
 
-        async Task FinalizePublishingAsync(List<ITurboSquidProcessed3DProductAsset<TurboSquid3DProductThumbnail>> processedThumbnails)
+        async Task FinalizePublishingAsync(List<ITurboSquidProcessed3DProductAsset<_3DProductThumbnail>> processedThumbnails)
         {
             var productPublishRequest = new HttpRequestMessage(
                 HttpMethod.Patch,

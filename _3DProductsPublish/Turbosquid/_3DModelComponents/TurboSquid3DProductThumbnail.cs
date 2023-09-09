@@ -2,14 +2,11 @@
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
-internal record TurboSquid3DProductThumbnail : _3DProductThumbnail
+internal static class TurboSquid3DProductThumbnail
 {
-    internal ThumbnailType Type => Path.GetFileNameWithoutExtension(FilePath).StartsWith("wire") ?
-        ThumbnailType.wireframe : ThumbnailType.regular;
+    internal static Type TurboSquidType(this _3DProductThumbnail thumbnail)
+        => Path.GetFileNameWithoutExtension(thumbnail.FilePath).StartsWith("wire") ?
+        Type.wireframe : Type.regular;
 
-    internal TurboSquid3DProductThumbnail(string path) : base(path)
-    {
-    }
+    internal enum Type { regular, wireframe }
 }
-
-enum ThumbnailType { regular, wireframe }
