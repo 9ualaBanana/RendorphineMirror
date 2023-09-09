@@ -75,10 +75,17 @@ internal partial class TurboSquid : HttpClient
 
     internal async Task PublishAsync(_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> _3DProduct, CancellationToken cancellationToken)
     {
-        await
-            (await
-                (await PublishSession.InitializeAsync(_3DProduct, this, cancellationToken))
-            .StartAsync())
-        .FinalizeAsync();
+        try
+        {
+            _logger.Info($"Publishing {_3DProduct.Metadata.Title} 3D product contained inside {_3DProduct.ContainerPath}.");
+            await
+                (await
+                    (await PublishSession.InitializeAsync(_3DProduct, this, cancellationToken))
+                .StartAsync())
+            .FinalizeAsync();
+            _logger.Info($"{_3DProduct.Metadata.Title} 3D product has been published.");
+        }
+        catch (Exception ex)
+        { _logger.Error(ex, $"{_3DProduct.Metadata.Title} 3D product publish failed."); }
     }
 }

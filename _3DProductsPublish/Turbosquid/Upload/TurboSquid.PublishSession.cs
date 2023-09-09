@@ -24,11 +24,19 @@ internal partial class TurboSquid
 
         internal static async Task<PublishSession> InitializeAsync(_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> _3DProduct, TurboSquid client, CancellationToken cancellationToken)
         {
-            var authenticityToken = await RequestSessionAuthenticityTokenAsync();
-            return new PublishSession(
-                new _3DProductDraft<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>(_3DProduct, await CreateNewProductDraftAsync()),
-                client.Credential.WithUpdated(authenticityToken),
-                await RequestAwsUploadCredentialsAsync(authenticityToken), client, cancellationToken);
+            try
+            {
+                _logger.Trace("Initializing session.");
+                var authenticityToken = await RequestSessionAuthenticityTokenAsync();
+                var session = new PublishSession(
+                    new _3DProductDraft<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>(_3DProduct, await CreateNewProductDraftAsync()),
+                    client.Credential.WithUpdated(authenticityToken),
+                    await RequestAwsUploadCredentialsAsync(authenticityToken), client, cancellationToken);
+                _logger.Debug($"Session is initialized with {authenticityToken} authenticity token.");
+                return session;
+            }
+            catch (Exception ex)
+            { throw new Exception("Session initialization failed.", ex); }
 
 
             async Task<string> RequestSessionAuthenticityTokenAsync()
@@ -36,28 +44,23 @@ internal partial class TurboSquid
                 try
                 {
                     var authenticityToken = CsrfToken._ParseFromMetaTag(await client.GetStringAsync("turbosquid/products/new", cancellationToken));
-                    _logger.Trace("Authenticity token is obtained.");
+                    _logger.Trace("Authenticity token has been obtained.");
                     return authenticityToken;
                 }
                 catch (Exception ex)
-                {
-                    string errorMessage = "Authenticity token request failed.";
-                    _logger.Fatal(ex, errorMessage); throw new Exception(errorMessage, ex);
-                }
+                { throw new Exception("Authenticity token request failed.", ex); }
             }
 
             async Task<string> CreateNewProductDraftAsync()
             {
                 try
                 {
-                    var productDraftId = JObject.Parse(await client.GetStringAsync("turbosquid/products/0/create_draft", cancellationToken))["id"]!.Value<string>()!;
-                    return productDraftId;
+                    var draftId = JObject.Parse(await client.GetStringAsync("turbosquid/products/0/create_draft", cancellationToken))["id"]!.Value<string>()!;
+                    _logger.Trace($"3D product draft with {draftId} ID has been created.");
+                    return draftId;
                 }
                 catch (Exception ex)
-                {
-                    string errorMessage = $"Failed to create a draft for publishing {nameof(_3DProduct)}.";
-                    _logger.Fatal(ex, errorMessage); throw new Exception(errorMessage, ex);
-                }
+                { throw new Exception("Failed to create 3D product draft.", ex); }
             }
 
             async Task<TurboSquidAwsUploadCredentials> RequestAwsUploadCredentialsAsync(string authenticity_token)
@@ -68,14 +71,11 @@ internal partial class TurboSquid
                         (await client.PostAsJsonAsync("turbosquid/uploads//credentials", new { authenticity_token }, cancellationToken))
                         .EnsureSuccessStatusCode()
                         .Content.ReadAsStringAsync(cancellationToken));
-                    _logger.Trace($"{nameof(TurboSquidAwsUploadCredentials)} are obtained.");
+                    _logger.Trace($"AWS credential for {authenticity_token} session has been obtained.");
                     return credentials;
                 }
                 catch (Exception ex)
-                {
-                    string errorMessage = $"{nameof(TurboSquidAwsUploadCredentials)} request using {authenticity_token} authenticity token failed.";
-                    _logger.Fatal(ex, errorMessage); throw new Exception(errorMessage, ex);
-                }
+                { throw new Exception($"AWS credential request for {authenticity_token} session failed.", ex); }
             }
         }
 
@@ -95,11 +95,20 @@ internal partial class TurboSquid
 
         internal async Task<PublishSession.Finished> StartAsync()
         {
-            await UploadModelsAsync().ForEachAwaitWithCancellationAsync(UploadMetadataAsync, CancellationToken);
-            return new(this, await UploadThumbnailsAsync());
+            try
+            {
+                _logger.Trace("Starting 3D product assets upload and processing.");
+                await UploadModelsAsync().ForEachAwaitWithCancellationAsync(UploadMetadataAsync, CancellationToken);
+                var finishedSession = new PublishSession.Finished(this, await UploadThumbnailsAsync());
+                _logger.Trace("3D product assets have been uploaded.");
+                return finishedSession;
+            }
+            catch (Exception ex)
+            { throw new Exception("3D product assets upload and processing failed.", ex); }
 
             async IAsyncEnumerable<ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>>> UploadModelsAsync()
             {
+                _logger.Trace("Starting 3D models upload and processing.");
                 var modelsUpload = await Draft._Product._3DModels
                     .Select(async _3DModel =>
                     {
@@ -111,10 +120,12 @@ internal partial class TurboSquid
                     .RunAsync();
                 foreach (var processedAsset in await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.WhenAll(modelsUpload))
                     yield return processedAsset;
+                _logger.Trace("3D models have been uploaded and processed.");
             }
 
             async Task<List<ITurboSquidProcessed3DProductAsset<_3DProductThumbnail>>> UploadThumbnailsAsync()
             {
+                _logger.Trace("Starting 3D models thumbnails upload and processing.");
                 var thumbnailsUpload = await Draft._Product.Thumbnails
                     .Select(async thumbnail =>
                     {
@@ -123,26 +134,43 @@ internal partial class TurboSquid
                             .RunAsync(thumbnail, uploadKey, this);
                     })
                     .RunAsync();
-                return await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.WhenAll(thumbnailsUpload);
+                var processedThumbnails = await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.WhenAll(thumbnailsUpload);
+                _logger.Trace("3D models thumbnails upload and processing failed.");
+                return processedThumbnails;
             }
 
 
 
             async Task<string> UploadAssetAsyncAt(string assetPath)
             {
-                using var asset = File.OpenRead(assetPath);
-                return await (await AssetUploadRequest.CreateAsyncFor(asset, this)).SendAsync();
+                try
+                {
+                    _logger.Trace($"Uploading asset at {assetPath}.");
+                    using var asset = File.OpenRead(assetPath);
+                    string uploadKey = await (await AssetUploadRequest.CreateAsyncFor(asset, this)).SendAsync();
+                    _logger.Trace($"Asset at {assetPath} has been uploaded.");
+                    return uploadKey;
+                }
+                catch (Exception ex)
+                { throw new HttpRequestException($"{assetPath} asset upload failed.", ex); }
             }
 
             async Task UploadMetadataAsync(ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>> processedModel, CancellationToken cancellationToken)
             {
-                await Client.SendAsync(
-                    new HttpRequestMessage(
-                        HttpMethod.Patch,
+                try
+                {
+                    _logger.Trace($"Uploading {processedModel.Asset.Name} metadata");
+                    await Client.SendAsync(
+                        new HttpRequestMessage(
+                            HttpMethod.Patch,
 
-                        $"turbosquid/products/{Draft._ID}/product_files/{processedModel.FileId}")
-                    { Content = MetadataForm() },
-                    cancellationToken);
+                            $"turbosquid/products/{Draft._ID}/product_files/{processedModel.FileId}")
+                        { Content = MetadataForm() },
+                        cancellationToken);
+                    _logger.Trace($"Metadata for {processedModel.Asset.Name} has been uploaded.");
+                }
+                catch (Exception ex)
+                { throw new HttpRequestException($"{processedModel.Asset.Name} metadata upload failed.", ex); }
 
 
                 StringContent MetadataForm()
@@ -186,14 +214,22 @@ internal partial class TurboSquid
 
             internal async Task FinalizeAsync()
             {
-                var productPublishRequest = new HttpRequestMessage(
-                    HttpMethod.Patch,
+                try
+                {
+                    _logger.Trace($"Sending {_session.Draft._Product.Metadata.Title} 3D product publish request.");
+                    var productPublishRequest = new HttpRequestMessage(
+                        HttpMethod.Patch,
 
-                    "turbosquid/products/0")
-                { Content = ProductForm() };
-                productPublishRequest.Headers.Add(HeaderNames.Origin, Origin.OriginalString);
-                productPublishRequest.Headers.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
-                await _session.Client.SendAsync(productPublishRequest, _session.CancellationToken);
+                        "turbosquid/products/0")
+                    { Content = ProductForm() };
+                    productPublishRequest.Headers.Add(HeaderNames.Origin, Origin.OriginalString);
+                    productPublishRequest.Headers.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
+                    await _session.Client.SendAsync(productPublishRequest, _session.CancellationToken);
+                    _logger.Trace($"{_session.Draft._Product.Metadata.Title} 3D product publish request has been sent.");
+                }
+                catch (Exception ex)
+                { throw new HttpRequestException($"{_session.Draft._Product.Metadata.Title} 3D product publish request failed.", ex); }
+
 
                 StringContent ProductForm()
                     => new JObject(
