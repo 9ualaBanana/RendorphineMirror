@@ -10,8 +10,7 @@ public class PluginUpdaterTarget : IServiceTarget
         builder.RegisterInstance(pluginManager)
             .AsSelf()
             .As<IInstalledPluginsProvider>()
-            .SingleInstance()
-            .OnActivating(async m => await m.Instance.GetInstalledPluginsAsync());
+            .SingleInstance();
 
         builder.RegisterType<SoftwareList>()
             .As<ISoftwareListProvider>()

@@ -56,7 +56,8 @@ namespace Node.UI
         {
             if (WasConnected && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
                 return lifetime.MainWindow;
-            WasConnected |= NodeStateUpdater.IsConnectedToNode.Value;
+
+            WasConnected |= NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.Instance.AuthInfo?.SessionId is not null;
 
             if (lifetime.MainWindow is MainWindow && NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
                 return lifetime.MainWindow;
