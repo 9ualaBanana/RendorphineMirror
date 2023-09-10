@@ -1,4 +1,5 @@
-﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
+﻿using _3DProductsPublish.CGTrader._3DModelComponents;
+using _3DProductsPublish.Turbosquid._3DModelComponents;
 
 namespace _3DProductsPublish._3DProductDS;
 
@@ -41,9 +42,9 @@ public partial record _3DProduct
         public bool Materials { get; init; } = false;
         public bool UVMapped { get; init; } = false;
         public UnwrappedUVs_? UnwrappedUVs { get; init; } = default;
-        public bool? GameReady { get; init; } = default;
-        public bool? PhysicallyBasedRendering { get; init; } = default;
-        public bool? AdultContent { get; init; } = default;
+        public bool GameReady { get; init; } = false;
+        public bool PhysicallyBasedRendering { get; init; } = false;
+        public bool AdultContent { get; init; } = false;
         public bool PluginsUsed { get; init; } = false;
 
 
@@ -74,9 +75,67 @@ public partial record _3DProduct
 
 public static class _3DProductMetadataExtensions
 {
+    internal static _3DProduct<CGTrader3DProductMetadata> WithCGTrader(this _3DProduct _3DProduct, _3DProduct.Metadata_ _)
+    {
+        var cgTraderMetadata = CGTrader3DProductMetadata.ForCG(
+            _.Title,
+            _.Description,
+            _.Tags,
+            Category(),
+            License(),
+            _.Price,
+            _.GameReady,
+            _.Animated,
+            _.Rigged,
+            _.PhysicallyBasedRendering,
+            _.AdultContent,
+            new(_.Polygons, _.Vertices, Geometry(), _.Collection, _.Textures, _.Materials, _.PluginsUsed, _.UVMapped, UnwrappedUVs())
+            );
+        return _3DProduct.With_(cgTraderMetadata);
+
+
+        CGTrader3DProductCategory Category()
+        {
+            return CGTrader3DProductCategory.Electoronics(ElectronicsSubCategory.Computer);
+            throw new NotImplementedException();
+        }
+
+        NonCustomCGTraderLicense License() => _.License switch
+        {
+            _3DProduct.Metadata_.License_.RoyaltyFree => NonCustomCGTraderLicense.royalty_free,
+            _3DProduct.Metadata_.License_.Editorial => NonCustomCGTraderLicense.editorial,
+            _ => throw new NotImplementedException()
+        };
+
+        CGTrader._3DModelComponents.Geometry_? Geometry() => _.Geometry switch
+        {
+            _3DProduct.Metadata_.Geometry_.PolygonalQuadsOnly or
+            _3DProduct.Metadata_.Geometry_.PolygonalQuadsTris or
+            _3DProduct.Metadata_.Geometry_.PolygonalTrisOnly or
+            _3DProduct.Metadata_.Geometry_.PolygonalNgonsUsed or
+            _3DProduct.Metadata_.Geometry_.Polygonal => CGTrader._3DModelComponents.Geometry_.polygonal_mesh,
+            _3DProduct.Metadata_.Geometry_.Subdivision => CGTrader._3DModelComponents.Geometry_.subdivision_ready,
+            _3DProduct.Metadata_.Geometry_.Nurbs => CGTrader._3DModelComponents.Geometry_.nurbs,
+            _3DProduct.Metadata_.Geometry_.Unknown => CGTrader._3DModelComponents.Geometry_.other,
+            null => null,
+            _ => throw new NotImplementedException()
+        };
+
+        CGTrader._3DModelComponents.UnwrappedUVs_? UnwrappedUVs() => _.UnwrappedUVs switch
+        {
+            _3DProduct.Metadata_.UnwrappedUVs_.NonOverlapping => UnwrappedUVs_.non_overlapping,
+            _3DProduct.Metadata_.UnwrappedUVs_.Overlapping => UnwrappedUVs_.overlapping,
+            _3DProduct.Metadata_.UnwrappedUVs_.Mixed => UnwrappedUVs_.mixed,
+            _3DProduct.Metadata_.UnwrappedUVs_.No => UnwrappedUVs_.no,
+            _3DProduct.Metadata_.UnwrappedUVs_.Unknown => UnwrappedUVs_.unknown,
+            null => null,
+            _ => throw new NotImplementedException()
+        };
+    }
+
     internal static async Task<_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, CancellationToken cancellationToken)
     {
-        var productMetadata = await TurboSquid3DProductMetadata.ProvideAsync(
+        var tuboSquidMetadata = await TurboSquid3DProductMetadata.ProvideAsync(
             _.Title,
             _.Description,
             _.Tags,
@@ -94,7 +153,7 @@ public static class _3DProductMetadataExtensions
             UnwrappedUVs(),
             cancellationToken
         );
-        return _3DProduct.With(productMetadata);
+        return _3DProduct.With(tuboSquidMetadata);
 
 
         TurboSquid3DProductMetadata.License_ License() => _.License switch
