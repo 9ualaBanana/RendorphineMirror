@@ -109,12 +109,5 @@ IServiceTarget main = (Init.IsDebug, args.Contains("release")) switch
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
 
-var settings = new CefSettings();
-CefSharp.Cef.Initialize(new CefSettings());
-await _3DProductsPublish._3DProductPublisher.PublishAsync(
-    _3DProduct.FromDirectory("D:\\Development\\test_model"),
-    new _3DProduct.Metadata_ { Title = "title", Description = "description", Tags = Enumerable.Range(1, 5).Select(_ => _.ToString()).ToArray(), Price = 1, License = _3DProduct.Metadata_.License_.RoyaltyFree, Polygons = 1, Vertices = 1 },
-    new CGTraderNetworkCredential("vfxcgartist@gmail.com", "Zaebaliuzhe88", false));
-
 Thread.Sleep(-1);
 GC.KeepAlive(main);
