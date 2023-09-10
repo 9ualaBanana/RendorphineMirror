@@ -26,8 +26,21 @@ public record CGTrader3DProductMetadata
     public int SubCategory { get; }
     public CGTraderLicense License { get; }
     public string? CustomLicense { get; }
-    public bool Free => Price == 0.0;
-    public double Price { get; }
+    public bool Free => Price == 0;
+    public double Price
+    {
+        get => _price;
+        init
+        {
+            if (value >= 2 || value == 0)
+                _price = value;
+            else throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                $"Price for CGTrader 3D product must be equal or greater than {DefaultPrice}, or free.");
+        }
+    }
+    double _price;
     public ProductType ProductType { get; }
     public bool? GameReady { get; }
     public bool? Animated { get; }

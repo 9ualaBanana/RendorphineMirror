@@ -20,7 +20,7 @@ public class CGTrader3DProductPublisher : I3DProductPublisher<CGTrader3DProductM
         NetworkCredential credential,
         CancellationToken cancellationToken)
     {
-        var sessionContext = await CGTraderSessionContext._CreateAsyncUsing(_api, (credential as CGTraderNetworkCredential)!, cancellationToken);
+        var sessionContext = await CGTraderSessionContext._CreateAsyncUsing(_api, new(credential.UserName, credential.Password, true), cancellationToken);
 
         await _api._LoginAsync(sessionContext, cancellationToken);
         var modelDraft = await _api._CreateNewModelDraftAsyncFor(_3DModel, sessionContext, cancellationToken);
