@@ -4,24 +4,30 @@ public static class NodeStateUpdater
 {
     readonly static Logger Logger = LogManager.GetCurrentClassLogger();
 
-    public static readonly Bindable<string> NodeHost = new("127.0.0.1:5123");
+    public static readonly Bindable<string?> NodeHost = new(null);
     public static readonly Bindable<bool> IsConnectedToNode = new(false);
-
-    static NodeStateUpdater()
-    {
-        var portfile = new[] { Directories.DataFor("renderfin"), Directories.Data, }
-            .Select(p => Path.Combine(p, "lport"))
-            .First(File.Exists);
-
-        var port = ushort.Parse(File.ReadAllText(portfile));
-
-        try { NodeHost.Value = $"127.0.0.1:{port}"; }
-        catch { }
-    }
 
     public static void Start() => _Start().Consume();
     static async Task _Start()
     {
+        while (NodeHost.Value is null)
+        {
+            try
+            {
+                var portfile = new[] { Directories.DataFor("renderfin"), Directories.Data, }
+                    .Select(p => Path.Combine(p, "lport"))
+                    .First(File.Exists);
+
+                var port = ushort.Parse(File.ReadAllText(portfile), CultureInfo.InvariantCulture);
+                NodeHost.Value = $"127.0.0.1:{port}";
+
+                break;
+            }
+            catch { }
+
+            Thread.Sleep(100);
+        }
+
         var loadcache = Init.IsDebug;
         var cacheloaded = !loadcache;
 

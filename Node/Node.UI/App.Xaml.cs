@@ -9,6 +9,7 @@ namespace Node.UI
     {
         public static readonly string AppName, Version;
         public static readonly WindowIcon Icon = new WindowIcon(Resource.LoadStream(typeof(App).Assembly, Environment.OSVersion.Platform == PlatformID.Win32NT ? "img.icon.ico" : "img.tray_icon.png"));
+        static bool WasConnected = false;
 
         static App()
         {
@@ -43,6 +44,7 @@ namespace Node.UI
                 }
 
                 NodeStateUpdater.Start();
+                NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
                 NodeGlobalState.Instance.BAuthInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
 
                 if (!Environment.GetCommandLineArgs().Contains("hidden"))
@@ -52,6 +54,10 @@ namespace Node.UI
 
         public static Window SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime)
         {
+            if (WasConnected && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
+                return lifetime.MainWindow;
+            WasConnected |= NodeStateUpdater.IsConnectedToNode.Value;
+
             if (lifetime.MainWindow is MainWindow && NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
                 return lifetime.MainWindow;
 
