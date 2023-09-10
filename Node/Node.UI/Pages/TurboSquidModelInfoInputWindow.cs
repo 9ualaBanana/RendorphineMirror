@@ -61,14 +61,14 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
                     await self.FlashError("No format version");
                     return;
                 }
-                if (item.FormatVersion.Value is null || !double.TryParse(item.FormatVersion.Value, out _))
+                if (item.FormatVersion.Value is null || !double.TryParse(item.FormatVersion.Value, CultureInfo.InvariantCulture, out _))
                 {
                     await self.FlashError("Invalid format version");
                     return;
                 }
-                if (!double.TryParse(item.RendererVersion.Value ?? "æ", out _))
+                if (!double.TryParse(item.RendererVersion.Value ?? "1", CultureInfo.InvariantCulture, out _))
                 {
-                    await self.FlashError("Invalid format version");
+                    await self.FlashError("Invalid renderer version");
                     return;
                 }
             }
