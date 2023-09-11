@@ -2,9 +2,6 @@ using System.Net;
 using System.Reflection;
 using _3DProductsPublish;
 using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.CGTrader._3DModelComponents;
-using _3DProductsPublish.CGTrader.Network;
-using _3DProductsPublish.CGTrader.Upload;
 using Node.Profiling;
 
 namespace Node.Listeners;
@@ -85,19 +82,6 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
-        if (path == "uploadcgtrader")
-        {
-            return await Test(request, response, "username", "password", "directory", "meta", async (username, password, dir, metastr) =>
-            {
-                var meta = JsonConvert.DeserializeObject<CGTrader3DProductMetadata>(metastr).ThrowIfNull();
-                var model = _3DProduct.FromDirectory(dir).With_(meta);
-                var cred = new CGTraderNetworkCredential(username, password, false);
-
-                await new CGTrader3DProductPublisher().PublishAsync(model, cred, default);
-                return await WriteSuccess(response).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-
 
         return HttpStatusCode.NotFound;
     }
@@ -143,6 +127,21 @@ public class LocalListener : ExecutableListenerBase
 
                 var json = JToken.Parse(value);
                 ((IDatabaseBindable) field.GetValue(null).ThrowIfNull()).Bindable.LoadFromJson(json, null);
+
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
+        if (path == "3dupload")
+        {
+            return await TestPost(await CreateCached(request), response, "creds", "meta", "dir", async (jcreds, jmeta, dir) =>
+            {
+                var creds = JsonConvert.DeserializeObject<_3DProductPublisher.Credentials>(jcreds).ThrowIfNull();
+                var meta = JsonConvert.DeserializeObject<_3DProduct.Metadata_>(jmeta).ThrowIfNull();
+
+                var product = _3DProduct.FromDirectory(dir);
+                await (await _3DProductPublisher.InitializeAsync(creds, default))
+                    .PublishAsync(product, meta, default);
 
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);

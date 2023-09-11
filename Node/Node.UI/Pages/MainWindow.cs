@@ -30,8 +30,7 @@ namespace Node.UI.Pages
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
             if (Init.DebugFeatures) tabs.Add("registry", new JsonRegistryTab());
-            tabs.Add("cgtraderupload", new CGTraderUploadTab());
-            tabs.Add("3dupload", new ModelUploader());
+            tabs.Add("3dupload", new Model3DUploadTab());
 
             var statustb = new TextBlock()
             {

@@ -19,7 +19,7 @@ public partial record _3DProduct
                 _tags = value;
             }
         }
-        string[] _tags = null!;
+        [JsonIgnore] string[] _tags = null!;
         public required double Price { get; init; }
         public required License_ License { get; init; }
         public Geometry_? Geometry { get; init; } = default;
@@ -28,13 +28,13 @@ public partial record _3DProduct
             get => _polygons;
             init => _polygons = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(Polygons), "Must be greater than 0");
         }
-        int _polygons;
+        [JsonIgnore] int _polygons;
         public required int Vertices
         {
             get => _vertices;
             init => _vertices = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(Vertices), "Must be greater than 0");
         }
-        int _vertices;
+        [JsonIgnore] int _vertices;
         public bool Animated { get; init; } = false;
         public bool Collection { get; init; } = false;
         public bool Rigged { get; init; } = false;
