@@ -74,7 +74,7 @@ public class SettingsTab : Panel
 
             json = JObject.FromObject(obj);
             jsonpanel.Children.Clear();
-            jsonpanel.Children.Add(setting = JsonUISetting.Create(new JProperty("ae", json), FieldDescriber.Create(obj.GetType())));
+            jsonpanel.Children.Add(setting = JsonEditorList.Default.Create(new JProperty("ae", json), FieldDescriber.Create(obj.GetType())));
         }
 
 

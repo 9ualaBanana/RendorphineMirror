@@ -27,7 +27,7 @@ public class RegistryTab : Panel
                 }.ToImmutableDictionary()
             ), JsonSettings.LowercaseS)
         };
-        var setting = JsonUISetting.Create(new JProperty("_", JObject.FromObject(softlist, JsonSettings.LowercaseS)), describer);
+        var setting = JsonEditorList.Default.Create(new JProperty("_", JObject.FromObject(softlist, JsonSettings.LowercaseS)), describer);
 
 
         Children.Add(new StackPanel()

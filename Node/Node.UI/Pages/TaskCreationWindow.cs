@@ -294,7 +294,7 @@ namespace Node.UI.Pages
                 var obj = new JObject() { ["type"] = describer.Type, };
                 var parent = new JObject() { [describer.Type] = obj, };
 
-                Setting = JsonUISetting.Create(parent.Property(describer.Type)!, describer.Object);
+                Setting = JsonEditorList.Default.Create(parent.Property(describer.Type)!, describer.Object);
                 SettingPanel.Children.Add(Setting);
             }
             public override void OnNext()
@@ -321,7 +321,7 @@ namespace Node.UI.Pages
                 data["type"] = Builder.Action;
 
                 var parent = new JObject() { [describer.Name] = data, };
-                Setting = JsonUISetting.Create(parent.Property(describer.Name)!, describer);
+                Setting = JsonEditorList.Default.Create(parent.Property(describer.Name)!, describer);
                 Children.Add(Setting);
 
                 Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
