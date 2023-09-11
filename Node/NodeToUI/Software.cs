@@ -2,10 +2,10 @@ namespace NodeToUI;
 
 public static class Software
 {
-    static ValueTask<OperationResult<ImmutableDictionary<string, SoftwareDefinition>>> LoadSoftware() =>
+    public static ValueTask<OperationResult<ImmutableDictionary<string, SoftwareDefinition>>> LoadSoftware() =>
         Api.Default.ApiGet<ImmutableDictionary<string, SoftwareDefinition>>($"{Apis.RegistryUrl}/getsoft", "value", "Getting registry software")
             .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
-    static ValueTask<OperationResult<ImmutableDictionary<string, SoftwareStats>>> LoadSoftwareStats() =>
+    public static ValueTask<OperationResult<ImmutableDictionary<string, SoftwareStats>>> LoadSoftwareStats() =>
         Api.Default.ApiGet<ImmutableDictionary<string, SoftwareStats>>($"{Api.TaskManagerEndpoint}/getsoftwarestats", "stats", "Getting software stats")
             .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
 

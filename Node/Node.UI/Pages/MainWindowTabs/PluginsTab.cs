@@ -77,6 +77,9 @@ public class PluginsTab : Panel
         public InstallPluginPanel()
         {
             var stats = NodeGlobalState.Instance.Software.GetBoundCopy();
+            if (stats.Value.Count == 0)
+                stats.Value = Software.LoadSoftware().ThrowIfError().AsTask().GetAwaiter().GetResult();
+
             GCBindable = stats;
 
             var versionslist = TypedComboBox.Create(Array.Empty<PluginVersion>()).With(c => c.MinWidth = 100);
@@ -120,6 +123,8 @@ public class PluginsTab : Panel
         {
             Settings = NodeGlobalState.Instance.UserSettings.GetBoundCopy();
             Stats = NodeGlobalState.Instance.Software.GetBoundCopy();
+            if (Stats.Value.Count == 0)
+                Stats.Value = Software.LoadSoftware().ThrowIfError().AsTask().GetAwaiter().GetResult();
 
             Apis.Default.GetSettingsAsync()
                 .Next(s => { Settings.Value = s; return OperationResult.Succ(); })
