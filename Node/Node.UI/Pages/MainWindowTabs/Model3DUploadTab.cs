@@ -22,9 +22,19 @@ public class Model3DUploadTab : Panel
             JsonSettings.LowercaseS
         );
 
+        var jeditorlist = new JsonEditorList(
+            ImmutableArray<Func<FieldDescriber, JProperty, JsonEditorList, JsonUISetting.Setting?>>.Empty
+                .Add((describer, property, editorList) =>
+                    property.Name == nameof(_3DProduct.Metadata_.Tags).ToLowerInvariant()
+                    ? new KeywordSetting(property, editorList)
+                    : null
+                )
+        );
+        var jeditor = jeditorlist.Create(new JProperty("__", meta), FieldDescriber.Create(typeof(_3DProduct.Metadata_)));
+
         var cgtradercredsinput = new CredentialsInput();
         var turbosquidcredsinput = new CredentialsInput();
-        var dirpicker = new LocalDirSetting();
+        var dirpicker = new DirectoryInput();
         var submitbtn = new MPButton()
         {
             Text = "Submit",
@@ -47,18 +57,18 @@ public class Model3DUploadTab : Panel
                     return;
                 }
 
-
+                jeditor.UpdateValue();
                 ProcessObject(meta);
                 ProcessObject(meta); // two times, yes
 
                 var cred = new _3DProductPublisher.Credentials(cgcreds, turbocreds);
-
                 var result = await LocalApi.Default.Post("3dupload", "Uploading 3d item",
                     ("creds", JsonConvert.SerializeObject(cred)), ("meta", meta.ToString()), ("dir", dirpicker.Dir)
                 );
                 await self.FlashErrorIfErr(result);
             },
         };
+
 
         Children.Add(new ScrollViewer()
         {
@@ -72,8 +82,7 @@ public class Model3DUploadTab : Panel
                     turbosquidcredsinput.Named("Turbosquid credentials").WithRow(1),
                     submitbtn.Named("Submit").WithRow(2),
                     dirpicker.Named("Model directory").WithRow(3),
-                    JsonUISetting.Create(new JProperty("__", meta), FieldDescriber.Create(typeof(_3DProduct.Metadata_)))
-                        .Named("Metadata").WithRow(4),
+                    jeditor.Named("Metadata").WithRow(4),
                 },
             },
         });
@@ -101,11 +110,30 @@ public class Model3DUploadTab : Panel
     }
 
 
-    class LocalDirSetting : Panel
+    class KeywordSetting : JsonUISetting.Setting
+    {
+        readonly TextBox TextBox;
+
+        public KeywordSetting(JProperty property, JsonEditorList editorList) : base(property, editorList)
+        {
+            TextBox = new TextBox
+            {
+                AcceptsReturn = true,
+                Text = string.Join(", ", Get().ToObject<string[]>() ?? Array.Empty<string>()),
+            };
+
+            Children.Add(TextBox);
+        }
+
+        public override void UpdateValue() =>
+            Set(TextBox.Text.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    }
+
+    class DirectoryInput : Panel
     {
         public string? Dir { get; private set; }
 
-        public LocalDirSetting()
+        public DirectoryInput()
         {
             var textinput = new TextBox();
             textinput.Subscribe(TextBox.TextProperty, text => Dir = text);
