@@ -11,7 +11,7 @@ public class ParallelDownloaderTests
         var normalDownload = await new HttpClient().GetByteArrayAsync(uri);
 
         var chunkedDownload = new MemoryStream();
-        await ParallelDownloader.Download(new HttpClient(), uri, chunkedDownload, default);
+        await new ParallelDownloader() { Dirs = new DataDirs("renderfin") }.Download(new HttpClient(), uri, chunkedDownload, default);
         chunkedDownload.Position = 0;
 
         normalDownload.Should().BeEquivalentTo(chunkedDownload.ToArray());

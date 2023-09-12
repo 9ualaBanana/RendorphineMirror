@@ -1,12 +1,13 @@
-using System.Globalization;
 using System.Web;
 
-namespace Common;
+namespace Node.Common;
 
-public static class ParallelDownloader
+public class ParallelDownloader
 {
-    public static Task Download(HttpClient client, Uri uri, Stream destination, CancellationToken token) => Download(client, uri, destination, 4, token);
-    static async Task Download(HttpClient client, Uri uri, Stream destination, int parallelDownloads, CancellationToken token)
+    public required DataDirs Dirs { get; init; }
+
+    public Task Download(HttpClient client, Uri uri, Stream destination, CancellationToken token) => Download(client, uri, destination, 4, token);
+    async Task Download(HttpClient client, Uri uri, Stream destination, int parallelDownloads, CancellationToken token)
     {
         var fileSize = await getFileSize();
         async Task<long> getFileSize()
@@ -15,7 +16,7 @@ public static class ParallelDownloader
             return response.Content.Headers.ContentLength.ThrowIfValueNull("Could not get content length");
         }
 
-        using var _ = Directories.TempFiles(parallelDownloads, out var tempfiles, "chunkdownload", HttpUtility.UrlEncode(uri.ToString()));
+        using var _ = Directories.DisposeDelete(Dirs.TempFiles(parallelDownloads, $"chunkdownload{Guid.NewGuid()}"), out var tempfiles);
 
         var ranges = calculateRanges();
         IReadOnlyList<DownloadRange> calculateRanges()

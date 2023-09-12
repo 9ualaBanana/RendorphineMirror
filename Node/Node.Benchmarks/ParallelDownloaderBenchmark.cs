@@ -7,8 +7,8 @@ public class ParallelDownloaderBenchmark
         //new Uri("http://speedtest.ftp.otenet.gr/files/test100k.db"),
         //new Uri("http://speedtest.ftp.otenet.gr/files/test1Mb.db"),
         new Uri("https://link.testfile.org/70MB")
-        //new Uri("https://link.testfile.org/300MB")
-        //new Uri("http://ipv4.download.thinkbroadband.com/200MB.zip")
+    //new Uri("https://link.testfile.org/300MB")
+    //new Uri("http://ipv4.download.thinkbroadband.com/200MB.zip")
     );
 
     [ParamsSource(nameof(Uris))]
@@ -18,5 +18,5 @@ public class ParallelDownloaderBenchmark
     public async Task NormalSpeed() => await new HttpClient().GetByteArrayAsync(Uri);
 
     [Benchmark]
-    public async Task ParallelSpeed() => await ParallelDownloader.Download(new HttpClient(), Uri, new MemoryStream(), default);
+    public async Task ParallelSpeed() => await new ParallelDownloader() { Dirs = new DataDirs("renderfin") }.Download(new HttpClient(), Uri, new MemoryStream(), default);
 }

@@ -16,8 +16,8 @@ namespace Node.UI.Pages
             this.FixStartupLocation();
             Width = 692;
             Height = 410;
-            Title = App.AppName;
-            Icon = App.Icon;
+            Title = App.Instance.AppName;
+            Icon = App.Instance.Icon;
 
             this.PreventClosing();
             SubscribeToStateChanges();
@@ -29,7 +29,7 @@ namespace Node.UI.Pages
             tabs.Add("tab.plugins", new PluginsTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
-            if (Init.DebugFeatures) tabs.Add("registry", new JsonRegistryTab());
+            if (App.Instance.Init.DebugFeatures) tabs.Add("registry", new JsonRegistryTab());
             tabs.Add("3dupload", new Model3DUploadTab());
 
             var statustb = new TextBlock()

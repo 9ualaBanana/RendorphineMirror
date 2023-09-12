@@ -11,11 +11,9 @@ public class PluginManager : IInstalledPluginsProvider
     public IReadOnlyBindable<IReadOnlyCollection<Plugin>?> CachedPluginsBindable => CachedPlugins;
     readonly Bindable<IReadOnlyCollection<Plugin>?> CachedPlugins = new();
 
-    readonly ImmutableArray<IPluginDiscoverer> Discoverers = new();
     TaskCompletionSource<IReadOnlyCollection<Plugin>>? CurrentDiscover;
 
-    public PluginManager(IEnumerable<IPluginDiscoverer> discoverers) : this(discoverers.ToImmutableArray()) { }
-    public PluginManager(ImmutableArray<IPluginDiscoverer> discoverers) => Discoverers = discoverers;
+    public required IEnumerable<IPluginDiscoverer> Discoverers { get; init; }
 
 
     /// <summary> Discovers installed plugins. Returns already cached result if available. </summary>

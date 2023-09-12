@@ -3,6 +3,7 @@ namespace Node.Tasks.Exec;
 /// <summary> Launcher for Nikolaj's wrappers over python AI apps. Not reusable, creatre new instance for every invocation. </summary>
 public abstract class PythonWrappedLaunch
 {
+    public required CondaInvoker CondaInvoker { get; init; }
     public required PluginList Plugins { get; init; }
     public required IProgressSetter ProgressSetter { get; init; }
     protected ILogger Logger { get; }
@@ -26,8 +27,7 @@ public abstract class PythonWrappedLaunch
             Plugins,
             PluginType,
             @$"""{Plugins.GetPlugin(PluginType).Path}"" install",
-            null,
-            Logger
+            null
         );
 
         Logger.LogInformation("Installed.");

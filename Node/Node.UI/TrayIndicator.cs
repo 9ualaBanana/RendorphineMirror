@@ -74,7 +74,7 @@ namespace Node.UI
             }.ToImmutableArray();
 
             // TODO: remove four transparent pixels after fix
-            var icon = new TrayIcon() { ToolTipText = App.AppName, Icon = None };
+            var icon = new TrayIcon() { ToolTipText = App.Instance.AppName, Icon = None };
             icon.Clicked += (_, _) => open();
             icon.FixException();
 
@@ -107,7 +107,7 @@ namespace Node.UI
                 {
                     var lifetime = (IClassicDesktopStyleApplicationLifetime) app.ApplicationLifetime!;
 
-                    var window = lifetime.MainWindow ?? App.SetMainWindow(lifetime);
+                    var window = lifetime.MainWindow ?? App.Instance.SetMainWindow(lifetime);
                     if (window.IsVisible) window.Hide();
                     else window.Show();
                 });

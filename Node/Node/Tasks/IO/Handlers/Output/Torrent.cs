@@ -12,13 +12,14 @@ public static class Torrent
         public required IQueuedTasksStorage QueuedTasks { get; init; }
         public required TorrentClient TorrentClient { get; init; }
         public required ITaskOutputDirectoryProvider ResultDirectoryProvider { get; init; }
+        public required NodeSettingsInstance Settings { get; init; }
 
         protected override async Task UploadResultImpl(TorrentTaskOutputInfo info, ReadOnlyTaskFileList result, CancellationToken token)
         {
             // TODO: fix uploading FSOutputDirectory instead of outputfiles
 
             var prefix = GetCommonDirectory(result.Paths);
-            if (ApiTask.IsFromSameNode())
+            if (ApiTask.IsFromSameNode(Settings))
             {
                 foreach (var file in result.Paths)
                     File.Copy(file, Path.Combine(ResultDirectoryProvider.OutputDirectory, Path.GetRelativePath(prefix, file)));
@@ -93,11 +94,12 @@ public static class Torrent
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required TorrentClient TorrentClient { get; init; }
         public required ITaskOutputDirectoryProvider ResultDirectoryProvider { get; init; }
+        public required NodeSettingsInstance Settings { get; init; }
 
         public override async Task OnPlacedTaskCompleted(TorrentTaskOutputInfo info)
         {
             // if task is local, downloading already handled by UploadResult
-            if (ApiTask.IsFromSameNode()) return;
+            if (ApiTask.IsFromSameNode(Settings)) return;
 
             info.Link.ThrowIfNull();
             Logger.LogInformation($"Downloading result from torrent {info.Link}");

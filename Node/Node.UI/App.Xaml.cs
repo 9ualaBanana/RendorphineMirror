@@ -1,23 +1,23 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Microsoft.Extensions.DependencyInjection;
-using NLog.Extensions.Logging;
 
 namespace Node.UI
 {
     public class App : Application
     {
-        public static readonly string AppName, Version;
-        public static readonly WindowIcon Icon = new WindowIcon(Resource.LoadStream(typeof(App).Assembly, Environment.OSVersion.Platform == PlatformID.Win32NT ? "img.icon.ico" : "img.tray_icon.png"));
-        static bool WasConnected = false;
+        public static App Instance => (App) Current.ThrowIfNull();
 
-        static App()
-        {
-            Version = Init.Version;
-            AppName = "Renderfin   v" + Version;
-        }
+        public string Version => Init.Version;
+        public string AppName => $"Renderfin   v{Version}";
+        public WindowIcon Icon { get; } = new WindowIcon(Resource.LoadStream(typeof(App).Assembly, Environment.OSVersion.Platform == PlatformID.Win32NT ? "img.icon.ico" : "img.tray_icon.png"));
+
+        public required NodeGlobalState NodeGlobalState { get; init; }
+        public required UISettings Settings { get; init; }
+        public required DataDirs Dirs { get; init; }
+        public required Init Init { get; init; }
+        bool WasConnected = false;
+
         public override void Initialize() => AvaloniaXamlLoader.Load(this);
-
         public override void OnFrameworkInitializationCompleted()
         {
             if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
@@ -31,8 +31,8 @@ namespace Node.UI
             {
                 Name = AppName;
 
-                if (UISettings.Language is { } lang) LocalizedString.SetLocale(lang);
-                else UISettings.Language = LocalizedString.Locale;
+                if (Settings.Language is { } lang) LocalizedString.SetLocale(lang);
+                else Settings.Language = LocalizedString.Locale;
 
                 this.InitializeTrayIndicator();
                 MainTheme.Apply(Resources, Styles);
@@ -43,7 +43,7 @@ namespace Node.UI
                     return;
                 }
 
-                NodeStateUpdater.Start();
+                NodeStateUpdater.Start(Dirs);
                 NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
                 NodeGlobalState.Instance.BAuthInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
 
@@ -52,21 +52,21 @@ namespace Node.UI
             }
         }
 
-        public static Window SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime)
+        public Window SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime)
         {
-            if (WasConnected && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
+            if (WasConnected && NodeGlobalState.AuthInfo?.SessionId is not null)
                 return lifetime.MainWindow;
 
-            WasConnected |= NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.Instance.AuthInfo?.SessionId is not null;
+            WasConnected |= NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.AuthInfo?.SessionId is not null;
 
-            if (lifetime.MainWindow is MainWindow && NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
+            if (lifetime.MainWindow is MainWindow && NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.AuthInfo?.SessionId is not null)
                 return lifetime.MainWindow;
 
             lifetime.MainWindow?.Hide();
             return lifetime.MainWindow =
                 (!NodeStateUpdater.IsConnectedToNode.Value)
                 ? new InitializingWindow()
-                : NodeGlobalState.Instance.AuthInfo?.SessionId is null
+                : NodeGlobalState.AuthInfo?.SessionId is null
                     ? new LoginWindow()
                     : new MainWindow();
         }

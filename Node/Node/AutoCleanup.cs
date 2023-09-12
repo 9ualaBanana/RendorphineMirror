@@ -2,18 +2,11 @@ namespace Node;
 
 public class AutoCleanup
 {
-    readonly IQueuedTasksStorage QueuedTasks;
-    readonly ICompletedTasksStorage CompletedTasks;
-    readonly IPlacedTasksStorage PlacedTasks;
-    readonly ILogger Logger;
-
-    public AutoCleanup(IQueuedTasksStorage queuedTasks, ICompletedTasksStorage completedTasks, IPlacedTasksStorage placedTasks, ILogger<AutoCleanup> logger)
-    {
-        QueuedTasks = queuedTasks;
-        CompletedTasks = completedTasks;
-        PlacedTasks = placedTasks;
-        Logger = logger;
-    }
+    public required IQueuedTasksStorage QueuedTasks { get; init; }
+    public required ICompletedTasksStorage CompletedTasks { get; init; }
+    public required IPlacedTasksStorage PlacedTasks { get; init; }
+    public required DataDirs Dirs { get; init; }
+    public required ILogger<AutoCleanup> Logger { get; init; }
 
     public void Start()
     {
@@ -31,7 +24,7 @@ public class AutoCleanup
         {
             while (true)
             {
-                var root = Path.GetPathRoot(ReceivedTask.FSTaskDataDirectory());
+                var root = Path.GetPathRoot(ReceivedTask.FSTaskDataDirectory(Dirs));
                 var drive = DriveInfo.GetDrives().First(d => d.RootDirectory.Name == root);
 
                 if (drive.AvailableFreeSpace < 16L * 1024 * 1024 * 1024)
@@ -78,15 +71,15 @@ public class AutoCleanup
 
             Info($"[Cleanup] Removing expired completed task {completed.Key}");
             CompletedTasks.CompletedTasks.Remove(completed.Key);
-            OperationResult.WrapException(() => File.Delete(completed.Value.TaskInfo.FSDataDirectory())).LogIfError(Logger);
+            OperationResult.WrapException(() => File.Delete(completed.Value.TaskInfo.FSDataDirectory(Dirs))).LogIfError(Logger);
         }
 
         transaction.Commit();
     }
     void CleanQueuedTasks()
     {
-        Info($"[Cleanup] Cleaning unknown qtasks in {ReceivedTask.FSTaskDataDirectory()}");
-        foreach (var dir in Directory.GetDirectories(ReceivedTask.FSTaskDataDirectory()))
+        Info($"[Cleanup] Cleaning unknown qtasks in {ReceivedTask.FSTaskDataDirectory(Dirs)}");
+        foreach (var dir in Directory.GetDirectories(ReceivedTask.FSTaskDataDirectory(Dirs)))
         {
             var taskid = Path.GetFileName(dir);
             if (QueuedTasks.QueuedTasks.ContainsKey(taskid)) continue;
@@ -98,8 +91,8 @@ public class AutoCleanup
     }
     void CleanPlacedTasks()
     {
-        Info($"[Cleanup] Cleaning unknown ptasks in {ReceivedTask.FSPlacedTaskDataDirectory()}");
-        foreach (var dir in Directory.GetDirectories(ReceivedTask.FSPlacedTaskDataDirectory()))
+        Info($"[Cleanup] Cleaning unknown ptasks in {ReceivedTask.FSPlacedTaskDataDirectory(Dirs)}");
+        foreach (var dir in Directory.GetDirectories(ReceivedTask.FSPlacedTaskDataDirectory(Dirs)))
         {
             var taskid = Path.GetFileName(dir);
             if (PlacedTasks.PlacedTasks.ContainsKey(taskid) || CompletedTasks.CompletedTasks.ContainsKey(taskid)) continue;

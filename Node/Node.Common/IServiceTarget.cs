@@ -1,4 +1,4 @@
-namespace Node.Services;
+namespace Node.Common;
 
 public interface IServiceTarget
 {

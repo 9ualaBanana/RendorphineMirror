@@ -7,6 +7,7 @@ public class ReceivedTasksHandler
     public required ICompletedTasksStorage CompletedTasks { get; init; }
     public required Apis Api { get; init; }
     public required NodeGlobalState NodeGlobalState { get; init; }
+    public required DataDirs Dirs { get; init; }
     public required ILogger<ReceivedTasksHandler> Logger { get; init; }
 
     /// <summary> Subscribes to <see cref="QueuedTasks.QueuedTasks"/> and starts all the tasks from it </summary>
@@ -109,8 +110,8 @@ public class ReceivedTasksHandler
 
                 Logger.LogInformation($"Completed, removing");
 
-                Logger.LogInformation($"Deleting {task.FSDataDirectory()}");
-                Directory.Delete(task.FSDataDirectory(), true);
+                Logger.LogInformation($"Deleting {task.FSDataDirectory(Dirs)}");
+                Directory.Delete(task.FSDataDirectory(Dirs), true);
 
                 QueuedTasks.QueuedTasks.Remove(task);
                 return;
@@ -184,12 +185,16 @@ public class ReceivedTasksHandler
     }
     class TaskInputDirectoryProvider : ITaskInputDirectoryProvider
     {
+        public required DataDirs Dirs { get; init; }
         public required ReceivedTask Task { get; init; }
-        public string InputDirectory => Task.FSInputDirectory();
+
+        public string InputDirectory => Task.FSInputDirectory(Dirs);
     }
     class TaskOutputDirectoryProvider : ITaskOutputDirectoryProvider
     {
+        public required DataDirs Dirs { get; init; }
         public required ReceivedTask Task { get; init; }
-        public string OutputDirectory => Task.FSOutputDirectory();
+
+        public string OutputDirectory => Task.FSOutputDirectory(Dirs);
     }
 }

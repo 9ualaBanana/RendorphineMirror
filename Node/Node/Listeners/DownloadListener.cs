@@ -19,46 +19,6 @@ public class DownloadListener : ExecutableListenerBase
 
         var response = context.Response;
 
-        if (path == "taskresult")
-        {
-            var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
-            var taskdir = ReceivedTask.FSPlacedResultsDirectory(taskid);
-
-            if (!Directory.Exists(taskdir) || Directory.GetFiles(taskdir).Length == 0)
-                return HttpStatusCode.NotFound;
-
-            var zipfile = Path.GetTempFileName();
-            try
-            {
-                ZipFile.CreateFromDirectory(taskdir, zipfile);
-
-                using (var reader = File.OpenRead(zipfile))
-                    await reader.CopyToAsync(response.OutputStream);
-            }
-            finally { File.Delete(zipfile); }
-
-            return HttpStatusCode.OK;
-        }
-        if (path == "uploadtask")
-        {
-            var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
-            var taskdir = ReceivedTask.FSPlacedResultsDirectory(taskid);
-
-            var zipfile = Path.GetTempFileName();
-
-            try
-            {
-                using (var writer = File.OpenWrite(zipfile))
-                    await context.Request.InputStream.CopyToAsync(writer);
-
-                ZipFile.ExtractToDirectory(zipfile, taskdir);
-            }
-            finally { File.Delete(zipfile); }
-
-            return HttpStatusCode.OK;
-        }
-
-
         var file = ReadQueryString(context.Request.QueryString, "path").ThrowIfError();
         if (!File.Exists(file)) return await WriteErr(response, "File does not exists");
 

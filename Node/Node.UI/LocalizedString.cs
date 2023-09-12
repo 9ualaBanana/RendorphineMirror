@@ -17,10 +17,11 @@ namespace Node.UI
 
         static LocalizedString()
         {
-            UISettings.BLanguage.Bindable.SubscribeChanged(() =>
+            var settings = App.Instance.Settings;
+            settings.BLanguage.Bindable.SubscribeChanged(() =>
             {
-                if (Locale != UISettings.BLanguage.Value)
-                    SetLocale(UISettings.BLanguage.Value!);
+                if (Locale != settings.BLanguage.Value)
+                    SetLocale(settings.BLanguage.Value!);
             });
 
             Locale = CultureInfo.CurrentUICulture.Name;
@@ -53,7 +54,7 @@ namespace Node.UI
                 return;
             }
 
-            UISettings.Language = culture;
+            App.Instance.Settings.Language = culture;
             Locale = culture;
             ((WeakEventManager) ChangeLangWeakEvent).Invoke();
         }

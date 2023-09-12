@@ -17,6 +17,7 @@ global using Avalonia.Styling;
 global using Avalonia.Threading;
 global using Avalonia.VisualTree;
 global using Common;
+global using Microsoft.Extensions.Logging;
 global using NLog;
 global using Node.Common;
 global using Node.Common.Models;
@@ -30,7 +31,9 @@ global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
 global using APath = Avalonia.Controls.Shapes.Path;
+global using LogLevel = NLog.LogLevel;
 global using Path = System.IO.Path;
+using Autofac;
 using Avalonia.Controls.ApplicationLifetimes;
 
 namespace Node.UI;
@@ -42,27 +45,36 @@ static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        Initializer.AppName = "renderfin-ui";
-        Init.Initialize();
-        ConsoleHide.Hide();
+        var builder = Init.CreateContainer(new("renderfin-ui"), typeof(Program).Assembly);
+        builder.RegisterType<App>()
+            .SingleInstance();
 
-        if (!Init.IsDebug && !Process.GetCurrentProcess().ProcessName.Contains("dotnet", StringComparison.Ordinal))
+        builder.RegisterType<UISettings>()
+            .SingleInstance();
+        builder.RegisterInstance(NodeGlobalState.Instance)
+            .SingleInstance();
+
+        var container = builder.Build();
+
+        var init = container.Resolve<Init>();
+
+        if (!init.IsDebug && !Process.GetCurrentProcess().ProcessName.Contains("dotnet", StringComparison.Ordinal))
         {
             SendShowRequest();
             ListenForShowRequests();
         }
 
         Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
-        if (!Init.IsDebug) Task.Run(CreateShortcuts);
+        if (!init.IsDebug) Task.Run(CreateShortcuts);
 
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+
+        AppBuilder.Configure(container.Resolve<App>)
+            .UsePlatformDetect()
+            .With(new AvaloniaNativePlatformOptions { UseGpu = false }) // workaround for https://github.com/AvaloniaUI/Avalonia/issues/3533
+            .With(new X11PlatformOptions { UseDBusMenu = true })
+            .LogToTrace()
+            .StartWithClassicDesktopLifetime(args);
     }
-    static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder.Configure<App>()
-        .UsePlatformDetect()
-        .With(new AvaloniaNativePlatformOptions { UseGpu = false }) // workaround for https://github.com/AvaloniaUI/Avalonia/issues/3533
-        .With(new X11PlatformOptions { UseDBusMenu = true })
-        .LogToTrace();
 
 
     /// <summary> Check if another instance is already running, send show request to it and quit </summary>
@@ -118,23 +130,24 @@ static class Program
     {
         if (Environment.OSVersion.Platform != PlatformID.Win32NT) return;
 
+        var settings = App.Instance.Settings;
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
         try
         {
             File.Delete(Path.Combine(desktop, "Renderphine.url"));
-            UISettings.ShortcutsCreated = false;
+            settings.ShortcutsCreated = false;
         }
         catch { }
         try
         {
             File.Delete(Path.Combine(startmenu, "Renderphine.url"));
-            UISettings.ShortcutsCreated = false;
+            settings.ShortcutsCreated = false;
         }
         catch { }
 
 
-        if (UISettings.ShortcutsCreated) return;
+        if (settings.ShortcutsCreated) return;
 
         try
         {
@@ -153,7 +166,7 @@ static class Program
             write(Path.Combine(startmenu, "Renderfin.url"), data);
         }
         catch { }
-        finally { UISettings.ShortcutsCreated = true; }
+        finally { settings.ShortcutsCreated = true; }
 
 
         static void write(string linkpath, string data)

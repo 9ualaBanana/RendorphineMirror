@@ -59,8 +59,9 @@ public static class ReceivedTaskExtensions
     }*/
 
 
-    public static bool IsFromSameNode(this TaskBase task) => NodeSettings.QueuedTasks.ContainsKey(task.Id) && NodeSettings.PlacedTasks.ContainsKey(task.Id);
-    public static bool IsFromSameNode(this IRegisteredTask task) => NodeSettings.QueuedTasks.ContainsKey(task.Id) && NodeSettings.PlacedTasks.ContainsKey(task.Id);
+    public static bool IsFromSameNode<TSettings>(this IRegisteredTask task, TSettings settings) where TSettings : IQueuedTasksStorage, IPlacedTasksStorage =>
+        settings.QueuedTasks.ContainsKey(task.Id) && settings.PlacedTasks.ContainsKey(task.Id);
+
     public static void Populate(this DbTaskFullState task, ITaskStateInfo info)
     {
         if (info is TMTaskStateInfo tsi) task.Populate(tsi);

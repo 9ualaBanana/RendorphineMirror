@@ -11,15 +11,18 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required PluginManager PluginManager { get; init; }
     public required IIndex<TaskAction, IPluginActionInfo> Actions { get; init; }
+    public required IWatchingTasksStorage WatchingTasks { get; init; }
+    public required IQueuedTasksStorage QueuedTasks{ get; init; }
+    public required IPlacedTasksStorage PlacedTasks { get; init; }
     public required ILogger<NodeGlobalStateInitializedTarget> Logger { get; init; }
 
     public Task ExecuteAsync()
     {
         var state = NodeGlobalState;
 
-        state.WatchingTasks.Bind(NodeSettings.WatchingTasks.Bindable);
-        state.PlacedTasks.Bind(NodeSettings.PlacedTasks.Bindable);
-        NodeSettings.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(NodeSettings.QueuedTasks.Values), true);
+        state.WatchingTasks.Bind(WatchingTasks.WatchingTasks.Bindable);
+        state.PlacedTasks.Bind(PlacedTasks.PlacedTasks.Bindable);
+        QueuedTasks.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(QueuedTasks.QueuedTasks.Values), true);
         Settings.BenchmarkResult.Bindable.SubscribeChanged(() => state.BenchmarkResult.Value = Settings.BenchmarkResult.Value is null ? null : JObject.FromObject(Settings.BenchmarkResult.Value), true);
         PluginManager.CachedPluginsBindable.SubscribeChanged(() => NodeGlobalState.InstalledPlugins.SetRange(PluginManager.CachedPluginsBindable.Value ?? Array.Empty<Plugin>()), true);
         state.TaskAutoDeletionDelayDays.Bind(Settings.TaskAutoDeletionDelayDays.Bindable);

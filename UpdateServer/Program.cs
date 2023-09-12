@@ -1,10 +1,11 @@
 using System.IO.Compression;
 using System.Text.Json.Serialization;
+using Node.Common;
 using UpdaterCommon;
 using UpdateServer;
 
-Initializer.AppName = "renderfin-updater";
-Init.Initialize();
+
+await Init.For(new Init.InitConfig("renderfin-updater")).ExecuteAsync();
 var logger = LogManager.GetCurrentClassLogger();
 var appz = new Dictionary<string, AppData>();
 

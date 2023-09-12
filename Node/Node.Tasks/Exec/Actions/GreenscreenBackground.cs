@@ -22,6 +22,8 @@ public class GreenscreenBackground : FilePluginActionInfo<GreenscreenBackgroundI
 
     class Executor : ExecutorBase
     {
+        public required CondaInvoker CondaInvoker { get; init; }
+
         public override async Task<TaskFileOutput> ExecuteUnchecked(TaskFileInput input, GreenscreenBackgroundInfo data)
         {
             var file = input.Files.MaxBy(f => f.Format).ThrowIfNull("Could not find input file");
@@ -46,7 +48,7 @@ public class GreenscreenBackground : FilePluginActionInfo<GreenscreenBackgroundI
             if (data.Color is not null)
                 pylaunch += $" --background-color {data.Color.R} {data.Color.G} {data.Color.B}";
 
-            await CondaInvoker.ExecutePowerShellAtWithCondaEnvAsync(PluginList, PluginType.RobustVideoMatting, pylaunch, onRead, Logger);
+            await CondaInvoker.ExecutePowerShellAtWithCondaEnvAsync(PluginList, PluginType.RobustVideoMatting, pylaunch, onRead);
             return output;
 
 

@@ -8,6 +8,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskInputHandler<OtherUserWa
     public static WatchingTaskInputType Type => WatchingTaskInputType.OtherNode;
 
     public required Apis Api { get; init; }
+    public required DataDirs Dirs { get; init; }
 
     public override void StartListening() => Start().Consume();
 
@@ -36,7 +37,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskInputHandler<OtherUserWa
             {
                 var download = await Api.Api.Download($"{url}/download?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(file.Path)}");
 
-                var fsfile = Path.Combine(Task.FSDataDirectory(), Path.GetFileName(file.Path));
+                var fsfile = Path.Combine(Task.FSDataDirectory(Dirs), Path.GetFileName(file.Path));
                 using (var writer = File.OpenWrite(fsfile))
                     await download.CopyToAsync(writer);
 

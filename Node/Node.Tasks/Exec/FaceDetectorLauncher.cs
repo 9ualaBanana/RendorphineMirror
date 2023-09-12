@@ -5,6 +5,7 @@ public record ImageDetectorRect(int X, int Y, int W, int H);
 [AutoRegisteredService(true)]
 public class ImageDetectorLauncher
 {
+    public required CondaInvoker CondaInvoker { get; init; }
     public required PluginList Plugins { get; init; }
     public required ILogger<ImageDetectorLauncher> Logger { get; init; }
 
@@ -12,7 +13,7 @@ public class ImageDetectorLauncher
     {
         var script = $"python main.py -i \"{file}\"";
         var result = null as ImageDetectorRect;
-        await CondaInvoker.ExecutePowerShellAtWithCondaEnvAsync(Plugins, PluginType.ImageDetector, script, onread, Logger);
+        await CondaInvoker.ExecutePowerShellAtWithCondaEnvAsync(Plugins, PluginType.ImageDetector, script, onread);
 
         return result.ThrowIfNull("Rect could not be calculated");
 

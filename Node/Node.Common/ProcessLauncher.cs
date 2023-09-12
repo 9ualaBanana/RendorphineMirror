@@ -187,11 +187,11 @@ public class ProcessLauncher
     }
 
     /// <summary> Finds file in PATH and returns the full path, e.g. "python" => "/bin/python" </summary>
-    public static OperationResult<string> FindInPath(string file)
+    public static OperationResult<string> FindInPath(string file, ILogger logger)
     {
         try
         {
-            var path = PowerShellInvoker.JustInvoke<string>($"(Get-Command '{file}').Path")[0];
+            var path = PowerShellInvoker.JustInvoke<string>($"(Get-Command '{file}').Path", logger)[0];
             if (string.IsNullOrWhiteSpace(path)) return err();
 
             return path;

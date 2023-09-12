@@ -34,6 +34,8 @@ public class GenerateQSPreview : FilePluginActionInfo<TaskFileInput, QSPreviewOu
 
     class Executor : ExecutorBase
     {
+        public required DataDirs Dirs { get; init; }
+
         const float WatermarkTransparency = .7f;
         const int MaximumPixels = 129600;
         Image<Rgba32>? LogoImage, WatermarkImage, QwertyLogoImage;
@@ -61,7 +63,7 @@ public class GenerateQSPreview : FilePluginActionInfo<TaskFileInput, QSPreviewOu
 
             if (mov is not null)
             {
-                using var _ = Directories.TempFile(out var qrfile, "qsprveiew_qr");
+                using var _ = Directories.DisposeDelete(Dirs.TempFile("qspreview"), out var qrfile);
 
                 using (var qr = await GenerateQR(qrtext, "assets/qswatermark/qwerty_logo.png"))
                     await qr.SaveAsPngAsync(qrfile);

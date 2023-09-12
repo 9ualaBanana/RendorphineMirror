@@ -7,6 +7,7 @@ public static class DownloadLink
     public class InputDownloader : FileTaskInputDownloader<DownloadLinkTaskInputInfo>, ITypedTaskInput
     {
         public static TaskInputType Type => TaskInputType.DownloadLink;
+        public required DataDirs Dirs { get; init; }
         public required Api Api { get; init; }
 
         protected override async Task<ReadOnlyTaskFileList> DownloadImpl(DownloadLinkTaskInputInfo data, TaskObject obj, CancellationToken token)
@@ -18,7 +19,7 @@ public static class DownloadLink
             if (response.StatusCode != HttpStatusCode.OK)
                 throw new HttpRequestException($"Download link `{data.Url}` request returned status code {response.StatusCode}", null, response.StatusCode);
 
-            using var _ = Directories.TempFile(out var tempfile);
+            using var _ = Directories.DisposeDelete(Dirs.TempFile(), out var tempfile);
             using (var file = File.Open(tempfile, FileMode.Create, FileAccess.Write))
                 await response.Content.CopyToAsync(file, token);
 

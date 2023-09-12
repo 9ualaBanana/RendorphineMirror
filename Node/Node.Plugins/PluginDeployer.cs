@@ -4,14 +4,18 @@ namespace Node.Plugins;
 
 public class PluginDeployer
 {
+    public required PowerShellInvoker PowerShellInvoker { get; init; }
     public required IInstalledPluginsProvider InstalledPlugins { get; init; }
     public required CondaManager CondaManager { get; init; }
     public required ILogger<PluginDeployer> Logger { get; init; }
 
 
     /// <param name="version"> Plugin version or null if any </param>
-    public bool IsInstalled(PluginType type, PluginVersion version) =>
-        InstalledPlugins.Plugins.Any(i => i.Type == type && (version.IsEmpty || i.Version == version));
+    public bool IsInstalled(PluginType type, PluginVersion version) => IsInstalled(InstalledPlugins.Plugins, type, version);
+
+    /// <inheritdoc cref="IsInstalled(PluginType, PluginVersion)"/>
+    public static bool IsInstalled(IReadOnlyCollection<Plugin> installed, PluginType type, PluginVersion version) =>
+        installed.Any(i => i.Type == type && (version.IsEmpty || i.Version == version));
 
 
     /// <remarks>
@@ -50,7 +54,7 @@ public class PluginDeployer
         Logger.LogInformation($"Installed {type} {version}");
     }
 
-    static void InstallWithPowershell(PluginType type, PluginVersion version, string script)
+    void InstallWithPowershell(PluginType type, PluginVersion version, string script)
     {
         var pwsh = PowerShellInvoker.Initialize(script);
         var pldownload = setVars(pwsh);
@@ -77,9 +81,9 @@ public class PluginDeployer
 
             prox.SetVariable("PLTORRENT", plugintype + "." + pluginverpath);
 
-            var pldownload = Directories.Created(Path.Combine(prox.GetVariable("DOWNLOADS").ToString()!, plugintype, pluginverpath));
+            var pldownload = Directories.DirCreated(Path.Combine(prox.GetVariable("DOWNLOADS").ToString()!, plugintype, pluginverpath));
             prox.SetVariable("PLDOWNLOAD", pldownload);
-            prox.SetVariable("PLINSTALL", Directories.Created(Path.Combine(prox.GetVariable("PLUGINS").ToString()!, plugintype, pluginverpath)));
+            prox.SetVariable("PLINSTALL", Directories.DirCreated(Path.Combine(prox.GetVariable("PLUGINS").ToString()!, plugintype, pluginverpath)));
 
             return pldownload;
         }

@@ -4,9 +4,11 @@ namespace Node.Common;
 
 public class CondaManager
 {
+    public required PowerShellInvoker PowerShellInvoker { get; init; }
+    public required DataDirs Dirs { get; init; }
     public required ILogger<CondaManager> Logger { get; init; }
 
-    public static bool IsEnvironmentCreated(string name)
+    public bool IsEnvironmentCreated(string name)
     {
         var envdir = GetEnvironmentDirectory(name);
 
@@ -14,9 +16,9 @@ public class CondaManager
             || File.Exists(Path.Combine(envdir, "bin", "python.exe")) || File.Exists(Path.Combine(envdir, "bin", "python"));
     }
 
-    public static string GetEnvironmentDirectory(string envname) => Path.Combine(Directories.Data, "conda", envname.ToLowerInvariant());
+    public string GetEnvironmentDirectory(string envname) => Dirs.DataDir(Path.Combine("conda", envname.ToLowerInvariant()), false);
 
-    public static string GetRunInEnvironmentScript(string condapath, string envname, string command) =>
+    public string GetRunInEnvironmentScript(string condapath, string envname, string command) =>
         $"& '{condapath}' run -p '{GetEnvironmentDirectory(envname)}' {command}";
 
 
@@ -42,7 +44,7 @@ public class CondaManager
             var sw = Stopwatch.StartNew();
 
             using var _logscope = Logger.BeginScope($"Conda init {name}");
-            PowerShellInvoker.Invoke(script, onread, onerr, Logger);
+            PowerShellInvoker.Invoke(script, onread, onerr);
             Logger.LogInformation($"Conda environment '{name}' initialized succesfully in {sw.Elapsed}.");
         }
         catch (Exception ex)
