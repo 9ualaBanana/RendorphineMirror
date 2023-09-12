@@ -27,6 +27,7 @@ public class TaskExecutor
     public required IIndex<TaskAction, IPluginActionInfo> Actions { get; init; }
     public required IIndex<TaskOutputType, ITaskUploadHandler> ResultUploaders { get; init; }
     public required TaskExecutorByData Executor { get; init; }
+    public required DataDirs Dirs { get; init; }
     public required ILogger<TaskExecutor> Logger { get; init; }
 
 
@@ -63,7 +64,7 @@ public class TaskExecutor
             var input = task.DownloadedInput.ThrowIfNull("No task input downloaded");
 
             if (input is ReadOnlyTaskFileList files)
-                input = new TaskFileInput(files, task.FSOutputDirectory());
+                input = new TaskFileInput(files, task.FSOutputDirectory(Dirs));
 
             task.Result = await Executor.Execute(input, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
             await Api.ChangeStateAsync(task, TaskState.Output);

@@ -29,11 +29,11 @@ public class SettingsInstance
     public readonly DatabaseValue<uint> TaskAutoDeletionDelayDays;
     public readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
 
-    public SettingsInstance()
+    public SettingsInstance(DataDirs dirs)
     {
         static ushort randomized(ushort port) => (ushort) (port + Random.Shared.Next(80));
 
-        var db = new Database(Path.Combine(Directories.Data, "config.db"));
+        var db = new Database(Path.Combine(dirs.Data, "config.db"));
 
         BServerUrl = new(db, nameof(ServerUrl), "https://t.microstock.plus:8443");
         BLocalListenPort = new(db, nameof(LocalListenPort), randomized(5123));

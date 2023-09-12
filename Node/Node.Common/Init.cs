@@ -7,7 +7,29 @@ namespace Node.Common;
 
 public class Init : IServiceTarget
 {
-    public static Init For(InitConfig config) => new Init() { Configuration = config, Logger = new NLogLoggerFactory().CreateLogger<Init>(), };
+    //public static Init For(InitConfig config) => new Init() { Configuration = config, Dirs = new DataDirs(config.AppName), Logger = new NLogLoggerFactory().CreateLogger<Init>(), };
+    public static Init For(InitConfig config)
+    {
+        var builder = CreateContainer(config);
+        var container = builder.Build();
+
+        return container.Resolve<Init>();
+    }
+
+    public static ContainerBuilder CreateContainer(InitConfig config, params Assembly[] targetAssemblies)
+    {
+        var builder = new ContainerBuilder();
+
+        builder.RegisterInstance(config);
+        builder.RegisterType<Init>()
+            .AutoActivate();
+
+        foreach (var assembly in targetAssemblies)
+            RegisterTargets(builder, assembly);
+
+        Init.CreateRegistrations(builder);
+        return builder;
+    }
 
     public static void RegisterTargets(ContainerBuilder builder, Assembly assembly)
     {
@@ -43,10 +65,14 @@ public class Init : IServiceTarget
         // logging
         builder.Populate(new ServiceCollection().With(services => services.AddLogging(l => l.AddNLog())));
 
+        builder.RegisterType<DataDirs>()
+            .SingleInstance();
+
         builder.RegisterSource<AutoServiceRegistrator>();
     }
 
     public required InitConfig Configuration { get; init; }
+    public required DataDirs Dirs { get; init; }
     public required ILogger<Init> Logger { get; init; }
 
 #pragma warning disable CS8618 // Properties are not set
@@ -127,8 +153,8 @@ public class Init : IServiceTarget
         try
         {
             const long gig = 1024 * 1024 * 1024;
-            var drive = DriveInfo.GetDrives().First(x => Directories.Data.StartsWith(x.RootDirectory.FullName, StringComparison.OrdinalIgnoreCase));
-            Logger.LogInformation(@$"Config dir: {Directories.Data} on drive {drive.Name} (totalfree {drive.TotalFreeSpace / gig}G; availfree {drive.AvailableFreeSpace / gig}G; total {drive.TotalSize / gig}G)");
+            var drive = DriveInfo.GetDrives().First(x => Dirs.Data.StartsWith(x.RootDirectory.FullName, StringComparison.OrdinalIgnoreCase));
+            Logger.LogInformation(@$"Config dir: {Dirs.Data} on drive {drive.Name} (totalfree {drive.TotalFreeSpace / gig}G; availfree {drive.AvailableFreeSpace / gig}G; total {drive.TotalSize / gig}G)");
         }
         catch { }
     }

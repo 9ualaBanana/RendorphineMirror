@@ -7,18 +7,14 @@ public static class NodeStateUpdater
     public static readonly Bindable<string?> NodeHost = new(null);
     public static readonly Bindable<bool> IsConnectedToNode = new(false);
 
-    public static void Start() => _Start().Consume();
-    static async Task _Start()
+    public static void Start(DataDirs dirs) => _Start(dirs).Consume();
+    static async Task _Start(DataDirs dirs)
     {
         while (NodeHost.Value is null)
         {
             try
             {
-                var portfile = new[] { Directories.DataFor("renderfin"), Directories.Data, }
-                    .Select(p => Path.Combine(p, "lport"))
-                    .First(File.Exists);
-
-                var port = ushort.Parse(File.ReadAllText(portfile), CultureInfo.InvariantCulture);
+                var port = ushort.Parse(new DataDirs("renderfin").DataFile("lport"), CultureInfo.InvariantCulture);
                 NodeHost.Value = $"127.0.0.1:{port}";
 
                 break;
@@ -31,7 +27,7 @@ public static class NodeStateUpdater
         var loadcache = App.Instance.Init.IsDebug;
         var cacheloaded = !loadcache;
 
-        var cachefile = Path.Combine(Directories.Data, "nodeinfocache");
+        var cachefile = dirs.DataFile("nodeinfocache");
         if (loadcache)
         {
             NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>

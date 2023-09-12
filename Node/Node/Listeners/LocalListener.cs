@@ -118,7 +118,7 @@ public class LocalListener : ExecutableListenerBase
         {
             return await TestPost(await CreateCached(request), response, "key", "value", async (key, value) =>
             {
-                var field = new[] { typeof(Settings), typeof(NodeSettings) }
+                var field = new[] { typeof(Settings), typeof(NodeSettingsInstance) }
                     .SelectMany(type => type.GetFields(BindingFlags.Public | BindingFlags.Static))
                     .Where(f => f.FieldType.IsAssignableTo(typeof(IDatabaseBindable)))
                     .FirstOrDefault(t => t.Name == "B" + key || t.Name == key);

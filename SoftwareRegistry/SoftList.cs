@@ -2,15 +2,18 @@ namespace SoftwareRegistry;
 
 public class SoftList
 {
-    readonly Database Database = new Database(Path.Combine(Directories.Data, "config.db"));
+    readonly Database Database;
     readonly DatabaseValueKeyDictionary<string, SoftwareDefinition> SoftwareDictBindable;
     public ImmutableDictionary<string, SoftwareDefinition> Software => SoftwareDictBindable.Values.ToImmutableDictionary();
 
-    readonly ILogger Logger;
+    readonly DataDirs Dirs;
+    public required ILogger<SoftList> Logger { get; init; }
 
-    public SoftList(ILogger<SoftList> logger)
+    public SoftList(DataDirs dirs)
     {
-        Logger = logger;
+        Dirs = dirs;
+
+        Database = new Database(Path.Combine(dirs.Data, "config.db"));
         SoftwareDictBindable = new(Database, nameof(Software), StringComparer.OrdinalIgnoreCase);
 
         var soft = new DatabaseValue<ImmutableDictionary<string, SoftwareDefinition>>(Database, nameof(Software), ImmutableDictionary<string, SoftwareDefinition>.Empty);
@@ -36,7 +39,7 @@ public class SoftList
 
     void Backup()
     {
-        var bkppath = Path.Combine(Directories.Data, "bkp");
+        var bkppath = Path.Combine(Dirs.Data, "bkp");
         Directory.CreateDirectory(bkppath);
 
         File.Copy(Database.DbPath, Path.Combine(bkppath, DateTimeOffset.Now.ToUnixTimeSeconds().ToString() + ".db"), true);

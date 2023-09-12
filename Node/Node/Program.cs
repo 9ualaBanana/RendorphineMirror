@@ -48,12 +48,7 @@ if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
     foreach (var proc in FileList.GetAnotherInstances())
         proc.Kill(true);
 
-var builder = new ContainerBuilder();
-
-builder.RegisterInstance(new Init.InitConfig("renderfin"));
-builder.RegisterType<Init>()
-    .AutoActivate();
-Init.RegisterTargets(builder, typeof(Program).Assembly);
+var builder = Init.CreateContainer(new("renderfin"), typeof(Program).Assembly);
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
@@ -75,7 +70,7 @@ GC.KeepAlive(main);
 [Conditional("DEBUG")]
 static void initializeDotTracer(IContainer container)
 {
-    Directories.CreatedNew("temp/dot");
+    Directories.NewDirCreated("temp/dot");
 
     var tracer = new Autofac.Diagnostics.DotGraph.DotDiagnosticTracer();
     tracer.OperationCompleted += (sender, args) =>

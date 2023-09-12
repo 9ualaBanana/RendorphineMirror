@@ -17,6 +17,7 @@ global using Avalonia.Styling;
 global using Avalonia.Threading;
 global using Avalonia.VisualTree;
 global using Common;
+global using Microsoft.Extensions.Logging;
 global using NLog;
 global using Node.Common;
 global using Node.Common.Models;
@@ -30,6 +31,7 @@ global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
 global using APath = Avalonia.Controls.Shapes.Path;
+global using LogLevel = NLog.LogLevel;
 global using Path = System.IO.Path;
 using Autofac;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -43,13 +45,13 @@ static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        var builder = new ContainerBuilder();
-        builder.RegisterInstance(new Init.InitConfig("renderfin-ui"));
-        builder.RegisterType<Init>()
-            .AutoActivate();
-        Init.RegisterTargets(builder, typeof(Program).Assembly);
-
+        var builder = Init.CreateContainer(new("renderfin-ui"), typeof(Program).Assembly);
         builder.RegisterType<App>()
+            .SingleInstance();
+
+        builder.RegisterType<UISettings>()
+            .SingleInstance();
+        builder.RegisterInstance(NodeGlobalState.Instance)
             .SingleInstance();
 
         var container = builder.Build();
@@ -128,23 +130,24 @@ static class Program
     {
         if (Environment.OSVersion.Platform != PlatformID.Win32NT) return;
 
+        var settings = App.Instance.Settings;
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
         try
         {
             File.Delete(Path.Combine(desktop, "Renderphine.url"));
-            UISettings.ShortcutsCreated = false;
+            settings.ShortcutsCreated = false;
         }
         catch { }
         try
         {
             File.Delete(Path.Combine(startmenu, "Renderphine.url"));
-            UISettings.ShortcutsCreated = false;
+            settings.ShortcutsCreated = false;
         }
         catch { }
 
 
-        if (UISettings.ShortcutsCreated) return;
+        if (settings.ShortcutsCreated) return;
 
         try
         {
@@ -163,7 +166,7 @@ static class Program
             write(Path.Combine(startmenu, "Renderfin.url"), data);
         }
         catch { }
-        finally { UISettings.ShortcutsCreated = true; }
+        finally { settings.ShortcutsCreated = true; }
 
 
         static void write(string linkpath, string data)

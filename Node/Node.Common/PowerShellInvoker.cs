@@ -5,9 +5,13 @@ using System.Reflection;
 
 namespace Node.Common;
 
-public static class PowerShellInvoker
+[AutoRegisteredService(true)]
+public class PowerShellInvoker
 {
-    public static PowerShell Initialize(string script)
+    public required DataDirs Dirs { get; init; }
+    public required ILogger<PowerShellInvoker> Logger { get; init; }
+
+    public PowerShell Initialize(string script)
     {
         var runspace = RunspaceFactory.CreateRunspace();
         // TODO: restrictions on commands?
@@ -32,17 +36,19 @@ public static class PowerShellInvoker
         return psh;
 
 
-        static void addvariables(Runspace runspace)
+        void addvariables(Runspace runspace)
         {
             var prox = runspace.SessionStateProxy;
 
-            prox.SetVariable("PLUGINS", Directories.Created(Path.GetFullPath("plugins")));
-            prox.SetVariable("DOWNLOADS", Directories.Temp("plugindl"));
+            prox.SetVariable("PLUGINS", Directories.DirCreated(Path.GetFullPath("plugins")));
+            prox.SetVariable("DOWNLOADS", Dirs.NamedTempDir("plugindl"));
 
-            prox.SetVariable("LOCALAPPDATA", Directories.Created(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
+            prox.SetVariable("LOCALAPPDATA", Directories.DirCreated(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
         }
     }
-    public static Collection<T> Invoke<T>(PowerShell psh)
+
+    public Collection<T> Invoke<T>(PowerShell psh) => Invoke<T>(psh, Logger);
+    public static Collection<T> Invoke<T>(PowerShell psh, ILogger logger)
     {
         var result = psh.Invoke<T>(Enumerable.Empty<object>(), new PSInvocationSettings() { ErrorActionPreference = ActionPreference.Stop });
         if (psh.InvocationStateInfo.Reason is not null)
@@ -50,23 +56,25 @@ public static class PowerShellInvoker
 
         foreach (var err in psh.Streams.Error)
         {
-            LogManager.GetCurrentClassLogger().Trace($"Powershell ended with errors {JsonConvert.SerializeObject(err)}");
+            logger.LogTrace($"Powershell ended with errors {JsonConvert.SerializeObject(err)}");
             throw err.Exception;
         }
 
         return result;
     }
-    public static Collection<PSObject> Invoke(PowerShell psh) => Invoke<PSObject>(psh);
 
-    public static Collection<PSObject> Invoke(string script) => Invoke(Initialize(script));
+    public Collection<PSObject> Invoke(PowerShell psh) => Invoke<PSObject>(psh);
+    public Collection<PSObject> Invoke(string script) => Invoke(Initialize(script));
 
-    public static Collection<PSObject> JustInvoke(string script) => Invoke(PowerShell.Create().AddScript(script));
-    public static Collection<T> JustInvoke<T>(string script) => Invoke<T>(PowerShell.Create().AddScript(script));
+    public Collection<PSObject> JustInvoke(string script) => Invoke(PowerShell.Create().AddScript(script));
+    public Collection<T> JustInvoke<T>(string script) => Invoke<T>(PowerShell.Create().AddScript(script));
+
+    public static Collection<T> JustInvoke<T>(string script, ILogger logger) => Invoke<T>(PowerShell.Create().AddScript(script), logger);
 
 
-    public static Collection<PSObject> Invoke(string script, Action<PSObject, Action>? onRead, Action<object, Action>? onErr, ILogger? logger = null, LogLevel? stdout = null, LogLevel? stderr = null)
+    public Collection<PSObject> Invoke(string script, Action<PSObject, Action>? onRead, Action<object, Action>? onErr, LogLevel? stdout = null, LogLevel? stderr = null)
     {
-        logger?.LogTrace($"Invoking powershell script: `\n{script}\n`");
+        Logger.LogTrace($"Invoking powershell script: `\n{script}\n`");
 
         var session = InitialSessionState.CreateDefault();
         session.Variables.Add(new SessionStateVariableEntry(nameof(PSInvocationSettings.ErrorActionPreference), nameof(ActionPreference.Stop), "Error action preference"));
@@ -79,7 +87,7 @@ public static class PowerShellInvoker
         using var pipeline = runspace.CreatePipeline();
 
         void process<T>(T item, LogLevel level, Action<T, Action>? action) =>
-            action?.Invoke(item, () => logger?.Log(level, $"[PowerShell {pipeline.GetHashCode()}] {item}"));
+            action?.Invoke(item, () => Logger.Log(level, $"[PowerShell {pipeline.GetHashCode()}] {item}"));
         pipeline.Output.DataReady += (obj, e) =>
         {
             foreach (var item in pipeline.Output.NonBlockingRead())

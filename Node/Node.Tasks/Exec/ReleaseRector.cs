@@ -7,6 +7,7 @@ public class ReleaseRector
 
     public required Api Api { get; init; }
     public required ImageDetectorLauncher Launcher { get; init; }
+    public required DataDirs Dirs { get; init; }
     public required ILogger<ReleaseRector> Logger { get; init; }
 
     public int Errors { get; private set; }
@@ -28,7 +29,7 @@ public class ReleaseRector
         }
 
         Logger.LogInformation($"Downloading release {release.Id}");
-        var target = Temp.File(release.Id + ".jpg");
+        var target = Dirs.TempFile(release.Id + ".jpg");
 
         using var stream = await Api.Client.GetStreamAsync(release.Files["release"].Location.Url, token);
         using var file = File.OpenWrite(target);

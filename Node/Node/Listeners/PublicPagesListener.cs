@@ -8,6 +8,9 @@ namespace Node.Listeners
     {
         protected override ListenTypes ListenType => ListenTypes.WebServer;
 
+        public required ICompletedTasksStorage CompletedTasks { get; init; }
+        public required DataDirs Dirs { get; init; }
+
         static string[] imagesExtentions = { ".jpg", ".jpeg", ".png" };
 
         public PublicPagesListener(ILogger<PublicPagesListener> logger) : base(logger) { }
@@ -31,18 +34,18 @@ namespace Node.Listeners
                 info += $"<form method='get'><input type ='number' name='days' value={days}><input type = 'submit'></form>";
                 info += $"<b>Files for last {days} days</b><br>";
 
-                var filteredTasks = NodeSettings.CompletedTasks
+                var filteredTasks = CompletedTasks.CompletedTasks
                     .Where(t => t.Value.StartTime >= DateTime.Now.AddDays(-1 * days));
 
                 foreach (var task in filteredTasks)
                 {
-                    string[] resultfiles = Directory.GetFiles(task.Value.TaskInfo.FSOutputDirectory());
+                    string[] resultfiles = Directory.GetFiles(task.Value.TaskInfo.FSOutputDirectory(Dirs));
                     if (resultfiles.Length == 0)
                         info += $"[no files]";
 
                     foreach (string taskfile in resultfiles.OrderBy(Path.GetExtension))
                     {
-                        string taskfilerelative = Path.GetRelativePath(task.Value.TaskInfo.FSOutputDirectory(), taskfile);
+                        string taskfilerelative = Path.GetRelativePath(task.Value.TaskInfo.FSOutputDirectory(Dirs), taskfile);
                         string mime = MimeTypes.GetMimeType(taskfile);
 
                         if (mime.Contains("image", StringComparison.Ordinal))
@@ -65,13 +68,13 @@ namespace Node.Listeners
             if (path.StartsWith("getfile"))
             {
                 string taskId = Path.GetFileName(path);
-                var tasks = NodeSettings.CompletedTasks;
+                var tasks = CompletedTasks.CompletedTasks;
                 if (!tasks.ContainsKey(taskId)) return HttpStatusCode.NotFound;
 
                 string? filename = context.Request.QueryString["name"];
                 if (filename is null) return HttpStatusCode.NotFound;
 
-                string outputdir = tasks[taskId].TaskInfo.FSOutputDirectory();
+                string outputdir = tasks[taskId].TaskInfo.FSOutputDirectory(Dirs);
                 filename = Path.Combine(outputdir, filename);
                 if (!filename.StartsWith(outputdir, StringComparison.Ordinal) || !File.Exists(filename))
                     return HttpStatusCode.NotFound;
