@@ -8,7 +8,7 @@ public class DataDirs
     public string Temp { get; }
     readonly string AppName;
 
-    public DataDirs(Init init) : this(init.Configuration.AppName) { }
+    public DataDirs(Init.InitConfig config) : this(config.AppName) { }
     public DataDirs(string appname)
     {
         AppName = appname;

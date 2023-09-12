@@ -28,20 +28,8 @@ global using NodeToUI;
 global using Logger = NLog.Logger;
 global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
-using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.CGTrader.Network;
-using Autofac.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection;
-using NLog.Extensions.Logging;
 using Node;
-using Node.Heartbeat;
-using Node.Listeners;
-using Node.Profiling;
-using Node.Services;
 using Node.Services.Targets;
-using Node.Tasks.Exec.Actions;
-using Node.Tasks.Watching.Handlers.Input;
-using Tomlyn.Syntax;
 
 
 if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")

@@ -7,7 +7,6 @@ namespace Node.Common;
 
 public class Init : IServiceTarget
 {
-    //public static Init For(InitConfig config) => new Init() { Configuration = config, Dirs = new DataDirs(config.AppName), Logger = new NLogLoggerFactory().CreateLogger<Init>(), };
     public static Init For(InitConfig config)
     {
         var builder = CreateContainer(config);
@@ -24,10 +23,10 @@ public class Init : IServiceTarget
         builder.RegisterType<Init>()
             .AutoActivate();
 
+        RegisterTargets(builder, typeof(Init).Assembly);
         foreach (var assembly in targetAssemblies)
             RegisterTargets(builder, assembly);
 
-        Init.CreateRegistrations(builder);
         return builder;
     }
 
