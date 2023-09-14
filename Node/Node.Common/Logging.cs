@@ -46,7 +46,7 @@ public static class Logging
     static FileTarget CreateFileTarget(LogLevel logLevel, int maxArchiveDays)
     {
         var extension = ".log";
-        var dir = "logs${dir-separator}${processname}${dir-separator}" + logLevel.Name + "${dir - separator}";
+        var dir = "logs${dir-separator}${processname}${dir-separator}" + logLevel.Name + "${dir-separator}";
 
         return new()
         {

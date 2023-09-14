@@ -10,7 +10,7 @@ public class AutoServiceRegistrator : IRegistrationSource
 
     public IEnumerable<IComponentRegistration> RegistrationsFor(Service service, Func<Service, IEnumerable<ServiceRegistration>> registrationAccessor)
     {
-        if (service is not IServiceWithType typed || typed.ServiceType.GetCustomAttribute<AutoRegisteredServiceAttribute>() is not { } attribute)
+        if (service is not IServiceWithType typed || typed.ServiceType.GetCustomAttribute<AutoRegisteredServiceAttribute>(true) is not { } attribute)
             return Enumerable.Empty<IComponentRegistration>();
 
         var registration = RegistrationBuilder.ForType(typed.ServiceType);

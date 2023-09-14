@@ -4,7 +4,11 @@ namespace Node.Services.Targets;
 
 public class UITarget : IServiceTarget
 {
-    public static void CreateRegistrations(ContainerBuilder builder) { }
+    public static void CreateRegistrations(ContainerBuilder builder)
+    {
+        builder.RegisterType<NodeStateSender>()
+            .SingleInstance();
+    }
 
     public required LocalListener LocalListener { get; init; }
     public required NodeStateListener NodeStateListener { get; init; }

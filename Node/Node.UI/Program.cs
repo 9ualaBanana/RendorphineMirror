@@ -49,9 +49,18 @@ static class Program
         builder.RegisterType<App>()
             .SingleInstance();
 
+        builder.RegisterType<HttpClient>()
+            .SingleInstance();
+        builder.RegisterInstance(Api.Default)
+            .SingleInstance();
+        builder.RegisterInstance(Apis.Default)
+            .SingleInstance();
+
         builder.RegisterType<UISettings>()
             .SingleInstance();
         builder.RegisterInstance(NodeGlobalState.Instance)
+            .SingleInstance();
+        builder.RegisterType<NodeStateUpdater>()
             .SingleInstance();
 
         var container = builder.Build();

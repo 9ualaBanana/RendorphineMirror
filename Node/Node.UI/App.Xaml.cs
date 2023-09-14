@@ -1,3 +1,4 @@
+using Autofac;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 
@@ -15,6 +16,11 @@ namespace Node.UI
         public required UISettings Settings { get; init; }
         public required DataDirs Dirs { get; init; }
         public required Init Init { get; init; }
+        public required NodeStateUpdater NodeStateUpdater { get; init; }
+        public required Updaters.BalanceUpdater BalanceUpdater { get; init; }
+        public required Updaters.SoftwareUpdater SoftwareUpdater { get; init; }
+        public required Updaters.SoftwareStatsUpdater SoftwareStatsUpdater { get; init; }
+        public required ILogger<App> Logger { get; init; }
         bool WasConnected = false;
 
         public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -34,7 +40,7 @@ namespace Node.UI
                 if (Settings.Language is { } lang) LocalizedString.SetLocale(lang);
                 else Settings.Language = LocalizedString.Locale;
 
-                this.InitializeTrayIndicator();
+                this.InitializeTrayIndicator(NodeStateUpdater);
                 MainTheme.Apply(Resources, Styles);
 
                 if (Environment.GetCommandLineArgs().Contains("registryeditor"))
@@ -43,9 +49,14 @@ namespace Node.UI
                     return;
                 }
 
-                NodeStateUpdater.Start(Dirs);
+                StartUpdaterLoop().Consume();
+
+                BalanceUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Balance, default);
+                SoftwareUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Software, default);
+                SoftwareStatsUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.SoftwareStats, default);
+
                 NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
-                NodeGlobalState.Instance.BAuthInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
+                NodeGlobalState.AuthInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
 
                 if (!Environment.GetCommandLineArgs().Contains("hidden"))
                     SetMainWindow(desktop);
@@ -54,21 +65,61 @@ namespace Node.UI
 
         public Window SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime)
         {
-            if (WasConnected && NodeGlobalState.AuthInfo?.SessionId is not null)
+            if (WasConnected && NodeGlobalState.AuthInfo.Value?.SessionId is not null)
                 return lifetime.MainWindow;
 
-            WasConnected |= NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.AuthInfo?.SessionId is not null;
+            WasConnected |= NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.AuthInfo.Value?.SessionId is not null;
 
-            if (lifetime.MainWindow is MainWindow && NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.AuthInfo?.SessionId is not null)
+            if (lifetime.MainWindow is MainWindow && NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.AuthInfo.Value?.SessionId is not null)
                 return lifetime.MainWindow;
 
             lifetime.MainWindow?.Hide();
             return lifetime.MainWindow =
                 (!NodeStateUpdater.IsConnectedToNode.Value)
-                ? new InitializingWindow()
-                : NodeGlobalState.AuthInfo?.SessionId is null
-                    ? new LoginWindow()
-                    : new MainWindow();
+                ? new global::Node.UI.Pages.InitializingWindow()
+                : NodeGlobalState.AuthInfo.Value?.SessionId is null
+                    ? new global::Node.UI.Pages.LoginWindow()
+                    : new global::Node.UI.Pages.MainWindow(NodeStateUpdater);
+        }
+
+
+        async Task StartUpdaterLoop()
+        {
+            var loadcache = Init.IsDebug;
+            var cacheloaded = !loadcache;
+
+            var cachefile = Dirs.DataFile("nodeinfocache");
+            if (loadcache)
+            {
+                NodeGlobalState.AnyChanged.Subscribe(NodeGlobalState, _ =>
+                    File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState, JsonSettings.Typed)));
+            }
+
+
+            NodeStateUpdater.OnException += _ =>
+            {
+                if (cacheloaded) return;
+                cacheloaded = true;
+
+                if (!File.Exists(cachefile)) return;
+                try { JsonConvert.PopulateObject(File.ReadAllText(cachefile), NodeGlobalState, JsonSettings.Typed); }
+                catch { }
+            };
+            NodeStateUpdater.OnReceive += info =>
+            {
+                if (info.Type != NodeStateUpdate.UpdateType.State)
+                    return;
+
+                var jtoken = info.Value;
+                Logger.LogTrace($"Node state updated: {string.Join(", ", (jtoken as JObject)?.Properties().Select(x => x.Name) ?? new[] { jtoken.ToString(Formatting.None) })}");
+                cacheloaded = true;
+
+                using var tokenreader = jtoken.CreateReader();
+                JsonSettings.TypedS.Populate(tokenreader, NodeGlobalState);
+            };
+
+
+            await NodeStateUpdater.ReceivingLoop();
         }
     }
 }

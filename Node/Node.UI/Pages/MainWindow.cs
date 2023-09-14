@@ -10,7 +10,7 @@ namespace Node.UI.Pages
     {
         readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-        public MainWindow()
+        public MainWindow(NodeStateUpdater nodeStateUpdater)
         {
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
@@ -25,7 +25,7 @@ namespace Node.UI.Pages
 
             var tabs = new TabbedControl();
             tabs.Add("tasks", new TasksTab2());
-            tabs.Add("tab.dashboard", new DashboardTab());
+            tabs.Add("tab.dashboard", new DashboardTab(NodeGlobalState.Instance));
             tabs.Add("tab.plugins", new PluginsTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
@@ -49,9 +49,9 @@ namespace Node.UI.Pages
             };
 
 
-            NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            nodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
             {
-                if (NodeStateUpdater.IsConnectedToNode.Value) statustb.Text = null;
+                if (nodeStateUpdater.IsConnectedToNode.Value) statustb.Text = null;
                 else
                 {
                     statustb.Text = "!!! No connection to node !!!";
