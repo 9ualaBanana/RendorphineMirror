@@ -10,7 +10,7 @@ public static class CondaInvoker
 
         var envname = $"{plugin.Type.ToString().ToLowerInvariant()}_{plugin.Version}";
         if (!CondaManager.IsEnvironmentCreated(envname))
-            throw new Exception($"Conda environment {envname} was not created");
+            throw new CondaEnvironmentWasNotCreatedException(envname);
 
         script = $"""
             Set-Location '{Path.GetFullPath(Path.GetDirectoryName(plugin.Path)!)}'

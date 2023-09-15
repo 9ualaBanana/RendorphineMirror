@@ -57,6 +57,9 @@ public class ReleaseRector
         if (!rectres)
         {
             Errors++;
+            if (rectres.Error is ExceptionError { Exception: CondaEnvironmentWasNotCreatedException })
+                return OperationResult.Err(rectres.Error);
+
             Logger.LogWarning($"{rectres.Error}, replacing rect with 0000. Error count: {Errors}");
             rectres = new ImageDetectorRect(0, 0, 0, 0);
         }
