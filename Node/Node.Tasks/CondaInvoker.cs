@@ -1,5 +1,6 @@
 namespace Node.Tasks;
 
+[AutoRegisteredService(true)]
 public class CondaInvoker
 {
     public required PowerShellInvoker PowerShellInvoker { get; init; }
