@@ -3,7 +3,7 @@ namespace Node.Tasks.Exec;
 [AutoRegisteredService(true)]
 public class ReleaseRector
 {
-    public const int Version = 1;
+    public const int Version = 2;
 
     public required Api Api { get; init; }
     public required ImageDetectorLauncher Launcher { get; init; }
