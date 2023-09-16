@@ -141,7 +141,7 @@ public class PluginsTab : Panel
             };
             pluginslist.SelectedIndex = 0;
 
-            Stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = Stats.Value.Keys.Select(Enum.Parse<PluginType>).ToArray()), true);
+            Stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = Stats.Value.Keys.Select(p => Enum.Parse<PluginType>(p, true)).ToArray()), true);
 
 
             var stack = new StackPanel()
