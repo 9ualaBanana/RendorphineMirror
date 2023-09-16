@@ -19,7 +19,8 @@ public class CondaInvoker
 
         script = $"""
             Set-Location '{Path.GetFullPath(Path.GetDirectoryName(plugin.Path)!)}'
-            {CondaManager.GetRunInEnvironmentScript(plugins.GetPlugin(PluginType.Conda).Path, envname, script)}
+            {CondaManager.GetActivateScript(plugins.GetPlugin(PluginType.Conda).Path, envname)}
+            {script}
             """;
 
         PowerShellInvoker.Invoke(
