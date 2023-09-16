@@ -53,6 +53,9 @@ public abstract class ListenerBase : IServiceTarget
             addprefix($"+:{Settings.UPnpServerPort}");
         }
 
+        updateWindowsFirewall();
+
+
         void addprefix(string prefix)
         {
             prefix = $"http://{prefix}/{Prefix}";
@@ -60,6 +63,23 @@ public abstract class ListenerBase : IServiceTarget
 
             prefixes.Add(prefix);
         }
+        void updateWindowsFirewall()
+        {
+            if (!OperatingSystem.IsWindows())
+                return;
+
+            runAsAdmin("netsh advfirewall firewall delete rule name=renderfin");
+            runAsAdmin($"netsh advfirewall firewall add rule name=renderfin dir=in action=allow protocol=tcp localport={string.Join(',', new[] { Settings.UPnpPort, Settings.UPnpServerPort })}");
+        }
+        void runAsAdmin(string args)
+        {
+            Logger.Info($"Running as admin: {args}");
+
+            using var proc = Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{args}\"") { UseShellExecute = true, Verb = "runas", CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden, })
+                .ThrowIfNull();
+            proc.WaitForExit();
+        }
+
 
         try
         {
@@ -81,12 +101,8 @@ public abstract class ListenerBase : IServiceTarget
             foreach (var prefix in prefixes)
             {
 #pragma warning disable CA1416 // WindowsIdentity.GetCurrent() is supported only in windows
-                var args = $"netsh http add urlacl url={prefix} user={WindowsIdentity.GetCurrent().Name}";
+                runAsAdmin($"netsh http add urlacl url={prefix} user={WindowsIdentity.GetCurrent().Name}");
 #pragma warning restore CA1416
-
-                using var proc = Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{args}\"") { UseShellExecute = true, Verb = "runas", })
-                    .ThrowIfNull("Could not bypass httplistener rights: {0}");
-                proc.WaitForExit();
             }
 
 
