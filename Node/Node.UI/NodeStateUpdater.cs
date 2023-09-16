@@ -60,7 +60,6 @@ public static class NodeStateUpdater
 
                 var reader = LocalPipe.CreateReader(stream);
                 consecutive = 0;
-                IsConnectedToNode.Value = true;
 
                 while (true)
                 {
@@ -74,6 +73,9 @@ public static class NodeStateUpdater
 
                     using var tokenreader = jtoken.CreateReader();
                     JsonSettings.TypedS.Populate(tokenreader, NodeGlobalState.Instance);
+
+                    if (!IsConnectedToNode.Value)
+                        IsConnectedToNode.Value = true;
                 }
             }
             catch (Exception ex)

@@ -54,21 +54,38 @@ namespace Node.UI
 
         public static Window SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime)
         {
-            if (WasConnected && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
+            var window = getWindow();
+            LogManager.GetCurrentClassLogger().Info($"Switching main window from {lifetime.MainWindow?.ToString() ?? "nothing"} to {window}");
+
+            if (window.GetType() == lifetime.MainWindow?.GetType())
                 return lifetime.MainWindow;
 
-            WasConnected |= NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.Instance.AuthInfo?.SessionId is not null;
+            if (lifetime.MainWindow is { } prev)
+            {
+                // closing the current window immediately will just close the whole app since there's no active main window
+                prev.Hide();
+                Task.Delay(2000).ContinueWith(_ => Dispatcher.UIThread.Post(prev.Close));
+            }
 
-            if (lifetime.MainWindow is MainWindow && NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
-                return lifetime.MainWindow;
+            return lifetime.MainWindow = window;
 
-            lifetime.MainWindow?.Hide();
-            return lifetime.MainWindow =
-                (!NodeStateUpdater.IsConnectedToNode.Value)
-                ? new InitializingWindow()
-                : NodeGlobalState.Instance.AuthInfo?.SessionId is null
-                    ? new LoginWindow()
-                    : new MainWindow();
+
+            Window getWindow()
+            {
+                if (WasConnected && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
+                    return lifetime.MainWindow;
+
+                WasConnected |= NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.Instance.AuthInfo?.SessionId is not null;
+
+                if (lifetime.MainWindow is MainWindow && NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.Instance.AuthInfo?.SessionId is not null)
+                    return lifetime.MainWindow;
+
+                return (!NodeStateUpdater.IsConnectedToNode.Value)
+                    ? new InitializingWindow()
+                    : NodeGlobalState.Instance.AuthInfo?.SessionId is null
+                        ? new LoginWindow()
+                        : new MainWindow();
+            }
         }
     }
 }
