@@ -32,5 +32,5 @@ public class WatchingTask
 
     public void Complete(DbTaskFullState task) => OnCompleted?.Invoke(task);
 
-    public string FSDataDirectory() => Directories.Created(Path.Combine(Directories.Data, "watchingtasks", Id));
+    public string FSDataDirectory(DataDirs dirs) => Directories.DirCreated(dirs.Data, "watchingtasks", Id);
 }

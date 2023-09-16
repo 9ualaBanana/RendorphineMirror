@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\UpdaterCommon\UpdaterCommon.csproj" />
+    <ProjectReference Include="..\Node\Node.Common\Node.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

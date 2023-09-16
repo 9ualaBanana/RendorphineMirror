@@ -10,14 +10,14 @@ namespace Node.UI.Pages
     {
         readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-        public MainWindow()
+        public MainWindow(NodeStateUpdater nodeStateUpdater)
         {
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
             Width = 692;
             Height = 410;
-            Title = App.AppName;
-            Icon = App.Icon;
+            Title = App.Instance.AppName;
+            Icon = App.Instance.Icon;
 
             this.PreventClosing();
             SubscribeToStateChanges();
@@ -25,11 +25,11 @@ namespace Node.UI.Pages
 
             var tabs = new TabbedControl();
             tabs.Add("tasks", new TasksTab2());
-            tabs.Add("tab.dashboard", new DashboardTab());
+            tabs.Add("tab.dashboard", new DashboardTab(NodeGlobalState.Instance));
             tabs.Add("tab.plugins", new PluginsTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
-            if (Init.DebugFeatures) tabs.Add("registry", new JsonRegistryTab());
+            if (App.Instance.Init.DebugFeatures) tabs.Add("registry", new JsonRegistryTab());
             tabs.Add("3dupload", new Model3DUploadTab());
 
             var statustb = new TextBlock()
@@ -49,9 +49,9 @@ namespace Node.UI.Pages
             };
 
 
-            NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            nodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
             {
-                if (NodeStateUpdater.IsConnectedToNode.Value) statustb.Text = null;
+                if (nodeStateUpdater.IsConnectedToNode.Value) statustb.Text = null;
                 else
                 {
                     statustb.Text = "!!! No connection to node !!!";

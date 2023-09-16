@@ -25,7 +25,7 @@ public class SettingsTab : Panel
     Control CreateNick()
     {
         var nicktb = new TextBox();
-        NodeGlobalState.Instance.BNodeName.SubscribeChanged(() => Dispatcher.UIThread.Post(() => nicktb.Text = NodeGlobalState.Instance.NodeName), true);
+        NodeGlobalState.Instance.NodeName.SubscribeChanged(() => Dispatcher.UIThread.Post(() => nicktb.Text = NodeGlobalState.Instance.NodeName.Value), true);
 
         var nicksbtn = new MPButton() { Text = new("Set nickname"), };
         nicksbtn.OnClickSelf += async self =>
@@ -34,7 +34,7 @@ public class SettingsTab : Panel
             nicksbtn.IsEnabled = false;
 
             var nick = nicktb.Text.Trim();
-            if (NodeGlobalState.Instance.NodeName == nick)
+            if (NodeGlobalState.Instance.NodeName.Value == nick)
             {
                 await self.FlashError("Can't change nickname to the same one");
                 return;
@@ -66,10 +66,10 @@ public class SettingsTab : Panel
         {
             var obj = new
             {
-                port = NodeGlobalState.Instance.UPnpPort,
-                webport = NodeGlobalState.Instance.UPnpServerPort,
-                torrentport = NodeGlobalState.Instance.TorrentPort,
-                dhtport = NodeGlobalState.Instance.DhtPort,
+                port = NodeGlobalState.Instance.UPnpPort.Value,
+                webport = NodeGlobalState.Instance.UPnpServerPort.Value,
+                torrentport = NodeGlobalState.Instance.TorrentPort.Value,
+                dhtport = NodeGlobalState.Instance.DhtPort.Value,
             };
 
             json = JObject.FromObject(obj);

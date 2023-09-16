@@ -13,8 +13,8 @@ namespace Node.UI.Pages
             this.FixStartupLocation();
             Width = 692;
             Height = 410;
-            Title = App.AppName;
-            Icon = App.Icon;
+            Title = App.Instance.AppName;
+            Icon = App.Instance.Icon;
 
             Content = new TaskCreationPanel();
         }

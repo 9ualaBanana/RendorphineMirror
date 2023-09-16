@@ -9,11 +9,12 @@ public static class Torrent
         public static TaskInputType Type => TaskInputType.Torrent;
 
         public required TorrentClient TorrentClient { get; init; }
+        public required NodeSettingsInstance Settings { get; init; }
         public required IRegisteredTaskApi ApiTask { get; init; }
 
         protected override async Task<ReadOnlyTaskFileList> DownloadImpl(TorrentTaskInputInfo input, TaskObject obj, CancellationToken token)
         {
-            if (ApiTask.IsFromSameNode())
+            if (ApiTask.IsFromSameNode(Settings))
                 return new ReadOnlyTaskFileList(FileWithFormat.FromLocalPath(input.Path));
 
             input.Link.ThrowIfNull();

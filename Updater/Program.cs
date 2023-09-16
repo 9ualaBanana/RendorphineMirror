@@ -1,14 +1,13 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Common;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
-using NLog;
+using Node.Common;
 using UpdaterCommon;
 
 
+var init = Init.For(new Init.InitConfig("renderfin"));
+await init.ExecuteAsync();
 ElevateIfNeeded();
-Init.Initialize();
 
 UpdateChecker checker;
 var doupdate = false;
@@ -93,7 +92,7 @@ while (true)
 
 void ElevateIfNeeded()
 {
-    if (!Initializer.UseAdminRights || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+    if (!init.Configuration.UseAdminRights || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
 
     // admin rights test
     try { File.Create(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "_test")).Dispose(); }

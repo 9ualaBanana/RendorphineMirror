@@ -6,8 +6,9 @@ public class PluginUpdaterTarget : IServiceTarget
 {
     public static void CreateRegistrations(ContainerBuilder builder)
     {
-        var pluginManager = new PluginManager(PluginDiscoverers.GetAll());
-        builder.RegisterInstance(pluginManager)
+        PluginDiscoverers.RegisterDiscoverers(builder);
+
+        builder.RegisterType<PluginManager>()
             .AsSelf()
             .As<IInstalledPluginsProvider>()
             .SingleInstance();

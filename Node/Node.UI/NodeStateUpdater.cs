@@ -1,24 +1,22 @@
 namespace Node.UI;
 
-public static class NodeStateUpdater
+public class NodeStateUpdater
 {
-    readonly static Logger Logger = LogManager.GetCurrentClassLogger();
+    public event Action<NodeStateUpdate>? OnReceive;
+    public event Action<Exception>? OnException;
 
-    public static readonly Bindable<string?> NodeHost = new(null);
-    public static readonly Bindable<bool> IsConnectedToNode = new(false);
+    public required ILogger<NodeStateUpdater> Logger { get; init; }
 
-    public static void Start() => _Start().Consume();
-    static async Task _Start()
+    public Bindable<string?> NodeHost { get; } = new(null);
+    public Bindable<bool> IsConnectedToNode { get; } = new(false);
+
+    public async Task ReceivingLoop()
     {
         while (NodeHost.Value is null)
         {
             try
             {
-                var portfile = new[] { Directories.DataFor("renderfin"), Directories.Data, }
-                    .Select(p => Path.Combine(p, "lport"))
-                    .First(File.Exists);
-
-                var port = ushort.Parse(File.ReadAllText(portfile), CultureInfo.InvariantCulture);
+                var port = ushort.Parse(await File.ReadAllTextAsync(new DataDirs("renderfin").DataFile("lport")), CultureInfo.InvariantCulture);
                 NodeHost.Value = $"127.0.0.1:{port}";
 
                 break;
@@ -27,18 +25,6 @@ public static class NodeStateUpdater
 
             Thread.Sleep(100);
         }
-
-        var loadcache = Init.IsDebug;
-        var cacheloaded = !loadcache;
-
-        var cachefile = Path.Combine(Directories.Data, "nodeinfocache");
-        if (loadcache)
-        {
-            NodeGlobalState.Instance.AnyChanged.Subscribe(NodeGlobalState.Instance, _ =>
-                File.WriteAllText(cachefile, JsonConvert.SerializeObject(NodeGlobalState.Instance, JsonSettings.Typed)));
-        }
-
-        Software.StartUpdating(IsConnectedToNode, new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger(nameof(NodeStateUpdater)), default);
 
         var cancel = false;
         var consecutive = 0;
@@ -52,7 +38,7 @@ public static class NodeStateUpdater
                 using var _ = new FuncDispose(host.UnsubsbribeAll);
                 host.Changed += () =>
                 {
-                    Logger.Info($"Node host was changed to {host.Value}; Restarting /getstate ...");
+                    Logger.LogInformation($"Node host was changed to {host.Value}; Restarting /getstate ...");
                     cancel = true;
                     stream.Close();
                 };
@@ -67,12 +53,8 @@ public static class NodeStateUpdater
                     if (!read) break;
                     if (cancel) return;
 
-                    var jtoken = await JToken.LoadAsync(reader);
-                    Logger.Trace($"Node state updated: {string.Join(", ", (jtoken as JObject)?.Properties().Select(x => x.Name) ?? new[] { jtoken.ToString(Formatting.None) })}");
-                    cacheloaded = true;
-
-                    using var tokenreader = jtoken.CreateReader();
-                    JsonSettings.TypedS.Populate(tokenreader, NodeGlobalState.Instance);
+                    var info = (await JToken.LoadAsync(reader)).ToObject<NodeStateUpdate>().ThrowIfNull();
+                    OnReceive?.Invoke(info);
 
                     if (!IsConnectedToNode.Value)
                         IsConnectedToNode.Value = true;
@@ -83,22 +65,11 @@ public static class NodeStateUpdater
                 if (cancel) return;
 
                 IsConnectedToNode.Value = false;
-                if (consecutive < 3) Logger.Error($"Could not read node state: {ex.Message}, reconnecting...");
-                else if (consecutive == 3) Logger.Error($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
+                if (consecutive < 3) Logger.LogError($"Could not read node state: {ex.Message}, reconnecting...");
+                else if (consecutive == 3) Logger.LogError($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
 
                 consecutive++;
-
-
-                if (!cacheloaded)
-                {
-                    cacheloaded = true;
-
-                    if (File.Exists(cachefile))
-                    {
-                        try { JsonConvert.PopulateObject(File.ReadAllText(cachefile), NodeGlobalState.Instance, JsonSettings.Typed); }
-                        catch { }
-                    }
-                }
+                OnException?.Invoke(ex);
             }
 
             await Task.Delay(1_000).ConfigureAwait(false);

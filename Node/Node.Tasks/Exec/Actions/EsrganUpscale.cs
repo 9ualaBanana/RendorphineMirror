@@ -49,6 +49,8 @@ public class EsrganUpscale : FilePluginActionInfo<EsrganUpscaleInfo>
 
     class Executor : ExecutorBase
     {
+        public required CondaInvoker CondaInvoker { get; init; }
+
         public override async Task<TaskFileOutput> ExecuteUnchecked(TaskFileInput input, EsrganUpscaleInfo data)
         {
             var output = new TaskFileOutput(input.ResultDirectory);
@@ -77,7 +79,7 @@ public class EsrganUpscale : FilePluginActionInfo<EsrganUpscaleInfo>
                     + $"\"{outputfile}\" "          // output file
                     + $"--tile_size 384 ";          // tile size; TODO: automatically determine
 
-                await CondaInvoker.ExecutePowerShellAtWithCondaEnvAsync(PluginList, PluginType.Esrgan, pylaunch, onRead, Logger);
+                await CondaInvoker.ExecutePowerShellAtWithCondaEnvAsync(PluginList, PluginType.Esrgan, pylaunch, onRead);
 
 
                 void onRead(bool err, object obj)

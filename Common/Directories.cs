@@ -2,97 +2,66 @@ namespace Common;
 
 public static class Directories
 {
-    static Directories() => Directory.Delete(Temp(), true);
-
-
-    /// <summary> Application data; %appdata%/{appname} or ~/.config/{appname} </summary>
-    public static readonly string Data = DataFor(Initializer.AppName);
-    public static string DataFor(string appname) => Created(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), appname);
-
-    public static string DataDir(params string[] subdirs) => Created(new[] { Data }.Concat(subdirs).ToArray());
-    public static string DataFile(string file) => Path.Combine(Data, file);
-
-
-    /// <summary> Temp directory; {<see cref="Data"/>}/temp/[...<paramref name="subdirs"/>]. Cleaned every launch </summary>
-    public static string Temp(params string[] subdirs) => Created(Data, "temp", Path.Combine(subdirs));
-
-    /// <summary> Temp directory; {<see cref="Data"/>}/temp/[...<paramref name="subdirs"/>]. Cleaned every launch </summary>
-    public static FuncDispose TempDispose(out string dir, params string[] subdirs)
+    public static string RandomNameInDirectory(string dir)
     {
-        dir = Created(Data, "temp", Path.Combine(subdirs));
-        return DisposeDelete(dir);
+        string path;
+        do { path = Path.Combine(dir, Guid.NewGuid().ToString()); }
+        while (File.Exists(path) || Directory.Exists(path));
+
+        return path;
     }
 
-    /// <summary> Temp file; {<see cref="Data"/>}/temp/[...<paramref name="subdirs"/>]/{randomname} </summary>
-    /// <returns> Struct that will delete the file when disposed </returns>
-    public static FuncDispose TempFile(out string tempfile, params string[] subdirs)
+    public static FuncDispose DisposeDelete(string path, out string samepath)
     {
-        do { tempfile = Path.Combine(Temp(subdirs), Guid.NewGuid().ToString()); }
-        while (File.Exists(tempfile));
+        samepath = path;
+        return DisposeDelete(path);
+    }
 
-        var delfile = tempfile;
-        return new FuncDispose(() =>
+    public static FuncDispose DisposeDelete(params string[] paths) => DisposeDelete<string[]>(paths, out _);
+    public static FuncDispose DisposeDelete<TPaths>(TPaths paths, out TPaths samepaths)
+        where TPaths : IReadOnlyCollection<string>
+    {
+        samepaths = paths;
+        return new FuncDispose(delete);
+
+
+        void delete()
         {
-            try
+            foreach (var path in paths)
             {
-                if (File.Exists(delfile))
-                    File.Delete(delfile);
+                try
+                {
+                    if (File.Exists(path)) File.Delete(path);
+                    if (Directory.Exists(path)) Directory.Delete(path);
+                }
+                catch { }
             }
-            catch { }
-        });
-    }
-
-    /// <summary> Temp files; {<see cref="Data"/>}/temp/[...<paramref name="subdirs"/>]/{randomname} * <paramref name="count"/> </summary>
-    /// <returns> Struct that will delete the files when disposed </returns>
-    public static FuncDispose TempFiles(int count, out IReadOnlyList<string> tempfiles, params string[] subdirs)
-    {
-        var disposes = new List<FuncDispose>();
-        var files = new List<string>();
-
-        for (int i = 0; i < count; i++)
-        {
-            disposes.Add(TempFile(out var file, subdirs));
-            files.Add(file);
         }
-
-        tempfiles = files;
-        return FuncDispose.Create(disposes);
     }
 
 
-    /// <summary> Deletes files or directories when disposed </summary>
-    public static FuncDispose DisposeDelete(params string[] paths) => new FuncDispose(() =>
-    {
-        foreach (var path in paths)
-        {
-            try
-            {
-                if (File.Exists(path)) File.Delete(path);
-                if (Directory.Exists(path)) Directory.Delete(path);
-            }
-            catch { }
-        }
-    });
+    public static string DirCreated(bool create, params string[] parts) => create ? DirCreated(parts) : Path.GetFullPath(Path.Combine(parts));
+    public static string FileCreated(bool create, params string[] parts) => create ? FileCreated(parts) : Path.GetFullPath(Path.Combine(parts));
 
+    public static string FileCreated(params string[] parts) =>
+        FullPath(parts)
+            .With(path => Directory.CreateDirectory(Path.GetDirectoryName(path).ThrowIfNull()))
+            .With(path => File.Create(path).Dispose());
+    public static string DirCreated(params string[] parts) =>
+        FullPath(parts)
+            .With(path => Directory.CreateDirectory(path));
 
+    public static string NewFileCreated(params string[] parts) =>
+        FullPath(parts)
+            .With(path => { if (File.Exists(path)) File.Delete(path); })
+            .With(path => Directory.CreateDirectory(Path.GetDirectoryName(path).ThrowIfNull()))
+            .With(path => File.Create(path).Dispose());
+    public static string NewDirCreated(params string[] parts) =>
+        FullPath(parts)
+            .With(path => { if (Directory.Exists(path)) Directory.Delete(path, true); })
+            .With(path => Directory.CreateDirectory(path));
 
-    /// <inheritdoc cref="Created"/>
-    public static string Created(params string[] parts) => Created(Path.Combine(parts));
-
-    /// <summary> Creates a directory and return its full path </summary>
-    public static string Created(string path) => Directory.CreateDirectory(path).FullName;
-
-    /// <inheritdoc cref="CreatedNew"/>
-    public static string CreatedNew(params string[] parts) => CreatedNew(Path.Combine(parts));
-
-    /// <summary> Deletes a directory if exists, then creates a directory and return its full path </summary>
-    public static string CreatedNew(string path)
-    {
-        if (Directory.Exists(path))
-            Directory.Delete(path, true);
-
-        return Created(path);
-    }
+    static string FullPath(params string[] parts) => Path.GetFullPath(Path.Combine(parts));
 
 
     static void ForEachFile(string source, string destination, Action<string, string> func)
@@ -107,7 +76,7 @@ public static class Directories
     /// <summary> Copy a directory </summary>
     public static void Copy(string source, string destination)
     {
-        Created(destination);
+        Directory.CreateDirectory(destination);
         ForEachFile(source, destination, (s, d) => File.Copy(s, d, true));
     }
 

@@ -6,7 +6,7 @@ public record LocalApi(Api Api)
 
     public LocalApi WithCancellationToken(CancellationToken token) => this with { Api = Api with { CancellationToken = token } };
 
-    string Url(string part) => $"http://127.0.0.1:{NodeGlobalState.Instance.LocalListenPort}/{part}";
+    string Url(string part) => $"http://127.0.0.1:{NodeGlobalState.Instance.LocalListenPort.Value}/{part}";
 
     public ValueTask<OperationResult<T>> Get<T>(string endpoint, string errorDetails, params (string, string)[] values) =>
         Get<T>(endpoint, "value", errorDetails, values);

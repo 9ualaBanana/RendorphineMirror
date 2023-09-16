@@ -25,6 +25,8 @@ public static class DirectDownload
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required Apis Api { get; init; }
         public required ITaskOutputDirectoryProvider DirectoryProvider { get; init; }
+        public required NodeSettingsInstance NodeSettings { get; init; }
+        public required DataDirs Dirs { get; init; }
 
         public override async Task OnPlacedTaskCompleted(DirectDownloadTaskOutputInfo info)
         {
@@ -36,12 +38,12 @@ public static class DirectDownload
                 throw new TaskFailedException("Could not find server in /getmytaskstate request");
 
             var host = server.Host;
-            if (ApiTask.IsFromSameNode())
+            if (ApiTask.IsFromSameNode(NodeSettings))
                 host = $"127.0.0.1:{Settings.UPnpPort}";
 
             using var result = await Api.Api.Get($"{host}/rphtaskexec/downloadoutput?taskid={ApiTask.Id}");
 
-            using var _ = Directories.TempFile(out var zipfile, "task" + ApiTask.Id, "zip");
+            using var _ = Directories.DisposeDelete(Dirs.TempFile($"task_{ApiTask.Id}/zip"), out var zipfile);
             using (var zipstream = File.OpenWrite(zipfile))
                 await result.Content.CopyToAsync(zipstream);
 

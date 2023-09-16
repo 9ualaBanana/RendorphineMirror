@@ -36,7 +36,10 @@ public static partial class GenericTasksTests
         builder.RegisterType<TaskExecutorByData>()
             .SingleInstance();
 
-        builder.RegisterInstance(new PluginManager(PluginDiscoverers.GetAll()))
+        PluginDiscoverers.RegisterDiscoverers(builder);
+        builder.RegisterType<PluginManager>()
+            .AsSelf()
+            .As<IInstalledPluginsProvider>()
             .SingleInstance();
 
         builder.Register(ctx => new PluginList(ctx.Resolve<PluginManager>().GetInstalledPluginsAsync().GetAwaiter().GetResult()))

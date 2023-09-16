@@ -7,6 +7,7 @@ public class ReleaseRector
 
     public required Api Api { get; init; }
     public required ImageDetectorLauncher Launcher { get; init; }
+    public required DataDirs Dirs { get; init; }
     public required ILogger<ReleaseRector> Logger { get; init; }
 
     public int Errors { get; private set; }
@@ -28,7 +29,7 @@ public class ReleaseRector
         }
 
         Logger.LogInformation($"Downloading release {release.Id}");
-        var target = Temp.File(release.Id + ".jpg");
+        var target = Dirs.NamedTempFile(release.Id + ".jpg");
 
         using var stream = await Api.Client.GetStreamAsync(release.Files["release"].Location.Url, token);
         using var file = File.OpenWrite(target);
@@ -71,6 +72,9 @@ public class ReleaseRector
             Api.SignRequest(Key, ("userid", release.UserId), ("iid", release.Iid), ("rect", JsonConvert.SerializeObject(rect, JsonSettings.Lowercase)), ("version", Version.ToStringInvariant())));
     }
 
+
+    public record ReleaseWithRect(ImageDetectorRect PhotoRect, string Id, string Iid, string UserId, ImmutableDictionary<string, ReleaseRector.ReleaseFile> Files)
+        : ReleaseWithoutRect(Id, Iid, UserId, Files);
 
     public record ReleaseWithoutRect(string Id, string Iid, string UserId, ImmutableDictionary<string, ReleaseFile> Files);
     public record ReleaseFile(string Filename, long Size, ReleaseStorageLocation Location, string PreviewUrl, string ThumbnailUrl);

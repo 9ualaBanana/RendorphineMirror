@@ -188,7 +188,8 @@ public static class OperationResultCollectionExtensions
     public static Task<OperationResult<List<T>>> Aggregate<T>(this IEnumerable<Task<OperationResult<T>>> opresults) =>
         opresults.Aggregate(new List<T>());
     public static Task<OperationResult<TResult>> Aggregate<TResult, TItem>(this IEnumerable<Task<OperationResult<TItem>>> opresults, TResult items) where TResult : ICollection<TItem> =>
-        opresults.Aggregate(items, (items, item) => items.Add(item));
+        from result in opresults.Aggregate(items, (items, item) => items.Add(item))
+        select result ?? items;
     public static Task<OperationResult<T>> Aggregate<T>(this IEnumerable<Task<OperationResult<T>>> opresults, Func<T, T, T> accumulator)
     {
         var first = true;

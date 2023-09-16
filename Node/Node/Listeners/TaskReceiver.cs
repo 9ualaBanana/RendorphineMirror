@@ -10,6 +10,7 @@ public class TaskReceiver : ListenerBase
     protected override string? Prefix => "rphtaskexec/launchtask";
 
     public required PortsForwardedTarget PortsForwarded { get; init; }
+    public required IQueuedTasksStorage QueuedTasks { get; init; }
 
     public TaskReceiver(ILogger<TaskReceiver> logger) : base(logger) { }
 
@@ -38,6 +39,6 @@ public class TaskReceiver : ListenerBase
         response.StatusCode = (int) await WriteText(response, "{\"ok\":1}");
         response.Close();
 
-        NodeSettings.QueuedTasks.Add(new ReceivedTask(taskid, taskinfo) { HostShard = host });
+        QueuedTasks.QueuedTasks.Add(new ReceivedTask(taskid, taskinfo) { HostShard = host });
     }
 }

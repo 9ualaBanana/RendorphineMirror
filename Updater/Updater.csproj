@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\UpdaterCommon\UpdaterCommon.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\Node\Node.Common\Node.Common.csproj" />
     <TrimmerRootAssembly Include="UpdaterCommon" />
     <TrimmerRootAssembly Include="Common" />
   </ItemGroup>

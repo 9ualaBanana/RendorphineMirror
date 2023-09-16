@@ -77,9 +77,6 @@ public class PluginsTab : Panel
         public InstallPluginPanel()
         {
             var stats = NodeGlobalState.Instance.Software.GetBoundCopy();
-            if (stats.Value.Count == 0)
-                stats.Value = Software.LoadSoftware().ThrowIfError().AsTask().GetAwaiter().GetResult();
-
             GCBindable = stats;
 
             var versionslist = TypedComboBox.Create(Array.Empty<PluginVersion>()).With(c => c.MinWidth = 100);
@@ -123,8 +120,6 @@ public class PluginsTab : Panel
         {
             Settings = NodeGlobalState.Instance.UserSettings.GetBoundCopy();
             Stats = NodeGlobalState.Instance.Software.GetBoundCopy();
-            if (Stats.Value.Count == 0)
-                Stats.Value = Software.LoadSoftware().ThrowIfError().AsTask().GetAwaiter().GetResult();
 
             Apis.Default.GetSettingsAsync()
                 .Next(s => { Settings.Value = s; return OperationResult.Succ(); })
@@ -189,7 +184,7 @@ public class PluginsTab : Panel
                                 Text = "Install (this node)",
                                 OnClickSelf = async self =>
                                 {
-                                    Settings.Value.Install(NodeGlobalState.Instance.AuthInfo.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
+                                    Settings.Value.Install(NodeGlobalState.Instance.AuthInfo.Value.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
                                     var set = await Apis.Default.SetSettingsAsync(Settings.Value);
@@ -201,7 +196,7 @@ public class PluginsTab : Panel
                                 Text = "Uninstall (this node)",
                                 OnClickSelf = async self =>
                                 {
-                                    Settings.Value.Uninstall(NodeGlobalState.Instance.AuthInfo.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
+                                    Settings.Value.Uninstall(NodeGlobalState.Instance.AuthInfo.Value.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
                                     var set = await Apis.Default.SetSettingsAsync(Settings.Value);

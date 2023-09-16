@@ -37,32 +37,32 @@ public static class LocalPipe
     public static JsonTextReader CreateReader(Stream stream) => new JsonTextReader(new StreamReader(stream)) { SupportMultipleContent = true };
 
 
-    public class Writer
+    public class Writer : IDisposable
     {
         readonly JsonTextWriter JWriter;
-        readonly Stream Stream;
 
-        public Writer(Stream stream)
-        {
-            Stream = stream;
-            JWriter = new JsonTextWriter(new StreamWriter(stream) { AutoFlush = true });
-        }
+        public Writer(Stream stream) => JWriter = new JsonTextWriter(new StreamWriter(stream) { AutoFlush = true });
 
-        public Task<bool> WriteAsync<T>(T value) where T : notnull => WriteAsync(JToken.FromObject(value, JsonSettings.TypedS));
-        public async Task<bool> WriteAsync(JToken token)
+        public Task WriteAsync<T>(T value) where T : notnull => WriteAsync(JToken.FromObject(value, JsonSettings.TypedS));
+        public async Task WriteAsync(JToken token)
         {
             try
             {
                 await token.WriteToAsync(JWriter).ConfigureAwait(false);
                 await JWriter.FlushAsync().ConfigureAwait(false);
-
-                return true;
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, "LocalPipe write stream died");
-                return false;
+                Dispose();
+                throw;
             }
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+            ((IDisposable) JWriter).Dispose();
         }
     }
 }

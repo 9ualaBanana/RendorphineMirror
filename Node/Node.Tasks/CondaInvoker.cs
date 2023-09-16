@@ -1,10 +1,15 @@
 namespace Node.Tasks;
 
-public static class CondaInvoker
+[AutoRegisteredService(true)]
+public class CondaInvoker
 {
-    public static Task ExecutePowerShellAtWithCondaEnvAsync(PluginList plugins, PluginType pltype, string script, Action<bool, object>? onRead, ILogger logger) =>
-        Task.Run(() => ExecutePowerShellAtWithCondaEnv(plugins, pltype, script, onRead, logger));
-    public static void ExecutePowerShellAtWithCondaEnv(PluginList plugins, PluginType pltype, string script, Action<bool, object>? onRead, ILogger logger)
+    public required PowerShellInvoker PowerShellInvoker { get; init; }
+    public required CondaManager CondaManager { get; init; }
+
+    public Task ExecutePowerShellAtWithCondaEnvAsync(PluginList plugins, PluginType pltype, string script, Action<bool, object>? onRead) =>
+        Task.Run(() => ExecutePowerShellAtWithCondaEnv(plugins, pltype, script, onRead));
+
+    public void ExecutePowerShellAtWithCondaEnv(PluginList plugins, PluginType pltype, string script, Action<bool, object>? onRead)
     {
         var plugin = plugins.GetPlugin(pltype);
 
@@ -20,8 +25,7 @@ public static class CondaInvoker
         PowerShellInvoker.Invoke(
             script,
             (obj, log) => { log(); onRead?.Invoke(false, obj); },
-            (obj, log) => { log(); onRead?.Invoke(true, obj); },
-            logger
+            (obj, log) => { log(); onRead?.Invoke(true, obj); }
         );
     }
 }
