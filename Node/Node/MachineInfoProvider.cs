@@ -1,5 +1,6 @@
 namespace Node;
 
+[AutoRegisteredService(true)]
 public class MachineInfoProvider
 {
     public required SettingsInstance Settings { get; init; }

@@ -45,7 +45,7 @@ static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        var builder = Init.CreateContainer(new("renderfin-ui"), typeof(Program).Assembly);
+        var builder = Init.CreateContainer(new("renderfin"), typeof(Program).Assembly);
         builder.RegisterType<App>()
             .SingleInstance();
 
@@ -53,8 +53,10 @@ static class Program
             .SingleInstance();
         builder.RegisterInstance(Api.Default)
             .SingleInstance();
-        builder.RegisterInstance(Apis.Default)
-            .SingleInstance();
+        builder.RegisterType<UIApis>()
+            .As<Node.Common.Apis>()
+            .SingleInstance()
+            .OnActivating(ctx => Apis.Default = ctx.Instance);
 
         builder.RegisterType<UISettings>()
             .SingleInstance();
