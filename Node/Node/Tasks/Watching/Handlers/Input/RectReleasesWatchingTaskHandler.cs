@@ -29,13 +29,22 @@ public class RectReleasesWatchingTaskHandler : WatchingTaskInputHandler<RectRele
                 return;
             }
 
-            var exec = await
-                from releases in Rector.GetReleasesWithoutRect(Token.Token)
-                from downloaded in Rector.DownloadReleases(releases, Token.Token)
-                from executed in Rector.ProcessReleases(downloaded, Token.Token)
-                select OperationResult.Succ();
 
-            exec.ThrowIfError();
+            var releases = await Rector.GetReleasesWithoutRect(Token.Token).ThrowIfError();
+            foreach (var release in releases)
+            {
+                var downloaded = await Rector.DownloadRelease(release, Token.Token).ThrowIfError();
+
+                try
+                {
+                    await Rector.ProcessRelease(release, downloaded, Token.Token).ThrowIfError();
+                }
+                finally
+                {
+                    if (downloaded is not null)
+                        File.Delete(downloaded);
+                }
+            }
         }
     }
 }
