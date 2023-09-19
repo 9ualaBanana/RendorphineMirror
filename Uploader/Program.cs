@@ -30,13 +30,17 @@ var defaultActions = new Dictionary<string, ImmutableArray<IAction>>()
         // new BuildUploadNodeAction("renderfin-dbg-osx", ProjectType.Release, "osx-x64", updaterFilesPath),
     }.ToImmutableArray(),
 
+    ["torrenttracker"] = new IAction[]
+    {
+        new BuildUploadAction(ProjectType.Release, "TorrentTracker", "linux-x64", "debian@t.microstock.plus:/home/debian/tracker"),
+    }.ToImmutableArray(),
     ["updateserver"] = new IAction[]
     {
         new BuildUploadAction(ProjectType.Release, "UpdateServer", "linux-x64", "debian@t.microstock.plus:/home/debian/updater3"),
     }.ToImmutableArray(),
     ["registry"] = new IAction[]
     {
-        new BuildUploadAction(ProjectType.Release, "SoftwareRegistry", "linux-x64", "debian@t.microstock.plus:/home/debian/registry2"),
+        new BuildUploadAction(ProjectType.Release, "SoftwareRegistry", "linux-x64", "debian@t.microstock.plus:/home/debian/registry3"),
     }.ToImmutableArray(),
     ["chatgptapi"] = new IAction[]
     {

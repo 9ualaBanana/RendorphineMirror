@@ -204,10 +204,6 @@ public static class ApiExtensions
     public static ValueTask<OperationResult<NodeInfo>> GetNodeAsync(this Apis api, string nodeid) =>
         api.GetMyNodesAsync().Next(nodes => nodes.FirstOrDefault(x => x.Id == nodeid)?.AsOpResult() ?? OperationResult.Err($"Node with such id ({nodeid}) was not found"));
 
-    public static ValueTask<OperationResult<ImmutableDictionary<string, SoftwareDefinition>>> GetSoftwareAsync(this Apis api) =>
-        api.Api.ApiGet<ImmutableDictionary<string, SoftwareDefinition>>($"{RegistryUrl}/getsoft", "value", "Getting registry software")
-            .Next(x => x.WithComparers(StringComparer.OrdinalIgnoreCase).AsOpResult());
-
     public static async ValueTask<OperationResult<string>> GetMPlusItemDownloadLinkAsync(
         this Apis api,
         IRegisteredTaskApi registeredTaskApi,

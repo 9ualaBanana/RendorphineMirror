@@ -20,7 +20,7 @@ public class PluginDeployer
 
     /// <remarks>
     /// Deploys only specified plugins;
-    /// To get plugin list with parents, use <see cref="PluginChecker.GetInstallationTree(IEnumerable{PluginToDeploy}, IReadOnlyDictionary{string, SoftwareDefinition})"/>.
+    /// To get plugin list with parents, use <see cref="PluginChecker.GetInstallationTree(ImmutableDictionary{string, ImmutableDictionary{PluginVersion, SoftwareVersionInfo}}, IEnumerable{PluginToDeploy})"/>.
     /// Deploys only non-installed plugins.
     /// </remarks>
     /// <returns> Amount of installed plugins </returns>
@@ -42,14 +42,14 @@ public class PluginDeployer
     }
 
     /// <remarks> Deploys even if installed </remarks>
-    public void Deploy(PluginType type, PluginVersion version, SoftwareInstallation installation)
+    public void Deploy(PluginType type, PluginVersion version, SoftwareVersionInfo.InstallationInfo installation)
     {
         Logger.LogInformation($"Installing {type} {version}");
 
         if (installation.Script is not null)
             InstallWithPowershell(type, version, installation.Script);
-        if (installation.CondaEnvInfo is not null)
-            InstallWithConda(type, version, installation.CondaEnvInfo);
+        if (installation.Python is not null)
+            InstallWithConda(type, version, installation.Python);
 
         Logger.LogInformation($"Installed {type} {version}");
     }
@@ -88,11 +88,11 @@ public class PluginDeployer
             return pldownload;
         }
     }
-    void InstallWithConda(PluginType type, PluginVersion version, SoftwareCondaEnvInfo info)
+    void InstallWithConda(PluginType type, PluginVersion version, SoftwareVersionInfo.InstallationInfo.PythonInfo info)
     {
         var name = $"{type.ToString().ToLowerInvariant()}_{version}";
         var condapath = InstalledPlugins.Plugins.First(p => p.Type == PluginType.Conda).Path;
 
-        CondaManager.InitializeEnvironment(condapath, name, info.PythonVersion, info.Requirements, info.Channels, info.PipRequirements);
+        CondaManager.InitializeEnvironment(condapath, name, info.Version, info.Conda.Requirements, info.Conda.Channels, info.Pip.Requirements, info.Pip.RequirementFiles);
     }
 }

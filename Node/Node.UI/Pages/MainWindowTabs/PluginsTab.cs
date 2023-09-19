@@ -37,13 +37,13 @@ public class PluginsTab : Panel
                 },
             };
         }
-        IControl softToControl(KeyValuePair<string, SoftwareDefinition> value)
+        IControl softToControl(KeyValuePair<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>> value)
         {
             var (type, stat) = value;
 
             return new Expander()
             {
-                Header = $"{type} \"{stat.VisualName}\"",
+                Header = $"{type} \"{stat.Values.First().Name}\"",
                 Content = new StackPanel()
                 {
                     Orientation = Orientation.Vertical,
@@ -51,16 +51,16 @@ public class PluginsTab : Panel
                     {
                         // stat.SoftRequirements.Parents.Length == 0 ? new Control() : new TextBlock() { Text = "Parents: " + string.Join(", ", stat.SoftRequirements.Parents) },
                         // stat.SoftRequirements.Platforms.Count == 0 ? new Control() : new TextBlock() { Text = "Requirements: " + string.Join(", ", stat.SoftRequirements.Platforms)  },
-                        stat.Versions.Count == 0 ? new Control() : new TextBlock()
+                        stat.Count == 0 ? new Control() : new TextBlock()
                         {
-                            Text = $"Versions: {string.Join(", ", stat.Versions.Select(v=>v.Key + "\n"+versionToString(v.Value)))}",
+                            Text = $"Versions: {string.Join(", ", stat.Select(v => v.Key + "\n" + versionToString(v.Value)))}",
                         },
                     },
                 },
             };
 
 
-            string versionToString(SoftwareVersionDefinition version) => $"""
+            string versionToString(SoftwareVersionInfo version) => $"""
                     Requirements:
                         {string.Join(", ", version.Requirements.Platforms)}
                         {string.Join(", ", version.Requirements.Parents)}
@@ -82,10 +82,10 @@ public class PluginsTab : Panel
             var versionslist = TypedComboBox.Create(Array.Empty<PluginVersion>()).With(c => c.MinWidth = 100);
             versionslist.SelectedIndex = 0;
 
-            var pluginslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
+            var pluginslist = TypedComboBox.Create(Array.Empty<PluginType>()).With(c => c.MinWidth = 100);
             pluginslist.SelectionChanged += (obj, e) =>
             {
-                versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem ?? "")?.Versions.Keys.ToArray() ?? Array.Empty<PluginVersion>();
+                versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.Keys.ToArray() ?? Array.Empty<PluginVersion>();
                 versionslist.SelectedIndex = 0;
             };
             pluginslist.SelectedIndex = 0;
@@ -97,7 +97,7 @@ public class PluginsTab : Panel
                 Text = "Install",
                 OnClickSelf = async self =>
                 {
-                    var res = await LocalApi.Default.Get("deploy", "Installing plugin", ("type", pluginslist.SelectedItem), ("version", versionslist.SelectedItem.ToString()));
+                    var res = await LocalApi.Default.Get("deploy", "Installing plugin", ("type", pluginslist.SelectedItem.ToString()), ("version", versionslist.SelectedItem.ToString()));
                     await self.FlashErrorIfErr(res);
                 },
             };
@@ -114,7 +114,7 @@ public class PluginsTab : Panel
     class UserSettingsPluginPanel : Panel
     {
         readonly IBindable<UUserSettings> Settings;
-        readonly IBindable<ImmutableDictionary<string, SoftwareDefinition>> Stats;
+        readonly IBindable<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>> Stats;
 
         public UserSettingsPluginPanel()
         {
@@ -131,12 +131,12 @@ public class PluginsTab : Panel
             var pluginslist = TypedComboBox.Create(Array.Empty<PluginType>()).With(c => c.MinWidth = 100);
             pluginslist.SelectionChanged += (obj, e) =>
             {
-                versionslist.Items = (Stats.Value.GetValueOrDefault(pluginslist.SelectedItem.ToString())?.Versions.Keys ?? Enumerable.Empty<PluginVersion>()).Prepend(PluginVersion.Empty).ToArray();
+                versionslist.Items = (Stats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.Keys ?? Enumerable.Empty<PluginVersion>()).Prepend(PluginVersion.Empty).ToArray();
                 versionslist.SelectedIndex = 0;
             };
             pluginslist.SelectedIndex = 0;
 
-            Stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = Stats.Value.Keys.Select(p => Enum.Parse<PluginType>(p, true)).ToArray()), true);
+            Stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = Stats.Value.Keys.ToArray()), true);
 
 
             var stack = new StackPanel()

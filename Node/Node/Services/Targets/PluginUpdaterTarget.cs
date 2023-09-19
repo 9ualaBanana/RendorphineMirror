@@ -13,13 +13,6 @@ public class PluginUpdaterTarget : IServiceTarget
             .As<IInstalledPluginsProvider>()
             .SingleInstance();
 
-        builder.RegisterType<SoftwareList>()
-            .As<ISoftwareListProvider>()
-            .SingleInstance();
-
-        builder.RegisterType<PluginChecker>()
-            .SingleInstance();
-
         builder.RegisterType<CondaManager>()
             .SingleInstance();
 
@@ -38,11 +31,5 @@ public class PluginUpdaterTarget : IServiceTarget
     public async Task ExecuteAsync()
     {
         UserSettingsHeartbeat.Start();
-    }
-
-
-    class SoftwareList : ISoftwareListProvider
-    {
-        public IReadOnlyDictionary<string, SoftwareDefinition> Software => NodeGlobalState.Instance.Software.Value;
     }
 }

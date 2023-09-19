@@ -5,8 +5,8 @@ public sealed class UserSettingsHeartbeat : Heartbeat
     protected override TimeSpan Interval { get; } = TimeSpan.FromMinutes(1);
 
     public required PluginManager PluginManager { get; init; }
-    public required PluginChecker PluginChecker { get; init; }
     public required PluginDeployer PluginDeployer { get; init; }
+    public required NodeGlobalState NodeGlobalState { get; init; }
     public required Apis Api { get; init; }
 
     bool IsDeploying = false;
@@ -30,7 +30,7 @@ public sealed class UserSettingsHeartbeat : Heartbeat
         {
             if (software is null) return;
 
-            var newcount = PluginDeployer.DeployUninstalled(PluginChecker.GetInstallationTree(UUserSettings.ToDeploy(software)));
+            var newcount = PluginDeployer.DeployUninstalled(PluginChecker.GetInstallationTree(NodeGlobalState.Software.Value, UUserSettings.ToDeploy(software)));
             if (newcount != 0)
                 await PluginManager.RediscoverPluginsAsync();
         }

@@ -2,7 +2,7 @@ namespace Node.Common;
 
 public record Apis(Api Api, bool LogErrors = true)
 {
-    public const string RegistryUrl = "https://t.microstock.plus:7898";
+    public const string RegistryUrl = "https://t.microstock.plus:7897";
     public static string TaskManagerEndpoint => Api.TaskManagerEndpoint;
 
     public virtual string SessionId { get; init; } = null!;

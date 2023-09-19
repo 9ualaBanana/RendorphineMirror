@@ -29,7 +29,7 @@ namespace Node.UI.Pages
             tabs.Add("tab.plugins", new PluginsTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
-            if (App.Instance.Init.DebugFeatures) tabs.Add("registry", new JsonRegistryTab());
+            if (App.Instance.Init.DebugFeatures) tabs.Add("registry", new RegistryEditor(NodeGlobalState.Instance));
             tabs.Add("3dupload", new Model3DUploadTab());
 
             var statustb = new TextBlock()

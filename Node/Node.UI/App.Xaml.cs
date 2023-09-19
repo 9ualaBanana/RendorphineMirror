@@ -43,17 +43,17 @@ namespace Node.UI
                 this.InitializeTrayIndicator(NodeStateUpdater);
                 MainTheme.Apply(Resources, Styles);
 
+                BalanceUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Balance, default);
+                SoftwareUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Software, default);
+                SoftwareStatsUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.SoftwareStats, default);
+
                 if (Environment.GetCommandLineArgs().Contains("registryeditor"))
                 {
-                    desktop.MainWindow = new Window() { Content = new Pages.MainWindowTabs.JsonRegistryTab(), };
+                    desktop.MainWindow = new Window() { Content = new Pages.MainWindowTabs.RegistryEditor(NodeGlobalState), };
                     return;
                 }
 
                 StartUpdaterLoop().Consume();
-
-                BalanceUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Balance, default);
-                SoftwareUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Software, default);
-                SoftwareStatsUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.SoftwareStats, default);
 
                 NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
                 NodeGlobalState.AuthInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));

@@ -96,6 +96,13 @@
             "group": { "kind": "build", }
         },
         {
+            "label": "Upload torrent tracker",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "torrenttracker" ],
+            "group": { "kind": "build", }
+        },
+        {
             "label": "Upload update server",
             "command": "dotnet",
             "type": "process",

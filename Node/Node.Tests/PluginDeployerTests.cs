@@ -34,39 +34,50 @@ public class PluginDeployerTests
     [Test]
     public void TestPluginChecker()
     {
-        var software = ImmutableDictionary<string, SoftwareDefinition>.Empty
-            .Add(PluginType.Esrgan.ToString(), new SoftwareDefinition("ESRGAN",
-                ImmutableDictionary<PluginVersion, SoftwareVersionDefinition>.Empty
-                    .Add("1.0.0", new SoftwareVersionDefinition(
-                        new SoftwareInstallation(),
-                        new SoftwareRequirements(
-                            ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
-                            ImmutableArray<SoftwareParent>.Empty
-                                .Add(new SoftwareParent(PluginType.NvidiaDriver.ToString(), ""))
-                        )
-                    ))
-                    .Add("1.0.1", new SoftwareVersionDefinition(
-                        new SoftwareInstallation(),
-                        new SoftwareRequirements(
-                            ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
-                            ImmutableArray<SoftwareParent>.Empty
-                                .Add(new SoftwareParent(PluginType.NvidiaDriver.ToString(), ""))
-                        )
-                    ))
-                )
-            )
-            .Add(PluginType.Blender.ToString(), new SoftwareDefinition("Blender",
-                ImmutableDictionary<PluginVersion, SoftwareVersionDefinition>.Empty
-                    .Add("1.0.0", new SoftwareVersionDefinition(
-                        new SoftwareInstallation(),
-                        new SoftwareRequirements(
-                            ImmutableDictionary<PlatformID, SoftwareSupportedPlatform>.Empty,
-                            ImmutableArray<SoftwareParent>.Empty
-                        )
-                    )))
-            );
-
-        var checker = new PluginChecker(new SoftwareList(software), Container.Instance.Resolve<ILogger<PluginChecker>>());
+        var software = new Dictionary<string, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>()
+        {
+            [PluginType.Esrgan.ToString()] = new Dictionary<PluginVersion, SoftwareVersionInfo>()
+            {
+                ["1.0.0"] = new SoftwareVersionInfo(
+                    PluginType.Esrgan,
+                    "1.0.0",
+                    "ESRGAN",
+                    null,
+                    null,
+                    new SoftwareVersionInfo.RequirementsInfo(
+                        ImmutableArray<string>.Empty,
+                        ImmutableArray<SoftwareVersionInfo.RequirementsInfo.ParentInfo>.Empty
+                            .Add(new(PluginType.NvidiaDriver.ToString(), null))
+                    )
+                ),
+                ["1.0.1"] = new SoftwareVersionInfo(
+                    PluginType.Esrgan,
+                    "1.0.1",
+                    "ESRGAN",
+                    null,
+                    null,
+                    new SoftwareVersionInfo.RequirementsInfo(
+                        ImmutableArray<string>.Empty,
+                        ImmutableArray<SoftwareVersionInfo.RequirementsInfo.ParentInfo>.Empty
+                            .Add(new(PluginType.NvidiaDriver.ToString(), null))
+                    )
+                ),
+            }.ToImmutableDictionary(),
+            [PluginType.Blender.ToString()] = new Dictionary<PluginVersion, SoftwareVersionInfo>()
+            {
+                ["1.0.0"] = new SoftwareVersionInfo(
+                    PluginType.Blender,
+                    "1.0.0",
+                    "Blender",
+                    null,
+                    null,
+                    new SoftwareVersionInfo.RequirementsInfo(
+                        ImmutableArray<string>.Empty,
+                        ImmutableArray<SoftwareVersionInfo.RequirementsInfo.ParentInfo>.Empty
+                    )
+                ),
+            }.ToImmutableDictionary(),
+        }.ToImmutableDictionary();
 
 
         var installedEsrgan = ImmutableArray<Plugin>.Empty
@@ -74,21 +85,21 @@ public class PluginDeployerTests
         var installedNvidia = ImmutableArray<Plugin>.Empty
             .Add(new Plugin(PluginType.NvidiaDriver, "530.41.03", ""));
 
-        gettree(PluginType.Esrgan, "1.0.0", checker, installedEsrgan)
+        gettree(PluginType.Esrgan, "1.0.0", installedEsrgan)
             .ToArray().Should()
             .HaveCount(1, "NvidiaDriver is a parent of ESRGAN but not installed")
             .And.Contain(p => p.Type == PluginType.NvidiaDriver, "NvidiaDriver is a parent of ESRGAN but not installed");
 
-        FluentActions.Enumerating(() => gettree(PluginType.Esrgan, "1.2.3", checker, installedNvidia))
+        FluentActions.Enumerating(() => gettree(PluginType.Esrgan, "1.2.3", installedNvidia))
             .Should().Throw<Exception>("registry does not have ESRGAN version 1.2.3");
 
 
-        gettree(PluginType.Esrgan, "1.0.0", checker, installedNvidia)
+        gettree(PluginType.Esrgan, "1.0.0", installedNvidia)
             .ToArray().Should()
             .HaveCount(1)
             .And.ContainSingle(p => p.Type == PluginType.Esrgan && p.Version == "1.0.0");
 
-        gettree(PluginType.Esrgan, null, checker, installedNvidia)
+        gettree(PluginType.Esrgan, null, installedNvidia)
             .ToArray().Should()
             .HaveCount(1)
             .And.ContainSingle(p => p.Type == PluginType.Esrgan && p.Version == "1.0.1");
@@ -98,27 +109,23 @@ public class PluginDeployerTests
             .Add(new Plugin(PluginType.Esrgan, "1.0.1", ""))
             .Add(new Plugin(PluginType.NvidiaDriver, "530.41.03", ""));
 
-        gettree(PluginType.Esrgan, "1.0.0", checker, installed)
+        gettree(PluginType.Esrgan, "1.0.0", installed)
             .ToArray().Should()
             .HaveCount(1)
             .And.ContainSingle(p => p.Type == PluginType.Esrgan && p.Version == "1.0.0");
 
-        gettree(PluginType.Esrgan, "1.0.1", checker, installed)
+        gettree(PluginType.Esrgan, "1.0.1", installed)
             .ToArray().Should()
             .BeEmpty("version 1.0.1 is already installed");
 
-        gettree(PluginType.Esrgan, null, checker, installed)
+        gettree(PluginType.Esrgan, null, installed)
             .ToArray().Should()
             .BeEmpty("latest version requested (1.0.1) and already installed");
 
 
 
-        static IEnumerable<PluginToInstall> gettree(PluginType type, string? version, PluginChecker checker, IReadOnlyCollection<Plugin> installed) =>
-            checker.GetInstallationTree(type, version)
+        IEnumerable<PluginToInstall> gettree(PluginType type, string? version, IReadOnlyCollection<Plugin> installed) =>
+            PluginChecker.GetInstallationTree(software, type, version)
                 .Where(p => !PluginDeployer.IsInstalled(installed, p.Type, p.Version));
     }
-
-
-    record SoftwareList(IReadOnlyDictionary<string, SoftwareDefinition> Software) : ISoftwareListProvider;
-    record InstalledPlugins(IReadOnlyCollection<Plugin> Plugins) : IInstalledPluginsProvider;
 }
