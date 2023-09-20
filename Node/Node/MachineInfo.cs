@@ -1,6 +1,4 @@
-﻿using System.Net;
-
-namespace Node;
+﻿namespace Node;
 
 public record MachineInfo(
     string UserId,
@@ -11,6 +9,6 @@ public record MachineInfo(
     string Version,
     string Port,
     string WebServerPort,
-    IPAddress IP,
+    string IP,
     ImmutableArray<Plugin> InstalledPlugins
 );
