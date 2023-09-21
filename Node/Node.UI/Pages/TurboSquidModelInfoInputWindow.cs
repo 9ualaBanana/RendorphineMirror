@@ -17,7 +17,7 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
 
         var infos = request.Infos.Select(r => r.Renderers is null ? new ReadOnlyModelInfo(r) : new EditableModelInfo(NativeItem, r)).ToArray();
 
-        var grid = new DataGrid() { AutoGenerateColumns = false, Items = infos, };
+        var grid = new DataGrid() { AutoGenerateColumns = false, ItemsSource = infos, };
         grid.BeginningEdit += (obj, e) => e.Cancel = true;
 
         grid.Columns.Add(new DataGridTextColumn() { Binding = new Binding(nameof(ReadOnlyModelInfo.Name)), Header = "Name" });
@@ -135,7 +135,7 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
 
     class DataGridCheckboxColumn : DataGridColumn
     {
-        protected override IControl GenerateElement(DataGridCell cell, object dataItem)
+        protected override Control GenerateElement(DataGridCell cell, object dataItem)
         {
             if (dataItem is not EditableModelInfo item) return new Control();
 
@@ -146,18 +146,18 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
             return checkbox;
         }
 
-        protected override IControl GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
-        protected override object PrepareCellForEdit(IControl editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
+        protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
+        protected override object PrepareCellForEdit(Control editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
     }
     class DataGridRendererDropdownColumn : DataGridColumn
     {
-        protected override IControl GenerateElement(DataGridCell cell, object dataItem)
+        protected override Control GenerateElement(DataGridCell cell, object dataItem)
         {
             if (dataItem is not EditableModelInfo item) return new Control();
 
             var dropdown = new ComboBox()
             {
-                Items = item.Renderers,
+                ItemsSource = item.Renderers,
                 SelectedItem = item.Renderer.Value,
             };
 
@@ -167,12 +167,12 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
             return dropdown;
         }
 
-        protected override IControl GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
-        protected override object PrepareCellForEdit(IControl editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
+        protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
+        protected override object PrepareCellForEdit(Control editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
     }
     class DataGridFormatVersionColumn : DataGridColumn
     {
-        protected override IControl GenerateElement(DataGridCell cell, object dataItem)
+        protected override Control GenerateElement(DataGridCell cell, object dataItem)
         {
             if (dataItem is not EditableModelInfo item) return new Control();
 
@@ -183,12 +183,12 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
             return tb;
         }
 
-        protected override IControl GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
-        protected override object PrepareCellForEdit(IControl editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
+        protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
+        protected override object PrepareCellForEdit(Control editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
     }
     class DataGridRendererVersionColumn : DataGridColumn
     {
-        protected override IControl GenerateElement(DataGridCell cell, object dataItem)
+        protected override Control GenerateElement(DataGridCell cell, object dataItem)
         {
             if (dataItem is not EditableModelInfo item) return new Control();
 
@@ -199,7 +199,7 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
             return tb;
         }
 
-        protected override IControl GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
-        protected override object PrepareCellForEdit(IControl editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
+        protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
+        protected override object PrepareCellForEdit(Control editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
     }
 }

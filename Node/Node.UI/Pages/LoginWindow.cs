@@ -494,8 +494,8 @@ namespace Node.UI.Pages
 
                     Content = text;
 
-                    PointerEnter += (_, _) => text.Foreground = Colors.Accent;
-                    PointerLeave += (_, _) => text.Foreground = Colors.DarkText;
+                    PointerEntered += (_, _) => text.Foreground = Colors.Accent;
+                    PointerExited += (_, _) => text.Foreground = Colors.DarkText;
                 }
             }
         }

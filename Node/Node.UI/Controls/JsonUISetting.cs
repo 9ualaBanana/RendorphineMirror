@@ -465,7 +465,7 @@ public static class JsonUISetting
         {
             Enum.TryParse(describer.Type, describer.DefaultValue?.Value<string>(), out var def);
 
-            ComboBox = new ComboBox() { Items = Enum.GetValues(describer.Type), SelectedIndex = Enum.GetValues(describer.Type).Cast<object>().ToList().IndexOf(def ?? Enum.GetValues(describer.Type).Cast<object>().First()) };
+            ComboBox = new ComboBox() { ItemsSource = Enum.GetValues(describer.Type), SelectedIndex = Enum.GetValues(describer.Type).Cast<object>().ToList().IndexOf(def ?? Enum.GetValues(describer.Type).Cast<object>().First()) };
             Children.Add(ComboBox);
         }
 

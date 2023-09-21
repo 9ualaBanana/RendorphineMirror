@@ -1,3 +1,5 @@
+using Avalonia.Reactive;
+
 namespace Node.UI
 {
     public static class Extensions
@@ -14,6 +16,8 @@ namespace Node.UI
             obj.GetObservable<TValue>(property).Subscribe(changed);
             return obj;
         }
+        public static void Subscribe<T>(this IObservable<T> observable, Action<T> changed) =>
+            observable.Subscribe(new AnonymousObserver<T>(changed));
 
 
         public static T Centered<T>(this T obj) where T : Control => obj.With(x => { x.HorizontalAlignment = HorizontalAlignment.Center; x.VerticalAlignment = VerticalAlignment.Center; });
