@@ -136,7 +136,7 @@ namespace Node.UI.Pages
         protected class LoginControl : UserControl
         {
             public event Action OnPressWebLogin = delegate { };
-            public event Action<string, string, bool> OnPressLogin = delegate { };
+            public event Action<string?, string?, bool> OnPressLogin = delegate { };
             public event Action OnPressForgotPassword = delegate { };
 
             public TextBox LoginInput => LoginPasswordInput.LoginInput;
@@ -494,8 +494,8 @@ namespace Node.UI.Pages
 
                     Content = text;
 
-                    PointerEnter += (_, _) => text.Foreground = Colors.Accent;
-                    PointerLeave += (_, _) => text.Foreground = Colors.DarkText;
+                    PointerEntered += (_, _) => text.Foreground = Colors.Accent;
+                    PointerExited += (_, _) => text.Foreground = Colors.DarkText;
                 }
             }
         }

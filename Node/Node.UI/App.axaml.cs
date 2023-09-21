@@ -84,7 +84,7 @@ namespace Node.UI
             Window getWindow()
             {
                 if (WasConnected && NodeGlobalState.AuthInfo.Value?.SessionId is not null)
-                    return lifetime.MainWindow;
+                    return lifetime.MainWindow.ThrowIfNull();
 
                 WasConnected |= NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.AuthInfo.Value?.SessionId is not null;
 

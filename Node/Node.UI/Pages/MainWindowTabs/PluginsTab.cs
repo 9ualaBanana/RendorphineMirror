@@ -24,7 +24,7 @@ public class PluginsTab : Panel
         Children.Add(scroll);
 
 
-        IControl softStatToControl(KeyValuePair<string, SoftwareStats> value)
+        Control softStatToControl(KeyValuePair<string, SoftwareStats> value)
         {
             var (type, stat) = value;
 
@@ -33,11 +33,11 @@ public class PluginsTab : Panel
                 Header = $"{type} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long) x.Value.Total)} total installed versions)",
                 Content = new ItemsControl()
                 {
-                    Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
+                    ItemsSource = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
                 },
             };
         }
-        IControl softToControl(KeyValuePair<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>> value)
+        Control softToControl(KeyValuePair<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>> value)
         {
             var (type, stat) = value;
 
@@ -66,7 +66,7 @@ public class PluginsTab : Panel
                         {string.Join(", ", version.Requirements.Parents)}
                 """;
         }
-        IControl pluginToControl(Plugin plugin) => new TextBlock() { Text = $"{plugin.Type} {plugin.Version}: {plugin.Path}" };
+        Control pluginToControl(Plugin plugin) => new TextBlock() { Text = $"{plugin.Type} {plugin.Version}: {plugin.Path}" };
     }
 
 

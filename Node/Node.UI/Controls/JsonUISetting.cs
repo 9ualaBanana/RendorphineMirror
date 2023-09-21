@@ -91,7 +91,7 @@ public static class JsonUISetting
                 Children.Add(TextBox);
             }
 
-            public override void UpdateValue() => Set(TextBox.Text);
+            public override void UpdateValue() => Set(TextBox.Text ?? string.Empty);
         }
         public class LocalFileSetting : SettingChild<StringDescriber>
         {
@@ -100,10 +100,11 @@ public static class JsonUISetting
             public LocalFileSetting(TextSetting setting, JsonEditorList editorList) : base(setting, editorList)
             {
                 var textinput = new TextBox();
-                textinput.Subscribe(TextBox.TextProperty, text => File = text);
+                textinput.Subscribe(TextBox.TextProperty, text => File = text ?? string.Empty);
 
                 var btn = new MPButton() { Text = new("Pick a file") };
-                btn.OnClick += () => new OpenFileDialog() { AllowMultiple = false }.ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = new(t.Result?.FirstOrDefault() ?? string.Empty)));
+                btn.OnClick += () => ((Window) VisualRoot!).StorageProvider.OpenFilePickerAsync(new() { AllowMultiple = false }).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = t.Result.FirstOrDefault()?.Path.ToString() ?? string.Empty));
+
 
                 var grid = new Grid()
                 {
@@ -122,10 +123,10 @@ public static class JsonUISetting
             public LocalDirSetting(TextSetting setting, JsonEditorList editorList) : base(setting, editorList)
             {
                 var textinput = new TextBox();
-                textinput.Subscribe(TextBox.TextProperty, text => Dir = text);
+                textinput.Subscribe(TextBox.TextProperty, text => Dir = text ?? string.Empty);
 
                 var btn = new MPButton() { Text = new("Pick a directory") };
-                btn.OnClick += () => new OpenFolderDialog().ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = new(t.Result ?? string.Empty)));
+                btn.OnClick += () => ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false }).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = t.Result.FirstOrDefault()?.Path.ToString() ?? string.Empty));
 
                 var grid = new Grid()
                 {
@@ -206,15 +207,15 @@ public static class JsonUISetting
                 var isdouble = !setting.Describer.IsInteger;
                 TextBox.Subscribe(TextBox.TextProperty, text =>
                 {
-                    text = Regex.Replace(text, isdouble ? @"[^0-9\.,]*" : @"[^0-9]*", string.Empty);
+                    text = Regex.Replace(text ?? string.Empty, isdouble ? @"[^0-9\.,]*" : @"[^0-9]*", string.Empty);
                     if (text.Length == 0) text = "0";
                 });
             }
 
             public override void UpdateValue()
             {
-                if (Describer.IsInteger) Set(long.Parse(TextBox.Text, CultureInfo.InvariantCulture));
-                else Set(double.Parse(TextBox.Text, CultureInfo.InvariantCulture));
+                if (Describer.IsInteger) Set(long.Parse(TextBox.Text ?? string.Empty, CultureInfo.InvariantCulture));
+                else Set(double.Parse(TextBox.Text ?? string.Empty, CultureInfo.InvariantCulture));
             }
         }
     }
@@ -285,7 +286,7 @@ public static class JsonUISetting
                     if (!expander.IsExpanded) continue;
 
                     var header = ((StackPanel) expander.Header!).Children.OfType<TextBox>().First().Text;
-                    openKeys.Add(header);
+                    openKeys.Add(header ?? string.Empty);
                 }
 
                 Settings.Clear();
@@ -465,7 +466,7 @@ public static class JsonUISetting
         {
             Enum.TryParse(describer.Type, describer.DefaultValue?.Value<string>(), out var def);
 
-            ComboBox = new ComboBox() { Items = Enum.GetValues(describer.Type), SelectedIndex = Enum.GetValues(describer.Type).Cast<object>().ToList().IndexOf(def ?? Enum.GetValues(describer.Type).Cast<object>().First()) };
+            ComboBox = new ComboBox() { ItemsSource = Enum.GetValues(describer.Type), SelectedIndex = Enum.GetValues(describer.Type).Cast<object>().ToList().IndexOf(def ?? Enum.GetValues(describer.Type).Cast<object>().First()) };
             Children.Add(ComboBox);
         }
 

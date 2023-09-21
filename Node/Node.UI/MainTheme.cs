@@ -4,7 +4,7 @@ public static class MainTheme
 {
     public static void Apply(IResourceDictionary _, Styles styles)
     {
-        styles.AddStyle<IStyleable>(
+        styles.AddStyle<StyledElement>(
             ("ThemeBackgroundBrush", ColorsNew.Background),
             ("ThemeForegroundBrush", ColorsNew.Foreground),                                     // foreground
             ("HighlightForegroundBrush", Colors.White),                                         // selection fg

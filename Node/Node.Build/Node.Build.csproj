@@ -6,7 +6,7 @@
     </Description>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <ProjectReference Include="..\Node.Pinger\Node.Pinger.csproj" />
     <ProjectReference Include="..\Node\Node.csproj" />
     <ProjectReference Include="..\Node.UI\Node.UI.csproj" />

@@ -5,9 +5,9 @@ namespace Node.UI.Controls;
 
 public static class TypedComboBox
 {
-    public static TypedComboBox<T> Create<T>(IReadOnlyCollection<T> items, Func<T, IControl>? func = null) => new TypedComboBox<T>(items, func);
+    public static TypedComboBox<T> Create<T>(IReadOnlyCollection<T> items, Func<T, Control>? func = null) => new TypedComboBox<T>(items, func);
 
-    public static TypedComboBox<T> CreateBinded<T>(IReadOnlyBindableCollection<T> items, Func<T, IControl>? func = null)
+    public static TypedComboBox<T> CreateBinded<T>(IReadOnlyBindableCollection<T> items, Func<T, Control>? func = null)
     {
         items = items.GetBoundCopy();
 
@@ -17,23 +17,10 @@ public static class TypedComboBox
         return list;
     }
 }
-public class TypedComboBox<T> : ComboBox, IStyleable
+public class TypedComboBox<T> : ComboBox
 {
-    Type IStyleable.StyleKey => typeof(ComboBox);
-
-    public new IReadOnlyCollection<T> Items
-    {
-        get => (IReadOnlyCollection<T>) base.Items;
-        set
-        {
-            var selected = SelectedItem;
-            typeof(ItemsControl).GetField("_items", BindingFlags.Instance | BindingFlags.NonPublic).ThrowIfNull()
-                .SetValue(this, value);
-
-            //base.Items = value;
-            SelectedItem = selected;
-        }
-    }
+    protected override Type StyleKeyOverride => typeof(ComboBox);
+    public new IEnumerable<T> Items { get => (IEnumerable<T>) base.Items; set => base.ItemsSource = value; }
 
     public new T SelectedItem
     {
@@ -46,7 +33,7 @@ public class TypedComboBox<T> : ComboBox, IStyleable
         }
     }
 
-    public TypedComboBox(IReadOnlyCollection<T> items, Func<T, IControl>? func = null)
+    public TypedComboBox(IReadOnlyCollection<T> items, Func<T, Control>? func = null)
     {
         Items = items;
         if (func is not null) ItemTemplate = new FuncDataTemplate<T>((t, _) => func(t));
