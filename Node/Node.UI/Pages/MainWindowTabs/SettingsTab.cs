@@ -30,6 +30,12 @@ public class SettingsTab : Panel
         var nicksbtn = new MPButton() { Text = new("Set nickname"), };
         nicksbtn.OnClickSelf += async self =>
         {
+            if (string.IsNullOrWhiteSpace(nicktb.Text))
+            {
+                await self.FlashError("No nickname");
+                return;
+            }
+
             using var _ = new FuncDispose(() => Dispatcher.UIThread.Post(() => nicksbtn.IsEnabled = true));
             nicksbtn.IsEnabled = false;
 

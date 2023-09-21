@@ -81,7 +81,6 @@ static class Program
 
         AppBuilder.Configure(container.Resolve<App>)
             .UsePlatformDetect()
-            .With(new AvaloniaNativePlatformOptions { UseGpu = false }) // workaround for https://github.com/AvaloniaUI/Avalonia/issues/3533
             .With(new X11PlatformOptions { UseDBusMenu = true })
             .LogToTrace()
             .StartWithClassicDesktopLifetime(args);

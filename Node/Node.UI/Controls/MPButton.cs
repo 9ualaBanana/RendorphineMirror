@@ -2,9 +2,9 @@ using Avalonia.Animation.Easings;
 
 namespace Node.UI.Controls
 {
-    public class MPButton : Button, IStyleable
+    public class MPButton : Button
     {
-        Type IStyleable.StyleKey => typeof(Button);
+        protected override Type StyleKeyOverride => typeof(Button);
 
         public LocalizedString Text { get => (Content is LocalizedString ls) ? ls : (Content as string) ?? ""; set => Content = value; }
 

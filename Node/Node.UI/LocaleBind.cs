@@ -6,9 +6,11 @@ namespace Node.UI
         {
             text = text.GetBoundCopy();
 
+            // TODO:: fix
+
             // attached property to not let GC collect `text`
-            var gcprop = new AttachedProperty<IReadOnlyBindable<TValue>>("SavedBindable", typeof(IReadOnlyBindable<TValue>), new StyledPropertyMetadata<IReadOnlyBindable<TValue>>());
-            obj[gcprop] = text;
+            /*var gcprop = new AttachedProperty<IReadOnlyBindable<TValue>>("SavedBindable", typeof(IReadOnlyBindable<TValue>), new StyledPropertyMetadata<IReadOnlyBindable<TValue>>());
+            obj[gcprop] = text;*/
 
             text.SubscribeChanged(() => obj[property] = text.Value, true);
         }
