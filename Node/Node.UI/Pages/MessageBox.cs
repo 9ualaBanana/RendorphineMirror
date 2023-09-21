@@ -30,7 +30,7 @@ namespace Node.UI.Pages
     }
     public class MessageBox<T> : Window, IMessageBox
     {
-        public string Text { get => TextBlock.Text; set => TextBlock.Text = value; }
+        public string Text { get => TextBlock.Text ?? string.Empty; set => TextBlock.Text = value; }
 
         public Action<T>? OnClick;
 

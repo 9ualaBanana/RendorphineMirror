@@ -164,7 +164,7 @@ namespace Node.UI.Pages
                 var list = TypedListBox.Create(Enum.GetValues<TaskPolicy>(), t => new TextBlock() { Text = t.ToString() });
                 list.SelectionChanged += (obj, e) =>
                 {
-                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                    OnChoose?.Invoke(list.SelectedItems?.Count is not null or 0);
                     Builder.Policy = list.SelectedItem;
                 };
 
@@ -188,7 +188,7 @@ namespace Node.UI.Pages
                 var list = CreateListBox(plugins, type => new TextBlock() { Text = type.GetName() });
                 list.SelectionChanged += (obj, e) =>
                 {
-                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                    OnChoose?.Invoke(list.SelectedItems?.Count is not null or 0);
                     Builder.Type = list.SelectedItem;
                 };
 
@@ -215,7 +215,7 @@ namespace Node.UI.Pages
                 list.SelectionChanged += (obj, e) =>
                 {
                     Builder.Version = list.SelectedItem == AnyVersion ? null : list.SelectedItem;
-                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                    OnChoose?.Invoke(list.SelectedItems?.Count is not null or 0);
                 };
 
                 Children.Add(list);
@@ -235,7 +235,7 @@ namespace Node.UI.Pages
                 list.SelectionChanged += (obj, e) =>
                 {
                     Builder.Action = list.SelectedItem.Name;
-                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                    OnChoose?.Invoke(list.SelectedItems?.Count is not null or 0);
                 };
 
                 Children.Add(list);
@@ -411,7 +411,7 @@ namespace Node.UI.Pages
                 public ChooseTypePart() : base(new())
                 {
                     TypesList = new TypedListBox<TaskCreationType>(Enum.GetValues<TaskCreationType>(), t => new TextBlock() { Text = t.ToString() });
-                    TypesList.SelectionChanged += (obj, e) => OnChoose?.Invoke(TypesList.SelectedItems.Count != 0);
+                    TypesList.SelectionChanged += (obj, e) => OnChoose?.Invoke(TypesList.SelectedItems?.Count is not null or 0);
                     Children.Add(TypesList);
 
                     Dispatcher.UIThread.Post(() => TypesList.SelectedIndex = 0);

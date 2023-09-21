@@ -178,7 +178,7 @@ public class TurboSquidModelInfoInputWindow : GuiRequestWindow
 
             var tb = new TextBox();
             item.FormatVersion.SubscribeChanged(() => tb.Text = item.FormatVersion.Value, true);
-            tb.Subscribe(TextBox.TextProperty, c => item.FormatVersion.Value = c);
+            tb.Subscribe(TextBox.TextProperty, c => item.FormatVersion.Value = c ?? string.Empty);
 
             return tb;
         }

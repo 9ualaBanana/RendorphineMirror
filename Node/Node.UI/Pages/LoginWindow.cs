@@ -136,7 +136,7 @@ namespace Node.UI.Pages
         protected class LoginControl : UserControl
         {
             public event Action OnPressWebLogin = delegate { };
-            public event Action<string, string, bool> OnPressLogin = delegate { };
+            public event Action<string?, string?, bool> OnPressLogin = delegate { };
             public event Action OnPressForgotPassword = delegate { };
 
             public TextBox LoginInput => LoginPasswordInput.LoginInput;

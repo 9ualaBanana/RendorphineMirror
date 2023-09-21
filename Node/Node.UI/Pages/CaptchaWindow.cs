@@ -33,7 +33,7 @@ public class CaptchaWindow : GuiRequestWindow
                             FontSize = 20,
                             OnClick = async () =>
                             {
-                                await onClick(input.Text.Trim());
+                                await onClick(input.Text?.Trim() ?? string.Empty);
                                 Dispatcher.UIThread.Post(ForceClose);
                             },
                         }.WithColumn(1),
