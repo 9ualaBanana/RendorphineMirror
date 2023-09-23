@@ -3,7 +3,7 @@ using MonoTorrent.Tracker.Listeners;
 using Node.Common;
 
 
-await Init.For(new Init.InitConfig("renderfin_tracker")).ExecuteAsync();
+using var container = Init.CreateContainer(new Init.InitConfig("renderfin_tracker")).Build();
 var logger = LogManager.GetCurrentClassLogger();
 
 

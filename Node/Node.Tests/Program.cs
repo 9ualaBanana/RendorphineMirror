@@ -11,5 +11,5 @@ global using Node.Tasks.Models.ExecInfo;
 global using NodeCommon;
 
 
-await Init.For(new Init.InitConfig("renderfin")).ExecuteAsync();
+using var container = Init.CreateContainer(new Init.InitConfig("renderfin")).Build();
 await Node.Tests.LocalTests.RunAsync();

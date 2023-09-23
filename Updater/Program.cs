@@ -1,12 +1,13 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Autofac;
 using Microsoft.Extensions.Logging;
 using Node.Common;
 using UpdaterCommon;
 
 
-var init = Init.For(new Init.InitConfig("renderfin"));
-await init.ExecuteAsync();
+using var container = Init.CreateContainer(new Init.InitConfig("renderfin")).Build();
+var init = container.Resolve<Init>();
 ElevateIfNeeded();
 
 UpdateChecker checker;
