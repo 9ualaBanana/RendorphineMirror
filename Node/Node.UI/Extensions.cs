@@ -31,5 +31,12 @@ namespace Node.UI
 
             return obj;
         }
+
+        public static void AttachDevToolsIfDebug(this Window window)
+        {
+#if DEBUG
+            window.AttachDevTools(new KeyGesture(Key.I, KeyModifiers.Control | KeyModifiers.Shift));
+#endif
+        }
     }
 }

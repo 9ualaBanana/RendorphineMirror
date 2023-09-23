@@ -7,6 +7,8 @@ namespace Node.UI.Pages
         public LoginWindow(LocalizedString error) : this() => Login.ShowError(error);
         public LoginWindow()
         {
+            this.AttachDevToolsIfDebug();
+
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
             MinWidth = MaxWidth = Width = 692;
