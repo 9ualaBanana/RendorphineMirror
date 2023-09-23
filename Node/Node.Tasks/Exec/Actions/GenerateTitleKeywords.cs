@@ -25,7 +25,7 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                 async files =>
                 {
                     var file = files.First();
-                    var query = global::Common.Api.ToGetContent(Api.AddSessionId(("taskid", ApiTask.Id)));
+                    var query = ApiBase.ToQuery(Api.AddSessionId(("taskid", ApiTask.Id)));
 
                     using var stream = File.OpenRead(file.Path);
                     using var content = new MultipartFormDataContent() { { new StreamContent(stream), "img", file.Format.ToMime() } };

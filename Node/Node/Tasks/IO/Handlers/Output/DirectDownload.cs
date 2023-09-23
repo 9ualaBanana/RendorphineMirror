@@ -41,7 +41,7 @@ public static class DirectDownload
             if (ApiTask.IsFromSameNode(NodeSettings))
                 host = $"127.0.0.1:{Settings.UPnpPort}";
 
-            using var result = await Api.Api.Get($"{host}/rphtaskexec/downloadoutput?taskid={ApiTask.Id}");
+            using var result = await Api.Api.Client.GetAsync($"{host}/rphtaskexec/downloadoutput?taskid={ApiTask.Id}");
 
             using var _ = Directories.DisposeDelete(Dirs.TempFile($"task_{ApiTask.Id}/zip"), out var zipfile);
             using (var zipstream = File.OpenWrite(zipfile))

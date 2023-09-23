@@ -10,12 +10,10 @@ public class ApiCallTests
     {
         static async ValueTask<OperationResult<JToken>> request(HttpStatusCode status, JObject? response)
         {
-            return await Api.ResponseJsonToOpResult(
+            return await Api.Default.ResponseJsonToOpResult(
                 new HttpResponseMessage(status),
-                null,
                 response,
-                null,
-                false,
+                "Testing",
                 default
             );
         }
@@ -34,11 +32,7 @@ public class ApiCallTests
 
         await request(HttpStatusCode.OK, new JObject() { ["ok"] = 1 })
             .With(req => req.Success.Should().BeTrue())
-            .With(req => (req.Error as HttpError).ThrowIfNull()
-                .With(http => http.IsSuccessStatusCode.Should().BeTrue())
-                .With(http => http.StatusCode.Should().Be(HttpStatusCode.OK))
-                .With(http => http.ErrorCode.Should().BeNull())
-            );
+            .With(req => req.Error.Should().BeNull());
 
 
         await request(HttpStatusCode.BadRequest, null)
@@ -65,11 +59,7 @@ public class ApiCallTests
 
         await request(HttpStatusCode.OK, new JObject() { })
             .With(req => req.Success.Should().BeTrue())
-            .With(req => (req.Error as HttpError).ThrowIfNull()
-                .With(http => http.IsSuccessStatusCode.Should().BeTrue())
-                .With(http => http.StatusCode.Should().Be(HttpStatusCode.OK))
-                .With(http => http.ErrorCode.Should().BeNull())
-            );
+            .With(req => req.Error.Should().BeNull());
 
 
         await request(HttpStatusCode.BadRequest, new JObject() { ["errorcode"] = 2, ["errormessage"] = "err" })

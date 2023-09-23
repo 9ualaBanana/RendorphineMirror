@@ -25,19 +25,19 @@ public class ExceptionError : IOperationError
 }
 public class HttpError : IOperationError
 {
-    public bool IsSuccessStatusCode => Response.IsSuccessStatusCode;
-    public HttpStatusCode StatusCode => Response.StatusCode;
+    public bool IsSuccessStatusCode => (int) StatusCode is >= 200 and < 300;
 
-    public HttpResponseMessage Response { get; }
+    public string? Message { get; }
+    public HttpStatusCode StatusCode { get; }
     public int? ErrorCode { get; }
-    public string? Error { get; }
 
-    public HttpError(string? error, HttpResponseMessage response, int? errorCode)
+    public HttpError(string? message, HttpResponseMessage response, int? errorcode) : this(message, response.StatusCode, errorcode) { }
+    public HttpError(string? message, HttpStatusCode statuscode, int? errorcode)
     {
-        Error = error;
-        Response = response;
-        ErrorCode = errorCode;
+        Message = message;
+        StatusCode = statuscode;
+        ErrorCode = errorcode;
     }
 
-    public override string ToString() => $"HTTP {StatusCode}; Code {ErrorCode}; {Error}";
+    public override string ToString() => $"HTTP {(int) StatusCode}, Code {ErrorCode?.ToStringInvariant() ?? "null"}: {Message ?? "<no message>"}";
 }
