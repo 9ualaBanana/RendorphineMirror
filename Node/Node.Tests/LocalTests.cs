@@ -1,12 +1,42 @@
+using static Node.Tests.GenericTasksTests;
+using static Node.Tests.TaskTesting;
+
 namespace Node.Tests;
 
-public static class LocalTests
+public class LocalTests
 {
-    public static async Task RunAsync()
+    public required DataDirs Dirs { get; init; }
+    public required ILifetimeScope Context { get; init; }
+    public required ILogger<LocalTests> Logger { get; init; }
+
+    public async Task Run()
     {
-        await Task.Yield();
-        // put tests here
-        // gitignored to not cause unnesessary trash in git
-        // git update-index --assume-unchanged Node/Node.Tests/LocalTests.cs
+        Logger.LogInformation("Running tests...");
+
+        await ElevenLabsTest();
+    }
+
+    async Task ElevenLabsTest()
+    {
+        using var ctx = Context.BeginLifetimeScope(builder =>
+        {
+            builder.RegisterType<HttpClient>()
+                .SingleInstance();
+            builder.RegisterType<ElevenLabsApi>()
+                .SingleInstance();
+            builder.RegisterType<ElevenLabsApis>()
+                .WithParameter("apiKey", File.ReadAllText("elevenlabsapikey").Trim())
+                .SingleInstance();
+        });
+
+        var api = ctx.Resolve<ElevenLabsApis>();
+
+
+        var voices = await api.GetVoiceListAsync()
+            .ThrowIfError();
+
+        var ttsfile = Dirs.NamedTempFile("eleven.mp3");
+        await api.TextToSpeechAsync(voices[0].VoiceId, "eleven_monolingual_v1", "Hello I am the bot from the api test, wow!", ttsfile)
+            .ThrowIfError();
     }
 }

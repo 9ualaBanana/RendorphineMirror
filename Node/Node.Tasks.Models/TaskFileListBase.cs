@@ -14,7 +14,6 @@ public abstract class TaskFileListBase
         if (filename is not null && Path.GetExtension(filename) == string.Empty)
             filename += format.AsExtension();
 
-        // use input file name if there is only one input file
         filename ??= ("file" + format.AsExtension());
         filename = Path.Combine(Directory, Path.GetFileName(filename));
 

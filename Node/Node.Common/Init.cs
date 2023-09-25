@@ -126,7 +126,8 @@ public class Init : IServiceTarget
     }
     void ConfigureLogging()
     {
-        Logging.Configure(DebugFeatures, Configuration.LogToFile);
+        if (Configuration.EnableLogging)
+            Logging.Configure(DebugFeatures, Configuration.LogToFile);
 
 
         var version = Environment.OSVersion;
@@ -170,5 +171,11 @@ public class Init : IServiceTarget
     }
 
 
-    public record InitConfig(string AppName, bool UseAdminRights = true, bool LogToFile = true);
+    public record InitConfig(string AppName)
+    {
+        public bool UseAdminRights { get; init; } = true;
+
+        public bool EnableLogging { get; init; } = true;
+        public bool LogToFile { get; init; } = true;
+    }
 }

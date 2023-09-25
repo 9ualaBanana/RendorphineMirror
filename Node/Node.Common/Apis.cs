@@ -15,7 +15,11 @@ public record Apis(Api Api, bool LogErrors = true)
     public Apis WithSessionId(string sid) => this with { SessionId = sid };
     public Apis WithNoErrorLog() => this with { LogErrors = false };
 
-    public (string, string)[] AddSessionId(params (string, string)[] values) => Api.AddSessionId(SessionId, values);
+    public (string, string)[] AddSessionId(params (string, string)[] values)
+    {
+        if (values.Any(x => x.Item1 == "sessionid")) return values;
+        return values.Append(("sessionid", SessionId)).ToArray();
+    }
 
     public ValueTask<OperationResult> ShardPost(IRegisteredTaskApi task, string url, string? property, string errorDetails, HttpContent content) =>
         ShardPost<JToken>(task, url, property, errorDetails, content).Next(j => OperationResult.Succ());
