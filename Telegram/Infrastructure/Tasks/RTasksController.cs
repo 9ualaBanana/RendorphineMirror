@@ -1,19 +1,19 @@
 using HeyRed.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Telegram.Infrastructure.MediaFiles;
-using Telegram.Tasks.ResultPreview;
+using Telegram.Tasks;
 
 namespace Telegram.Infrastructure.Tasks;
 
 [ApiController]
 [Route("tasks")]
-public class TasksController : ControllerBase
+public class RTasksController : ControllerBase
 {
     [HttpPost("result")]
     public async Task Handle(
-        [FromQuery] ExecutedTaskApi executedTaskApi,
-        [FromServices] TelegramPreviewTaskResultHandler taskResultHandler)
-        => await taskResultHandler.SendPreviewAsyncUsing(executedTaskApi, HttpContext.RequestAborted);
+        [FromQuery] ExecutedRTaskApi executedRTaskApi,
+        [FromServices] BotRTaskPreview botRTaskPreview)
+        => await botRTaskPreview.SendAsyncUsing(executedRTaskApi, HttpContext.RequestAborted);
 
     [HttpGet("getinput/{index}")]
     public ActionResult GetInput([FromRoute] Guid index, [FromServices] MediaFilesCache mediaFilesCache)

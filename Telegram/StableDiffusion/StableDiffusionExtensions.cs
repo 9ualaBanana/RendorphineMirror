@@ -9,7 +9,7 @@ static class StableDiffusionExtensions
     {
         services.TryAddScoped_<ICallbackQueryHandler, StableDiffusionCallbackQueryHandler>();
         return services
-            .AddSingleton<StableDiffusionPrompt>().AddSingleton<StableDiffusionPrompt.CachedMessages>()
+            .AddScoped<StableDiffusionPrompt>().AddSingleton<StableDiffusionPrompt.CachedMessages>()
             .AddScoped<GeneratedStableDiffusionImages>();
 
     }

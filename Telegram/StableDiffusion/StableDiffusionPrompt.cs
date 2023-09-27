@@ -1,15 +1,21 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
+using Telegram.Infrastructure.Tasks;
 using Telegram.MPlus.Clients;
+using Telegram.MPlus.Security;
 
 namespace Telegram.StableDiffusion;
 
 public class StableDiffusionPrompt
 {
+    readonly BotRTask _botRTask;
     readonly StockSubmitterClient _stockSubmitterClient;
     readonly CachedMessages _sentPromptMessages;
 
-    public StableDiffusionPrompt(StockSubmitterClient stockSubmitterClient, CachedMessages sentPromptMessages)
+    public StableDiffusionPrompt(BotRTask botRTask, StockSubmitterClient stockSubmitterClient, CachedMessages sentPromptMessages)
     {
+        _botRTask = botRTask;
         _stockSubmitterClient = stockSubmitterClient;
         _sentPromptMessages = sentPromptMessages;
     }
@@ -33,13 +39,26 @@ public class StableDiffusionPrompt
         return string.Join(' ', promptTokens);
     }
 
-    internal async Task SendAsync(StableDiffusionPromptMessage promptMessage, CancellationToken cancellationToken)
+    internal async Task SendAsync(IEnumerable<string> promptTokens, Message promptMessage, TelegramBot.User user, CancellationToken cancellationToken)
+        => await SendAsync(new(await NormalizeAsync(promptTokens, MPlusIdentity.UserIdOf(user), cancellationToken), promptMessage), user);
+    /// <remarks>
+    /// Also requires <see cref="User"/> and <see cref="ChatId"/>.
+    /// </remarks>
+    internal async Task SendAsync(StableDiffusionPromptMessage prompt, TelegramBot.User user)
     {
         var promptId = Guid.NewGuid();
 
-        // Send Prompt() to the Renderphine.
+        await _botRTask.TryRegisterAsync(
+            new TaskCreationInfo(
+                TaskAction.GenerateImageByPrompt,
+                new StubTaskInfo(),
+                new MPlusTaskOutputInfo(promptId.ToString(), "stablediffusion"),
+                new GenerateImageByPromptInfo(ImageGenerationSource.StableDiffusion, prompt.Prompt),
+                new TaskObject(promptId.ToString(), default)),
+            user
+            );
 
-        _sentPromptMessages.Add(promptId, promptMessage);
+        _sentPromptMessages.Add(promptId, prompt);
     }
 
 
@@ -59,7 +78,6 @@ public class StableDiffusionPrompt
             .Dispose();
 
         internal StableDiffusionPromptMessage? TryRetrieveBy(Guid promptId)
-            => _cache.TryGetValue(promptId, out StableDiffusionPromptMessage promptMessage) ?
-            promptMessage : null;
+        { _cache.TryGetValue(promptId, out StableDiffusionPromptMessage? promptMessage); return promptMessage; }
     }
 }

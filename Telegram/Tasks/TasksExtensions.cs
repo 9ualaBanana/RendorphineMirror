@@ -4,7 +4,6 @@ using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.MediaFiles;
 using Telegram.Infrastructure.Tasks;
-using Telegram.Tasks.ResultPreview;
 
 namespace Telegram.Tasks;
 
@@ -18,7 +17,7 @@ static class TasksExtensions
             .AddTaskDetails()
             .AddTasksCore()
             .AddMediaFilesCore();
-        builder.Services.TryAddScoped<TelegramPreviewTaskResultHandler>();
+        builder.Services.TryAddScoped<BotRTaskPreview>();
 
         return builder;
     }

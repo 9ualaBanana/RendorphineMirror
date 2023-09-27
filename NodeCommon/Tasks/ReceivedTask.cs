@@ -35,9 +35,9 @@ public record TypedRegisteredTask(string Id, TaskAction Action) : ITypedRegister
     public static TypedRegisteredTask With(string id, TaskAction action) => new(id, action);
 }
 
-public record ExecutedTask : TypedRegisteredTask
+public record ExecutedRTask : TypedRegisteredTask
 {
-    public ExecutedTask(string Id, TaskAction Action)
+    public ExecutedRTask(string Id, TaskAction Action)
         : base(Id, Action)
     {
     }
@@ -59,12 +59,66 @@ public record TaskApi(string Id) : IRegisteredTaskApi
     public bool Equals(IRegisteredTask? other) => Id == other?.Id;
 }
 
-public record ExecutedTaskApi : ExecutedTask, IRegisteredTaskApi
+public record UserRTaskApi : TaskApi
 {
-    public ExecutedTaskApi(string Id = default!, TaskAction Action = default!)
+    readonly Apis _api;
+    public string SessionId { get; }
+
+    public UserRTaskApi(TaskApi rTask, string sessionId)
+        : base(rTask)
+    {
+        _api = Apis.DefaultWithSessionId(sessionId);
+        SessionId = sessionId;
+    }
+
+    public async ValueTask<ServerTaskState> GetStateAsync()
+        => await _api.GetTaskStateAsyncOrThrow(this).ThrowIfError();
+}
+
+public static class UserRTaskApiExtensions
+{
+    public static UserRTaskApi With(this TaskApi rTask, string sessionId)
+        => new(rTask, sessionId);
+}
+
+public record ExecutedRTaskApi : ExecutedRTask, IRegisteredTaskApi
+{
+    public ExecutedRTaskApi(string Id = default!, TaskAction Action = default!)
         : base(Id, Action)
     {
     }
 
     public string? HostShard { get; set; }
+}
+
+public record UserExecutedRTask : ExecutedRTaskApi, IRegisteredTaskApi
+{
+    readonly Apis _api;
+    public string SessionId { get; }
+
+    internal UserExecutedRTask(ExecutedRTaskApi executedRTask, string sessionId)
+        : this(executedRTask.Id, executedRTask.Action, sessionId)
+    {
+    }
+    public UserExecutedRTask(string id, TaskAction action, string sessionId)
+        : base(id, action)
+    {
+        _api = Apis.DefaultWithSessionId(sessionId);
+        SessionId = sessionId;
+    }
+
+    public async ValueTask<Uri> GetFileDownloadLinkAsyncUsing(string iid, Extension extension)
+        => new(await _api.GetMPlusItemDownloadLinkAsync(this, iid, extension).ThrowIfError());
+
+    public async ValueTask<ServerTaskState> GetStateAsync()
+        => await _api.GetTaskStateAsyncOrThrow(this).ThrowIfError();
+
+    public async ValueTask ChangeStateAsyncTo(TaskState state)
+        => await _api.ChangeStateAsync(this, state).ThrowIfError();
+}
+
+public static class ExecutedRTaskExtensions
+{
+    public static UserExecutedRTask With(this ExecutedRTaskApi executedRTask, string sessionId)
+        => new(executedRTask, sessionId);
 }

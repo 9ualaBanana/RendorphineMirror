@@ -8,53 +8,53 @@ namespace Telegram.Tasks;
 
 public class TaskCallbackQueryHandler : CallbackQueryHandler<TaskCallbackQuery, TaskCallbackData>
 {
-    readonly TaskDetails _taskDetailsManager;
+    readonly TaskDetails _taskDetails;
 
     public TaskCallbackQueryHandler(
-        TaskDetails taskDetailsManager,
+        TaskDetails taskDetails,
         CallbackQuerySerializer serializer,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<TaskCallbackQueryHandler> logger)
         : base(serializer, bot, httpContextAccessor, logger)
     {
-        _taskDetailsManager = taskDetailsManager;
+        _taskDetails = taskDetails;
     }
 
     public override async Task HandleAsync(TaskCallbackQuery callbackQuery)
-        => await (callbackQuery.Data switch
+    {
+        await (callbackQuery.Data switch
         {
-            TaskCallbackData.Details => ShowDetailsAsync(callbackQuery),
+            TaskCallbackData.Details => ShowDetailsAsync(),
             _ => HandleUnknownCallbackData()
         });
 
-    async Task ShowDetailsAsync(TaskCallbackQuery callbackQuery)
-    {
-        try { await ShowDetailsAsyncCore(); }
-        catch { await Bot.SendMessageAsync_(ChatId, "Task details are currently unavailable."); }
 
-
-        async Task ShowDetailsAsyncCore()
+        async Task ShowDetailsAsync()
         {
-            var api = Apis.DefaultWithSessionId(MPlusIdentity.SessionIdOf(User));
-            string hostShard = await api.GetTaskShardAsync(callbackQuery.TaskId).ThrowIfError();
-            var taskState = await api.GetTaskStateAsyncOrThrow(TaskApi.For(RegisteredTask.With(callbackQuery.TaskId))).ThrowIfError();
-
-            await _taskDetailsManager.SendAsync(ChatId, Details(), Message, RequestAborted);
+            try { await ShowDetailsAsyncCore(); }
+            catch { await Bot.SendMessageAsync_(ChatId, "Task details are currently unavailable."); }
 
 
-            string Details()
+            async Task ShowDetailsAsyncCore()
             {
-                var details = new StringBuilder()
-                    .AppendLine($"*Action* : `{callbackQuery.Action}`")
-                    .AppendLine($"*Task ID* : `{callbackQuery.TaskId}`")
-                    .AppendLine($"*State* : `{taskState.State}`");
-                if (taskState.Times.Exist)
+                var taskState = await TaskApi.For(RegisteredTask.With(callbackQuery.TaskId)).With(MPlusIdentity.SessionIdOf(User)).GetStateAsync();
+                await _taskDetails.SendAsync(ChatId, Details(), Message, RequestAborted);
+
+
+                string Details()
                 {
-                    details.AppendLine($"*Duration* : `{taskState.Times.Total}`");
-                    details.AppendLine($"*Server* : `{taskState.Server}`");
+                    var details = new StringBuilder()
+                        .AppendLine($"*Action* : `{callbackQuery.Action}`")
+                        .AppendLine($"*Task ID* : `{callbackQuery.TaskId}`")
+                        .AppendLine($"*State* : `{taskState.State}`");
+                    if (taskState.Times.Exist)
+                    {
+                        details.AppendLine($"*Duration* : `{taskState.Times.Total}`");
+                        details.AppendLine($"*Server* : `{taskState.Server}`");
+                    }
+                    return details.ToString();
                 }
-                return details.ToString();
             }
         }
     }

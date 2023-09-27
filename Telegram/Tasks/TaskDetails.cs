@@ -21,9 +21,9 @@ public class TaskDetails
             return await _bot.EditMessageAsync_(chatId, sentTaskDetailsMessage.MessageId, details, cancellationToken: cancellationToken);
         else
         {
-            Message taskDetails = await _bot.SendMessageAsync_(chatId, details, cancellationToken: cancellationToken);
-            _sentTaskDetailsMessages.Add(callbackQuerySource, taskDetails);
-            return taskDetails;
+            sentTaskDetailsMessage = await _bot.SendMessageAsync_(chatId, details, cancellationToken: cancellationToken);
+            _sentTaskDetailsMessages.Add(callbackQuerySource, sentTaskDetailsMessage);
+            return sentTaskDetailsMessage;
         }
     }
 
@@ -45,7 +45,7 @@ public class TaskDetails
             .Dispose();
 
         internal Message? ProducedBy(Message callbackQuerySource)
-            => _cache.TryGetValue(UniqueMessage.From(callbackQuerySource), out Message details) ?
+            => _cache.TryGetValue(UniqueMessage.From(callbackQuerySource), out Message? details) ?
             details : null;
     }
 }

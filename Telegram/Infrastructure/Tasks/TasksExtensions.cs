@@ -10,7 +10,8 @@ static class TasksExtensions
     internal static ITelegramBotBuilder AddTasksCore(this ITelegramBotBuilder builder)
     {
         builder.Services.TryAddScoped<TaskPrice>();
-        builder.Services.TryAddScoped<TaskManager>();
+        builder.Services.TryAddScoped<RTask>();
+        builder.Services.TryAddScoped<BotRTask>();
         builder.Services.TryAddSingleton<OwnedRegisteredTasksCache>();
         builder.Services.AddMPlusClient();
 

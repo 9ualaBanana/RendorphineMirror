@@ -1,29 +1,25 @@
 ﻿using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
-using Telegram.Infrastructure.Commands;
 
 namespace Telegram.StableDiffusion;
 
 public class StableDiffusionCallbackQueryHandler : CallbackQueryHandler<StableDiffusionCallbackQuery, StableDiffusionCallbackData>
 {
-    readonly StableDiffusionPrompt _midjourneyPromptManager;
+    readonly StableDiffusionPrompt _stableDiffusionPrompt;
     readonly StableDiffusionPrompt.CachedMessages _cachedPromptMessages;
-    readonly Command.Parser _commandParser;
 
     public StableDiffusionCallbackQueryHandler(
-        StableDiffusionPrompt midjourneyPromptManager,
+        StableDiffusionPrompt stableDiffusionPrompt,
         StableDiffusionPrompt.CachedMessages cachedPromptMessages,
-        Command.Parser commandParser,
         CallbackQuerySerializer serializer,
         TelegramBot bot,
         IHttpContextAccessor httpContextAccessor,
         ILogger<StableDiffusionCallbackQueryHandler> logger)
         : base(serializer, bot, httpContextAccessor, logger)
     {
-        _midjourneyPromptManager = midjourneyPromptManager;
+        _stableDiffusionPrompt = stableDiffusionPrompt;
         _cachedPromptMessages = cachedPromptMessages;
-        _commandParser = commandParser;
     }
 
     public override async Task HandleAsync(StableDiffusionCallbackQuery callbackQuery)
@@ -35,7 +31,7 @@ public class StableDiffusionCallbackQueryHandler : CallbackQueryHandler<StableDi
         async Task RegenerateAsync()
         {
             if (_cachedPromptMessages.TryRetrieveBy(callbackQuery.PromptId) is StableDiffusionPromptMessage promptMessage)
-                await _midjourneyPromptManager.SendAsync(promptMessage, RequestAborted);
+                await _stableDiffusionPrompt.SendAsync(promptMessage, User.ToTelegramBotUserWith(ChatId));
         }
     }
 }
