@@ -7,6 +7,7 @@ public static class TitleKeywords
     public class InputDownloader : TaskInputDownloader<TitleKeywordsInputInfo, TitleKeywordsInput>, ITypedTaskInput
     {
         public static TaskInputType Type => TaskInputType.TitleKeywords;
+        public override bool AllowOutOfOrderDownloads => true;
 
         protected override Task<TitleKeywordsInput> DownloadImpl(TitleKeywordsInputInfo input, TaskObject obj, CancellationToken token) =>
             new TitleKeywordsInput(input.Title, input.Keywords.ToImmutableArray()).AsTask();
