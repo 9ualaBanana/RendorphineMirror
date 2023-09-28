@@ -11,7 +11,7 @@ public class GenerateAIVoice : FilePluginActionInfo<GenerateAIVoiceInfo>
 
     protected override OperationResult ValidateOutputFiles(TaskFilesCheckData files, GenerateAIVoiceInfo data) =>
         files.EnsureSingleOutputFile()
-            .Next(output => TaskRequirement.EnsureFormat(output, FileFormat.Png));
+            .Next(output => TaskRequirement.EnsureFormat(output, FileFormat.Mp3));
 
     class Executor : ExecutorBase
     {
