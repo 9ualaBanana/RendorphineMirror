@@ -102,7 +102,7 @@ public class TaskExecutor
     }
     async Task NotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        var endpoint = new Uri(new Uri(Settings.ServerUrl), "tasks/result").ToString();
+        var endpoint = new Uri(new Uri((task.Output as MPlusTaskOutputInfo)?.CustomHost ?? Settings.ServerUrl), "tasks/result").ToString();
         var uploadedFiles = string.Join('&', task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(fileInfo => $"uploadedfiles={fileInfo.Iid}"));
         var queryString =
             $"id={task.Id}&" +
