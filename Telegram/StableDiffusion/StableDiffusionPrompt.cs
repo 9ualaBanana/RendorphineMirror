@@ -2,9 +2,9 @@
 using Microsoft.Extensions.Options;
 using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.Tasks;
 using Telegram.MPlus.Clients;
 using Telegram.MPlus.Security;
+using Telegram.Tasks;
 
 namespace Telegram.StableDiffusion;
 

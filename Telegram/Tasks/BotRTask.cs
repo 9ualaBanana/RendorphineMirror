@@ -2,9 +2,8 @@
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Localization.Resources;
-using Telegram.Tasks;
 
-namespace Telegram.Infrastructure.Tasks;
+namespace Telegram.Tasks;
 
 public partial class BotRTask
 {

@@ -3,7 +3,7 @@ using Telegram.Infrastructure.Bot;
 using Telegram.MPlus.Security;
 using Telegram.TrialUsers;
 
-namespace Telegram.Infrastructure.Tasks;
+namespace Telegram.Tasks;
 
 public class RTask
 {

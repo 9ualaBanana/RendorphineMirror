@@ -2,8 +2,8 @@
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Infrastructure.MediaFiles;
-using Telegram.Infrastructure.Tasks;
 using Telegram.Localization.Resources;
+using Telegram.Tasks;
 
 namespace Telegram.MediaFiles.Images;
 

@@ -1,4 +1,4 @@
-﻿namespace Telegram.Tasks.ResultPreview;
+﻿namespace Telegram.Tasks;
 
 internal abstract partial class RTaskResult
 {

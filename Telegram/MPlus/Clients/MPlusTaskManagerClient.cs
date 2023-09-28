@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 using System.Runtime.CompilerServices;
 using Telegram.MPlus.Files;
 using Telegram.MPlus.Security;
-using Telegram.Tasks.ResultPreview;
+using Telegram.Tasks;
 
 namespace Telegram.MPlus.Clients;
 

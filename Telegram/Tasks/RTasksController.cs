@@ -1,9 +1,8 @@
 using HeyRed.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Telegram.Infrastructure.MediaFiles;
-using Telegram.Tasks;
 
-namespace Telegram.Infrastructure.Tasks;
+namespace Telegram.Tasks;
 
 [ApiController]
 [Route("tasks")]

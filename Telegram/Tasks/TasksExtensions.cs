@@ -3,7 +3,7 @@ using Telegram.Infrastructure;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.CallbackQueries;
 using Telegram.Infrastructure.MediaFiles;
-using Telegram.Infrastructure.Tasks;
+using Telegram.MPlus;
 
 namespace Telegram.Tasks;
 
@@ -18,6 +18,17 @@ static class TasksExtensions
             .AddTasksCore()
             .AddMediaFilesCore();
         builder.Services.TryAddScoped<BotRTaskPreview>();
+
+        return builder;
+    }
+
+    static ITelegramBotBuilder AddTasksCore(this ITelegramBotBuilder builder)
+    {
+        builder.Services.TryAddScoped<TaskPrice>();
+        builder.Services.TryAddScoped<RTask>();
+        builder.Services.TryAddScoped<BotRTask>();
+        builder.Services.TryAddSingleton<OwnedRegisteredTasksCache>();
+        builder.Services.AddMPlusClient();
 
         return builder;
     }
