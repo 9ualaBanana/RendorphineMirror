@@ -37,6 +37,12 @@ public record TypedRegisteredTask(string Id, TaskAction Action) : ITypedRegister
 
 public record ExecutedRTask : TypedRegisteredTask
 {
+    public ExecutedRTask(ExecutedRTask original)
+        : base(original)
+    {
+        Executor = original.Executor;
+        UploadedFiles = original.UploadedFiles;
+    }
     public ExecutedRTask(string Id, TaskAction Action)
         : base(Id, Action)
     {
@@ -44,6 +50,49 @@ public record ExecutedRTask : TypedRegisteredTask
 
     public string Executor { get; init; } = default!;
     public HashSet<string> UploadedFiles { get; init; } = default!;
+}
+
+public record ExecutedRTaskApi : ExecutedRTask, IRegisteredTaskApi
+{
+    public ExecutedRTaskApi(ExecutedRTaskApi original)
+        : base(original)
+    {
+    }
+    // Required for model binding.
+    public ExecutedRTaskApi()
+        : base(default!, default!)
+    {
+    }
+
+    public string? HostShard { get; set; }
+}
+
+public record UserExecutedRTask : ExecutedRTaskApi, IRegisteredTaskApi
+{
+    readonly Apis _api;
+    public string SessionId { get; }
+
+    public UserExecutedRTask(ExecutedRTaskApi executedRTask, string sessionId)
+        : base(executedRTask)
+    {
+        _api = Apis.DefaultWithSessionId(sessionId);
+        SessionId = sessionId;
+    }
+
+    public async ValueTask<Uri> GetFileDownloadLinkAsyncUsing(string iid, Extension extension)
+        => new(await _api.GetMPlusItemDownloadLinkAsync(this, iid, extension).ThrowIfError());
+
+    public async ValueTask<ServerTaskState> GetStateAsync()
+        => await _api.GetTaskStateAsyncOrThrow(this).ThrowIfError();
+
+    public async ValueTask ChangeStateAsyncTo(TaskState state)
+        => await _api.ChangeStateAsync(this, state).ThrowIfError();
+}
+
+public static class UserExecutedRTaskExtensions
+{
+    public static UserExecutedRTask With(this ExecutedRTaskApi executedRTask, string sessionId)
+        => new(executedRTask, sessionId);
 }
 
 /// <summary>
@@ -79,46 +128,4 @@ public static class UserRTaskApiExtensions
 {
     public static UserRTaskApi With(this TaskApi rTask, string sessionId)
         => new(rTask, sessionId);
-}
-
-public record ExecutedRTaskApi : ExecutedRTask, IRegisteredTaskApi
-{
-    public ExecutedRTaskApi(string Id = default!, TaskAction Action = default!)
-        : base(Id, Action)
-    {
-    }
-
-    public string? HostShard { get; set; }
-}
-
-public record UserExecutedRTask : ExecutedRTaskApi, IRegisteredTaskApi
-{
-    readonly Apis _api;
-    public string SessionId { get; }
-
-    internal UserExecutedRTask(ExecutedRTaskApi executedRTask, string sessionId)
-        : this(executedRTask.Id, executedRTask.Action, sessionId)
-    {
-    }
-    public UserExecutedRTask(string id, TaskAction action, string sessionId)
-        : base(id, action)
-    {
-        _api = Apis.DefaultWithSessionId(sessionId);
-        SessionId = sessionId;
-    }
-
-    public async ValueTask<Uri> GetFileDownloadLinkAsyncUsing(string iid, Extension extension)
-        => new(await _api.GetMPlusItemDownloadLinkAsync(this, iid, extension).ThrowIfError());
-
-    public async ValueTask<ServerTaskState> GetStateAsync()
-        => await _api.GetTaskStateAsyncOrThrow(this).ThrowIfError();
-
-    public async ValueTask ChangeStateAsyncTo(TaskState state)
-        => await _api.ChangeStateAsync(this, state).ThrowIfError();
-}
-
-public static class ExecutedRTaskExtensions
-{
-    public static UserExecutedRTask With(this ExecutedRTaskApi executedRTask, string sessionId)
-        => new(executedRTask, sessionId);
 }
