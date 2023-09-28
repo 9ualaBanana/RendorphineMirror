@@ -70,7 +70,7 @@ public class MainController : ControllerBase
 
 
     [HttpGet("eleven/getvoices")]
-    public async Task<JToken> GetVoices([FromForm] string sessionid, [FromForm] string taskid)
+    public async Task<JToken> GetVoices([FromQuery] string sessionid, [FromQuery] string taskid)
     {
         if (!await TaskTypeChecker.IsTaskTypeValid(TaskAction.GenerateAIVoice, sessionid, taskid))
             return JsonApi.Error("no");
@@ -79,17 +79,17 @@ public class MainController : ControllerBase
     }
 
     [HttpPost("eleven/tts")]
-    public async Task<IResult> GenerateTextToSpeech([FromForm] string sessionid, [FromForm] string taskid, [FromForm] string text, [FromForm] string voiceid, [FromForm] string modelid)
+    public async Task<ActionResult> GenerateTextToSpeech([FromForm] string sessionid, [FromForm] string taskid, [FromForm] string text, [FromForm] string voiceid, [FromForm] string modelid)
     {
         if (!await TaskTypeChecker.IsTaskTypeValid(TaskAction.GenerateAIVoice, sessionid, taskid))
-            return Results.BadRequest(JsonApi.Error("no"));
+            return BadRequest(JsonApi.Error("no"));
 
 
         using var _ = Directories.DisposeDelete(Dirs.TempFile(), out var resultfile);
         var ttsresult = await ElevenLabsApi.TextToSpeechAsync(voiceid, modelid, text, resultfile);
-        if (!ttsresult) Results.BadRequest(JsonApi.JsonFromOpResult(ttsresult));
+        if (!ttsresult) return BadRequest(JsonApi.JsonFromOpResult(ttsresult));
 
         var bytes = await System.IO.File.ReadAllBytesAsync(resultfile);
-        return Results.File(bytes, "audio/mpeg");
+        return File(bytes, "audio/mpeg");
     }
 }
