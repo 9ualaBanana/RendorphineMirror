@@ -18,8 +18,10 @@ public class CondaManager
 
     public string GetEnvironmentDirectory(string envname) => Dirs.DataDir(Path.Combine("conda", envname.ToLowerInvariant()), false);
 
-    public string GetRunInEnvironmentScript(string condapath, string envname, string command) =>
-        $"& '{condapath}' run -p '{GetEnvironmentDirectory(envname)}' {command}";
+    public string GetActivateScript(string condapath, string envname) => $"""
+        (& '{condapath}' shell hook --shell powershell --root-prefix '{Dirs.DataDir("conda")}') | Out-String | Invoke-Expression
+        micromamba activate '{GetEnvironmentDirectory(envname)}'
+        """;
 
 
     /// <remarks> Overwrites the environments if exists. </remarks>
@@ -36,7 +38,9 @@ public class CondaManager
 
         var script = $"""
             & '{condapath}' create -y --json -p '{GetEnvironmentDirectory(name)}' 'python={pyversion}' {string.Join(' ', requirements.Select(r => $"'{r}'"))} {string.Join(' ', channels.Select(c => $"-c '{c}'"))}
-            {(piprequirements is null ? null : GetRunInEnvironmentScript(condapath, name, $"pip install {string.Join(' ', piprequirements.Select(r => $"'{r}'"))}"))}
+
+            {GetActivateScript(condapath, name)}
+            {(piprequirements is null ? null : $"pip install {string.Join(' ', piprequirements.Select(r => $"'{r}'"))}")}
             """;
 
         try

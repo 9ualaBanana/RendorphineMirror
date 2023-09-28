@@ -4,7 +4,12 @@ public abstract class GuiRequestWindow : Window
 {
     bool DoClose = false;
 
-    protected GuiRequestWindow() => Closing += (_, e) => e.Cancel |= !DoClose;
+    protected GuiRequestWindow()
+    {
+        this.AttachDevToolsIfDebug();
+
+        Closing += (_, e) => e.Cancel |= !DoClose;
+    }
 
     public void ForceClose()
     {

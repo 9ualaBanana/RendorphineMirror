@@ -41,6 +41,7 @@ namespace Node.UI
                 else Settings.Language = LocalizedString.Locale;
 
                 this.InitializeTrayIndicator(NodeStateUpdater);
+                if (!Init.IsDebug) Task.Run(CreateShortcuts);
                 MainTheme.Apply(Resources, Styles);
 
                 if (Environment.GetCommandLineArgs().Contains("registryeditor"))
@@ -84,7 +85,7 @@ namespace Node.UI
             Window getWindow()
             {
                 if (WasConnected && NodeGlobalState.AuthInfo.Value?.SessionId is not null)
-                    return lifetime.MainWindow;
+                    return lifetime.MainWindow.ThrowIfNull();
 
                 WasConnected |= NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.AuthInfo.Value?.SessionId is not null;
 
@@ -136,6 +137,56 @@ namespace Node.UI
 
 
             await NodeStateUpdater.ReceivingLoop();
+        }
+
+        void CreateShortcuts()
+        {
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT) return;
+
+            var settings = Settings;
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+            try
+            {
+                File.Delete(Path.Combine(desktop, "Renderphine.url"));
+                settings.ShortcutsCreated = false;
+            }
+            catch { }
+            try
+            {
+                File.Delete(Path.Combine(startmenu, "Renderphine.url"));
+                settings.ShortcutsCreated = false;
+            }
+            catch { }
+
+
+            if (settings.ShortcutsCreated) return;
+
+            try
+            {
+                var ico = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, "Resources", "img", "icon.ico");
+                var data = @$"
+                [InternetShortcut]
+                URL=file:///{FileList.GetUpdaterExe()}
+                IconIndex=0
+                IconFile={ico.Replace('\\', '/')}
+            ".TrimLines();
+
+
+                write(Path.Combine(desktop, "Renderfin.url"), data);
+
+                Directory.CreateDirectory(startmenu);
+                write(Path.Combine(startmenu, "Renderfin.url"), data);
+            }
+            catch { }
+            finally { settings.ShortcutsCreated = true; }
+
+
+            void write(string linkpath, string data)
+            {
+                Logger.LogInformation($"Creating shortcut {linkpath}");
+                File.WriteAllText(linkpath, data);
+            }
         }
     }
 }

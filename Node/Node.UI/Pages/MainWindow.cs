@@ -12,8 +12,12 @@ namespace Node.UI.Pages
 
         public MainWindow(NodeStateUpdater nodeStateUpdater)
         {
+            this.AttachDevToolsIfDebug();
+
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
+            MinWidth = 555;
+            MinHeight = 255;
             Width = 692;
             Height = 410;
             Title = App.Instance.AppName;

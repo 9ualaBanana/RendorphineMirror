@@ -27,7 +27,7 @@ public class MPlusTaskInputInfo : ITaskInputInfo
     public static Task<OperationResult<TaskObject>> GetFileInfo(Api api, string sessionid, string userid, string iid) =>
         GetMpItems(api, sessionid, userid, new[] { iid }).Next(data => new TaskObject(data[iid].Files.File.FileName, data[iid].Files.File.Size).AsOpResult());
     public static Task<OperationResult<Dictionary<string, TaskObject>>> GetFilesInfoDict(Api api, string sessionid, string userid, IEnumerable<string> iids) =>
-        GetMpItems(api, sessionid, userid,iids).Next(data => data.Values.Select(item => KeyValuePair.Create(item.Iid, new TaskObject(item.Files.File.FileName, item.Files.File.Size)).AsOpResult()).Aggregate());
+        GetMpItems(api, sessionid, userid, iids).Next(data => data.Values.Select(item => KeyValuePair.Create(item.Iid, new TaskObject(item.Files.File.FileName, item.Files.File.Size)).AsOpResult()).Aggregate());
 }
 public class MPlusTaskOutputInfo : ITaskOutputInfo
 {
@@ -42,6 +42,7 @@ public class MPlusTaskOutputInfo : ITaskOutputInfo
     public readonly int? AutoremoveTimer;
     public readonly string? TUid;
     [Hidden] public string? IngesterHost;
+    public string? CustomHost { get; init; }
 
     public MPlusTaskOutputInfo(string name, string directory, int? autoremoveTimer = null, string? tuid = null)
     {

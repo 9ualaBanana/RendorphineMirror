@@ -44,7 +44,7 @@ public abstract class BindableBase<T> : IReadOnlyBindable<T>
     public void SubscribeChanged(Action action, bool executeImmediately = false)
     {
         Changed += action;
-        if (executeImmediately) TriggerValueChanged();
+        if (executeImmediately) action();
     }
     public void TriggerValueChanged() => TriggerValueChanged(this);
     public void TriggerValueChanged(BindableBase<T> eventSource)

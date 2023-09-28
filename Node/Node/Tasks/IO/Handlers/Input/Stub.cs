@@ -5,6 +5,7 @@ public static class Stub
     public class InputDownloader : FileTaskInputDownloader<StubTaskInfo>, ITypedTaskInput
     {
         public static TaskInputType Type => TaskInputType.Stub;
+        public override bool AllowOutOfOrderDownloads => true;
 
         protected override Task<ReadOnlyTaskFileList> DownloadImpl(StubTaskInfo input, TaskObject obj, CancellationToken token) =>
             new ReadOnlyTaskFileList(Enumerable.Empty<FileWithFormat>()).AsTask();

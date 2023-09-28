@@ -4,6 +4,8 @@ public class InitializingWindow : Window
 {
     public InitializingWindow()
     {
+        this.AttachDevToolsIfDebug();
+
         Title = "Initializing...";
         Icon = App.Instance.Icon;
 

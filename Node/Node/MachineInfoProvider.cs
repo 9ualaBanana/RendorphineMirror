@@ -1,5 +1,6 @@
 namespace Node;
 
+[AutoRegisteredService(true)]
 public class MachineInfoProvider
 {
     public required SettingsInstance Settings { get; init; }
@@ -17,7 +18,7 @@ public class MachineInfoProvider
             Init.Version,
             Settings.UPnpPort.ToStringInvariant(),
             Settings.UPnpServerPort.ToStringInvariant(),
-            await PortForwarding.GetPublicIPAsync(),
+            (await PortForwarding.GetPublicIPAsync()).ToString(),
             (await PluginManager.GetInstalledPluginsAsync()).ToImmutableArray()
         );
     }

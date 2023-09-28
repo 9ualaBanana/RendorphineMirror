@@ -40,12 +40,10 @@ namespace Node.UI;
 
 static class Program
 {
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
     [STAThread]
     public static void Main(string[] args)
     {
-        var builder = Init.CreateContainer(new("renderfin-ui"), typeof(Program).Assembly);
+        var builder = Init.CreateContainer(new("renderfin"), typeof(Program).Assembly);
         builder.RegisterType<App>()
             .SingleInstance();
 
@@ -53,8 +51,10 @@ static class Program
             .SingleInstance();
         builder.RegisterInstance(Api.Default)
             .SingleInstance();
-        builder.RegisterInstance(Apis.Default)
-            .SingleInstance();
+        builder.RegisterType<UIApis>()
+            .As<Node.Common.Apis>()
+            .SingleInstance()
+            .OnActivating(ctx => Apis.Default = ctx.Instance);
 
         builder.RegisterType<UISettings>()
             .SingleInstance();
@@ -74,12 +74,10 @@ static class Program
         }
 
         Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
-        if (!init.IsDebug) Task.Run(CreateShortcuts);
 
 
         AppBuilder.Configure(container.Resolve<App>)
             .UsePlatformDetect()
-            .With(new AvaloniaNativePlatformOptions { UseGpu = false }) // workaround for https://github.com/AvaloniaUI/Avalonia/issues/3533
             .With(new X11PlatformOptions { UseDBusMenu = true })
             .LogToTrace()
             .StartWithClassicDesktopLifetime(args);
@@ -133,55 +131,5 @@ static class Program
             Thread.Sleep(-1);
         })
         { IsBackground = true }.Start();
-    }
-
-    static void CreateShortcuts()
-    {
-        if (Environment.OSVersion.Platform != PlatformID.Win32NT) return;
-
-        var settings = App.Instance.Settings;
-        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-        var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
-        try
-        {
-            File.Delete(Path.Combine(desktop, "Renderphine.url"));
-            settings.ShortcutsCreated = false;
-        }
-        catch { }
-        try
-        {
-            File.Delete(Path.Combine(startmenu, "Renderphine.url"));
-            settings.ShortcutsCreated = false;
-        }
-        catch { }
-
-
-        if (settings.ShortcutsCreated) return;
-
-        try
-        {
-            var ico = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, "Resources", "img", "icon.ico");
-            var data = @$"
-                [InternetShortcut]
-                URL=file:///{FileList.GetUpdaterExe()}
-                IconIndex=0
-                IconFile={ico.Replace('\\', '/')}
-            ".TrimLines();
-
-
-            write(Path.Combine(desktop, "Renderfin.url"), data);
-
-            Directory.CreateDirectory(startmenu);
-            write(Path.Combine(startmenu, "Renderfin.url"), data);
-        }
-        catch { }
-        finally { settings.ShortcutsCreated = true; }
-
-
-        static void write(string linkpath, string data)
-        {
-            _logger.Info($"Creating shortcut {linkpath}");
-            File.WriteAllText(linkpath, data);
-        }
     }
 }

@@ -35,6 +35,7 @@ public class FFmpegLauncher
         stream.CodecName switch
         {
             "prores" => new ProresFFmpegCodec() { Profile = ProresFFmpegCodec.CopyProfileFrom(stream) },
+            "mjpeg" => new H264NvencFFmpegCodec() { Bitrate = new BitrateData.Constant(stream.Bitrate) },
 
             var jpeg when jpeg.ContainsOrdinal("jpeg") || jpeg.ContainsOrdinal("jpg") =>
                 new JpegFFmpegCodec(),
@@ -105,7 +106,8 @@ public class FFmpegLauncher
             void onRead(bool err, string line)
             {
                 if (line.Contains("10 bit encode not supported", StringComparison.Ordinal)
-                    || line.Contains("No capable devices found", StringComparison.Ordinal))
+                    || line.Contains("No capable devices found", StringComparison.Ordinal)
+                    || line.Contains("Driver does not support the required nvenc API version."))
                 {
                     fallbackCodec = true;
                     throw new Exception(line);

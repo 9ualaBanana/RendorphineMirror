@@ -11,8 +11,8 @@ public class UITarget : IServiceTarget
     }
 
     public required LocalListener LocalListener { get; init; }
-    public required NodeStateListener NodeStateListener { get; init; }
     public required NodeGlobalStateInitializedTarget NodeGlobalStateInitializedTarget { get; init; }
+    public required NodeStateListener NodeStateListener { get; init; }
 
     public required DataDirs Dirs { get; init; }
 

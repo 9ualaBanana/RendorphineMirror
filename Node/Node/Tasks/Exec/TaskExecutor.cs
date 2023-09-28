@@ -47,9 +47,13 @@ public class TaskExecutor
             var isqspreview = TaskExecutorByData.GetTaskName(task.Info.Data) == TaskAction.GenerateQSPreview;
             var semaphore = isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore;
             var info = isqspreview ? "qspinput" : "input";
-            using var _ = await WaitDisposed(isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore, info);
-
             var inputhandler = InputDownloaders[task.Input.Type];
+
+            using var _ =
+                inputhandler.AllowOutOfOrderDownloads
+                ? new FuncDispose(delegate { })
+                : await WaitDisposed(semaphore, info);
+
             task.DownloadedInput = await inputhandler.Download(task.Input, task.Info.Object, token);
             await Api.ChangeStateAsync(task, TaskState.Active);
             QueuedTasks.QueuedTasks.Save(task);
@@ -98,7 +102,7 @@ public class TaskExecutor
     }
     async Task NotifyTelegramBotOfTaskCompletion(ReceivedTask task, CancellationToken cancellationToken = default)
     {
-        var endpoint = new Uri(new Uri(Settings.ServerUrl), "tasks/result").ToString();
+        var endpoint = new Uri(new Uri((task.Output as MPlusTaskOutputInfo)?.CustomHost ?? Settings.ServerUrl), "tasks/result").ToString();
         var uploadedFiles = string.Join('&', task.UploadedFiles.Cast<MPlusUploadedFileInfo>().Select(fileInfo => $"uploadedfiles={fileInfo.Iid}"));
         var queryString =
             $"id={task.Id}&" +

@@ -50,7 +50,7 @@ public class TasksTab2 : Panel
                     new MPButton()
                     {
                         Text = "Reload",
-                        OnClick = () => { grid.Items = Array.Empty<T>(); LoadSetItems(grid).Consume(); },
+                        OnClick = () => { grid.ItemsSource = Array.Empty<T>(); LoadSetItems(grid).Consume(); },
                     }.WithRow(0),
                     grid.WithRow(1),
                 },
@@ -58,7 +58,7 @@ public class TasksTab2 : Panel
         }
         protected abstract void CreateColumns(DataGrid data);
 
-        protected async Task LoadSetItems(DataGrid grid) => grid.Items = await Load();
+        protected async Task LoadSetItems(DataGrid grid) => grid.ItemsSource = await Load();
         protected abstract Task<IReadOnlyCollection<T>> Load();
     }
     abstract class NormalTaskManager : TaskManager<TaskBase>
@@ -159,7 +159,7 @@ public class TasksTab2 : Panel
         public Action<T, MPButton>? SelfAction;
         public Func<T, bool>? CreationRequirements;
 
-        protected override IControl GenerateElement(DataGridCell cell, object dataItem)
+        protected override Control GenerateElement(DataGridCell cell, object dataItem)
         {
             if (dataItem is not T item) return new Control();
 
@@ -174,7 +174,7 @@ public class TasksTab2 : Panel
             return btn;
         }
 
-        protected override IControl GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
-        protected override object PrepareCellForEdit(IControl editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
+        protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
+        protected override object PrepareCellForEdit(Control editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
     }
 }

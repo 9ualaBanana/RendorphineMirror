@@ -41,8 +41,9 @@ public class NodeStateSender
             await WriteLock.WaitAsync();
             using var _ = new FuncDispose(() => WriteLock.Release());
 
-            await Writer.WriteAsync(update).ConfigureAwait(false);
+            await SendInternalAsync(update).ConfigureAwait(false);
         }
+        async Task SendInternalAsync(NodeStateUpdate update) => await Writer.WriteAsync(update).ConfigureAwait(false);
 
         public async Task SendingLoop()
         {
@@ -57,11 +58,14 @@ public class NodeStateSender
             {
                 try
                 {
+                    await WriteLock.WaitAsync();
+                    using var _ = new FuncDispose(() => WriteLock.Release());
+
                     JObject json;
                     if (changed is null) json = JObject.FromObject(State, JsonSettings.TypedS);
                     else json = new JObject() { [changed] = JToken.FromObject(typeof(NodeGlobalState).GetField(changed)!.GetValue(State)!, JsonSettings.TypedS), };
 
-                    await SendAsync(new NodeStateUpdate(NodeStateUpdate.UpdateType.State, json)).ConfigureAwait(false);
+                    await SendInternalAsync(new NodeStateUpdate(NodeStateUpdate.UpdateType.State, json)).ConfigureAwait(false);
                 }
                 catch (Exception ex) { exittask.SetException(ex); }
             }
