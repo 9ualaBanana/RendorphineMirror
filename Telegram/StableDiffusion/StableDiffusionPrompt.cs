@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using Telegram.Bot.Types;
 using Telegram.Infrastructure.Bot;
 using Telegram.Infrastructure.Tasks;
@@ -12,12 +13,14 @@ public class StableDiffusionPrompt
     readonly BotRTask _botRTask;
     readonly StockSubmitterClient _stockSubmitterClient;
     readonly CachedMessages _sentPromptMessages;
+    readonly Uri _hostUrl;
 
-    public StableDiffusionPrompt(BotRTask botRTask, StockSubmitterClient stockSubmitterClient, CachedMessages sentPromptMessages)
+    public StableDiffusionPrompt(BotRTask botRTask, StockSubmitterClient stockSubmitterClient, CachedMessages sentPromptMessages, IOptions<TelegramBot.Options> botOptions)
     {
         _botRTask = botRTask;
         _stockSubmitterClient = stockSubmitterClient;
         _sentPromptMessages = sentPromptMessages;
+        _hostUrl = botOptions.Value.Host;
     }
 
     internal async Task<string> NormalizeAsync(IEnumerable<string> promptTokens, string userId, CancellationToken cancellationToken)
@@ -52,7 +55,7 @@ public class StableDiffusionPrompt
             new TaskCreationInfo(
                 TaskAction.GenerateImageByPrompt,
                 new StubTaskInfo(),
-                new MPlusTaskOutputInfo(promptId.ToString(), "stablediffusion"),
+                new MPlusTaskOutputInfo(promptId.ToString(), "stablediffusion") { CustomHost = _hostUrl.ToString() },
                 new GenerateImageByPromptInfo(ImageGenerationSource.StableDiffusion, prompt.Prompt),
                 new TaskObject(promptId.ToString(), default)),
             user
