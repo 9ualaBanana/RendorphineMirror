@@ -44,10 +44,10 @@ public class MPlusTaskLauncherClient
         }
     }
 
-    internal async Task<TaskPrices> RequestTaskPricesAsync(CancellationToken cancellationToken)
+    internal async Task<RTaskPrices> RequestTaskPricesAsync(CancellationToken cancellationToken)
     {
         if ((await RequestTaskPricesAsyncCore())["levels"] is JToken prices)
-            return new TaskPrices(prices);
+            return new RTaskPrices(prices);
         else
         {
             var exception = new InvalidDataException("Task prices request returned data in an unknow format.");

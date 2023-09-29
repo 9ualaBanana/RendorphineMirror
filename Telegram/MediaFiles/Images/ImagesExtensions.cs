@@ -16,7 +16,7 @@ static class ImagesExtensions
         builder.Services.TryAddScoped<ProcessingMethodSelectorImageHandler>();
         builder
             .AddImagesCore()
-            .AddTasks();
+            .AddRTasks();
 
         return builder;
     }

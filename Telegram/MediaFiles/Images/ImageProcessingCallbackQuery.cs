@@ -10,11 +10,11 @@ namespace Telegram.MediaFiles.Images;
 public class ImageProcessingCallbackQueryHandler
     : MediaProcessingCallbackQueryHandler<ImageProcessingCallbackQuery, ImageProcessingCallbackData>
 {
-    readonly BotRTask _botRTask;
+    readonly RTaskManager _rTaskManager;
     readonly Uri _hostUrl;
 
     public ImageProcessingCallbackQueryHandler(
-        BotRTask botRTask,
+        RTaskManager rTaskManager,
         IOptions<TelegramBot.Options> botOptions,
         MediaFilesCache mediaFilesCache,
         LocalizedText.Media localizedMediaText,
@@ -25,7 +25,7 @@ public class ImageProcessingCallbackQueryHandler
         ILogger<ImageProcessingCallbackQueryHandler> logger)
         : base(localizedMediaText, mediaFilesCache, httpClientFactory, serializer, bot, httpContextAccessor, logger)
     {
-        _botRTask = botRTask;
+        _rTaskManager = rTaskManager;
         _hostUrl = botOptions.Value.Host;
     }
 
@@ -42,25 +42,23 @@ public class ImageProcessingCallbackQueryHandler
         });
 
     async Task UpscaleAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
-        => await _botRTask.TryRegisterAsync(
+        => await _rTaskManager.TryRegisterAsync(
             new TaskCreationInfo(
                 TaskAction.EsrganUpscale,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
                 new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "upscaled") { CustomHost = _hostUrl.ToString() },
                 TaskObject.From(cachedImage.File)),
-            User.ToTelegramBotUserWith(ChatId)
-            );
+            User.ToTelegramBotUserWith(ChatId), RequestAborted);
 
     async Task VectorizeAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
-        => await _botRTask.TryRegisterAsync(
+        => await _rTaskManager.TryRegisterAsync(
             new TaskCreationInfo(
                 TaskAction.VeeeVectorize,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
                 new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "vectorized") { CustomHost = _hostUrl.ToString() },
                 new VeeeVectorizeInfo(new int[] { 8500 }),
                 TaskObject.From(cachedImage.File)),
-            User.ToTelegramBotUserWith(ChatId)
-            );
+            User.ToTelegramBotUserWith(ChatId), RequestAborted);
 }
 
 public record ImageProcessingCallbackQuery : MediaProcessingCallbackQuery<ImageProcessingCallbackData>

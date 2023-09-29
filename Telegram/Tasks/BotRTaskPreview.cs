@@ -17,7 +17,7 @@ public class BotRTaskPreview
     readonly MediaFilesCache _mediaFilesCache;
     readonly MediaFile.Factory _mediaFileFactory;
     readonly OwnedRegisteredTasksCache _ownedRegisteredTasksCache;
-    readonly MPlusTaskManagerClient _taskManager;
+    readonly MPlusTaskManagerClient _taskManagerClient;
     readonly TelegramBot _bot;
 
     readonly ILogger _logger;
@@ -26,14 +26,14 @@ public class BotRTaskPreview
         MediaFilesCache mediaFilesCache,
         MediaFile.Factory mediaFileFactory,
         OwnedRegisteredTasksCache ownedRegisteredTasksCache,
-        MPlusTaskManagerClient taskManager,
+        MPlusTaskManagerClient taskManagerClient,
         TelegramBot bot,
         ILogger<BotRTaskPreview> logger)
     {
         _mediaFilesCache = mediaFilesCache;
         _mediaFileFactory = mediaFileFactory;
         _ownedRegisteredTasksCache = ownedRegisteredTasksCache;
-        _taskManager = taskManager;
+        _taskManagerClient = taskManagerClient;
         _bot = bot;
         _logger = logger;
     }
@@ -53,7 +53,7 @@ public class BotRTaskPreview
         {
             var rTaskOwner = _ownedRegisteredTasksCache.Retrieve(executedRTask as ExecutedRTask).Owner;
             var userExecutedRTask = executedRTask.With(MPlusIdentity.SessionIdOf(rTaskOwner));
-            await foreach (var rTaskResult in _taskManager.ObtainResultsAsyncOf(userExecutedRTask, cancellationToken))
+            await foreach (var rTaskResult in _taskManagerClient.ObtainResultsAsyncOf(userExecutedRTask, cancellationToken))
                 await SendAsync(rTaskResult);
             await userExecutedRTask.ChangeStateAsyncTo(TaskState.Finished);
 
@@ -72,11 +72,11 @@ public class BotRTaskPreview
 
                 async Task<Message> SendPreviewAsync()
                 {
-                    var cachedTaskResult = await _mediaFilesCache.AddAsync(
+                    var cachedRTaskResult = await _mediaFilesCache.AddAsync(
                         await _mediaFileFactory.CreateAsyncFrom(rTaskResult.FileDownloadLink, cancellationToken),
                         TimeSpan.FromMinutes(30), cancellationToken);
 
-                    var cachedTaskPreview = rTaskResult.Action is not TaskAction.VeeeVectorize ? cachedTaskResult :
+                    var cachedRTaskPreview = rTaskResult.Action is not TaskAction.VeeeVectorize ? cachedRTaskResult :
                         await _mediaFilesCache.AddAsync(
                             await _mediaFileFactory.CreateAsyncFrom(rTaskResult.PreviewDownloadLink, cancellationToken),
                             cancellationToken);
@@ -97,7 +97,7 @@ public class BotRTaskPreview
                         if (!string.IsNullOrWhiteSpace(rTaskResult.FileInfo.Title))
                             caption.AppendLine($"*Title* : {rTaskResult.FileInfo.Title}");
                         caption
-                            .AppendLine($"*Size*: `{cachedTaskResult.File.Length / 1024 / 1024}` *MB*")
+                            .AppendLine($"*Size*: `{cachedRTaskResult.File.Length / 1024 / 1024}` *MB*")
                             .AppendLine($"*Execution Time*: `{await RequestTaskExecutionTimeAsync()}`");
 
                         if (MPlusIdentity.AccessLevelOf(rTaskOwner) is AccessLevel.Admin)
@@ -126,17 +126,17 @@ public class BotRTaskPreview
                     {
                         if (rTaskResult is RTaskResult.MPlus.Image)
                         {
-                            var taskResultPreviewPath = rTaskResult.Action is not TaskAction.VeeeVectorize ?
-                                await PathToDownscaled(cachedTaskPreview.File) : cachedTaskPreview.File.FullName;
+                            var rTaskResultPreviewPath = rTaskResult.Action is not TaskAction.VeeeVectorize ?
+                                await PathToDownscaled(cachedRTaskPreview.File) : cachedRTaskPreview.File.FullName;
                             try
                             {
-                                using var taskResultPreview = File.OpenRead(taskResultPreviewPath);
+                                using var taskResultPreview = File.OpenRead(rTaskResultPreviewPath);
                                 return await _bot.SendImageAsync_(rTaskOwner.ChatId, taskResultPreview!, caption, replyMarkup, cancellationToken: cancellationToken);
                             }
-                            finally { File.Delete(taskResultPreviewPath); }
+                            finally { File.Delete(rTaskResultPreviewPath); }
                         }
                         else if (rTaskResult is RTaskResult.MPlus.Video video)
-                            return await _bot.SendVideoAsync_(rTaskOwner.ChatId, cachedTaskResult.File.OpenRead()!,
+                            return await _bot.SendVideoAsync_(rTaskOwner.ChatId, cachedRTaskResult.File.OpenRead()!,
                                 replyMarkup,
                                 null, video.Width, video.Height,
                                 rTaskResult.FileInfo.MediumThumbnailUrl.ToString(),

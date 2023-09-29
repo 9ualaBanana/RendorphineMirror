@@ -10,14 +10,14 @@ namespace Telegram.StableDiffusion;
 
 public class StableDiffusionPrompt
 {
-    readonly BotRTask _botRTask;
+    readonly RTaskManager _rTaskManager;
     readonly StockSubmitterClient _stockSubmitterClient;
     readonly CachedMessages _sentPromptMessages;
     readonly Uri _hostUrl;
 
-    public StableDiffusionPrompt(BotRTask botRTask, StockSubmitterClient stockSubmitterClient, CachedMessages sentPromptMessages, IOptions<TelegramBot.Options> botOptions)
+    public StableDiffusionPrompt(RTaskManager rTaskManager, StockSubmitterClient stockSubmitterClient, CachedMessages sentPromptMessages, IOptions<TelegramBot.Options> botOptions)
     {
-        _botRTask = botRTask;
+        _rTaskManager = rTaskManager;
         _stockSubmitterClient = stockSubmitterClient;
         _sentPromptMessages = sentPromptMessages;
         _hostUrl = botOptions.Value.Host;
@@ -43,23 +43,22 @@ public class StableDiffusionPrompt
     }
 
     internal async Task SendAsync(IEnumerable<string> promptTokens, Message promptMessage, TelegramBot.User user, CancellationToken cancellationToken)
-        => await SendAsync(new(await NormalizeAsync(promptTokens, MPlusIdentity.UserIdOf(user), cancellationToken), promptMessage), user);
+        => await SendAsync(new(await NormalizeAsync(promptTokens, MPlusIdentity.UserIdOf(user), cancellationToken), promptMessage), user, cancellationToken);
     /// <remarks>
     /// Also requires <see cref="User"/> and <see cref="ChatId"/>.
     /// </remarks>
-    internal async Task SendAsync(StableDiffusionPromptMessage prompt, TelegramBot.User user)
+    internal async Task SendAsync(StableDiffusionPromptMessage prompt, TelegramBot.User user, CancellationToken cancellationToken)
     {
         var promptId = Guid.NewGuid();
 
-        await _botRTask.TryRegisterAsync(
+        await _rTaskManager.TryRegisterAsync(
             new TaskCreationInfo(
                 TaskAction.GenerateImageByPrompt,
                 new StubTaskInfo(),
                 new MPlusTaskOutputInfo(promptId.ToString(), "stablediffusion") { CustomHost = _hostUrl.ToString() },
                 new GenerateImageByPromptInfo(ImageGenerationSource.StableDiffusion, prompt.Prompt),
                 new TaskObject(promptId.ToString(), default)),
-            user
-            );
+            user, cancellationToken);
 
         _sentPromptMessages.Add(promptId, prompt);
     }

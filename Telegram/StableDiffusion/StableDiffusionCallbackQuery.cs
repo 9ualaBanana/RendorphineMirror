@@ -31,7 +31,7 @@ public class StableDiffusionCallbackQueryHandler : CallbackQueryHandler<StableDi
         async Task RegenerateAsync()
         {
             if (_cachedPromptMessages.TryRetrieveBy(callbackQuery.PromptId) is StableDiffusionPromptMessage promptMessage)
-                await _stableDiffusionPrompt.SendAsync(promptMessage, User.ToTelegramBotUserWith(ChatId));
+                await _stableDiffusionPrompt.SendAsync(promptMessage, User.ToTelegramBotUserWith(ChatId), RequestAborted);
         }
     }
 }

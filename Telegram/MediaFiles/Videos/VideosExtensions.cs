@@ -16,7 +16,7 @@ static class VideosExtensions
         builder.Services.TryAddScoped<ProcessingMethodSelectorVideoHandler>();
         builder
             .AddVideosCore()
-            .AddTasks();
+            .AddRTasks();
 
         return builder;
     }
