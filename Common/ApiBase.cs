@@ -144,20 +144,32 @@ public abstract record ApiBase
     {
         if (!LogRequests) return;
 
-        var info = $"HTTP {(int) response.StatusCode}: {responseJson?.ToString() ?? "<no message>"}";
-        Logger.LogTrace($"[{errorDetails}] [{response.RequestMessage?.Method.Method} {response.RequestMessage?.RequestUri} {{ {await ContentToString(response.Content)} }}]: {info}");
-    }
-    protected async Task<string> ContentToString(object? content) =>
-        content switch
-        {
-            (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + HttpUtility.UrlDecode(x.Item2))),
-            FormUrlEncodedContent c => HttpUtility.UrlDecode(await c.ReadAsStringAsync(CancellationToken)),
-            StringContent c => await c.ReadAsStringAsync(CancellationToken),
-            MultipartContent c => $"Multipart [{string.Join(", ", await Task.WhenAll(c.Select(async c => $"{{ {c.Headers.ContentDisposition?.Name ?? "<noname>"} : {await ContentToString(c)} }}")))}]",
-            { } => content.GetType().Name,
-            _ => "<nocontent>",
-        };
+        var text = $"[{errorDetails}] [{response.RequestMessage?.Method.Method} {response.RequestMessage?.RequestUri}";
+        if (response.RequestMessage?.Method == HttpMethod.Post)
+            text = $"{text} {{ {await ContentToString(response.RequestMessage.Content)} }}";
+        text = $"{text}]: HTTP {(int) response.StatusCode}: {responseJson?.ToString(Formatting.None) ?? "<no message>"}";
 
+        Logger.LogTrace(text);
+    }
+    protected async Task<string> ContentToString(object? content)
+    {
+        try
+        {
+            return content switch
+            {
+                (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + HttpUtility.UrlDecode(x.Item2))),
+                FormUrlEncodedContent c => HttpUtility.UrlDecode(await c.ReadAsStringAsync(CancellationToken)),
+                StringContent c => await c.ReadAsStringAsync(CancellationToken),
+                MultipartContent c => $"Multipart [{string.Join(", ", await Task.WhenAll(c.Select(async c => $"{{ {c.Headers.ContentDisposition?.Name ?? "<noname>"} : {await ContentToString(c)} }}")))}]",
+                { } => content.GetType().Name,
+                _ => "<nocontent>",
+            };
+        }
+        catch (ObjectDisposedException)
+        {
+            return $"<disposed {content?.GetType()}>";
+        }
+    }
 
     public async Task<OperationResult> ApiGetFile(string url, string filename, string errorDetails, params (string, string)[] values) =>
         await SendFile(filename, errorDetails, async () => await Client.GetAsync(AppendQuery(url, values), CancellationToken));
