@@ -23,21 +23,29 @@ public class ExceptionError : IOperationError
 
     public override string ToString() => Exception.ToString();
 }
-public class HttpError : IOperationError
+
+public class HttpErrorBase : IOperationError
 {
-    public bool IsSuccessStatusCode => Response.IsSuccessStatusCode;
-    public HttpStatusCode StatusCode => Response.StatusCode;
+    public bool IsSuccessStatusCode => (int) StatusCode is >= 200 and < 300;
 
-    public HttpResponseMessage Response { get; }
-    public int? ErrorCode { get; }
-    public string? Error { get; }
+    public string? Message { get; }
+    public HttpStatusCode StatusCode { get; }
 
-    public HttpError(string? error, HttpResponseMessage response, int? errorCode)
+    public HttpErrorBase(string? message, HttpResponseMessage response) : this(message, response.StatusCode) { }
+    public HttpErrorBase(string? message, HttpStatusCode statuscode)
     {
-        Error = error;
-        Response = response;
-        ErrorCode = errorCode;
+        Message = message;
+        StatusCode = statuscode;
     }
 
-    public override string ToString() => $"HTTP {StatusCode}; Code {ErrorCode}; {Error}";
+    public override string ToString() => $"HTTP {(int) StatusCode}: {Message ?? "<no message>"}";
+}
+public class HttpError : HttpErrorBase
+{
+    public int? ErrorCode { get; }
+
+    public HttpError(string? message, HttpResponseMessage response, int? errorcode) : this(message, response.StatusCode, errorcode) { }
+    public HttpError(string? message, HttpStatusCode statuscode, int? errorcode) : base(message, statuscode) => ErrorCode = errorcode;
+
+    public override string ToString() => $"HTTP {(int) StatusCode}, Code {ErrorCode?.ToStringInvariant() ?? "null"}: {Message ?? "<no message>"}";
 }

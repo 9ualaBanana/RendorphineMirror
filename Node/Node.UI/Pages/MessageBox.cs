@@ -39,6 +39,8 @@ namespace Node.UI.Pages
 
         public MessageBox(T closeresult)
         {
+            this.AttachDevToolsIfDebug();
+
             SizeToContent = SizeToContent.WidthAndHeight;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();

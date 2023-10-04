@@ -40,8 +40,6 @@ namespace Node.UI;
 
 static class Program
 {
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-
     [STAThread]
     public static void Main(string[] args)
     {
@@ -76,7 +74,6 @@ static class Program
         }
 
         Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
-        if (!init.IsDebug) Task.Run(CreateShortcuts);
 
 
         AppBuilder.Configure(container.Resolve<App>)
@@ -134,55 +131,5 @@ static class Program
             Thread.Sleep(-1);
         })
         { IsBackground = true }.Start();
-    }
-
-    static void CreateShortcuts()
-    {
-        if (Environment.OSVersion.Platform != PlatformID.Win32NT) return;
-
-        var settings = App.Instance.Settings;
-        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-        var startmenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
-        try
-        {
-            File.Delete(Path.Combine(desktop, "Renderphine.url"));
-            settings.ShortcutsCreated = false;
-        }
-        catch { }
-        try
-        {
-            File.Delete(Path.Combine(startmenu, "Renderphine.url"));
-            settings.ShortcutsCreated = false;
-        }
-        catch { }
-
-
-        if (settings.ShortcutsCreated) return;
-
-        try
-        {
-            var ico = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, "Resources", "img", "icon.ico");
-            var data = @$"
-                [InternetShortcut]
-                URL=file:///{FileList.GetUpdaterExe()}
-                IconIndex=0
-                IconFile={ico.Replace('\\', '/')}
-            ".TrimLines();
-
-
-            write(Path.Combine(desktop, "Renderfin.url"), data);
-
-            Directory.CreateDirectory(startmenu);
-            write(Path.Combine(startmenu, "Renderfin.url"), data);
-        }
-        catch { }
-        finally { settings.ShortcutsCreated = true; }
-
-
-        static void write(string linkpath, string data)
-        {
-            _logger.Info($"Creating shortcut {linkpath}");
-            File.WriteAllText(linkpath, data);
-        }
     }
 }

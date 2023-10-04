@@ -1,3 +1,4 @@
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -39,17 +40,17 @@ public static class LocalPipe
 
     public class Writer : IDisposable
     {
-        readonly JsonTextWriter JWriter;
+        readonly Stream Stream;
 
-        public Writer(Stream stream) => JWriter = new JsonTextWriter(new StreamWriter(stream) { AutoFlush = true });
+        public Writer(Stream stream) => Stream = stream;
 
         public Task WriteAsync<T>(T value) where T : notnull => WriteAsync(JToken.FromObject(value, JsonSettings.TypedS));
         public async Task WriteAsync(JToken token)
         {
             try
             {
-                await token.WriteToAsync(JWriter).ConfigureAwait(false);
-                await JWriter.FlushAsync().ConfigureAwait(false);
+                await Stream.WriteAsync(Encoding.UTF8.GetBytes(token.ToString(Formatting.None)));
+                await Stream.FlushAsync();
             }
             catch (Exception ex)
             {
@@ -62,7 +63,7 @@ public static class LocalPipe
         public void Dispose()
         {
             GC.SuppressFinalize(this);
-            ((IDisposable) JWriter).Dispose();
+            Stream.Dispose();
         }
     }
 }

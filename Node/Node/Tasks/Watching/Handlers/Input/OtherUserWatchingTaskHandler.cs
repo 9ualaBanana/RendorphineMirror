@@ -35,7 +35,7 @@ public class OtherUserWatchingTaskHandler : WatchingTaskInputHandler<OtherUserWa
 
             foreach (var file in files)
             {
-                var download = await Api.Api.Download($"{url}/download?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(file.Path)}");
+                var download = await Api.Api.Client.GetStreamAsync($"{url}/download?sessionid={Settings.SessionId}&path={HttpUtility.UrlEncode(file.Path)}");
 
                 var fsfile = Path.Combine(Task.FSDataDirectory(Dirs), Path.GetFileName(file.Path));
                 using (var writer = File.OpenWrite(fsfile))

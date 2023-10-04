@@ -2,6 +2,8 @@ namespace Node.Tasks.IO.Input;
 
 public interface ITaskInputDownloader
 {
+    bool AllowOutOfOrderDownloads { get; }
+
     Task<object> Download(ITaskInputInfo input, TaskObject obj, CancellationToken token);
 }
 public interface ITaskInputDownloader<TInput, TResult> : ITaskInputDownloader
@@ -15,6 +17,8 @@ public abstract class TaskInputDownloader<TInput, TResult> : ITaskInputDownloade
     where TInput : ITaskInputInfo
     where TResult : notnull
 {
+    public virtual bool AllowOutOfOrderDownloads => false;
+
     public required ITaskProgressSetter ProgressSetter { get; init; }
     public required ILogger<TaskInputDownloader<TInput, TResult>> Logger { get; init; }
 

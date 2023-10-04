@@ -9,7 +9,6 @@ var builder = Init.CreateContainer(new Init.InitConfig("renderfin_tracker"), typ
 using var container = builder.Build();
 var logger = container.Resolve<ILogger<Program>>();
 
-
 var tracker = new TrackerServer()
 {
     AllowUnregisteredTorrents = true,
@@ -30,4 +29,7 @@ tracker.RegisterListener(listeneru);
 listeneru.Start();
 
 logger.LogInformation("Tracker started on port http " + porth + " and udp " + portu);
+
+
+
 Thread.Sleep(-1);

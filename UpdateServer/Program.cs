@@ -5,7 +5,7 @@ using UpdaterCommon;
 using UpdateServer;
 
 
-await Init.For(new Init.InitConfig("renderfin-updater")).ExecuteAsync();
+using var container = Init.CreateContainer(new Init.InitConfig("renderfin-updater")).Build();
 var logger = LogManager.GetCurrentClassLogger();
 var appz = new Dictionary<string, AppData>();
 

@@ -36,6 +36,7 @@ public class TaskExecutorTarget : IServiceTarget
             //registertask<GenerateImageByMeta>();
             register<GenerateImageByPrompt>();
             register<Topaz>();
+            register<GenerateAIVoice>();
         }
     }
 

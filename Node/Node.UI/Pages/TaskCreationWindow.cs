@@ -9,6 +9,8 @@ namespace Node.UI.Pages
     {
         public TaskCreationWindow()
         {
+            this.AttachDevToolsIfDebug();
+
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
             Width = 692;
