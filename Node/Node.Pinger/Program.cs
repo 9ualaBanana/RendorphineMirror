@@ -2,7 +2,7 @@ using Node.Common;
 using UpdaterCommon;
 
 
-using var container = Init.CreateContainer(new Init.InitConfig("renderfin")).Build();
+using var container = Init.CreateContainer(new Init.InitConfig("renderfin") { AutoClearTempDir = false }).Build();
 
 var updater = UpdateChecker.LoadFromJsonOrDefault(args: new Dictionary<string, string>() { ["Node.UI"] = "hidden" });
 await updater.Update().ThrowIfError();
