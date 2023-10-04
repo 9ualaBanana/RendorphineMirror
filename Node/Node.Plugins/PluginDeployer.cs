@@ -11,10 +11,13 @@ public class PluginDeployer
     public required CondaManager CondaManager { get; init; }
     public required TorrentClient TorrentClient { get; init; }
     public required HttpClient Client { get; init; }
+    public required PluginDirs PluginDirs { get; init; }
     public required ILogger<PluginDeployer> Logger { get; init; }
 
-    static string PluginsDirectory => Directories.DirCreated("plugins");
-    static string GetPluginDirectory(PluginType type, PluginVersion version) => Directories.DirCreated(PluginsDirectory, type.ToString().ToLowerInvariant(), version.ToString().ThrowIfNullOrEmpty());
+    string PluginsDirectory => Directories.DirCreated(PluginDirs.Directory);
+    string GetPluginDirectory(PluginType type, PluginVersion version) => Directories.DirCreated(PluginsDirectory, type.ToString().ToLowerInvariant(), version.ToString().ThrowIfNullOrEmpty());
+
+    public static string GetCondaEnvName(PluginType type, PluginVersion version) => $"{type.ToString().ToLowerInvariant()}_{version}";
 
 
     /// <param name="version"> Plugin version or null if any </param>
@@ -110,9 +113,16 @@ public class PluginDeployer
             await inputstream.CopyToAsync(inputstream, token);
         }
     }
-
     void InstallWithPowershell(PluginType type, PluginVersion version, string script)
     {
+        if (CondaManager.EnvironmentExists(GetCondaEnvName(type, version)))
+        {
+            script = $"""
+                {CondaManager.GetActivateScript(InstalledPlugins.Plugins.First(p => p.Type == PluginType.Conda).Path, GetCondaEnvName(type, version))}
+                {script}
+                """;
+        }
+
         var pwsh = PowerShellInvoker.Initialize(script);
         var pldownload = setVars(pwsh);
         var result = PowerShellInvoker.Invoke(pwsh);
@@ -140,16 +150,27 @@ public class PluginDeployer
 
             var pldownload = Directories.DirCreated(Path.Combine(prox.GetVariable("DOWNLOADS").ToString()!, plugintype, pluginverpath));
             prox.SetVariable("PLDOWNLOAD", pldownload);
-            prox.SetVariable("PLINSTALL", Directories.DirCreated(Path.Combine(prox.GetVariable("PLUGINS").ToString()!, plugintype, pluginverpath)));
+            prox.SetVariable("PLINSTALL", Directories.DirCreated(Path.Combine(PluginDirs.Directory, plugintype, pluginverpath)));
 
             return pldownload;
         }
     }
     void InstallWithConda(PluginType type, PluginVersion version, SoftwareVersionInfo.InstallationInfo.PythonInfo info)
     {
-        var name = $"{type.ToString().ToLowerInvariant()}_{version}";
+        var name = GetCondaEnvName(type, version);
         var condapath = InstalledPlugins.Plugins.First(p => p.Type == PluginType.Conda).Path;
 
         CondaManager.InitializeEnvironment(condapath, name, info.Version, info.Conda.Requirements, info.Conda.Channels, info.Pip.Requirements, info.Pip.RequirementFiles, Directories.DirCreated(GetPluginDirectory(type, version)));
+    }
+
+
+    public async Task Delete(PluginType type, PluginVersion version)
+    {
+        var name = GetCondaEnvName(type, version);
+        CondaManager.DeleteEnvironment(name);
+
+        var plugindir = GetPluginDirectory(type, version);
+        if (Directory.Exists(plugindir))
+            Directory.Delete(plugindir, true);
     }
 }

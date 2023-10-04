@@ -27,8 +27,8 @@ public static class Updaters
             { IsBackground = true }.Start();
         }
 
-        public async Task<OperationResult<T>> Update(Bindable<T> bindable) =>
-            await OperationResult.WrapException(async () => bindable.Value = await GetValue()).LogIfError(Logger);
+        public async Task<OperationResult<T>> Update() => await OperationResult.WrapException(GetValue).LogIfError(Logger);
+        public async Task<OperationResult> Update(Bindable<T> bindable) => await Update().Next(v => { bindable.Value = v; return OperationResult.Succ(); });
 
         protected abstract Task<T> GetValue();
     }

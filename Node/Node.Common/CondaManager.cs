@@ -16,6 +16,7 @@ public class CondaManager
             || File.Exists(Path.Combine(envdir, "bin", "python.exe")) || File.Exists(Path.Combine(envdir, "bin", "python"));
     }
 
+    public string EnvironmentsDirectory => Dirs.DataDir("conda");
     public string GetEnvironmentDirectory(string envname) => Dirs.DataDir(Path.Combine("conda", envname.ToLowerInvariant()), false);
 
     public string GetActivateScript(string condapath, string envname) => $"""
@@ -24,7 +25,7 @@ public class CondaManager
         """;
 
 
-    /// <remarks> Overwrites the environments if exists. </remarks>
+    /// <remarks> Overwrites the environment if exists. </remarks>
     public void InitializeEnvironment(string condapath, string name, string pyversion,
         IReadOnlyCollection<string> condarequirements, IReadOnlyCollection<string> condachannels, IReadOnlyCollection<string> piprequirements, IReadOnlyCollection<string> piprequirementfiles,
         string cwd)
@@ -83,5 +84,15 @@ public class CondaManager
             log();
             throw new Exception(obj.ToString());
         }
+    }
+
+    public string[] ListEnvironments() => Directory.GetDirectories(EnvironmentsDirectory);
+    public bool EnvironmentExists(string name) => Directory.Exists(GetEnvironmentDirectory(name));
+
+    public void DeleteEnvironment(string name)
+    {
+        var dir = GetEnvironmentDirectory(name);
+        if (Directory.Exists(dir))
+            Directory.Delete(dir, true);
     }
 }

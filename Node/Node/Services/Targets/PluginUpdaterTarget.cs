@@ -8,6 +8,9 @@ public class PluginUpdaterTarget : IServiceTarget
     {
         PluginDiscoverers.RegisterDiscoverers(builder);
 
+        builder.RegisterInstance(new PluginDirs("plugins"))
+            .SingleInstance();
+
         builder.RegisterType<PluginManager>()
             .AsSelf()
             .As<IInstalledPluginsProvider>()
