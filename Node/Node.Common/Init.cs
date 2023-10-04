@@ -175,6 +175,7 @@ public class Init : IServiceTarget
     {
         public bool UseAdminRights { get; init; } = true;
 
+        public bool AutoClearTempDir { get; init; } = true;
         public bool EnableLogging { get; init; } = true;
         public bool LogToFile { get; init; } = true;
     }

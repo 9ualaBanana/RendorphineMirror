@@ -6,7 +6,7 @@ using Node.Common;
 using UpdaterCommon;
 
 
-using var container = Init.CreateContainer(new Init.InitConfig("renderfin")).Build();
+using var container = Init.CreateContainer(new Init.InitConfig("renderfin") { AutoClearTempDir = false }).Build();
 var init = container.Resolve<Init>();
 ElevateIfNeeded();
 

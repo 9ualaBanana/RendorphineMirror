@@ -43,7 +43,7 @@ static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        var builder = Init.CreateContainer(new("renderfin"), typeof(Program).Assembly);
+        var builder = Init.CreateContainer(new("renderfin") { AutoClearTempDir = false }, typeof(Program).Assembly);
         builder.RegisterType<App>()
             .SingleInstance();
 

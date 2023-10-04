@@ -8,13 +8,19 @@ public class DataDirs
     public string Temp { get; }
     readonly string AppName;
 
-    public DataDirs(Init.InitConfig config) : this(config.AppName) { }
-    public DataDirs(string appname)
+    public DataDirs(string appname) : this(new Init.InitConfig(appname)) { }
+    public DataDirs(Init.InitConfig config)
     {
-        AppName = appname;
+        AppName = config.AppName;
 
         Data = DirCreated(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), AppName);
-        Temp = NewDirCreated(Data, "temp");
+
+        if (config.AutoClearTempDir)
+        {
+            try { Temp = NewDirCreated(Data, "temp"); }
+            catch { Temp = DirCreated("temp"); }
+        }
+        else Temp = DirCreated("temp");
     }
 
     public string DataDir(string name, bool create = true) => DirCreated(create, Data, name);
