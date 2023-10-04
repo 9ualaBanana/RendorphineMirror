@@ -2,51 +2,62 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
     "properties": {
-        "type": {
+        "Type": {
             "type": "string"
         },
-        "name": {
+        "Name": {
             "type": "string"
         },
-        "version": {
+        "Version": {
             "type": "string"
         },
-        "files": {
+        "Files": {
             "type": "object",
             "properties": {
-                "main": {
+                "Main": {
                     "type": "string"
                 }
             },
             "required": [
-                "main"
+                "Main"
             ]
         },
-        "installation": {
+        "Installation": {
             "type": [ "object", "null" ],
             "properties": {
-                "source": {
-                    "type": "string"
-                },
-                "script": {
-                    "type": [ "string", "null" ]
-                },
-                "python": {
+                "Source": {
                     "type": "object",
                     "properties": {
-                        "version": {
+                        "Type": {
+                            "enum": [ "registry", "url" ]
+                        },
+                        "Url": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "Type"
+                    ]
+                },
+                "Script": {
+                    "type": [ "string", "null" ]
+                },
+                "Python": {
+                    "type": "object",
+                    "properties": {
+                        "Version": {
                             "type": "string"
                         },
-                        "pip": {
+                        "Pip": {
                             "type": "object",
                             "properties": {
-                                "requirementFiles": {
+                                "RequirementFiles": {
                                     "type": "array",
                                     "items": {
                                         "type": "string"
                                     }
                                 },
-                                "requirements": {
+                                "Requirements": {
                                     "type": "array",
                                     "items": {
                                         "type": "string"
@@ -54,20 +65,20 @@
                                 }
                             },
                             "required": [
-                                "requirementFiles",
-                                "requirements"
+                                "RequirementFiles",
+                                "Requirements"
                             ]
                         },
-                        "conda": {
+                        "Conda": {
                             "type": "object",
                             "properties": {
-                                "requirements": {
+                                "Requirements": {
                                     "type": "array",
                                     "items": {
-                                        "type": "string"
+                                        "Type": "string"
                                     }
                                 },
-                                "channels": {
+                                "Channels": {
                                     "type": "array",
                                     "items": {
                                         "type": "string"
@@ -75,63 +86,63 @@
                                 }
                             },
                             "required": [
-                                "requirements",
-                                "channels"
+                                "Requirements",
+                                "Channels"
                             ]
                         }
                     },
                     "required": [
-                        "version",
-                        "pip",
-                        "conda"
+                        "Version",
+                        "Pip",
+                        "Conda"
                     ]
                 }
             },
             "required": [
-                "source",
-                "script",
-                "python"
+                "Source",
+                "Script",
+                "Python"
             ]
         },
-        "requirements": {
+        "Requirements": {
             "type": "object",
             "properties": {
-                "platforms": {
+                "Platforms": {
                     "type": "array",
                     "items": {
                         "enum": [ "windows", "linux", "macos" ]
                     }
                 },
-                "parents": {
+                "Parents": {
                     "type": "array",
                     "items": {
                         "type": "object",
                         "properties": {
-                            "type": {
+                            "Type": {
                                 "type": "string"
                             },
-                            "version": {
+                            "Version": {
                                 "type": [ "string", "null" ]
                             }
                         },
                         "required": [
-                            "type",
-                            "version"
+                            "Type",
+                            "Version"
                         ]
                     }
                 }
             },
             "required": [
-                "platforms",
-                "parents"
+                "Platforms",
+                "Parents"
             ]
         }
     },
     "required": [
-        "type",
-        "version",
-        "files",
-        "installation",
-        "requirements"
+        "Type",
+        "Version",
+        "Files",
+        "Installation",
+        "Requirements"
     ]
 }

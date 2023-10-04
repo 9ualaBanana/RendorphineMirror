@@ -30,7 +30,7 @@ public sealed class UserSettingsHeartbeat : Heartbeat
         {
             if (software is null) return;
 
-            var newcount = PluginDeployer.DeployUninstalled(PluginChecker.GetInstallationTree(NodeGlobalState.Software.Value, UUserSettings.ToDeploy(software)));
+            var newcount = await PluginDeployer.DeployUninstalled(PluginChecker.GetInstallationTree(NodeGlobalState.Software.Value, UUserSettings.ToDeploy(software)), default);
             if (newcount != 0)
                 await PluginManager.RediscoverPluginsAsync();
         }

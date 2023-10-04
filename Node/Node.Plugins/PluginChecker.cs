@@ -1,4 +1,4 @@
-using SoftwareList = System.Collections.Immutable.ImmutableDictionary<string, System.Collections.Immutable.ImmutableDictionary<Node.Plugins.Models.PluginVersion, Node.Plugins.Models.SoftwareVersionInfo>>;
+using SoftwareList = System.Collections.Immutable.ImmutableDictionary<Node.Plugins.Models.PluginType, System.Collections.Immutable.ImmutableDictionary<Node.Plugins.Models.PluginVersion, Node.Plugins.Models.SoftwareVersionInfo>>;
 
 namespace Node.Plugins;
 
@@ -27,7 +27,7 @@ public static class PluginChecker
 
     static SoftwareVersionInfo? GetVersionDefinition(SoftwareList software, PluginType type, ref PluginVersion version)
     {
-        var soft = software.GetValueOrDefault(type.ToString());
+        var soft = software.GetValueOrDefault(type);
         if (soft is null) return null;
 
         if (version.IsEmpty)

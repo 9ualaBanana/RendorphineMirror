@@ -34,9 +34,9 @@ public class PluginDeployerTests
     [Test]
     public void TestPluginChecker()
     {
-        var software = new Dictionary<string, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>()
+        var software = new Dictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>()
         {
-            [PluginType.Esrgan.ToString()] = new Dictionary<PluginVersion, SoftwareVersionInfo>()
+            [PluginType.Esrgan] = new Dictionary<PluginVersion, SoftwareVersionInfo>()
             {
                 ["1.0.0"] = new SoftwareVersionInfo(
                     PluginType.Esrgan,
@@ -63,7 +63,7 @@ public class PluginDeployerTests
                     )
                 ),
             }.ToImmutableDictionary(),
-            [PluginType.Blender.ToString()] = new Dictionary<PluginVersion, SoftwareVersionInfo>()
+            [PluginType.Blender] = new Dictionary<PluginVersion, SoftwareVersionInfo>()
             {
                 ["1.0.0"] = new SoftwareVersionInfo(
                     PluginType.Blender,
@@ -125,7 +125,7 @@ public class PluginDeployerTests
 
 
         IEnumerable<PluginToInstall> gettree(PluginType type, string? version, IReadOnlyCollection<Plugin> installed) =>
-            PluginChecker.GetInstallationTree(software, type, version)
+            PluginChecker.GetInstallationTree(software, type, new PluginVersion(version))
                 .Where(p => !PluginDeployer.IsInstalled(installed, p.Type, p.Version));
     }
 }

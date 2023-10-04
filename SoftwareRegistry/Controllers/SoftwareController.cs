@@ -18,7 +18,7 @@ public class SoftwareController : ControllerBase
 
 
     [HttpGet("gettorrent")]
-    public ActionResult GetTorrent([FromQuery] PluginType plugin, string version)
+    public ActionResult GetTorrent([FromQuery] PluginType plugin, [FromQuery] string version)
     {
         if (SoftList.TryGet(plugin, version, out var soft))
             return File(soft.TorrentFileBytes, "application/x-bittorrent");

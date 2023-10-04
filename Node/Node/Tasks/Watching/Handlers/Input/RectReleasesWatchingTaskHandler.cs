@@ -19,7 +19,7 @@ public class RectReleasesWatchingTaskHandler : WatchingTaskInputHandler<RectRele
             if (PluginList.TryGetPlugin(PluginType.ImageDetector) is null)
             {
                 var tree = PluginChecker.GetInstallationTree(NodeGlobalState.Software.Value, PluginType.ImageDetector, PluginVersion.Empty);
-                PluginDeployer.DeployUninstalled(tree);
+                await PluginDeployer.DeployUninstalled(tree, default);
                 await PluginManager.RediscoverPluginsAsync();
             }
 

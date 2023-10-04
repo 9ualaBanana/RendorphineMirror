@@ -20,7 +20,7 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder
 ));
 
 builder.Services.AddControllers().AddNewtonsoftJson();
-builder.Services.AddSingleton(ctx => new TorrentClient(6229, 6230) { Logger = ctx.GetRequiredService<ILogger<TorrentClient>>() });
+builder.Services.AddSingleton(ctx => new TorrentClient(6231, 6232) { Logger = ctx.GetRequiredService<ILogger<TorrentClient>>() });
 builder.Services.AddSingleton<SoftwareList>();
 
 var app = builder.Build();

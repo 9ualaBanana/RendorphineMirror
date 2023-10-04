@@ -57,6 +57,14 @@ namespace Common
 
             return value;
         }
+        public static string ThrowIfNullOrEmpty([NotNull] this string? value, string? message = null, [CallerArgumentExpression(nameof(value))] string? expression = null)
+        {
+            value.ThrowIfNull(message, expression);
+            if (value.Length == 0)
+                throw new NullReferenceException(message ?? $"{expression ?? "Value"} is empty");
+
+            return value;
+        }
 
         public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> enumerable) where T : class =>
             enumerable.Where(item => item is not null)!;

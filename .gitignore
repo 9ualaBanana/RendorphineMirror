@@ -18,6 +18,7 @@ cache/
 assets/*.version
 assets/cef/
 /plugins/
+/_plugins/
 SoftwareRegistry/plugins/
 /torrents/
 /SoftwareRegistry/plugins/

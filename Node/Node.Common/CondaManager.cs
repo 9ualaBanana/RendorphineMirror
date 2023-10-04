@@ -26,7 +26,8 @@ public class CondaManager
 
     /// <remarks> Overwrites the environments if exists. </remarks>
     public void InitializeEnvironment(string condapath, string name, string pyversion,
-        IReadOnlyCollection<string> condarequirements, IReadOnlyCollection<string> condachannels, IReadOnlyCollection<string> piprequirements, IReadOnlyCollection<string> piprequirementfiles)
+        IReadOnlyCollection<string> condarequirements, IReadOnlyCollection<string> condachannels, IReadOnlyCollection<string> piprequirements, IReadOnlyCollection<string> piprequirementfiles,
+        string cwd)
     {
         {
             var log = $"Initializing conda environment {name}"
@@ -41,6 +42,7 @@ public class CondaManager
 
 
         var script = $"""
+            Set-Location '{Path.GetFullPath(cwd)}'
             & '{condapath}' create -y --json -p '{GetEnvironmentDirectory(name)}' 'python={pyversion}' {string.Join(' ', condarequirements.Select(r => $"'{r}'"))} {string.Join(' ', condachannels.Select(c => $"-c '{c}'"))}
             {GetActivateScript(condapath, name)}
             """;
