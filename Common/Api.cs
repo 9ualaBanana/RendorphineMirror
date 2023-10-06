@@ -44,7 +44,7 @@ public record Api : ApiBase
         await LogRequest(response, responseJson, errorDetails);
 
         var errcode = responseJson?["errorcode"]?.Value<int>();
-        var errmsg = responseJson?["errormessage"]?.Value<string>();
+        var errmsg = responseJson?["errormessage"]?.Value<string>() ?? responseJson?["title"]?.Value<string>();
 
 
         var ok =

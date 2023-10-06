@@ -16,10 +16,10 @@ public class AdminController : ControllerBase
         Dirs = dirs;
     }
 
-    [HttpPost("delete")]
-    public async Task<JObject> Delete([FromQuery] PluginType plugin, [FromQuery] string version)
+    [HttpGet("delete")]
+    public async Task<JObject> Delete([FromQuery] PluginType type, [FromQuery] string version)
     {
-        var removed = await SoftList.RemoveAsync(plugin, version);
+        var removed = await SoftList.RemoveAsync(type, version);
         if (!removed) return JsonApi.Error("Plugin version was not found");
 
         return JsonApi.Success();
@@ -38,9 +38,9 @@ public class AdminController : ControllerBase
         return File(ms.ToArray(), "application/x-tar", fileDownloadName: $"{type}_{version}");
     }
 
-    [HttpPost("uploadtar")]
+    [HttpPost("upload")]
     [RequestSizeLimit(long.MaxValue)]
-    public async Task<ActionResult<JObject>> UploadTar([FromForm] IFormFile file)
+    public async Task<ActionResult<JObject>> Upload([FromForm] IFormFile file)
     {
         if (file.Headers.ContentType != "application/x-tar")
             return new UnsupportedMediaTypeResult();

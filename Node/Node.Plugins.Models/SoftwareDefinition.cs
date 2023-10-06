@@ -8,6 +8,7 @@ public record SoftwareVersionInfo(PluginType Type, string Version, string Name, 
     {
         public record SourceInfo(SourceInfo.SourceType Type)
         {
+            [JsonConverter(typeof(StringEnumConverter))]
             public enum SourceType
             {
                 Registry,

@@ -19,15 +19,6 @@ public class AdminApp : AppBase
         builder.RegisterType<UISettings>()
             .SingleInstance();
 
-        {
-            var software = new Bindable<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>>();
-            builder.Register(ctx => software)
-                .AsSelf()
-                .AsReadOnlyBindable()
-                .SingleInstance()
-                .OnActivating(async ctx => await Task.Run(async () => await ctx.Context.Resolve<Updaters.SoftwareUpdater>().Start(null, ctx.Instance, default)).ConfigureAwait(false));
-        }
-
         builder.RegisterSource<AutoControlRegistrator>();
         return builder.Build();
     }
