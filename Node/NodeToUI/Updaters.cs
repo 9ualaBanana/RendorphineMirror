@@ -10,18 +10,20 @@ public static class Updaters
 
         protected UpdaterBase(ILogger<UpdaterBase<T>> logger) => Logger = logger;
 
-        public void Start(IReadOnlyBindable<bool>? skipupdate, Bindable<T> bindable, CancellationToken token)
+        public async Task Start(IReadOnlyBindable<bool>? skipupdate, Bindable<T> bindable, CancellationToken token)
         {
+            if (skipupdate?.Value != true)
+                await Update(bindable);
+
             new Thread(async () =>
             {
                 while (true)
                 {
+                    await Task.Delay(Interval, token);
                     if (token.IsCancellationRequested) return;
 
                     if (skipupdate?.Value != true)
                         await Update(bindable);
-
-                    await Task.Delay(Interval);
                 }
             })
             { IsBackground = true }.Start();

@@ -25,6 +25,19 @@ public class AdminController : ControllerBase
         return JsonApi.Success();
     }
 
+    [HttpGet("download")]
+    public async Task<ActionResult<JObject>> Download([FromQuery] PluginType type, [FromQuery] string version)
+    {
+        if (!SoftList.TryGet(type, version, out var info))
+            return NotFound();
+
+        var ms = new MemoryStream();
+        await TarFile.CreateFromDirectoryAsync(info.Directory, ms, false);
+        ms.Position = 0;
+
+        return File(ms.ToArray(), "application/x-tar", fileDownloadName: $"{type}_{version}");
+    }
+
     [HttpPost("uploadtar")]
     [RequestSizeLimit(long.MaxValue)]
     public async Task<ActionResult<JObject>> UploadTar([FromForm] IFormFile file)

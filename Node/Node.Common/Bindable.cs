@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
+using Autofac.Builder;
 
 namespace Node.Common;
 
@@ -214,4 +215,10 @@ public class BindableDictionary<TKey, TValue> : BindableBase<IReadOnlyDictionary
 
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => Value.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+public static class BindableExtensions
+{
+    public static IRegistrationBuilder<Bindable<T>, TActivatorData, TActivationStyle> AsReadOnlyBindable<T, TActivatorData, TActivationStyle>(this IRegistrationBuilder<Bindable<T>, TActivatorData, TActivationStyle> builder) =>
+        builder.As<IReadOnlyBindable<T>>();
 }

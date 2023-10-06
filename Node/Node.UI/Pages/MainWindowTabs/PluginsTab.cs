@@ -1,3 +1,5 @@
+using Autofac;
+
 namespace Node.UI.Pages.MainWindowTabs;
 
 public class PluginsTab : Panel
@@ -13,7 +15,7 @@ public class PluginsTab : Panel
                 Children =
                 {
                     new InstallPluginPanel().Named("Install plugins"),
-                    new UserSettingsPluginPanel().Named("User settings (temp)"),
+                    new UserSettingsPluginPanel(App.Instance.Container.Resolve<Apis>()).Named("User settings (temp)"),
                     NamedList.Create("Stats", NodeGlobalState.Instance.SoftwareStats, softStatToControl),
                     NamedList.Create("Registry", NodeGlobalState.Instance.Software, softToControl),
                     NamedList.Create("Installed", NodeGlobalState.Instance.InstalledPlugins, pluginToControl),
@@ -116,12 +118,12 @@ public class PluginsTab : Panel
         readonly IBindable<UUserSettings> Settings;
         readonly IBindable<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>> Stats;
 
-        public UserSettingsPluginPanel()
+        public UserSettingsPluginPanel(Apis apis)
         {
             Settings = NodeGlobalState.Instance.UserSettings.GetBoundCopy();
             Stats = NodeGlobalState.Instance.Software.GetBoundCopy();
 
-            Apis.Default.GetSettingsAsync()
+            apis.GetSettingsAsync()
                 .Next(s => { Settings.Value = s; return OperationResult.Succ(); })
                 .Consume();
 
@@ -169,7 +171,7 @@ public class PluginsTab : Panel
                                 Text = "Reload settings",
                                 OnClickSelf = async self =>
                                 {
-                                    var settings = await Apis.Default.GetSettingsAsync();
+                                    var settings = await apis.GetSettingsAsync();
                                     if (settings)
                                         Settings.Value = settings.Value;
 
@@ -187,7 +189,7 @@ public class PluginsTab : Panel
                                     Settings.Value.Install(NodeGlobalState.Instance.AuthInfo.Value.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
-                                    var set = await Apis.Default.SetSettingsAsync(Settings.Value);
+                                    var set = await apis.SetSettingsAsync(Settings.Value);
                                     await self.Flash(set);
                                 },
                             },
@@ -199,7 +201,7 @@ public class PluginsTab : Panel
                                     Settings.Value.Uninstall(NodeGlobalState.Instance.AuthInfo.Value.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
-                                    var set = await Apis.Default.SetSettingsAsync(Settings.Value);
+                                    var set = await apis.SetSettingsAsync(Settings.Value);
                                     await self.Flash(set);
                                 },
                             },
@@ -211,7 +213,7 @@ public class PluginsTab : Panel
                                     Settings.Value.Install(pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
-                                    var set = await Apis.Default.SetSettingsAsync(Settings.Value);
+                                    var set = await apis.SetSettingsAsync(Settings.Value);
                                     await self.Flash(set);
                                 },
                             },
@@ -223,7 +225,7 @@ public class PluginsTab : Panel
                                     Settings.Value.Uninstall(pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
-                                    var set = await Apis.Default.SetSettingsAsync(Settings.Value);
+                                    var set = await apis.SetSettingsAsync(Settings.Value);
                                     await self.Flash(set);
                                 },
                             },

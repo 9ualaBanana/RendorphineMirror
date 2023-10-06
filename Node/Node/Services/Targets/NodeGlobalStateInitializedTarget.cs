@@ -21,7 +21,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
     public required Updaters.SoftwareStatsUpdater SoftwareStatsUpdater { get; init; }
     public required ILogger<NodeGlobalStateInitializedTarget> Logger { get; init; }
 
-    public Task ExecuteAsync()
+    public async Task ExecuteAsync()
     {
         var state = NodeGlobalState;
 
@@ -42,9 +42,12 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         state.NodeName.Bind(Settings.BNodeName.Bindable);
         state.AuthInfo.Bind(Settings.BAuthInfo.Bindable);
 
-        BalanceUpdater.Start(null, state.Balance, default);
-        SoftwareUpdater.Start(null, state.Software, default);
-        SoftwareStatsUpdater.Start(null, state.SoftwareStats, default);
+        await Task.WhenAll(new[]
+        {
+            BalanceUpdater.Start(null, state.Balance, default),
+            SoftwareUpdater.Start(null, state.Software, default),
+            SoftwareStatsUpdater.Start(null, state.SoftwareStats, default),
+        });
 
 
         state.TaskDefinitions.Value = serializeActions();
@@ -67,8 +70,5 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
             static ImmutableArray<TaskInputOutputDescriber> serialize<T>(ImmutableDictionary<T, Type> dict) where T : struct, Enum =>
                 dict.Select(x => new TaskInputOutputDescriber(x.Key.ToString(), new ObjectDescriber(x.Value))).ToImmutableArray();
         }
-
-
-        return Task.CompletedTask;
     }
 }

@@ -10,12 +10,9 @@ public class PluginDeployer
     public required IInstalledPluginsProvider InstalledPlugins { get; init; }
     public required CondaManager CondaManager { get; init; }
     public required TorrentClient TorrentClient { get; init; }
-    public required HttpClient Client { get; init; }
+    public required HttpClient HttpClient { get; init; }
     public required PluginDirs PluginDirs { get; init; }
     public required ILogger<PluginDeployer> Logger { get; init; }
-
-    string PluginsDirectory => Directories.DirCreated(PluginDirs.Directory);
-    string GetPluginDirectory(PluginType type, PluginVersion version) => Directories.DirCreated(PluginsDirectory, type.ToString().ToLowerInvariant(), version.ToString().ThrowIfNullOrEmpty());
 
     public static string GetCondaEnvName(PluginType type, PluginVersion version) => $"{type.ToString().ToLowerInvariant()}_{version}";
 
@@ -71,7 +68,7 @@ public class PluginDeployer
     async Task Download(PluginType type, PluginVersion version, SoftwareVersionInfo.InstallationInfo.SourceInfo source, CancellationToken token)
     {
         // clearing old plugin files if any
-        var targetdir = Directories.NewDirCreated(GetPluginDirectory(type, version));
+        var targetdir = Directories.NewDirCreated(PluginDirs.GetPluginDirectory(type, version));
 
         if (source is SoftwareVersionInfo.InstallationInfo.RegistrySourceInfo)
             await downloadRegistry(token);
@@ -86,7 +83,7 @@ public class PluginDeployer
             // MemoryStream needed as TorrentClient.AddOrGetTorrent requires seeking support
             TorrentManager manager;
             using (var torrentstreamcopy = new MemoryStream())
-            using (var torrentresponse = await Client.GetAsync(Api.AppendQuery($"{Apis.RegistryUrl}/soft/gettorrent", ("plugin", type.ToString()), ("version", version.ToString())), token))
+            using (var torrentresponse = await HttpClient.GetAsync(Api.AppendQuery($"{Apis.RegistryUrl}/soft/gettorrent", ("plugin", type.ToString()), ("version", version.ToString())), token))
             using (var torrentstream = await torrentresponse.Content.ReadAsStreamAsync(token))
             {
                 await torrentstream.CopyToAsync(torrentstreamcopy, token);
@@ -108,7 +105,7 @@ public class PluginDeployer
             var result = Path.Combine(targetdir, resultfilename);
             Logger.LogInformation($"Downloading from {url} to {result}");
 
-            using var inputstream = await Client.GetStreamAsync(url, token);
+            using var inputstream = await HttpClient.GetStreamAsync(url, token);
             using var resultfile = File.Create(Path.Combine(targetdir, result));
             await inputstream.CopyToAsync(inputstream, token);
         }
@@ -160,7 +157,7 @@ public class PluginDeployer
         var name = GetCondaEnvName(type, version);
         var condapath = InstalledPlugins.Plugins.First(p => p.Type == PluginType.Conda).Path;
 
-        CondaManager.InitializeEnvironment(condapath, name, info.Version, info.Conda.Requirements, info.Conda.Channels, info.Pip.Requirements, info.Pip.RequirementFiles, Directories.DirCreated(GetPluginDirectory(type, version)));
+        CondaManager.InitializeEnvironment(condapath, name, info.Version, info.Conda.Requirements, info.Conda.Channels, info.Pip.Requirements, info.Pip.RequirementFiles, Directories.DirCreated(PluginDirs.GetPluginDirectory(type, version)));
     }
 
 
@@ -169,7 +166,7 @@ public class PluginDeployer
         var name = GetCondaEnvName(type, version);
         CondaManager.DeleteEnvironment(name);
 
-        var plugindir = GetPluginDirectory(type, version);
+        var plugindir = PluginDirs.GetPluginDirectory(type, version);
         if (Directory.Exists(plugindir))
             Directory.Delete(plugindir, true);
     }

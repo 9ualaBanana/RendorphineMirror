@@ -150,7 +150,9 @@ public abstract record ApiBase
         var text = $"[{errorDetails}] [{response.RequestMessage?.Method.Method} {response.RequestMessage?.RequestUri}";
         if (response.RequestMessage?.Method == HttpMethod.Post)
             text = $"{text} {{ {await ContentToString(response.RequestMessage.Content, token)} }}";
-        text = $"{text}]: HTTP {(int) response.StatusCode}: {responseJson?.ToString(Formatting.None) ?? "<no message>"}";
+        text = $"{text}]: HTTP {(int) response.StatusCode}";
+        if (responseJson is not null)
+            text = $"{text}: {responseJson?.ToString(Formatting.None) ?? "<no message>"}";
 
         logger.LogTrace(text);
     }
