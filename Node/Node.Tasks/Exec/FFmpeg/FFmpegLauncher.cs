@@ -35,7 +35,7 @@ public class FFmpegLauncher
         stream.CodecName switch
         {
             "prores" => new ProresFFmpegCodec() { Profile = ProresFFmpegCodec.CopyProfileFrom(stream) },
-            "mjpeg" => new H264NvencFFmpegCodec() { Bitrate = new BitrateData.Constant(stream.Bitrate) },
+            "mjpeg" when stream.DurationTs != 1 => new H264NvencFFmpegCodec() { Bitrate = new BitrateData.Constant(stream.Bitrate) },
 
             var jpeg when jpeg.ContainsOrdinal("jpeg") || jpeg.ContainsOrdinal("jpg") =>
                 new JpegFFmpegCodec(),

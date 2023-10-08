@@ -1,3 +1,4 @@
+using Node.Tasks.Exec.Input;
 using static Node.Tests.GenericTasksTests;
 using static Node.Tests.TaskTesting;
 
@@ -13,7 +14,25 @@ public class LocalTests
     {
         Logger.LogInformation("Running tests...");
 
-        await ElevenLabsTest();
+        // await ElevenLabsTest();
+        await LaunchTask();
+    }
+
+    async Task LaunchTask()
+    {
+        await ExecuteSingle(
+            Context,
+            new EditRaster(),
+            new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/landscape.jpg"), }), "/temp/tt"),
+            new EditRasterInfo() { Hflip = true }
+        );
+
+        await ExecuteSingle(
+            Context,
+            new EditVideo(),
+            new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/mjpeg.mov"), }), "/temp/tt"),
+            new EditVideoInfo() { Hflip = true }
+        );
     }
 
     async Task ElevenLabsTest()

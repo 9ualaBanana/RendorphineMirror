@@ -4,18 +4,20 @@ namespace Node.Tests;
 
 public static partial class GenericTasksTests
 {
-    public static async Task RunAsync()
+    public static async Task RunAsync(ILifetimeScope container)
     {
         if (Directory.Exists("/temp/tt"))
             Directory.Delete("/temp/tt", true);
 
         await ExecuteSingle(
+            container,
             new EditVideo(),
             new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/Downloads/Telegram Desktop/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt"),
             new EditVideoInfo() { Hflip = true }
         );
 
         await ExecuteMulti(
+            container,
             new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/Downloads/Telegram Desktop/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt"),
             new EditVideoInfo() { Hflip = true, }.ToData(),
             new EditVideoInfo() { Vflip = true, }.ToData()
@@ -25,10 +27,8 @@ public static partial class GenericTasksTests
     static JObject ToData(this object data, string? type = null) => JObject.FromObject(data).WithProperty("type", type ?? data.GetType().Name[..^"Info".Length]);
 
 
-    static ContainerBuilder CreateTaskBuilder()
+    static void InitializeForTasks(ContainerBuilder builder)
     {
-        var builder = Container.CreateBuilder();
-
         builder.RegisterType<ConsoleProgressSetter>()
             .AsImplementedInterfaces()
             .SingleInstance();
@@ -47,24 +47,22 @@ public static partial class GenericTasksTests
 
         builder.RegisterType<EditVideo>()
             .Keyed<IPluginActionInfo>(TaskAction.EditVideo);
-
-        return builder;
     }
 
 
-    public static async Task<TOutput> ExecuteSingle<TInput, TOutput, TData>(PluginActionInfo<TInput, TOutput, TData> action, TInput input, TData data)
+    public static async Task<TOutput> ExecuteSingle<TInput, TOutput, TData>(ILifetimeScope container, PluginActionInfo<TInput, TOutput, TData> action, TInput input, TData data)
         where TInput : notnull
         where TOutput : notnull
         where TData : notnull
     {
-        using var container = CreateTaskBuilder().Build();
-        return await action.Execute(container, input, data);
+        using var ctx = container.BeginLifetimeScope(InitializeForTasks);
+        return await action.Execute(ctx, input, data);
     }
 
-    public static async Task<object> ExecuteMulti(object input, params JObject[] datas)
+    public static async Task<object> ExecuteMulti(ILifetimeScope container, object input, params JObject[] datas)
     {
-        using var container = CreateTaskBuilder().Build();
-        return await container.Resolve<TaskExecutorByData>()
+        using var ctx = container.BeginLifetimeScope(InitializeForTasks);
+        return await ctx.Resolve<TaskExecutorByData>()
             .Execute(input, datas);
     }
 }
