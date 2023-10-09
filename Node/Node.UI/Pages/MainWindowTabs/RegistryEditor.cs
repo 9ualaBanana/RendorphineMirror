@@ -10,8 +10,6 @@ public class RegistryEditor : Panel
     readonly Bindable<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>> Software = new();
     readonly Updaters.SoftwareUpdater SoftwareUpdater;
 
-    public RegistryEditor(Updaters.SoftwareUpdater softwareUpdater, Bindable<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>> software) : this(softwareUpdater) =>
-        Software = software;
     public RegistryEditor(Updaters.SoftwareUpdater softwareUpdater)
     {
         SoftwareUpdater = softwareUpdater;

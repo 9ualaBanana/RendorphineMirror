@@ -46,7 +46,7 @@ public class Init : IServiceTarget
                     var logger = l.Context.ResolveLogger(l.Instance.GetType());
 
                     logger.LogInformation($"Resolved target {l.Instance}");
-                    await ((IServiceTarget) l.Instance).ExecuteAsync();
+                    await ((IServiceTarget) l.Instance).ExecuteAsync().ConfigureAwait(false);
                     logger.LogInformation($"Reached target {l.Instance}");
                 });
 

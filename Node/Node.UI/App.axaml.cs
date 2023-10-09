@@ -37,6 +37,7 @@ namespace Node.UI
                 .AsReadOnlyBindable()
                 .SingleInstance();
 
+            builder.RegisterSource<AutoControlRegistrator>();
             var container = builder.Build();
 
             var init = container.Resolve<Init>();

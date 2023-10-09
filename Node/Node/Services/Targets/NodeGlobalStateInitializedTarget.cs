@@ -8,9 +8,9 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
             .SingleInstance();
     }
 
+    public required TaskListTarget TaskList { get; init; }
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required PluginManager PluginManager { get; init; }
-    public required IIndex<TaskAction, IPluginActionInfo> Actions { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }
     public required IQueuedTasksStorage QueuedTasks { get; init; }
     public required IPlacedTasksStorage PlacedTasks { get; init; }
@@ -19,6 +19,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
     public required Updaters.BalanceUpdater BalanceUpdater { get; init; }
     public required Updaters.SoftwareUpdater SoftwareUpdater { get; init; }
     public required Updaters.SoftwareStatsUpdater SoftwareStatsUpdater { get; init; }
+    public required IComponentContext Container { get; init; }
     public required ILogger<NodeGlobalStateInitializedTarget> Logger { get; init; }
 
     public async Task ExecuteAsync()
@@ -54,11 +55,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         TasksFullDescriber serializeActions()
         {
             return new TasksFullDescriber(
-                Enum.GetValues<TaskAction>()
-                    .Select(type => Actions.TryGetValue(type, out var info) ? info : null)
-                    .WhereNotNull()
-                    .Select(serializeaction)
-                    .ToImmutableArray(),
+                TaskList.Actions.Select(serializeaction).ToImmutableArray(),
                 serialize(TaskModels.Inputs),
                 serialize(TaskModels.Outputs),
                 serialize(TaskModels.WatchingInputs),

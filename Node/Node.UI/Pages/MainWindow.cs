@@ -34,8 +34,9 @@ namespace Node.UI.Pages
             tabs.Add("tab.plugins", new PluginsTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
-            // if (App.Instance.Init.DebugFeatures) tabs.Add("registry", new RegistryEditor(App.Instance.Container.Resolve<Apis>(), App.Current.SoftwareUpdater, NodeGlobalState.Instance.Software, App.Instance.Container.Resolve<ILogger<RegistryEditor>>()));
             tabs.Add("3dupload", new Model3DUploadTab());
+            if (App.Instance.Init.DebugFeatures)
+                tabs.Add("registry", App.Instance.Container.Resolve<RegistryEditor>());
 
             var statustb = new TextBlock()
             {
