@@ -2,11 +2,14 @@ namespace Common;
 
 public static class Directories
 {
-    public static string RandomNameInDirectory(string dir)
+    public static string RandomNameInDirectory(string dir, string? extension = null)
     {
         string path;
         do { path = Path.Combine(dir, Guid.NewGuid().ToString()); }
         while (File.Exists(path) || Directory.Exists(path));
+
+        if (extension is not null)
+            return path + (extension.StartsWith('.') ? extension : ($".{extension}"));
 
         return path;
     }

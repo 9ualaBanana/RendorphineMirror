@@ -20,15 +20,15 @@ public class DataDirs
     public string DataDir(string name, bool create = true) => DirCreated(create, Data, name);
     public string DataFile(string name, bool create = false) => FileCreated(create, Data, name);
 
-    public string TempDir(string parentdir = "", bool create = true)
+    public string TempDir(string parentdir = "", bool create = true, string? extension = null)
     {
         parentdir = DirCreated(Temp, parentdir);
-        return DirCreated(create, parentdir, RandomNameInDirectory(parentdir));
+        return DirCreated(create, parentdir, RandomNameInDirectory(parentdir, extension));
     }
-    public string TempFile(string parentdir = "", bool create = false)
+    public string TempFile(string parentdir = "", bool create = false, string? extension = null)
     {
         parentdir = DirCreated(Temp, parentdir);
-        return FileCreated(create, parentdir, RandomNameInDirectory(parentdir));
+        return FileCreated(create, parentdir, RandomNameInDirectory(parentdir, extension));
     }
 
     public string NamedTempDir(string name, bool create = true) => DirCreated(create, Temp, name);
