@@ -166,6 +166,7 @@ public class Topaz : FilePluginActionInfo<TopazInfo>
             await Execute(input, data, ffprobe, output, addSecondPassArgs);
 
 
+            static string preprocessFilename(string filename) => filename.Replace(@"\", @"/").Replace(":", @"\\:");
             void addFirstPassArgs(TopazInfo data, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
             {
                 var filter = new ArgList()
@@ -174,7 +175,7 @@ public class Topaz : FilePluginActionInfo<TopazInfo>
                     "tvai_cpe=model=cpe-1",
 
                     // stabilization data json result
-                    $"filename={jsonfile}",
+                    $"filename={preprocessFilename(jsonfile)}",
                 };
 
                 launcher.VideoFilters.Add(new[] { string.Join(':', filter) });
@@ -187,7 +188,7 @@ public class Topaz : FilePluginActionInfo<TopazInfo>
                     "tvai_stb=model=ref-2",
 
                     // stabilization data json input
-                    $"filename={jsonfile}",
+                    $"filename={preprocessFilename(jsonfile)}",
 
                     // stabilization strength
                     $"smoothness={(data.Strength.GetValueOrDefault(.5f) * 12f).ToStringInvariant()}",
