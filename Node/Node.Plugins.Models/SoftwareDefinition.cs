@@ -47,7 +47,7 @@ public record SoftwareVersionInfo(PluginType Type, string Version, string Name, 
 
     public record RequirementsInfo(ImmutableArray<string> Platforms, ImmutableArray<RequirementsInfo.ParentInfo> Parents)
     {
-        public record ParentInfo(string Type, string? Version);
+        public record ParentInfo(PluginType Type, string? Version);
     }
 }
 

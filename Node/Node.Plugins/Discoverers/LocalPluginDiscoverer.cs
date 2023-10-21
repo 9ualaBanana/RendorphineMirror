@@ -22,5 +22,7 @@ public abstract class LocalPluginDiscoverer : PluginDiscoverer
         return Directory.GetDirectories(dir);
     }
 
-    protected override string DetermineVersion(string exepath) => Path.GetFileName(Path.GetDirectoryName(exepath)!);
+    protected override Plugin GetDiscoveredPlugin(string executablePath) => new LocalPlugin(PluginType, DetermineVersion(executablePath), executablePath);
+    protected sealed override string DetermineVersion(string exepath) =>
+        JsonConvert.DeserializeObject<SoftwareVersionInfo>(File.ReadAllText(Path.Combine(exepath, "..", "plugin.json"))).ThrowIfNull().Version;
 }

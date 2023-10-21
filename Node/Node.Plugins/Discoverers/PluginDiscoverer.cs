@@ -65,12 +65,12 @@ public abstract class PluginDiscoverer : IPluginDiscoverer
                     return Path.GetExtension(path) != string.Empty;
                 return AllowExeOnLinux || !path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
             })
-            .Select(GetDiscoveredPlugin)
+            .Select(p => GetDiscoveredPlugin(Path.GetFullPath(p)))
             // skip same versions unless it's unknown
             .DistinctBy(plugin => plugin.Version == "Unknown" ? Guid.NewGuid().ToString() : plugin.Version);
     }
 
-    Plugin GetDiscoveredPlugin(string executablePath) => new Plugin(PluginType, DetermineVersion(executablePath), Path.GetFullPath(executablePath));
+    protected virtual Plugin GetDiscoveredPlugin(string executablePath) => new Plugin(PluginType, DetermineVersion(executablePath), executablePath);
     protected virtual string DetermineVersion(string exepath) => "Unknown";
 
 
