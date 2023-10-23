@@ -47,7 +47,7 @@ public class PluginDeployerTests
                     new SoftwareVersionInfo.RequirementsInfo(
                         ImmutableArray<string>.Empty,
                         ImmutableArray<SoftwareVersionInfo.RequirementsInfo.ParentInfo>.Empty
-                            .Add(new(PluginType.NvidiaDriver.ToString(), null))
+                            .Add(new(PluginType.NvidiaDriver, null))
                     )
                 ),
                 ["1.0.1"] = new SoftwareVersionInfo(
@@ -59,7 +59,7 @@ public class PluginDeployerTests
                     new SoftwareVersionInfo.RequirementsInfo(
                         ImmutableArray<string>.Empty,
                         ImmutableArray<SoftwareVersionInfo.RequirementsInfo.ParentInfo>.Empty
-                            .Add(new(PluginType.NvidiaDriver.ToString(), null))
+                            .Add(new(PluginType.NvidiaDriver, null))
                     )
                 ),
             }.ToImmutableDictionary(),
