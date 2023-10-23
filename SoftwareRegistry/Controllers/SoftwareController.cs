@@ -11,9 +11,12 @@ public class SoftwareController : ControllerBase
     [HttpGet("get")]
     public JObject GetSoftware() =>
         JsonApi.Success(
-            SoftList.AllSoftware
-                .GroupBy(s => s.Type)
-                .ToDictionary(g => g.Key, g => g.ToDictionary(s => s.Version))
+            JObject.FromObject(
+                SoftList.AllSoftware
+                    .GroupBy(s => s.Type)
+                    .ToDictionary(g => g.Key, g => g.ToDictionary(s => s.Version)),
+                JsonSettings.LowercaseS
+            )
         );
 
 
