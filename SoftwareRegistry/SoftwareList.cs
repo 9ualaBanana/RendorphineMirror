@@ -60,12 +60,8 @@ public class SoftwareList
         return true;
     }
 
-    public async Task<OperationResult> TryAddNewPlugin(string dir)
+    public async Task TryAddNewPlugin(SoftwareVersionInfo definition, string dir)
     {
-        var def = TryReadPluginJson(dir);
-        if (!def) return def.GetResult();
-        var definition = def.Value;
-
         await RemoveAsync(definition.Type, definition.Version);
 
         var newdir = Path.Combine("plugins", definition.Type.ToString().ToLowerInvariant(), definition.Version);
@@ -77,6 +73,14 @@ public class SoftwareList
         dir = newdir;
 
         await Add(dir, definition);
+    }
+    public async Task<OperationResult> TryAddNewPlugin(string dir)
+    {
+        var def = TryReadPluginJson(dir);
+        if (!def) return def.GetResult();
+        var definition = def.Value;
+
+        await TryAddNewPlugin(definition, dir);
         return true;
     }
     async Task Add(string dir, SoftwareVersionInfo definition)

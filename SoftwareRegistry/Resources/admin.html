@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Registry editor</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+
+    <style>
+        body {
+            background: #212121;
+            color: #fafafa;
+        }
+
+        .box {
+            display: inline-block;
+            padding: 20px;
+            border: 2px solid #323232;
+        }
+
+        #upload_files,
+        #upload_installation,
+        #upload_installation_python {
+            display: none;
+        }
+
+        #upload_files_enabled:checked+#upload_files,
+        #upload_installation_enabled:checked+#upload_installation,
+        #upload_installation_python_enabled:checked+#upload_installation_python {
+            display: initial;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="box">
+        <form id="taruploadform" method="post" enctype="multipart/form-data">
+            Upload an update (.tar with plugin.json)
+            <p />
+            <input type="file" name="file" required="true">
+            <input type="submit">
+        </form>
+    </div>
+    <div style="min-height: 30px;"></div>
+
+    <div class="box">
+        <form id="fileuploadform" method="post" enctype="multipart/form-data">
+            Upload an update (single file)
+            <p />
+
+            <div class="box">
+                Metadata
+                <p />
+
+                <div>
+                    <select id="typeselectcopy" class="typeselect"> </select>
+                    <select id="versionselectcopy" class="versionselect"> </select>
+                    <button id="copyfrom" onclick="copyFromExisting(event)"> Copy from existing </button>
+                </div>
+                <p />
+
+                <div>
+                    <input id="upload_type" type="text" name="type" placeholder="Type">
+                    <input id="upload_name" type="text" name="name" placeholder="Name">
+                    <input id="upload_version" type="text" name="version" placeholder="Version">
+                </div>
+                <p />
+                <div class="box">
+                    <input id="upload_files_enabled" type="checkbox" name="files_enabled">
+                    Files
+                    <div id="upload_files">
+                        <p />
+                        <input id="upload_files_main" type="text" name="files_main" placeholder="Main">
+                    </div>
+                </div>
+                <p />
+                <div class="box">
+                    <input id="upload_installation_enabled" type="checkbox" name="installation_enabled">
+                    Installation
+                    <div id="upload_installation">
+                        <p />
+                        <input id="upload_installation_source" type="text" name="installation_source" placeholder="Source">
+                        <p />
+                        <textarea id="upload_installation_script" type="text" name="installation_script" placeholder="Script"></textarea>
+
+                        <div class="box">
+                            <input id="upload_installation_python_enabled" type="checkbox" name="installation_python_enabled">
+                            Python
+                            <div id="upload_installation_python">
+                                <p />
+                                <textarea id="upload_installation_python_version" type="text" name="installation_python_version" placeholder="Version"></textarea>
+                                <p />
+
+                                <div class="box">
+                                    Pip
+                                    <p />
+                                    <textarea id="upload_installation_python_pip_requirements" type="text" name="installation_python_pip_requirements" placeholder="Requirements"></textarea>
+                                    <textarea id="upload_installation_python_pip_requirementfiles" type="text" name="installation_python_pip_requirementfiles" placeholder="Requirement Files"></textarea>
+                                </div>
+                                <p />
+                                <div class="box">
+                                    Conda
+                                    <p />
+                                    <textarea id="upload_installation_python_conda_requirements" type="text" name="installation_python_conda_requirements" placeholder="Requirements"></textarea>
+                                    <textarea id="upload_installation_python_conda_channels" type="text" name="installation_python_conda_channels" placeholder="Channels"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p />
+                <div class="box">
+                    Requirements
+                    <p />
+                    <textarea id="upload_requirements_platforms" type="text" name="requirements_platforms" placeholder="Platforms"></textarea>
+                    <textarea id="upload_requirements_parents" type="text" name="requirements_parents" placeholder="Parents"></textarea>
+                </div>
+            </div>
+            <p />
+
+            <input type="file" name="file" required="true">
+            <p />
+            <input type="submit">
+        </form>
+    </div>
+    <div style="min-height: 30px;"></div>
+
+    <div class="box">
+        Plugin list
+        <p />
+        <button onclick="update()"> Reload </button>
+        <select id="typeselect" class="typeselect"> </select>
+        <select id="versionselect" class="versionselect"> </select>
+
+        <div id="infodiv" style="margin-top: 20px"></div>
+    </div>
+
+
+    <script>
+        /** @typedef { Record<string, versions> } software */
+        /** @typedef { Record<string, version> } versions */
+        /** @typedef {{ type: string, name: string, version: string, files: files | null, installation: installation | null, requirements: requirements }} version */
+        /** @typedef {{ main: string }} files */
+        /** @typedef {{ source: installation_source, python: installation_python, script: string | null }} installation */
+        /** @typedef {{ type: 'registy' }} installation_source */
+        /** @typedef {{ version: string, conda: { requirements: string[], channels: string[] }, pip: { requirements: string[], requirementfiles: string[] } }} installation_python */
+        /** @typedef {{ parents: { type: string, version: string | null }[], platforms: ('windows' | 'linux' | 'macos')[] }} requirements */
+
+        class SoftwareChooser {
+            /** @type { software } */ soft
+            /** @type { string } */ selectedType
+            /** @type { string } */ selectedVersion
+            /** @type { HTMLSelectElement } */ typeselect
+            /** @type { HTMLSelectElement } */ versionselect
+            /** @type { (() => {})[] } */ onupdate = []
+
+
+            constructor(typeid, versionid) {
+                this.typeselect = document.getElementById(typeid)
+                this.versionselect = document.getElementById(versionid)
+
+                this.typeselect.addEventListener('change', e => this.setType(this.typeselect.options.item(this.typeselect.selectedIndex).value))
+                this.versionselect.addEventListener('change', e => this.setVersion(this.versionselect.options.item(this.versionselect.selectedIndex).value))
+            }
+
+
+            update(soft) {
+                this.soft = soft
+                while (this.typeselect.options.length > 0)
+                    this.typeselect.options.remove(this.typeselect.options.item(0))
+
+                for (const type in soft) {
+                    const option = document.createElement('option');
+                    option.value = type
+                    option.appendChild(document.createTextNode(type))
+                    this.typeselect.options.add(option)
+                }
+
+                this.typeselect.selectedIndex = 0
+                this.setType(this.typeselect.options.item(this.typeselect.selectedIndex).value)
+            }
+
+            setType(type) {
+                console.log('selected type ' + type)
+                this.selectedType = type
+
+                while (this.versionselect.options.length > 0)
+                    this.versionselect.options.remove(this.versionselect.options.item(0))
+
+                const versions = this.soft[type]
+                for (const ver in versions) {
+                    const option = document.createElement('option');
+                    option.value = ver
+                    option.appendChild(document.createTextNode(ver))
+                    this.versionselect.options.add(option)
+                }
+
+                this.versionselect.selectedIndex = 0
+                this.setVersion(this.versionselect.options.item(this.versionselect.selectedIndex).value)
+            }
+            setVersion(ver) {
+                console.log('selected version ' + ver)
+                this.selectedVersion = ver
+                this.onupdate.forEach(f => f())
+            }
+        }
+
+
+        const softchooser = new SoftwareChooser('typeselect', 'versionselect')
+        softchooser.onupdate.push(() => drawInfo(softchooser.soft[softchooser.selectedType][softchooser.selectedVersion]))
+    </script>
+    <script>
+        document.getElementById('taruploadform').action = 'admin/upload' + window.location.search
+        document.getElementById('fileuploadform').action = 'admin/fileupload' + window.location.search
+
+        const softchoosercopy = new SoftwareChooser('typeselectcopy', 'versionselectcopy')
+        function copyFromExisting(event) {
+            event.preventDefault()
+
+            const selected = softchoosercopy.soft[softchoosercopy.selectedType][softchoosercopy.selectedVersion]
+            console.log(selected)
+            document.getElementById("upload_type").value = selected.type
+            document.getElementById("upload_name").value = selected.name
+            document.getElementById("upload_version").value = selected.version
+
+            document.getElementById("upload_files_enabled").checked = selected.files != null
+            document.getElementById("upload_files_main").value = selected.files?.main ?? ''
+
+            document.getElementById("upload_installation_enabled").checked = selected.installation != null
+            document.getElementById("upload_installation_source").value = selected.installation?.source.type ?? ''
+            document.getElementById("upload_installation_script").value = selected.installation?.script ?? ''
+
+            document.getElementById("upload_installation_python_enabled").checked = selected.installation.python != null
+            document.getElementById("upload_installation_python_version").value = selected.installation.python?.version ?? ''
+            document.getElementById("upload_installation_python_pip_requirements").value = (selected.installation.python?.pip.requirements ?? []).join('\n')
+            document.getElementById("upload_installation_python_pip_requirementfiles").value = (selected.installation.python?.pip.requirementfiles ?? []).join('\n')
+            document.getElementById("upload_installation_python_conda_requirements").value = (selected.installation.python?.conda.requirements ?? []).join('\n')
+            document.getElementById("upload_installation_python_conda_channels").value = (selected.installation.python?.conda.channels ?? []).join('\n')
+
+            document.getElementById("upload_requirements_platforms").value = selected.requirements.platforms.join('\n')
+            document.getElementById("upload_requirements_parents").value = selected.requirements.parents.map(p => `${p.type}${p.version ? `=${p.version}` : ''}`).join('\n')
+        }
+    </script>
+    <script>
+        /** @type { HTMLDivElement } */
+        const div = document.getElementById("infodiv")
+        function drawInfo(selected) {
+            div.innerHTML = `
+                <div>
+                    ${selected.name} ${selected.version}
+                    <pre> ${JSON.stringify(selected, null, 4)} </pre>
+                </div>
+                `
+        }
+    </script>
+
+    <script>
+        async function update() {
+            /** @type { software } */
+            const soft = (await (await fetch("soft/get")).json()).value
+
+            softchooser.update(soft)
+            softchoosercopy.update(soft)
+        }
+
+
+        update()
+    </script>
+</body>
+
+</html>

@@ -11,8 +11,9 @@ public record SoftwareVersionInfo(PluginType Type, string Version, string Name, 
             [JsonConverter(typeof(StringEnumConverter))]
             public enum SourceType
             {
+                None,
                 Registry,
-                Url
+                Url,
             }
 
             public class JsonConverter : JsonConverter<SourceInfo>
@@ -27,6 +28,7 @@ public record SoftwareVersionInfo(PluginType Type, string Version, string Name, 
 
                     return type switch
                     {
+                        SourceType.None => jobj.ToObject<SourceInfo>(),
                         SourceType.Registry => jobj.ToObject<RegistrySourceInfo>(),
                         SourceType.Url => jobj.ToObject<UrlSourceInfo>(),
                         _ => throw new InvalidOperationException("Unknown type " + jobj.Property("type", StringComparison.OrdinalIgnoreCase)),

@@ -16,6 +16,7 @@ public enum PluginType
     StableDiffusion,
     Yolov7,
     ImageDetector,
+    OneClick,
 
     NvidiaDriver,
     Conda,
