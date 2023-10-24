@@ -175,8 +175,8 @@ public class PlacedTasksHandler
         {
             if (!wtask.PlacedNonCompletedTasks.Contains(task.Id)) continue;
 
-            wtask.Complete(task);
             wtask.PlacedNonCompletedTasks.Remove(task.Id);
+            wtask.Complete(task);
             WatchingTasks.WatchingTasks.Save(wtask);
         }
 
