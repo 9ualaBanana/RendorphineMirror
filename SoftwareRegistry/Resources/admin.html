@@ -35,18 +35,8 @@
 
 <body>
     <div class="box">
-        <form id="taruploadform" method="post" enctype="multipart/form-data">
-            Upload an update (.tar with plugin.json)
-            <p />
-            <input type="file" name="file" required="true">
-            <input type="submit">
-        </form>
-    </div>
-    <div style="min-height: 30px;"></div>
-
-    <div class="box">
         <form id="fileuploadform" method="post" enctype="multipart/form-data">
-            Upload an update (single file)
+            Upload an update
             <p />
 
             <div class="box">
@@ -119,6 +109,8 @@
             </div>
             <p />
 
+            <input type="checkbox" name="is_archive"> Uploading an archive (.zip, .tar only) </textarea>
+            <p />
             <input type="file" name="file" required="true">
             <p />
             <input type="submit">
@@ -196,7 +188,7 @@
                     this.versionselect.options.add(option)
                 }
 
-                this.versionselect.selectedIndex = 0
+                this.versionselect.selectedIndex = this.versionselect.options.length - 1
                 this.setVersion(this.versionselect.options.item(this.versionselect.selectedIndex).value)
             }
             setVersion(ver) {
@@ -211,8 +203,7 @@
         softchooser.onupdate.push(() => drawInfo(softchooser.soft[softchooser.selectedType][softchooser.selectedVersion]))
     </script>
     <script>
-        document.getElementById('taruploadform').action = 'admin/upload' + window.location.search
-        document.getElementById('fileuploadform').action = 'admin/fileupload' + window.location.search
+        document.getElementById('fileuploadform').action = 'admin/upload' + window.location.search
 
         const softchoosercopy = new SoftwareChooser('typeselectcopy', 'versionselectcopy')
         function copyFromExisting(event) {

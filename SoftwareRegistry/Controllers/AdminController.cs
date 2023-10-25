@@ -1,4 +1,5 @@
 using System.Formats.Tar;
+using System.IO.Compression;
 using System.Text;
 
 namespace SoftwareRegistry.Controllers;
@@ -52,25 +53,11 @@ public class AdminController : ControllerBase
 
     [HttpPost("upload")]
     [RequestSizeLimit(long.MaxValue)]
-    public async Task<ActionResult<JObject>> Upload([FromForm] IFormFile file)
-    {
-        if (file.Headers.ContentType != "application/x-tar")
-            return new UnsupportedMediaTypeResult();
-
-        using var _ = Directories.DisposeDelete(Dirs.NamedTempDir("upload/" + Guid.NewGuid()), out var dir);
-        using (var stream = file.OpenReadStream())
-            await TarFile.ExtractToDirectoryAsync(stream, dir, true);
-
-        var added = await SoftList.TryAddNewPlugin(dir);
-        return JsonApi.JsonFromOpResult(added);
-    }
-
-    [HttpPost("fileupload")]
-    [RequestSizeLimit(long.MaxValue)]
     public async Task<ActionResult<JObject>> FileUpload(
         [FromForm] string type,
         [FromForm] string name,
         [FromForm] string version,
+        [FromForm] string? is_archive, // null | 'on'
         [FromForm] string? files_enabled, // null | 'on'
         [FromForm] string? files_main,
         [FromForm] string? installation_enabled, // null | 'on'
@@ -129,11 +116,37 @@ public class AdminController : ControllerBase
 
         using var _ = Directories.DisposeDelete(Dirs.NamedTempDir("upload/" + Guid.NewGuid()), out var dir);
 
-        using (var filestream = System.IO.File.Create(Path.Combine(dir, file.FileName)))
-        using (var stream = file.OpenReadStream())
-            await stream.CopyToAsync(filestream);
+        if (is_archive == "on")
+        {
+            var istar = file.Headers.ContentType == "application/x-tar";
+            var iszip = file.Headers.ContentType == "application/x-tar";
 
-        await SoftList.TryAddNewPlugin(info, dir);
+            if (!istar && !iszip)
+                return new UnsupportedMediaTypeResult();
+
+            if (istar)
+            {
+                using var stream = file.OpenReadStream();
+                await TarFile.ExtractToDirectoryAsync(stream, dir, true);
+            }
+            else
+            {
+                using var stream = file.OpenReadStream();
+                using var archive = new ZipArchive(stream);
+                archive.ExtractToDirectory(dir);
+            }
+        }
+        else
+        {
+            using var stream = file.OpenReadStream();
+            using var filestream = System.IO.File.Create(Path.Combine(dir, file.FileName));
+            await stream.CopyToAsync(filestream);
+        }
+
+        using (var pluginjsonstream = System.IO.File.Create(Path.Combine(dir, "plugin.json")))
+            await pluginjsonstream.WriteAsync(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(info, Formatting.Indented)));
+
+        await SoftList.TryAddNewPlugin(dir);
         return JsonApi.Success();
     }
 }
