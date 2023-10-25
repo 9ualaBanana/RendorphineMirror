@@ -40,9 +40,7 @@ public class PowerShellInvoker
         {
             var prox = runspace.SessionStateProxy;
 
-            prox.SetVariable("PLUGINS", Directories.DirCreated(Path.GetFullPath("plugins")));
             prox.SetVariable("DOWNLOADS", Dirs.NamedTempDir("plugindl"));
-
             prox.SetVariable("LOCALAPPDATA", Directories.DirCreated(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
         }
     }

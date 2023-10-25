@@ -46,7 +46,7 @@ public class DashboardTab : Panel
                         new MPButton()
                         {
                             Text = "lang.current",
-                            OnClick = () => App.Instance.Settings.Language = App.Instance.Settings.Language == "ru-RU" ? "en-US" : "ru-RU",
+                            OnClick = () => App.Current.Settings.Language = App.Current.Settings.Language == "ru-RU" ? "en-US" : "ru-RU",
                         }.With(btn => LocalizedString.ChangeLangWeakEvent.Subscribe(btn, () => btn.Text = "Language: " + new LocalizedString("lang.current"))),
                         new MPButton()
                         {

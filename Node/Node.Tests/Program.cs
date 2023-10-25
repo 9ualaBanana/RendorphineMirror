@@ -12,7 +12,7 @@ global using NodeCommon;
 using Node.Tests;
 
 
-var builder = Init.CreateContainer(new Init.InitConfig("renderfin"));
+var builder = Init.CreateContainer(new Init.InitConfig("renderfin_tests"));
 builder.RegisterType<LocalTests>()
     .SingleInstance();
 

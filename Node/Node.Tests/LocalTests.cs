@@ -1,4 +1,6 @@
+using Node.Plugins.Discoverers;
 using Node.Tasks.Exec.Input;
+using NodeToUI;
 using static Node.Tests.GenericTasksTests;
 using static Node.Tests.TaskTesting;
 
@@ -16,6 +18,7 @@ public class LocalTests
 
         // await ElevenLabsTest();
         await LaunchTask();
+        await PluginTest();
     }
 
     async Task LaunchTask()
@@ -57,5 +60,117 @@ public class LocalTests
         var ttsfile = Dirs.NamedTempFile("eleven.mp3");
         await api.TextToSpeechAsync(voices[0].VoiceId, "eleven_monolingual_v1", "Hello I am the bot from the api test, wow!", ttsfile)
             .ThrowIfError();
+    }
+
+    /// <summary> Test installation and deletion of plugins, with conda environments </summary>
+    async Task PluginTest()
+    {
+        using var ctx = Context.BeginLifetimeScope(builder =>
+        {
+            builder.RegisterType<HttpClient>()
+                .SingleInstance();
+            builder.RegisterType<Api>()
+                .SingleInstance();
+
+            builder.RegisterType<Updaters.SoftwareUpdater>()
+                .SingleInstance();
+
+            builder.RegisterType<TorrentClient>()
+                .WithParameter("dhtport", 39999)
+                .WithParameter("listenport", 39998)
+                .SingleInstance();
+
+
+            PluginDiscoverers.RegisterDiscoverers(builder);
+
+            builder.RegisterInstance(new PluginDirs(Directories.NewDirCreated("temp/plugins")))
+                .SingleInstance();
+
+            builder.RegisterType<PluginManager>()
+                .AsSelf()
+                .As<IInstalledPluginsProvider>()
+                .SingleInstance();
+
+            builder.RegisterType<PowerShellInvoker>()
+                .SingleInstance();
+            builder.RegisterType<CondaInvoker>()
+                .SingleInstance();
+            builder.RegisterType<CondaManager>()
+                .SingleInstance();
+
+            builder.RegisterType<PluginDeployer>()
+                .SingleInstance();
+
+            builder.Register(ctx => new PluginList(ctx.Resolve<PluginManager>().GetInstalledPluginsAsync().GetAwaiter().GetResult()))
+                .SingleInstance();
+        });
+
+        // returns only plugins installed in PluginDirs.Directory
+        IEnumerable<Plugin> filterLocalPlugins(IEnumerable<Plugin> plugins) => plugins.Where(p => p.Path.StartsWith(ctx.Resolve<PluginDirs>().Directory, StringComparison.Ordinal));
+
+        var conda = ctx.Resolve<CondaManager>();
+        var condainvoker = ctx.Resolve<CondaInvoker>();
+        var manager = ctx.Resolve<PluginManager>();
+        var deployer = ctx.Resolve<PluginDeployer>();
+        var software = await ctx.Resolve<Updaters.SoftwareUpdater>().Update().ThrowIfError();
+
+        var pltype = PluginType.ImageDetector;
+        var plver = software[pltype].Values.MaxBy(v => v.Version).ThrowIfNull().Version.ToString();
+        var condaenv = PluginDeployer.GetCondaEnvName(pltype, plver);
+
+
+        await checkLocalInstalledPlugins();
+        async Task checkLocalInstalledPlugins()
+        {
+            var installed = filterLocalPlugins(await manager.RediscoverPluginsAsync());
+            installed.Should()
+                .BeEmpty();
+        }
+
+
+        await install();
+        async Task install()
+        {
+            var tree = PluginChecker.GetInstallationTree(software, pltype, plver);
+            (await deployer.DeployUninstalled(tree, default)).Should()
+                .Be(1);
+
+            var installed = filterLocalPlugins(await manager.RediscoverPluginsAsync());
+            installed.Should()
+                .HaveCount(1)
+                .And.BeEquivalentTo(new[] { new Plugin(pltype, plver, Path.GetFullPath(Path.Combine(ctx.Resolve<PluginDirs>().Directory, pltype.ToString().ToLowerInvariant(), plver.ToString(), "main.py"))), });
+
+            conda.EnvironmentExists(condaenv).Should()
+                .BeTrue();
+        }
+
+
+        await restoreDeletedCondaEnvironment();
+        async Task restoreDeletedCondaEnvironment()
+        {
+            conda.DeleteEnvironment(condaenv);
+            conda.EnvironmentExists(condaenv).Should()
+                .BeFalse();
+
+            new Action(() => condainvoker.ExecutePowerShellAtWithCondaEnv(ctx.Resolve<PluginList>(), pltype, "echo test", delegate { })).Should()
+                .NotThrow();
+
+            conda.EnvironmentExists(condaenv).Should()
+                .BeTrue();
+        }
+
+
+        await delete();
+        async Task delete()
+        {
+            await deployer.Delete(pltype, plver);
+
+            var installed = filterLocalPlugins(await manager.RediscoverPluginsAsync());
+            installed.Should()
+                .BeEmpty();
+
+            conda.EnvironmentExists(condaenv).Should()
+                .BeFalse();
+        }
     }
 }

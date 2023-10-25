@@ -4,9 +4,9 @@ public class RectReleasesWatchingTaskHandler : WatchingTaskInputHandler<RectRele
 {
     public static WatchingTaskInputType Type => WatchingTaskInputType.RectReleases;
     public required ReleaseRector Rector { get; init; }
-    public required PluginChecker PluginChecker { get; init; }
     public required PluginDeployer PluginDeployer { get; init; }
     public required PluginManager PluginManager { get; init; }
+    public required NodeGlobalState NodeGlobalState { get; init; }
     public required PluginList PluginList { get; init; }
 
     public override void StartListening()
@@ -18,8 +18,8 @@ public class RectReleasesWatchingTaskHandler : WatchingTaskInputHandler<RectRele
         {
             if (PluginList.TryGetPlugin(PluginType.ImageDetector) is null)
             {
-                var tree = PluginChecker.GetInstallationTree(PluginType.ImageDetector, PluginVersion.Empty);
-                PluginDeployer.DeployUninstalled(tree);
+                var tree = PluginChecker.GetInstallationTree(NodeGlobalState.Software.Value, PluginType.ImageDetector, PluginVersion.Empty);
+                await PluginDeployer.DeployUninstalled(tree, default);
                 await PluginManager.RediscoverPluginsAsync();
             }
 

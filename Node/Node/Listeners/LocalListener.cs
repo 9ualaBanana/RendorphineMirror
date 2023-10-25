@@ -11,8 +11,8 @@ public class LocalListener : ExecutableListenerBase
     protected override ListenTypes ListenType => ListenTypes.Local;
 
     public required PluginManager PluginManager { get; init; }
-    public required PluginChecker PluginChecker { get; init; }
     public required PluginDeployer PluginDeployer { get; init; }
+    public required NodeGlobalState NodeGlobalState { get; init; }
     public required SessionManager SessionManager { get; init; }
     public required Profiler Profiler { get; init; }
 
@@ -56,7 +56,7 @@ public class LocalListener : ExecutableListenerBase
             {
                 Task.Run(async () =>
                 {
-                    var newcount = PluginDeployer.DeployUninstalled(PluginChecker.GetInstallationTree(type, version));
+                    var newcount = await PluginDeployer.DeployUninstalled(PluginChecker.GetInstallationTree(NodeGlobalState.Software.Value, type, version), default);
                     if (newcount != 0)
                         await PluginManager.RediscoverPluginsAsync();
                 }).Consume();

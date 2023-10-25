@@ -11,7 +11,7 @@ public class NodeGlobalState
     public readonly WeakEventManager<string> AnyChanged = new();
 
     public readonly Bindable<TasksFullDescriber> TaskDefinitions = new();
-    public readonly Bindable<ImmutableDictionary<string, SoftwareDefinition>> Software = new(ImmutableDictionary<string, SoftwareDefinition>.Empty);
+    public readonly Bindable<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>> Software = new(ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>.Empty);
     public readonly Bindable<ImmutableDictionary<string, SoftwareStats>> SoftwareStats = new(ImmutableDictionary<string, SoftwareStats>.Empty);
     public readonly Bindable<UUserSettings> UserSettings = new(new(null, null));
     public readonly Bindable<UserBalance> Balance = new();

@@ -129,8 +129,8 @@ public abstract record ApiBase
         await ResponseToResult(response, responseJson, errorDetails, token)
             .Next(() => responseJson.ThrowIfNull().AsOpResult());
 
-    public static string ToQuery((string, string)[] values) => string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
-    public static string AppendQuery(string url, (string, string)[] values)
+    public static string ToQuery(params (string, string)[] values) => string.Join('&', values.Select(x => x.Item1 + "=" + HttpUtility.UrlEncode(x.Item2)));
+    public static string AppendQuery(string url, params (string, string)[] values)
     {
         if (values.Length == 0)
             return url;
@@ -143,31 +143,38 @@ public abstract record ApiBase
     protected async Task LogRequest(HttpResponseMessage response, JToken? responseJson, string errorDetails)
     {
         if (!LogRequests) return;
-
+        await LogRequest(response, responseJson, errorDetails, Logger, CancellationToken);
+    }
+    public static async Task LogRequest(HttpResponseMessage response, JToken? responseJson, string errorDetails, ILogger logger, CancellationToken token)
+    {
         var text = $"[{errorDetails}] [{response.RequestMessage?.Method.Method} {response.RequestMessage?.RequestUri}";
         if (response.RequestMessage?.Method == HttpMethod.Post)
-            text = $"{text} {{ {await ContentToString(response.RequestMessage.Content)} }}";
-        text = $"{text}]: HTTP {(int) response.StatusCode}: {responseJson?.ToString(Formatting.None) ?? "<no message>"}";
+            text = $"{text} {{ {await ContentToString(response.RequestMessage.Content, token)} }}";
+        text = $"{text}]: HTTP {(int) response.StatusCode}";
+        if (responseJson is not null)
+            text = $"{text}: {responseJson?.ToString(Formatting.None) ?? "<no message>"}";
 
-        Logger.LogTrace(text);
+        logger.LogTrace(text);
     }
-    protected async Task<string> ContentToString(object? content)
+
+    protected async Task<string> ContentToString(object? content) => await ContentToString(content, CancellationToken);
+    public static async Task<string> ContentToString(object? content, CancellationToken token)
     {
         try
         {
             return content switch
             {
                 (string, string)[] pcontent => string.Join('&', pcontent.Select(x => x.Item1 + "=" + HttpUtility.UrlDecode(x.Item2))),
-                FormUrlEncodedContent c => HttpUtility.UrlDecode(await c.ReadAsStringAsync(CancellationToken)),
-                StringContent c => await c.ReadAsStringAsync(CancellationToken),
-                MultipartContent c => $"Multipart [{string.Join(", ", await Task.WhenAll(c.Select(async c => $"{{ {c.Headers.ContentDisposition?.Name ?? "<noname>"} : {await ContentToString(c)} }}")))}]",
+                FormUrlEncodedContent c => HttpUtility.UrlDecode(await c.ReadAsStringAsync(token)),
+                StringContent c => await c.ReadAsStringAsync(token),
+                MultipartContent c => $"Multipart [{string.Join(", ", await Task.WhenAll(c.Select(async c => $"{{ {c.Headers.ContentDisposition?.Name ?? "<noname>"} : {await ContentToString(c, token)} }}")))}]",
                 { } => content.GetType().Name,
                 _ => "<nocontent>",
             };
         }
-        catch (ObjectDisposedException)
+        catch (Exception ex)
         {
-            return $"<disposed {content?.GetType()}>";
+            return $"<{ex.GetType().Name} at {content?.GetType()}>";
         }
     }
 

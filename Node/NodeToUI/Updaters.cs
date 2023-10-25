@@ -10,22 +10,27 @@ public static class Updaters
 
         protected UpdaterBase(ILogger<UpdaterBase<T>> logger) => Logger = logger;
 
-        public void Start(IReadOnlyBindable<bool>? skipupdate, Bindable<T> bindable, CancellationToken token)
+        public async Task Start(IReadOnlyBindable<bool>? skipupdate, Bindable<T> bindable, CancellationToken token)
         {
+            if (skipupdate?.Value != true)
+                await Update(bindable);
+
             new Thread(async () =>
             {
                 while (true)
                 {
+                    await Task.Delay(Interval, token);
                     if (token.IsCancellationRequested) return;
 
                     if (skipupdate?.Value != true)
-                        await OperationResult.WrapException(async () => bindable.Value = await GetValue()).LogIfError(Logger);
-
-                    await Task.Delay(Interval);
+                        await Update(bindable);
                 }
             })
             { IsBackground = true }.Start();
         }
+
+        public async Task<OperationResult<T>> Update() => await OperationResult.WrapException(GetValue).LogIfError(Logger);
+        public async Task<OperationResult> Update(Bindable<T> bindable) => await Update().Next(v => { bindable.Value = v; return OperationResult.Succ(); });
 
         protected abstract Task<T> GetValue();
     }
@@ -44,17 +49,17 @@ public static class Updaters
             await GetMyBalanceAsync().ThrowIfError().ConfigureAwait(false);
     }
 
-    public class SoftwareUpdater : UpdaterBase<ImmutableDictionary<string, SoftwareDefinition>>
+    public class SoftwareUpdater : UpdaterBase<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>>
     {
         protected override TimeSpan Interval => TimeSpan.FromMinutes(5);
         public required Api Api { get; init; }
 
         public SoftwareUpdater(ILogger<SoftwareUpdater> logger) : base(logger) { }
 
-        public ValueTask<OperationResult<ImmutableDictionary<string, SoftwareDefinition>>> GetMyBalanceAsync() =>
-            Api.ApiGet<ImmutableDictionary<string, SoftwareDefinition>>($"{Apis.RegistryUrl}/getsoft", "value", "Getting registry software");
+        public ValueTask<OperationResult<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>>> GetMyBalanceAsync() =>
+            Api.ApiGet<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>>($"{Apis.RegistryUrl}/soft/get", "value", "Getting registry software");
 
-        protected override async Task<ImmutableDictionary<string, SoftwareDefinition>> GetValue() =>
+        protected override async Task<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>> GetValue() =>
             await GetMyBalanceAsync().ThrowIfError().ConfigureAwait(false);
     }
 

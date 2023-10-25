@@ -4,24 +4,103 @@ using Avalonia.Markup.Xaml;
 
 namespace Node.UI
 {
-    public class App : Application
+    public class App : AppBase
     {
-        public static App Instance => (App) Current.ThrowIfNull();
-
-        public string Version => Init.Version;
-        public string AppName => $"Renderfin   v{Version}";
-        public WindowIcon Icon { get; } = new WindowIcon(Resource.LoadStream(typeof(App).Assembly, Environment.OSVersion.Platform == PlatformID.Win32NT ? "img.icon.ico" : "img.tray_icon.png"));
+        public static new App Current => (App) Instance;
 
         public required NodeGlobalState NodeGlobalState { get; init; }
-        public required UISettings Settings { get; init; }
-        public required DataDirs Dirs { get; init; }
-        public required Init Init { get; init; }
         public required NodeStateUpdater NodeStateUpdater { get; init; }
         public required Updaters.BalanceUpdater BalanceUpdater { get; init; }
         public required Updaters.SoftwareUpdater SoftwareUpdater { get; init; }
         public required Updaters.SoftwareStatsUpdater SoftwareStatsUpdater { get; init; }
-        public required ILogger<App> Logger { get; init; }
         bool WasConnected = false;
+
+        public static IContainer Initialize(ContainerBuilder builder)
+        {
+            builder.RegisterType<App>()
+                .As<Application>()
+                .SingleInstance();
+
+            builder.RegisterType<UIApis>()
+                .As<Apis>()
+                .SingleInstance();
+
+            builder.RegisterType<UISettings>()
+                .SingleInstance();
+            builder.RegisterType<NodeStateUpdater>()
+                .SingleInstance();
+
+            builder.RegisterInstance(NodeGlobalState.Instance)
+                .SingleInstance();
+            builder.Register(ctx => ctx.Resolve<NodeGlobalState>().Software)
+                .AsSelf()
+                .AsReadOnlyBindable()
+                .SingleInstance();
+
+            builder.RegisterSource<AutoControlRegistrator>();
+            var container = builder.Build();
+
+            var init = container.Resolve<Init>();
+            if (!init.IsDebug && !Process.GetCurrentProcess().ProcessName.Contains("dotnet", StringComparison.Ordinal))
+            {
+                SendShowRequest();
+                ListenForShowRequests();
+            }
+
+            Task.Run(WindowsTrayRefreshFix.RefreshTrayArea);
+
+            return container;
+
+
+            /// <summary> Check if another instance is already running, send show request to it and quit </summary>
+            static void SendShowRequest()
+            {
+                if (!FileList.GetAnotherInstances().Any()) return;
+
+                var dir = Path.Combine(Path.GetTempPath(), "renderfinuireq");
+                if (!Directory.Exists(dir)) return;
+
+                File.Create(Path.Combine(dir, "show")).Dispose();
+                Environment.Exit(0);
+            }
+            /// <summary> Start listening for outside requests to show the window </summary>
+            static void ListenForShowRequests()
+            {
+                new Thread(() =>
+                {
+                    var dir = Path.Combine(Path.GetTempPath(), "renderfinuireq");
+                    if (Directory.Exists(dir)) Directory.Delete(dir, true);
+                    Directory.CreateDirectory(dir);
+
+                    using var watcher = new FileSystemWatcher(dir);
+                    watcher.Created += (obj, e) =>
+                    {
+                        var action = Path.GetFileName(e.FullPath);
+                        if (action == "show")
+                            Dispatcher.UIThread.Post(() => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow?.Show());
+
+                        new Thread(() =>
+                        {
+                            while (true)
+                            {
+                                try
+                                {
+                                    if (File.Exists(e.FullPath))
+                                        File.Delete(e.FullPath);
+                                    return;
+                                }
+                                catch { Thread.Sleep(1000); }
+                            }
+                        })
+                        { IsBackground = true }.Start();
+                    };
+
+                    watcher.EnableRaisingEvents = true;
+                    Thread.Sleep(-1);
+                })
+                { IsBackground = true }.Start();
+            }
+        }
 
         public override void Initialize() => AvaloniaXamlLoader.Load(this);
         public override void OnFrameworkInitializationCompleted()
@@ -44,17 +123,11 @@ namespace Node.UI
                 if (!Init.IsDebug) Task.Run(CreateShortcuts);
                 MainTheme.Apply(Resources, Styles);
 
-                if (Environment.GetCommandLineArgs().Contains("registryeditor"))
-                {
-                    desktop.MainWindow = new Window() { Content = new Pages.MainWindowTabs.JsonRegistryTab(), };
-                    return;
-                }
+                BalanceUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Balance, default).Consume();
+                SoftwareUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Software, default).Consume();
+                SoftwareStatsUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.SoftwareStats, default).Consume();
 
                 StartUpdaterLoop().Consume();
-
-                BalanceUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Balance, default);
-                SoftwareUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Software, default);
-                SoftwareStatsUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.SoftwareStats, default);
 
                 NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
                 NodeGlobalState.AuthInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));

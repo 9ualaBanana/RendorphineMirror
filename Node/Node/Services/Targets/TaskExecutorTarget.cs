@@ -14,32 +14,9 @@ public class TaskExecutorTarget : IServiceTarget
             .SingleInstance();
         builder.RegisterType<WatchingTasksHandler>()
             .SingleInstance();
-
-        IOList.RegisterAll(builder);
-        registerTasks();
-
-
-        void registerTasks()
-        {
-            void register<T>() where T : IPluginActionInfo =>
-                builder.RegisterType<T>()
-                    .Keyed<IPluginActionInfo>(Enum.Parse<TaskAction>(typeof(T).Name))
-                    .SingleInstance();
-
-            register<EditRaster>();
-            register<EditVideo>();
-            register<EsrganUpscale>();
-            register<GreenscreenBackground>();
-            register<VeeeVectorize>();
-            register<GenerateQSPreview>();
-            register<GenerateTitleKeywords>();
-            //registertask<GenerateImageByMeta>();
-            register<GenerateImageByPrompt>();
-            register<Topaz>();
-            register<GenerateAIVoice>();
-        }
     }
 
+    public required TaskListTarget TaskList { get; init; }
     public required PlacedTasksHandler PlacedTasksHandler { get; init; }
     public required ReceivedTasksHandler ReceivedTasksHandler { get; init; }
     public required WatchingTasksHandler WatchingTasksHandler { get; init; }

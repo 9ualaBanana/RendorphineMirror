@@ -23,6 +23,7 @@ public static class PluginDiscoverers
         register<Yolov7PluginDiscoverer>();
         register<ImageDetectorPluginDiscoverer>();
         register<RobustVideoMattingPluginDiscoverer>();
+        register<OneClickPluginDiscoverer>();
         register<VeeeVectorizerPluginDiscoverer>();
         register<NvidiaDriverPluginDiscoverer>();
         register<DotnetRuntimePluginDiscoverer>();
