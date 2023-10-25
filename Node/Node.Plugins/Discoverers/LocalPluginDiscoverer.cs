@@ -22,7 +22,15 @@ public abstract class LocalPluginDiscoverer : PluginDiscoverer
         return Directory.GetDirectories(dir);
     }
 
-    protected override Plugin GetDiscoveredPlugin(string executablePath) => new LocalPlugin(PluginType, DetermineVersion(executablePath), executablePath);
+    protected override Plugin? GetDiscoveredPlugin(string executablePath)
+    {
+        var pluginjson = Path.Combine(executablePath, "..", "plugin.json");
+        if (!File.Exists(pluginjson))
+            return null;
+
+        return new LocalPlugin(PluginType, DetermineVersion(executablePath), executablePath);
+    }
+
     protected sealed override string DetermineVersion(string exepath) =>
         JsonConvert.DeserializeObject<SoftwareVersionInfo>(File.ReadAllText(Path.Combine(exepath, "..", "plugin.json"))).ThrowIfNull().Version;
 }
