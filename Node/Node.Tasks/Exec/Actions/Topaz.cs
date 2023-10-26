@@ -31,19 +31,19 @@ public class Topaz : FilePluginActionInfo<TopazInfo>
             var ffprobe = await FFProbe.Get(inputfile.Path, Logger);
 
             if (data.Operation == TopazOperation.Slowmo)
-                await Execute(inputfile.Path, data, ffprobe, outfiles.New(inputfile.Format).Path, AddSlowmoArgs);
+                await Execute(inputfile, data, ffprobe, outfiles.New(inputfile.Format).Path, AddSlowmoArgs);
             else if (data.Operation == TopazOperation.Upscale)
-                await Execute(inputfile.Path, data, ffprobe, outfiles.New(inputfile.Format).Path, AddUpscaleArgs);
+                await Execute(inputfile, data, ffprobe, outfiles.New(inputfile.Format).Path, AddUpscaleArgs);
             else if (data.Operation == TopazOperation.Denoise)
-                await Execute(inputfile.Path, data, ffprobe, outfiles.New(inputfile.Format).Path, AddDenoiseArgs);
+                await Execute(inputfile, data, ffprobe, outfiles.New(inputfile.Format).Path, AddDenoiseArgs);
             else if (data.Operation == TopazOperation.Stabilize)
-                await Stabilize(inputfile.Path, data, ffprobe, outfiles.New(inputfile.Format).Path);
+                await Stabilize(inputfile, data, ffprobe, outfiles.New(inputfile.Format).Path);
             else throw new TaskFailedException("Unknown operation");
 
             return output;
         }
 
-        async Task Execute(string input, TopazInfo data, FFProbe.FFProbeInfo ffprobe, FFmpegLauncherOutput output, Action<TopazInfo, FFProbe.FFProbeInfo, FFmpegLauncher> argsAddFunc)
+        async Task Execute(FileWithFormat input, TopazInfo data, FFProbe.FFProbeInfo ffprobe, FFmpegLauncherOutput output, Action<TopazInfo, FFProbe.FFProbeInfo, FFmpegLauncher> argsAddFunc)
         {
             var ffmpeg = Path.Combine(PluginList.GetPlugin(PluginType.TopazVideoAI).Path, "../ffmpeg.exe");
 
@@ -56,18 +56,23 @@ public class Topaz : FilePluginActionInfo<TopazInfo>
                     ["TVAI_MODEL_DIR"] = @"C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models",
                     ["TVAI_MODEL_DATA_DIR"] = @"C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models",
                 },
-                Input = { input },
+                Input = { input.Path },
                 Outputs = { output },
             };
 
             argsAddFunc(data, ffprobe, launcher);
             await launcher.Execute();
         }
-        async Task Execute(string input, TopazInfo data, FFProbe.FFProbeInfo ffprobe, string output, Action<TopazInfo, FFProbe.FFProbeInfo, FFmpegLauncher> argsAddFunc)
+        async Task Execute(FileWithFormat input, TopazInfo data, FFProbe.FFProbeInfo ffprobe, string output, Action<TopazInfo, FFProbe.FFProbeInfo, FFmpegLauncher> argsAddFunc)
         {
             var ffoutput = new FFmpegLauncherOutput()
             {
-                Codec = new ProresFFmpegCodec() { Profile = ProresFFmpegCodec.CopyProfileFrom(ffprobe.VideoStream) },
+                Codec = input.Format switch
+                {
+                    FileFormat.Jpeg => new JpegFFmpegCodec(),
+                    FileFormat.Png => new PngFFmpegCodec(),
+                    _ => new ProresFFmpegCodec() { Profile = ProresFFmpegCodec.CopyProfileFrom(ffprobe.VideoStream) },
+                },
                 Output = output,
                 Args =
                 {
@@ -152,7 +157,7 @@ public class Topaz : FilePluginActionInfo<TopazInfo>
                 $"scale=out_color_matrix=bt709",
             });
         }
-        async Task Stabilize(string input, TopazInfo data, FFProbe.FFProbeInfo ffprobe, string output)
+        async Task Stabilize(FileWithFormat input, TopazInfo data, FFProbe.FFProbeInfo ffprobe, string output)
         {
             /*
             Stabilization needs two passes
