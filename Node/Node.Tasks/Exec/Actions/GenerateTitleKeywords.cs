@@ -41,14 +41,40 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                     stream.Position = 0;
 
                     using var content = new MultipartFormDataContent() { { new StreamContent(stream), "img", file.Format.ToMime() } };
+                    if (data.ChatGpt is not null)
+                    {
+                        if (!string.IsNullOrEmpty(data.ChatGpt.Model))
+                            content.Add(new StringContent(data.ChatGpt.Model), "model");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.TitlePrompt))
+                            content.Add(new StringContent(data.ChatGpt.TitlePrompt), "titleprompt");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.DescrPrompt))
+                            content.Add(new StringContent(data.ChatGpt.DescrPrompt), "descrprompt");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.KwPrompt))
+                            content.Add(new StringContent(data.ChatGpt.KwPrompt), "kwprompt");
+                    }
 
                     return await Api.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/generatetkd?{query}", "value", "generating tkd using gcloud vision + openai", content)
                         .ThrowIfError();
                 },
                 async tk =>
                 {
-                    var parameters = Api.AddSessionId(("taskid", ApiTask.Id), ("title", tk.Title), ("keywords", JsonConvert.SerializeObject(tk.Keywords)));
-                    return await Api.Api.ApiPost<TitleKeywordsOutput>("https://t.microstock.plus:7899/openai/generatebettertk", "value", "generating better tk using openai", parameters)
+                    using var content = new MultipartFormDataContent()
+                    {
+                        { new StringContent(tk.Title), "title" },
+                        { new StringContent(JsonConvert.SerializeObject(tk.Keywords)), "keywords" },
+                    };
+                    if (data.ChatGpt is not null)
+                    {
+                        if (!string.IsNullOrEmpty(data.ChatGpt.Model))
+                            content.Add(new StringContent(data.ChatGpt.Model), "model");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.TitlePrompt))
+                            content.Add(new StringContent(data.ChatGpt.TitlePrompt), "titleprompt");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.KwPrompt))
+                            content.Add(new StringContent(data.ChatGpt.KwPrompt), "kwprompt");
+                    }
+
+                    var query = ApiBase.ToQuery(Api.AddSessionId(("taskid", ApiTask.Id)));
+                    return await Api.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/openai/generatebettertk?{query}", "value", "generating better tk using openai", content)
                         .ThrowIfError();
                 }
             );

@@ -22,7 +22,15 @@ public class MainController : ControllerBase
 
     record TKD(string Title, string Description, IReadOnlyCollection<string> Keywords);
     [HttpPost("generatetkd")]
-    public async Task<JToken> GenerateTKD([FromQuery] string sessionid, [FromQuery] string taskid, [FromForm] IFormFile img)
+    public async Task<JToken> GenerateTKD(
+        [FromQuery] string sessionid,
+        [FromQuery] string taskid,
+        [FromForm] IFormFile img,
+        [FromForm] string? model = null,
+        [FromForm] string? titleprompt = null,
+        [FromForm] string? descrprompt = null,
+        [FromForm] string? kwprompt = null
+    )
     {
         if (!await TaskTypeChecker.IsTaskTypeValid(TaskAction.GenerateTitleKeywords, sessionid, taskid))
             return JsonApi.Error("no");
@@ -40,9 +48,9 @@ public class MainController : ControllerBase
             .Select(l => l.Description)
             .ToImmutableArray();
 
-        var title = await OpenAICompleter.GenerateNewTitle(keywords);
-        var description = await OpenAICompleter.GenerateNewDescription(title, keywords);
-        keywords = (await OpenAICompleter.GenerateBetterKeywords(title, keywords)).ToImmutableArray();
+        var title = await OpenAICompleter.GenerateNewTitle(keywords, titleprompt, model);
+        var description = await OpenAICompleter.GenerateNewDescription(title, keywords, descrprompt, model);
+        keywords = (await OpenAICompleter.GenerateBetterKeywords(title, keywords, kwprompt, model)).ToImmutableArray();
 
         Logger.LogInformation($"""
             For image {img.FileName}:
@@ -56,16 +64,24 @@ public class MainController : ControllerBase
     }
 
     public record TK(string Title, IReadOnlyCollection<string> Keywords);
-    [HttpGet("generatebettertk")]
-    public async Task<JToken> GenerateBetterTK([FromQuery] string sessionid, [FromQuery] string taskid, [FromQuery] string title, [FromQuery] string keywords)
+    [HttpPost("generatebettertk")]
+    public async Task<JToken> GenerateBetterTK(
+        [FromQuery] string sessionid,
+        [FromQuery] string taskid,
+        [FromForm] string title,
+        [FromForm] string keywords,
+        [FromForm] string? model = null,
+        [FromForm] string? titleprompt = null,
+        [FromForm] string? kwprompt = null
+    )
     {
         if (!await TaskTypeChecker.IsTaskTypeValid(TaskAction.GenerateTitleKeywords, sessionid, taskid))
             return JsonApi.Error("no");
 
         var keywordsarr = JsonConvert.DeserializeObject<string[]>(keywords).ThrowIfNull();
 
-        var newtitle = await OpenAICompleter.GenerateBetterTitle(title, keywordsarr);
-        var newkws = await OpenAICompleter.GenerateBetterKeywords(title, keywordsarr);
+        var newtitle = await OpenAICompleter.GenerateBetterTitle(title, keywordsarr, titleprompt, model);
+        var newkws = await OpenAICompleter.GenerateBetterKeywords(title, keywordsarr, kwprompt, model);
 
         return JsonApi.Success(new TK(newtitle, newkws));
     }
