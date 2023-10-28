@@ -2,6 +2,19 @@ namespace Common;
 
 public static class Directories
 {
+    public static string NumberedNameInDirectory(string dir, string format)
+    {
+        var num = 0;
+        string path;
+        do
+        {
+            path = Path.Combine(dir, string.Format(CultureInfo.InvariantCulture, format, num));
+            num++;
+        }
+        while (File.Exists(path) || Directory.Exists(path));
+
+        return path;
+    }
     public static string RandomNameInDirectory(string dir, string? extension = null)
     {
         string path;

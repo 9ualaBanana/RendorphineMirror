@@ -30,6 +30,7 @@ global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
 using Node;
 using Node.Services.Targets;
+using Node.Tasks.Watching.Handlers.Input;
 
 
 if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
@@ -50,6 +51,18 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (true, true) => container.Resolve<ReleaseMainTarget>(),
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
+
+Console.WriteLine(JsonConvert.SerializeObject(
+        new WatchingTask(TaskAction.VeeeVectorize.ToString(), new JObject(),
+            new OneClickWatchingTaskInputInfo(
+                "/temp/input",
+                "/temp/output",
+                "/temp/log"
+            ),
+            new MPlusWatchingTaskOutputInfo("asd"),
+            TaskPolicy.AllNodes
+        ), Formatting.None));
+
 
 Thread.Sleep(-1);
 GC.KeepAlive(main);

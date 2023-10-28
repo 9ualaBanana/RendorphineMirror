@@ -1,3 +1,5 @@
+using Node.Listeners;
+
 namespace Node.Services.Targets;
 
 public class ReleaseMainTarget : IServiceTarget
@@ -13,6 +15,7 @@ public class ReleaseMainTarget : IServiceTarget
     public required PublicListenersTarget PublicListeners { get; init; }
     public required TaskReceiverTarget ReadyToReceiveTasks { get; init; }
     public required AutoCleanup AutoCleanup { get; init; }
+    public required DebugListener DebugListener { get; init; }
 
     public async Task ExecuteAsync()
     {

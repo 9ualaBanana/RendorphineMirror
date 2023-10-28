@@ -11,6 +11,7 @@ public enum WatchingTaskInputType
     MPlusAllFiles,
     OtherNode,
     RectReleases,
+    OneClick,
 }
 [JsonConverter(typeof(StringEnumConverter))]
 public enum WatchingTaskOutputType
