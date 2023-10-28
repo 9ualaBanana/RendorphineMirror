@@ -1,4 +1,5 @@
 using System.Net;
+using Node.Tasks.Watching.Handlers.Input;
 
 namespace Node.Listeners;
 
@@ -8,6 +9,7 @@ public class DebugListener : ExecutableListenerBase
     protected override string Prefix => "debug";
 
     public required SessionManager SessionManager { get; init; }
+    public required ILifetimeScope Container { get; init; }
 
     public DebugListener(ILogger<DebugListener> logger) : base(logger) { }
 
@@ -30,6 +32,29 @@ public class DebugListener : ExecutableListenerBase
             NodeGlobalState.Instance.ExecutingTasks.Add(task);
 
             _ = Task.Delay(5000).ContinueWith(_ => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
+
+            return await WriteSuccess(response);
+        }
+        if (path == "runoneclick")
+        {
+            var task = new WatchingTask(TaskAction.VeeeVectorize.ToString(), new JObject(),
+                    new OneClickWatchingTaskInputInfo(
+                        @"C:\\Users\user\Documents\oc\input",
+                        @"C:\\Users\user\Documents\oc\output",
+                        @"C:\\Users\user\Documents\oc\log"
+                    ),
+                    new MPlusWatchingTaskOutputInfo("asd"),
+                    TaskPolicy.AllNodes
+                );
+
+            var scope = Container.BeginLifetimeScope(builder =>
+            {
+                builder.RegisterInstance(task)
+                    .SingleInstance();
+            });
+
+            var handler = (OneClickWatchingTaskInputHandler) scope.ResolveKeyed<IWatchingTaskInputHandler>(task.Source.Type);
+            Task.Run(handler.RunOnce).Consume();
 
             return await WriteSuccess(response);
         }
