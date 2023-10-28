@@ -42,12 +42,14 @@ public class MainController : ControllerBase
 
         var title = await OpenAICompleter.GenerateNewTitle(keywords);
         var description = await OpenAICompleter.GenerateNewDescription(title, keywords);
+        keywords = (await OpenAICompleter.GenerateBetterKeywords(title, keywords)).ToImmutableArray();
 
         Logger.LogInformation($"""
             For image {img.FileName}:
                 Labels: {string.Join(", ", labels.Select(l => $"{(l.Score > kwcutoff ? "" : "*")}{(int) (l.Score * 100)}% {l.Description}"))}
                 Title: "{title}"
                 Description: "{description}"
+                Keywords: ["{string.Join(", ", keywords)}"]
             """);
 
         return JsonApi.Success(new TKD(title, description, keywords));

@@ -1,10 +1,11 @@
+using System.Text.RegularExpressions;
 using OpenAI_API;
 using OpenAI_API.Chat;
 using OpenAI_API.Models;
 
 namespace ChatGptApi;
 
-public class OpenAICompleter
+public partial class OpenAICompleter
 {
     readonly OpenAIAPI Api;
     readonly ILogger Logger;
@@ -46,7 +47,7 @@ public class OpenAICompleter
             var prompttokens = encoder.Encode(system + message).Count;
             var outputtokens = encoder.Encode(string.Join("", completion.Choices.Select(c => c.Message.Content))).Count;
 
-            var price = (prompttokens / 1000m * 0.0015m) + (outputtokens / 1000m * 0.002m);
+            var price = prompttokens / 1000m * 0.0015m + outputtokens / 1000m * 0.002m;
             TotalSpent += price;
             Logger.LogInformation($"Tokens: Input {prompttokens}; Output {outputtokens}; Price ~${price}; Total this session: ~${TotalSpent}");
         }).Consume();
@@ -66,7 +67,9 @@ public class OpenAICompleter
         return choice;
     }
 
-    const string PromptEnd = "to use in iStock. Use formal and dry language, do not use \"breathtaking\", \"majestic\" and alike. Do not include the keyword list in the result.";
+    const string PromptEndBase = "to use in iStock. Use formal and dry language, do not use \"breathtaking\", \"majestic\", \"captivating\" and alike.";
+    const string PromptEnd = $"{PromptEndBase} Do not include the keyword list in the result.";
+    static readonly char[] KeywordSeparators = new[] { ',', '\n' };
 
     public async Task<string> GenerateNewTitle(IEnumerable<string> keywords)
     {
@@ -101,12 +104,21 @@ public class OpenAICompleter
             Keywords: {string.Join(", ", keywords)}
         """;
 
-        return (await SendChatRequest($"Generate better keywords for an image using the provided title and keywords {PromptEnd}", prompt, maxtokens: 300))
-            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        return (await SendChatRequest($"Generate a set of 50 one-word keywords for an image based on the provided title and keywords {PromptEndBase}", prompt, maxtokens: 300))
+            .Split(KeywordSeparators, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Select(kw => FilterString(kw).Replace("Keywords:", "").TrimStart())
             .ToArray();
     }
 
-    static string FilterString(string str) =>
-        str.Replace("\"", "").Replace("\'", "").Trim();
+    static string FilterString(string str)
+    {
+        str = str.Replace("\"", "").Replace("\'", "").Trim();
+        if (StartsWithNumberRegex().IsMatch(str))
+            str = string.Join('.', str.Split('.').Skip(1));
+
+        return str;
+    }
+
+    [GeneratedRegex("\\d*\\..*")]
+    private static partial Regex StartsWithNumberRegex();
 }
