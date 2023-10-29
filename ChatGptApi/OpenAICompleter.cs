@@ -22,7 +22,9 @@ public partial class OpenAICompleter
 
     async Task<string> SendChatRequest(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, Model? model = null)
     {
-        model ??= Model.ChatGPTTurbo;
+        if (model is null || model.ModelID is null)
+            model = Model.ChatGPTTurbo;
+
         Logger.LogInformation($"Requesting from {model.ModelID} \"{system}\" \"{message}\"");
 
         var req = new ChatRequest()
