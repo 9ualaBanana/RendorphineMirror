@@ -51,6 +51,7 @@ public abstract class PluginDiscoverer : IPluginDiscoverer
     protected virtual IEnumerable<Plugin> GetPluginsInDirectories(IEnumerable<string> directories)
     {
         return directories
+            .Where(Directory.Exists)
             .SelectMany(pluginDirectory =>
                 Directory.EnumerateFiles(
                     pluginDirectory,

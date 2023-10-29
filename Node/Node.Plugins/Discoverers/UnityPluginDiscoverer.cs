@@ -11,7 +11,7 @@ internal class UnityPluginDiscoverer : PluginDiscoverer
         $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)}",
         $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}",
     };
-    protected override string ParentDirectoryRegex => "Unity .*";
+    protected override string ParentDirectoryRegex => @"Unity \d.*";
     protected override string ExecutableName => "Unity.exe";
     protected override PluginType PluginType => PluginType.Unity;
 
@@ -37,6 +37,6 @@ internal class UnityPluginDiscoverer : PluginDiscoverer
 
     protected override string DetermineVersion(string exepath)
     {
-        return Path.GetDirectoryName(Path.GetDirectoryName(exepath)!)!.Replace("Unity", string.Empty).Trim();
+        return Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(exepath)!)!).Replace("Unity", string.Empty).Trim();
     }
 }
