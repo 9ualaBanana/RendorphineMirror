@@ -16,6 +16,7 @@ public static class PluginDiscoverers
         register<Autodesk3dsMaxPluginDiscoverer>();
         register<TopazVideoAIPluginDiscoverer>();
         register<DaVinciResolvePluginDiscoverer>();
+        register<UnityPluginDiscoverer>();
         register<FFmpegPluginDiscoverer>();
         register<PythonPluginDiscoverer>();
         register<PythonEsrganPluginDiscoverer>();

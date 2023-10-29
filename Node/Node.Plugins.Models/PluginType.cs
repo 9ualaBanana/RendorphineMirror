@@ -7,6 +7,7 @@ public enum PluginType
     DaVinciResolve,
     TopazVideoAI,
     Autodesk3dsMax,
+    Unity,
     Blender,
     VeeeVectorizer,
 
