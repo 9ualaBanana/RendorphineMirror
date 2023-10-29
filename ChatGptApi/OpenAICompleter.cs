@@ -20,7 +20,7 @@ public partial class OpenAICompleter
         Api = new OpenAIAPI(apikey);
     }
 
-    async Task<string> SendChatRequest(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, Model? model = null)
+    async Task<ChatResult> SendChatRequestResult(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, Model? model = null)
     {
         if (model is null || model.ModelID is null)
             model = Model.ChatGPTTurbo;
@@ -55,19 +55,21 @@ public partial class OpenAICompleter
             Logger.LogInformation($"Tokens: Input {prompttokens}; Output {outputtokens}; Price ~${price}; Total this session: ~${TotalSpent}");
         }).Consume();
 
-        var choice = completion.Choices
-            .Select(c => c.Message.Content)
-            .MaxBy(m => m.Length)
-            .ThrowIfNull();
-
         Logger.LogInformation($"""
             From prompt "{system}"
             generated {completion.Choices.Count} choices:
-            {string.Join('\n', completion.Choices.Select((c, i) => $"  {(c.Message.Content == choice ? "*" : " ")} {i}: {c.Message.Content}"))}
+            {string.Join('\n', completion.Choices.Select((c, i) => $"  {i}: {c.Message.Content}"))}
             """);
 
-        choice = FilterString(choice);
-        return choice;
+        return completion;
+    }
+    async Task<string> SendChatRequest(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, Model? model = null)
+    {
+        var completion = await SendChatRequestResult(system, message, temperature, maxtokens, choices, model);
+        return completion.Choices
+            .Select(c => c.Message.Content)
+            .MaxBy(m => m.Length)
+            .ThrowIfNull();
     }
 
     const string PromptEndBase = "to use in iStock. Use formal and dry language, do not use \"breathtaking\", \"majestic\", \"captivating\" and alike.";
@@ -107,21 +109,36 @@ public partial class OpenAICompleter
             Keywords: {string.Join(", ", keywords)}
         """;
 
-        return (await SendChatRequest(system ?? $"Generate a set of 50 one-word keywords for an image based on the provided title and keywords {PromptEndBase}", prompt, maxtokens: 300, model: model))
-            .Split(KeywordSeparators, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(kw => FilterString(kw).Replace("Keywords:", "").TrimStart())
+        var response = await SendChatRequestResult(system ?? $"Generate a set of 50 one-word keywords for an image based on the provided title and keywords {PromptEndBase}", prompt, maxtokens: 300, model: model);
+        var kws = response.Choices
+            .SelectMany(choice => choice.Message.Content
+                .Split(KeywordSeparators, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(FilterKeyword)
+                .WhereNotNull()
+            ).Distinct()
             .ToArray();
+
+        return kws;
     }
 
-    static string FilterString(string str)
+    static string? FilterKeyword(string str)
     {
-        str = str.Replace("\"", "").Replace("\'", "").Trim();
-        if (StartsWithNumberRegex().IsMatch(str))
-            str = string.Join('.', str.Split('.').Skip(1));
+        str = str.Replace("\"", "").Replace("\'", "").Replace("Keywords:", "").Trim();
 
-        return str;
+        // remove all garbage before keyword ('1. kw', '- kw')
+        foreach (var match in NonWordStuffAtStartRegex().Matches(str).AsEnumerable())
+            str = str.Substring(match.Index + match.Length);
+
+        // if still not a single word
+        if (!SingleWordRegex().IsMatch(str))
+            return null;
+
+        return str.ToLowerInvariant();
     }
 
-    [GeneratedRegex("\\d*\\..*")]
-    private static partial Regex StartsWithNumberRegex();
+    [GeneratedRegex(@"^[\W\d]*")]
+    private static partial Regex NonWordStuffAtStartRegex();
+
+    [GeneratedRegex(@"^[A-Za-z]*$")]
+    private static partial Regex SingleWordRegex();
 }
