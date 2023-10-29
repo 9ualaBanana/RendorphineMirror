@@ -38,14 +38,18 @@ public class DebugListener : ExecutableListenerBase
         if (path == "runoneclick")
         {
             var task = new WatchingTask(TaskAction.VeeeVectorize.ToString(), new JObject(),
-                    new OneClickWatchingTaskInputInfo(
-                        @"C:\\Users\user\Documents\oc\input",
-                        @"C:\\Users\user\Documents\oc\output",
-                        @"C:\\Users\user\Documents\oc\log"
-                    ),
-                    new MPlusWatchingTaskOutputInfo("asd"),
-                    TaskPolicy.AllNodes
-                );
+                new OneClickWatchingTaskInputInfo(
+                    @"C:\\Users\user\Documents\oc\input",
+                    @"C:\\Users\user\Documents\oc\output",
+                    @"C:\\Users\user\Documents\oc\log",
+                    @"C:\\Users\user\Documents\oc\testmzp",
+                    @"C:\\Users\user\Documents\oc\testinput",
+                    @"C:\\Users\user\Documents\oc\testoutput",
+                    @"C:\\Users\user\Documents\oc\testlog"
+                ),
+                new MPlusWatchingTaskOutputInfo("asd"),
+                TaskPolicy.AllNodes
+            );
 
             var scope = Container.BeginLifetimeScope(builder =>
             {

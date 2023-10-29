@@ -13,10 +13,26 @@ public class OneClickWatchingTaskInputInfo : IWatchingTaskInputInfo
     [LocalDirectory]
     public string LogDirectory { get; }
 
-    public OneClickWatchingTaskInputInfo(string inputDirectory, string outputDirectory, string logDirectory)
+    [LocalDirectory]
+    public string TestMzpDirectory { get; }
+
+    [LocalDirectory]
+    public string TestInputDirectory { get; }
+
+    [LocalDirectory]
+    public string TestOutputDirectory { get; }
+
+    [LocalDirectory]
+    public string TestLogDirectory { get; }
+
+    public OneClickWatchingTaskInputInfo(string inputDirectory, string outputDirectory, string logDirectory, string testMzpDirectory, string testInputDirectory, string testOutputDirectory, string testLogDirectory)
     {
         InputDirectory = inputDirectory;
         OutputDirectory = outputDirectory;
         LogDirectory = logDirectory;
+        TestMzpDirectory = testMzpDirectory;
+        TestInputDirectory = testInputDirectory;
+        TestOutputDirectory = testOutputDirectory;
+        TestLogDirectory = testLogDirectory;
     }
 }

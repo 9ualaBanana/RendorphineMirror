@@ -13,14 +13,45 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
 
     public async Task RunOnce()
     {
-        var mzp = PluginList.TryGetPlugin(PluginType.OneClick).ThrowIfNull("No oneclick installed");
-        var max = PluginList.TryGetPlugin(PluginType.Autodesk3dsMax).ThrowIfNull("No 3dsmax installed");
+        Directory.CreateDirectory(Input.TestMzpDirectory);
 
-        Directory.CreateDirectory(Input.OutputDirectory);
-        Directory.CreateDirectory(Input.InputDirectory);
-        Directory.CreateDirectory(Input.LogDirectory);
+        try
+        {
+            var betamzp = Directory.GetFiles(Input.TestMzpDirectory)
+                .Where(p => Path.GetFileName(p).StartsWith("oneclick") && p.EndsWith(".mzp"))
+                .Max();
 
-        var currentversion = Directory.GetFiles(Input.OutputDirectory, "*.mzp")
+            if (betamzp is not null)
+            {
+                var plugin = new Plugin(PluginType.OneClick, Path.GetFileNameWithoutExtension(betamzp)!.Substring("oneclickexport.v".Length), betamzp);
+                await Run(plugin, Input.TestInputDirectory, Input.TestOutputDirectory, Input.TestLogDirectory);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+        }
+
+        try
+        {
+            var plugin = PluginList.GetPlugin(PluginType.OneClick);
+            await Run(plugin, Input.InputDirectory, Input.OutputDirectory, Input.LogDirectory);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+        }
+    }
+
+    public async Task Run(Plugin mzp, string input, string output, string log)
+    {
+        var max = PluginList.GetPlugin(PluginType.Autodesk3dsMax);
+
+        Directory.CreateDirectory(output);
+        Directory.CreateDirectory(input);
+        Directory.CreateDirectory(log);
+
+        var currentversion = Directory.GetFiles(output, "*.mzp")
             .Select(Path.GetFileNameWithoutExtension)
             .FirstOrDefault()
             ?.Substring("oneclickexport.v".Length);
@@ -38,13 +69,13 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
 
         async Task processArchives()
         {
-            foreach (var zip in Directory.GetFiles(Input.InputDirectory, "*.zip"))
+            foreach (var zip in Directory.GetFiles(input, "*.zip"))
                 await processArchive(zip);
         }
 
         async Task processArchive(string zip)
         {
-            var dir = Path.Combine(Input.OutputDirectory, Path.GetFileNameWithoutExtension(zip));
+            var dir = Path.Combine(output, Path.GetFileNameWithoutExtension(zip));
             if (Directory.Exists(dir))
                 return;
 
@@ -73,7 +104,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
                     "-ms", "-silent",
 
                     // log path
-                    "-log", Directories.NumberedNameInDirectory(Input.LogDirectory, "log{0:0000}.log"),
+                    "-log", Directories.NumberedNameInDirectory(log, "log{0:0000}.log"),
 
                     // script parameters
                     /*
@@ -102,7 +133,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         {
             Logger.Info("Validating conversion");
 
-            var dir = Path.Combine(Input.OutputDirectory, Path.GetFileNameWithoutExtension(zip), "unity", "Assets");
+            var dir = Path.Combine(output, Path.GetFileNameWithoutExtension(zip), "unity", "Assets");
             if (!Directory.Exists(dir))
                 throw new Exception("Result directory does not exists");
 
@@ -173,11 +204,11 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         {
             Logger.Info("Moving old dirs");
 
-            if (Directory.Exists(Input.OutputDirectory))
-                Directory.Move(Input.OutputDirectory, Input.OutputDirectory + (currentversion ?? "0.0"));
+            if (Directory.Exists(output))
+                Directory.Move(output, output + (currentversion ?? "0.0"));
 
-            Directory.CreateDirectory(Input.OutputDirectory);
-            var target = Path.Combine(Input.OutputDirectory, Path.GetFileName(mzp.Path));
+            Directory.CreateDirectory(output);
+            var target = Path.Combine(output, Path.GetFileName(mzp.Path));
             File.Copy(mzp.Path, target);
 
             Logger.Info($"Old output dir moved to {target}");
