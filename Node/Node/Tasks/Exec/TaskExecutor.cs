@@ -47,14 +47,24 @@ public class TaskExecutor
             var isqspreview = TaskExecutorByData.GetTaskName(task.Info.Data) == TaskAction.GenerateQSPreview;
             var semaphore = isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore;
             var info = isqspreview ? "qspinput" : "input";
-            var inputhandler = InputDownloaders[task.Input.Type];
 
-            using var _ =
-                inputhandler.AllowOutOfOrderDownloads
-                ? new FuncDispose(delegate { })
-                : await WaitDisposed(semaphore, info);
+            var inputs = (task.Inputs ?? new[] { task.SingleInput.ThrowIfNull() })
+                .GroupBy(input => input.Type);
 
-            task.DownloadedInput = await inputhandler.Download(task.Input, task.Info.Object, token);
+            foreach (var input in inputs)
+            {
+                var inputhandler = InputDownloaders[input.Key];
+
+                using var _ =
+                    inputhandler.AllowOutOfOrderDownloads
+                    ? new FuncDispose(delegate { })
+                    : await WaitDisposed(semaphore, info);
+
+                task.DownloadedInput = await inputhandler.MultiDownload(input, task.Info.Object, token);
+            }
+
+
+
             await Api.ChangeStateAsync(task, TaskState.Active);
             QueuedTasks.QueuedTasks.Save(task);
         }

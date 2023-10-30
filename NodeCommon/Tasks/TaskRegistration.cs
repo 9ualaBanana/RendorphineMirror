@@ -20,12 +20,17 @@ public static class TaskRegistration
         if (info.PriceMultiplication < 1) return OperationResult.Err("Could not create task with price multiplication being less than 1");
 
         var data = info.Data;
-        var input = TaskModels.DeserializeInput(info.Input);
+        var input = info.Input is null ? null : TaskModels.DeserializeInput(info.Input);
+        var inputs = info.Inputs?.Select(input => TaskModels.DeserializeInput((JObject) input)).ToArray();
         var output = TaskModels.DeserializeOutput(info.Output);
         var taskobj = info.TaskObject.ThrowIfNull("Task object was not provided");
         var pricemul = Math.Floor(info.PriceMultiplication * 10) / 10; // intervals of 0.1
 
-        await input.InitializeAsync();
+        await (input?.InitializeAsync() ?? ValueTask.CompletedTask);
+        if (inputs is not null)
+            foreach (var inp in inputs)
+                await inp.InitializeAsync();
+
         await output.InitializeAsync();
 
 
@@ -33,13 +38,17 @@ public static class TaskRegistration
         {
             ("sessionid", sessionId),
             ("object", JsonConvert.SerializeObject(taskobj, JsonSettings.LowercaseIgnoreNull)),
-            ("input", JsonConvert.SerializeObject(input, LowercaseIgnoreNullTaskInOut)),
             ("output", JsonConvert.SerializeObject(output, LowercaseIgnoreNullTaskInOut)),
             ("data", data.ToString(Formatting.None)),
             ("policy", info.Policy.ToString()),
             ("origin", string.Empty),
             ("pricemul", pricemul.ToString()),
         };
+
+        if (input is not null)
+            values.Add(("input", JsonConvert.SerializeObject(input, LowercaseIgnoreNullTaskInOut)));
+        if (inputs is not null)
+            values.Add(("inputs", JsonConvert.SerializeObject(info.Inputs, LowercaseIgnoreNullTaskInOut)));
 
         if (info.Next?.IsDefaultOrEmpty == false)
             values.Add(("next", JsonConvert.SerializeObject(info.Next.Value)));
@@ -57,7 +66,11 @@ public static class TaskRegistration
         if (!idr) return idr.GetResult();
 
         log?.LogInformation("Task registered with ID {Id}", idr.Value);
-        return new DbTaskFullState(idr.Value, new TaskInfo(taskobj, input, output, data, info.Policy));
+        return new DbTaskFullState(idr.Value, new TaskInfo(taskobj, output, data, info.Policy)
+        {
+            SingleInput = input,
+            Inputs = inputs,
+        });
     }
 
 

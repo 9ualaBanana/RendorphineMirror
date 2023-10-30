@@ -5,6 +5,11 @@ public interface ITaskInputDownloader
     bool AllowOutOfOrderDownloads { get; }
 
     Task<object> Download(ITaskInputInfo input, TaskObject obj, CancellationToken token);
+    async Task<object> MultiDownload(IEnumerable<ITaskInputInfo> inputs, TaskObject obj, CancellationToken token)
+    {
+        foreach (var input in inputs)
+            await Download(input, obj, token);
+    }
 }
 public interface ITaskInputDownloader<TInput, TResult> : ITaskInputDownloader
     where TInput : ITaskInputInfo
