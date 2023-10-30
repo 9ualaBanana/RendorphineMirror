@@ -46,6 +46,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
     public async Task Run(Plugin mzp, string input, string output, string log)
     {
         var max = PluginList.GetPlugin(PluginType.Autodesk3dsMax);
+        var unity = PluginList.GetPlugin(PluginType.Unity);
 
         Directory.CreateDirectory(output);
         Directory.CreateDirectory(input);
@@ -58,41 +59,43 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
 
         if (currentversion != mzp.Version)
         {
-            await install();
-            await checkinstallation();
-            await moveoldversion();
+            await Install(mzp, max);
+            await CheckInstallation(mzp, max);
+            await MoveOldVersion(mzp, output, currentversion);
         }
 
-        await processArchives();
+        foreach (var zip in Directory.GetFiles(input, "*.zip"))
+            await ProcessArchive(zip, output, log, max, unity);
+    }
+
+    async Task ProcessArchive(string zip, string output, string log, Plugin max, Plugin unity)
+    {
+        var dir = Path.Combine(output, Path.GetFileNameWithoutExtension(zip));
+        if (Directory.Exists(dir))
+            return;
+
+        using var _logscope = Logger.BeginScope($"Processing {Path.GetFileName(zip)}");
+
+        Logger.Info($"Procesing {zip}");
+
+        Logger.Info($"Extracting");
+        ZipFile.ExtractToDirectory(zip, dir);
+        Logger.Info("Extracted");
+        var scenefile = Directory.GetFiles(dir, "*.max").Single();
+        Logger.Info($"Scene file: {scenefile}");
+
+        var unitydir = Path.Combine(dir, "unity", "Assets");
+        Directory.CreateDirectory(unitydir);
+        Logger.Info($"Target directory: {unitydir}");
+
+        await runMax();
+        await runUnity();
+
+        Logger.Info("Success.");
 
 
-
-        async Task processArchives()
+        async Task runMax()
         {
-            foreach (var zip in Directory.GetFiles(input, "*.zip"))
-                await processArchive(zip);
-        }
-
-        async Task processArchive(string zip)
-        {
-            var dir = Path.Combine(output, Path.GetFileNameWithoutExtension(zip));
-            if (Directory.Exists(dir))
-                return;
-
-            using var _logscope = Logger.BeginScope($"Processing {Path.GetFileName(zip)}");
-
-            Logger.Info($"Procesing {zip}");
-
-            Logger.Info($"Extracting");
-            ZipFile.ExtractToDirectory(zip, dir);
-            Logger.Info("Extracted");
-            var scenefile = Directory.GetFiles(dir, "*.max").Single();
-            Logger.Info($"Scene file: {scenefile}");
-
-            var unitydir = Path.Combine(dir, "unity", "Assets");
-            Directory.CreateDirectory(unitydir);
-            Logger.Info($"Target directory: {unitydir}");
-
             var launcher = new ProcessLauncher(max.Path)
             {
                 Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
@@ -125,93 +128,116 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             await launcher.ExecuteAsync();
             Logger.Info("Conversion completed");
 
-            await validateConversionSuccessful(zip);
-            Logger.Info("Success.");
+            await ValidateConversionSuccessful(zip, output);
         }
-
-        async Task validateConversionSuccessful(string zip)
+        async Task runUnity()
         {
-            Logger.Info("Validating conversion");
+            var unityProjectDir = @"C:\UnityStore\OCHDRP22+";
+            Directories.Copy(unitydir, Path.Combine(unityProjectDir, "Assets"));
 
-            var dir = Path.Combine(output, Path.GetFileNameWithoutExtension(zip), "unity", "Assets");
-            if (!Directory.Exists(dir))
-                throw new Exception("Result directory does not exists");
-
-            var logfiles = Directory.GetDirectories(dir)
-                .Select(dir => Path.Combine(dir, Path.GetFileName(dir) + ".txt"))
-                .Where(File.Exists)
-                .ToArray();
-
-            if (logfiles.Length == 0)
-                throw new Exception($"Log file was not found in {dir}");
-
-            foreach (var logfile in logfiles)
-            {
-                var data = await File.ReadAllTextAsync(logfile);
-                if (data.ContainsOrdinal("Export completed."))
-                    return;
-            }
-
-            throw new Exception("'Export completed.' was not found in the log");
-        }
-
-
-        async Task install()
-        {
-            Logger.Info("Installing the plugin");
-
-            foreach (var process in Process.GetProcessesByName("3dsmax"))
-            {
-                try { process.Kill(); }
-                catch { }
-            }
-
-            var launcher = new ProcessLauncher(max.Path)
+            var launcher = new ProcessLauncher(unity.Path)
             {
                 Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
-                ThrowOnStdErr = false,
-                ThrowOnNonZeroExitCode = false,
-                Timeout = TimeSpan.FromMinutes(5),
-                Arguments = { "-ms", "-silent", "-mxs", $"fileIn @\"{mzp.Path}\"" },
+                // ThrowOnStdErr = false,
+                // ThrowOnNonZeroExitCode = false,
+                Arguments =
+                {
+                    "-projectPath", unityProjectDir,
+                    "-executeMethod", "OCBatchScript.StartBake",
+                },
             };
+
+            Logger.Info("Launching unity");
             await launcher.ExecuteAsync();
-
-            Logger.Info("Plugin installed");
+            Logger.Info("Unity render completed");
         }
+    }
 
-        async Task checkinstallation()
+    async Task ValidateConversionSuccessful(string zip, string output)
+    {
+        Logger.Info("Validating conversion");
+
+        var dir = Path.Combine(output, Path.GetFileNameWithoutExtension(zip), "unity", "Assets");
+        if (!Directory.Exists(dir))
+            throw new Exception("Result directory does not exists");
+
+        var logfiles = Directory.GetDirectories(dir)
+            .Select(dir => Path.Combine(dir, Path.GetFileName(dir) + ".txt"))
+            .Where(File.Exists)
+            .ToArray();
+
+        if (logfiles.Length == 0)
+            throw new Exception($"Log file was not found in {dir}");
+
+        foreach (var logfile in logfiles)
         {
-            Logger.Info("Checking plugin installation");
-
-            using var reader = File.OpenRead(mzp.Path);
-            var entry = new ZipArchive(reader).GetEntry("oneclickreadme.txt").ThrowIfNull("OneClick version was not found in mzp");
-            using var entrystream = new StreamReader(entry.Open());
-            var expectedversion = await entrystream.ReadToEndAsync();
-
-            // %localAppData%\Autodesk\3dsMax\20?? - 64bit\ENU\scripts\startup\oneclickreadme.txt
-            var installedpath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Autodesk", "3dsMax", $"{max.Version} - 64bit", "ENU", "scripts", "startup", "oneclickreadme.txt");
-
-            var installedversion = File.ReadAllText(installedpath);
-
-            if (installedversion != expectedversion)
-                throw new Exception($"Invalid mzp installation: versions are not equal ({installedversion} vs {expectedversion})");
-
-            Logger.Info($"Installed plugin version: {installedversion}");
+            var data = await File.ReadAllTextAsync(logfile);
+            if (data.ContainsOrdinal("Export completed."))
+            {
+                Logger.Info("Conversion successful");
+                return;
+            }
         }
 
-        async Task moveoldversion()
+        throw new Exception("'Export completed.' was not found in the log");
+    }
+
+    async Task Install(Plugin mzp, Plugin max)
+    {
+        Logger.Info("Installing the plugin");
+
+        foreach (var process in Process.GetProcessesByName("3dsmax"))
         {
-            Logger.Info("Moving old dirs");
-
-            if (Directory.Exists(output))
-                Directory.Move(output, output + (currentversion ?? "0.0"));
-
-            Directory.CreateDirectory(output);
-            var target = Path.Combine(output, Path.GetFileName(mzp.Path));
-            File.Copy(mzp.Path, target);
-
-            Logger.Info($"Old output dir moved to {target}");
+            try { process.Kill(); }
+            catch { }
         }
+
+        var launcher = new ProcessLauncher(max.Path)
+        {
+            Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
+            ThrowOnStdErr = false,
+            ThrowOnNonZeroExitCode = false,
+            Timeout = TimeSpan.FromMinutes(5),
+            Arguments = { "-ms", "-silent", "-mxs", $"fileIn @\"{mzp.Path}\"" },
+        };
+        await launcher.ExecuteAsync();
+
+        Logger.Info("Plugin installed");
+    }
+
+
+    async Task CheckInstallation(Plugin mzp, Plugin max)
+    {
+        Logger.Info("Checking plugin installation");
+
+        using var reader = File.OpenRead(mzp.Path);
+        var entry = new ZipArchive(reader).GetEntry("oneclickreadme.txt").ThrowIfNull("OneClick version was not found in mzp");
+        using var entrystream = new StreamReader(entry.Open());
+        var expectedversion = await entrystream.ReadToEndAsync();
+
+        // %localAppData%\Autodesk\3dsMax\20?? - 64bit\ENU\scripts\startup\oneclickreadme.txt
+        var installedpath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Autodesk", "3dsMax", $"{max.Version} - 64bit", "ENU", "scripts", "startup", "oneclickreadme.txt");
+
+        var installedversion = File.ReadAllText(installedpath);
+
+        if (installedversion != expectedversion)
+            throw new Exception($"Invalid mzp installation: versions are not equal ({installedversion} vs {expectedversion})");
+
+        Logger.Info($"Installed plugin version: {installedversion}");
+    }
+
+    async Task MoveOldVersion(Plugin mzp, string output, string? currentversion)
+    {
+        Logger.Info("Moving old dirs");
+
+        if (Directory.Exists(output))
+            Directory.Move(output, output + (currentversion ?? "0.0"));
+
+        Directory.CreateDirectory(output);
+        var target = Path.Combine(output, Path.GetFileName(mzp.Path));
+        File.Copy(mzp.Path, target);
+
+        Logger.Info($"Old output dir moved to {target}");
     }
 }

@@ -22,8 +22,6 @@ public abstract class WatchingTaskInputHandler<TInput> : IWatchingTaskInputHandl
     {
         new Thread(async () =>
         {
-            using var _logscope = Logger.BeginScope($"WTask {Task.Id}");
-
             while (true)
             {
                 if (Token.IsCancellationRequested) return;
