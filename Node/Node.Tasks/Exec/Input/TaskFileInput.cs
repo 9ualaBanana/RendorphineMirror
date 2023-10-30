@@ -7,10 +7,10 @@ public class TaskFileInput : IReadOnlyTaskFileList
 {
     public int Count => Files.Count;
 
-    public ReadOnlyTaskFileList Files { get; }
+    public IReadOnlyTaskFileList Files { get; }
     public string ResultDirectory { get; }
 
-    public TaskFileInput(ReadOnlyTaskFileList files, string resultDirectory)
+    public TaskFileInput(IReadOnlyTaskFileList files, string resultDirectory)
     {
         Files = files;
         ResultDirectory = resultDirectory;

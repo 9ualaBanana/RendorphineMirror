@@ -1,4 +1,5 @@
 using Node.Tasks.Exec.Input;
+using Node.Tasks.Exec.Output;
 
 namespace Node.Tests;
 
@@ -9,19 +10,42 @@ public static partial class GenericTasksTests
         if (Directory.Exists("/temp/tt"))
             Directory.Delete("/temp/tt", true);
 
-        await ExecuteSingle(
+        var result1 = await ExecuteSingle(
             container,
             new EditVideo(),
-            new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/Downloads/Telegram Desktop/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt"),
+            new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt/1"),
             new EditVideoInfo() { Hflip = true }
         );
 
-        await ExecuteMulti(
+        var result2 = (ReadOnlyTaskFileList) await ExecuteMulti(
             container,
-            new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/Downloads/Telegram Desktop/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt"),
+            new object[]
+            {
+                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt/2"),
+                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/62bd65167538331c6b6c6574.mov"), }), "/temp/tt/2"),
+            },
+            new EditVideoInfo() { Hflip = true }.ToData()
+        );
+
+        var result3 = (ReadOnlyTaskFileList) await ExecuteMulti(
+            container,
+            new object[]
+            {
+                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt/3"),
+                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/62bd65167538331c6b6c6574.mov"), }), "/temp/tt/3"),
+            },
+            new EditVideoInfo() { Hflip = true }.ToData(),
+            new EditVideoInfo() { Vflip = true, }.ToData()
+        );
+
+        var result4 = (ReadOnlyTaskFileList) await ExecuteMulti(
+            container,
+            new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt/4"),
             new EditVideoInfo() { Hflip = true, }.ToData(),
             new EditVideoInfo() { Vflip = true, }.ToData()
         );
+
+        _ = new object[] { result1, result2, result3, result4 };
     }
 
     static JObject ToData(this object data, string? type = null) => JObject.FromObject(data).WithProperty("type", type ?? data.GetType().Name[..^"Info".Length]);
@@ -34,6 +58,12 @@ public static partial class GenericTasksTests
             .SingleInstance();
 
         builder.RegisterType<TaskExecutorByData>()
+            .SingleInstance();
+
+        builder.RegisterType<CondaManager>()
+            .SingleInstance();
+
+        builder.RegisterInstance(new PluginDirs("plugins"))
             .SingleInstance();
 
         PluginDiscoverers.RegisterDiscoverers(builder);
@@ -59,7 +89,9 @@ public static partial class GenericTasksTests
         return await action.Execute(ctx, input, data);
     }
 
-    public static async Task<object> ExecuteMulti(ILifetimeScope container, object input, params JObject[] datas)
+    public static async Task<object> ExecuteMulti(ILifetimeScope container, object input, params JObject[] datas) =>
+        await ExecuteMulti(container, new[] { input }, datas);
+    public static async Task<object> ExecuteMulti(ILifetimeScope container, IReadOnlyList<object> input, params JObject[] datas)
     {
         using var ctx = container.BeginLifetimeScope(InitializeForTasks);
         return await ctx.Resolve<TaskExecutorByData>()

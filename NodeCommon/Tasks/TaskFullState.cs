@@ -2,7 +2,7 @@ namespace NodeCommon.Tasks;
 
 public record TaskInfo(TaskObject Object, ITaskOutputInfo Output, JObject Data, TaskPolicy LaunchPolicy = TaskPolicy.AllNodes, string OriginGuid = "", ImmutableArray<JObject>? Next = default)
 {
-    public ITaskInputInfo? SingleInput { get; init; }
+    public ITaskInputInfo? Input { get; init; }
     public IReadOnlyList<ITaskInputInfo>? Inputs { get; init; }
 
     [JsonIgnore] public string FirstTaskType => GetTaskType(Data);

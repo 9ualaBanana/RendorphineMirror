@@ -68,7 +68,7 @@ public static class TaskRegistration
         log?.LogInformation("Task registered with ID {Id}", idr.Value);
         return new DbTaskFullState(idr.Value, new TaskInfo(taskobj, output, data, info.Policy)
         {
-            SingleInput = input,
+            Input = input,
             Inputs = inputs,
         });
     }

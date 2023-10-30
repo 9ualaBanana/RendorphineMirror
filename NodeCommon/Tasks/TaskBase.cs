@@ -11,8 +11,7 @@ public abstract record TaskBase(string Id, TaskInfo Info) : IMPlusTask
 
     [JsonIgnore] public string FirstAction => Info.FirstTaskType;
     [JsonIgnore] public IEnumerable<string> Actions => (Info.Next ?? ImmutableArray<Newtonsoft.Json.Linq.JObject>.Empty).Select(TaskInfo.GetTaskType).Prepend(FirstAction);
-    [JsonIgnore] public ITaskInputInfo? SingleInput => Info.SingleInput;
-    [JsonIgnore] public IReadOnlyList<ITaskInputInfo>? Inputs => Info.Inputs;
+    [JsonIgnore] public IEnumerable<ITaskInputInfo> Inputs => (Info.Inputs ?? new[] { Info.Input.ThrowIfNull() });
     [JsonIgnore] public ITaskOutputInfo Output => Info.Output;
 
     public void SetStateTime(TaskState state)

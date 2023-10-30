@@ -48,10 +48,8 @@ public class TaskExecutor
             var semaphore = isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore;
             var info = isqspreview ? "qspinput" : "input";
 
-            var inputs = (task.Inputs ?? new[] { task.SingleInput.ThrowIfNull() })
-                .GroupBy(input => input.Type);
-
-            foreach (var input in inputs)
+            var downloadedinput = new List<object>();
+            foreach (var input in task.Inputs.GroupBy(input => input.Type))
             {
                 var inputhandler = InputDownloaders[input.Key];
 
@@ -60,9 +58,10 @@ public class TaskExecutor
                     ? new FuncDispose(delegate { })
                     : await WaitDisposed(semaphore, info);
 
-                task.DownloadedInput = await inputhandler.MultiDownload(input, task.Info.Object, token);
+                downloadedinput.AddRange(await inputhandler.MultiDownload(input, task.Info.Object, token));
             }
 
+            task.DownloadedInputs = downloadedinput;
 
 
             await Api.ChangeStateAsync(task, TaskState.Active);
@@ -75,12 +74,19 @@ public class TaskExecutor
             using var _ = await WaitDisposed(ActiveSemaphore);
 
             var firstaction = Actions[TaskExecutorByData.GetTaskName(task.Info.Data)];
-            var input = task.DownloadedInput.ThrowIfNull("No task input downloaded");
+            var inputs = task.DownloadedInputs.ThrowIfNull("No task input downloaded");
+            if (inputs.Count == 0) throw new Exception("No task input downloaded");
 
-            if (input is ReadOnlyTaskFileList files)
-                input = new TaskFileInput(files, task.FSOutputDirectory(Dirs));
+            object convertInput(object input)
+            {
+                if (input is IReadOnlyTaskFileList files)
+                    return new TaskFileInput(files, task.FSOutputDirectory(Dirs));
 
-            task.Result = await Executor.Execute(input, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
+                return input;
+            }
+            inputs = inputs.Select(convertInput).ToArray();
+
+            task.Result = await Executor.Execute(inputs, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
             await Api.ChangeStateAsync(task, TaskState.Output);
             QueuedTasks.QueuedTasks.Save(task);
         }

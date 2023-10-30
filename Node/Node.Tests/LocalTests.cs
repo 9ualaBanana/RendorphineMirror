@@ -17,8 +17,9 @@ public class LocalTests
         Logger.LogInformation("Running tests...");
 
         // await ElevenLabsTest();
-        await LaunchTask();
-        await PluginTest();
+        //await LaunchTask();
+        //await PluginTest();
+        await GenericTasksTests.RunAsync(Context);
     }
 
     async Task LaunchTask()

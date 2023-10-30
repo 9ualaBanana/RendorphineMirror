@@ -21,11 +21,6 @@ public class ReadOnlyTaskFileList : IReadOnlyTaskFileList
 
     public ReadOnlyTaskFileList(IEnumerable<FileWithFormat> files) => Files = files.ToHashSet();
 
-    public FileWithFormat First(FileFormat format) => this.First(f => f.Format == format);
-    public FileWithFormat? TryFirst(FileFormat format) => this.FirstOrDefault(f => f.Format == format);
-    public FileWithFormat Single(FileFormat format) => this.Single(f => f.Format == format);
-    public FileWithFormat? TrySingle(FileFormat format) => this.SingleOrDefault(f => f.Format == format);
-
     public IEnumerator<FileWithFormat> GetEnumerator() => Files.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
@@ -60,6 +55,11 @@ public class TaskFileList : ReadOnlyTaskFileList
 
 public static class TaskFileListExtensions
 {
+    public static FileWithFormat First(this IReadOnlyTaskFileList list, FileFormat format) => list.First(f => f.Format == format);
+    public static FileWithFormat? TryFirst(this IReadOnlyTaskFileList list, FileFormat format) => list.FirstOrDefault(f => f.Format == format);
+    public static FileWithFormat Single(this IReadOnlyTaskFileList list, FileFormat format) => list.Single(f => f.Format == format);
+    public static FileWithFormat? TrySingle(this IReadOnlyTaskFileList list, FileFormat format) => list.SingleOrDefault(f => f.Format == format);
+
     public static void AddFromLocalPath(this TaskFileList files, string path)
     {
         foreach (var file in FileWithFormat.FromLocalPath(path))

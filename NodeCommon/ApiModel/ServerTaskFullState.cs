@@ -9,5 +9,5 @@ public record ServerTaskFullState : DbTaskFullState
 
     [JsonConstructor]
     public ServerTaskFullState(string id, TaskPolicy launchPolicy, TaskObject @object, ITaskOutputInfo output, JObject data, ITaskInputInfo? input = null, IReadOnlyList<ITaskInputInfo>? inputs = null)
-        : base(id, new TaskInfo(@object, output, data, launchPolicy) { SingleInput = input, Inputs = inputs }) { }
+        : base(id, new TaskInfo(@object, output, data, launchPolicy) { Input = input, Inputs = inputs }) { }
 }

@@ -155,7 +155,7 @@ namespace Node.UI
                     icon.ToolTipText = $@"
                         {task.Id}
                         {string.Join('-', task.Actions)}
-                        {Newtonsoft.Json.JsonConvert.SerializeObject((object?) task.Info.SingleInput ?? task.Info.Inputs, Newtonsoft.Json.Formatting.None)}
+                        {Newtonsoft.Json.JsonConvert.SerializeObject((object?) task.Info.Input ?? task.Info.Inputs, Newtonsoft.Json.Formatting.None)}
                         ".TrimLines();
 
                     if ((time / 3) % 2 == 0)
