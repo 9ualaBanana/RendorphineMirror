@@ -116,8 +116,9 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
                     int - existing texture mode; 1 = skip copying, 2 = 256px, 3=512, 4=1024, 5=2048, 6=4096
                     int - bake texture mode; 1 = skip baking, 2 = 128px, 3=256, 4=512, 5=1024, 6=2048, 7=4096
                     bool int int - render cameras (true\false) and frame width height (always should be specified)
+                    bool - deploy importer from internal zip
                     */
-                    "-mxs", $"oneclickexport.oc000 2 @\"{unitydir}\" 3 3 true 960 540",
+                    "-mxs", $"oneclickexport.oc000 2 @\"{unitydir}\" 3 3 true 960 540 false",
 
                     // scene to export
                     scenefile,
