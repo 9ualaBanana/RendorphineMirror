@@ -47,14 +47,23 @@ public class TaskExecutor
             var isqspreview = TaskExecutorByData.GetTaskName(task.Info.Data) == TaskAction.GenerateQSPreview;
             var semaphore = isqspreview ? QSPreviewInputSemaphore : NonQSPreviewInputSemaphore;
             var info = isqspreview ? "qspinput" : "input";
-            var inputhandler = InputDownloaders[task.Input.Type];
 
-            using var _ =
-                inputhandler.AllowOutOfOrderDownloads
-                ? new FuncDispose(delegate { })
-                : await WaitDisposed(semaphore, info);
+            var downloadedinput = new List<object>();
+            foreach (var input in task.Inputs.GroupBy(input => input.Type))
+            {
+                var inputhandler = InputDownloaders[input.Key];
 
-            task.DownloadedInput = await inputhandler.Download(task.Input, task.Info.Object, token);
+                using var _ =
+                    inputhandler.AllowOutOfOrderDownloads
+                    ? new FuncDispose(delegate { })
+                    : await WaitDisposed(semaphore, info);
+
+                downloadedinput.AddRange(await inputhandler.MultiDownload(input, task.Info.Object, token));
+            }
+
+            task.DownloadedInputs = downloadedinput;
+
+
             await Api.ChangeStateAsync(task, TaskState.Active);
             QueuedTasks.QueuedTasks.Save(task);
         }
@@ -65,12 +74,19 @@ public class TaskExecutor
             using var _ = await WaitDisposed(ActiveSemaphore);
 
             var firstaction = Actions[TaskExecutorByData.GetTaskName(task.Info.Data)];
-            var input = task.DownloadedInput.ThrowIfNull("No task input downloaded");
+            var inputs = task.DownloadedInputs.ThrowIfNull("No task input downloaded");
+            if (inputs.Count == 0) throw new Exception("No task input downloaded");
 
-            if (input is ReadOnlyTaskFileList files)
-                input = new TaskFileInput(files, task.FSOutputDirectory(Dirs));
+            object convertInput(object input)
+            {
+                if (input is IReadOnlyTaskFileList files)
+                    return new TaskFileInput(files, task.FSOutputDirectory(Dirs));
 
-            task.Result = await Executor.Execute(input, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
+                return input;
+            }
+            inputs = inputs.Select(convertInput).ToArray();
+
+            task.Result = await Executor.Execute(inputs, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
             await Api.ChangeStateAsync(task, TaskState.Output);
             QueuedTasks.QueuedTasks.Save(task);
         }

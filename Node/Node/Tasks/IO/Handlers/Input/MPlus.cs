@@ -4,6 +4,7 @@ public static class MPlus
 {
     public class InputDownloader : FileTaskInputDownloader<MPlusTaskInputInfo>, ITypedTaskInput
     {
+        protected override bool AllowConcurrentMultiDownload => true;
         public static TaskInputType Type => TaskInputType.MPlus;
 
         public required IRegisteredTaskApi ApiTask { get; init; }
@@ -39,7 +40,7 @@ public static class MPlus
 
             async Task download(FileFormat format, CancellationToken token)
             {
-                var downloadLink = await Api.ShardGet<string>(ApiTask, "gettaskinputdownloadlink", "link", "Getting m+ input download link",
+                var downloadLink = await (Api with { LogErrors = false }).ShardGet<string>(ApiTask, "gettaskinputdownloadlink", "link", "Getting m+ input download link",
                     ("taskid", ApiTask.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"));
 
                 using var response = await Api.Api.Client.GetAsync(downloadLink.ThrowIfError(), HttpCompletionOption.ResponseHeadersRead, token);

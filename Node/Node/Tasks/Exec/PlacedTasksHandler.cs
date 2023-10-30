@@ -42,8 +42,9 @@ public class PlacedTasksHandler
 
             try
             {
-                if (InputUploaders.TryGetValue(task.Input.Type, out var handler))
-                    await handler.Upload(task.Input);
+                foreach (var input in task.Inputs)
+                    if (InputUploaders.TryGetValue(input.Type, out var handler))
+                        await handler.Upload(input);
 
                 return;
             }

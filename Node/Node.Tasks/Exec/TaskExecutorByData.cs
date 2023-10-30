@@ -8,9 +8,9 @@ public class TaskExecutorByData
     public required ITaskProgressSetter ProgressSetter { get; init; }
     public required ILogger<TaskExecutorByData> Logger { get; init; }
 
-    public async Task<object> Execute(object firstinput, IReadOnlyList<JObject> datas)
+    public async Task<object> Execute(IReadOnlyList<object> firstinput, IReadOnlyList<JObject> datas)
     {
-        var results = new[] { firstinput };
+        var results = firstinput;
 
         var index = 0;
         foreach (var data in datas)
@@ -39,7 +39,7 @@ public class TaskExecutorByData
 
         if (results.All(r => r is TaskFileOutput))
             return new ReadOnlyTaskFileList(results.Cast<TaskFileOutput>().SelectMany(t => t.Files).SelectMany(f => f));
-        if (results.Length == 1)
+        if (results.Count == 1)
             return results[0];
 
         return results;
