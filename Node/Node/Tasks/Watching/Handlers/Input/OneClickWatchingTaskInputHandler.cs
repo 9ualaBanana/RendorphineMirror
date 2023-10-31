@@ -133,14 +133,12 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         }
         async Task runUnity()
         {
-            var unityProjectDir = @"C:\UnityStore\OCHDRP22+";
+            var unityProjectDir = @"C:\\OneClickUnityDefaultProjects\OCHDRP22+";
             Directories.Copy(unitydir, Path.Combine(unityProjectDir, "Assets"));
 
             var launcher = new ProcessLauncher(unity.Path)
             {
                 Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
-                // ThrowOnStdErr = false,
-                // ThrowOnNonZeroExitCode = false,
                 Arguments =
                 {
                     "-projectPath", unityProjectDir,
