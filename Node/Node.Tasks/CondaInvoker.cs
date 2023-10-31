@@ -7,10 +7,10 @@ public class CondaInvoker
     public required CondaManager CondaManager { get; init; }
     public required ILogger<CondaInvoker> Logger { get; init; }
 
-    public Task ExecutePowerShellAtWithCondaEnvAsync(PluginList plugins, PluginType pltype, string script, Action<bool, object>? onRead) =>
+    public Task ExecutePowerShellAtWithCondaEnvAsync(IPluginList plugins, PluginType pltype, string script, Action<bool, object>? onRead) =>
         Task.Run(() => ExecutePowerShellAtWithCondaEnv(plugins, pltype, script, onRead));
 
-    public void ExecutePowerShellAtWithCondaEnv(PluginList plugins, PluginType pltype, string script, Action<bool, object>? onRead)
+    public void ExecutePowerShellAtWithCondaEnv(IPluginList plugins, PluginType pltype, string script, Action<bool, object>? onRead)
     {
         var plugin = plugins.GetPlugin(pltype);
 

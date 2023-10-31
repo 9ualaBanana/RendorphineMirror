@@ -7,7 +7,7 @@ public class RectReleasesWatchingTaskHandler : WatchingTaskInputHandler<RectRele
     public required PluginDeployer PluginDeployer { get; init; }
     public required PluginManager PluginManager { get; init; }
     public required NodeGlobalState NodeGlobalState { get; init; }
-    public required PluginList PluginList { get; init; }
+    public required IPluginList PluginList { get; init; }
 
     public override void StartListening()
     {

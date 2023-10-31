@@ -7,7 +7,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
 {
     public static WatchingTaskInputType Type => WatchingTaskInputType.OneClick;
 
-    public required PluginList PluginList { get; init; }
+    public required IPluginList PluginList { get; init; }
 
     public override void StartListening() => StartThreadRepeated(5_000, RunOnce);
 

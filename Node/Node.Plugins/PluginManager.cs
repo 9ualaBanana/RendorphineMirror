@@ -1,8 +1,10 @@
+using System.Collections;
+
 namespace Node.Plugins;
 
 // TODO: invalidate every day or something
 /// <summary> Stores and updates a list of installed plugins using provided discoverers </summary>
-public class PluginManager : IInstalledPluginsProvider
+public class PluginManager : IPluginList
 {
     static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
@@ -86,4 +88,7 @@ public class PluginManager : IInstalledPluginsProvider
             }
         }
     }
+
+    public IEnumerator<Plugin> GetEnumerator() => Plugins.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

@@ -14,6 +14,7 @@ public record SoftwareVersionInfo(PluginType Type, string Version, string Name, 
                 None,
                 Registry,
                 Url,
+                GitTag,
             }
 
             public class JsonConverter : JsonConverter<SourceInfo>
@@ -31,6 +32,7 @@ public record SoftwareVersionInfo(PluginType Type, string Version, string Name, 
                         SourceType.None => jobj.ToObject<SourceInfo>(),
                         SourceType.Registry => jobj.ToObject<RegistrySourceInfo>(),
                         SourceType.Url => jobj.ToObject<UrlSourceInfo>(),
+                        SourceType.GitTag => jobj.ToObject<GitTagSourceInfo>(),
                         _ => throw new InvalidOperationException("Unknown type " + jobj.Property("type", StringComparison.OrdinalIgnoreCase)),
                     };
                 }
@@ -38,6 +40,7 @@ public record SoftwareVersionInfo(PluginType Type, string Version, string Name, 
         }
         public record RegistrySourceInfo(SourceInfo.SourceType Type) : SourceInfo(Type);
         public record UrlSourceInfo(SourceInfo.SourceType Type, string Url) : SourceInfo(Type);
+        public record GitTagSourceInfo(SourceInfo.SourceType Type, string Username, string Name, string Tag) : SourceInfo(Type);
 
 
         public record PythonInfo(string Version, PythonInfo.PipInfo Pip, PythonInfo.CondaInfo Conda)

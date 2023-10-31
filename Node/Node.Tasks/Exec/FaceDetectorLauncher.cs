@@ -6,7 +6,7 @@ public record ImageDetectorRect(int X, int Y, int W, int H);
 public class ImageDetectorLauncher
 {
     public required CondaInvoker CondaInvoker { get; init; }
-    public required PluginList Plugins { get; init; }
+    public required IPluginList Plugins { get; init; }
     public required ILogger<ImageDetectorLauncher> Logger { get; init; }
 
     public async Task<ImageDetectorRect> GenerateRectAsync(string file, CancellationToken token)

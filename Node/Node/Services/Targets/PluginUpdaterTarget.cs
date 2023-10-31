@@ -13,7 +13,7 @@ public class PluginUpdaterTarget : IServiceTarget
 
         builder.RegisterType<PluginManager>()
             .AsSelf()
-            .As<IInstalledPluginsProvider>()
+            .As<IPluginList>()
             .SingleInstance();
 
         builder.RegisterType<CondaManager>()
@@ -23,9 +23,6 @@ public class PluginUpdaterTarget : IServiceTarget
             .SingleInstance();
 
         builder.RegisterType<UserSettingsHeartbeat>()
-            .SingleInstance();
-
-        builder.Register(ctx => new PluginList(ctx.Resolve<PluginManager>().GetInstalledPluginsAsync().GetAwaiter().GetResult()))
             .SingleInstance();
     }
 

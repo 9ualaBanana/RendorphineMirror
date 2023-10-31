@@ -89,7 +89,7 @@ public class LocalTests
 
             builder.RegisterType<PluginManager>()
                 .AsSelf()
-                .As<IInstalledPluginsProvider>()
+                .As<IPluginList>()
                 .SingleInstance();
 
             builder.RegisterType<PowerShellInvoker>()
@@ -100,9 +100,6 @@ public class LocalTests
                 .SingleInstance();
 
             builder.RegisterType<PluginDeployer>()
-                .SingleInstance();
-
-            builder.Register(ctx => new PluginList(ctx.Resolve<PluginManager>().GetInstalledPluginsAsync().GetAwaiter().GetResult()))
                 .SingleInstance();
         });
 
@@ -153,7 +150,7 @@ public class LocalTests
             conda.EnvironmentExists(condaenv).Should()
                 .BeFalse();
 
-            new Action(() => condainvoker.ExecutePowerShellAtWithCondaEnv(ctx.Resolve<PluginList>(), pltype, "echo test", delegate { })).Should()
+            new Action(() => condainvoker.ExecutePowerShellAtWithCondaEnv(ctx.Resolve<IPluginList>(), pltype, "echo test", delegate { })).Should()
                 .NotThrow();
 
             conda.EnvironmentExists(condaenv).Should()
@@ -164,7 +161,7 @@ public class LocalTests
         await delete();
         async Task delete()
         {
-            await deployer.Delete(pltype, plver);
+            await deployer.Delete(pltype, plver, false);
 
             var installed = filterLocalPlugins(await manager.RediscoverPluginsAsync());
             installed.Should()

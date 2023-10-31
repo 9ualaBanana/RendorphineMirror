@@ -7,7 +7,7 @@ namespace Node.Plugins;
 public class PluginDeployer
 {
     public required PowerShellInvoker PowerShellInvoker { get; init; }
-    public required IInstalledPluginsProvider InstalledPlugins { get; init; }
+    public required IPluginList PluginList { get; init; }
     public required CondaManager CondaManager { get; init; }
     public required TorrentClient TorrentClient { get; init; }
     public required HttpClient HttpClient { get; init; }
@@ -18,7 +18,7 @@ public class PluginDeployer
 
 
     /// <param name="version"> Plugin version or null if any </param>
-    public bool IsInstalled(PluginType type, PluginVersion version) => IsInstalled(InstalledPlugins.Plugins, type, version);
+    public bool IsInstalled(PluginType type, PluginVersion version) => IsInstalled(PluginList.Plugins, type, version);
 
     /// <inheritdoc cref="IsInstalled(PluginType, PluginVersion)"/>
     public static bool IsInstalled(IReadOnlyCollection<Plugin> installed, PluginType type, PluginVersion version) =>
@@ -27,7 +27,7 @@ public class PluginDeployer
 
     /// <remarks>
     /// Deploys only specified plugins;
-    /// To get plugin list with parents, use <see cref="PluginChecker.GetInstallationTree(ImmutableDictionary{string, ImmutableDictionary{PluginVersion, SoftwareVersionInfo}}, IEnumerable{PluginToDeploy})"/>.
+    /// To get plugin list with parents, use <see cref="PluginChecker.GetInstallationTree(ImmutableDictionary{PluginType, ImmutableDictionary{PluginVersion, SoftwareVersionInfo}}, PluginType, PluginVersion)"/>.
     /// Deploys only non-installed plugins.
     /// </remarks>
     /// <returns> Amount of installed plugins </returns>
@@ -41,7 +41,7 @@ public class PluginDeployer
         var installed = 0;
         foreach (var plugin in uninstalled)
         {
-            await Deploy(plugin.Type, plugin.Version, plugin.Installation.ThrowIfNull($"Plugin {plugin} somehow has null installScript"), token);
+            await Deploy(plugin.Type, plugin.Version, plugin.IsLatest, plugin.Installation.ThrowIfNull($"Plugin {plugin} somehow has null installScript"), token);
             installed++;
         }
 
@@ -49,35 +49,35 @@ public class PluginDeployer
     }
 
     /// <remarks> Deploys even if installed </remarks>
-    public async Task Deploy(PluginType type, PluginVersion version, SoftwareVersionInfo.InstallationInfo installation, CancellationToken token)
+    public async Task Deploy(PluginType type, PluginVersion version, bool latest, SoftwareVersionInfo.InstallationInfo installation, CancellationToken token)
     {
         using var _logscope = Logger.BeginScope($"Installing {type} {version}");
 
         Logger.LogInformation($"Installing");
 
         if (installation.Source is not null)
-            await Download(type, version, installation.Source, token);
+            await Download(type, version, latest, installation.Source, token);
         if (installation.Script is not null)
-            InstallWithPowershell(type, version, installation.Script);
+            InstallWithPowershell(type, version, latest, installation.Script);
         if (installation.Python is not null)
-            InstallWithConda(type, version, installation.Python);
+            InstallWithConda(type, version, latest, installation.Python);
 
         Logger.LogInformation($"Installed");
     }
 
-    async Task Download(PluginType type, PluginVersion version, SoftwareVersionInfo.InstallationInfo.SourceInfo source, CancellationToken token)
+    async Task Download(PluginType type, PluginVersion version, bool latest, SoftwareVersionInfo.InstallationInfo.SourceInfo source, CancellationToken token)
     {
-        // clearing old plugin files if any
-        var targetdir = Directories.NewDirCreated(PluginDirs.GetPluginDirectory(type, version));
-
         if (source is SoftwareVersionInfo.InstallationInfo.RegistrySourceInfo)
             await downloadRegistry(token);
         else if (source is SoftwareVersionInfo.InstallationInfo.UrlSourceInfo url)
             await downloadUrl(url.Url, token);
+        else if (source is SoftwareVersionInfo.InstallationInfo.GitTagSourceInfo gittag)
+            await downloadGitTag(gittag.Username, gittag.Name, gittag.Tag, token);
 
 
         async Task downloadRegistry(CancellationToken token)
         {
+            var targetdir = Directories.NewDirCreated(PluginDirs.GetPluginDirectory(type, version, latest));
             Logger.LogInformation($"Downloading from registry to {targetdir}");
 
             // MemoryStream needed as TorrentClient.AddOrGetTorrent requires seeking support
@@ -98,6 +98,7 @@ public class PluginDeployer
         }
         async Task downloadUrl(string url, CancellationToken token)
         {
+            var targetdir = Directories.NewDirCreated(PluginDirs.GetPluginDirectory(type, version, latest));
             var resultfilename = new Uri(url).Segments.Last().Trim('/');
             foreach (var invalid in Path.GetInvalidFileNameChars())
                 resultfilename = resultfilename.Replace(invalid, '-');
@@ -109,13 +110,47 @@ public class PluginDeployer
             using var resultfile = File.Create(Path.Combine(targetdir, result));
             await inputstream.CopyToAsync(inputstream, token);
         }
+        async Task downloadGitTag(string username, string name, string tag, CancellationToken token)
+        {
+            var targetdir = PluginDirs.GetPluginDirectory(type, version, latest);
+
+            var tokenfile = $"{type}_ghtoken";
+            if (!File.Exists(tokenfile))
+                throw new Exception($"Could not install {type} {version}: no git token found");
+
+            var ghtoken = await File.ReadAllTextAsync(tokenfile, token);
+            var git = PluginList.GetPlugin(PluginType.Git).Path;
+
+
+            var exists = Directory.Exists(targetdir);
+            if (exists)
+            {
+                try { await launchgit("status"); }
+                catch { exists = false; }
+            }
+
+            if (!exists)
+            {
+                Logger.LogInformation("Repository does not exists, cloning");
+                await launchgit("clone", $"https://{ghtoken}@github.com/{username}/{name}.git");
+            }
+
+            await launchgit("checkout", $"tags/{tag}");
+
+
+            async Task<string> launchgit(params string[] args)
+            {
+                var launcher = new ProcessLauncher(git) { Arguments = { args } };
+                return await launcher.ExecuteFullAsync();
+            }
+        }
     }
-    void InstallWithPowershell(PluginType type, PluginVersion version, string script)
+    void InstallWithPowershell(PluginType type, PluginVersion version, bool latest, string script)
     {
         if (CondaManager.EnvironmentExists(GetCondaEnvName(type, version)))
         {
             script = $"""
-                {CondaManager.GetActivateScript(InstalledPlugins.Plugins.First(p => p.Type == PluginType.Conda).Path, GetCondaEnvName(type, version))}
+                {CondaManager.GetActivateScript(PluginList.Plugins.First(p => p.Type == PluginType.Conda).Path, GetCondaEnvName(type, version))}
                 {script}
                 """;
         }
@@ -152,21 +187,21 @@ public class PluginDeployer
             return pldownload;
         }
     }
-    void InstallWithConda(PluginType type, PluginVersion version, SoftwareVersionInfo.InstallationInfo.PythonInfo info)
+    void InstallWithConda(PluginType type, PluginVersion version, bool latest, SoftwareVersionInfo.InstallationInfo.PythonInfo info)
     {
         var name = GetCondaEnvName(type, version);
-        var condapath = InstalledPlugins.Plugins.First(p => p.Type == PluginType.Conda).Path;
+        var condapath = PluginList.Plugins.First(p => p.Type == PluginType.Conda).Path;
 
-        CondaManager.InitializeEnvironment(condapath, name, info.Version, info.Conda.Requirements, info.Conda.Channels, info.Pip.Requirements, info.Pip.RequirementFiles, Directories.DirCreated(PluginDirs.GetPluginDirectory(type, version)));
+        CondaManager.InitializeEnvironment(condapath, name, info.Version, info.Conda.Requirements, info.Conda.Channels, info.Pip.Requirements, info.Pip.RequirementFiles, Directories.DirCreated(PluginDirs.GetPluginDirectory(type, version, latest)));
     }
 
 
-    public async Task Delete(PluginType type, PluginVersion version)
+    public async Task Delete(PluginType type, PluginVersion version, bool latest)
     {
         var name = GetCondaEnvName(type, version);
         CondaManager.DeleteEnvironment(name);
 
-        var plugindir = PluginDirs.GetPluginDirectory(type, version);
+        var plugindir = PluginDirs.GetPluginDirectory(type, version, latest);
         if (Directory.Exists(plugindir))
             Directory.Delete(plugindir, true);
     }

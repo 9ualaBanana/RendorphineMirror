@@ -16,13 +16,19 @@ public static class PluginChecker
     }
     public static IEnumerable<PluginToInstall> GetInstallationTree(SoftwareList software, PluginType type, PluginVersion version)
     {
+        var islatest = version.IsEmpty;
         var versiondef = GetVersionDefinition(software, type, ref version);
         if (versiondef is null)
-            return new[] { new PluginToInstall(type, version, null) };
+            return new[] { new PluginToInstall(type, version, islatest, null) };
 
-        var parents = versiondef.Requirements.Parents;
+        var parents = versiondef.Requirements.Parents.AsEnumerable();
+        if (versiondef.Installation?.Python is not null)
+            parents = parents.Append(new(PluginType.Conda, null));
+        if (versiondef.Installation?.Source.Type == SoftwareVersionInfo.InstallationInfo.SourceInfo.SourceType.GitTag)
+            parents = parents.Append(new(PluginType.Git, null));
+
         var newparents = parents.SelectMany(parent => GetInstallationTree(software, parent.Type, parent.Version));
-        return newparents.Append(new PluginToInstall(type, version, versiondef.Installation));
+        return newparents.Append(new PluginToInstall(type, version, islatest, versiondef.Installation));
     }
 
     static SoftwareVersionInfo? GetVersionDefinition(SoftwareList software, PluginType type, ref PluginVersion version)

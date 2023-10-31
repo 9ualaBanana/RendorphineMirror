@@ -6,5 +6,9 @@ public class PluginDirs
 
     public PluginDirs(string directory) => Directory = Directories.DirCreated(directory);
 
-    public string GetPluginDirectory(PluginType type, PluginVersion version) => Directories.DirCreated(Directory, type.ToString().ToLowerInvariant(), version.ToString().ThrowIfNullOrEmpty());
+    public string GetPluginDirectory(PluginType type, PluginVersion version, bool isLatest)
+    {
+        var versionstr = isLatest ? "latest" : version.ToString().ToLowerInvariant();
+        return Directories.DirCreated(Directory, type.ToString().ToLowerInvariant(), versionstr);
+    }
 }

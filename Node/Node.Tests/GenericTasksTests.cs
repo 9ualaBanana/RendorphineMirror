@@ -69,10 +69,7 @@ public static partial class GenericTasksTests
         PluginDiscoverers.RegisterDiscoverers(builder);
         builder.RegisterType<PluginManager>()
             .AsSelf()
-            .As<IInstalledPluginsProvider>()
-            .SingleInstance();
-
-        builder.Register(ctx => new PluginList(ctx.Resolve<PluginManager>().GetInstalledPluginsAsync().GetAwaiter().GetResult()))
+            .As<IPluginList>()
             .SingleInstance();
 
         builder.RegisterType<EditVideo>()
