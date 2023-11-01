@@ -20,8 +20,6 @@ public class TaskReceiver : ListenerBase
         if (context.Request.HttpMethod != "POST") return;
         using var response = context.Response;
 
-        if (QueuedTasks.QueuedTasks.Count > 0) return;
-
         var querystr = await new StreamReader(context.Request.InputStream).ReadToEndAsync().ConfigureAwait(false);
         var query = HttpUtility.ParseQueryString(querystr);
         Logger.Info("@rphtaskexec/launchtask received " + HttpUtility.UrlDecode(querystr));
