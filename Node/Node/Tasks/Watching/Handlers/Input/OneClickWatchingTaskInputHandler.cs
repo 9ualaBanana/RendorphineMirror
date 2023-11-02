@@ -111,7 +111,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             Logger.Info("Success.");
         }
 
-        if (rununity)
+        if (false && rununity)
         {
             using var _ = Logger.BeginScope($"Unity");
             await RunUnity(unity, unityTemplatesDir, resultUnityDir, resultUnityAssetsDir);
