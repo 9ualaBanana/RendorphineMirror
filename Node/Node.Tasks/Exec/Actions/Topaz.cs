@@ -204,10 +204,10 @@ public class Topaz : FilePluginActionInfo<TopazInfo>
                     // rolling shutter correction
                     "roll=0", 
 
-                    // reduce jittering motion, number of passes
-                    "reduce=0",
+                    // reduce jittering motion, 2 passes
+                    "reduce=2",
 
-                    "rst=0", "wst=0", "cache=128", "dof=1111", "ws=32",
+                    "smoothness=6", "rst=0", "wst=0", "cache=128", "dof=1111", "ws=32",
 
                     "vram=1", "instances=1",
                 };
