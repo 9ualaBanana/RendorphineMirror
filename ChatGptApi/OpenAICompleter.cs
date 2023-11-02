@@ -66,10 +66,10 @@ public partial class OpenAICompleter
     async Task<string> SendChatRequest(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, Model? model = null)
     {
         var completion = await SendChatRequestResult(system, message, temperature, maxtokens, choices, model);
-        return completion.Choices
+        return FilterString(completion.Choices
             .Select(c => c.Message.Content)
             .MaxBy(m => m.Length)
-            .ThrowIfNull();
+            .ThrowIfNull());
     }
 
     const string PromptEndBase = "to use in iStock. Use formal and dry language, do not use \"breathtaking\", \"majestic\", \"captivating\" and alike.";
@@ -111,7 +111,7 @@ public partial class OpenAICompleter
 
         var response = await SendChatRequestResult(system ?? $"Generate a set of 50 one-word keywords for an image based on the provided title and keywords {PromptEndBase}", prompt, maxtokens: 300, model: model);
         var kws = response.Choices
-            .SelectMany(choice => choice.Message.Content
+            .SelectMany(choice => FilterString(choice.Message.Content)
                 .Split(KeywordSeparators, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
                 .Select(FilterKeyword)
                 .WhereNotNull()
@@ -121,10 +121,9 @@ public partial class OpenAICompleter
         return kws;
     }
 
+    static string FilterString(string str) => str.Replace("\"", "").Replace("\'", "").Replace("Keywords:", "").Trim();
     static string? FilterKeyword(string str)
     {
-        str = str.Replace("\"", "").Replace("\'", "").Replace("Keywords:", "").Trim();
-
         // remove all garbage before keyword ('1. kw', '- kw')
         foreach (var match in NonWordStuffAtStartRegex().Matches(str).AsEnumerable())
             str = str.Substring(match.Index + match.Length);
