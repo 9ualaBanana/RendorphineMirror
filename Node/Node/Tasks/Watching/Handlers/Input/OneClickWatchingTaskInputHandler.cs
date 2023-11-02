@@ -29,6 +29,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             {
                 var plugin = new Plugin(PluginType.OneClick, Path.GetFileNameWithoutExtension(betamzp)!.Substring("oneclickexport.v".Length), betamzp);
                 await Run(plugin, Input.TestInputDirectory, Input.TestOutputDirectory, Input.TestLogDirectory);
+                return;
             }
         }
         catch (Exception ex)
