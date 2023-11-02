@@ -143,7 +143,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
                 bool int int - render cameras (true\false) and frame width height (always should be specified)
                 (1.35+) bool - deploy importer from internal zip
                 */
-                "-mxs", $"oneclickexport.oc000 2 @\"{resultUnityAssetsDir}\" 3 3 true 960 540",
+                "-mxs", $"oneclickexport.oc000 2 @\"{resultUnityAssetsDir}\" 3 3 true 960 540 false",
 
                 // scene to export
                 scenefile,
