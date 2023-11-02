@@ -40,7 +40,7 @@ public record SoftwareVersionInfo(PluginType Type, string Version, string Name, 
         }
         public record RegistrySourceInfo(SourceInfo.SourceType Type) : SourceInfo(Type);
         public record UrlSourceInfo(SourceInfo.SourceType Type, string Url) : SourceInfo(Type);
-        public record GitTagSourceInfo(SourceInfo.SourceType Type, string Username, string Name, string Tag) : SourceInfo(Type);
+        public record GitTagSourceInfo(SourceInfo.SourceType Type, string Username, string Name) : SourceInfo(Type);
 
 
         public record PythonInfo(string Version, PythonInfo.PipInfo Pip, PythonInfo.CondaInfo Conda)

@@ -72,7 +72,7 @@ public class PluginDeployer
         else if (source is SoftwareVersionInfo.InstallationInfo.UrlSourceInfo url)
             await downloadUrl(url.Url, token);
         else if (source is SoftwareVersionInfo.InstallationInfo.GitTagSourceInfo gittag)
-            await downloadGitTag(gittag.Username, gittag.Name, gittag.Tag, token);
+            await downloadGitTag(gittag.Username, gittag.Name, token);
 
 
         async Task downloadRegistry(CancellationToken token)
@@ -110,7 +110,7 @@ public class PluginDeployer
             using var resultfile = File.Create(Path.Combine(targetdir, result));
             await inputstream.CopyToAsync(inputstream, token);
         }
-        async Task downloadGitTag(string username, string name, string tag, CancellationToken token)
+        async Task downloadGitTag(string username, string name, CancellationToken token)
         {
             var targetdir = PluginDirs.GetPluginDirectory(type, version, latest);
 
@@ -135,7 +135,7 @@ public class PluginDeployer
                 await launchgit("clone", $"https://{ghtoken}@github.com/{username}/{name}.git");
             }
 
-            await launchgit("checkout", $"tags/{tag}");
+            await launchgit("checkout", $"tags/{version}");
 
 
             async Task<string> launchgit(params string[] args)
