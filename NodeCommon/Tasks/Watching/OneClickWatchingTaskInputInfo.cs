@@ -25,6 +25,9 @@ public class OneClickWatchingTaskInputInfo : IWatchingTaskInputInfo
     [LocalDirectory]
     public string TestLogDirectory { get; }
 
+    [Hidden]
+    public string? UnityProjectsCommitHash { get; set; }
+
     public OneClickWatchingTaskInputInfo(string inputDirectory, string outputDirectory, string logDirectory, string testMzpDirectory, string testInputDirectory, string testOutputDirectory, string testLogDirectory)
     {
         InputDirectory = inputDirectory;

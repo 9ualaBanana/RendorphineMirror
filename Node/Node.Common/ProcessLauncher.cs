@@ -10,6 +10,7 @@ public class ProcessLauncher
 
     public ArgList Arguments { get; } = new();
     public MultiDictionary<string, string> EnvVariables { get; } = new();
+    public string WorkingDirectory { get; init; } = "";
 
     public bool WineSupport { get; init; } = false;
     public bool ThrowOnStdErr { get; init; } = true;
@@ -58,6 +59,7 @@ public class ProcessLauncher
 
         var procinfo = new ProcessStartInfo(winesupport ? "wine" : Executable)
         {
+            WorkingDirectory = WorkingDirectory,
             WindowStyle = ProcessWindowStyle.Hidden,
             CreateNoWindow = true,
             UseShellExecute = false,
