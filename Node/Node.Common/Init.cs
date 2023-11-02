@@ -127,7 +127,7 @@ public class Init : IServiceTarget
     void ConfigureLogging()
     {
         if (Configuration.EnableLogging)
-            Logging.Configure(DebugFeatures, Configuration.LogToFile);
+            Logging.Configure(DebugFeatures, Configuration.Logging);
 
 
         var version = Environment.OSVersion;
@@ -178,5 +178,6 @@ public class Init : IServiceTarget
         public bool AutoClearTempDir { get; init; } = true;
         public bool EnableLogging { get; init; } = true;
         public bool LogToFile { get; init; } = true;
+        public Logging.Config Logging { get; init; } = new();
     }
 }
