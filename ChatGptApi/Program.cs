@@ -8,6 +8,7 @@ using Autofac.Extensions.DependencyInjection;
 using ChatGptApi;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Vision.V1;
+using Microsoft.AspNetCore.Diagnostics;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +36,14 @@ builder.Services.AddSingleton(new ImageAnnotatorClientBuilder()
 }.Build());
 
 var app = builder.Build();
+app.UseExceptionHandler(o => o.Run(async context =>
+{
+    var message = context.Features.Get<IExceptionHandlerPathFeature>()?.Error?.Message ?? "Unknown error";
+
+    var response = JsonApi.Error(message);
+    context.Response.StatusCode = StatusCodes.Status200OK;
+    await context.Response.WriteAsync(response.ToString(Formatting.None));
+}));
 
 if (app.Environment.IsDevelopment())
 {
