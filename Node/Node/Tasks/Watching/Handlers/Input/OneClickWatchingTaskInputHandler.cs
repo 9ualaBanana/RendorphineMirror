@@ -102,7 +102,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             Logger.Info($"Extracting");
             ZipFile.ExtractToDirectory(zip, resultDir);
             Logger.Info("Extracted");
-            var scenefile = Directory.GetFiles(resultDir, "*.max").Single();
+            var scenefile = Directory.GetFiles(resultDir, "*.max", SearchOption.AllDirectories).MaxBy(File.GetLastWriteTimeUtc).ThrowIfNull("No .max file found");
             Logger.Info($"Scene file: {scenefile}");
 
             Directory.CreateDirectory(resultUnityAssetsDir);
