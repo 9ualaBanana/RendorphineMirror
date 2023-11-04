@@ -70,8 +70,8 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         }
 
         var unityTemplatesDir = @"C:\\OneClickUnityDefaultProjects";
-        await new ProcessLauncher("git", "pull") { WorkingDirectory = unityTemplatesDir }.ExecuteAsync();
-        var unityTemplatesCommitHash = (await new ProcessLauncher("git", "rev-parse", "--verify", "HEAD") { WorkingDirectory = unityTemplatesDir }.ExecuteFullAsync()).Trim();
+        await new ProcessLauncher("git", "pull") { ThrowOnStdErr = false, WorkingDirectory = unityTemplatesDir }.ExecuteAsync();
+        var unityTemplatesCommitHash = (await new ProcessLauncher("git", "rev-parse", "--verify", "HEAD") { ThrowOnStdErr = false, WorkingDirectory = unityTemplatesDir }.ExecuteFullAsync()).Trim();
 
         foreach (var zip in Directory.GetFiles(input, "*.zip"))
             await ProcessArchive(zip, output, log, max, unity, unityTemplatesDir, unityTemplatesCommitHash);
@@ -147,7 +147,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
                 "-mxs", $"oneclickexport.oc000 2 @\"{resultUnityAssetsDir}\" 3 3 true 960 540 false",
 
                 // scene to export
-                scenefile,
+                scenefile.Replace('\\', '/'),
             },
         };
 
