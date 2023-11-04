@@ -230,6 +230,10 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
     {
         Logger.Info("Installing the plugin");
 
+        // fix for vray not being silent enough
+        const string vraySilentFix = "if setVRaySilentMode != undefined then setVRaySilentMode()";
+        await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(max.Path).ThrowIfNull(), "scripts", "Startup", "oneclicksilent.ms"), vraySilentFix);
+
         foreach (var process in Process.GetProcessesByName("3dsmax"))
         {
             try { process.Kill(); }
@@ -276,7 +280,10 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         Logger.Info("Moving old dirs");
 
         if (Directory.Exists(output))
-            Directory.Move(output, output + (currentversion ?? "0.0"));
+        {
+            if (currentversion is null) Directory.Delete("output", true);
+            else Directory.Move(output, output + currentversion);
+        }
 
         Directory.CreateDirectory(output);
         var target = Path.Combine(output, Path.GetFileName(mzp.Path));
