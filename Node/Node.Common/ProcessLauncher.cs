@@ -102,7 +102,7 @@ public class ProcessLauncher
                     if (err && ThrowOnStdErr)
                         throw new Exception(line);
 
-                    Logging.ILogger?.Log(err ? Logging.StdErr : Logging.StdOut, $"[Process {process.Id}] {line}");
+                    Logging.ILogger?.Log(err ? Logging.StdErr : Logging.StdOut, line);
                     StringBuilder?.AppendLine(line);
                     OnRead?.Invoke(process, err, line);
                 }
