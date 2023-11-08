@@ -40,7 +40,11 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                     img.SaveAsJpeg(stream);
                     stream.Position = 0;
 
-                    using var content = new MultipartFormDataContent() { { new StreamContent(stream), "img", file.Format.ToMime() } };
+                    using var content = new MultipartFormDataContent()
+                    {
+                        { new StreamContent(stream), "img", file.Format.ToMime() },
+                        { new StringContent(data.Source.ToString()), "source" },
+                    };
                     if (data.ChatGpt is not null)
                     {
                         if (!string.IsNullOrEmpty(data.ChatGpt.Model))

@@ -1,13 +1,12 @@
 using System.Text.RegularExpressions;
-using OpenAiNg;
-using OpenAiNg.Chat;
-using OpenAiNg.Models;
+using ChatGptApi.OpenAiApi;
+using Node.Common.Models;
 
 namespace ChatGptApi;
 
 public partial class OpenAICompleter
 {
-    readonly OpenAiApi Api;
+    readonly ChatApi Api;
     readonly ILogger Logger;
 
     decimal TotalSpent = 0;
@@ -15,17 +14,13 @@ public partial class OpenAICompleter
     public OpenAICompleter(IConfiguration config, ILogger<OpenAICompleter> logger)
     {
         Logger = logger;
-
-        var apikey = config.GetValue<string>("openai_apikey");
-        Api = new OpenAiApi(apikey);
+        Api = new ChatApi(config.GetValue<string>("openai_apikey").ThrowIfNull());
     }
 
-    async Task<ChatResult> SendChatRequestResult(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, Model? model = null)
+    async Task<ChatResult> SendChatRequestResult(IReadOnlyList<ChatRequest.IMessage> messages, double temperature = .1, int maxtokens = 400, int choices = 3, string? model = null)
     {
-        if (model is null || model.ModelID is null)
-            model = Model.ChatGPTTurbo;
-
-        Logger.LogInformation($"Requesting from {model.ModelID} \"{system}\" \"{message}\"");
+        model ??= ChatModels.Gpt35Turbo;
+        Logger.LogInformation($"Requesting from model: {model}, messages: [ {string.Join(", ", messages.Select(m => $"'{m.Role}: {m.AsString()}'"))} ]");
 
         var req = new ChatRequest()
         {
@@ -33,42 +28,53 @@ public partial class OpenAICompleter
             Temperature = temperature,
             MaxTokens = maxtokens,
             NumChoicesPerMessage = choices,
-            Messages = new[]
-            {
-                new ChatMessage(ChatMessageRole.System, system),
-                new ChatMessage(ChatMessageRole.User, message),
-            },
+            Messages = messages,
         };
 
-        var completion = await Api.Chat.CreateChatCompletionAsync(req);
-        completion.Choices.ThrowIfNull("No completion result received");
+        var completion = await Api.SendRequest(req);
 
-        Task.Run(() =>
+        if (completion.Usage is not null)
         {
-            if (completion.Usage is null) return;
-
-            var encoder = SharpToken.GptEncoding.GetEncodingForModel(model.ModelID);
-            var prompttokens = encoder.Encode(system + message).Count;
-            var outputtokens = encoder.Encode(string.Join("", completion.Choices.Select(c => c.Message?.Content))).Count;
+            var prompttokens = completion.Usage.PromptTokens;
+            var outputtokens = completion.Usage.CompletionTokens;
 
             var price = prompttokens / 1000m * 0.0015m + outputtokens / 1000m * 0.002m;
             TotalSpent += price;
             Logger.LogInformation($"Tokens: Input {prompttokens}; Output {outputtokens}; Price ~${price}; Total this session: ~${TotalSpent}");
-        }).Consume();
+        }
 
+        var img = messages.OfType<ChatRequest.ImageMessage>().FirstOrDefault()?.Content.OfType<ChatRequest.ImageMessageContent>().FirstOrDefault();
         Logger.LogInformation($"""
-            From prompt "{system}"
+            From prompt '{(messages.FirstOrDefault() as ChatRequest.TextMessage)?.Content}' {(img is null ? string.Empty : $"with an image (size {img.ImageUrl.Url.Length}, {img.ImageUrl.Detail} detail)")}
             generated {completion.Choices.Count} choices:
             {string.Join('\n', completion.Choices.Select((c, i) => $"  {i}: {c.Message?.Content}"))}
             """);
 
         return completion;
     }
-    async Task<string> SendChatRequest(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, Model? model = null)
+    async Task<ChatResult> SendChatRequestResult(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, string? model = null)
+    {
+        var messages = new[]
+        {
+            new ChatRequest.TextMessage(ChatRole.System, system),
+            new ChatRequest.TextMessage(ChatRole.User, message),
+        };
+
+        return await SendChatRequestResult(messages, temperature, maxtokens, choices, model);
+    }
+    async Task<string> SendChatRequest(IReadOnlyList<ChatRequest.IMessage> messages, double temperature = .1, int maxtokens = 400, int choices = 3, string? model = null)
+    {
+        var completion = await SendChatRequestResult(messages, temperature, maxtokens, choices, model);
+        return FilterString(completion.Choices
+            .Select(c => c.Message.Content)
+            .MaxBy(m => m.Length)
+            .ThrowIfNull());
+    }
+    async Task<string> SendChatRequest(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, string? model = null)
     {
         var completion = await SendChatRequestResult(system, message, temperature, maxtokens, choices, model);
-        return FilterString(completion.Choices.ThrowIfNull()
-            .Select(c => (c.Message?.Content).ThrowIfNull())
+        return FilterString(completion.Choices
+            .Select(c => c.Message.Content)
             .MaxBy(m => m.Length)
             .ThrowIfNull());
     }
@@ -77,13 +83,41 @@ public partial class OpenAICompleter
     const string PromptEnd = $"{PromptEndBase} Do not include the keyword list in the result.";
     static readonly char[] KeywordSeparators = new[] { ',', '\n' };
 
-    public async Task<string> GenerateNewTitle(IEnumerable<string> keywords, string? system = null, string? model = null)
+
+    public async Task<TKD> GenerateTKDChatGpt(ChatRequest.ImageMessageContent image, string? titleprompt, string? descrprompt, string? kwprompt)
+    {
+        ChatRequest.IMessage[] getMessages(string prompt)
+        {
+            return new[]
+            {
+                new ChatRequest.ImageMessage(ChatRole.User, new ChatRequest.IMessageContent[]
+                {
+                    new ChatRequest.TextMessageContent(prompt),
+                    image,
+                }),
+            };
+        }
+
+        kwprompt ??= $"Generate a set of 50 one-word keywords for the provided image {PromptEndBase}";
+        titleprompt ??= $"Generate a title for the provided image {PromptEndBase}";
+        descrprompt ??= $"Generate an extended title for the provided image {PromptEndBase}";
+
+        var keywordcompletion = await SendChatRequestResult(getMessages(kwprompt), choices: 1, model: ChatModels.Gpt4Vision);
+        var keywords = ProcessKeywords(keywordcompletion).ToArray();
+
+        var title = await SendChatRequest(getMessages(titleprompt), maxtokens: 100, model: ChatModels.Gpt4Vision);
+        var description = await SendChatRequest(getMessages(descrprompt), maxtokens: 300, model: ChatModels.Gpt4Vision);
+
+        return new TKD(title, description, keywords);
+    }
+
+    public async Task<string> GenerateNewTitle(IEnumerable<string> keywords, string? system, string? model)
     {
         var prompt = string.Join(", ", keywords);
         return await SendChatRequest(system ?? $"Generate a title for an image using the provided keywords {PromptEnd}", prompt, maxtokens: 100, model: model);
     }
 
-    public async Task<string> GenerateNewDescription(string title, IEnumerable<string> keywords, string? system = null, string? model = null)
+    public async Task<string> GenerateNewDescription(string title, IEnumerable<string> keywords, string? system, string? model)
     {
         var prompt = $"""
             Title: {title}
@@ -93,7 +127,7 @@ public partial class OpenAICompleter
         return await SendChatRequest(system ?? $"Generate an extended title for an image using the provided title and keywords {PromptEnd}", prompt, maxtokens: 100, model: model);
     }
 
-    public async Task<string> GenerateBetterTitle(string title, IEnumerable<string> keywords, string? system = null, string? model = null)
+    public async Task<string> GenerateBetterTitle(string title, IEnumerable<string> keywords, string? system, string? model)
     {
         var prompt = $"""
             Title: {title}
@@ -103,7 +137,7 @@ public partial class OpenAICompleter
         return await SendChatRequest(system ?? $"Generate another title for an image using the provided title and keywords {PromptEnd}", prompt, maxtokens: 100, model: model);
     }
 
-    public async Task<string[]> GenerateBetterKeywords(string title, IEnumerable<string> keywords, string? system = null, string? model = null)
+    public async Task<string[]> GenerateBetterKeywords(string title, IEnumerable<string> keywords, string? system, string? model)
     {
         var prompt = $"""
             Title: {title}
@@ -111,13 +145,21 @@ public partial class OpenAICompleter
         """;
 
         var response = await SendChatRequestResult(system ?? $"Generate a set of 50 one-word keywords for an image based on the provided title and keywords {PromptEndBase}", prompt, maxtokens: 300, model: model);
-        var kws = response.Choices.ThrowIfNull()
+        return ProcessKeywords(response).ToArray();
+    }
+
+    static string[] ProcessKeywords(ChatResult result)
+    {
+        var kws = result.Choices.ThrowIfNull()
             .SelectMany(choice => FilterString((choice.Message?.Content).ThrowIfNull())
                 .Split(KeywordSeparators, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
                 .Select(FilterKeyword)
                 .WhereNotNull()
             ).Distinct()
             .ToArray();
+
+        if (kws.Length == 0)
+            throw new Exception($"Could not generate keywords; The model responded with: {result.Choices.FirstOrDefault()?.Message.Content ?? "<nothing>"}");
 
         return kws;
     }

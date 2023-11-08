@@ -1,4 +1,7 @@
+using System.Buffers.Text;
+using ChatGptApi.OpenAiApi;
 using Google.Cloud.Vision.V1;
+using Node.Common.Models;
 
 namespace ChatGptApi.Controllers;
 
@@ -26,7 +29,7 @@ public class MainController : ControllerBase
         ChatGPT,
         VisionDenseCaptioning,
     }
-    record TKD(string Title, string Description, IReadOnlyCollection<string> Keywords);
+
     [HttpPost("generatetkd")]
     public async Task<JToken> GenerateTKD(
         [FromQuery] string sessionid,
@@ -36,73 +39,72 @@ public class MainController : ControllerBase
         [FromForm] string? titleprompt = null,
         [FromForm] string? descrprompt = null,
         [FromForm] string? kwprompt = null,
-        [FromForm] GenerateTitleKeywordsSource source = GenerateTitleKeywordsSource.VisionDenseCaptioning
+        [FromForm] GenerateTitleKeywordsSource source = GenerateTitleKeywordsSource.VisionDenseCaptioning,
+        [FromForm] ChatRequest.ImageMessageContent.ImageDetail detail = ChatRequest.ImageMessageContent.ImageDetail.High
     )
     {
-        if (!await TaskTypeChecker.IsTaskTypeValid(TaskAction.GenerateTitleKeywords, sessionid, taskid))
-            return JsonApi.Error("no");
-
-        using var stream = img.OpenReadStream();
-
-        string title, description;
-        ImmutableArray<string> keywords;
+        await TaskTypeChecker.ThrowIfTaskTypeNotValid(TaskAction.GenerateTitleKeywords, sessionid, taskid);
 
         if (source == GenerateTitleKeywordsSource.VisionDenseCaptioning)
-        {
-            var image = await Image.FromStreamAsync(stream);
+            return JsonApi.Success(await GenerateTKDVision(img, model, titleprompt, descrprompt, kwprompt));
+        if (source == GenerateTitleKeywordsSource.ChatGPT)
+            return JsonApi.Success(await GenerateTKDChatGpt(img, titleprompt, descrprompt, kwprompt, detail));
 
-            // score and topicality always return the same value
-            // https://issuetracker.google.com/issues/117855698
-            var labels = await Client.DetectLabelsAsync(image, maxResults: 50);
+        return JsonApi.Error("Unknown source");
+    }
 
-            const float kwcutoff = .51f;
-            keywords = labels
-                .Where(l => l.Score > kwcutoff)
-                .Select(l => l.Description)
-                .ToImmutableArray();
 
-            title = await OpenAICompleter.GenerateNewTitle(keywords, titleprompt, model);
-            description = await OpenAICompleter.GenerateNewDescription(title, keywords, descrprompt, model);
-            keywords = (await OpenAICompleter.GenerateBetterKeywords(title, keywords, kwprompt, model)).ToImmutableArray();
+    async Task<TKD> GenerateTKDChatGpt(IFormFile img, string? titleprompt, string? descrprompt, string? kwprompt, ChatRequest.ImageMessageContent.ImageDetail detail)
+    {
+        using var imgstream = img.OpenReadStream();
+        var imgbytes = new byte[img.Length];
+        await imgstream.ReadExactlyAsync(imgbytes);
+        var imgbase64 = Convert.ToBase64String(imgbytes);
 
-            Logger.LogInformation($"""
+        var tkd = await OpenAICompleter.GenerateTKDChatGpt(
+            ChatRequest.ImageMessageContent.FromBase64(MimeTypes.GetMimeType(img.FileName), imgbase64, detail),
+            titleprompt,
+            descrprompt,
+            kwprompt
+        );
+
+        Logger.LogInformation($"""
+            For image {img.FileName}:
+                Title: "{tkd.Title}"
+                Description: "{tkd.Description}"
+                Keywords: ["{string.Join(", ", tkd.Keywords)}"]
+            """);
+
+        return tkd;
+    }
+    async Task<TKD> GenerateTKDVision(IFormFile img, string? model, string? titleprompt, string? descrprompt, string? kwprompt)
+    {
+        using var imgstream = img.OpenReadStream();
+        var image = await Image.FromStreamAsync(imgstream);
+
+        // score and topicality always return the same value
+        // https://issuetracker.google.com/issues/117855698
+        var labels = await Client.DetectLabelsAsync(image, maxResults: 50);
+
+        const float kwcutoff = .51f;
+        var keywords = labels
+            .Where(l => l.Score > kwcutoff)
+            .Select(l => l.Description)
+            .ToArray();
+
+        var title = await OpenAICompleter.GenerateNewTitle(keywords, titleprompt, model);
+        var description = await OpenAICompleter.GenerateNewDescription(title, keywords, descrprompt, model);
+        keywords = await OpenAICompleter.GenerateBetterKeywords(title, keywords, kwprompt, model);
+
+        Logger.LogInformation($"""
             For image {img.FileName}:
                 Labels: {string.Join(", ", labels.Select(l => $"{(l.Score > kwcutoff ? "" : "*")}{(int) (l.Score * 100)}% {l.Description}"))}
                 Title: "{title}"
                 Description: "{description}"
                 Keywords: ["{string.Join(", ", keywords)}"]
             """);
-        }
-        else if (source == GenerateTitleKeywordsSource.ChatGPT)
-        {
-            var image = await Image.FromStreamAsync(stream);
 
-            // score and topicality always return the same value
-            // https://issuetracker.google.com/issues/117855698
-            var labels = await Client.DetectLabelsAsync(image, maxResults: 50);
-
-            const float kwcutoff = .51f;
-            keywords = labels
-                .Where(l => l.Score > kwcutoff)
-                .Select(l => l.Description)
-                .ToImmutableArray();
-
-            title = await OpenAICompleter.GenerateNewTitle(keywords, titleprompt, model);
-            description = await OpenAICompleter.GenerateNewDescription(title, keywords, descrprompt, model);
-            keywords = (await OpenAICompleter.GenerateBetterKeywords(title, keywords, kwprompt, model)).ToImmutableArray();
-
-            Logger.LogInformation($"""
-            For image {img.FileName}:
-                Labels: {string.Join(", ", labels.Select(l => $"{(l.Score > kwcutoff ? "" : "*")}{(int) (l.Score * 100)}% {l.Description}"))}
-                Title: "{title}"
-                Description: "{description}"
-                Keywords: ["{string.Join(", ", keywords)}"]
-            """);
-        }
-        else return JsonApi.Error("Unknown source type");
-
-
-        return JsonApi.Success(new TKD(title, description, keywords));
+        return new TKD(title, description, keywords);
     }
 
     public record TK(string Title, IReadOnlyCollection<string> Keywords);

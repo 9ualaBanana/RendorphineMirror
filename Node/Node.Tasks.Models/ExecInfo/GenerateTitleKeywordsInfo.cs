@@ -1,15 +1,21 @@
 namespace Node.Tasks.Models.ExecInfo;
 
+[JsonConverter(typeof(StringEnumConverter))]
+public enum GenerateTitleKeywordsSource
+{
+    ChatGPT,
+    VisionDenseCaptioning,
+}
 public class GenerateTitleKeywordsInfo
 {
     [JsonProperty("source")]
-    [Default("ChatGPT")]
-    public string Source { get; }
+    [Default(GenerateTitleKeywordsSource.ChatGPT)]
+    public GenerateTitleKeywordsSource Source { get; }
 
     [JsonProperty("chatgpt")]
     public ChatGptInfo? ChatGpt { get; }
 
-    public GenerateTitleKeywordsInfo(string source) => Source = source;
+    public GenerateTitleKeywordsInfo(GenerateTitleKeywordsSource source) => Source = source;
 
 
     public record ChatGptInfo(string Model, string TitlePrompt, string DescrPrompt, string KwPrompt);
