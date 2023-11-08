@@ -70,8 +70,18 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         }
 
         var unityTemplatesDir = @"C:\\OneClickUnityDefaultProjects";
-        await new ProcessLauncher("git", "pull") { ThrowOnStdErr = false, WorkingDirectory = unityTemplatesDir }.ExecuteAsync();
-        var unityTemplatesCommitHash = (await new ProcessLauncher("git", "rev-parse", "--verify", "HEAD") { ThrowOnStdErr = false, WorkingDirectory = unityTemplatesDir }.ExecuteFullAsync()).Trim();
+        await new ProcessLauncher("git", "pull")
+        {
+            Logging = { ILogger = Logger },
+            ThrowOnStdErr = false,
+            WorkingDirectory = unityTemplatesDir,
+        }.ExecuteAsync();
+        var unityTemplatesCommitHash = (await new ProcessLauncher("git", "rev-parse", "--verify", "HEAD")
+        {
+            Logging = { ILogger = Logger },
+            ThrowOnStdErr = false,
+            WorkingDirectory = unityTemplatesDir,
+        }.ExecuteFullAsync()).Trim();
 
         foreach (var zip in Directory.GetFiles(input, "*.zip"))
             await ProcessArchive(zip, output, log, max, unity, unityTemplatesDir, unityTemplatesCommitHash);
@@ -178,9 +188,9 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             Directories.Copy(resultUnityAssetsDir, Path.Combine(resultUnityDir, unityTemplateName, "Assets"));
 
             Logger.Info("Launching unity");
-            NonAdminRunner.RunAsDesktopUserWaitForExit(unity.Path, $"-projectPath \"{unityProjectDir}\" -executeMethod OCBatchScript.StartBake");
 
-            /*var launcher = new ProcessLauncher(unity.Path)
+            //NonAdminRunner.RunAsDesktopUserWaitForExit(unity.Path, $"-projectPath \"{unityProjectDir}\" -executeMethod OCBatchScript.StartBake");
+            var launcher = new ProcessLauncher(unity.Path)
             {
                 Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
                 Arguments =
@@ -190,7 +200,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
                 },
             };
 
-            await launcher.ExecuteAsync();*/
+            await launcher.ExecuteAsync();
             Logger.Info("Completed");
         }
 
