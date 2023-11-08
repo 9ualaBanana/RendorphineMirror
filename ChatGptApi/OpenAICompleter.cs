@@ -1,13 +1,13 @@
 using System.Text.RegularExpressions;
-using OpenAI_API;
-using OpenAI_API.Chat;
-using OpenAI_API.Models;
+using OpenAiNg;
+using OpenAiNg.Chat;
+using OpenAiNg.Models;
 
 namespace ChatGptApi;
 
 public partial class OpenAICompleter
 {
-    readonly OpenAIAPI Api;
+    readonly OpenAiApi Api;
     readonly ILogger Logger;
 
     decimal TotalSpent = 0;
@@ -17,7 +17,7 @@ public partial class OpenAICompleter
         Logger = logger;
 
         var apikey = config.GetValue<string>("openai_apikey");
-        Api = new OpenAIAPI(apikey);
+        Api = new OpenAiApi(apikey);
     }
 
     async Task<ChatResult> SendChatRequestResult(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, Model? model = null)
@@ -41,6 +41,7 @@ public partial class OpenAICompleter
         };
 
         var completion = await Api.Chat.CreateChatCompletionAsync(req);
+        completion.Choices.ThrowIfNull("No completion result received");
 
         Task.Run(() =>
         {
@@ -48,7 +49,7 @@ public partial class OpenAICompleter
 
             var encoder = SharpToken.GptEncoding.GetEncodingForModel(model.ModelID);
             var prompttokens = encoder.Encode(system + message).Count;
-            var outputtokens = encoder.Encode(string.Join("", completion.Choices.Select(c => c.Message.Content))).Count;
+            var outputtokens = encoder.Encode(string.Join("", completion.Choices.Select(c => c.Message?.Content))).Count;
 
             var price = prompttokens / 1000m * 0.0015m + outputtokens / 1000m * 0.002m;
             TotalSpent += price;
@@ -58,7 +59,7 @@ public partial class OpenAICompleter
         Logger.LogInformation($"""
             From prompt "{system}"
             generated {completion.Choices.Count} choices:
-            {string.Join('\n', completion.Choices.Select((c, i) => $"  {i}: {c.Message.Content}"))}
+            {string.Join('\n', completion.Choices.Select((c, i) => $"  {i}: {c.Message?.Content}"))}
             """);
 
         return completion;
@@ -66,8 +67,8 @@ public partial class OpenAICompleter
     async Task<string> SendChatRequest(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, Model? model = null)
     {
         var completion = await SendChatRequestResult(system, message, temperature, maxtokens, choices, model);
-        return FilterString(completion.Choices
-            .Select(c => c.Message.Content)
+        return FilterString(completion.Choices.ThrowIfNull()
+            .Select(c => (c.Message?.Content).ThrowIfNull())
             .MaxBy(m => m.Length)
             .ThrowIfNull());
     }
@@ -110,8 +111,8 @@ public partial class OpenAICompleter
         """;
 
         var response = await SendChatRequestResult(system ?? $"Generate a set of 50 one-word keywords for an image based on the provided title and keywords {PromptEndBase}", prompt, maxtokens: 300, model: model);
-        var kws = response.Choices
-            .SelectMany(choice => FilterString(choice.Message.Content)
+        var kws = response.Choices.ThrowIfNull()
+            .SelectMany(choice => FilterString((choice.Message?.Content).ThrowIfNull())
                 .Split(KeywordSeparators, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
                 .Select(FilterKeyword)
                 .WhereNotNull()
