@@ -1,9 +1,7 @@
-using SixLabors.ImageSharp.Formats.Jpeg;
-
 namespace Node.Tasks.Exec.Actions;
 
 public record TitleKeywordsInput(string Title, ImmutableArray<string> Keywords);
-public record TitleKeywordsOutput(string Title, ImmutableArray<string> Keywords, string? Description = null);
+public record TitleKeywordsOutput(string Title, ImmutableArray<string> Keywords);
 public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<TitleKeywordsInput>, TitleKeywordsOutput, GenerateTitleKeywordsInfo>
 {
     public override TaskAction Name => TaskAction.GenerateTitleKeywords;
@@ -51,8 +49,6 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                             content.Add(new StringContent(data.ChatGpt.Model), "model");
                         if (!string.IsNullOrEmpty(data.ChatGpt.TitlePrompt))
                             content.Add(new StringContent(data.ChatGpt.TitlePrompt), "titleprompt");
-                        if (!string.IsNullOrEmpty(data.ChatGpt.DescrPrompt))
-                            content.Add(new StringContent(data.ChatGpt.DescrPrompt), "descrprompt");
                         if (!string.IsNullOrEmpty(data.ChatGpt.KwPrompt))
                             content.Add(new StringContent(data.ChatGpt.KwPrompt), "kwprompt");
                     }

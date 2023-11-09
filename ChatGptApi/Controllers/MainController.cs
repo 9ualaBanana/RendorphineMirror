@@ -1,4 +1,3 @@
-using System.Buffers.Text;
 using ChatGptApi.OpenAiApi;
 using Google.Cloud.Vision.V1;
 using Node.Common.Models;
@@ -37,7 +36,6 @@ public class MainController : ControllerBase
         [FromForm] IFormFile img,
         [FromForm] string? model = null,
         [FromForm] string? titleprompt = null,
-        [FromForm] string? descrprompt = null,
         [FromForm] string? kwprompt = null,
         [FromForm] GenerateTitleKeywordsSource source = GenerateTitleKeywordsSource.VisionDenseCaptioning,
         [FromForm] ChatRequest.ImageMessageContent.ImageDetail detail = ChatRequest.ImageMessageContent.ImageDetail.High
@@ -46,38 +44,38 @@ public class MainController : ControllerBase
         await TaskTypeChecker.ThrowIfTaskTypeNotValid(TaskAction.GenerateTitleKeywords, sessionid, taskid);
 
         if (source == GenerateTitleKeywordsSource.VisionDenseCaptioning)
-            return JsonApi.Success(await GenerateTKDVision(img, model, titleprompt, descrprompt, kwprompt));
+            return JsonApi.Success(await GenerateTKVision(img, model, titleprompt, kwprompt));
         if (source == GenerateTitleKeywordsSource.ChatGPT)
-            return JsonApi.Success(await GenerateTKDChatGpt(img, titleprompt, descrprompt, kwprompt, detail));
+        {
+            try { return JsonApi.Success(await GenerateTKChatGpt(img, titleprompt, detail)); }
+            catch { return JsonApi.Success(await GenerateTKVision(img, model, titleprompt, kwprompt)); }
+        }
 
         return JsonApi.Error("Unknown source");
     }
 
 
-    async Task<TKD> GenerateTKDChatGpt(IFormFile img, string? titleprompt, string? descrprompt, string? kwprompt, ChatRequest.ImageMessageContent.ImageDetail detail)
+    async Task<TK> GenerateTKChatGpt(IFormFile img, string? prompt, ChatRequest.ImageMessageContent.ImageDetail detail)
     {
         using var imgstream = img.OpenReadStream();
         var imgbytes = new byte[img.Length];
         await imgstream.ReadExactlyAsync(imgbytes);
         var imgbase64 = Convert.ToBase64String(imgbytes);
 
-        var tkd = await OpenAICompleter.GenerateTKDChatGpt(
+        var tk = await OpenAICompleter.GenerateTKChatGpt(
             ChatRequest.ImageMessageContent.FromBase64(MimeTypes.GetMimeType(img.FileName), imgbase64, detail),
-            titleprompt,
-            descrprompt,
-            kwprompt
+            prompt
         );
 
         Logger.LogInformation($"""
             For image {img.FileName}:
-                Title: "{tkd.Title}"
-                Description: "{tkd.Description}"
-                Keywords: ["{string.Join(", ", tkd.Keywords)}"]
+                Title: "{tk.Title}"
+                Keywords: ["{string.Join(", ", tk.Keywords)}"]
             """);
 
-        return tkd;
+        return tk;
     }
-    async Task<TKD> GenerateTKDVision(IFormFile img, string? model, string? titleprompt, string? descrprompt, string? kwprompt)
+    async Task<TK> GenerateTKVision(IFormFile img, string? model, string? titleprompt, string? kwprompt)
     {
         using var imgstream = img.OpenReadStream();
         var image = await Image.FromStreamAsync(imgstream);
@@ -93,21 +91,18 @@ public class MainController : ControllerBase
             .ToArray();
 
         var title = await OpenAICompleter.GenerateNewTitle(keywords, titleprompt, model);
-        var description = await OpenAICompleter.GenerateNewDescription(title, keywords, descrprompt, model);
         keywords = await OpenAICompleter.GenerateBetterKeywords(title, keywords, kwprompt, model);
 
         Logger.LogInformation($"""
             For image {img.FileName}:
                 Labels: {string.Join(", ", labels.Select(l => $"{(l.Score > kwcutoff ? "" : "*")}{(int) (l.Score * 100)}% {l.Description}"))}
                 Title: "{title}"
-                Description: "{description}"
                 Keywords: ["{string.Join(", ", keywords)}"]
             """);
 
-        return new TKD(title, description, keywords);
+        return new TK(title, keywords);
     }
 
-    public record TK(string Title, IReadOnlyCollection<string> Keywords);
     [HttpPost("generatebettertk")]
     public async Task<JToken> GenerateBetterTK(
         [FromQuery] string sessionid,
