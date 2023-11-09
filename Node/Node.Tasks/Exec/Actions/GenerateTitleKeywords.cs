@@ -40,7 +40,7 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
 
                     using var content = new MultipartFormDataContent()
                     {
-                        { new StreamContent(stream), "img", file.Format.ToMime() },
+                        { new StreamContent(stream), "img", $"image{file.Format.AsExtension()}" },
                         { new StringContent(data.Source.ToString()), "source" },
                     };
                     if (data.ChatGpt is not null)
