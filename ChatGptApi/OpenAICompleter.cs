@@ -123,10 +123,10 @@ public partial class OpenAICompleter
             title ??= tk.Title;
             keywords = keywords.Concat(tk.Keywords).Distinct().ToArray();
 
-            if (keywords.Length >= 50)
-                return new TK(title, keywords);
+            //if (keywords.Length >= 50)
+            return new TK(title, keywords);
 
-            Logger.LogInformation($"Not enough keywords ({keywords.Length}), retrying");
+            //Logger.LogInformation($"Not enough keywords ({keywords.Length}), retrying");
         }
 
         throw new Exception("Could not generate the tk");
