@@ -49,7 +49,11 @@ public class MainController : ControllerBase
         if (source == GenerateTitleKeywordsSource.ChatGPT)
         {
             try { return JsonApi.Success(await GenerateTKChatGpt(img, prompt, detail)); }
-            catch { return JsonApi.Success(await GenerateTKVision(img, model, titleprompt, kwprompt)); }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in chatgpt api, retrying");
+                return JsonApi.Success(await GenerateTKVision(img, model, titleprompt, kwprompt));
+            }
         }
 
         return JsonApi.Error("Unknown source");

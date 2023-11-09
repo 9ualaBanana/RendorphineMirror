@@ -14,7 +14,7 @@ public static class Torrent
         public required ITaskOutputDirectoryProvider ResultDirectoryProvider { get; init; }
         public required NodeSettingsInstance Settings { get; init; }
 
-        protected override async Task UploadResultImpl(TorrentTaskOutputInfo info, ReadOnlyTaskFileList result, CancellationToken token)
+        protected override async Task UploadResultImpl(TorrentTaskOutputInfo info, ITaskInputInfo input, ReadOnlyTaskFileList result, CancellationToken token)
         {
             // TODO: fix uploading FSOutputDirectory instead of outputfiles
 

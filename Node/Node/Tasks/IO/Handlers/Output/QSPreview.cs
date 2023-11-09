@@ -12,7 +12,7 @@ public static class QSPreview
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required Apis Apis { get; init; }
 
-        protected override async Task UploadResultImpl(QSPreviewOutputInfo info, QSPreviewOutput files, CancellationToken token)
+        protected override async Task UploadResultImpl(QSPreviewOutputInfo info, ITaskInputInfo input, QSPreviewOutput files, CancellationToken token)
         {
             var jpegfooter = files.ImageFooter.ThrowIfNull();
             var jpegqr = files.ImageQr;

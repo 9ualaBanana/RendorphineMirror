@@ -99,7 +99,7 @@ public class TaskExecutor
             var outputhandler = ResultUploaders[task.Output.Type];
             var result = task.Result.ThrowIfNull("No task result");
 
-            await outputhandler.UploadResult(task.Output, result, token);
+            await outputhandler.UploadResult(task.Output, task.Inputs.ToArray(), result, token);
             await Api.ChangeStateAsync(task, TaskState.Validation);
         }
         else Logger.LogWarning($"Task result seems to be already uploaded (??????????????)");
