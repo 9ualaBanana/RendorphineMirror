@@ -37,6 +37,7 @@ public class MainController : ControllerBase
         [FromForm] string? model = null,
         [FromForm] string? titleprompt = null,
         [FromForm] string? kwprompt = null,
+        [FromForm] string? prompt = null,
         [FromForm] GenerateTitleKeywordsSource source = GenerateTitleKeywordsSource.VisionDenseCaptioning,
         [FromForm] ChatRequest.ImageMessageContent.ImageDetail detail = ChatRequest.ImageMessageContent.ImageDetail.High
     )
@@ -47,7 +48,7 @@ public class MainController : ControllerBase
             return JsonApi.Success(await GenerateTKVision(img, model, titleprompt, kwprompt));
         if (source == GenerateTitleKeywordsSource.ChatGPT)
         {
-            try { return JsonApi.Success(await GenerateTKChatGpt(img, titleprompt, detail)); }
+            try { return JsonApi.Success(await GenerateTKChatGpt(img, prompt, detail)); }
             catch { return JsonApi.Success(await GenerateTKVision(img, model, titleprompt, kwprompt)); }
         }
 

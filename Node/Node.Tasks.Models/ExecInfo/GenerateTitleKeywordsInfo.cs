@@ -18,5 +18,5 @@ public class GenerateTitleKeywordsInfo
     public GenerateTitleKeywordsInfo(GenerateTitleKeywordsSource source) => Source = source;
 
 
-    public record ChatGptInfo(string Model, string TitlePrompt, string KwPrompt);
+    public record ChatGptInfo(string Model, string? TitlePrompt, string? KwPrompt, string Prompt);
 }

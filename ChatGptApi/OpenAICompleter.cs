@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using ChatGptApi.OpenAiApi;
-using Node.Common.Models;
 
 namespace ChatGptApi;
 
@@ -102,6 +101,9 @@ public partial class OpenAICompleter
             }),
         };
 
+        var title = null as string;
+        var keywords = Array.Empty<string>();
+
         for (int retry = 0; retry < 3; retry++)
         {
             var response = await SendChatRequestResult(messages, choices: 1, maxtokens: 300, model: ChatModels.Gpt4Vision);
@@ -112,11 +114,22 @@ public partial class OpenAICompleter
             jsonstr = jsonstr.Replace("`", string.Empty).Trim();
 
             var tk = JsonConvert.DeserializeObject<TK>(jsonstr);
-            if (tk is { Keywords.Count: > 25, Title: not null })
-                return tk;
+            if (tk is not { Keywords.Count: > 10, Title: not null })
+            {
+                Logger.LogInformation($"Received invalid tk: '{jsonstr}', retrying ({retry + 1}/3)");
+                continue;
+            }
+
+            title ??= tk.Title;
+            keywords = keywords.Concat(tk.Keywords).Distinct().ToArray();
+
+            if (keywords.Length >= 50)
+                return new TK(title, keywords);
+
+            Logger.LogInformation($"Not enough keywords ({keywords.Length}), retrying");
         }
 
-        throw new Exception("Could not generate");
+        throw new Exception("Could not generate the tk");
     }
 
     public async Task<string> GenerateNewTitle(IEnumerable<string> keywords, string? system, string? model)

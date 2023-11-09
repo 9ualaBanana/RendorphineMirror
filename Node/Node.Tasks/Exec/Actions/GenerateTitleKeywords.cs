@@ -51,6 +51,8 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                             content.Add(new StringContent(data.ChatGpt.TitlePrompt), "titleprompt");
                         if (!string.IsNullOrEmpty(data.ChatGpt.KwPrompt))
                             content.Add(new StringContent(data.ChatGpt.KwPrompt), "kwprompt");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.Prompt))
+                            content.Add(new StringContent(data.ChatGpt.Prompt), "prompt");
                     }
 
                     return await Api.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/generatetkd?{query}", "value", "generating tkd using gcloud vision + openai", content)
