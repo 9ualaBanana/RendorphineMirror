@@ -44,7 +44,7 @@ public partial class OpenAICompleter
 
         var img = messages.OfType<ChatRequest.ImageMessage>().FirstOrDefault()?.Content.OfType<ChatRequest.ImageMessageContent>().FirstOrDefault();
         Logger.LogInformation($"""
-            From prompt '{(messages.FirstOrDefault() as ChatRequest.TextMessage)?.Content}' {(img is null ? string.Empty : $"with an image (size {img.ImageUrl.Url.Length}, {img.ImageUrl.Detail} detail)")}
+            From prompt '{messages.OfType<ChatRequest.ImageMessage>().FirstOrDefault()?.Content.OfType<ChatRequest.TextMessageContent>().FirstOrDefault()?.Text}' {(img is null ? string.Empty : $"with an image (size {img.ImageUrl.Url.Length}, {img.ImageUrl.Detail} detail)")}
             generated {completion.Choices.Count} choices:
             {string.Join('\n', completion.Choices.Select((c, i) => $"  {i}: {c.Message?.Content}"))}
             """);
@@ -114,7 +114,7 @@ public partial class OpenAICompleter
             jsonstr = jsonstr.Replace("`", string.Empty).Trim();
 
             var tk = JsonConvert.DeserializeObject<TK>(jsonstr);
-            if (tk is not { Keywords.Count: > 10, Title: not null })
+            if (tk is not { Keywords.Count: > 0, Title: not null })
             {
                 Logger.LogInformation($"Received invalid tk: '{jsonstr}', retrying ({retry + 1}/3)");
                 continue;
