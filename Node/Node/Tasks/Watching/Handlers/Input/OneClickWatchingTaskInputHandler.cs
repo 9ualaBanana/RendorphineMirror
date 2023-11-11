@@ -72,13 +72,11 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         var unityTemplatesDir = @"C:\\OneClickUnityDefaultProjects";
         await new ProcessLauncher("git", "pull")
         {
-            Logging = { ILogger = Logger },
             ThrowOnStdErr = false,
             WorkingDirectory = unityTemplatesDir,
         }.ExecuteAsync();
         var unityTemplatesCommitHash = (await new ProcessLauncher("git", "rev-parse", "--verify", "HEAD")
         {
-            Logging = { ILogger = Logger },
             ThrowOnStdErr = false,
             WorkingDirectory = unityTemplatesDir,
         }.ExecuteFullAsync()).Trim();
