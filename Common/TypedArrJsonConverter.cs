@@ -6,7 +6,7 @@ public class TypedArrJsonConverter : JsonConverter
 {
     public override bool CanConvert(Type objectType) => true;
 
-    public static object? Read(JToken jtoken, JsonSerializer serializer)
+    public static object? Read(JToken jtoken, JsonSerializer serializer, Type? objectType = null)
     {
         JArray jarr;
         IList result;
@@ -34,7 +34,11 @@ public class TypedArrJsonConverter : JsonConverter
             result.Add(value!);
         }
 
-        return JArray.FromObject(result).ToObject(Type.GetType(jtoken["$type$"].ThrowIfNull().Value<string>().ThrowIfNull()).ThrowIfNull(), serializer).ThrowIfNull();
+        return JArray.FromObject(result).ToObject(
+            jtoken is JObject
+            ? Type.GetType(jtoken["$type$"].ThrowIfNull().Value<string>().ThrowIfNull()).ThrowIfNull()
+            : objectType
+            , serializer).ThrowIfNull();
         //return result;
     }
     public static void Write(JsonWriter writer, object? value, JsonSerializer serializer)
@@ -79,7 +83,7 @@ public class TypedArrJsonConverter : JsonConverter
         if (reader.TokenType == JsonToken.Null)
             return null;
 
-        return Read(JToken.Load(reader), serializer);
+        return Read(JToken.Load(reader), serializer, objectType);
     }
     public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) => Write(writer, value, serializer);
 }
