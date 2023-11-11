@@ -11,18 +11,11 @@ public class TypedArrJsonConverter : JsonConverter
         JArray jarr;
         IList result;
 
-        if (jtoken is JObject)
-        {
-            jarr = (JArray) jtoken["$value$"].ThrowIfNull();
-            result = (IList) new JArray().ToObject(Type.GetType(jtoken["$type$"].ThrowIfNull().Value<string>().ThrowIfNull()).ThrowIfNull(), serializer).ThrowIfNull();
-        }
-        else if (jtoken is JArray jarrr)
-        {
-            jarr = jarrr;
-            result = new List<object>();
-        }
+        if (jtoken is JObject) jarr = (JArray) jtoken["$value$"].ThrowIfNull();
+        else if (jtoken is JArray jarrr) jarr = jarrr;
         else throw new Exception("Unknown input type");
 
+        result = new List<object>();
 
         foreach (var token in jarr)
         {
@@ -41,7 +34,8 @@ public class TypedArrJsonConverter : JsonConverter
             result.Add(value!);
         }
 
-        return result;
+        return JArray.FromObject(result).ToObject(Type.GetType(jtoken["$type$"].ThrowIfNull().Value<string>().ThrowIfNull()).ThrowIfNull(), serializer).ThrowIfNull();
+        //return result;
     }
     public static void Write(JsonWriter writer, object? value, JsonSerializer serializer)
     {

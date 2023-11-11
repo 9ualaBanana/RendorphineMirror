@@ -77,10 +77,10 @@ public class TaskExecutor
             var inputs = task.DownloadedInputs.ThrowIfNull("No task input downloaded");
             if (inputs.Count == 0) throw new Exception("No task input downloaded");
 
-            object convertInput(object input)
+            object convertInput(object input, int index)
             {
                 if (input is IReadOnlyTaskFileList files)
-                    return new TaskFileInput(files, task.FSOutputDirectory(Dirs));
+                    return new TaskFileInput(files, Path.Combine(task.FSOutputDirectory(Dirs), index.ToStringInvariant()));
 
                 return input;
             }
