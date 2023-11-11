@@ -18,7 +18,11 @@ public static class QSPreview
             var jpegqr = files.ImageQr;
             var mov = files.Video;
 
-            var res = await Apis.ShardPost<InitOutputResult>(ApiTask, "initqspreviewoutput", null, "Initializing qs preview result upload", ("taskid", ApiTask.Id));
+            var args = new[] { ("taskid", ApiTask.Id) };
+            if (input is MPlusTaskInputInfo mpinput)
+                args = args.Append(("iid", mpinput.Iid)).ToArray();
+
+            var res = await Apis.ShardPost<InitOutputResult>(ApiTask, "initqspreviewoutput", null, "Initializing qs preview result upload", args);
             if (!res && res.ToString()?.Contains("There is no such user", StringComparison.OrdinalIgnoreCase) == true)
                 throw new TaskFailedException(res.ToString());
 

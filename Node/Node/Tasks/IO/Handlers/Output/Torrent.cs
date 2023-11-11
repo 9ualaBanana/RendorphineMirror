@@ -31,10 +31,17 @@ public static class Torrent
             await TorrentClient.AddTrackers(manager, true);
             Logger.LogInformation($"Result magnet uri: {manager.MagnetLink.ToV1String()}");
 
-            var post = await Api.ShardGet(ApiTask, "inittorrenttaskoutput", "Updating output magnet uri", ("taskid", ApiTask.Id), ("link", manager.MagnetLink.ToV1String()));
+            var args = new[]
+            {
+                ("taskid", ApiTask.Id),
+                ("link", manager.MagnetLink.ToV1String()),
+                ("key", (input as MPlusTaskInputInfo)?.Iid ?? Guid.NewGuid().ToString()),
+            };
+
+            var post = await Api.ShardGet(ApiTask, "inittorrenttaskoutput", "Updating output magnet uri", args);
             post.ThrowIfError();
 
-            info.Link = manager.MagnetLink.ToV1String();
+            // info.Link = manager.MagnetLink.ToV1String();
             QueuedTasks.QueuedTasks.Save((ReceivedTask) ApiTask);
 
             Logger.LogInformation($"Waiting for torrent result upload ({manager.InfoHash.ToHex()})");
@@ -86,7 +93,7 @@ public static class Torrent
         public static TaskOutputType Type => TaskOutputType.Torrent;
 
         public override bool CheckCompletion(TorrentTaskOutputInfo info, TaskState state) =>
-            info.Link is not null;
+            info.Data?.Values.All(data => data.Link is not null) == true;
     }
     public class CompletionHandler : TaskCompletionHandler<TorrentTaskOutputInfo>, ITypedTaskOutput
     {
@@ -101,13 +108,14 @@ public static class Torrent
             // if task is local, downloading already handled by UploadResult
             if (ApiTask.IsFromSameNode(Settings)) return;
 
-            info.Link.ThrowIfNull();
-            Logger.LogInformation($"Downloading result from torrent {info.Link}");
+            await Task.WhenAll(info.Data.ThrowIfNull().Values.Select(async data =>
+            {
+                Logger.LogInformation($"Downloading result from torrent {data}");
 
-            var manager = await TorrentClient.StartMagnet(info.Link, ResultDirectoryProvider.OutputDirectory);
-
-            await TorrentClient.AddTrackers(manager, true);
-            await TorrentClient.WaitForCompletion(manager, TimeSpan.FromMinutes(5));
+                var manager = await TorrentClient.StartMagnet(data.Link.ThrowIfNull(), ResultDirectoryProvider.OutputDirectory);
+                await TorrentClient.AddTrackers(manager, true);
+                await TorrentClient.WaitForCompletion(manager, TimeSpan.FromMinutes(5));
+            }));
         }
     }
 }

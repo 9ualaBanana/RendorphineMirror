@@ -13,7 +13,13 @@ public static class TitleKeywords
 
         protected override async Task UploadResultImpl(TitleKeywordsOutputInfo info, ITaskInputInfo input, TitleKeywordsOutput result, CancellationToken token)
         {
-            var args = Api.AddSessionId(("taskid", ApiTask.Id), ("title", result.Title), ("keywords", JsonConvert.SerializeObject(result.Keywords)));
+            var args = new[]
+            {
+                ("taskid", ApiTask.Id), ("title", result.Title),
+                ("keywords", JsonConvert.SerializeObject(result.Keywords)),
+                ("key", (input as MPlusTaskInputInfo)?.Iid ?? Guid.NewGuid().ToString()),
+            };
+
             await Api.ShardPost(ApiTask, "settaskoutputtitlekeywords", "setting task output title&keywords", args).ThrowIfError();
         }
     }

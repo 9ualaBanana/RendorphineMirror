@@ -16,10 +16,10 @@ public class MPlusTaskInputInfo : ITaskInputInfo
 
     static Task<OperationResult<Dictionary<string, MPlusNewItem>>> GetMpItems(Api api, string sessionid, string userid, IEnumerable<string> iids) =>
         iids.Chunk(30).Select(async iids =>
-            await api.ApiPost<Dictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info",
-                ("sessionid", sessionid), ("userid", userid), ("iids", JsonConvert.SerializeObject(iids)))
-        )
-        .AggregateMany();
+                await api.ApiPost<Dictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info",
+                    ("sessionid", sessionid), ("userid", userid), ("iids", JsonConvert.SerializeObject(iids)))
+            )
+            .AggregateMany();
 
     public Task<OperationResult<TaskObject>> GetFileInfo(Api api, string sessionid, string myuserid) => GetFileInfo(api, sessionid, TUid ?? myuserid, Iid);
     public static Task<OperationResult<TaskObject>> GetFileInfo(Api api, string sessionid, string userid, string iid) =>
@@ -39,8 +39,8 @@ public class MPlusTaskOutputInfo : ITaskOutputInfo
 
     public readonly int? AutoremoveTimer;
     public readonly string? TUid;
-    [Hidden] public string? IngesterHost;
     public string? CustomHost { get; init; }
+    public Dictionary<string, MPlusData>? Data { get; init; }
 
     public MPlusTaskOutputInfo(string name, string directory, int? autoremoveTimer = null, string? tuid = null)
     {
@@ -49,4 +49,7 @@ public class MPlusTaskOutputInfo : ITaskOutputInfo
         AutoremoveTimer = autoremoveTimer;
         TUid = tuid;
     }
+
+
+    public record MPlusData(string? IngesterHost);
 }

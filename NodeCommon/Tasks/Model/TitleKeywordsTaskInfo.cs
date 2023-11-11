@@ -13,12 +13,11 @@ public class TitleKeywordsInputInfo : ITaskInputInfo
         Keywords = keywords;
     }
 }
-
 public class TitleKeywordsOutputInfo : ITaskOutputInfo
 {
     public TaskOutputType Type => TaskOutputType.TitleKeywords;
+    public Dictionary<string, TitleKeywordsData>? Data { get; init; }
 
-    public readonly string? Title;
-    public readonly string[]? Keywords;
-    public readonly string? Description;
+
+    public record TitleKeywordsData(string? Title, string[]? Keywords);
 }

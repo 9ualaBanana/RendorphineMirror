@@ -37,6 +37,6 @@ public static class MPlus
         public static TaskOutputType Type => TaskOutputType.MPlus;
 
         public override bool CheckCompletion(MPlusTaskOutputInfo info, TaskState state) =>
-            state == TaskState.Validation && info.IngesterHost is not null;
+            state == TaskState.Validation && info.Data?.Values.All(data => data.IngesterHost is not null) == true;
     }
 }
