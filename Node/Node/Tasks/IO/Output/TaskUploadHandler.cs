@@ -1,3 +1,5 @@
+using System.Collections;
+
 namespace Node.Tasks.IO.Output;
 
 public interface ITaskUploadHandler
@@ -29,6 +31,10 @@ public abstract class TaskUploadHandler<TData, TResult> : ITaskUploadHandler<TDa
         else if (result is IEnumerable<TResult> tresults)
             foreach (var (tresultt, tinput) in tresults.Zip(input))
                 await UploadResult((TData) info, tinput, tresultt, token);
+        else if (result is IEnumerable tngresults)
+            foreach (var (tresultt, tinput) in tngresults.Cast<TResult>().Zip(input))
+                await UploadResult((TData) info, tinput, tresultt, token);
+        else throw new InvalidOperationException($"Invalid result type: {result?.GetType()}");
     }
 
     public async Task UploadResult(TData info, IReadOnlyList<ITaskInputInfo> input, TResult result, CancellationToken token) =>
