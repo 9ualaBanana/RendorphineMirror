@@ -26,7 +26,7 @@ public static class MPlus
                 else postfix = postfix.Substring(commonprefix.Length);
 
                 Logger.LogInformation($"[MPlus] Uploading {file} with postfix '{postfix}'");
-                var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: postfix, ApiTask, Api.GlobalClient, Settings.SessionId, (input as MPlusTaskInputInfo)?.Iid), cancellationToken: token);
+                var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: postfix, ApiTask, Api.GlobalClient, Settings.SessionId, (input as IMPlusTaskInputInfo)?.Iid), cancellationToken: token);
 
                 ((ReceivedTask) ApiTask).UploadedFiles.Add(new MPlusUploadedFileInfo(iid, file));
             }

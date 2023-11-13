@@ -33,26 +33,28 @@ public class MainController : ControllerBase
     public async Task<JToken> GenerateTKD(
         [FromQuery] string sessionid,
         [FromQuery] string taskid,
-        [FromForm] IFormFile img,
+        [FromForm] IFormFile? img = null,
+        [FromForm] string? url = null,
         [FromForm] string? model = null,
         [FromForm] string? titleprompt = null,
         [FromForm] string? kwprompt = null,
         [FromForm] string? prompt = null,
-        [FromForm] GenerateTitleKeywordsSource source = GenerateTitleKeywordsSource.VisionDenseCaptioning,
+        [FromForm] GenerateTitleKeywordsSource source = GenerateTitleKeywordsSource.ChatGPT,
         [FromForm] ChatRequest.ImageMessageContent.ImageDetail detail = ChatRequest.ImageMessageContent.ImageDetail.Low
     )
     {
         await TaskTypeChecker.ThrowIfTaskTypeNotValid(TaskAction.GenerateTitleKeywords, sessionid, taskid);
+        if (img is null && url is null) return JsonApi.Error("No img or url provided");
 
         if (source == GenerateTitleKeywordsSource.VisionDenseCaptioning)
-            return JsonApi.Success(await GenerateTKVision(img, model, titleprompt, kwprompt));
+            return JsonApi.Success(await GenerateTKVision(img.ThrowIfNull("No img provided"), model, titleprompt, kwprompt));
         if (source == GenerateTitleKeywordsSource.ChatGPT)
         {
-            try { return JsonApi.Success(await GenerateTKChatGpt(img, prompt, detail)); }
+            try { return JsonApi.Success(await GenerateTKChatGpt(img, url, prompt, detail)); }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error in chatgpt api, retrying");
-                return JsonApi.Success(await GenerateTKVision(img, model, titleprompt, kwprompt));
+                return JsonApi.Success(await GenerateTKVision(img.ThrowIfNull("No img provided"), model, titleprompt, kwprompt));
             }
         }
 
@@ -60,20 +62,32 @@ public class MainController : ControllerBase
     }
 
 
-    async Task<TK> GenerateTKChatGpt(IFormFile img, string? prompt, ChatRequest.ImageMessageContent.ImageDetail detail)
+    async Task<TK> GenerateTKChatGpt(IFormFile? img, string? url, string? prompt, ChatRequest.ImageMessageContent.ImageDetail detail)
     {
-        using var imgstream = img.OpenReadStream();
-        var imgbytes = new byte[img.Length];
-        await imgstream.ReadExactlyAsync(imgbytes);
-        var imgbase64 = Convert.ToBase64String(imgbytes);
+        TK tk;
+        if (img is not null)
+        {
+            using var imgstream = img.OpenReadStream();
+            var imgbytes = new byte[img.Length];
+            await imgstream.ReadExactlyAsync(imgbytes);
+            var imgbase64 = Convert.ToBase64String(imgbytes);
 
-        var tk = await OpenAICompleter.GenerateTKChatGpt(
-            ChatRequest.ImageMessageContent.FromBase64(MimeTypes.GetMimeType(img.FileName), imgbase64, detail),
-            prompt
-        );
+            tk = await OpenAICompleter.GenerateTKChatGpt(
+                ChatRequest.ImageMessageContent.FromBase64(MimeTypes.GetMimeType(img.FileName), imgbase64, detail),
+                prompt
+            );
+        }
+        else if (url is not null)
+        {
+            tk = await OpenAICompleter.GenerateTKChatGpt(
+                ChatRequest.ImageMessageContent.FromUrl(url, detail),
+                prompt
+            );
+        }
+        else throw new Exception("No img or url provided");
 
         Logger.LogInformation($"""
-            For image {img.FileName}:
+            For image {img?.FileName ?? url}:
                 Title: "{tk.Title}"
                 Keywords: ["{string.Join(", ", tk.Keywords)}"]
             """);

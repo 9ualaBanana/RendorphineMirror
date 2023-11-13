@@ -1,11 +1,11 @@
 namespace NodeCommon.Tasks.Model;
 
-public class MPlusTaskInputInfo : ITaskInputInfo
+public class MPlusTaskInputInfo : IMPlusTaskInputInfo
 {
     public TaskInputType Type => TaskInputType.MPlus;
 
-    public readonly string Iid;
-    public readonly string? TUid;
+    public string Iid { get; }
+    public string? TUid { get; }
 
     public MPlusTaskInputInfo(string iid, string? tuid = null)
     {

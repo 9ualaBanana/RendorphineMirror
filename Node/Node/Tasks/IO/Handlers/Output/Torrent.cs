@@ -35,7 +35,7 @@ public static class Torrent
             {
                 ("taskid", ApiTask.Id),
                 ("link", manager.MagnetLink.ToV1String()),
-                ("key", (input as MPlusTaskInputInfo)?.Iid ?? Guid.NewGuid().ToString()),
+                ("key", (input as IMPlusTaskInputInfo)?.Iid ?? Guid.NewGuid().ToString()),
             };
 
             var post = await Api.ShardGet(ApiTask, "inittorrenttaskoutput", "Updating output magnet uri", args);

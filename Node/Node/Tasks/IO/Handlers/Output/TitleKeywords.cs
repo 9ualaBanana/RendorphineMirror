@@ -17,7 +17,7 @@ public static class TitleKeywords
             {
                 ("taskid", ApiTask.Id), ("title", result.Title),
                 ("keywords", JsonConvert.SerializeObject(result.Keywords)),
-                ("key", (input as MPlusTaskInputInfo)?.Iid ?? Guid.NewGuid().ToString()),
+                ("key", (input as IMPlusTaskInputInfo)?.Iid ?? Guid.NewGuid().ToString()),
             };
 
             await Api.ShardPost(ApiTask, "settaskoutputtitlekeywords", "setting task output title&keywords", args).ThrowIfError();

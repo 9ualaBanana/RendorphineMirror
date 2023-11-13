@@ -19,7 +19,7 @@ public static class QSPreview
             var mov = files.Video;
 
             var args = new[] { ("taskid", ApiTask.Id) };
-            if (input is MPlusTaskInputInfo mpinput)
+            if (input is IMPlusTaskInputInfo mpinput)
                 args = args.Append(("iid", mpinput.Iid)).ToArray();
 
             var res = await Apis.ShardPost<InitOutputResult>(ApiTask, "initqspreviewoutput", null, "Initializing qs preview result upload", args);
