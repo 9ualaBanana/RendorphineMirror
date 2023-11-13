@@ -80,7 +80,7 @@ public class TaskExecutor
             object convertInput(object input, int index)
             {
                 if (input is IReadOnlyTaskFileList files)
-                    return new TaskFileInput(files, Path.Combine(task.FSOutputDirectory(Dirs), index.ToStringInvariant()));
+                    return new TaskFileInput(files, Directories.DirCreated(task.FSOutputDirectory(Dirs), index.ToStringInvariant()));
 
                 return input;
             }
