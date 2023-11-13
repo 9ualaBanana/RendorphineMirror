@@ -6,7 +6,7 @@ public class TypedArrJsonConverter : JsonConverter
 {
     public override bool CanConvert(Type objectType) => true;
 
-    public static object? Read(JToken jtoken, JsonSerializer serializer, Type? objectType = null)
+    public static object? Read(JToken jtoken, JsonSerializer serializer)
     {
         JArray jarr;
         IList result;
@@ -15,7 +15,7 @@ public class TypedArrJsonConverter : JsonConverter
         else if (jtoken is JArray jarrr) jarr = jarrr;
         else throw new Exception("Unknown input type");
 
-        result = new List<object>();
+        result = (IList) new JArray().ToObject(Type.GetType(jtoken["$type$"].ThrowIfNull().Value<string>().ThrowIfNull()).ThrowIfNull()).ThrowIfNull();
 
         foreach (var token in jarr)
         {
@@ -34,12 +34,7 @@ public class TypedArrJsonConverter : JsonConverter
             result.Add(value!);
         }
 
-        return JArray.FromObject(result).ToObject(
-            jtoken is JObject
-            ? Type.GetType(jtoken["$type$"].ThrowIfNull().Value<string>().ThrowIfNull()).ThrowIfNull()
-            : objectType
-            , serializer).ThrowIfNull();
-        //return result;
+        return result;
     }
     public static void Write(JsonWriter writer, object? value, JsonSerializer serializer)
     {
@@ -83,7 +78,7 @@ public class TypedArrJsonConverter : JsonConverter
         if (reader.TokenType == JsonToken.Null)
             return null;
 
-        return Read(JToken.Load(reader), serializer, objectType);
+        return Read(JToken.Load(reader), serializer);
     }
     public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) => Write(writer, value, serializer);
 }
