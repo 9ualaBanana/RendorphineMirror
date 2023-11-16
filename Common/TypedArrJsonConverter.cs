@@ -15,7 +15,8 @@ public class TypedArrJsonConverter : JsonConverter
         else if (jtoken is JArray jarrr) jarr = jarrr;
         else throw new Exception("Unknown input type");
 
-        result = (IList) new JArray().ToObject(Type.GetType(jtoken["$type$"].ThrowIfNull().Value<string>().ThrowIfNull()).ThrowIfNull()).ThrowIfNull();
+        try { result = (IList) new JArray().ToObject(Type.GetType(jtoken["$type$"].ThrowIfNull().Value<string>().ThrowIfNull()).ThrowIfNull()).ThrowIfNull(); }
+        catch { return null; }
 
         foreach (var token in jarr)
         {
