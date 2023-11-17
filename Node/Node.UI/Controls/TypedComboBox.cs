@@ -1,3 +1,4 @@
+using System.Reflection;
 using Avalonia.Controls.Templates;
 
 namespace Node.UI.Controls;
@@ -19,13 +20,18 @@ public static class TypedComboBox
 public class TypedComboBox<T> : ComboBox
 {
     protected override Type StyleKeyOverride => typeof(ComboBox);
-
     public new IEnumerable<T> Items { get => (IEnumerable<T>) base.Items; set => base.ItemsSource = value; }
 
-    public new T SelectedItem =>
-        typeof(T).IsEnum
-        ? (T) Enum.Parse(typeof(T), base.SelectedItem!.ToString()!)
-        : (T) base.SelectedItem!;
+    public new T SelectedItem
+    {
+        get => (T) (base.SelectedItem ??= base.Items.OfType<T>().FirstOrDefault())!;
+        set
+        {
+            if (base.Items.OfType<T>().Contains(value))
+                base.SelectedItem = value;
+            else SelectedIndex = 0;
+        }
+    }
 
     public TypedComboBox(IReadOnlyCollection<T> items, Func<T, Control>? func = null)
     {

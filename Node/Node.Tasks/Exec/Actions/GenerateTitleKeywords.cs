@@ -1,3 +1,5 @@
+using SixLabors.ImageSharp.Formats.Jpeg;
+
 namespace Node.Tasks.Exec.Actions;
 
 public record TitleKeywordsInput(string Title, ImmutableArray<string> Keywords);
@@ -25,18 +27,58 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                 async files =>
                 {
                     var file = files.First();
-                    var query = global::Common.Api.ToGetContent(Api.AddSessionId(("taskid", ApiTask.Id)));
+                    var query = ApiBase.ToQuery(Api.AddSessionId(("taskid", ApiTask.Id)));
 
-                    using var stream = File.OpenRead(file.Path);
-                    using var content = new MultipartFormDataContent() { { new StreamContent(stream), "img", file.Format.ToMime() } };
+                    using var img = Image.Load<Rgba32>(file.Path);
+
+                    // google vision api accepts no more than 20MB images;
+                    // downscale the image
+                    if (img.Width > 2048)
+                        img.Mutate(ctx => ctx.Resize(new Size((int) (img.Height / (img.Width / 2048f)), 2048)));
+
+                    using var stream = new MemoryStream();
+                    img.SaveAsJpeg(stream);
+                    stream.Position = 0;
+
+                    using var content = new MultipartFormDataContent()
+                    {
+                        { new StreamContent(stream), "img", file.Format.ToMime() },
+                        { new StringContent(data.Source.ToString()), "source" },
+                    };
+                    if (data.ChatGpt is not null)
+                    {
+                        if (!string.IsNullOrEmpty(data.ChatGpt.Model))
+                            content.Add(new StringContent(data.ChatGpt.Model), "model");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.TitlePrompt))
+                            content.Add(new StringContent(data.ChatGpt.TitlePrompt), "titleprompt");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.DescrPrompt))
+                            content.Add(new StringContent(data.ChatGpt.DescrPrompt), "descrprompt");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.KwPrompt))
+                            content.Add(new StringContent(data.ChatGpt.KwPrompt), "kwprompt");
+                    }
 
                     return await Api.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/generatetkd?{query}", "value", "generating tkd using gcloud vision + openai", content)
                         .ThrowIfError();
                 },
                 async tk =>
                 {
-                    var parameters = Api.AddSessionId(("taskid", ApiTask.Id), ("title", tk.Title), ("keywords", JsonConvert.SerializeObject(tk.Keywords)));
-                    return await Api.Api.ApiPost<TitleKeywordsOutput>("https://t.microstock.plus:7899/openai/generatebettertk", "value", "generating better tk using openai", parameters)
+                    using var content = new MultipartFormDataContent()
+                    {
+                        { new StringContent(tk.Title), "title" },
+                        { new StringContent(JsonConvert.SerializeObject(tk.Keywords)), "keywords" },
+                    };
+                    if (data.ChatGpt is not null)
+                    {
+                        if (!string.IsNullOrEmpty(data.ChatGpt.Model))
+                            content.Add(new StringContent(data.ChatGpt.Model), "model");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.TitlePrompt))
+                            content.Add(new StringContent(data.ChatGpt.TitlePrompt), "titleprompt");
+                        if (!string.IsNullOrEmpty(data.ChatGpt.KwPrompt))
+                            content.Add(new StringContent(data.ChatGpt.KwPrompt), "kwprompt");
+                    }
+
+                    var query = ApiBase.ToQuery(Api.AddSessionId(("taskid", ApiTask.Id)));
+                    return await Api.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/openai/generatebettertk?{query}", "value", "generating better tk using openai", content)
                         .ThrowIfError();
                 }
             );

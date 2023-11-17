@@ -1,12 +1,12 @@
-using OpenAI_API;
-using OpenAI_API.Chat;
-using OpenAI_API.Models;
+using System.Text.RegularExpressions;
+using ChatGptApi.OpenAiApi;
+using Node.Common.Models;
 
 namespace ChatGptApi;
 
-public class OpenAICompleter
+public partial class OpenAICompleter
 {
-    readonly OpenAIAPI Api;
+    readonly ChatApi Api;
     readonly ILogger Logger;
 
     decimal TotalSpent = 0;
@@ -14,99 +14,173 @@ public class OpenAICompleter
     public OpenAICompleter(IConfiguration config, ILogger<OpenAICompleter> logger)
     {
         Logger = logger;
-
-        var apikey = config.GetValue<string>("openai_apikey");
-        Api = new OpenAIAPI(apikey);
+        Api = new ChatApi(config.GetValue<string>("openai_apikey").ThrowIfNull());
     }
 
-    async Task<string> SendChatRequest(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, Model? model = null)
+    async Task<ChatResult> SendChatRequestResult(IReadOnlyList<ChatRequest.IMessage> messages, double temperature = .1, int maxtokens = 400, int choices = 3, string? model = null)
     {
-        Logger.LogInformation($"Requesting \"{system}\" \"{message}\"");
+        model ??= ChatModels.Gpt35Turbo;
+        Logger.LogInformation($"Requesting from model: {model}, messages: [ {string.Join(", ", messages.Select(m => $"'{m.Role}: {m.AsString()}'"))} ]");
 
         var req = new ChatRequest()
         {
-            Model = model ?? Model.ChatGPTTurbo,
+            Model = model,
             Temperature = temperature,
             MaxTokens = maxtokens,
             NumChoicesPerMessage = choices,
-            Messages = new[]
-            {
-                new ChatMessage(ChatMessageRole.System, system),
-                new ChatMessage(ChatMessageRole.User, message),
-            },
+            Messages = messages,
         };
 
-        var completion = await Api.Chat.CreateChatCompletionAsync(req);
+        var completion = await Api.SendRequest(req);
 
-        Task.Run(() =>
+        if (completion.Usage is not null)
         {
-            if (completion.Usage is null) return;
+            var prompttokens = completion.Usage.PromptTokens;
+            var outputtokens = completion.Usage.CompletionTokens;
 
-            var encoder = SharpToken.GptEncoding.GetEncodingForModel("gpt-3.5-turbo");
-            var prompttokens = encoder.Encode(system + message).Count;
-            var outputtokens = encoder.Encode(string.Join("", completion.Choices.Select(c => c.Message.Content))).Count;
-
-            var price = (prompttokens / 1000m * 0.0015m) + (outputtokens / 1000m * 0.002m);
+            var price = prompttokens / 1000m * 0.0015m + outputtokens / 1000m * 0.002m;
             TotalSpent += price;
             Logger.LogInformation($"Tokens: Input {prompttokens}; Output {outputtokens}; Price ~${price}; Total this session: ~${TotalSpent}");
-        }).Consume();
+        }
 
-        var choice = completion.Choices
-            .Select(c => c.Message.Content)
-            .MaxBy(m => m.Length)
-            .ThrowIfNull();
-
+        var img = messages.OfType<ChatRequest.ImageMessage>().FirstOrDefault()?.Content.OfType<ChatRequest.ImageMessageContent>().FirstOrDefault();
         Logger.LogInformation($"""
-            From prompt "{system}"
+            From prompt '{(messages.FirstOrDefault() as ChatRequest.TextMessage)?.Content}' {(img is null ? string.Empty : $"with an image (size {img.ImageUrl.Url.Length}, {img.ImageUrl.Detail} detail)")}
             generated {completion.Choices.Count} choices:
-            {string.Join('\n', completion.Choices.Select((c, i) => $"  {(c.Message.Content == choice ? "*" : " ")} {i}: {c.Message.Content}"))}
+            {string.Join('\n', completion.Choices.Select((c, i) => $"  {i}: {c.Message?.Content}"))}
             """);
 
-        choice = FilterString(choice);
-        return choice;
+        return completion;
+    }
+    async Task<ChatResult> SendChatRequestResult(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, string? model = null)
+    {
+        var messages = new[]
+        {
+            new ChatRequest.TextMessage(ChatRole.System, system),
+            new ChatRequest.TextMessage(ChatRole.User, message),
+        };
+
+        return await SendChatRequestResult(messages, temperature, maxtokens, choices, model);
+    }
+    async Task<string> SendChatRequest(IReadOnlyList<ChatRequest.IMessage> messages, double temperature = .1, int maxtokens = 400, int choices = 3, string? model = null)
+    {
+        var completion = await SendChatRequestResult(messages, temperature, maxtokens, choices, model);
+        return FilterString(completion.Choices
+            .Select(c => c.Message.Content)
+            .MaxBy(m => m.Length)
+            .ThrowIfNull());
+    }
+    async Task<string> SendChatRequest(string system, string message, double temperature = .1, int maxtokens = 400, int choices = 3, string? model = null)
+    {
+        var completion = await SendChatRequestResult(system, message, temperature, maxtokens, choices, model);
+        return FilterString(completion.Choices
+            .Select(c => c.Message.Content)
+            .MaxBy(m => m.Length)
+            .ThrowIfNull());
     }
 
-    const string PromptEnd = "to use in iStock. Use formal and dry language, do not use \"breathtaking\", \"majestic\" and alike. Do not include the keyword list in the result.";
+    const string PromptEndBase = "to use in iStock. Use formal and dry language, do not use \"breathtaking\", \"majestic\", \"captivating\" and alike.";
+    const string PromptEnd = $"{PromptEndBase} Do not include the keyword list in the result.";
+    static readonly char[] KeywordSeparators = new[] { ',', '\n' };
 
-    public async Task<string> GenerateNewTitle(IEnumerable<string> keywords)
+
+    public async Task<TKD> GenerateTKDChatGpt(ChatRequest.ImageMessageContent image, string? titleprompt, string? descrprompt, string? kwprompt)
+    {
+        ChatRequest.IMessage[] getMessages(string prompt)
+        {
+            return new[]
+            {
+                new ChatRequest.ImageMessage(ChatRole.User, new ChatRequest.IMessageContent[]
+                {
+                    new ChatRequest.TextMessageContent(prompt),
+                    image,
+                }),
+            };
+        }
+
+        kwprompt ??= $"Generate a set of 50 one-word keywords for the provided image {PromptEndBase}";
+        titleprompt ??= $"Generate a title for the provided image {PromptEndBase}";
+        descrprompt ??= $"Generate an extended title for the provided image {PromptEndBase}";
+
+        var keywordcompletion = await SendChatRequestResult(getMessages(kwprompt), choices: 1, model: ChatModels.Gpt4Vision);
+        var keywords = ProcessKeywords(keywordcompletion).ToArray();
+
+        var title = await SendChatRequest(getMessages(titleprompt), maxtokens: 100, model: ChatModels.Gpt4Vision);
+        var description = await SendChatRequest(getMessages(descrprompt), maxtokens: 300, model: ChatModels.Gpt4Vision);
+
+        return new TKD(title, description, keywords);
+    }
+
+    public async Task<string> GenerateNewTitle(IEnumerable<string> keywords, string? system, string? model)
     {
         var prompt = string.Join(", ", keywords);
-        return await SendChatRequest($"Generate a title for an image using the provided keywords {PromptEnd}", prompt, maxtokens: 100);
+        return await SendChatRequest(system ?? $"Generate a title for an image using the provided keywords {PromptEnd}", prompt, maxtokens: 100, model: model);
     }
 
-    public async Task<string> GenerateNewDescription(string title, IEnumerable<string> keywords)
+    public async Task<string> GenerateNewDescription(string title, IEnumerable<string> keywords, string? system, string? model)
     {
         var prompt = $"""
             Title: {title}
             Keywords: {string.Join(", ", keywords)}
         """;
 
-        return await SendChatRequest($"Generate an extended title for an image using the provided title and keywords {PromptEnd}", prompt, maxtokens: 100);
+        return await SendChatRequest(system ?? $"Generate an extended title for an image using the provided title and keywords {PromptEnd}", prompt, maxtokens: 100, model: model);
     }
 
-    public async Task<string> GenerateBetterTitle(string title, IEnumerable<string> keywords)
+    public async Task<string> GenerateBetterTitle(string title, IEnumerable<string> keywords, string? system, string? model)
     {
         var prompt = $"""
             Title: {title}
             Keywords: {string.Join(", ", keywords)}
         """;
 
-        return await SendChatRequest($"Generate another title for an image using the provided title and keywords {PromptEnd}", prompt, maxtokens: 100);
+        return await SendChatRequest(system ?? $"Generate another title for an image using the provided title and keywords {PromptEnd}", prompt, maxtokens: 100, model: model);
     }
 
-    public async Task<string[]> GenerateBetterKeywords(string title, IEnumerable<string> keywords)
+    public async Task<string[]> GenerateBetterKeywords(string title, IEnumerable<string> keywords, string? system, string? model)
     {
         var prompt = $"""
             Title: {title}
             Keywords: {string.Join(", ", keywords)}
         """;
 
-        return (await SendChatRequest($"Generate better keywords for an image using the provided title and keywords {PromptEnd}", prompt, maxtokens: 300))
-            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(kw => FilterString(kw).Replace("Keywords:", "").TrimStart())
+        var response = await SendChatRequestResult(system ?? $"Generate a set of 50 one-word keywords for an image based on the provided title and keywords {PromptEndBase}", prompt, maxtokens: 300, model: model);
+        return ProcessKeywords(response).ToArray();
+    }
+
+    static string[] ProcessKeywords(ChatResult result)
+    {
+        var kws = result.Choices.ThrowIfNull()
+            .SelectMany(choice => FilterString((choice.Message?.Content).ThrowIfNull())
+                .Split(KeywordSeparators, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(FilterKeyword)
+                .WhereNotNull()
+            ).Distinct()
             .ToArray();
+
+        if (kws.Length == 0)
+            throw new Exception($"Could not generate keywords; The model responded with: {result.Choices.FirstOrDefault()?.Message.Content ?? "<nothing>"}");
+
+        return kws;
     }
 
-    static string FilterString(string str) =>
-        str.Replace("\"", "").Replace("\'", "").Trim();
+    static string FilterString(string str) => str.Replace("\"", "").Replace("\'", "").Replace("Keywords:", "").Trim();
+    static string? FilterKeyword(string str)
+    {
+        // remove all garbage before keyword ('1. kw', '- kw')
+        foreach (var match in NonWordStuffAtStartRegex().Matches(str).AsEnumerable())
+            str = str.Substring(match.Index + match.Length);
+
+        // if still not a single word
+        if (!SingleWordRegex().IsMatch(str))
+            return null;
+
+        return str.ToLowerInvariant();
+    }
+
+    [GeneratedRegex(@"^[\W\d]*")]
+    private static partial Regex NonWordStuffAtStartRegex();
+
+    [GeneratedRegex(@"^[A-Za-z]*$")]
+    private static partial Regex SingleWordRegex();
 }

@@ -107,7 +107,7 @@ namespace Node.UI
                 {
                     var lifetime = (IClassicDesktopStyleApplicationLifetime) app.ApplicationLifetime!;
 
-                    var window = lifetime.MainWindow ?? App.Instance.SetMainWindow(lifetime);
+                    var window = lifetime.MainWindow ?? App.Current.SetMainWindow(lifetime);
                     if (window.IsVisible) window.Hide();
                     else window.Show();
                 });
@@ -155,7 +155,7 @@ namespace Node.UI
                     icon.ToolTipText = $@"
                         {task.Id}
                         {string.Join('-', task.Actions)}
-                        {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}
+                        {Newtonsoft.Json.JsonConvert.SerializeObject((object?) task.Info.Input ?? task.Info.Inputs, Newtonsoft.Json.Formatting.None)}
                         ".TrimLines();
 
                     if ((time / 3) % 2 == 0)

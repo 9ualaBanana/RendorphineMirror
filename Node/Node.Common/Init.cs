@@ -7,27 +7,20 @@ namespace Node.Common;
 
 public class Init : IServiceTarget
 {
-    public static Init For(InitConfig config)
-    {
-        var builder = CreateContainer(config);
-        var container = builder.Build();
-
-        return container.Resolve<Init>();
-    }
-
     public static ContainerBuilder CreateContainer(InitConfig config, params Assembly[] targetAssemblies)
     {
         var builder = new ContainerBuilder();
+        InitializeContainer(builder, config, targetAssemblies);
 
+        return builder;
+    }
+    public static void InitializeContainer(ContainerBuilder builder, InitConfig config, params Assembly[] targetAssemblies)
+    {
         builder.RegisterInstance(config);
-        builder.RegisterType<Init>()
-            .AutoActivate();
 
         RegisterTargets(builder, typeof(Init).Assembly);
         foreach (var assembly in targetAssemblies)
             RegisterTargets(builder, assembly);
-
-        return builder;
     }
 
     public static void RegisterTargets(ContainerBuilder builder, Assembly assembly)
@@ -44,16 +37,24 @@ public class Init : IServiceTarget
         if (types.FirstOrDefault(type => !type.IsAssignableTo(typeof(IServiceTarget))) is { } invalidtype)
             throw new ArgumentException($"Invalid target type {invalidtype}", nameof(types));
 
-        builder.RegisterTypes(types)
-            .SingleInstance()
-            .OnActivating(async l =>
-            {
-                var logger = l.Context.ResolveLogger(l.Instance.GetType());
+        foreach (var type in types)
+        {
+            var reg = builder.RegisterType(type)
+                .SingleInstance()
+                .OnActivating(async l =>
+                {
+                    var logger = l.Context.ResolveLogger(l.Instance.GetType());
 
-                logger.LogInformation($"Resolved target {l.Instance}");
-                await ((IServiceTarget) l.Instance).ExecuteAsync();
-                logger.LogInformation($"Reached target {l.Instance}");
-            });
+                    logger.LogInformation($"Resolved target {l.Instance}");
+                    await ((IServiceTarget) l.Instance).ExecuteAsync().ConfigureAwait(false);
+                    logger.LogInformation($"Reached target {l.Instance}");
+                });
+
+            if (type == typeof(Init))
+                reg = reg
+                    .AsSelf()
+                    .AutoActivate();
+        }
 
         foreach (var type in types)
             type.GetMethod(nameof(IServiceTarget.CreateRegistrations))?.Invoke(null, new object[] { builder });
@@ -125,7 +126,8 @@ public class Init : IServiceTarget
     }
     void ConfigureLogging()
     {
-        Logging.Configure(DebugFeatures, Configuration.LogToFile);
+        if (Configuration.EnableLogging)
+            Logging.Configure(DebugFeatures, Configuration.Logging);
 
 
         var version = Environment.OSVersion;
@@ -169,5 +171,13 @@ public class Init : IServiceTarget
     }
 
 
-    public record InitConfig(string AppName, bool UseAdminRights = true, bool LogToFile = true);
+    public record InitConfig(string AppName)
+    {
+        public bool UseAdminRights { get; init; } = true;
+
+        public bool AutoClearTempDir { get; init; } = true;
+        public bool EnableLogging { get; init; } = true;
+        public bool LogToFile { get; init; } = true;
+        public Logging.Config Logging { get; init; } = new();
+    }
 }

@@ -12,7 +12,7 @@ public static class DownloadLink
 
         protected override async Task<ReadOnlyTaskFileList> DownloadImpl(DownloadLinkTaskInputInfo data, TaskObject obj, CancellationToken token)
         {
-            using var response = await Api.Get(data.Url);
+            using var response = await Api.Client.GetAsync(data.Url, token);
             if (data.Url.Contains("t.microstock.plus") && response.StatusCode == HttpStatusCode.NotFound)
                 throw new TaskFailedException("Got 404 when trying to get image from the tg bot");
 

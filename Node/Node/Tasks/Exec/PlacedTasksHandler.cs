@@ -42,8 +42,9 @@ public class PlacedTasksHandler
 
             try
             {
-                if (InputUploaders.TryGetValue(task.Input.Type, out var handler))
-                    await handler.Upload(task.Input);
+                foreach (var input in task.Inputs)
+                    if (InputUploaders.TryGetValue(input.Type, out var handler))
+                        await handler.Upload(input);
 
                 return;
             }
@@ -175,8 +176,8 @@ public class PlacedTasksHandler
         {
             if (!wtask.PlacedNonCompletedTasks.Contains(task.Id)) continue;
 
-            wtask.Complete(task);
             wtask.PlacedNonCompletedTasks.Remove(task.Id);
+            wtask.Complete(task);
             WatchingTasks.WatchingTasks.Save(wtask);
         }
 

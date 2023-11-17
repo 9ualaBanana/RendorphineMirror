@@ -9,7 +9,14 @@ global using Node.Tasks.Exec.FFmpeg.Codecs;
 global using Node.Tasks.Models;
 global using Node.Tasks.Models.ExecInfo;
 global using NodeCommon;
+using Node.Tests;
 
 
-await Init.For(new Init.InitConfig("renderfin")).ExecuteAsync();
-await Node.Tests.LocalTests.RunAsync();
+var builder = Init.CreateContainer(new Init.InitConfig("renderfin_tests"));
+builder.RegisterType<LocalTests>()
+    .SingleInstance();
+
+using var container = builder.Build();
+
+await container.Resolve<LocalTests>()
+    .Run();

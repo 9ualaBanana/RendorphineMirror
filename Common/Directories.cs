@@ -2,11 +2,27 @@ namespace Common;
 
 public static class Directories
 {
-    public static string RandomNameInDirectory(string dir)
+    public static string NumberedNameInDirectory(string dir, string format)
+    {
+        var num = 0;
+        string path;
+        do
+        {
+            path = Path.Combine(dir, string.Format(CultureInfo.InvariantCulture, format, num));
+            num++;
+        }
+        while (File.Exists(path) || Directory.Exists(path));
+
+        return path;
+    }
+    public static string RandomNameInDirectory(string dir, string? extension = null)
     {
         string path;
         do { path = Path.Combine(dir, Guid.NewGuid().ToString()); }
         while (File.Exists(path) || Directory.Exists(path));
+
+        if (extension is not null)
+            return path + (extension.StartsWith('.') ? extension : ($".{extension}"));
 
         return path;
     }
@@ -64,7 +80,7 @@ public static class Directories
     static string FullPath(params string[] parts) => Path.GetFullPath(Path.Combine(parts));
 
 
-    static void ForEachFile(string source, string destination, Action<string, string> func)
+    static void ForEachEntry(string source, string destination, Action<string, string> func)
     {
         source = Path.GetFullPath(source);
         destination = Path.GetFullPath(destination);
@@ -77,7 +93,7 @@ public static class Directories
     public static void Copy(string source, string destination)
     {
         Directory.CreateDirectory(destination);
-        ForEachFile(source, destination, (s, d) => File.Copy(s, d, true));
+        ForEachEntry(source, destination, (s, d) => File.Copy(s, d, true));
     }
 
     /// <summary>
@@ -96,7 +112,7 @@ public static class Directories
     /// </summary>
     public static void Merge(string source, string destination)
     {
-        ForEachFile(source, destination, (s, d) => File.Move(s, d, true));
+        ForEachEntry(source, destination, (s, d) => File.Move(s, d, true));
         Directory.Delete(source, true);
     }
 }

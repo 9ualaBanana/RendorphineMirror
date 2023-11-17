@@ -62,12 +62,12 @@
             "stopAtEntry": false
         },
         {
-            "name": "Node.UI_registry",
+            "name": "Node.UI_admin",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "buildnodeui",
             "program": "${workspaceFolder}/Node/Node.UI/bin/Debug/net7.0/Node.UI.dll",
-            "args": [ "registryeditor" ],
+            "args": [ "--admin" ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
@@ -81,7 +81,7 @@
             "program": "${workspaceFolder}/SoftwareRegistry/bin/Debug/net7.0/SoftwareRegistry.dll",
             "args": [],
             "env": { "ASPNETCORE_ENVIRONMENT": "Development" },
-            "cwd": "${workspaceFolder}/Registry",
+            "cwd": "${workspaceFolder}/SoftwareRegistry",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "stopAtEntry": false

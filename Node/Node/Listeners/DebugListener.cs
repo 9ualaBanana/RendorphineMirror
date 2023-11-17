@@ -1,4 +1,5 @@
 using System.Net;
+using Node.Tasks.Watching.Handlers.Input;
 
 namespace Node.Listeners;
 
@@ -8,6 +9,7 @@ public class DebugListener : ExecutableListenerBase
     protected override string Prefix => "debug";
 
     public required SessionManager SessionManager { get; init; }
+    public required ILifetimeScope Container { get; init; }
 
     public DebugListener(ILogger<DebugListener> logger) : base(logger) { }
 
@@ -24,12 +26,30 @@ public class DebugListener : ExecutableListenerBase
 
             return await WriteSuccess(response);
         }
-        if (path == "addtask")
+        if (path == "runoneclick")
         {
-            var task = new ReceivedTask("verylongtaskid", new TaskInfo(new TaskObject("debug.jpg", 798798), new MPlusTaskInputInfo("asd"), new MPlusTaskOutputInfo("a.mov", "dir"), new() { ["type"] = "EditVideo", ["hflip"] = true }, TaskPolicy.SameNode));
-            NodeGlobalState.Instance.ExecutingTasks.Add(task);
+            var task = new WatchingTask(TaskAction.VeeeVectorize.ToString(), new JObject(),
+                new OneClickWatchingTaskInputInfo(
+                    @"C:\\Users\user\Documents\oc\input",
+                    @"C:\\Users\user\Documents\oc\output",
+                    @"C:\\Users\user\Documents\oc\log",
+                    @"C:\\Users\user\Documents\oc\testmzp",
+                    @"C:\\Users\user\Documents\oc\testinput",
+                    @"C:\\Users\user\Documents\oc\testoutput",
+                    @"C:\\Users\user\Documents\oc\testlog"
+                ),
+                new MPlusWatchingTaskOutputInfo("asd"),
+                TaskPolicy.AllNodes
+            );
 
-            _ = Task.Delay(5000).ContinueWith(_ => NodeGlobalState.Instance.ExecutingTasks.Remove(task));
+            var scope = Container.BeginLifetimeScope(builder =>
+            {
+                builder.RegisterInstance(task)
+                    .SingleInstance();
+            });
+
+            var handler = (OneClickWatchingTaskInputHandler) scope.ResolveKeyed<IWatchingTaskInputHandler>(task.Source.Type);
+            Task.Run(handler.RunOnce).Consume();
 
             return await WriteSuccess(response);
         }

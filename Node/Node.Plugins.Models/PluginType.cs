@@ -7,6 +7,7 @@ public enum PluginType
     DaVinciResolve,
     TopazVideoAI,
     Autodesk3dsMax,
+    Unity,
     Blender,
     VeeeVectorizer,
 
@@ -16,6 +17,7 @@ public enum PluginType
     StableDiffusion,
     Yolov7,
     ImageDetector,
+    OneClick,
 
     NvidiaDriver,
     Conda,

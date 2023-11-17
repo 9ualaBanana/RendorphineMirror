@@ -2,32 +2,30 @@ namespace SoftwareRegistry.Controllers;
 
 [ApiController]
 [Route("soft")]
-[SessionIdAuthorization]
 public class SoftwareController : ControllerBase
 {
-    readonly SoftList SoftList;
+    readonly SoftwareList SoftList;
 
-    public SoftwareController(SoftList softList) => SoftList = softList;
-
+    public SoftwareController(SoftwareList softList) => SoftList = softList;
 
     [HttpGet("get")]
-    [AllowAnonymous]
-    public JObject GetSoftware() => JsonApi.Success(SoftList.Software);
+    public JObject GetSoftware() =>
+        JsonApi.Success(
+            JObject.FromObject(
+                SoftList.AllSoftware
+                    .GroupBy(s => s.Type)
+                    .ToDictionary(g => g.Key, g => g.ToDictionary(s => s.Version)),
+                JsonSettings.LowercaseS
+            )
+        );
 
 
-    [HttpPost("set")]
-    public JObject Set([FromQuery] string name, [FromBody] SoftwareDefinition? soft = null)
+    [HttpGet("gettorrent")]
+    public ActionResult GetTorrent([FromQuery] PluginType plugin, [FromQuery] string version)
     {
-        if (soft is null) SoftList.Remove(name);
-        else SoftList.Replace(name, soft);
+        if (SoftList.TryGet(plugin, version, out var soft))
+            return File(soft.TorrentFileBytes, "application/x-bittorrent");
 
-        return JsonApi.Success(SoftList.Software);
-    }
-
-    [HttpPost("setall")]
-    public JObject SetAll([FromBody] ImmutableDictionary<string, SoftwareDefinition> soft)
-    {
-        SoftList.Set(soft);
-        return GetSoftware();
+        return StatusCode(StatusCodes.Status404NotFound);
     }
 }

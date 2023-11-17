@@ -30,6 +30,7 @@ global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
 using Node;
 using Node.Services.Targets;
+using Node.Tasks.Watching.Handlers.Input;
 
 
 if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")

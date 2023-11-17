@@ -2,6 +2,13 @@ namespace ChatGptApi;
 
 public static class TaskTypeChecker
 {
+    public static async Task ThrowIfTaskTypeNotValid(TaskAction action, string sessionid, string taskid)
+    {
+        if (await IsTaskTypeValid(action, sessionid, taskid))
+            return;
+
+        throw new Exception("no");
+    }
     public static async Task<bool> IsTaskTypeValid(TaskAction action, string sessionid, string taskid)
     {
         // TODO: remove after testing

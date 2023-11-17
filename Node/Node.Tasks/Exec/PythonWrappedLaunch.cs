@@ -4,7 +4,7 @@ namespace Node.Tasks.Exec;
 public abstract class PythonWrappedLaunch
 {
     public required CondaInvoker CondaInvoker { get; init; }
-    public required PluginList Plugins { get; init; }
+    public required IPluginList Plugins { get; init; }
     public required IProgressSetter ProgressSetter { get; init; }
     protected ILogger Logger { get; }
 

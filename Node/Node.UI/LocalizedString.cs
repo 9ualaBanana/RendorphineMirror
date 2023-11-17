@@ -137,7 +137,6 @@ namespace Node.UI
         }
 
         public override string ToString() => ToString(Locale);
-        public string ToString(CultureInfo culture) => ToString(culture.Name);
         public string ToString(string locale)
         {
             if (Key is null) return string.Empty;

@@ -6,10 +6,17 @@ namespace Node.Common;
 
 public static class Logging
 {
+    public record Config()
+    {
+        public bool LogToFile { get; init; } = true;
+        public int MaxLogsDebug { get; init; } = 3;
+        public int MaxLogsTrace { get; init; } = 1;
+    };
+
     const string Layout = "${time:universalTime=true} [${level:uppercase=true} @ ${logger:shortName=true} @ ${scopenested:separator= @ }] ${message:withException=true:exceptionSeparator=\n\n}";
 
 
-    public static void Configure(bool isDebug, bool logToFile)
+    public static void Configure(bool isDebug, Config config)
     {
         LogManager.AutoShutdown = true;
         LogManager.GlobalThreshold = LogLevel.Trace;
@@ -21,11 +28,11 @@ public static class Logging
                 .WriteTo(CreateConsoleTarget())
             );
 
-        if (logToFile)
+        if (config.LogToFile)
         {
             LogManager.Setup()
-                .SetupFileRuleWith(LogLevel.Debug, maxArchiveDays: 3)
-                .SetupFileRuleWith(LogLevel.Trace, maxArchiveDays: 1);
+                .SetupFileRuleWith(LogLevel.Debug, maxArchiveDays: config.MaxLogsDebug)
+                .SetupFileRuleWith(LogLevel.Trace, maxArchiveDays: config.MaxLogsTrace);
         }
     }
 

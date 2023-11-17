@@ -24,7 +24,6 @@ public class DownloadTorrentCmdlet : PSCmdlet
     public static async Task Download(string name, string targetdir)
     {
         Console.WriteLine("DOWNLOADING TORRENT " + name + " TO " + targetdir);
-        var peer = (await Api.Default.ApiGet<JsonPeer>($"{Apis.RegistryUrl}/getpeer", "value", "Getting torrent peer")).ThrowIfError();
 
         using var torrentstreamcopy = new MemoryStream();
         using (var torrentstream = await new HttpClient().GetStreamAsync($"{Apis.RegistryUrl}/gettorrent?plugin={name}"))
@@ -32,11 +31,6 @@ public class DownloadTorrentCmdlet : PSCmdlet
 
         torrentstreamcopy.Position = 0;
         var manager = await TorrentClientInstance.Instance.AddOrGetTorrent(await Torrent.LoadAsync(torrentstreamcopy), targetdir);
-
-        // TODO:                                                                                     move IP declaration into registry or something 
-        foreach (var port in peer.Ports)
-            await manager.AddPeerAsync(new Peer(BEncodedString.FromUrlEncodedString(peer.PeerId), new Uri("ipv4://135.125.237.7:" + port)));
-        // " + Apis.RegistryUrl.Split('/')[^1].Split(':')[0] + "
 
         while (true)
         {

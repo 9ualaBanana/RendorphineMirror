@@ -1,4 +1,5 @@
 using System.Globalization;
+using Autofac;
 using Avalonia.Controls.Utils;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
@@ -11,10 +12,12 @@ public class TasksTab2 : Panel
 {
     public TasksTab2()
     {
+        var api = App.Instance.Container.Resolve<Apis>();
+
         var tabs = new TabbedControl();
-        tabs.Add("Local", new LocalTaskManager());
-        tabs.Add("Watching", new WatchingTaskManager());
-        tabs.Add("Remote", new RemoteTaskManager());
+        tabs.Add("Local", new LocalTaskManager() { Api = api });
+        tabs.Add("Watching", new WatchingTaskManager() { Api = api });
+        tabs.Add("Remote", new RemoteTaskManager() { Api = api });
 
         Children.Add(tabs);
     }
@@ -22,7 +25,7 @@ public class TasksTab2 : Panel
 
     abstract class TaskManager<T> : Panel
     {
-        protected Node.Common.Apis Api => Apis.Default;
+        public required Apis Api { get; init; }
 
         public TaskManager()
         {

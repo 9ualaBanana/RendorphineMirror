@@ -6,10 +6,12 @@ public enum TopazOperation
     Upscale,
     Slowmo,
     Denoise,
+    Stabilize,
 }
 
 public class TopazInfo
 {
     public required TopazOperation Operation { get; init; }
     public int? X { get; init; }
+    public float? Strength { get; init; }
 }

@@ -1,4 +1,5 @@
 using Avalonia.Animation.Easings;
+using Avalonia.Data;
 
 namespace Node.UI.Controls
 {
@@ -21,6 +22,17 @@ namespace Node.UI.Controls
                 OnClick();
                 OnClickSelf(this);
             };
+
+            /*
+            <Style Selector="^:pressed  /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrushPressed}" />
+                <Setter Property="Foreground" Value="{DynamicResource ButtonForegroundPressed}" />
+            </Style>
+            */
+
+            Styles.Add(new Style(t => t.Class("success").Template().Is<ContentPresenter>()) { Setters = { new Setter(ContentPresenter.BackgroundProperty, Brushes.Green) }, });
+            Styles.Add(new Style(t => t.Class("error").Template().Is<ContentPresenter>()) { Setters = { new Setter(ContentPresenter.BackgroundProperty, Brushes.Red) }, });
         }
 
 
@@ -38,24 +50,22 @@ namespace Node.UI.Controls
         }
 
         public Task FlashError(string text, int duration = 2000) => Flash(Brushes.Red, text, duration);
-        public Task FlashOk(string text, int duration = 2000) => Flash(Brushes.Green, text, duration);
+        public Task FlashOk(string? text = null, int duration = 2000) => Flash(Brushes.Green, text ?? Text.ToString(), duration);
         public async Task Flash(IBrush color, string text, int duration = 2000)
         {
             using var _ = new FuncDispose(() => IsEnabled = true);
             IsEnabled = false;
 
-            var prevbg = Background;
-            Background = color;
-            Transitions ??= new();
-            Transitions.Add(new BrushTransition() { Property = Border.BackgroundProperty, Duration = TimeSpan.FromMilliseconds(duration), Easing = new QuarticEaseIn() });
-            Background = prevbg;
+            if (color == Brushes.Red) Classes.Set("error", true);
+            else if (color == Brushes.Green) Classes.Set("success", true);
 
             var prevtext = Text;
             Text = text;
 
             await Task.Delay(duration);
             Text = prevtext;
-            Transitions.Clear();
+            Classes.Set("success", false);
+            Classes.Set("error", false);
         }
     }
 }

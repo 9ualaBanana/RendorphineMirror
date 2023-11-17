@@ -275,7 +275,7 @@ public static class OperationResultCollectionExtensions
 public static class OperationResultLinqExtensions
 {
     public static OperationResult Select<T>(this OperationResult<T> opres, Func<T, OperationResult> func) =>
-    opres.Next(func);
+        opres.Next(func);
     public static OperationResult<V> Select<V>(this OperationResult opres, Func<Empty, OperationResult<V>> func) =>
         opres.Next(() => func(default));
     public static OperationResult<V> Select<T, V>(this OperationResult<T> opres, Func<T, OperationResult<V>> func) =>

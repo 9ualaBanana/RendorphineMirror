@@ -18,6 +18,8 @@ cache/
 assets/*.version
 assets/cef/
 /plugins/
+/_plugins/
+SoftwareRegistry/plugins/
 /torrents/
 /SoftwareRegistry/plugins/
 /temp/
@@ -27,6 +29,7 @@ Main.log
 qwertykey
 mpluskey
 rphtaskmgrkey
+elevenlabsapikey
 
 # Rider
 .idea

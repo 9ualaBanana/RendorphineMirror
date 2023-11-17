@@ -16,6 +16,7 @@ public static class PluginDiscoverers
         register<Autodesk3dsMaxPluginDiscoverer>();
         register<TopazVideoAIPluginDiscoverer>();
         register<DaVinciResolvePluginDiscoverer>();
+        register<UnityPluginDiscoverer>();
         register<FFmpegPluginDiscoverer>();
         register<PythonPluginDiscoverer>();
         register<PythonEsrganPluginDiscoverer>();
@@ -23,6 +24,7 @@ public static class PluginDiscoverers
         register<Yolov7PluginDiscoverer>();
         register<ImageDetectorPluginDiscoverer>();
         register<RobustVideoMattingPluginDiscoverer>();
+        register<OneClickPluginDiscoverer>();
         register<VeeeVectorizerPluginDiscoverer>();
         register<NvidiaDriverPluginDiscoverer>();
         register<DotnetRuntimePluginDiscoverer>();

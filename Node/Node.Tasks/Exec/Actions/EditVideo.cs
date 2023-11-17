@@ -26,6 +26,12 @@ public class EditVideo : FFMpegMediaEditAction<EditVideoInfo>
         {
             base.AddFilters(data, output, input, ffprobe, launcher);
 
+            launcher.Outputs.Add(new FFmpegLauncherOutput()
+            {
+                Codec = FFmpegLauncher.CodecFromStream(ffprobe.VideoStream),
+                Output = output.New().New(input.Format).Path,
+            });
+
             if (data.CutFramesAt is not (null or { Length: 0 }))
             {
                 /*
@@ -113,13 +119,6 @@ public class EditVideo : FFMpegMediaEditAction<EditVideoInfo>
                 if (data.CutToFrame is not null) trim.Add($"end_frame={data.CutToFrame.Value.ToString(NumberFormat)}");
                 if (trim.Count != 0) launcher.VideoFilters.Add($"trim={string.Join(';', trim)}");
             }
-
-
-            launcher.Outputs.Add(new FFmpegLauncherOutput()
-            {
-                Codec = FFmpegLauncher.CodecFromStream(ffprobe.VideoStream),
-                Output = output.New().New(input.Format).Path,
-            });
         }
     }
 }

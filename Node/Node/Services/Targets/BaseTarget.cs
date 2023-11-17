@@ -8,6 +8,7 @@ public class BaseTarget : IServiceTarget
     public static void CreateRegistrations(ContainerBuilder builder)
     {
         builder.Register(ctx => TorrentClientInstance.Instance = new TorrentClient(Settings.DhtPort, Settings.TorrentPort) { Logger = ctx.Resolve<ILogger<TorrentClient>>() })
+            .AsSelf()
             .SingleInstance()
             .AutoActivate();
 

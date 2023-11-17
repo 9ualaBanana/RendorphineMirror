@@ -44,6 +44,7 @@ public static class FFProbe
         [JsonProperty("codec_type")] string CodecType,
         [JsonProperty("r_frame_rate")] string FrameRateString,
         [JsonProperty("bit_rate")] string Bitrate,
+        [JsonProperty("duration_ts")] int DurationTs,
         [JsonProperty("codec_tag_string")] string? CodecTagString = null
     )
     {

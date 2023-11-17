@@ -10,6 +10,7 @@ public class ProcessLauncher
 
     public ArgList Arguments { get; } = new();
     public MultiDictionary<string, string> EnvVariables { get; } = new();
+    public string WorkingDirectory { get; init; } = "";
 
     public bool WineSupport { get; init; } = false;
     public bool ThrowOnStdErr { get; init; } = true;
@@ -58,6 +59,7 @@ public class ProcessLauncher
 
         var procinfo = new ProcessStartInfo(winesupport ? "wine" : Executable)
         {
+            WorkingDirectory = WorkingDirectory,
             WindowStyle = ProcessWindowStyle.Hidden,
             CreateNoWindow = true,
             UseShellExecute = false,
@@ -100,7 +102,7 @@ public class ProcessLauncher
                     if (err && ThrowOnStdErr)
                         throw new Exception(line);
 
-                    Logging.ILogger?.Log(err ? Logging.StdErr : Logging.StdOut, $"[Process {process.Id}] {line}");
+                    Logging.ILogger?.Log(err ? Logging.StdErr : Logging.StdOut, line);
                     StringBuilder?.AppendLine(line);
                     OnRead?.Invoke(process, err, line);
                 }

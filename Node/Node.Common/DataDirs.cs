@@ -8,27 +8,33 @@ public class DataDirs
     public string Temp { get; }
     readonly string AppName;
 
-    public DataDirs(Init.InitConfig config) : this(config.AppName) { }
-    public DataDirs(string appname)
+    public DataDirs(string appname) : this(new Init.InitConfig(appname)) { }
+    public DataDirs(Init.InitConfig config)
     {
-        AppName = appname;
+        AppName = config.AppName;
 
         Data = DirCreated(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), AppName);
-        Temp = NewDirCreated(Data, "temp");
+
+        if (config.AutoClearTempDir)
+        {
+            try { Temp = NewDirCreated(Data, "temp"); }
+            catch { Temp = DirCreated("temp"); }
+        }
+        else Temp = DirCreated("temp");
     }
 
     public string DataDir(string name, bool create = true) => DirCreated(create, Data, name);
     public string DataFile(string name, bool create = false) => FileCreated(create, Data, name);
 
-    public string TempDir(string parentdir = "", bool create = true)
+    public string TempDir(string parentdir = "", bool create = true, string? extension = null)
     {
         parentdir = DirCreated(Temp, parentdir);
-        return DirCreated(create, parentdir, RandomNameInDirectory(parentdir));
+        return DirCreated(create, parentdir, RandomNameInDirectory(parentdir, extension));
     }
-    public string TempFile(string parentdir = "", bool create = false)
+    public string TempFile(string parentdir = "", bool create = false, string? extension = null)
     {
         parentdir = DirCreated(Temp, parentdir);
-        return FileCreated(create, parentdir, RandomNameInDirectory(parentdir));
+        return FileCreated(create, parentdir, RandomNameInDirectory(parentdir, extension));
     }
 
     public string NamedTempDir(string name, bool create = true) => DirCreated(create, Temp, name);

@@ -1,0 +1,148 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "type": {
+            "type": "string"
+        },
+        "name": {
+            "type": "string"
+        },
+        "version": {
+            "type": "string"
+        },
+        "files": {
+            "type": "object",
+            "properties": {
+                "main": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "main"
+            ]
+        },
+        "installation": {
+            "type": [ "object", "null" ],
+            "properties": {
+                "source": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "enum": [ "none", "registry", "url" ]
+                        },
+                        "url": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "type"
+                    ]
+                },
+                "script": {
+                    "type": [ "string", "null" ]
+                },
+                "python": {
+                    "type": "object",
+                    "properties": {
+                        "version": {
+                            "type": "string"
+                        },
+                        "pip": {
+                            "type": "object",
+                            "properties": {
+                                "requirementfiles": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "requirements": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "requirementfiles",
+                                "requirements"
+                            ]
+                        },
+                        "conda": {
+                            "type": "object",
+                            "properties": {
+                                "requirements": {
+                                    "type": "array",
+                                    "items": {
+                                        "Type": "string"
+                                    }
+                                },
+                                "channels": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "requirements",
+                                "channels"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "version",
+                        "pip",
+                        "conda"
+                    ]
+                }
+            },
+            "required": [
+                "source",
+                "script",
+                "python"
+            ]
+        },
+        "requirements": {
+            "type": "object",
+            "properties": {
+                "platforms": {
+                    "type": "array",
+                    "items": {
+                        "enum": [ "windows", "linux", "macos" ]
+                    }
+                },
+                "parents": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string"
+                            },
+                            "version": {
+                                "type": [ "string", "null" ]
+                            }
+                        },
+                        "required": [
+                            "type",
+                            "version"
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "platforms",
+                "parents"
+            ]
+        }
+    },
+    "required": [
+        "type",
+        "version",
+        "files",
+        "installation",
+        "requirements"
+    ]
+}
