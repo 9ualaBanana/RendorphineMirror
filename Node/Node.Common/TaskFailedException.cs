@@ -2,9 +2,8 @@ namespace Node.Common;
 
 public class TaskFailedException : Exception
 {
-    public override string Message { get; }
+    public string? FullError { get; init; }
 
-    public TaskFailedException(string message) => Message = message;
-
-    [DoesNotReturn] public static void Throw(string message) => throw new TaskFailedException(message);
+    public TaskFailedException(string message) : base(message) { }
+    public TaskFailedException(string message, Exception innerException) : base(message, innerException) { }
 }

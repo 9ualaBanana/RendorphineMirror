@@ -1,4 +1,4 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.CGTrader.Network;
 using _3DProductsPublish.CGTrader.Network.Captcha;
@@ -93,8 +93,8 @@ internal class CGTraderApi : IBaseAddressProvider
     #region DraftCreation
 
     /// <inheritdoc cref="__CreateNewModelDraftAsync(CancellationToken)"/>
-    internal async Task<_3DProductDraft> _CreateNewModelDraftAsyncFor(
-        _3DProduct composite3DModel,
+    internal async Task<_3DProductDraft<CGTrader3DProductMetadata>> _CreateNewModelDraftAsyncFor(
+        _3DProduct<CGTrader3DProductMetadata> composite3DModel,
         CGTraderSessionContext sessionContext,
         CancellationToken cancellationToken)
     {
@@ -133,7 +133,7 @@ internal class CGTraderApi : IBaseAddressProvider
     async Task<string> _CreateNewModelDraftAsyncCore(CancellationToken cancellationToken)
     {
         string requestUri = QueryHelpers.AddQueryString(
-            (this as IBaseAddressProvider).Endpoint($"/api/internal/items/current-draft/cg"), new Dictionary<string, string>()
+            (this as IBaseAddressProvider).Endpoint($"/api/internal/items/current-draft"), new Dictionary<string, string>()
             { { "nocache", CaptchaRequestArguments.rt } }
 );
         return (string)JObject.Parse(
@@ -145,7 +145,7 @@ internal class CGTraderApi : IBaseAddressProvider
 
     #region Upload
 
-    internal async Task _UploadAssetsAsync(_3DProductDraft _3DProductDraft, CancellationToken cancellationToken)
+    internal async Task _UploadAssetsAsync(_3DProductDraft<CGTrader3DProductMetadata> _3DProductDraft, CancellationToken cancellationToken)
     {
         foreach (var _3DModel in _3DProductDraft._Product._3DModels)
             foreach (var modelFilePath in _3DModel.Files)
@@ -160,7 +160,7 @@ internal class CGTraderApi : IBaseAddressProvider
 
     #region ModelFileUpload
 
-    async Task _UploadModelFileAsync(string modelFilePath, _3DProductDraft modelDraft, CancellationToken cancellationToken)
+    async Task _UploadModelFileAsync(string modelFilePath, _3DProductDraft<CGTrader3DProductMetadata> modelDraft, CancellationToken cancellationToken)
     {
         try
         {
@@ -174,7 +174,7 @@ internal class CGTraderApi : IBaseAddressProvider
         }
     }
 
-    async Task __UploadModelFileAsync(string modelFilePath, _3DProductDraft modelDraft, CancellationToken cancellationToken)
+    async Task __UploadModelFileAsync(string modelFilePath, _3DProductDraft<CGTrader3DProductMetadata> modelDraft, CancellationToken cancellationToken)
     {
         var modelFileUploadSessionData = await _ReserveServerSpaceAsyncFor(modelFilePath, modelDraft, cancellationToken);
         await modelFileUploadSessionData._UseToUploadWith(_httpClient, HttpMethod.Post, cancellationToken);
@@ -183,7 +183,7 @@ internal class CGTraderApi : IBaseAddressProvider
     /// <returns><see cref="CGTrader3DModelFileUploadSessionData"/> for the file at <paramref name="modelFilePath"/>.</returns>
     async Task<CGTrader3DModelFileUploadSessionData> _ReserveServerSpaceAsyncFor(
         string modelFilePath,
-        _3DProductDraft modelDraft,
+        _3DProductDraft<CGTrader3DProductMetadata> modelDraft,
         CancellationToken cancellationToken)
     {
         using var modelFileStream = File.OpenRead(modelFilePath);
@@ -206,7 +206,7 @@ internal class CGTraderApi : IBaseAddressProvider
 
     async Task<string> _UploadModelThumbnailAsync(
         CGTrader3DModelThumbnail modelThumbnail,
-        _3DProductDraft modelDraft,
+        _3DProductDraft<CGTrader3DProductMetadata> modelDraft,
         CancellationToken cancellationToken)
     {
         try
@@ -225,7 +225,7 @@ internal class CGTraderApi : IBaseAddressProvider
     }
     async Task<string> __UploadModelThumbnailAsync(
         CGTrader3DModelThumbnail modelThumbnail,
-        _3DProductDraft modelDraft,
+        _3DProductDraft<CGTrader3DProductMetadata> modelDraft,
         CancellationToken cancellationToken)
     {
         var modelThumbnailUploadSessionData = await _ReserveServerSpaceAsyncFor(modelThumbnail, cancellationToken);
@@ -275,7 +275,7 @@ internal class CGTraderApi : IBaseAddressProvider
 
     async Task<string> _RequestUploadedFileIDAsync(
         CGTrader3DModelPreviewImageUploadSessionData modelPreviewImageUploadSessionData,
-        _3DProductDraft modelDraft,
+        _3DProductDraft<CGTrader3DProductMetadata> modelDraft,
         CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Put,
@@ -294,7 +294,7 @@ internal class CGTraderApi : IBaseAddressProvider
 
     #region ModelMetadataUpload
 
-    internal async Task _UploadMetadataAsync(_3DProductDraft modelDraft, CancellationToken cancellationToken)
+    internal async Task _UploadMetadataAsync(_3DProductDraft<CGTrader3DProductMetadata> modelDraft, CancellationToken cancellationToken)
     {
         try
         {
@@ -308,7 +308,7 @@ internal class CGTraderApi : IBaseAddressProvider
         }
     }
 
-    async Task _UploadModelMetadataAsyncCore(_3DProductDraft _3DProductDraft, CancellationToken cancellationToken) =>
+    async Task _UploadModelMetadataAsyncCore(_3DProductDraft<CGTrader3DProductMetadata> _3DProductDraft, CancellationToken cancellationToken) =>
         await (await _httpClient.PatchAsync(
             (this as IBaseAddressProvider).Endpoint($"/profile/items/{_3DProductDraft._ID}"),
             (_3DProductDraft._Product.Metadata as CGTrader3DProductMetadata)!._AsCGJsonContent,
@@ -319,7 +319,7 @@ internal class CGTraderApi : IBaseAddressProvider
 
     #region Publishing
 
-    internal async Task _PublishAsync(_3DProductDraft modelDraft, CancellationToken cancellationToken)
+    internal async Task _PublishAsync(_3DProductDraft<CGTrader3DProductMetadata> modelDraft, CancellationToken cancellationToken)
     {
         try
         {
@@ -333,7 +333,7 @@ internal class CGTraderApi : IBaseAddressProvider
         }
     }
 
-    async Task _PublishProductAsyncCore(_3DProductDraft _3DProductDraft, CancellationToken cancellationToken) =>
+    async Task _PublishProductAsyncCore(_3DProductDraft<CGTrader3DProductMetadata> _3DProductDraft, CancellationToken cancellationToken) =>
         await (await _httpClient.PostAsJsonAsync(
             (this as IBaseAddressProvider).Endpoint($"/profile/items/{_3DProductDraft._ID}/publish"),
             new { item = new { tags = (_3DProductDraft._Product.Metadata as CGTrader3DProductMetadata)!.Tags } },

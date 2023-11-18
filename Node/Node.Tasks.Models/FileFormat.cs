@@ -7,6 +7,7 @@ public enum FileFormat
     Png,
     Mov,
     Eps,
+    Mp3,
 }
 
 public static class FileFormatExtensions
@@ -25,11 +26,14 @@ public static class FileFormatExtensions
         if (mime.Contains("video", StringComparison.Ordinal)) return FileFormat.Mov;
         if (mime.Contains("postscript", StringComparison.Ordinal)) return FileFormat.Eps;
         if (mime.Contains("vector", StringComparison.Ordinal)) return FileFormat.Eps;
+        if (mime.Contains("audio", StringComparison.Ordinal)) return FileFormat.Mp3;
 
         throw new Exception($"Could not find {nameof(FileFormat)} for mime {mime}");
     }
 
-    [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull("extension")]
+    public static string ToMime(this FileFormat format) => MimeTypes.GetMimeType($"file{format.AsExtension()}");
+
+    [return: NotNullIfNotNull(nameof(extension))]
     static string? AsExtension(string? extension)
     {
         extension = Path.GetExtension(extension);

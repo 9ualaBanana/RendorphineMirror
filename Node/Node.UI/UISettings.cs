@@ -1,16 +1,16 @@
 namespace Node.UI;
 
-public static class UISettings
+public class UISettings
 {
-    public static string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
-    public static bool ShortcutsCreated { get => BShortcutsCreated.Value; set => BShortcutsCreated.Value = value; }
+    public string? Language { get => BLanguage.Value; set => BLanguage.Value = value; }
+    public bool ShortcutsCreated { get => BShortcutsCreated.Value; set => BShortcutsCreated.Value = value; }
 
-    public static readonly DatabaseValue<string?> BLanguage;
-    public static readonly DatabaseValue<bool> BShortcutsCreated;
+    public readonly DatabaseValue<string?> BLanguage;
+    public readonly DatabaseValue<bool> BShortcutsCreated;
 
-    static UISettings()
+    public UISettings(DataDirs dirs)
     {
-        var db = new Database(Path.Combine(Directories.Data, "ui.db"));
+        var db = new Database(Path.Combine(dirs.Data, "ui.db"));
 
         BLanguage = new(db, nameof(Language), null);
         BShortcutsCreated = new(db, $"{nameof(ShortcutsCreated)}_2", false);

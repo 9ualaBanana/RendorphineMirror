@@ -3,19 +3,6 @@
 namespace NodeCommon.Tasks;
 
 /// <summary>
-/// Task that has a unique <see cref="Id"/>.
-/// </summary>
-public interface IRegisteredTask
-{
-    public string Id { get; }
-}
-
-public interface IRegisteredTaskApi : IRegisteredTask, ILoggable
-{
-    string? HostShard { get; set; }
-}
-
-/// <summary>
 /// <see cref="IRegisteredTask"/> with known <see cref="Action"/>.
 /// </summary>
 public interface ITypedRegisteredTask : IRegisteredTask
@@ -48,9 +35,15 @@ public record TypedRegisteredTask(string Id, TaskAction Action) : ITypedRegister
     public static TypedRegisteredTask With(string id, TaskAction action) => new(id, action);
 }
 
-public record ExecutedTask : TypedRegisteredTask
+public record ExecutedRTask : TypedRegisteredTask
 {
-    public ExecutedTask(string Id, TaskAction Action)
+    public ExecutedRTask(ExecutedRTask original)
+        : base(original)
+    {
+        Executor = original.Executor;
+        UploadedFiles = original.UploadedFiles;
+    }
+    public ExecutedRTask(string Id, TaskAction Action)
         : base(Id, Action)
     {
     }
@@ -59,14 +52,54 @@ public record ExecutedTask : TypedRegisteredTask
     public HashSet<string> UploadedFiles { get; init; } = default!;
 }
 
+public record ExecutedRTaskApi : ExecutedRTask, IRegisteredTaskApi
+{
+    public ExecutedRTaskApi(ExecutedRTaskApi original)
+        : base(original)
+    {
+    }
+    // Required for model binding.
+    public ExecutedRTaskApi()
+        : base(default!, default!)
+    {
+    }
+
+    public string? HostShard { get; set; }
+}
+
+public record UserExecutedRTask : ExecutedRTaskApi, IRegisteredTaskApi
+{
+    readonly Apis _api;
+    public string SessionId { get; }
+
+    public UserExecutedRTask(ExecutedRTaskApi executedRTask, string sessionId)
+        : base(executedRTask)
+    {
+        _api = Apis.DefaultWithSessionId(sessionId);
+        SessionId = sessionId;
+    }
+
+    public async ValueTask<Uri> GetFileDownloadLinkAsyncUsing(string iid, Extension extension)
+        => new(await _api.GetMPlusItemDownloadLinkAsync(this, iid, extension).ThrowIfError());
+
+    public async ValueTask<ServerTaskState> GetStateAsync()
+        => await _api.GetTaskStateAsyncOrThrow(this).ThrowIfError();
+
+    public async ValueTask ChangeStateAsyncTo(TaskState state)
+        => await _api.ChangeStateAsync(this, state).ThrowIfError();
+}
+
+public static class UserExecutedRTaskExtensions
+{
+    public static UserExecutedRTask With(this ExecutedRTaskApi executedRTask, string sessionId)
+        => new(executedRTask, sessionId);
+}
+
 /// <summary>
 /// Default implementation of <see cref="IRegisteredTaskApi"/>.
 /// </summary>
-public record TaskApi(string Id) : IRegisteredTaskApi, ILoggable
+public record TaskApi(string Id) : IRegisteredTaskApi
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-    void ILoggable.Log(LogLevel level, string text) => Logger.Log(level, text);
-
     public string? HostShard { get; set; }
 
     public static TaskApi For(IRegisteredTask task)
@@ -75,15 +108,24 @@ public record TaskApi(string Id) : IRegisteredTaskApi, ILoggable
     public bool Equals(IRegisteredTask? other) => Id == other?.Id;
 }
 
-public record ExecutedTaskApi : ExecutedTask, IRegisteredTaskApi, ILoggable
+public record UserRTaskApi : TaskApi
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-    void ILoggable.Log(LogLevel level, string text) => Logger.Log(level, text);
+    readonly Apis _api;
+    public string SessionId { get; }
 
-    public ExecutedTaskApi(string Id = default!, TaskAction Action = default!)
-        : base(Id, Action)
+    public UserRTaskApi(TaskApi rTask, string sessionId)
+        : base(rTask)
     {
+        _api = Apis.DefaultWithSessionId(sessionId);
+        SessionId = sessionId;
     }
 
-    public string? HostShard { get; set; }
+    public async ValueTask<ServerTaskState> GetStateAsync()
+        => await _api.GetTaskStateAsyncOrThrow(this).ThrowIfError();
+}
+
+public static class UserRTaskApiExtensions
+{
+    public static UserRTaskApi With(this TaskApi rTask, string sessionId)
+        => new(rTask, sessionId);
 }

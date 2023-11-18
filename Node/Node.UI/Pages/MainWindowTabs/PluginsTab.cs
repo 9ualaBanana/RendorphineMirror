@@ -1,3 +1,5 @@
+using Autofac;
+
 namespace Node.UI.Pages.MainWindowTabs;
 
 public class PluginsTab : Panel
@@ -13,7 +15,7 @@ public class PluginsTab : Panel
                 Children =
                 {
                     new InstallPluginPanel().Named("Install plugins"),
-                    new UserSettingsPluginPanel().Named("User settings (temp)"),
+                    new UserSettingsPluginPanel(App.Instance.Container.Resolve<Apis>()).Named("User settings (temp)"),
                     NamedList.Create("Stats", NodeGlobalState.Instance.SoftwareStats, softStatToControl),
                     NamedList.Create("Registry", NodeGlobalState.Instance.Software, softToControl),
                     NamedList.Create("Installed", NodeGlobalState.Instance.InstalledPlugins, pluginToControl),
@@ -24,7 +26,7 @@ public class PluginsTab : Panel
         Children.Add(scroll);
 
 
-        IControl softStatToControl(KeyValuePair<string, SoftwareStats> value)
+        Control softStatToControl(KeyValuePair<string, SoftwareStats> value)
         {
             var (type, stat) = value;
 
@@ -33,17 +35,17 @@ public class PluginsTab : Panel
                 Header = $"{type} ({stat.Total} total installs; {stat.ByVersion.Count} different versions; {stat.ByVersion.Sum(x => (long) x.Value.Total)} total installed versions)",
                 Content = new ItemsControl()
                 {
-                    Items = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
+                    ItemsSource = stat.ByVersion.OrderByDescending(x => x.Value.Total).Select(v => $"{v.Key} ({v.Value.Total})"),
                 },
             };
         }
-        IControl softToControl(KeyValuePair<string, SoftwareDefinition> value)
+        Control softToControl(KeyValuePair<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>> value)
         {
             var (type, stat) = value;
 
             return new Expander()
             {
-                Header = $"{type} \"{stat.VisualName}\"",
+                Header = $"{type} \"{stat.Values.First().Name}\"",
                 Content = new StackPanel()
                 {
                     Orientation = Orientation.Vertical,
@@ -51,22 +53,22 @@ public class PluginsTab : Panel
                     {
                         // stat.SoftRequirements.Parents.Length == 0 ? new Control() : new TextBlock() { Text = "Parents: " + string.Join(", ", stat.SoftRequirements.Parents) },
                         // stat.SoftRequirements.Platforms.Count == 0 ? new Control() : new TextBlock() { Text = "Requirements: " + string.Join(", ", stat.SoftRequirements.Platforms)  },
-                        stat.Versions.Count == 0 ? new Control() : new TextBlock()
+                        stat.Count == 0 ? new Control() : new TextBlock()
                         {
-                            Text = $"Versions: {string.Join(", ", stat.Versions.Select(v=>v.Key + "\n"+versionToString(v.Value)))}",
+                            Text = $"Versions: {string.Join(", ", stat.Select(v => v.Key + "\n" + versionToString(v.Value)))}",
                         },
                     },
                 },
             };
 
 
-            string versionToString(SoftwareVersionDefinition version) => $"""
+            string versionToString(SoftwareVersionInfo version) => $"""
                     Requirements:
                         {string.Join(", ", version.Requirements.Platforms)}
                         {string.Join(", ", version.Requirements.Parents)}
                 """;
         }
-        IControl pluginToControl(Plugin plugin) => new TextBlock() { Text = $"{plugin.Type} {plugin.Version}: {plugin.Path}" };
+        Control pluginToControl(Plugin plugin) => new TextBlock() { Text = $"{plugin.Type} {plugin.Version}: {plugin.Path}" };
     }
 
 
@@ -82,10 +84,10 @@ public class PluginsTab : Panel
             var versionslist = TypedComboBox.Create(Array.Empty<PluginVersion>()).With(c => c.MinWidth = 100);
             versionslist.SelectedIndex = 0;
 
-            var pluginslist = TypedComboBox.Create(Array.Empty<string>()).With(c => c.MinWidth = 100);
+            var pluginslist = TypedComboBox.Create(Array.Empty<PluginType>()).With(c => c.MinWidth = 100);
             pluginslist.SelectionChanged += (obj, e) =>
             {
-                versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem ?? "")?.Versions.Keys.ToArray() ?? Array.Empty<PluginVersion>();
+                versionslist.Items = stats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.Keys.ToArray() ?? Array.Empty<PluginVersion>();
                 versionslist.SelectedIndex = 0;
             };
             pluginslist.SelectedIndex = 0;
@@ -97,7 +99,7 @@ public class PluginsTab : Panel
                 Text = "Install",
                 OnClickSelf = async self =>
                 {
-                    var res = await LocalApi.Default.Get("deploy", "Installing plugin", ("type", pluginslist.SelectedItem), ("version", versionslist.SelectedItem.ToString()));
+                    var res = await LocalApi.Default.Get("deploy", "Installing plugin", ("type", pluginslist.SelectedItem.ToString()), ("version", versionslist.SelectedItem.ToString()));
                     await self.FlashErrorIfErr(res);
                 },
             };
@@ -114,15 +116,16 @@ public class PluginsTab : Panel
     class UserSettingsPluginPanel : Panel
     {
         readonly IBindable<UUserSettings> Settings;
-        readonly IBindable<ImmutableDictionary<string, SoftwareDefinition>> Stats;
+        readonly IBindable<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>> Stats;
 
-        public UserSettingsPluginPanel()
+        public UserSettingsPluginPanel(Apis apis)
         {
             Settings = NodeGlobalState.Instance.UserSettings.GetBoundCopy();
             Stats = NodeGlobalState.Instance.Software.GetBoundCopy();
 
-            Apis.Default.GetSettingsAsync()
-                .Next(s => { Settings.Value = s; return true; });
+            apis.GetSettingsAsync()
+                .Next(s => { Settings.Value = s; return OperationResult.Succ(); })
+                .Consume();
 
             var versionslist = TypedComboBox.Create(Array.Empty<PluginVersion>(), ver => new TextBlock() { Text = string.IsNullOrEmpty(ver.ToString()) ? "[latest]" : ver.ToString() }).With(c => c.MinWidth = 100);
             versionslist.SelectedIndex = 0;
@@ -130,12 +133,12 @@ public class PluginsTab : Panel
             var pluginslist = TypedComboBox.Create(Array.Empty<PluginType>()).With(c => c.MinWidth = 100);
             pluginslist.SelectionChanged += (obj, e) =>
             {
-                versionslist.Items = (Stats.Value.GetValueOrDefault(pluginslist.SelectedItem.ToString())?.Versions.Keys ?? Enumerable.Empty<PluginVersion>()).Prepend(PluginVersion.Empty).ToArray();
+                versionslist.Items = (Stats.Value.GetValueOrDefault(pluginslist.SelectedItem)?.Keys ?? Enumerable.Empty<PluginVersion>()).Prepend(PluginVersion.Empty).ToArray();
                 versionslist.SelectedIndex = 0;
             };
             pluginslist.SelectedIndex = 0;
 
-            Stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = Stats.Value.Keys.Select(Enum.Parse<PluginType>).ToArray()), true);
+            Stats.SubscribeChanged(() => Dispatcher.UIThread.Post(() => pluginslist.Items = Stats.Value.Keys.ToArray()), true);
 
 
             var stack = new StackPanel()
@@ -168,7 +171,7 @@ public class PluginsTab : Panel
                                 Text = "Reload settings",
                                 OnClickSelf = async self =>
                                 {
-                                    var settings = await Apis.Default.GetSettingsAsync();
+                                    var settings = await apis.GetSettingsAsync();
                                     if (settings)
                                         Settings.Value = settings.Value;
 
@@ -183,10 +186,10 @@ public class PluginsTab : Panel
                                 Text = "Install (this node)",
                                 OnClickSelf = async self =>
                                 {
-                                    Settings.Value.Install(NodeGlobalState.Instance.AuthInfo.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
+                                    Settings.Value.Install(NodeGlobalState.Instance.AuthInfo.Value.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
-                                    var set = await Apis.Default.SetSettingsAsync(Settings.Value);
+                                    var set = await apis.SetSettingsAsync(Settings.Value);
                                     await self.Flash(set);
                                 },
                             },
@@ -195,10 +198,10 @@ public class PluginsTab : Panel
                                 Text = "Uninstall (this node)",
                                 OnClickSelf = async self =>
                                 {
-                                    Settings.Value.Uninstall(NodeGlobalState.Instance.AuthInfo.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
+                                    Settings.Value.Uninstall(NodeGlobalState.Instance.AuthInfo.Value.ThrowIfNull().Guid, pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
-                                    var set = await Apis.Default.SetSettingsAsync(Settings.Value);
+                                    var set = await apis.SetSettingsAsync(Settings.Value);
                                     await self.Flash(set);
                                 },
                             },
@@ -210,7 +213,7 @@ public class PluginsTab : Panel
                                     Settings.Value.Install(pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
-                                    var set = await Apis.Default.SetSettingsAsync(Settings.Value);
+                                    var set = await apis.SetSettingsAsync(Settings.Value);
                                     await self.Flash(set);
                                 },
                             },
@@ -222,7 +225,7 @@ public class PluginsTab : Panel
                                     Settings.Value.Uninstall(pluginslist.SelectedItem, versionslist.SelectedItem);
                                     Settings.TriggerValueChanged();
 
-                                    var set = await Apis.Default.SetSettingsAsync(Settings.Value);
+                                    var set = await apis.SetSettingsAsync(Settings.Value);
                                     await self.Flash(set);
                                 },
                             },

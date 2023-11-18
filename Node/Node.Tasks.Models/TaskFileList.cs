@@ -2,9 +2,15 @@ using System.Collections;
 
 namespace Node.Tasks.Models;
 
-[JsonObject]
-public class ReadOnlyTaskFileList : IEnumerable<FileWithFormat>
+public interface IReadOnlyTaskFileList : IEnumerable<FileWithFormat>
 {
+    int Count { get; }
+}
+
+[JsonObject]
+public class ReadOnlyTaskFileList : IReadOnlyTaskFileList
+{
+    [Obsolete("DELETE")]
     // TODO:: TEMPORARY AND WILL BE REFACTORED
     public JToken? OutputJson;
 
@@ -13,11 +19,6 @@ public class ReadOnlyTaskFileList : IEnumerable<FileWithFormat>
     [JsonProperty] protected readonly HashSet<FileWithFormat> Files;
 
     public ReadOnlyTaskFileList(IEnumerable<FileWithFormat> files) => Files = files.ToHashSet();
-
-    public FileWithFormat First(FileFormat format) => this.First(f => f.Format == format);
-    public FileWithFormat? TryFirst(FileFormat format) => this.FirstOrDefault(f => f.Format == format);
-    public FileWithFormat Single(FileFormat format) => this.Single(f => f.Format == format);
-    public FileWithFormat? TrySingle(FileFormat format) => this.SingleOrDefault(f => f.Format == format);
 
     public IEnumerator<FileWithFormat> GetEnumerator() => Files.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -31,25 +32,33 @@ public class TaskFileList : ReadOnlyTaskFileList
     public TaskFileList(string directory) : base(Enumerable.Empty<FileWithFormat>()) => Directory = directory;
 
     public void Add(FileWithFormat file) => Files.Add(file);
-    public FileWithFormat New(FileFormat format, string? filename = null)
+    public FileWithFormat New(FileFormat format, string? filename = null) =>
+        NewFile(Directory, format, filename)
+            .With(Add);
+
+    public void Clear() => Files.Clear();
+
+
+    public static FileWithFormat NewFile(string directory, FileFormat format, string? filename = null)
     {
         if (filename is not null && Path.GetExtension(filename) == string.Empty)
             filename += format.AsExtension();
 
         // use input file name if there is only one input file
-        filename ??= ((InputFiles is { Count: 1 } ? Path.GetFileNameWithoutExtension(InputFiles.Single().Path) : "file") + format.AsExtension());
-        filename = Path.Combine(Directory, Path.GetFileName(filename));
+        filename ??= ("file" + format.AsExtension());
+        filename = Path.Combine(directory, Path.GetFileName(filename));
 
-        var file = new FileWithFormat(format, filename);
-        Add(file);
-        return file;
+        return new FileWithFormat(format, filename);
     }
-
-    public void Clear() => Files.Clear();
 }
 
 public static class TaskFileListExtensions
 {
+    public static FileWithFormat First(this IReadOnlyTaskFileList list, FileFormat format) => list.First(f => f.Format == format);
+    public static FileWithFormat? TryFirst(this IReadOnlyTaskFileList list, FileFormat format) => list.FirstOrDefault(f => f.Format == format);
+    public static FileWithFormat Single(this IReadOnlyTaskFileList list, FileFormat format) => list.Single(f => f.Format == format);
+    public static FileWithFormat? TrySingle(this IReadOnlyTaskFileList list, FileFormat format) => list.SingleOrDefault(f => f.Format == format);
+
     public static void AddFromLocalPath(this TaskFileList files, string path)
     {
         foreach (var file in FileWithFormat.FromLocalPath(path))
@@ -57,7 +66,7 @@ public static class TaskFileListExtensions
     }
 
     /// <summary> Ensure files exist </summary>
-    public static void ValidateFileList([NotNull] this ReadOnlyTaskFileList? files, string type)
+    public static void ValidateFileList([NotNull] this IReadOnlyTaskFileList? files, string type)
     {
         if (files is null)
             throw new Exception($"Task {type} file list was null or empty");

@@ -11,4 +11,9 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.7" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\*" />
+    <Content Update="plugins\**" CopyToPublishDirectory="Never" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
 </Project>

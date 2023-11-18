@@ -11,7 +11,7 @@ static class ImagesExtensions
     {
         builder.Services.TryAddScoped_<ICallbackQueryHandler, ImageProcessingCallbackQueryHandler>();
         builder.Services.TryAddScoped_<ImageHandler_, ProcessingMethodSelectorImageHandler>();
-        builder.AddTasks();
+        builder.AddRTasks();
 
         return builder;
     }

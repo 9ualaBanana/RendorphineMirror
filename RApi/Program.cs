@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using NLog.Web;
+using Node.Common;
 using Node.Common.Models;
 using Node.Tasks.Models;
 using NodeCommon;
@@ -8,16 +9,18 @@ using NodeCommon.Tasks;
 using NodeCommon.Tasks.Model;
 
 
-Initializer.AppName = "rapi";
-Init.Initialize();
-
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Host.UseNLog();
 builder.Services.AddControllers().AddNewtonsoftJson();
 var s = builder.Services.AddControllers().Services;
 
+builder.Services.AddSingleton(new Init.InitConfig("rapi"));
+builder.Services.AddSingleton<Init>();
+
 var app = builder.Build();
+app.Services.GetRequiredService<Init>();
+
 app.MapPost("/api/login", Login);
 app.MapPost("/api/registermytask", RegisterMyTask);
 app.MapGet("/api/gettaskstate", GetTaskState);
@@ -90,13 +93,13 @@ async Task<string> GetResult([FromQuery] string sessionid, [FromQuery] string ta
     var apis = Apis.DefaultWithSessionId(sessionid);
     var task = TaskApi.For(RegisteredTask.With(taskid));
 
-    var getMplusItems = () => apis.ShardGet<ImmutableArray<ReceivedContentItemLite>>(task, "getmytaskmpitems", "items", "Getting task m+ results", ("sessionid", sessionid), ("taskid", taskid));
+    var getMplusItems = async () => await apis.ShardGet<ImmutableArray<ReceivedContentItemLite>>(task, "getmytaskmpitems", "items", "Getting task m+ results", ("sessionid", sessionid), ("taskid", taskid));
     var getUrls = async (ReceivedContentItemLite item) =>
         await apis.GetMPlusItemDownloadLinkAsync(task, item.Iid, extension)
             .Next(url => (item.Iid, new { filename = getitem(item.Files).Filename, size = getitem(item.Files).Size, url = url }).AsOpResult());
 
     var items = await getMplusItems()
-        .Next(items => items.Select(getUrls).MergeDictResults());
+        .Next(items => items.Select(getUrls).Aggregate());
 
     return JsonApi.JsonFromOpResult(items, "items").ToString(Newtonsoft.Json.Formatting.None);
 

@@ -1,25 +1,26 @@
-﻿using _3DProductsPublish._3DModelDS;
+﻿using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.CGTrader.Api;
 using _3DProductsPublish.CGTrader.Network;
 using System.Net;
 
 namespace _3DProductsPublish.CGTrader.Upload;
 
-internal class CGTrader3DProductPublisher : I3DProductPublisher
+public class CGTrader3DProductPublisher : I3DProductPublisher<CGTrader3DProductMetadata>
 {
     readonly CGTraderApi _api;
 
-    internal CGTrader3DProductPublisher()
+    public CGTrader3DProductPublisher()
     {
         _api = new(new HttpClient());
     }
 
     public async Task PublishAsync(
-        _3DProduct _3DModel,
+        _3DProduct<CGTrader3DProductMetadata> _3DModel,
         NetworkCredential credential,
         CancellationToken cancellationToken)
     {
-        var sessionContext = await CGTraderSessionContext._CreateAsyncUsing(_api, (credential as CGTraderNetworkCredential)!, cancellationToken);
+        var sessionContext = await CGTraderSessionContext._CreateAsyncUsing(_api, new(credential.UserName, credential.Password, true), cancellationToken);
 
         await _api._LoginAsync(sessionContext, cancellationToken);
         var modelDraft = await _api._CreateNewModelDraftAsyncFor(_3DModel, sessionContext, cancellationToken);

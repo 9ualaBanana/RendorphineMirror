@@ -1,9 +1,8 @@
-﻿using _3DProductsPublish._3DModelDS;
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 
 namespace _3DProductsPublish.CGTrader._3DModelComponents;
 
-public record CGTrader3DProductMetadata : _3DModelMetadata
+public record CGTrader3DProductMetadata
 {
     const double DefaultPrice = 2.0;
 
@@ -27,8 +26,21 @@ public record CGTrader3DProductMetadata : _3DModelMetadata
     public int SubCategory { get; }
     public CGTraderLicense License { get; }
     public string? CustomLicense { get; }
-    public bool Free => Price == 0.0;
-    public double Price { get; }
+    public bool Free => Price == 0;
+    public double Price
+    {
+        get => _price;
+        init
+        {
+            if (value >= 2 || value == 0)
+                _price = value;
+            else throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                $"Price for CGTrader 3D product must be equal or greater than {DefaultPrice}, or free.");
+        }
+    }
+    double _price;
     public ProductType ProductType { get; }
     public bool? GameReady { get; }
     public bool? Animated { get; }
@@ -199,7 +211,7 @@ public record CGTrader3DProductMetadata : _3DModelMetadata
     #endregion
 
     /// <exception cref="InvalidOperationException">
-    /// <see cref="CGTrader3DProductMetadata"/> doesn't describe a product  with <see cref="ProductType.cg"/> <see cref="ProductType"/>.
+    /// <see cref="CGTrader3DProductMetadata"/> doesn't describe a product with <see cref="ProductType.cg"/> <see cref="ProductType"/>.
     /// </exception>
     internal JsonContent _AsCGJsonContent
     {
@@ -224,7 +236,7 @@ public record CGTrader3DProductMetadata : _3DModelMetadata
                     embed_ids = string.Empty,
                     free = Free.ToString(),
                     game_ready = GameReady.ToString(),
-                    geometry_type = Info?.GeometryType?.ToString() ?? null,
+                    geometry_type = Info?.Geometry?.ToString() ?? null,
                     image_ids = UploadedPreviewImagesIDs,
                     license = License.ToString(),
                     materials = Info?.Materials.ToString() ?? false.ToString(),

@@ -13,12 +13,13 @@ public static class NodeGui
         {
             ["captcharesponse"] = typeof(CaptchaRequest),
             ["inputresponse"] = typeof(InputRequest),
+            ["tsmiresponse"] = typeof(InputTurboSquidModelInfoRequest),
         }.ToImmutableDictionary();
 
         GuiRequestNames = GuiRequestTypes.ToImmutableDictionary(x => x.Value, x => x.Key);
     }
 
-    public static async ValueTask<OperationResult<TResult>> Request<TResult>(GuiRequest request, CancellationToken token)
+    public static async Task<OperationResult<TResult>> Request<TResult>(GuiRequest request, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
@@ -32,19 +33,19 @@ public static class NodeGui
         {
             result = t.Result;
             completed = true;
-        }).Consume();
+        }, token).Consume();
 
         using var _ = new FuncDispose(() => NodeGlobalState.Instance.Requests.Remove(reqid));
         NodeGlobalState.Instance.Requests.Add(reqid, request);
 
         while (!completed)
         {
-            await Task.Delay(500);
+            await Task.Delay(500, token);
             token.ThrowIfCancellationRequested();
         }
 
         return result.ThrowIfNull().ToObject<TResult>()!;
     }
 
-    public static ValueTask<OperationResult<string>> RequestCaptchaInputAsync(string base64image, CancellationToken token = default) => Request<string>(new CaptchaRequest(base64image), token);
+    public static Task<OperationResult<string>> RequestCaptchaInputAsync(string base64image, CancellationToken token = default) => Request<string>(new CaptchaRequest(base64image), token);
 }

@@ -5,23 +5,6 @@ namespace Node.UI.Controls;
 
 public static class JsonUISetting
 {
-    public static Setting Create(JProperty property, FieldDescriber describer) => describer.Nullable ? new NullableSetting(_Create(property, describer)) : _Create(property, describer);
-    static Setting _Create(JProperty property, FieldDescriber describer) =>
-        describer switch
-        {
-            BooleanDescriber boo => new BoolSetting(boo, property),
-            StringDescriber txt => new TextSetting(txt, property),
-            NumberDescriber num => new NumberSetting(num, property),
-            ObjectDescriber obj => new ObjectSetting(obj, property),
-            EnumDescriber enm => new EnumSetting(enm, property),
-
-            DictionaryDescriber dic => new DictionarySetting(dic, property),
-            CollectionDescriber col => new CollectionSetting(col, property),
-
-            _ => throw new InvalidOperationException($"Could not find setting type for {describer.GetType().Name}"),
-        };
-
-
     public interface ISettingContainer : IEnumerable<Setting>
     {
         IEnumerable<Setting> GetTreeRecursive() => new[] { (Setting) this }.Concat(this.SelectMany(x => ((x as ISettingContainer) ?? Enumerable.Empty<Setting>()).Prepend(x)));
@@ -29,27 +12,32 @@ public static class JsonUISetting
     public abstract class Setting : Panel
     {
         public JProperty Property { get; }
+        public JsonEditorList EditorList { get; }
 
-        public Setting(JProperty property) => Property = property;
+        public Setting(JProperty property, JsonEditorList editorList)
+        {
+            Property = property;
+            EditorList = editorList;
+        }
 
         protected void Set<TVal>(TVal value) where TVal : notnull => Property.Value = JValue.FromObject(value);
         protected JToken Get() => Property.Value;
 
         public abstract void UpdateValue();
     }
-    abstract class Setting<T> : Setting where T : FieldDescriber
+    public abstract class Setting<T> : Setting where T : FieldDescriber
     {
         protected readonly T Describer;
 
-        public Setting(T describer, JProperty property) : base(property) => Describer = describer;
+        public Setting(T describer, JProperty property, JsonEditorList editorList) : base(property, editorList) => Describer = describer;
     }
 
-    abstract class SettingContainer<T> : Setting<T>, ISettingContainer where T : FieldDescriber
+    public abstract class SettingContainer<T> : Setting<T>, ISettingContainer where T : FieldDescriber
     {
         public new T Describer => base.Describer;
         readonly Setting<T> Setting;
 
-        protected SettingContainer(T describer, JProperty property) : base(describer, property) => Children.Add(Setting = CreateSetting());
+        protected SettingContainer(T describer, JProperty property, JsonEditorList editorList) : base(describer, property, editorList) => Children.Add(Setting = CreateSetting());
 
         protected abstract Setting<T> CreateSetting();
         public sealed override void UpdateValue() => Setting.UpdateValue();
@@ -57,17 +45,17 @@ public static class JsonUISetting
         public IEnumerator<Setting> GetEnumerator() => Enumerable.Repeat(Setting, 1).GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
-    abstract class SettingChild<T> : Setting<T> where T : FieldDescriber
+    public abstract class SettingChild<T> : Setting<T> where T : FieldDescriber
     {
-        protected SettingChild(SettingContainer<T> parent) : base(parent.Describer, parent.Property) { }
+        protected SettingChild(SettingContainer<T> parent, JsonEditorList editorList) : base(parent.Describer, parent.Property, editorList) { }
     }
 
 
-    class BoolSetting : Setting<BooleanDescriber>
+    public class BoolSetting : Setting<BooleanDescriber>
     {
         readonly CheckBox Checkbox;
 
-        public BoolSetting(BooleanDescriber describer, JProperty property) : base(describer, property)
+        public BoolSetting(BooleanDescriber describer, JProperty property, JsonEditorList editorList) : base(describer, property, editorList)
         {
             Checkbox = new CheckBox() { IsCancel = Get().Value<bool?>() ?? false };
             Children.Add(Checkbox);
@@ -75,44 +63,45 @@ public static class JsonUISetting
 
         public override void UpdateValue() => Set(Checkbox.IsChecked == true);
     }
-    class TextSetting : SettingContainer<StringDescriber>
+    public class TextSetting : SettingContainer<StringDescriber>
     {
-        public TextSetting(StringDescriber describer, JProperty property) : base(describer, property) { }
+        public TextSetting(StringDescriber describer, JProperty property, JsonEditorList editorList) : base(describer, property, editorList) { }
 
         protected override Setting<StringDescriber> CreateSetting()
         {
             if (Describer.Attributes.OfType<LocalFileAttribute>().Any())
-                return new LocalFileSetting(this);
+                return new LocalFileSetting(this, EditorList);
             if (Describer.Attributes.OfType<LocalDirectoryAttribute>().Any())
-                return new LocalDirSetting(this);
+                return new LocalDirSetting(this, EditorList);
 
-            return new TextBoxSetting(this);
+            return new TextBoxSetting(this, EditorList);
         }
 
 
-        class TextBoxSetting : SettingChild<StringDescriber>
+        public class TextBoxSetting : SettingChild<StringDescriber>
         {
             readonly TextBox TextBox;
 
-            public TextBoxSetting(TextSetting setting) : base(setting)
+            public TextBoxSetting(TextSetting setting, JsonEditorList editorList) : base(setting, editorList)
             {
                 TextBox = new TextBox() { AcceptsReturn = true, Text = Get().Value<string?>() ?? string.Empty };
                 Children.Add(TextBox);
             }
 
-            public override void UpdateValue() => Set(TextBox.Text);
+            public override void UpdateValue() => Set(TextBox.Text ?? string.Empty);
         }
-        class LocalFileSetting : SettingChild<StringDescriber>
+        public class LocalFileSetting : SettingChild<StringDescriber>
         {
             string File = null!;
 
-            public LocalFileSetting(TextSetting setting) : base(setting)
+            public LocalFileSetting(TextSetting setting, JsonEditorList editorList) : base(setting, editorList)
             {
                 var textinput = new TextBox();
-                textinput.Subscribe(TextBox.TextProperty, text => File = text);
+                textinput.Subscribe(TextBox.TextProperty, text => File = text ?? string.Empty);
 
                 var btn = new MPButton() { Text = new("Pick a file") };
-                btn.OnClick += () => new OpenFileDialog() { AllowMultiple = false }.ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = new(t.Result?.FirstOrDefault() ?? string.Empty)));
+                btn.OnClick += () => ((Window) VisualRoot!).StorageProvider.OpenFilePickerAsync(new() { AllowMultiple = false }).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = t.Result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty));
+
 
                 var grid = new Grid()
                 {
@@ -124,17 +113,17 @@ public static class JsonUISetting
 
             public override void UpdateValue() => Set(File);
         }
-        class LocalDirSetting : SettingChild<StringDescriber>
+        public class LocalDirSetting : SettingChild<StringDescriber>
         {
             string Dir = null!;
 
-            public LocalDirSetting(TextSetting setting) : base(setting)
+            public LocalDirSetting(TextSetting setting, JsonEditorList editorList) : base(setting, editorList)
             {
                 var textinput = new TextBox();
-                textinput.Subscribe(TextBox.TextProperty, text => Dir = text);
+                textinput.Subscribe(TextBox.TextProperty, text => Dir = text ?? string.Empty);
 
                 var btn = new MPButton() { Text = new("Pick a directory") };
-                btn.OnClick += () => new OpenFolderDialog().ShowAsync((Window) VisualRoot!).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = new(t.Result ?? string.Empty)));
+                btn.OnClick += () => ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false }).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = t.Result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty));
 
                 var grid = new Grid()
                 {
@@ -147,26 +136,26 @@ public static class JsonUISetting
             public override void UpdateValue() => Set(Dir);
         }
     }
-    class NumberSetting : SettingContainer<NumberDescriber>
+    public class NumberSetting : SettingContainer<NumberDescriber>
     {
-        public NumberSetting(NumberDescriber describer, JProperty property) : base(describer, property) { }
+        public NumberSetting(NumberDescriber describer, JProperty property, JsonEditorList editorList) : base(describer, property, editorList) { }
 
         protected override Setting<NumberDescriber> CreateSetting()
         {
             var value = Get().Value<double?>() ?? 0;
 
             var range = Describer.Attributes.OfType<RangedAttribute>().FirstOrDefault();
-            if (range is not null) return new SliderNumberSetting(this, range);
+            if (range is not null) return new SliderNumberSetting(this, range, EditorList);
 
-            return new TextNumberSetting(this);
+            return new TextNumberSetting(this, EditorList);
         }
 
 
-        class SliderNumberSetting : SettingChild<NumberDescriber>
+        public class SliderNumberSetting : SettingChild<NumberDescriber>
         {
             readonly Slider Slider;
 
-            public SliderNumberSetting(NumberSetting setting, RangedAttribute range) : base(setting)
+            public SliderNumberSetting(NumberSetting setting, RangedAttribute range, JsonEditorList editorList) : base(setting, editorList)
             {
                 Slider = new Slider()
                 {
@@ -203,11 +192,11 @@ public static class JsonUISetting
                 else Set(Slider.Value);
             }
         }
-        class TextNumberSetting : SettingChild<NumberDescriber>
+        public class TextNumberSetting : SettingChild<NumberDescriber>
         {
             readonly TextBox TextBox;
 
-            public TextNumberSetting(NumberSetting setting) : base(setting)
+            public TextNumberSetting(NumberSetting setting, JsonEditorList editorList) : base(setting, editorList)
             {
                 TextBox = new TextBox() { Text = setting.Get().Value<double?>()?.ToString() ?? "0" };
                 Children.Add(TextBox);
@@ -215,24 +204,24 @@ public static class JsonUISetting
                 var isdouble = !setting.Describer.IsInteger;
                 TextBox.Subscribe(TextBox.TextProperty, text =>
                 {
-                    text = Regex.Replace(text, isdouble ? @"[^0-9\.,]*" : @"[^0-9]*", string.Empty);
+                    text = Regex.Replace(text ?? string.Empty, isdouble ? @"[^0-9\.,]*" : @"[^0-9]*", string.Empty);
                     if (text.Length == 0) text = "0";
                 });
             }
 
             public override void UpdateValue()
             {
-                if (Describer.IsInteger) Set(long.Parse(TextBox.Text, CultureInfo.InvariantCulture));
-                else Set(double.Parse(TextBox.Text, CultureInfo.InvariantCulture));
+                if (Describer.IsInteger) Set(long.Parse(TextBox.Text ?? string.Empty, CultureInfo.InvariantCulture));
+                else Set(double.Parse(TextBox.Text ?? string.Empty, CultureInfo.InvariantCulture));
             }
         }
     }
-    class DictionarySetting : Setting, ISettingContainer
+    public class DictionarySetting : Setting, ISettingContainer
     {
         readonly List<Setting> Settings = new();
 
-        public DictionarySetting(DictionaryDescriber describer, JObject jobj) : this(describer, new JProperty("____", jobj)) { }
-        public DictionarySetting(DictionaryDescriber describer, JProperty property) : base(property)
+        public DictionarySetting(DictionaryDescriber describer, JObject jobj, JsonEditorList editorList) : this(describer, new JProperty("____", jobj), editorList) { }
+        public DictionarySetting(DictionaryDescriber describer, JProperty property, JsonEditorList editorList) : base(property, editorList)
         {
             //if (describer.KeyType != typeof(string) && !describer.KeyType.IsEnum)
             //    throw new NotSupportedException("Non-string/enum key dictionary describer is not supported");
@@ -294,7 +283,7 @@ public static class JsonUISetting
                     if (!expander.IsExpanded) continue;
 
                     var header = ((StackPanel) expander.Header!).Children.OfType<TextBox>().First().Text;
-                    openKeys.Add(header);
+                    openKeys.Add(header ?? string.Empty);
                 }
 
                 Settings.Clear();
@@ -306,7 +295,7 @@ public static class JsonUISetting
                     var key = property.Name;
                     var value = property.Value;
 
-                    var setting = Create(property, fielddescriber);
+                    var setting = editorList.Create(property, fielddescriber);
                     var set = new StackPanel()
                     {
                         Orientation = Orientation.Vertical,
@@ -371,12 +360,12 @@ public static class JsonUISetting
         public IEnumerator<Setting> GetEnumerator() => Settings.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
-    class CollectionSetting : Setting, ISettingContainer
+    public class CollectionSetting : Setting, ISettingContainer
     {
         readonly List<Setting> Settings = new();
 
-        public CollectionSetting(CollectionDescriber describer, JArray jarr) : this(describer, new JProperty("____", jarr)) { }
-        public CollectionSetting(CollectionDescriber describer, JProperty property) : base(property)
+        public CollectionSetting(CollectionDescriber describer, JArray jarr, JsonEditorList editorList) : this(describer, new JProperty("____", jarr), editorList) { }
+        public CollectionSetting(CollectionDescriber describer, JProperty property, JsonEditorList editorList) : base(property, editorList)
         {
             Background = new SolidColorBrush(new Color(20, 0, 0, 0));
             Margin = new Thickness(10, 0, 0, 0);
@@ -426,7 +415,7 @@ public static class JsonUISetting
                 {
                     var value = jarr[i];
 
-                    var setting = Create(new JProperty("_" + i, value), fielddescriber);
+                    var setting = EditorList.Create(new JProperty("_" + i, value), fielddescriber);
                     var set = new StackPanel()
                     {
                         Orientation = Orientation.Vertical,
@@ -466,27 +455,27 @@ public static class JsonUISetting
         public IEnumerator<Setting> GetEnumerator() => Settings.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
-    class EnumSetting : Setting<EnumDescriber>
+    public class EnumSetting : Setting<EnumDescriber>
     {
         readonly ComboBox ComboBox;
 
-        public EnumSetting(EnumDescriber describer, JProperty property) : base(describer, property)
+        public EnumSetting(EnumDescriber describer, JProperty property, JsonEditorList editorList) : base(describer, property, editorList)
         {
             Enum.TryParse(describer.Type, describer.DefaultValue?.Value<string>(), out var def);
 
-            ComboBox = new ComboBox() { Items = Enum.GetValues(describer.Type), SelectedIndex = Enum.GetValues(describer.Type).Cast<object>().ToList().IndexOf(def ?? Enum.GetValues(describer.Type).Cast<object>().First()) };
+            ComboBox = new ComboBox() { ItemsSource = Enum.GetValues(describer.Type), SelectedIndex = Enum.GetValues(describer.Type).Cast<object>().ToList().IndexOf(def ?? Enum.GetValues(describer.Type).Cast<object>().First()) };
             Children.Add(ComboBox);
         }
 
         public override void UpdateValue() => Set(ComboBox.SelectedItem.ThrowIfNull());
     }
 
-    class ObjectSetting : Setting, ISettingContainer
+    public class ObjectSetting : Setting, ISettingContainer
     {
         readonly List<Setting> Settings = new();
 
-        public ObjectSetting(ObjectDescriber describer, JObject jobj) : this(describer, new JProperty("___", jobj)) { }
-        public ObjectSetting(ObjectDescriber describer, JProperty property) : base(property)
+        public ObjectSetting(ObjectDescriber describer, JObject jobj, JsonEditorList editorList) : this(describer, new JProperty("___", jobj), editorList) { }
+        public ObjectSetting(ObjectDescriber describer, JProperty property, JsonEditorList editorList) : base(property, editorList)
         {
             Background = new SolidColorBrush(new Color(20, 0, 0, 0));
             Margin = new Thickness(10, 0, 0, 0);
@@ -510,7 +499,7 @@ public static class JsonUISetting
                 if (!jobj.ContainsKey(jsonkey))
                     jobj[jsonkey] = field.DefaultValue;
 
-                var setting = Create(jobj.Property(jsonkey)!, field);
+                var setting = editorList.Create(jobj.Property(jsonkey)!, field);
                 list.Children.Add(new Grid()
                 {
                     ColumnDefinitions = ColumnDefinitions.Parse("Auto 20 *"),
@@ -535,12 +524,12 @@ public static class JsonUISetting
         public IEnumerator<Setting> GetEnumerator() => Settings.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
-    class NullableSetting : Setting
+    public class NullableSetting : Setting
     {
         readonly Setting Setting;
         readonly CheckBox EnabledCheckBox;
 
-        public NullableSetting(Setting setting) : base(setting.Property)
+        public NullableSetting(Setting setting, JsonEditorList editorList) : base(setting.Property, editorList)
         {
             Setting = setting;
 

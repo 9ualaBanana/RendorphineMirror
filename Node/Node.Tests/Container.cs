@@ -1,20 +1,10 @@
-using Autofac.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection;
-using NLog.Extensions.Logging;
+using Node.Common;
 
 namespace Node.Tests;
 
 public static class Container
 {
-    public static readonly IContainer Instance;
+    public static readonly IContainer Instance = CreateBuilder().Build();
 
-    static Container()
-    {
-        var builder = new ContainerBuilder();
-
-        // logging
-        builder.Populate(new ServiceCollection().With(services => services.AddLogging(l => l.AddNLog())));
-
-        Instance = builder.Build();
-    }
+    public static ContainerBuilder CreateBuilder() => Init.CreateContainer(new Init.InitConfig("renderfin-test"));
 }

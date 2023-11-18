@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json.Linq;
+using System.Runtime.CompilerServices;
 using Telegram.MPlus.Files;
 using Telegram.MPlus.Security;
+using Telegram.Tasks;
 
 namespace Telegram.MPlus.Clients;
 
@@ -45,12 +47,24 @@ public class MPlusTaskManagerClient
             : throw new InvalidDataException("M+ authentication result returned from the server was in a wrong format.");
     }
 
-    public async Task<MPlusFileInfo> RequestFileInfoAsyncUsing(MPlusFileAccessor fileAccessor, CancellationToken cancellationToken)
+    internal async IAsyncEnumerable<RTaskResult.MPlus> ObtainResultsAsyncOf(UserExecutedRTask executedTask, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        foreach (var iid in executedTask.UploadedFiles)
+            yield return await ObtainResultAsyncFor(executedTask, iid, cancellationToken);
+    }
+
+    internal async Task<RTaskResult.MPlus> ObtainResultAsyncFor(UserExecutedRTask executedTask, string iid, CancellationToken cancellationToken)
+    {
+        var fileInfo = await RequestFileInfoAsync(iid, executedTask.SessionId, cancellationToken);
+        return await RTaskResult.MPlus.CreateAsync(executedTask, fileInfo);
+    }
+
+    public async Task<MPlusFileInfo> RequestFileInfoAsync(string iid, string sessionId, CancellationToken cancellationToken)
     {
         var requestUrl = QueryHelpers.AddQueryString("getmympitem", new Dictionary<string, string?>()
         {
-            ["sessionid"] = fileAccessor.SessionId,
-            ["iid"] = fileAccessor.Iid
+            ["sessionid"] = sessionId,
+            ["iid"] = iid
         });
 
         return await RequestFileInfoAsyncCore();
@@ -72,7 +86,7 @@ public class MPlusTaskManagerClient
                 else Thread.Sleep(TimeSpan.FromSeconds(3));
             }
 
-            var exception = new Exception($"IID {fileAccessor.Iid}: {nameof(MPlusFileInfo)} request failed.");
+            var exception = new Exception($"IID {iid}: {nameof(MPlusFileInfo)} request failed.");
             _logger.LogError(exception, message: default);
             throw exception;
         }

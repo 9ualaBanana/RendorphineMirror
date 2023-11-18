@@ -3,17 +3,17 @@
 public record CGTrader3DModelAdditionalMetadata(
     int? Polygons = null,
     int? Vertices = null,
-    GeometryType? GeometryType = null,  // sent as (null) in JSON
+    Geometry_? Geometry = null,  // sent as (null) in JSON
     bool? Collection = null,
     bool? Textures = false,
     bool Materials = true,
     bool PluginsUsed = false,
     bool UVWMapping = false,
-    UnwrappedUVs? UnwrappedUVs = null)  // sent as (null) in JSON
+    UnwrappedUVs_? UnwrappedUVs = null)  // sent as (null) in JSON
 {
 }
 
-public enum GeometryType
+public enum Geometry_
 {
     polygonal_mesh,
     subdivision_ready,
@@ -21,7 +21,7 @@ public enum GeometryType
     other
 }
 
-public enum UnwrappedUVs
+public enum UnwrappedUVs_
 {
     unknown,
     non_overlapping,

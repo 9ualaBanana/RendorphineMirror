@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish.Turbosquid.Api;
-using System.Net;
+﻿using System.Net;
 using System.Security;
 
 namespace _3DProductsPublish.Turbosquid.Network.Authenticity;
@@ -14,13 +13,7 @@ internal class TurboSquidNetworkCredential : NetworkCredential
 
     internal static ForeignThreadValue<string> _CapturedCefResponse = new(false);
 
-    internal static async Task<TurboSquidNetworkCredential> _RequestAsyncUsing(
-        TurboSquidApi api,
-        NetworkCredential credential,
-        CancellationToken cancellationToken) =>
-            await api._RequestTurboSquidNetworkCredentialAsync(credential, cancellationToken);
-
-    internal TurboSquidNetworkCredential _WithUpdatedCsrfToken(string csrfToken) =>
+    internal TurboSquidNetworkCredential WithUpdated(string csrfToken) =>
         new(UserName, Password, csrfToken, _ApplicationUserID, _CaptchaVerifiedToken);
 
     internal TurboSquidNetworkCredential(
@@ -32,7 +25,7 @@ internal class TurboSquidNetworkCredential : NetworkCredential
     {
     }
 
-    internal TurboSquidNetworkCredential(
+    TurboSquidNetworkCredential(
         string userName,
         string password,
         string csrfToken,

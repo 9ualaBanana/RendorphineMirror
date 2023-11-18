@@ -7,18 +7,20 @@ namespace Node.UI.Pages
     {
         public TaskCreationWindow()
         {
+            this.AttachDevToolsIfDebug();
+
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
             Width = 692;
             Height = 410;
-            Title = App.AppName;
-            Icon = App.Icon;
+            Title = App.Instance.AppName;
+            Icon = App.Instance.Icon;
 
             Content = new TaskCreationPanel();
         }
 
-        static Task Post(Action action) => Dispatcher.UIThread.InvokeAsync(action);
-        static Task<T> Post<T>(Func<T> action) => Dispatcher.UIThread.InvokeAsync(action);
+        static async Task Post(Action action) => await Dispatcher.UIThread.InvokeAsync(action);
+        static async Task<T> Post<T>(Func<T> action) => await Dispatcher.UIThread.InvokeAsync(action);
 
         void ShowPart(TaskPart part)
         {
@@ -37,17 +39,17 @@ namespace Node.UI.Pages
             };
         }
 
-        static TypedListBox<T> CreateListBox<T>(IReadOnlyCollection<T> items, Func<T, IControl> func) => new TypedListBox<T>(items, func);
+        static TypedListBox<T> CreateListBox<T>(IReadOnlyCollection<T> items, Func<T, Control> func) => new TypedListBox<T>(items, func);
 
 
-        class TypedListBox<T> : ListBox, IStyleable
+        class TypedListBox<T> : ListBox
         {
-            Type IStyleable.StyleKey => typeof(ListBox);
+            protected override Type StyleKeyOverride => typeof(ListBox);
             public new T SelectedItem => (T) base.SelectedItem!;
 
-            public TypedListBox(IReadOnlyCollection<T> items, Func<T, IControl> func)
+            public TypedListBox(IReadOnlyCollection<T> items, Func<T, Control> func)
             {
-                Items = items;
+                ItemsSource = items;
                 ItemTemplate = new FuncDataTemplate<T>((t, _) => func(t));
             }
         }
@@ -162,7 +164,7 @@ namespace Node.UI.Pages
                 var list = TypedListBox.Create(Enum.GetValues<TaskPolicy>(), t => new TextBlock() { Text = t.ToString() });
                 list.SelectionChanged += (obj, e) =>
                 {
-                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                    OnChoose?.Invoke(list.SelectedItems?.Count is not null or 0);
                     Builder.Policy = list.SelectedItem;
                 };
 
@@ -186,7 +188,7 @@ namespace Node.UI.Pages
                 var list = CreateListBox(plugins, type => new TextBlock() { Text = type.GetName() });
                 list.SelectionChanged += (obj, e) =>
                 {
-                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                    OnChoose?.Invoke(list.SelectedItems?.Count is not null or 0);
                     Builder.Type = list.SelectedItem;
                 };
 
@@ -213,7 +215,7 @@ namespace Node.UI.Pages
                 list.SelectionChanged += (obj, e) =>
                 {
                     Builder.Version = list.SelectedItem == AnyVersion ? null : list.SelectedItem;
-                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                    OnChoose?.Invoke(list.SelectedItems?.Count is not null or 0);
                 };
 
                 Children.Add(list);
@@ -233,7 +235,7 @@ namespace Node.UI.Pages
                 list.SelectionChanged += (obj, e) =>
                 {
                     Builder.Action = list.SelectedItem.Name;
-                    OnChoose?.Invoke(list.SelectedItems.Count != 0);
+                    OnChoose?.Invoke(list.SelectedItems?.Count is not null or 0);
                 };
 
                 Children.Add(list);
@@ -247,11 +249,11 @@ namespace Node.UI.Pages
 
             public ChooseInputOutputPartBase(TaskCreationInfo builder) : base(builder) { }
 
-            protected void Init(IReadOnlyList<T> describers, Func<T, IControl> templateFunc)
+            protected void Init(IReadOnlyList<T> describers, Func<T, Control> templateFunc)
             {
                 var types = new ComboBox()
                 {
-                    Items = describers,
+                    ItemsSource = describers,
                     ItemTemplate = new FuncDataTemplate<T>((t, _) => t is null ? null : templateFunc(t)),
                     SelectedIndex = 0,
                 };
@@ -292,7 +294,7 @@ namespace Node.UI.Pages
                 var obj = new JObject() { ["type"] = describer.Type, };
                 var parent = new JObject() { [describer.Type] = obj, };
 
-                Setting = JsonUISetting.Create(parent.Property(describer.Type)!, describer.Object);
+                Setting = JsonEditorList.Default.Create(parent.Property(describer.Type)!, describer.Object);
                 SettingPanel.Children.Add(Setting);
             }
             public override void OnNext()
@@ -319,7 +321,7 @@ namespace Node.UI.Pages
                 data["type"] = Builder.Action;
 
                 var parent = new JObject() { [describer.Name] = data, };
-                Setting = JsonUISetting.Create(parent.Property(describer.Name)!, describer);
+                Setting = JsonEditorList.Default.Create(parent.Property(describer.Name)!, describer);
                 Children.Add(Setting);
 
                 Dispatcher.UIThread.Post(() => OnChoose?.Invoke(true));
@@ -409,7 +411,7 @@ namespace Node.UI.Pages
                 public ChooseTypePart() : base(new())
                 {
                     TypesList = new TypedListBox<TaskCreationType>(Enum.GetValues<TaskCreationType>(), t => new TextBlock() { Text = t.ToString() });
-                    TypesList.SelectionChanged += (obj, e) => OnChoose?.Invoke(TypesList.SelectedItems.Count != 0);
+                    TypesList.SelectionChanged += (obj, e) => OnChoose?.Invoke(TypesList.SelectedItems?.Count is not null or 0);
                     Children.Add(TypesList);
 
                     Dispatcher.UIThread.Post(() => TypesList.SelectedIndex = 0);

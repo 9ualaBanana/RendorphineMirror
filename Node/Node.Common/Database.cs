@@ -11,25 +11,34 @@ public class Database : IDisposable
 
     public Database(string dbpath)
     {
+        Logger.Info($"[Database {dbpath}] Opening");
+
         DbPath = dbpath;
         Connection = new SQLiteConnection("Data Source=" + DbPath + ";Version=3;cache=shared");
         if (!File.Exists(DbPath)) SQLiteConnection.CreateFile(DbPath);
 
         Connection.Open();
-        OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA cache=shared;")).LogIfError();
+        optimize();
 
         new Thread(() =>
         {
             while (true)
             {
-                Logger.Info($"[Database {dbpath}] Optimizing");
-                OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA optimize;")).LogIfError();
-                OperationResult.WrapException(() => ExecuteNonQuery("vacuum;")).LogIfError();
-
                 Thread.Sleep(60 * 60 * 24 * 1000);
+                optimize();
             }
         })
         { IsBackground = true }.Start();
+
+
+        void optimize()
+        {
+            Logger.Info($"[Database {dbpath}] Optimizing");
+            OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA cache=shared;")).LogIfError();
+            OperationResult.WrapException(() => ExecuteNonQuery("PRAGMA optimize;")).LogIfError();
+            OperationResult.WrapException(() => ExecuteNonQuery("vacuum;")).LogIfError();
+            Logger.Info($"[Database {dbpath}] Optimized");
+        }
     }
 
     public int ExecuteNonQuery(string command)

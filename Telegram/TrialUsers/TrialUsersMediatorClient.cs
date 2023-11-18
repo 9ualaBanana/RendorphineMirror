@@ -72,7 +72,7 @@ public class TrialUsersMediatorClient
     /// reduces its quota for <paramref name="taskAction"/>.
     /// </summary>
     /// TODO: Return some enum value instead that will represent the server response.
-    internal async Task<HttpResponseMessage> TryReduceQuotaAsync(string taskAction, string chatId, string userId)
+    internal async Task<HttpResponseMessage> TryReduceQuotaAsync(string taskAction, string chatId, string userId, CancellationToken cancellationToken)
     {
         try { return await TryReduceQuotaAsyncCore(); }
         catch (Exception ex)
@@ -94,7 +94,7 @@ public class TrialUsersMediatorClient
                     { ["taskaction"] = taskAction, ["identifier"] = chatId, ["platform"] = 0.ToString(), ["userid"] = userId }).ToUriComponent()
                 }.Uri.PathAndQuery);
 
-            return await _httpClient.SendAsync(request);
+            return await _httpClient.SendAsync(request, cancellationToken);
         }
     }
 }

@@ -7,13 +7,15 @@ namespace Node.UI.Pages
         public LoginWindow(LocalizedString error) : this() => Login.ShowError(error);
         public LoginWindow()
         {
+            this.AttachDevToolsIfDebug();
+
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
             MinWidth = MaxWidth = Width = 692;
             MinHeight = MaxHeight = Height = 410;
             CanResize = false;
-            Title = App.AppName;
-            Icon = App.Icon;
+            Title = App.Instance.AppName;
+            Icon = App.Instance.Icon;
 
             this.PreventClosing();
 
@@ -21,7 +23,7 @@ namespace Node.UI.Pages
             async Task<OperationResult> authenticate(string? login, string? password, LoginType loginType)
             {
                 var authres = await auth(login, password, loginType);
-                if (!authres) Dispatcher.UIThread.Post(() => Login.ShowError(authres.AsString()));
+                if (!authres) Dispatcher.UIThread.Post(() => Login.ShowError(authres.ToString()));
 
                 return authres;
             }
@@ -136,7 +138,7 @@ namespace Node.UI.Pages
         protected class LoginControl : UserControl
         {
             public event Action OnPressWebLogin = delegate { };
-            public event Action<string, string, bool> OnPressLogin = delegate { };
+            public event Action<string?, string?, bool> OnPressLogin = delegate { };
             public event Action OnPressForgotPassword = delegate { };
 
             public TextBox LoginInput => LoginPasswordInput.LoginInput;
@@ -494,8 +496,8 @@ namespace Node.UI.Pages
 
                     Content = text;
 
-                    PointerEnter += (_, _) => text.Foreground = Colors.Accent;
-                    PointerLeave += (_, _) => text.Foreground = Colors.DarkText;
+                    PointerEntered += (_, _) => text.Foreground = Colors.Accent;
+                    PointerExited += (_, _) => text.Foreground = Colors.DarkText;
                 }
             }
         }

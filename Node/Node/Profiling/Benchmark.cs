@@ -63,7 +63,7 @@ internal static class Benchmark
     static async Task<BenchmarkData> RunAsyncCore(int testDataSize)
     {
         // todo remove when linux benchmark fixed
-        if (Environment.OSVersion.Platform == PlatformID.Unix)
+        if (!OperatingSystem.IsWindows())
         {
             return new(
                 new(10000000, new(100)) { Load = 0.0001 },
@@ -117,6 +117,7 @@ internal static class Benchmark
         return new GPUBenchmarkResult(ffmpegRating, new(ffmpegRating));
     }
 
+    [SupportedOSPlatform("windows")]
     static async Task<List<DriveBenchmarkResult>> GetDrivesBenchmarkResultsAsObjectAsync(int testDataSize)
     {
         var drivesBenchmarkResults = new List<(BenchmarkResult Read, BenchmarkResult Write)>();

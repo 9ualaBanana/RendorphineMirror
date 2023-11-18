@@ -12,5 +12,6 @@ public enum TaskAction
     GenerateTitleKeywords,
     GenerateImageByMeta,
     GenerateImageByPrompt,
+    GenerateAIVoice,
     Topaz,
 }

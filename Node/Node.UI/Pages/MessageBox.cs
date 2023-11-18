@@ -7,6 +7,12 @@ namespace Node.UI.Pages
             var button = AddButton("general.ok", null);
             button.MaxWidth = 100;
         }
+
+        public static async Task ShowDialogIfError(Control owner, OperationResult result)
+        {
+            if (result) return;
+            await new OkMessageBox() { Text = result.Error.ToString() }.ShowDialog((Window) owner.GetVisualRoot()!);
+        }
     }
     public class YesNoMessageBox : MessageBox<bool>
     {
@@ -30,15 +36,18 @@ namespace Node.UI.Pages
     }
     public class MessageBox<T> : Window, IMessageBox
     {
-        public string Text { get => TextBlock.Text; set => TextBlock.Text = value; }
+        public string Text { get => TextBlock.Text ?? string.Empty; set => TextBlock.Text = value; }
 
         public Action<T>? OnClick;
 
         readonly TextBlock TextBlock;
         readonly Grid Grid;
+        readonly StackPanel Buttons;
 
         public MessageBox(T closeresult)
         {
+            this.AttachDevToolsIfDebug();
+
             SizeToContent = SizeToContent.WidthAndHeight;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
@@ -46,58 +55,51 @@ namespace Node.UI.Pages
             CanResize = false;
             Closed += (_, _) => OnClick?.Invoke(closeresult);
 
-            TextBlock = new TextBlock() { Margin = new Avalonia.Thickness(20, 10), Foreground = Colors.From(210), FontSize = 14 };
+            TextBlock = new TextBlock() { Margin = new Thickness(20, 10), Foreground = Colors.From(210), FontSize = 14 };
 
-            Grid = new Grid();
-            Grid.ColumnDefinitions.Add(new ColumnDefinition());
+            Buttons = new StackPanel()
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
 
-            Grid.RowDefinitions.Add(new RowDefinition(4, GridUnitType.Star));
-            Grid.RowDefinitions.Add(new RowDefinition(3, GridUnitType.Star));
-
-            Grid.Children.Add(TextBlock);
-            Grid.SetColumnSpan(TextBlock, 2);
+            Grid = new Grid()
+            {
+                RowDefinitions = RowDefinitions.Parse("4* 3*"),
+                Children =
+                {
+                    TextBlock.WithRow(0),
+                    Buttons.WithRow(1),
+                },
+            };
 
             Content = Grid;
         }
 
-        public MessageBox<T> WithButton(LocalizedString text, T result, Action<MBMPButton>? modifybtnfunc = null)
+        public MessageBox<T> WithButton(LocalizedString text, T result, Action<MPButton>? modifybtnfunc = null)
         {
             var button = AddButton(text, result);
             modifybtnfunc?.Invoke(button);
 
             return this;
         }
-        public MBMPButton AddButton(LocalizedString text, T result)
+        public MPButton AddButton(LocalizedString text, T result)
         {
-            var button = new MBMPButton(text, () =>
+            return new MPButton()
             {
-                OnClick?.Invoke(result);
-                OnClick = null;
-                Close();
-            });
+                Text = text,
+                OnClick = () =>
+                {
+                    OnClick?.Invoke(result);
+                    OnClick = null;
+                    Close();
+                },
 
-            Grid.Children.Add(button);
-
-            if (Grid.Children.Count != 2) Grid.ColumnDefinitions.Add(new ColumnDefinition());
-            Grid.SetRow(button, 1);
-            Grid.SetColumn(button, Grid.Children.Count - 2);
-
-            return button;
-        }
-
-
-        public class MBMPButton : MPButton
-        {
-            public MBMPButton(LocalizedString text, Action onClick)
-            {
-                Text = text;
-                OnClick += onClick;
-
-                Margin = new Avalonia.Thickness(10);
-                Foreground = Colors.From(210);
-                Background = Colors.MenuItemBackground;
-                HoverBackground = Colors.From(113, 168, 79);
-            }
+                Margin = new Thickness(10),
+                Foreground = Colors.From(210),
+                Background = Colors.MenuItemBackground,
+                HoverBackground = Colors.From(113, 168, 79),
+            }.With(Buttons.Children.Add);
         }
     }
 }

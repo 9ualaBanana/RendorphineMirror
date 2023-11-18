@@ -1,61 +1,90 @@
 namespace Node.Tasks.Exec.Actions;
 
-public class Topaz : PluginAction<TopazInfo>
+public class Topaz : FilePluginActionInfo<TopazInfo>
 {
     public override TaskAction Name => TaskAction.Topaz;
     public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.TopazVideoAI);
+    protected override Type ExecutorType => typeof(Executor);
 
     public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
-        new[] { new[] { FileFormat.Mov } };
+        new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Png }, new[] { FileFormat.Mov } };
 
     protected override OperationResult ValidateOutputFiles(TaskFilesCheckData files, TopazInfo data) =>
         files.EnsureSingleInputFile()
         .Next(input => files.EnsureSingleOutputFile()
         .Next(output => TaskRequirement.EnsureSameFormat(output, input)));
 
-    public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, TopazInfo data)
-    {
-        var ffmpeg = Path.Combine(context.GetPlugin(PluginType.TopazVideoAI).Path, "../ffmpeg.exe");
 
-        var output = files.OutputFiles.New();
-        foreach (var input in files.InputFiles)
+    class Executor : ExecutorBase
+    {
+        public required DataDirs Dirs { get; init; }
+
+        public override async Task<TaskFileOutput> ExecuteUnchecked(TaskFileInput input, TopazInfo data)
         {
-            var ffprobe = await FFProbe.Get(input.Path, context);
+            var output = new TaskFileOutput(input.ResultDirectory);
+            var outfiles = output.Files.New();
+            var inputfile = input.Single();
+
+            if (data.Operation is TopazOperation.Slowmo or TopazOperation.Stabilize && inputfile.Format != FileFormat.Mov)
+                throw new TaskFailedException($"Cannot do {data.Operation.ToString().ToLowerInvariant()} on {inputfile.Format}");
+
+            var ffprobe = await FFProbe.Get(inputfile.Path, Logger);
+
+            if (data.Operation == TopazOperation.Slowmo)
+                await Execute(inputfile, data, ffprobe, outfiles.New(inputfile.Format).Path, AddSlowmoArgs);
+            else if (data.Operation == TopazOperation.Upscale)
+                await Execute(inputfile, data, ffprobe, outfiles.New(inputfile.Format).Path, AddUpscaleArgs);
+            else if (data.Operation == TopazOperation.Denoise)
+                await Execute(inputfile, data, ffprobe, outfiles.New(inputfile.Format).Path, AddDenoiseArgs);
+            else if (data.Operation == TopazOperation.Stabilize)
+                await Stabilize(inputfile, data, ffprobe, outfiles.New(inputfile.Format).Path);
+            else throw new TaskFailedException("Unknown operation");
+
+            return output;
+        }
+
+        async Task Execute(FileWithFormat input, TopazInfo data, FFProbe.FFProbeInfo ffprobe, FFmpegLauncherOutput output, Action<TopazInfo, FFProbe.FFProbeInfo, FFmpegLauncher> argsAddFunc)
+        {
+            var ffmpeg = Path.Combine(PluginList.GetPlugin(PluginType.TopazVideoAI).Path, "../ffmpeg.exe");
 
             var launcher = new FFmpegLauncher(ffmpeg)
             {
-                Logger = context,
-                ProgressSetter = new TaskExecutionContextProgressSetterAdapter(context),
+                ILogger = Logger,
+                ProgressSetter = ProgressSetter,
                 EnvVariables =
                 {
                     ["TVAI_MODEL_DIR"] = @"C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models",
                     ["TVAI_MODEL_DATA_DIR"] = @"C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models",
                 },
                 Input = { input.Path },
-                Outputs =
+                Outputs = { output },
+            };
+
+            argsAddFunc(data, ffprobe, launcher);
+            await launcher.Execute();
+        }
+        async Task Execute(FileWithFormat input, TopazInfo data, FFProbe.FFProbeInfo ffprobe, string output, Action<TopazInfo, FFProbe.FFProbeInfo, FFmpegLauncher> argsAddFunc)
+        {
+            var ffoutput = new FFmpegLauncherOutput()
+            {
+                Codec = input.Format switch
                 {
-                    new FFmpegLauncherOutput()
-                    {
-                        Codec = new ProresFFmpegCodec() { Profile = ProresFFmpegCodec.CopyProfileFrom(ffprobe.VideoStream) },
-                        Output = output.New(input.Format).Path,
-                        Args =
-                        {
-                            // scaling flags
-                            "-sws_flags", "spline+accurate_rnd+full_chroma_int",
-                        },
-                    },
+                    FileFormat.Jpeg => new JpegFFmpegCodec(),
+                    FileFormat.Png => new PngFFmpegCodec(),
+                    _ => new ProresFFmpegCodec() { Profile = ProresFFmpegCodec.CopyProfileFrom(ffprobe.VideoStream) },
+                },
+                Output = output,
+                Args =
+                {
+                    // scaling flags
+                    "-sws_flags", "spline+accurate_rnd+full_chroma_int",
                 },
             };
 
-            AddFilters(data, ffprobe, launcher);
-            await launcher.Execute();
+            await Execute(input, data, ffprobe, ffoutput, argsAddFunc);
         }
-    }
 
-
-    static void AddFilters(TopazInfo data, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
-    {
-        if (data.Operation == TopazOperation.Slowmo)
+        static void AddSlowmoArgs(TopazInfo data, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
         {
             var filter = new ArgList()
             {
@@ -71,12 +100,9 @@ public class Topaz : PluginAction<TopazInfo>
                 "vram=1", "instances=1",
             };
 
-            launcher.VideoFilters.Add(new[]
-            {
-                string.Join(':', filter),
-            });
+            launcher.VideoFilters.Add(new[] { string.Join(':', filter) });
         }
-        else if (data.Operation == TopazOperation.Upscale)
+        static void AddUpscaleArgs(TopazInfo data, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
         {
             var w = ffprobe.VideoStream.Width * (data.X ?? 2);
             var h = ffprobe.VideoStream.Height * (data.X ?? 2);
@@ -106,7 +132,7 @@ public class Topaz : PluginAction<TopazInfo>
                 $"scale=out_color_matrix=bt709",
             });
         }
-        else if (data.Operation == TopazOperation.Denoise)
+        static void AddDenoiseArgs(TopazInfo data, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
         {
             var w = ffprobe.VideoStream.Width;
             var h = ffprobe.VideoStream.Height;
@@ -128,10 +154,66 @@ public class Topaz : PluginAction<TopazInfo>
             {
                 string.Join(':', filter),
 
-                // ffmpeg "-hide_banner" "-nostdin" "-y" "-nostats" "-i" "C:/Users/user/Documents/mov.mov" "-sws_flags" "spline+accurate_rnd+full_chroma_int" "-color_trc" "2" "-colorspace" "5" "-color_primaries" "2" "-filter_complex" "tvai_up=model=prob-3:scale=0:w=3840:h=2160:preblur=0:noise=0:details=0:halo=0:blur=0:compression=0:estimate=20:device=0:vram=1:instances=1,scale=w=3840:h=2160:flags=lanczos:threads=0,scale=out_color_matrix=bt709" "-c:v" "prores_ks" "-profile:v" "1" "-vendor" "apl0" "-quant_mat" "lt" "-bits_per_mb" "525" "-pix_fmt" "yuv422p10le" "-map_metadata" "0" "-movflags" "frag_keyframe+empty_moov+delay_moov+use_metadata_tags+write_colr " "-map_metadata:s:v" "0:s:v" "-an" "-metadata" "videoai=Enhanced using prob-3 auto with recover details at 0, dehalo at 0, reduce noise at 0, sharpen at 0, revert compression at 0, and anti-alias/deblur at 0. Changed resolution to 3840x2160" "C:/Users/user/Documents/mov_1_prob3_temp.mov"
                 $"scale=out_color_matrix=bt709",
             });
         }
-        else throw new TaskFailedException("Unknown operation");
+        async Task Stabilize(FileWithFormat input, TopazInfo data, FFProbe.FFProbeInfo ffprobe, string output)
+        {
+            /*
+            Stabilization needs two passes
+            The first one gathers data and saves it to `jsonfile`
+            The second one uses that data to stabilize
+            */
+
+            using var _ = Directories.DisposeDelete(Dirs.TempFile("topaz", extension: "json"), out var jsonfile);
+
+            await Execute(input, data, ffprobe, new FFmpegLauncherOutput() { Codec = new NullFFmpegCodec(), Output = "-" }, addFirstPassArgs);
+            await Execute(input, data, ffprobe, output, addSecondPassArgs);
+
+
+            static string preprocessFilename(string filename) => filename.Replace(@"\", @"/").Replace(":", @"\\:");
+            void addFirstPassArgs(TopazInfo data, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
+            {
+                var filter = new ArgList()
+                {
+                    // stabilization data collection filter
+                    "tvai_cpe=model=cpe-1",
+
+                    // stabilization data json result
+                    $"filename={preprocessFilename(jsonfile)}",
+                };
+
+                launcher.VideoFilters.Add(new[] { string.Join(':', filter) });
+            }
+            void addSecondPassArgs(TopazInfo data, FFProbe.FFProbeInfo ffprobe, FFmpegLauncher launcher)
+            {
+                var filter = new ArgList()
+                {
+                    // stabilization filter
+                    "tvai_stb=model=ref-2",
+
+                    // stabilization data json input
+                    $"filename={preprocessFilename(jsonfile)}",
+
+                    // stabilization strength
+                    $"smoothness={(data.Strength.GetValueOrDefault(.5f) * 12f).ToStringInvariant()}",
+
+                    // full frame stabilization
+                    "full=1",
+
+                    // rolling shutter correction
+                    "roll=0", 
+
+                    // reduce jittering motion, 2 passes
+                    "reduce=2",
+
+                    "smoothness=6", "rst=0", "wst=0", "cache=128", "dof=1111", "ws=32",
+
+                    "vram=1", "instances=1",
+                };
+
+                launcher.VideoFilters.Add(new[] { string.Join(':', filter) });
+            }
+        }
     }
 }

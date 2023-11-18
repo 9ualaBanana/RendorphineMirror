@@ -1,3 +1,3 @@
 namespace Node.Tasks;
 
-public record TaskFilesCheckData(ReadOnlyTaskFileList InputFiles, ReadOnlyTaskFileList OutputFiles);
+public record TaskFilesCheckData(IReadOnlyTaskFileList InputFiles, IReadOnlyTaskFileList OutputFiles);

@@ -6,10 +6,12 @@
 
   <ItemGroup>
     <!--<ProjectReference Include="..\Node\Node.csproj" />-->
+    <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
     <ProjectReference Include="..\Node.Common\Node.Common.csproj" />
     <ProjectReference Include="..\Node.Plugins\Node.Plugins.csproj" />
     <ProjectReference Include="..\Node.Tasks\Node.Tasks.csproj" />
     <ProjectReference Include="..\..\NodeCommon\NodeCommon.csproj" />
+    <ProjectReference Include="..\..\ChatGptApi\ChatGptApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,7 +28,7 @@
     <PackageReference Include="Microsoft.PowerShell.Sdk" Version="7.3.4" />
     <PackageReference Include="Autofac" Version="7.0.1" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="NLog.Extensions.Logging" Version="5.1.0" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="5.2.1" />
   </ItemGroup>
 
 </Project>

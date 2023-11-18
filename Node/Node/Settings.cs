@@ -31,5 +31,5 @@ public static class Settings
     public static DatabaseValue<uint> TaskAutoDeletionDelayDays => Instance.TaskAutoDeletionDelayDays;
     public static DatabaseValue<SettingsInstance.BenchmarkInfo?> BenchmarkResult => Instance.BenchmarkResult;
 
-    public static readonly SettingsInstance Instance = new();
+    public static readonly SettingsInstance Instance = new(new DataDirs("renderfin"));
 }

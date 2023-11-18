@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Common
@@ -56,6 +57,14 @@ namespace Common
 
             return value;
         }
+        public static string ThrowIfNullOrEmpty([NotNull] this string? value, string? message = null, [CallerArgumentExpression(nameof(value))] string? expression = null)
+        {
+            value.ThrowIfNull(message, expression);
+            if (value.Length == 0)
+                throw new NullReferenceException(message ?? $"{expression ?? "Value"} is empty");
+
+            return value;
+        }
 
         public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> enumerable) where T : class =>
             enumerable.Where(item => item is not null)!;
@@ -86,5 +95,21 @@ namespace Common
 
         public static string AsUnixTimestamp(this DateTime dateTime) => AsUnixTimestamp(new DateTimeOffset(dateTime));
         public static string AsUnixTimestamp(this DateTimeOffset dateTimeOffset) => dateTimeOffset.ToUnixTimeMilliseconds().ToString();
+
+
+        public static bool IsAssignableToOpenGeneric(this Type type, Type genericType)
+        {
+            foreach (var it in type.GetInterfaces())
+                if (it.IsGenericType && it.GetGenericTypeDefinition() == genericType)
+                    return true;
+
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == genericType)
+                return true;
+
+            var baseType = type.BaseType;
+            if (baseType is null) return false;
+
+            return baseType.IsAssignableToOpenGeneric(genericType);
+        }
     }
 }

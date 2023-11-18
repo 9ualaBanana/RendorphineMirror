@@ -1,7 +1,7 @@
 ﻿using NLog;
 using ILogger = NLog.ILogger;
 
-namespace Telegram.Infrastructure.Tasks;
+namespace Telegram.Tasks;
 
 /// <summary>
 /// Cache for storing instances of <see cref="TypedRegisteredTask"/> with their <see cref="OwnedRegisteredTask.Owner"/>

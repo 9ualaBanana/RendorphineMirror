@@ -3,26 +3,28 @@ using System.Text;
 
 namespace Node;
 
-public static class SessionManager
+public class SessionManager
 {
     const string Endpoint = Api.TaskManagerEndpoint;
-    readonly static Logger Logger = LogManager.GetCurrentClassLogger();
+
+    public required Api Api { get; init; }
+    public required ILogger<SessionManager> Logger { get; init; }
 
 
-    public static ValueTask<OperationResult> RenameServerAsync(string newname, string oldname) =>
-        Api.Default.ApiPost($"{Endpoint}/renameserver", "Renaming the node", ("sessionid", Settings.SessionId), ("oldname", oldname), ("newname", newname));
+    public ValueTask<OperationResult> RenameServerAsync(string newname, string oldname) =>
+        Api.ApiPost($"{Endpoint}/renameserver", "Renaming the node", ("sessionid", Settings.SessionId), ("oldname", oldname), ("newname", newname));
 
-    public static ValueTask<OperationResult> AutoAuthAsync(string email) => AutoAuthAsync(email, Guid.NewGuid().ToString());
-    public static ValueTask<OperationResult> AutoAuthAsync(string email, string guid) =>
-        Api.Default.ApiPost<LoginResult>($"{Endpoint}/autologin", null, "Autologging in", ("email", email), ("guid", guid))
+    public ValueTask<OperationResult> AutoAuthAsync(string email) => AutoAuthAsync(email, Guid.NewGuid().ToString());
+    public ValueTask<OperationResult> AutoAuthAsync(string email, string guid) =>
+        Api.ApiPost<LoginResult>($"{Endpoint}/autologin", null, "Autologging in", ("email", email), ("guid", guid))
         .Next(res => LoginSuccess(res.SessionId, email, guid, res.UserId, true));
 
-    public static ValueTask<OperationResult> AuthAsync(string email, string password) => AuthAsync(email, password, Guid.NewGuid().ToString());
-    public static ValueTask<OperationResult> AuthAsync(string email, string password, string guid) =>
-        Api.Default.ApiPost<LoginResult>($"{Endpoint}/login", null, "Logging in", ("email", email), ("password", password), ("guid", guid))
+    public ValueTask<OperationResult> AuthAsync(string email, string password) => AuthAsync(email, password, Guid.NewGuid().ToString());
+    public ValueTask<OperationResult> AuthAsync(string email, string password, string guid) =>
+        Api.ApiPost<LoginResult>($"{Endpoint}/login", null, "Logging in", ("email", email), ("password", password), ("guid", guid))
         .Next(res => LoginSuccess(res.SessionId, email, guid, res.UserId, false));
 
-    public static async ValueTask<OperationResult> WebAuthAsync(CancellationToken token = default)
+    public async ValueTask<OperationResult> WebAuthAsync(CancellationToken token = default)
     {
         using var listener = new HttpListener();
         listener.Prefixes.Add("http://127.0.0.1:3525/rphtaskexec/mpoauthresult/");
@@ -38,7 +40,7 @@ public static class SessionManager
             try
             {
                 if (token.IsCancellationRequested) return false;
-                var context = await listener.GetContextAsync().ConfigureAwait(false);
+                var context = await listener.GetContextAsync();
                 using var response = context.Response;
 
                 if (token.IsCancellationRequested) return false;
@@ -48,10 +50,10 @@ public static class SessionManager
                 var sid = query["sessionid"].ThrowIfNull();
                 var uid = query["userid"].ThrowIfNull();
 
-                var login = await LoginSuccess(sid, null, guid, uid, false).ConfigureAwait(false);
+                var login = await LoginSuccess(sid, null, guid, uid, false);
 
                 response.StatusCode = (int) HttpStatusCode.OK;
-                await response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("<html><body>Authentication successful, you can now close this page</body></html>")).ConfigureAwait(false);
+                await response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("<html><body>Authentication successful, you can now close this page</body></html>"), token);
 
                 return login;
             }
@@ -60,25 +62,21 @@ public static class SessionManager
         }
     }
 
-    static async ValueTask<OperationResult> LoginSuccess(string sid, string? email, string guid, string userid, bool slave)
+    async ValueTask<OperationResult> LoginSuccess(string sid, string? email, string guid, string userid, bool slave)
     {
         Settings.AuthInfo = new AuthInfo(sid, email, guid, userid, slave);
         if (string.IsNullOrEmpty(Settings.NodeName))
         {
-            var nickr = await RequestNicknameAsync().ConfigureAwait(false);
+            var nickr = await Api.ApiPost<string>($"{Endpoint}/generatenickname", "nickname", "Generating nickname", ("sessionid", Settings.SessionId));
             nickr.LogIfError();
 
             if (nickr) Settings.NodeName = nickr.Value;
             else Settings.NodeName = email + "_" + guid;
 
-            Logger.Info($"Generated nickname: {Settings.NodeName ?? "!!NULL!!"}");
+            Logger.LogInformation($"Generated nickname: {Settings.NodeName ?? "!!NULL!!"}");
         }
 
         return true;
-
-
-        static ValueTask<OperationResult<string>> RequestNicknameAsync() =>
-            Api.Default.ApiPost<string>($"{Endpoint}/generatenickname", "nickname", "Generating nickname", ("sessionid", Settings.SessionId));
     }
 
 

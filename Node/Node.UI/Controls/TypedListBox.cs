@@ -4,26 +4,26 @@ namespace Node.UI.Controls;
 
 public static class TypedListBox
 {
-    public static TypedListBox<T> Create<T>(IReadOnlyCollection<T> items, Func<T, IControl> func) => new TypedListBox<T>(items, func);
+    public static TypedListBox<T> Create<T>(IReadOnlyCollection<T> items, Func<T, Control> func) => new TypedListBox<T>(items, func);
 
-    public static TypedListBox<T> CreateBinded<T>(IReadOnlyBindableCollection<T> items, Func<T, IControl> func)
+    public static TypedListBox<T> CreateBinded<T>(IReadOnlyBindableCollection<T> items, Func<T, Control> func)
     {
         items = items.GetBoundCopy();
 
         var list = new TypedListBox<T>(items, func);
-        items.SubscribeChanged(() => Dispatcher.UIThread.Post(() => list.Items = items), true);
+        items.SubscribeChanged(() => Dispatcher.UIThread.Post(() => list.ItemsSource = items), true);
 
         return list;
     }
 }
-public class TypedListBox<T> : ListBox, IStyleable
+public class TypedListBox<T> : ListBox
 {
-    Type IStyleable.StyleKey => typeof(ListBox);
+    protected override Type StyleKeyOverride => typeof(ListBox);
     public new T SelectedItem => (T) base.SelectedItem!;
 
-    public TypedListBox(IReadOnlyCollection<T> items, Func<T, IControl> func)
+    public TypedListBox(IReadOnlyCollection<T> items, Func<T, Control> func)
     {
-        Items = items;
+        ItemsSource = items;
         ItemTemplate = new FuncDataTemplate<T>((t, _) => func(t));
     }
 }
