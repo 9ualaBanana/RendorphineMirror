@@ -22,24 +22,31 @@ public class LogsTab : Panel
         public LogViewer(string logName, LogLevel level)
         {
             var flogname = logName;
-            string getlogdir() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, level.Name, "log.log").Replace("Node.UI", flogname);
+            string getlogfile() => Path.Combine(Path.GetDirectoryName(typeof(MainWindow).Assembly.Location)!, "logs", logName, level.Name, "log.log").Replace("Node.UI", flogname);
 
-            var dir = getlogdir();
-            if (!File.Exists(dir))
+            var file = getlogfile();
+            if (!File.Exists(file))
             {
                 logName = "dotnet";
-                dir = getlogdir();
+                file = getlogfile();
             }
 
+            var dir = Path.GetDirectoryName(file).ThrowIfNull();
             var tb = new TextBox() { AcceptsReturn = true };
             Children.Add(new Grid()
             {
                 RowDefinitions = RowDefinitions.Parse("Auto *"),
+                ColumnDefinitions = ColumnDefinitions.Parse("Auto *"),
                 Children =
+                {
+                    new MPButton()
                     {
-                        new TextBlock() { Text = dir }.WithRow(0),
-                        tb.WithRow(1),
-                    },
+                        Text = "Open directory",
+                        OnClick = () => Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true }),
+                    }.WithColumn(0),
+                    new TextBlock() { Text = file }.WithColumn(1),
+                    tb.WithRow(1).WithColumnSpan(2),
+                },
             });
 
 
@@ -57,14 +64,14 @@ public class LogsTab : Panel
                         if (!visible) continue;
 
                         int read = 0;
-                        if (File.Exists(dir))
+                        if (File.Exists(file))
                         {
-                            using var reader = File.Open(dir, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                            using var reader = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                             reader.Position = Math.Max(reader.Length - buffer.Length, 0);
                             read = reader.Read(buffer);
                         }
 
-                        var str = $"{Encoding.UTF8.GetString(buffer.AsSpan(0, read))}\n\n<read on {DateTime.UtcNow}>";
+                        var str = $"{Encoding.UTF8.GetString(buffer.AsSpan(0, read))}\n<read on {DateTime.UtcNow}>";
                         Dispatcher.UIThread.Post(() =>
                         {
                             tb.Text = str;

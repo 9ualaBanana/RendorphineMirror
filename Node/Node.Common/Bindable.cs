@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Runtime.Serialization;
+using Autofac.Builder;
 
 namespace Node.Common;
 
@@ -43,19 +44,26 @@ public abstract class BindableBase<T> : IReadOnlyBindable<T>
     public void SubscribeChanged(Action action, bool executeImmediately = false)
     {
         Changed += action;
-        if (executeImmediately) TriggerValueChanged();
+        if (executeImmediately) action();
     }
-    public void TriggerValueChanged() => InternalSet(Value, this);
-
-    void InternalSet(T value, BindableBase<T> eventSource)
+    public void TriggerValueChanged() => TriggerValueChanged(this);
+    public void TriggerValueChanged(BindableBase<T> eventSource)
     {
-        _Value = value;
         Changed?.Invoke();
 
         // TODO: remove weakrefs
         foreach (var weak in References)
             if (weak.TryGetTarget(out var obj) && obj != eventSource)
-                obj.InternalSet(value, this);
+                obj.InternalSet(Value, this);
+    }
+
+    void InternalSet(T value, BindableBase<T> eventSource)
+    {
+        var eq = EqualityComparer<T>.Default.Equals(Value, value);
+        _Value = value;
+
+        if (!eq)
+            TriggerValueChanged(eventSource);
     }
 
     public void Bind(BindableBase<T> other)
@@ -177,7 +185,7 @@ public class BindableDictionary<TKey, TValue> : BindableBase<IReadOnlyDictionary
     public IEnumerable<TKey> Keys => Value.Keys;
     public IEnumerable<TValue> Values => Value.Values;
 
-    public BindableDictionary(IEnumerable<KeyValuePair<TKey, TValue>>? values = null) : base(new Dictionary<TKey, TValue>())
+    public BindableDictionary(IEnumerable<KeyValuePair<TKey, TValue>>? values = null, IEqualityComparer<TKey>? keycomparer = null) : base(new Dictionary<TKey, TValue>(keycomparer))
     {
         if (values is not null)
             foreach (var (key, value) in values)
@@ -206,4 +214,10 @@ public class BindableDictionary<TKey, TValue> : BindableBase<IReadOnlyDictionary
 
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => Value.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+public static class BindableExtensions
+{
+    public static IRegistrationBuilder<Bindable<T>, TActivatorData, TActivationStyle> AsReadOnlyBindable<T, TActivatorData, TActivationStyle>(this IRegistrationBuilder<Bindable<T>, TActivatorData, TActivationStyle> builder) =>
+        builder.As<IReadOnlyBindable<T>>();
 }

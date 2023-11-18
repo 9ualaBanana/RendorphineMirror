@@ -1,10 +1,7 @@
 ﻿using GIBS.CallbackQueries.Serialization;
 using GIBS.Media;
 using Microsoft.Extensions.Options;
-using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.Tasks;
 using Telegram.Localization.Resources;
-using Telegram.MPlus.Security;
 using Telegram.Tasks;
 
 namespace Telegram.MediaFiles.Images;
@@ -12,11 +9,11 @@ namespace Telegram.MediaFiles.Images;
 public class ImageProcessingCallbackQueryHandler
     : MediaProcessingCallbackQueryHandler<ImageProcessingCallbackQuery, ImageProcessingCallbackData>
 {
-    readonly TaskManager _taskManager;
+    readonly RTaskManager _rTaskManager;
     readonly Uri _hostUrl;
 
     public ImageProcessingCallbackQueryHandler(
-        TaskManager taskManager,
+        RTaskManager rTaskManager,
         IOptions<TelegramBot.Options> botOptions,
         MediaFilesCache mediaFilesCache,
         LocalizedText.Media localizedMediaText,
@@ -27,7 +24,7 @@ public class ImageProcessingCallbackQueryHandler
         ILogger<ImageProcessingCallbackQueryHandler> logger)
         : base(localizedMediaText, mediaFilesCache, httpClientFactory, serializer, bot, httpContextAccessor, logger)
     {
-        _taskManager = taskManager;
+        _rTaskManager = rTaskManager;
         _hostUrl = botOptions.Value.Host;
     }
 
@@ -44,54 +41,23 @@ public class ImageProcessingCallbackQueryHandler
         });
 
     async Task UpscaleAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
-    {
-        const TaskAction Action = TaskAction.EsrganUpscale;
-        var registeredTask = await _taskManager.TryRegisterAsync(
+        => await _rTaskManager.TryRegisterAsync(
             new TaskCreationInfo(
-                Action,
+                TaskAction.EsrganUpscale,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
-                new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "upscaled"),
+                new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "upscaled") { CustomHost = _hostUrl.ToString() },
                 TaskObject.From(cachedImage.File)),
-            User.ToTelegramBotUserWith(ChatId),
-            MPlusIdentity.SessionIdOf(User));
-
-        if (registeredTask is not null)
-            await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
-                new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
-                );
-        else await Bot.SendMessageAsync_(ChatId, NoMoreFreeActionsMessageFor(Action));
-    }
+            User.ToTelegramBotUserWith(ChatId), RequestAborted);
 
     async Task VectorizeAndUploadToMPlusAsync(MediaFilesCache.Entry cachedImage)
-    {
-        const TaskAction Action = TaskAction.VeeeVectorize;
-        var registeredTask = await _taskManager.TryRegisterAsync(
+        => await _rTaskManager.TryRegisterAsync(
             new TaskCreationInfo(
-                Action,
+                TaskAction.VeeeVectorize,
                 new DownloadLinkTaskInputInfo(new Uri(_hostUrl, $"tasks/getinput/{cachedImage.Index}")),
-                new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "vectorized"),
+                new MPlusTaskOutputInfo(cachedImage.Index.ToString(), "vectorized") { CustomHost = _hostUrl.ToString() },
                 new VeeeVectorizeInfo(new int[] { 8500 }),
                 TaskObject.From(cachedImage.File)),
-            User.ToTelegramBotUserWith(ChatId),
-            MPlusIdentity.SessionIdOf(User));
-
-        if (registeredTask is not null)
-            await Bot.SendMessageAsync_(ChatId, LocalizedMediaText.ResultPromise,
-                new InlineKeyboardMarkup(DetailsButtonFor(registeredTask))
-                );
-        else await Bot.SendMessageAsync_(ChatId, NoMoreFreeActionsMessageFor(Action));
-    }
-
-    InlineKeyboardButton DetailsButtonFor(ITypedRegisteredTask typedRegisteredTask)
-        => InlineKeyboardButton.WithCallbackData("Details",
-            Serializer.Serialize(new TaskCallbackQuery.Builder<TaskCallbackQuery>()
-                .Data(TaskCallbackData.Details)
-                .Arguments(typedRegisteredTask.Id, typedRegisteredTask.Action)
-                .Build())
-            );
-
-    string NoMoreFreeActionsMessageFor(TaskAction action)
-        => $"Task couldn't be registered: no more free {action} actions left.";
+            User.ToTelegramBotUserWith(ChatId), RequestAborted);
 }
 
 public record ImageProcessingCallbackQuery : MediaProcessingCallbackQuery<ImageProcessingCallbackData>

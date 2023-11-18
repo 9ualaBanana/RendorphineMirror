@@ -1,4 +1,4 @@
-﻿namespace Telegram.Infrastructure.Tasks;
+﻿namespace Telegram.Tasks;
 
 internal record OwnedRegisteredTask : TypedRegisteredTask
 {

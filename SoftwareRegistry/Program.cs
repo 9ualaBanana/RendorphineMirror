@@ -8,20 +8,20 @@ global using NodeCommon;
 global using System.Collections.Immutable;
 global using System.Diagnostics.CodeAnalysis;
 global using ILogger = Microsoft.Extensions.Logging.ILogger;
-using NLog.Web;
+using Autofac.Extensions.DependencyInjection;
 using SoftwareRegistry;
 
-Initializer.AppName = "renderfin_registry2";
-Init.Initialize();
 
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
-builder.Host.UseNLog();
+builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder =>
+    Init.InitializeContainer(builder, new Init.InitConfig("renderfin_registry3"), typeof(Program).Assembly)
+));
+
 builder.Services.AddControllers().AddNewtonsoftJson();
-builder.Services.AddSingleton(new TorrentClient(6229, 6230));
-builder.Services.AddSingleton<SoftList>();
-builder.Services.AddSingleton<TorrentManager>();
+builder.Services.AddSingleton(ctx => new TorrentClient(6231, 6232) { Logger = ctx.GetRequiredService<ILogger<TorrentClient>>() });
+builder.Services.AddSingleton<SoftwareList>();
 
 var app = builder.Build();
 
@@ -29,9 +29,8 @@ var client = app.Services.GetRequiredService<TorrentClient>();
 app.Services.GetRequiredService<ILogger<Program>>()
     .LogInformation("Torrent listening at dht" + client.DhtPort + " and trt" + client.ListenPort);
 
-await app.Services.GetRequiredService<TorrentManager>()
-    .AddFromMainDirectoryAsync();
-
+await app.Services.GetRequiredService<SoftwareList>()
+    .AddPluginsFromDirectory("plugins");
 
 app.MapControllers();
 app.Run();

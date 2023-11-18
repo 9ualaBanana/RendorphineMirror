@@ -45,6 +45,7 @@ public static class PortForwarding
 
     public static async Task<bool> IsPortOpenAndListening(string host, int port, CancellationToken token = default)
     {
+        token = CancellationTokenSource.CreateLinkedTokenSource(token, new CancellationTokenSource(TimeSpan.FromSeconds(1)).Token).Token;
         try
         {
             using var client = new TcpClient();

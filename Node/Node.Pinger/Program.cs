@@ -1,17 +1,16 @@
+using Node.Common;
 using UpdaterCommon;
 
 
-Init.Initialize();
+using var container = Init.CreateContainer(new Init.InitConfig("renderfin") { AutoClearTempDir = false }).Build();
+
 var updater = UpdateChecker.LoadFromJsonOrDefault(args: new Dictionary<string, string>() { ["Node.UI"] = "hidden" });
 await updater.Update().ThrowIfError();
 
 
 try
 {
-    var portfile = new[] { Directories.DataFor("renderfin"), Directories.Data, }
-        .Select(p => Path.Combine(p, "lport"))
-        .First(File.Exists);
-
+    var portfile = new DataDirs("renderfin").DataFile("lport");
     var port = ushort.Parse(await File.ReadAllTextAsync(portfile));
 
     var msg = await new HttpClient().GetAsync($"http://127.0.0.1:{port}/ping");
@@ -26,7 +25,7 @@ catch (Exception ex)
 
 void restart(string errmsg)
 {
-    LogManager.GetCurrentClassLogger().Info(errmsg);
+    NLog.LogManager.GetCurrentClassLogger().Info(errmsg);
 
     FileList.KillProcesses();
     updater.StartApp();

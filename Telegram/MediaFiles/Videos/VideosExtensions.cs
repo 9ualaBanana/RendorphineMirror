@@ -12,7 +12,7 @@ static class VideosExtensions
     {
         builder.Services.TryAddScoped_<ICallbackQueryHandler, VideoProcessingCallbackQueryHandler>();
         builder.Services.TryAddScoped<VideoHandler_, ProcessingMethodSelectorVideoHandler>();
-        builder.AddTasks();
+        builder.AddRTasks();
 
         return builder;
     }

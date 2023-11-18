@@ -4,6 +4,7 @@ public class TaskCreationInfo
 {
     public string Action = default!;
     public JObject Input = default!;
+    public JArray Inputs = default!;
     public JObject Output = default!;
     public JObject Data = default!;
     public TaskPolicy Policy = TaskPolicy.AllNodes;

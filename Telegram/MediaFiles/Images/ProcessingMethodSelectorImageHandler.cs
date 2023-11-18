@@ -11,11 +11,11 @@ namespace Telegram.MediaFiles.Images;
 
 public class ProcessingMethodSelectorImageHandler : ImageHandler_
 {
-    readonly TaskPrice _taskPrice;
+    readonly RTaskManager _rTaskManager;
     readonly LocalizedText.Media _localizedMediaText;
 
     public ProcessingMethodSelectorImageHandler(
-        TaskPrice taskPrice,
+        RTaskManager rTaskManager,
         MediaFilesCache cache,
         MediaFile.Factory factory,
         CallbackQuerySerializer serializer,
@@ -25,7 +25,7 @@ public class ProcessingMethodSelectorImageHandler : ImageHandler_
         ILogger<ProcessingMethodSelectorImageHandler> logger)
         : base(cache, factory, serializer, bot, httpContextAccessor, logger)
     {
-        _taskPrice = taskPrice;
+        _rTaskManager = rTaskManager;
         _localizedMediaText = localizedMediaText;
     }
 
@@ -82,9 +82,9 @@ public class ProcessingMethodSelectorImageHandler : ImageHandler_
         });
 
 
-        async Task<string?> PriceFor(TaskAction taskAction)
+        async Task<string?> PriceFor(TaskAction rTaskAction)
         {
-            var price = await _taskPrice.CalculateConsideringBonusBalanceAsyncFor(taskAction, MPlusIdentity.SessionIdOf(User), RequestAborted);
+            var price = await _rTaskManager.CalculatePriceAsyncFor(rTaskAction, MPlusIdentity.SessionIdOf(User), RequestAborted);
             return price is 0 ? null : $" | {price}€";
         }
     }

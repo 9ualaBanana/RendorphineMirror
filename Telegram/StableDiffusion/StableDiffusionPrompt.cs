@@ -1,17 +1,26 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using Telegram.Bot.Types;
+using Telegram.Infrastructure.Bot;
 using Telegram.MPlus.Clients;
+using Telegram.MPlus.Security;
+using Telegram.Tasks;
 
 namespace Telegram.StableDiffusion;
 
 public class StableDiffusionPrompt
 {
+    readonly RTaskManager _rTaskManager;
     readonly StockSubmitterClient _stockSubmitterClient;
     readonly CachedMessages _sentPromptMessages;
+    readonly Uri _hostUrl;
 
-    public StableDiffusionPrompt(StockSubmitterClient stockSubmitterClient, CachedMessages sentPromptMessages)
+    public StableDiffusionPrompt(RTaskManager rTaskManager, StockSubmitterClient stockSubmitterClient, CachedMessages sentPromptMessages, IOptions<TelegramBot.Options> botOptions)
     {
+        _rTaskManager = rTaskManager;
         _stockSubmitterClient = stockSubmitterClient;
         _sentPromptMessages = sentPromptMessages;
+        _hostUrl = botOptions.Value.Host;
     }
 
     internal async Task<string> NormalizeAsync(IEnumerable<string> promptTokens, string userId, CancellationToken cancellationToken)
@@ -33,13 +42,25 @@ public class StableDiffusionPrompt
         return string.Join(' ', promptTokens);
     }
 
-    internal async Task SendAsync(StableDiffusionPromptMessage promptMessage, CancellationToken cancellationToken)
+    internal async Task SendAsync(IEnumerable<string> promptTokens, Message promptMessage, TelegramBot.User user, CancellationToken cancellationToken)
+        => await SendAsync(new(await NormalizeAsync(promptTokens, MPlusIdentity.UserIdOf(user), cancellationToken), promptMessage), user, cancellationToken);
+    /// <remarks>
+    /// Also requires <see cref="User"/> and <see cref="ChatId"/>.
+    /// </remarks>
+    internal async Task SendAsync(StableDiffusionPromptMessage prompt, TelegramBot.User user, CancellationToken cancellationToken)
     {
         var promptId = Guid.NewGuid();
 
-        // Send Prompt() to the Renderphine.
+        await _rTaskManager.TryRegisterAsync(
+            new TaskCreationInfo(
+                TaskAction.GenerateImageByPrompt,
+                new StubTaskInfo(),
+                new MPlusTaskOutputInfo(promptId.ToString(), "stablediffusion") { CustomHost = _hostUrl.ToString() },
+                new GenerateImageByPromptInfo(ImageGenerationSource.StableDiffusion, prompt.Prompt),
+                new TaskObject(promptId.ToString(), default)),
+            user, cancellationToken);
 
-        _sentPromptMessages.Add(promptId, promptMessage);
+        _sentPromptMessages.Add(promptId, prompt);
     }
 
 
@@ -59,7 +80,6 @@ public class StableDiffusionPrompt
             .Dispose();
 
         internal StableDiffusionPromptMessage? TryRetrieveBy(Guid promptId)
-            => _cache.TryGetValue(promptId, out StableDiffusionPromptMessage promptMessage) ?
-            promptMessage : null;
+        { _cache.TryGetValue(promptId, out StableDiffusionPromptMessage? promptMessage); return promptMessage; }
     }
 }

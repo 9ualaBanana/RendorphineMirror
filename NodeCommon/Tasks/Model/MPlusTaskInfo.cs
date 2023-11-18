@@ -14,18 +14,18 @@ public class MPlusTaskInputInfo : ITaskInputInfo
     }
 
 
-    static ValueTask<OperationResult<Dictionary<string, MPlusNewItem>>> GetMpItems(string sessionid, string userid, IEnumerable<string> iids) =>
+    static Task<OperationResult<Dictionary<string, MPlusNewItem>>> GetMpItems(Api api, string sessionid, string userid, IEnumerable<string> iids) =>
         iids.Chunk(30).Select(async iids =>
-            await Api.Default.ApiPost<Dictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info",
+            await api.ApiPost<Dictionary<string, MPlusNewItem>>($"{Api.TaskManagerEndpoint}/getmpitems", "items", "Getting mp item info",
                 ("sessionid", sessionid), ("userid", userid), ("iids", JsonConvert.SerializeObject(iids)))
         )
-        .MergeDictResults();
+        .AggregateMany();
 
-    public ValueTask<OperationResult<TaskObject>> GetFileInfo(string sessionid, string myuserid) => GetFileInfo(sessionid, TUid ?? myuserid, Iid);
-    public static ValueTask<OperationResult<TaskObject>> GetFileInfo(string sessionid, string userid, string iid) =>
-        GetMpItems(sessionid, userid, new[] { iid }).Next(data => new TaskObject(data[iid].Files.File.FileName, data[iid].Files.File.Size).AsOpResult());
-    public static ValueTask<OperationResult<Dictionary<string, TaskObject>>> GetFilesInfoDict(string sessionid, string userid, IEnumerable<string> iids) =>
-        GetMpItems(sessionid, userid,iids).Next(data => data.Values.Select(item => KeyValuePair.Create(item.Iid, new TaskObject(item.Files.File.FileName, item.Files.File.Size)).AsOpResult()).MergeDictResults());
+    public Task<OperationResult<TaskObject>> GetFileInfo(Api api, string sessionid, string myuserid) => GetFileInfo(api, sessionid, TUid ?? myuserid, Iid);
+    public static Task<OperationResult<TaskObject>> GetFileInfo(Api api, string sessionid, string userid, string iid) =>
+        GetMpItems(api, sessionid, userid, new[] { iid }).Next(data => new TaskObject(data[iid].Files.File.FileName, data[iid].Files.File.Size).AsOpResult());
+    public static Task<OperationResult<Dictionary<string, TaskObject>>> GetFilesInfoDict(Api api, string sessionid, string userid, IEnumerable<string> iids) =>
+        GetMpItems(api, sessionid, userid, iids).Next(data => data.Values.Select(item => KeyValuePair.Create(item.Iid, new TaskObject(item.Files.File.FileName, item.Files.File.Size)).AsOpResult()).Aggregate());
 }
 public class MPlusTaskOutputInfo : ITaskOutputInfo
 {
@@ -40,6 +40,7 @@ public class MPlusTaskOutputInfo : ITaskOutputInfo
     public readonly int? AutoremoveTimer;
     public readonly string? TUid;
     [Hidden] public string? IngesterHost;
+    public string? CustomHost { get; init; }
 
     public MPlusTaskOutputInfo(string name, string directory, int? autoremoveTimer = null, string? tuid = null)
     {

@@ -7,14 +7,14 @@ public static class JsonApi
     public static JObject JsonFromOpResult(in OperationResult result)
     {
         var json = new JObject() { ["ok"] = new JValue(result.Success ? 1 : 0), };
-        if (!result) json["errormessage"] = result.AsString();
+        if (!result) json["errormessage"] = result.Error.ToString();
 
         return json;
     }
     public static JObject JsonFromOpResult<T>(in OperationResult<T> result) => JsonFromOpResult(result, "value");
     public static JObject JsonFromOpResult<T>(in OperationResult<T> result, string propertyname)
     {
-        var json = JsonFromOpResult(result.EString);
+        var json = JsonFromOpResult(result.OpResult);
         if (result) json[propertyname] = JToken.FromObject(result.Value!);
 
         return json;

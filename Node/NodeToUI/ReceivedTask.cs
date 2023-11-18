@@ -1,13 +1,17 @@
 namespace NodeToUI;
 
-public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info), ILoggable
+public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info)
 {
-    protected override string LogName => $"RTask";
-
     public readonly HashSet<IUploadedFileInfo> UploadedFiles = new();
 
-    public ReadOnlyTaskFileList? InputFileList;
+    [JsonConverter(typeof(TypedArrJsonConverter))]
+    public IReadOnlyList<object>? DownloadedInputs;
+
+    [JsonConverter(typeof(TypedJsonConverter))]
+    public object? Result;
+
+    [Obsolete("DELETE")] public ReadOnlyTaskFileList? InputFileList;
 
     [JsonConverter(typeof(JsonSettings.ConcreteConverter<TaskFileListList, IReadOnlyTaskFileListList>))]
-    public IReadOnlyTaskFileListList? OutputFileListList;
+    [Obsolete("DELETE")] public IReadOnlyTaskFileListList? OutputFileListList;
 }

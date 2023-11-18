@@ -5,22 +5,24 @@ namespace _3DProductsPublish.Turbosquid.Upload.Requests;
 
 internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
 {
+    internal const int MaxPartSize = 5242880;
+
     readonly FileStream _asset;
     readonly HttpRequestMessage _initializingUploadIdRequest;
     readonly int _partsCount;
 
     internal static async Task<MultipartAssetUploadRequest> CreateAsyncFor(
         FileStream asset,
-        TurboSquid3DProductUploadSessionContext uploadSessionContext,
+        TurboSquid.PublishSession session,
         int partsCount)
     {
         var unixTimestamp = DateTime.UtcNow.AsUnixTimestamp();
-        var uploadEndpoint = uploadSessionContext.UploadEndpointFor(asset, unixTimestamp);
+        var uploadEndpoint = session.UploadEndpointFor(asset, unixTimestamp);
         var requestUri = new UriBuilder(uploadEndpoint) { Query = "uploads" }.Uri;
         var initializingUploadIdRequest = await new HttpRequestMessage(HttpMethod.Post, requestUri)
-            .SignAsyncWith(uploadSessionContext.AwsUploadCredentials, includeAcl: true);
+            .SignAsyncWith(session.AwsCredential, includeAcl: true);
 
-        return new(asset, initializingUploadIdRequest, unixTimestamp, uploadEndpoint, uploadSessionContext.AwsUploadCredentials, partsCount);
+        return new(asset, initializingUploadIdRequest, unixTimestamp, uploadEndpoint, session, partsCount);
     }
 
     MultipartAssetUploadRequest(
@@ -28,34 +30,31 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
         HttpRequestMessage initializingUploadIdRequest,
         string unixTimestamp,
         Uri uploadEndpoint,
-        TurboSquidAwsUploadCredentials awsUploadCredentials,
-        int partsCount) : base(uploadEndpoint, unixTimestamp, awsUploadCredentials)
+        TurboSquid.PublishSession session,
+        int partsCount) : base(uploadEndpoint, unixTimestamp, session)
     {
         _asset = asset;
         _initializingUploadIdRequest = initializingUploadIdRequest;
         _partsCount = partsCount;
     }
 
-    protected override async Task SendAsyncCoreUsing(HttpClient httpClient, CancellationToken cancellationToken)
+    protected override async Task SendAsyncCore()
     {
-        string uploadId = await RequestUploadIDAsyncUsing(httpClient, cancellationToken);
+        string uploadId = await RequestUploadIDAsync();
 
         var assetPartsUploadRequests = await
-            CreateAssetPartsUploadRequestsAsyncFor(_asset, UploadEndpoint, AwsUploadCredentials, uploadId, _partsCount, cancellationToken);
-        var multipartAssetUploadResult = await UploadAssetPartsAsyncUsing(
-            httpClient,
-            assetPartsUploadRequests,
-            cancellationToken);
+            CreateAssetPartsUploadRequestsAsyncFor(_asset, UploadEndpoint, Session.AwsCredential, uploadId, _partsCount, Session.CancellationToken);
+        var multipartAssetUploadResult = await UploadAssetPartsAsyncUsing(assetPartsUploadRequests);
 
-        await CompleteMultipartUploadAsyncUsing(httpClient, uploadId, multipartAssetUploadResult, cancellationToken);
+        await CompleteMultipartUploadAsync(uploadId, multipartAssetUploadResult);
     }
 
-    async Task<string> RequestUploadIDAsyncUsing(HttpClient httpClient, CancellationToken cancellationToken)
+    async Task<string> RequestUploadIDAsync()
     {
-        (await httpClient.SendAsync(OptionsRequestFor(_initializingUploadIdRequest), cancellationToken)).EnsureSuccessStatusCode();
+        (await Session.Client.SendAsync(OptionsRequestFor(_initializingUploadIdRequest), Session.CancellationToken)).EnsureSuccessStatusCode();
         var response = await
-            (await httpClient.SendAsync(_initializingUploadIdRequest, cancellationToken))
-            .Content.ReadAsStreamAsync(cancellationToken);
+            (await Session.Client.SendAsync(_initializingUploadIdRequest, Session.CancellationToken))
+            .Content.ReadAsStreamAsync(Session.CancellationToken);
 
         using var xmlReader = XmlReader.Create(response);
         if (!xmlReader.ReadToFollowing("UploadId")) throw new MissingFieldException("Response doesn't contain UploadId.");
@@ -79,19 +78,17 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
     }
 
     async Task<MultipartAssetUploadResult> UploadAssetPartsAsyncUsing(
-        HttpClient httpClient,
-        IList<AssetPartUploadRequest> assetPartsUploadRequests,
-        CancellationToken cancellationToken)
+        IList<AssetPartUploadRequest> assetPartsUploadRequests)
     {
         foreach (var assetPartUploadRequest in assetPartsUploadRequests)
-            (await httpClient.SendAsync(OptionsRequestFor(assetPartUploadRequest), cancellationToken))
+            (await Session.Client.SendAsync(OptionsRequestFor(assetPartUploadRequest), Session.CancellationToken))
                 .EnsureSuccessStatusCode();
 
         var assetPartsUploadResults = new List<AssetPartUploadResult>(assetPartsUploadRequests.Count);
         int partNumber = 1;
         foreach (var assetPartUploadRequest in assetPartsUploadRequests)
         {
-            var uploadedAssetETag = (await httpClient.SendAsync(assetPartUploadRequest, cancellationToken))
+            var uploadedAssetETag = (await Session.Client.SendAsync(assetPartUploadRequest, Session.CancellationToken))
                 .EnsureSuccessStatusCode()
                 .Headers.ETag!.Tag;
             assetPartUploadRequest.Dispose();
@@ -101,15 +98,15 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
         return new(assetPartsUploadResults);
     }
 
-    async Task CompleteMultipartUploadAsyncUsing(HttpClient httpClient, string uploadId, MultipartAssetUploadResult assetMultipartUploadResult, CancellationToken cancellationToken)
+    async Task CompleteMultipartUploadAsync(string uploadId, MultipartAssetUploadResult assetMultipartUploadResult)
     {
         var multipartUploadCompletionRequest = await new HttpRequestMessage(HttpMethod.Post, $"{UploadEndpoint}?uploadId={uploadId}")
         { Content = new StringContent(assetMultipartUploadResult._ToXML()) }
-        .SignAsyncWith(AwsUploadCredentials);
+        .SignAsyncWith(Session.AwsCredential);
 
-        (await httpClient.SendAsync(OptionsRequestFor(multipartUploadCompletionRequest), cancellationToken))
+        (await Session.Client.SendAsync(OptionsRequestFor(multipartUploadCompletionRequest), Session.CancellationToken))
             .EnsureSuccessStatusCode();
-        (await httpClient.SendAsync(multipartUploadCompletionRequest, cancellationToken))
+        (await Session.Client.SendAsync(multipartUploadCompletionRequest, Session.CancellationToken))
             .EnsureSuccessStatusCode();
     }
 
@@ -128,8 +125,6 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
 
     class AssetPartUploadRequest : HttpRequestMessage
     {
-        const int _MaxPartSize = 5242880;
-
         readonly MemoryStream _content;
 
         internal static async Task<AssetPartUploadRequest> CreateAsyncFor(
@@ -140,8 +135,8 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
             string uploadId,
             CancellationToken cancellationToken)
         {
-            var content = new MemoryStream(_MaxPartSize);
-            await asset.CopyAtMostAsync(content, _MaxPartSize, cancellationToken: cancellationToken);
+            var content = new MemoryStream(MaxPartSize);
+            await asset.CopyAtMostAsync(content, MaxPartSize, cancellationToken: cancellationToken);
             content.Position = 0;
             var requestUri = new UriBuilder(uploadEndpoint) { Query = $"partNumber={partNumber}&uploadId={uploadId}" }.Uri;
 

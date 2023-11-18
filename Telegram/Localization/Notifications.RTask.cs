@@ -1,9 +1,7 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using GIBS.CallbackQueries.Serialization;
+using Microsoft.Extensions.Caching.Memory;
 using System.Text;
-using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
 using Telegram.Localization.Resources;
 using Telegram.Tasks;
 
@@ -43,7 +41,7 @@ public abstract partial class Notifications
         }
 
         internal async Task<Message> SendRegistrationFailedAsyncFor(ChatId chatId, TaskCreationInfo rTaskInfo, CancellationToken cancellationToken)
-            => await Bot.SendMessageAsyncCore(chatId, $"Task couldn't be registered: no more free {rTaskInfo.Action} actions left.", cancellationToken: cancellationToken);
+            => await Bot.SendMessageAsync_(chatId, $"Task couldn't be registered: no more free {rTaskInfo.Action} actions left.", cancellationToken: cancellationToken);
 
         internal async Task<Message> SendDetailsAsync(ChatId chatId, string sessionId, RTaskCallbackQuery callbackQuery, Message callbackQuerySource, CancellationToken cancellationToken)
         {

@@ -44,16 +44,18 @@ public class UpdateChecker
     public readonly string TargetDirectory, TempDirectory;
     public readonly ImmutableArray<string> AppExecutables;
     public readonly ImmutableDictionary<string, string> Args;
+    public readonly bool UseAdminRights;
 
-    public static UpdateChecker LoadFromJsonOrDefault(string? url = null, string? app = null, string? targetdirectory = null, string? tempdirectory = null, string[]? appexecutables = null, IReadOnlyDictionary<string, string>? args = null)
+    public static UpdateChecker LoadFromJsonOrDefault(string? url = null, string? app = null, string? targetdirectory = null, string? tempdirectory = null, string[]? appexecutables = null, IReadOnlyDictionary<string, string>? args = null, bool useAdminRights = true)
     {
         if (!File.Exists("updater.json")) return new(url, app, targetdirectory, tempdirectory, appexecutables, args);
 
         var jsontext = File.ReadAllText("updater.json");
         return JsonConvert.DeserializeObject<UpdateChecker>(jsontext).ThrowIfNull("Could not deserialize updater.json");
     }
-    public UpdateChecker(string? url = null, string? app = null, string? targetdirectory = null, string? tempdirectory = null, string[]? appexecutables = null, IReadOnlyDictionary<string, string>? args = null)
+    public UpdateChecker(string? url = null, string? app = null, string? targetdirectory = null, string? tempdirectory = null, string[]? appexecutables = null, IReadOnlyDictionary<string, string>? args = null, bool useAdminRights = true)
     {
+        UseAdminRights = useAdminRights;
         Url = url ?? "https://t.microstock.plus:5011";
 
         if (app is null)
@@ -72,7 +74,7 @@ public class UpdateChecker
             if (dir.Contains('-', StringComparison.OrdinalIgnoreCase))
                 dir = string.Join('-', dir.Split('-')[..^1]);
 
-            var folder = (Initializer.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ? Environment.SpecialFolder.ProgramFiles : Environment.SpecialFolder.LocalApplicationData;
+            var folder = (UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ? Environment.SpecialFolder.ProgramFiles : Environment.SpecialFolder.LocalApplicationData;
             targetdirectory = Path.Combine(Environment.GetFolderPath(folder), dir);
         }
         targetdirectory = Path.GetFullPath(targetdirectory);
@@ -157,7 +159,7 @@ public class UpdateChecker
             _logger.Info(string.Join("; ", files.Value.Select(x => x.Path)));
 
         DownloadingStarted(files.Value);
-        var download = await files.Value.OrderByDescending(x => x.Size).Select(DownloadFileToTemp).MergeParallel(6).ConfigureAwait(false);
+        var download = await files.Value.OrderByDescending(x => x.Size).AggregateParallel(DownloadFileToTemp, 6).ConfigureAwait(false);
         if (!download) return download;
 
         startNewUpdater();
@@ -180,7 +182,7 @@ public class UpdateChecker
                 start.ArgumentList.Add(arg);
             start.ArgumentList.Add(JObject.FromObject(this).With(j => j["doupdate"] = true).ToString(Formatting.None));
 
-            if (Initializer.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 // elevate
 
@@ -194,7 +196,7 @@ public class UpdateChecker
             Environment.Exit(0);
         }
     }
-    public async ValueTask<OperationResult> DownloadFileToTemp(UpdaterFileInfo file)
+    public async Task<OperationResult> DownloadFileToTemp(UpdaterFileInfo file)
     {
         try
         {

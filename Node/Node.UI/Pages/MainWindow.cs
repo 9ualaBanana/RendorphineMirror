@@ -1,6 +1,9 @@
+using System.Web;
+using Autofac;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Node.UI.Pages.MainWindowTabs;
 using NodeToUI.Requests;
-using System.Web;
 
 namespace Node.UI.Pages
 {
@@ -8,14 +11,18 @@ namespace Node.UI.Pages
     {
         readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-        public MainWindow()
+        public MainWindow(NodeStateUpdater nodeStateUpdater)
         {
+            this.AttachDevToolsIfDebug();
+
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
+            MinWidth = 555;
+            MinHeight = 255;
             Width = 692;
             Height = 410;
-            Title = App.AppName;
-            Icon = App.Icon;
+            Title = App.Instance.AppName;
+            Icon = App.Instance.Icon;
 
             this.PreventClosing();
             SubscribeToStateChanges();
@@ -23,13 +30,13 @@ namespace Node.UI.Pages
 
             var tabs = new TabbedControl();
             tabs.Add("tasks", new TasksTab2());
-            tabs.Add("tab.dashboard", new DashboardTab());
+            tabs.Add("tab.dashboard", new DashboardTab(NodeGlobalState.Instance));
             tabs.Add("tab.plugins", new PluginsTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
-            if (Init.DebugFeatures) tabs.Add("registry", new JsonRegistryTab());
-            tabs.Add("cgtraderupload", new CGTraderUploadTab());
-            tabs.Add("3dupload", new ModelUploader());
+            tabs.Add("3dupload", new Model3DUploadTab());
+            if (App.Instance.Init.DebugFeatures)
+                tabs.Add("registry", App.Instance.Container.Resolve<RegistryEditor>());
 
             var statustb = new TextBlock()
             {
@@ -48,9 +55,9 @@ namespace Node.UI.Pages
             };
 
 
-            NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            nodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
             {
-                if (NodeStateUpdater.IsConnectedToNode.Value) statustb.Text = null;
+                if (nodeStateUpdater.IsConnectedToNode.Value) statustb.Text = null;
                 else
                 {
                     statustb.Text = "!!! No connection to node !!!";
@@ -111,28 +118,19 @@ namespace Node.UI.Pages
 
                 void handle(string reqid, GuiRequest request)
                 {
-                    if (request is CaptchaRequest captchareq) handleCaptchaRequest(captchareq);
-                    else if (request is InputRequest inputreq) handleInputRequest(inputreq);
-
-
-                    void handleCaptchaRequest(CaptchaRequest req)
+                    Dispatcher.UIThread.Post(() =>
                     {
-                        Dispatcher.UIThread.Post(() =>
+                        GuiRequestWindow window = request switch
                         {
-                            var window = new CaptchaWindow(req.Base64Image, v => sendResponse(v));
-                            req.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
-                            window.Show();
-                        });
-                    }
-                    void handleInputRequest(InputRequest req)
-                    {
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            var window = new InputWindow(req.Text, v => sendResponse(v));
-                            req.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
-                            window.Show();
-                        });
-                    }
+                            CaptchaRequest req => new CaptchaWindow(req.Base64Image, v => sendResponse(v)),
+                            InputRequest req => new InputWindow(req.Text, v => sendResponse(v)),
+                            InputTurboSquidModelInfoRequest req => new TurboSquidModelInfoInputWindow(req, v => sendResponse(v)),
+                            _ => throw new InvalidOperationException("Unknown request type " + request),
+                        };
+
+                        request.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
+                        window.Show();
+                    });
 
 
                     async Task sendResponse(JToken token)

@@ -2,6 +2,8 @@ namespace Node.Plugins.Discoverers;
 
 internal class DotnetRuntimePluginDiscoverer : IPluginDiscoverer
 {
+    public required ILogger<DotnetRuntimePluginDiscoverer> Logger { get; init; }
+
     public async Task<IEnumerable<Plugin>> DiscoverAsync()
     {
         /*
@@ -33,7 +35,7 @@ internal class DotnetRuntimePluginDiscoverer : IPluginDiscoverer
             https://aka.ms/dotnet/download
         */
 
-        var dotnetexe = ProcessLauncher.FindInPath("dotnet");
+        var dotnetexe = ProcessLauncher.FindInPath("dotnet", Logger);
         if (!dotnetexe) return Enumerable.Empty<Plugin>();
 
         var info = await new ProcessLauncher(dotnetexe.Value, "--info")

@@ -6,6 +6,8 @@ public class PublicListener : ExecutableListenerBase
 {
     protected override ListenTypes ListenType => ListenTypes.Public;
 
+    public required SettingsInstance Settings { get; init; }
+
     public PublicListener(ILogger<PublicListener> logger) : base(logger) { }
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
@@ -14,7 +16,7 @@ public class PublicListener : ExecutableListenerBase
         var response = context.Response;
 
         if (path == "ping")
-            return await WriteJToken(response, $"ok from {MachineInfo.PCName} {MachineInfo.UserName} {Settings.NodeName} v{MachineInfo.Version} web{Settings.UPnpServerPort}").ConfigureAwait(false);
+            return await WriteJToken(response, $"ok from {Environment.MachineName} {Environment.UserName} {Settings.NodeName} v{Init.Version} web{Settings.UPnpServerPort}").ConfigureAwait(false);
 
         if (path == "getcontents")
         {

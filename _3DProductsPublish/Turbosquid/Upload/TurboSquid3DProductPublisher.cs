@@ -1,27 +1,24 @@
-﻿using _3DProductsPublish._3DModelDS;
-using _3DProductsPublish.Turbosquid.Api;
-using _3DProductsPublish.Turbosquid.Network.Authenticity;
+﻿using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.Turbosquid._3DModelComponents;
 using System.Net;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
-internal class TurboSquid3DProductPublisher : I3DProductPublisher
+internal class TurboSquid3DProductPublisher : I3DProductPublisher<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>
 {
-    readonly TurboSquidApi _api;
+    readonly TurboSquid _turboSquid;
 
-    internal TurboSquid3DProductPublisher()
+    internal static async Task<TurboSquid3DProductPublisher> InitializeAsync(NetworkCredential credential, CancellationToken cancellationToken)
+        => new(await TurboSquid.LogInAsyncUsing(credential, cancellationToken));
+
+    TurboSquid3DProductPublisher(TurboSquid turboSquid)
     {
-        _api = new();
+        _turboSquid = turboSquid;
     }
 
     public async Task PublishAsync(
-        _3DProduct _3DProduct,
+        _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> _3DProduct,
         NetworkCredential credential,
         CancellationToken cancellationToken)
-    {
-        var credential_ = await TurboSquidNetworkCredential._RequestAsyncUsing(_api, credential, cancellationToken);
-        await _api._LoginAsyncUsing(credential_, cancellationToken);
-        var productUploadSessionContext = await _api._RequestProductUploadSessionContextAsyncFor(_3DProduct, credential_, cancellationToken);
-        await _api._UploadAssetsAsyncUsing(productUploadSessionContext, cancellationToken);
-    }
+        => await _turboSquid.PublishAsync(_3DProduct, cancellationToken);
 }

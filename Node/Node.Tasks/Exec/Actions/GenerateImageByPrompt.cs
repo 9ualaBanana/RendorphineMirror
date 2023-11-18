@@ -1,8 +1,10 @@
 namespace Node.Tasks.Exec.Actions;
-public class GenerateImageByPrompt : PluginAction<GenerateImageByPromptInfo>
+
+public class GenerateImageByPrompt : FilePluginActionInfo<GenerateImageByPromptInfo>
 {
     public override TaskAction Name => TaskAction.GenerateImageByPrompt;
     public override ImmutableArray<PluginType> RequiredPlugins => ImmutableArray.Create(PluginType.StableDiffusion);
+    protected override Type ExecutorType => typeof(Executor);
 
     public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
         new[] { new[] { FileFormat.Png }, new[] { FileFormat.Jpeg }, Array.Empty<FileFormat>() };
@@ -11,23 +13,33 @@ public class GenerateImageByPrompt : PluginAction<GenerateImageByPromptInfo>
         files.EnsureSingleOutputFile()
             .Next(output => TaskRequirement.EnsureFormat(output, FileFormat.Png));
 
-    public override async Task ExecuteUnchecked(ITaskExecutionContext context, TaskFiles files, GenerateImageByPromptInfo data)
+
+    class Executor : ExecutorBase
     {
-        var inputfile = files.InputFiles.FirstOrDefault();
+        public required ILifetimeScope Container { get; init; }
 
-        var launchinfo = new StableDiffusionLaunchInfo()
+        public override async Task<TaskFileOutput> ExecuteUnchecked(TaskFileInput input, GenerateImageByPromptInfo data)
         {
-            Prompt = data.Prompt,
-            NegativePrompt = data.NegativePrompt,
-            Width = data.Width,
-            Height = data.Height,
-            Seed = data.Seed,
-        };
+            using var ctx = Container.ResolveForeign<StableDiffusionLauncher>(out var launcher);
+            var inputfile = input.FirstOrDefault();
 
-        var output = files.OutputFiles.New();
+            var launchinfo = new StableDiffusionLaunchInfo()
+            {
+                Prompt = data.Prompt,
+                NegativePrompt = data.NegativePrompt,
+                Width = data.Width,
+                Height = data.Height,
+                Seed = data.Seed,
+            };
 
-        if (inputfile is not null)
-            await StableDiffusionLauncher.LaunchImg2ImgAsync(context, launchinfo, inputfile.Path, output);
-        else await StableDiffusionLauncher.LaunchTxt2ImgAsync(context, launchinfo, output);
+            var output = new TaskFileOutput(input.ResultDirectory);
+            var outfiles = output.Files.New();
+
+            if (inputfile is not null)
+                await launcher.LaunchImg2ImgAsync(launchinfo, inputfile.Path, outfiles);
+            else await launcher.LaunchTxt2ImgAsync(launchinfo, outfiles);
+
+            return output;
+        }
     }
 }

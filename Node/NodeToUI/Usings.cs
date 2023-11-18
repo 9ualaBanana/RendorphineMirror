@@ -1,5 +1,5 @@
 global using Common;
-global using NLog;
+global using Microsoft.Extensions.Logging;
 global using Node.Common;
 global using Node.Plugins.Models;
 global using Node.Tasks.Models;

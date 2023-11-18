@@ -1,10 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Autofac;
+using Microsoft.Extensions.Logging;
+using Node.Common;
 using UpdaterCommon;
 
 
+using var container = Init.CreateContainer(new Init.InitConfig("renderfin") { AutoClearTempDir = false }).Build();
+var init = container.Resolve<Init>();
 ElevateIfNeeded();
-Init.Initialize();
 
 UpdateChecker checker;
 var doupdate = false;
@@ -55,7 +59,8 @@ if (doupdate)
 while (true)
 {
     var update = await checker.Update();
-    update.LogIfError("Caught an error while updating: {0}; Restarting in a second...");
+    var logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<Program>();
+    update.LogIfError(logger, "Caught an error while updating: {0}; Restarting in a second...");
     if (update)
     {
         if (!FileList.IsProcessRunning(FileList.GetNodeExe()))
@@ -88,7 +93,7 @@ while (true)
 
 void ElevateIfNeeded()
 {
-    if (!Initializer.UseAdminRights || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+    if (!init.Configuration.UseAdminRights || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
 
     // admin rights test
     try { File.Create(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "_test")).Dispose(); }

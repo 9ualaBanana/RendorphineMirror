@@ -64,7 +64,7 @@ namespace Node.UI
                 window.Hide();
             };
         }
-        public static void InitializeTrayIndicator(this Application app)
+        public static void InitializeTrayIndicator(this Application app, NodeStateUpdater nodeStateUpdater)
         {
             var items = new (LocalizedString, Action)?[]
             {
@@ -74,11 +74,11 @@ namespace Node.UI
             }.ToImmutableArray();
 
             // TODO: remove four transparent pixels after fix
-            var icon = new TrayIcon() { ToolTipText = App.AppName, Icon = None };
+            var icon = new TrayIcon() { ToolTipText = App.Instance.AppName, Icon = None };
             icon.Clicked += (_, _) => open();
             icon.FixException();
 
-            InitializeIconInfo(icon);
+            InitializeIconInfo(icon, nodeStateUpdater);
 
             LocalizedString.ChangeLangWeakEvent.Subscribe(app, () => Dispatcher.UIThread.Post(updateMenus));
             updateMenus();
@@ -107,7 +107,7 @@ namespace Node.UI
                 {
                     var lifetime = (IClassicDesktopStyleApplicationLifetime) app.ApplicationLifetime!;
 
-                    var window = lifetime.MainWindow ?? App.SetMainWindow(lifetime);
+                    var window = lifetime.MainWindow ?? App.Current.SetMainWindow(lifetime);
                     if (window.IsVisible) window.Hide();
                     else window.Show();
                 });
@@ -122,7 +122,7 @@ namespace Node.UI
             }).Start();
         }
 
-        static void InitializeIconInfo(TrayIcon icon)
+        static void InitializeIconInfo(TrayIcon icon, NodeStateUpdater nodeStateUpdater)
         {
             var iconcache = new Dictionary<string, WindowIcon>();
             int time = -1;
@@ -138,7 +138,7 @@ namespace Node.UI
 
                 WindowIcon getIcon()
                 {
-                    if (!NodeStateUpdater.IsConnectedToNode.Value)
+                    if (!nodeStateUpdater.IsConnectedToNode.Value)
                     {
                         icon.ToolTipText = LocalizedString.String("No connection to node");
                         return Red;
@@ -155,7 +155,7 @@ namespace Node.UI
                     icon.ToolTipText = $@"
                         {task.Id}
                         {string.Join('-', task.Actions)}
-                        {Newtonsoft.Json.JsonConvert.SerializeObject(task.Info.Input, Newtonsoft.Json.Formatting.None)}
+                        {Newtonsoft.Json.JsonConvert.SerializeObject((object?) task.Info.Input ?? task.Info.Inputs, Newtonsoft.Json.Formatting.None)}
                         ".TrimLines();
 
                     if ((time / 3) % 2 == 0)

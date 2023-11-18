@@ -1,5 +1,4 @@
-﻿using Telegram.Infrastructure.Bot;
-using Telegram.Infrastructure.CallbackQueries.Serialization;
+﻿using GIBS.CallbackQueries.Serialization;
 
 namespace Telegram.Localization;
 

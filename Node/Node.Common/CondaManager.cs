@@ -2,12 +2,13 @@ using System.Management.Automation;
 
 namespace Node.Common;
 
-public static class CondaManager
+public class CondaManager
 {
-    static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    public required PowerShellInvoker PowerShellInvoker { get; init; }
+    public required DataDirs Dirs { get; init; }
+    public required ILogger<CondaManager> Logger { get; init; }
 
-
-    public static bool IsEnvironmentCreated(string name)
+    public bool IsEnvironmentCreated(string name)
     {
         var envdir = GetEnvironmentDirectory(name);
 
@@ -15,38 +16,61 @@ public static class CondaManager
             || File.Exists(Path.Combine(envdir, "bin", "python.exe")) || File.Exists(Path.Combine(envdir, "bin", "python"));
     }
 
-    public static string GetEnvironmentDirectory(string envname) => Path.Combine(Directories.Data, "conda", envname.ToLowerInvariant());
+    public string EnvironmentsDirectory => Dirs.DataDir("conda");
+    public string GetEnvironmentDirectory(string envname) => Dirs.DataDir(Path.Combine("conda", envname.ToLowerInvariant()), false);
 
-    public static string GetRunInEnvironmentScript(string condapath, string envname, string command) =>
-        $"& '{condapath}' run -p '{GetEnvironmentDirectory(envname)}' {command}";
+    public string GetActivateScript(string condapath, string envname) => $"""
+        (& '{condapath}' shell hook --shell powershell --root-prefix '{Dirs.DataDir("conda")}') | Out-String | Invoke-Expression
+        micromamba activate '{GetEnvironmentDirectory(envname)}'
+        """;
 
 
-    /// <remarks> Overwrites the environments if exists. </remarks>
-    public static void InitializeEnvironment(string condapath, string name, string pyversion, IReadOnlyCollection<string> requirements, IReadOnlyCollection<string> channels, IReadOnlyCollection<string>? piprequirements)
+    /// <remarks> Overwrites the environment if exists. </remarks>
+    public void InitializeEnvironment(string condapath, string name, string pyversion,
+        IReadOnlyCollection<string> condarequirements, IReadOnlyCollection<string> condachannels, IReadOnlyCollection<string> piprequirements, IReadOnlyCollection<string> piprequirementfiles,
+        string cwd)
     {
         {
-            var log = $"Initializing conda environment {name} with python={pyversion} {string.Join(' ', requirements)}";
-            log += $"; channels {string.Join(' ', channels)}";
-            if (piprequirements is not null)
-                log += $"; pip {string.Join(' ', piprequirements)}";
+            var log = $"Initializing conda environment {name}"
+                + $"; python={pyversion}"
+                + $"; condareq {string.Join(' ', condarequirements)}"
+                + $"; condac {string.Join(' ', condachannels)}"
+                + $"; pipreq {string.Join(' ', piprequirements)}"
+                + $"; pipreqfiles {string.Join(' ', piprequirementfiles)}";
 
-            Logger.Info(log);
+            Logger.LogInformation(log);
         }
 
+
         var script = $"""
-            & '{condapath}' create -y --json -p '{GetEnvironmentDirectory(name)}' 'python={pyversion}' {string.Join(' ', requirements.Select(r => $"'{r}'"))} {string.Join(' ', channels.Select(c => $"-c '{c}'"))}
-            {(piprequirements is null ? null : GetRunInEnvironmentScript(condapath, name, $"pip install {string.Join(' ', piprequirements.Select(r => $"'{r}'"))}"))}
+            Set-Location '{Path.GetFullPath(cwd)}'
+            & '{condapath}' create -y --json -p '{GetEnvironmentDirectory(name)}' 'python={pyversion}' {string.Join(' ', condarequirements.Select(r => $"'{r}'"))} {string.Join(' ', condachannels.Select(c => $"-c '{c}'"))}
+            {GetActivateScript(condapath, name)}
             """;
+
+        if (piprequirements.Count != 0 || piprequirementfiles.Count != 0)
+        {
+            var sc = $"\n pip install";
+            if (piprequirements.Count != 0)
+                sc += $" {string.Join(' ', piprequirements.Select(r => $"'{r}'"))}";
+            if (piprequirementfiles.Count != 0)
+                sc += $" {string.Join(' ', piprequirementfiles.Select(r => $"-r '{r}'"))}";
+
+            script += sc;
+        }
+
 
         try
         {
             var sw = Stopwatch.StartNew();
-            PowerShellInvoker.Invoke(script, onread, onerr, LogManager.GetLogger($"Conda init {name}").AsLoggable());
-            Logger.Info($"Conda environment '{name}' initialized succesfully in {sw.Elapsed}.");
+
+            using var _logscope = Logger.BeginScope($"Conda init {name}");
+            PowerShellInvoker.Invoke(script, onread, onerr);
+            Logger.LogInformation($"Conda environment '{name}' initialized succesfully in {sw.Elapsed}.");
         }
         catch (Exception ex)
         {
-            Logger.Info($"Could not initialize conda environment '{name}': {ex}");
+            Logger.LogInformation($"Could not initialize conda environment '{name}': {ex}");
         }
 
 
@@ -60,5 +84,15 @@ public static class CondaManager
             log();
             throw new Exception(obj.ToString());
         }
+    }
+
+    public string[] ListEnvironments() => Directory.GetDirectories(EnvironmentsDirectory);
+    public bool EnvironmentExists(string name) => Directory.Exists(GetEnvironmentDirectory(name));
+
+    public void DeleteEnvironment(string name)
+    {
+        var dir = GetEnvironmentDirectory(name);
+        if (Directory.Exists(dir))
+            Directory.Delete(dir, true);
     }
 }

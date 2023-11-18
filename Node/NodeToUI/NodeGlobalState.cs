@@ -10,39 +10,30 @@ public class NodeGlobalState
     [JsonIgnore]
     public readonly WeakEventManager<string> AnyChanged = new();
 
-    public string? SessionId => AuthInfo?.SessionId;
-
     public readonly Bindable<TasksFullDescriber> TaskDefinitions = new();
-    public readonly Bindable<ImmutableDictionary<string, SoftwareDefinition>> Software = new(ImmutableDictionary<string, SoftwareDefinition>.Empty);
+    public readonly Bindable<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>> Software = new(ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>.Empty);
     public readonly Bindable<ImmutableDictionary<string, SoftwareStats>> SoftwareStats = new(ImmutableDictionary<string, SoftwareStats>.Empty);
     public readonly Bindable<UUserSettings> UserSettings = new(new(null, null));
+    public readonly Bindable<UserBalance> Balance = new();
 
     public readonly BindableList<Plugin> InstalledPlugins = new();
     public readonly BindableDictionary<string, JToken?> ExecutingBenchmarks = new();
     public readonly BindableList<ReceivedTask> QueuedTasks = new();
     public readonly BindableList<ReceivedTask> ExecutingTasks = new();
     public readonly BindableList<DbTaskFullState> PlacedTasks = new();
+    public readonly BindableList<CompletedTask> CompletedTasks = new();
     public readonly BindableList<WatchingTask> WatchingTasks = new();
     public readonly Bindable<JObject?> BenchmarkResult = new();
     public readonly Bindable<uint> TaskAutoDeletionDelayDays = new();
 
-    public string ServerUrl => BServerUrl.Value;
-    public ushort LocalListenPort => BLocalListenPort.Value;
-    public ushort UPnpPort => BUPnpPort.Value;
-    public ushort UPnpServerPort => BUPnpServerPort.Value;
-    public ushort DhtPort => BDhtPort.Value;
-    public ushort TorrentPort => BTorrentPort.Value;
-    public string? NodeName => BNodeName.Value;
-    public AuthInfo? AuthInfo => BAuthInfo.Value;
-
-    public readonly Bindable<string> BServerUrl = new();
-    public readonly Bindable<ushort> BLocalListenPort = new();
-    public readonly Bindable<ushort> BUPnpPort = new();
-    public readonly Bindable<ushort> BUPnpServerPort = new();
-    public readonly Bindable<ushort> BDhtPort = new();
-    public readonly Bindable<ushort> BTorrentPort = new();
-    public readonly Bindable<string?> BNodeName = new();
-    public readonly Bindable<AuthInfo?> BAuthInfo = new();
+    public readonly Bindable<string> ServerUrl = new();
+    public readonly Bindable<ushort> LocalListenPort = new();
+    public readonly Bindable<ushort> UPnpPort = new();
+    public readonly Bindable<ushort> UPnpServerPort = new();
+    public readonly Bindable<ushort> DhtPort = new();
+    public readonly Bindable<ushort> TorrentPort = new();
+    public readonly Bindable<string?> NodeName = new();
+    public readonly Bindable<AuthInfo?> AuthInfo = new();
 
     // string = request guid
     public readonly BindableDictionary<string, GuiRequest> Requests = new();

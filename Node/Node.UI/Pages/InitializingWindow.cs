@@ -4,8 +4,10 @@ public class InitializingWindow : Window
 {
     public InitializingWindow()
     {
+        this.AttachDevToolsIfDebug();
+
         Title = "Initializing...";
-        Icon = App.Icon;
+        Icon = App.Instance.Icon;
 
         Width = 200;
         Height = 100;
@@ -15,7 +17,7 @@ public class InitializingWindow : Window
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             TextAlignment = TextAlignment.Center,
-            Text = $"Initializing Renderfin..." + (Init.IsDebug ? "\n(turn on node)" : null),
+            Text = $"Initializing Renderfin..." + (App.Instance.Init.IsDebug ? "\n(turn on node)" : null),
         };
     }
 }

@@ -1,3 +1,5 @@
+using System.Globalization;
+using Autofac;
 using Avalonia.Controls.Utils;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
@@ -9,10 +11,12 @@ public class TasksTab2 : Panel
 {
     public TasksTab2()
     {
+        var api = App.Instance.Container.Resolve<Apis>();
+
         var tabs = new TabbedControl();
-        tabs.Add("Local", new LocalTaskManager());
-        tabs.Add("Watching", new WatchingTaskManager());
-        tabs.Add("Remote", new RemoteTaskManager());
+        tabs.Add("Local", new LocalTaskManager() { Api = api });
+        tabs.Add("Watching", new WatchingTaskManager() { Api = api });
+        tabs.Add("Remote", new RemoteTaskManager() { Api = api });
 
         Children.Add(tabs);
     }
@@ -20,7 +24,7 @@ public class TasksTab2 : Panel
 
     abstract class TaskManager<T> : Panel
     {
-        protected NodeCommon.Apis Api => Apis.Default;
+        public required Apis Api { get; init; }
 
         public TaskManager()
         {
@@ -48,7 +52,7 @@ public class TasksTab2 : Panel
                     new MPButton()
                     {
                         Text = "Reload",
-                        OnClick = () => { grid.Items = Array.Empty<T>(); LoadSetItems(grid).Consume(); },
+                        OnClick = () => { grid.ItemsSource = Array.Empty<T>(); LoadSetItems(grid).Consume(); },
                     }.WithRow(0),
                     grid.WithRow(1),
                 },
@@ -56,7 +60,7 @@ public class TasksTab2 : Panel
         }
         protected abstract void CreateColumns(DataGrid data);
 
-        protected async Task LoadSetItems(DataGrid grid) => grid.Items = await Load();
+        protected async Task LoadSetItems(DataGrid grid) => grid.ItemsSource = await Load();
         protected abstract Task<IReadOnlyCollection<T>> Load();
     }
     abstract class NormalTaskManager : TaskManager<TaskBase>
@@ -157,7 +161,7 @@ public class TasksTab2 : Panel
         public Action<T, MPButton>? SelfAction;
         public Func<T, bool>? CreationRequirements;
 
-        protected override IControl GenerateElement(DataGridCell cell, object dataItem)
+        protected override Control GenerateElement(DataGridCell cell, object dataItem)
         {
             if (dataItem is not T item) return new Control();
 
@@ -172,7 +176,7 @@ public class TasksTab2 : Panel
             return btn;
         }
 
-        protected override IControl GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
-        protected override object PrepareCellForEdit(IControl editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
+        protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
+        protected override object PrepareCellForEdit(Control editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
     }
 }

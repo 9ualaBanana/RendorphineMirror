@@ -1,7 +1,5 @@
 using _3DProductsPublish;
-using _3DProductsPublish._3DModelDS;
-using _3DProductsPublish.CGTrader._3DModelComponents;
-using _3DProductsPublish.CGTrader.Network;
+using _3DProductsPublish._3DProductDS;
 using Node.Profiling;
 using System.Net;
 using System.Reflection;
@@ -12,18 +10,13 @@ public class LocalListener : ExecutableListenerBase
 {
     protected override ListenTypes ListenType => ListenTypes.Local;
 
-    readonly PluginManager PluginManager;
-    readonly PluginChecker PluginChecker;
-    readonly PluginDeployer PluginDeployer;
-    readonly Profiler Profiler;
+    public required PluginManager PluginManager { get; init; }
+    public required PluginDeployer PluginDeployer { get; init; }
+    public required NodeGlobalState NodeGlobalState { get; init; }
+    public required SessionManager SessionManager { get; init; }
+    public required Profiler Profiler { get; init; }
 
-    public LocalListener(PluginManager pluginManager, PluginChecker pluginChecker, PluginDeployer pluginDeployer, Profiler profiler, ILogger<LocalListener> logger) : base(logger)
-    {
-        PluginManager = pluginManager;
-        PluginChecker = pluginChecker;
-        PluginDeployer = pluginDeployer;
-        Profiler = profiler;
-    }
+    public LocalListener(ILogger<LocalListener> logger) : base(logger) { }
 
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
@@ -49,7 +42,7 @@ public class LocalListener : ExecutableListenerBase
                 OperationResult resp;
                 using (var _ = Profiler.LockHeartbeat())
                 {
-                    resp = SessionManager.RenameServerAsync(newname: nick, oldname: Settings.NodeName).ConfigureAwait(false).GetAwaiter().GetResult();
+                    resp = await SessionManager.RenameServerAsync(newname: nick, oldname: Settings.NodeName).ConfigureAwait(false);
                     if (resp) Settings.NodeName = nick;
                 }
 
@@ -63,7 +56,7 @@ public class LocalListener : ExecutableListenerBase
             {
                 Task.Run(async () =>
                 {
-                    var newcount = PluginDeployer.DeployUninstalled(PluginChecker.GetInstallationTree(type, version));
+                    var newcount = await PluginDeployer.DeployUninstalled(PluginChecker.GetInstallationTree(NodeGlobalState.Software.Value, type, version), default);
                     if (newcount != 0)
                         await PluginManager.RediscoverPluginsAsync();
                 }).Consume();
@@ -85,19 +78,6 @@ public class LocalListener : ExecutableListenerBase
                 Logger.Info($"Settings changed: {JsonConvert.SerializeObject(changed)}");
 
                 _ = Task.Delay(500).ContinueWith(_ => ListenerBase.RestartAll());
-                return await WriteSuccess(response).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-
-        if (path == "uploadcgtrader")
-        {
-            return await Test(request, response, "username", "password", "directory", "meta", async (username, password, dir, metastr) =>
-            {
-                var meta = JsonConvert.DeserializeObject<CGTrader3DProductMetadata>(metastr).ThrowIfNull();
-                var model = _3DProduct.FromDirectory(dir, meta);
-                var cred = new CGTraderNetworkCredential(username, password, false);
-
-                await _3DProductPublisher.PublishAsync(model, cred);
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
@@ -138,7 +118,7 @@ public class LocalListener : ExecutableListenerBase
         {
             return await TestPost(await CreateCached(request), response, "key", "value", async (key, value) =>
             {
-                var field = new[] { typeof(Settings), typeof(NodeSettings) }
+                var field = new[] { typeof(Settings), typeof(NodeSettingsInstance) }
                     .SelectMany(type => type.GetFields(BindingFlags.Public | BindingFlags.Static))
                     .Where(f => f.FieldType.IsAssignableTo(typeof(IDatabaseBindable)))
                     .FirstOrDefault(t => t.Name == "B" + key || t.Name == key);
@@ -147,6 +127,21 @@ public class LocalListener : ExecutableListenerBase
 
                 var json = JToken.Parse(value);
                 ((IDatabaseBindable) field.GetValue(null).ThrowIfNull()).Bindable.LoadFromJson(json, null);
+
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
+        if (path == "3dupload")
+        {
+            return await TestPost(await CreateCached(request), response, "creds", "meta", "dir", async (jcreds, jmeta, dir) =>
+            {
+                var creds = JsonConvert.DeserializeObject<_3DProductPublisher.Credentials>(jcreds).ThrowIfNull();
+                var meta = JsonConvert.DeserializeObject<_3DProduct.Metadata_>(jmeta).ThrowIfNull();
+
+                var product = _3DProduct.FromDirectory(dir);
+                await (await _3DProductPublisher.InitializeAsync(creds, default))
+                    .PublishAsync(product, meta, default);
 
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
