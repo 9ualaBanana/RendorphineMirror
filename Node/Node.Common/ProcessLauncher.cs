@@ -75,7 +75,9 @@ public class ProcessLauncher
         foreach (var (key, value) in EnvVariables)
             procinfo.EnvironmentVariables[key] = value;
 
-        Logging.ILogger?.LogInformation($"Starting {WrapWithSpaces(procinfo.FileName)} {string.Join(' ', procinfo.ArgumentList.Select(WrapWithSpaces))}");
+        if (Logging.LogStartMessage)
+            Logging.ILogger?.LogInformation($"Starting {WrapWithSpaces(procinfo.FileName)} {string.Join(' ', procinfo.ArgumentList.Select(WrapWithSpaces))}");
+
         var process = new Process() { StartInfo = procinfo };
         process.Start();
 
@@ -138,6 +140,9 @@ public class ProcessLauncher
         await proc.WaitForExitAsync(token.Token);
         await readingtask;
 
+        if (token.IsCancellationRequested)
+            throw new NodeProcessException($"Timeout of {Timeout} has been reached") { ExitCode = proc.ExitCode };
+
         if (ThrowOnNonZeroExitCode)
             EnsureZeroExitCode(proc);
     }
@@ -173,7 +178,7 @@ public class ProcessLauncher
     static void EnsureZeroExitCode(Process process)
     {
         if (process.ExitCode != 0)
-            throw new NodeProcessException(process, $"Process {process.Id} ended with exit code {process.ExitCode}");
+            throw new NodeProcessException($"Process {process.Id} ended with exit code {process.ExitCode}") { ExitCode = process.ExitCode };
     }
 
     /// <summary>
@@ -207,6 +212,7 @@ public class ProcessLauncher
     public class ProcessLogging
     {
         public ILogger? ILogger { get; set; }
+        public bool LogStartMessage { get; set; }
         public LogLevel StdOut { get; set; } = LogLevel.Trace;
         public LogLevel StdErr { get; set; } = LogLevel.Error;
     }
