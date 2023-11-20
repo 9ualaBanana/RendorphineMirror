@@ -327,8 +327,6 @@ public class OneClickWatchingTaskInputHandlerRunner
 
         var unityLogDir = Directories.DirCreated(LogDir, "unity");
 
-        var scenePath = UnityAssetsSceneResultDirectory;
-        var sceneJustName = UnitySceneName;
         var unityTemplateNames = new[] { "OCURP21+", /*"OCHDRP22+"*/ };
         foreach (var unityTemplateName in unityTemplateNames)
             await tryProcess(unityTemplateName);
@@ -379,7 +377,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                 if (ocImporterVersion is not null)
                     ExportInfo.Unity[unityTemplateName] = new(ocImporterVersion.ImporterVersion, ocImporterVersion.UnityVersion, ocImporterVersion.RendererType, UnityTemplatesGitCommitHash, false);
 
-                throw new Exception($"Could not process {unityTemplateName} for {sceneJustName}: {ex.Message}", ex);
+                throw new Exception($"Could not process {unityTemplateName} for {ZipFilePath}: {ex.Message}", ex);
             }
 
 
@@ -406,7 +404,7 @@ public class OneClickWatchingTaskInputHandlerRunner
             var (importerVersion, unityVersion, rendererType) = ocImporterVersion;
 
 
-            Logger.Info($"Importing {sceneJustName} with Unity {unityVersion} {rendererType} and importer v{importerVersion}");
+            Logger.Info($"Importing with Unity {unityVersion} {rendererType} and importer v{importerVersion}");
             var unity = PluginList.GetPlugin(PluginType.Unity, unityVersion);
 
             foreach (var fbx in Directory.GetFiles(unityTemplateAssetsDir, "*.fbx"))
@@ -449,7 +447,7 @@ public class OneClickWatchingTaskInputHandlerRunner
 
                 Logger.Info("Launching unity");
 
-                var logFileName = sceneJustName + "_log.log";
+                var logFileName = Path.GetFileNameWithoutExtension(ZipFilePath) + "_log.log";
                 foreach (var invalid in Path.GetInvalidPathChars())
                     logFileName = logFileName.Replace(invalid, '_');
 
@@ -493,7 +491,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                 var unityImportResultDir = UnityAssetsSceneResultDirectory;
 
                 // entrance_hall_for_export_[2021.3.32f1]_[URP]_[50]
-                var buildResultDir = Path.Combine(unityImportResultDir, "Builds", $"{sceneJustName}_[{unityVersion}]_[{rendererType}]_[{importerVersion}]");
+                var buildResultDir = Path.Combine(unityImportResultDir, "Builds", $"{UnitySceneName}_[{unityVersion}]_[{rendererType}]_[{importerVersion}]");
                 if (!Directory.Exists(buildResultDir))
                 {
                     Logger.Error($"{buildResultDir} was not found; searching for an empty dir");
@@ -512,7 +510,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                     {
                         var exeprocess = Process.GetProcesses().Where(proc =>
                         {
-                            try { return Path.GetFileName(proc.MainModule?.FileName)?.StartsWith(sceneJustName) == true; }
+                            try { return Path.GetFileName(proc.MainModule?.FileName)?.StartsWith(UnitySceneName) == true; }
                             catch { return false; }
                         }).FirstOrDefault();
 
