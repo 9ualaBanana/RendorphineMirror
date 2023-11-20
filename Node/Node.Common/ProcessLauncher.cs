@@ -136,12 +136,16 @@ public class ProcessLauncher
             catch { }
         }, null);
 
+        try
+        {
+            await proc.WaitForExitAsync(token.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            throw new NodeProcessException($"Execution of {Executable} has reached its timeout of {Timeout}") { ExitCode = proc.ExitCode };
+        }
 
-        await proc.WaitForExitAsync(token.Token);
         await readingtask;
-
-        if (token.IsCancellationRequested)
-            throw new NodeProcessException($"Timeout of {Timeout} has been reached") { ExitCode = proc.ExitCode };
 
         if (ThrowOnNonZeroExitCode)
             EnsureZeroExitCode(proc);

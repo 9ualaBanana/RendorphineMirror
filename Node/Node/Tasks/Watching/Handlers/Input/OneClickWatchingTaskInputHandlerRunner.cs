@@ -48,10 +48,34 @@ public class OneClickWatchingTaskInputHandlerRunner
     string NamedOutputDirectory => Directories.DirCreated(OutputDir, Path.GetFileNameWithoutExtension(ZipFilePath));
 
     /// <summary> C:\oneclick\output\{SmallGallery}\unity </summary>
-    string UnityResultDirectory => Directories.DirCreated(OutputDir, Path.Combine(NamedOutputDirectory, "unity"));
+    string UnityResultDirectory => Directories.DirCreated(NamedOutputDirectory, "unity");
 
     /// <summary> C:\oneclick\output\{SmallGallery}\unity\Assets </summary>
     string UnityAssetsResultDirectory => Directories.DirCreated(UnityResultDirectory, "Assets");
+
+    /// <summary> C:\oneclick\output\{SmallGallery}\unity\Assets\{Handling_Machining_v6} </summary>
+    string UnityAssetsSceneResultDirectory
+    {
+        get
+        {
+            var path = Directory.GetFiles(UnityAssetsResultDirectory)
+                .SingleOrDefault(file => Path.GetExtension(file) == ".fbx");
+
+            if (path is not null)
+                path = Path.ChangeExtension(path, null);
+            else
+                path = Directory.GetDirectories(UnityAssetsResultDirectory)
+                    .SingleOrDefault(dir => Path.GetFileName(dir) != "OneClickImport");
+
+            return path.ThrowIfNull();
+        }
+    }
+
+    /// <summary> {Handling_Machining_v6} </summary>
+    string UnitySceneName => Path.GetFileName(UnityAssetsSceneResultDirectory);
+
+    /// <summary> C:\oneclick\output\{SmallGallery}\unity\Assets\{Handling_Machining_v6}\renders </summary>
+    string UnityRendersDirectory => Directories.DirCreated(UnityAssetsSceneResultDirectory, "renders");
 
     /// <summary> C:\oneclick\output\{SmallGallery}\exportinfo.txt </summary>
     string ExportInfoFile => Path.GetFullPath(Path.Combine(NamedOutputDirectory, "exportinfo.txt"));
@@ -133,12 +157,45 @@ public class OneClickWatchingTaskInputHandlerRunner
     }
 
     async Task SaveExportInfo() => await File.WriteAllTextAsync(ExportInfoFile, JsonConvert.SerializeObject(ExportInfo));
-    async Task ReportError(string message)
+    async Task ReportError(Exception exception)
     {
-        Logger.Error(message);
+        Logger.Error(exception);
 
-        // $"{Path.GetFileNameWithoutExtension(ZipFilePath)} {message}"
-        // TODO: send to tg bot
+        try
+        {
+            var scenename = "<none>";
+            try { scenename = UnitySceneName; }
+            catch { }
+
+            var message = exception.Message;
+            var errorstr = $"""
+                Error from renderfin OneClick export:
+                Scene name: {scenename}
+                Archive name: {Path.GetFileNameWithoutExtension(ZipFilePath)}
+
+                ```
+                {message.Replace(@"\", @"\\")}
+                ```
+                """;
+
+            var query = Api.ToQuery(("error", errorstr));
+            using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_render_error?{query}", content: null);
+            result.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Error sending the error to tg bot: {ex}");
+        }
+    }
+
+    async Task ReportResult()
+    {
+        using var content = new MultipartFormDataContent();
+        foreach (var renderfile in Directory.GetFiles(UnityRendersDirectory, "*.png"))
+            content.Add(new StreamContent(File.OpenRead(renderfile)), "renders", Path.GetFileName(renderfile));
+
+        using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_renders", content);
+        result.EnsureSuccessStatusCode();
     }
 
 
@@ -162,7 +219,7 @@ public class OneClickWatchingTaskInputHandlerRunner
         }
         catch (Exception ex)
         {
-            try { await ReportError(ex.Message); }
+            try { await ReportError(ex); }
             catch { }
         }
         finally
@@ -270,13 +327,8 @@ public class OneClickWatchingTaskInputHandlerRunner
 
         var unityLogDir = Directories.DirCreated(LogDir, "unity");
 
-        var sceneName = Directory.GetFiles(UnityAssetsResultDirectory)
-            .SingleOrDefault(file => Path.GetExtension(file) == ".fbx");
-        sceneName ??= Directory.GetDirectories(UnityAssetsResultDirectory)
-            .SingleOrDefault(dir => Path.GetFileName(dir) != "OneClickImport");
-        sceneName.ThrowIfNull();
-
-
+        var scenePath = UnityAssetsSceneResultDirectory;
+        var sceneJustName = UnitySceneName;
         var unityTemplateNames = new[] { "OCURP21+", /*"OCHDRP22+"*/ };
         foreach (var unityTemplateName in unityTemplateNames)
             await tryProcess(unityTemplateName);
@@ -327,7 +379,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                 if (ocImporterVersion is not null)
                     ExportInfo.Unity[unityTemplateName] = new(ocImporterVersion.ImporterVersion, ocImporterVersion.UnityVersion, ocImporterVersion.RendererType, UnityTemplatesGitCommitHash, false);
 
-                throw new Exception($"[Unity] Could not process {unityTemplateName} for {sceneName}: {ex.Message}", ex);
+                throw new Exception($"Could not process {unityTemplateName} for {sceneJustName}: {ex.Message}", ex);
             }
 
 
@@ -354,7 +406,7 @@ public class OneClickWatchingTaskInputHandlerRunner
             var (importerVersion, unityVersion, rendererType) = ocImporterVersion;
 
 
-            Logger.Info($"Importing {sceneName} with Unity {unityVersion} {rendererType} and importer v{importerVersion}");
+            Logger.Info($"Importing {sceneJustName} with Unity {unityVersion} {rendererType} and importer v{importerVersion}");
             var unity = PluginList.GetPlugin(PluginType.Unity, unityVersion);
 
             foreach (var fbx in Directory.GetFiles(unityTemplateAssetsDir, "*.fbx"))
@@ -396,13 +448,18 @@ public class OneClickWatchingTaskInputHandlerRunner
                     File.Delete(bakeCompletedFile);
 
                 Logger.Info("Launching unity");
+
+                var logFileName = sceneJustName + "_log.log";
+                foreach (var invalid in Path.GetInvalidPathChars())
+                    logFileName = logFileName.Replace(invalid, '_');
+
                 //NonAdminRunner.RunAsDesktopUserWaitForExit(unity.Path, );
                 var launcher = new ProcessLauncher(unity.Path)
                 {
                     Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
                     ThrowOnStdErr = false,
                     ThrowOnNonZeroExitCode = false,
-                    Timeout = TimeSpan.FromHours(1),
+                    Timeout = TimeSpan.FromMinutes(10),
                     Arguments =
                     {
                         "-accept-apiupdate",
@@ -410,7 +467,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                         "-projectPath", unityTemplateDir,
                         "-executeMethod", "OCBatchScript.StartBake",
                         "-noLM",
-                        "-logFile", Path.Combine(unityLogDir, "log.log"),
+                        "-logFile", Path.Combine(unityLogDir, logFileName),
                     },
                 };
                 await launcher.ExecuteAsync();
@@ -430,13 +487,13 @@ public class OneClickWatchingTaskInputHandlerRunner
                     throw new Exception($"{bakeCompletedFile} is not parsable; Contents: \n```\n{bakeCompletedFile}\n```");
 
                 ExportInfo.Unity[unityTemplateName] = new(newBakedInfo.ImporterVersion, newBakedInfo.UnityVersion, newBakedInfo.RendererType, UnityTemplatesGitCommitHash, true);
-
+                moveBack();
 
                 var buildProjectDir = Path.Combine(unityTemplateDir, "Builds");
-                var unityImportResultDir = Path.Combine(unityTemplateAssetsDir, sceneName);
+                var unityImportResultDir = UnityAssetsSceneResultDirectory;
 
                 // entrance_hall_for_export_[2021.3.32f1]_[URP]_[50]
-                var buildResultDir = Path.Combine(unityImportResultDir, "Builds", $"{sceneName}_[{unityVersion}]_[{rendererType}]_[{importerVersion}]");
+                var buildResultDir = Path.Combine(unityImportResultDir, "Builds", $"{sceneJustName}_[{unityVersion}]_[{rendererType}]_[{importerVersion}]");
                 if (!Directory.Exists(buildResultDir))
                 {
                     Logger.Error($"{buildResultDir} was not found; searching for an empty dir");
@@ -455,7 +512,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                     {
                         var exeprocess = Process.GetProcesses().Where(proc =>
                         {
-                            try { return Path.GetFileName(proc.MainModule?.FileName)?.StartsWith(sceneName) == true; }
+                            try { return Path.GetFileName(proc.MainModule?.FileName)?.StartsWith(sceneJustName) == true; }
                             catch { return false; }
                         }).FirstOrDefault();
 
@@ -503,6 +560,18 @@ public class OneClickWatchingTaskInputHandlerRunner
             }
             finally
             {
+                moveBack();
+            }
+
+            await ReportResult();
+            Logger.Info("Completed");
+
+
+            void moveBack()
+            {
+                if (movedentries.Length == 0)
+                    return;
+
                 if (!Directory.Exists(UnityAssetsResultDirectory))
                     Directory.CreateDirectory(UnityAssetsResultDirectory);
 
@@ -516,9 +585,9 @@ public class OneClickWatchingTaskInputHandlerRunner
                         Directory.Move(source, destination);
                     else File.Move(source, destination);
                 }
-            }
 
-            Logger.Info("Completed");
+                movedentries = Array.Empty<string>();
+            }
         }
     }
 
@@ -565,7 +634,7 @@ public class OneClickWatchingTaskInputHandlerRunner
         var installedversion = File.ReadAllText(installedpath);
 
         if (installedversion != expectedversion)
-            throw new Exception($"Invalid mzp installation: versions are not equal ({installedversion} vs {expectedversion})");
+            throw new Exception($"Invalid mzp installation: versions are not equal (installed {installedversion} vs expected {expectedversion})");
 
         logger.Info($"Installed plugin version: {installedversion}");
     }
