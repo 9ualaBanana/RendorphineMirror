@@ -17,7 +17,29 @@ public class ChatApi
         var respjson = await JObject.LoadAsync(resp);
 
         if (respjson.ContainsKey("error"))
-            throw new Exception("Error in chat completion: " + respjson["error"]?["message"]?.Value<string>());
+        {
+            var msg = respjson["error"]?["message"]?.Value<string>();
+            if (msg?.Contains("Rate limit") == true)
+            {
+                try
+                {
+                    const string tryagain = "Please try again in ";
+                    var start = msg.IndexOf(tryagain, StringComparison.Ordinal) + tryagain.Length;
+                    var end = msg.IndexOf("s.", start, StringComparison.Ordinal);
+
+                    var wait = double.Parse(msg.AsSpan(start, end - start));
+                    await Task.Delay(TimeSpan.FromSeconds(wait));
+                }
+                catch
+                {
+                    await Task.Delay(5000);
+                }
+
+                return await SendRequest(crequest);
+            }
+
+            throw new Exception("Error in chat completion: " + msg);
+        }
 
         return respjson.ToObject<ChatResult>().ThrowIfNull();
     }

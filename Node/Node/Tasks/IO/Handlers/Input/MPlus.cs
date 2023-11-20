@@ -4,7 +4,6 @@ public static class MPlus
 {
     public class InputDownloader : FileTaskInputDownloader<MPlusTaskInputInfo>, ITypedTaskInput
     {
-        protected override bool AllowConcurrentMultiDownload => true;
         public static TaskInputType Type => TaskInputType.MPlus;
 
         public required IRegisteredTaskApi ApiTask { get; init; }
@@ -19,6 +18,9 @@ public static class MPlus
 
             foreach (var inputformats in firstaction.InputFileFormats.OrderByDescending(fs => fs.Sum(f => (int) f + 1)))
             {
+                if (inputformats.Count == 0)
+                    return files;
+
                 using var token = new CancellationTokenSource();
                 Logger.LogInformation($"[M+ ITH] (Re)trying to download {string.Join(", ", inputformats)}");
 
@@ -40,16 +42,30 @@ public static class MPlus
 
             async Task download(FileFormat format, CancellationToken token)
             {
-                var downloadLink = await (Api with { LogErrors = false }).ShardGet<string>(ApiTask, "gettaskinputdownloadlink", "link", "Getting m+ input download link",
-                    ("taskid", ApiTask.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"));
+                while (true)
+                {
+                    var downloadLink = await Api.ShardGet<string>(ApiTask, "gettaskinputdownloadlink", "link", "Getting m+ input download link",
+                        ("taskid", ApiTask.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"), ("iid", input.Iid));
 
-                using var response = await Api.Api.Client.GetAsync(downloadLink.ThrowIfError(), HttpCompletionOption.ResponseHeadersRead, token);
-                using var file = File.Open(files.New(format).Path, FileMode.Create, FileAccess.Write);
+                    if (!downloadLink && downloadLink.Error is HttpError { ErrorCode: -72 }) // There is no such content item
+                        downloadLink.ThrowIfError();
 
-                try { Logger.LogInformation($"[M+ ITH] {format} file is {response.Content.Headers.ContentLength} bytes"); }
-                catch { }
+                    if (!downloadLink && downloadLink.Error is HttpError { ErrorCode: -4 }) // internal network error
+                    {
+                        await Task.Delay(1000, token);
+                        continue;
+                    }
 
-                await response.Content.CopyToAsync(file, token);
+
+                    using var response = await Api.Api.Client.GetAsync(downloadLink.ThrowIfError(), HttpCompletionOption.ResponseHeadersRead, token);
+                    using var file = File.Open(files.New(format).Path, FileMode.Create, FileAccess.Write);
+
+                    try { Logger.LogInformation($"[M+ ITH] {format} file is {response.Content.Headers.ContentLength} bytes"); }
+                    catch { }
+
+                    await response.Content.CopyToAsync(file, token);
+                    break;
+                }
             }
         }
     }

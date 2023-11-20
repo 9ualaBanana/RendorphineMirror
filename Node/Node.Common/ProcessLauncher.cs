@@ -75,7 +75,9 @@ public class ProcessLauncher
         foreach (var (key, value) in EnvVariables)
             procinfo.EnvironmentVariables[key] = value;
 
-        Logging.ILogger?.LogInformation($"Starting {WrapWithSpaces(procinfo.FileName)} {string.Join(' ', procinfo.ArgumentList.Select(WrapWithSpaces))}");
+        if (Logging.LogStartMessage)
+            Logging.ILogger?.LogInformation($"Starting {WrapWithSpaces(procinfo.FileName)} {string.Join(' ', procinfo.ArgumentList.Select(WrapWithSpaces))}");
+
         var process = new Process() { StartInfo = procinfo };
         process.Start();
 
@@ -134,8 +136,15 @@ public class ProcessLauncher
             catch { }
         }, null);
 
+        try
+        {
+            await proc.WaitForExitAsync(token.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            throw new NodeProcessException($"Execution of {Executable} has reached its timeout of {Timeout}") { ExitCode = proc.ExitCode };
+        }
 
-        await proc.WaitForExitAsync(token.Token);
         await readingtask;
 
         if (ThrowOnNonZeroExitCode)
@@ -173,7 +182,7 @@ public class ProcessLauncher
     static void EnsureZeroExitCode(Process process)
     {
         if (process.ExitCode != 0)
-            throw new NodeProcessException(process, $"Process {process.Id} ended with exit code {process.ExitCode}");
+            throw new NodeProcessException($"Process {process.Id} ended with exit code {process.ExitCode}") { ExitCode = process.ExitCode };
     }
 
     /// <summary>
@@ -207,6 +216,7 @@ public class ProcessLauncher
     public class ProcessLogging
     {
         public ILogger? ILogger { get; set; }
+        public bool LogStartMessage { get; set; }
         public LogLevel StdOut { get; set; } = LogLevel.Trace;
         public LogLevel StdErr { get; set; } = LogLevel.Error;
     }

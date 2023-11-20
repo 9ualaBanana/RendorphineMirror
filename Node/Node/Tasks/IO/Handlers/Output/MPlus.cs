@@ -9,7 +9,7 @@ public static class MPlus
         public static TaskOutputType Type => TaskOutputType.MPlus;
         public required IRegisteredTaskApi ApiTask { get; init; }
 
-        protected override async Task UploadResultImpl(MPlusTaskOutputInfo info, ReadOnlyTaskFileList result, CancellationToken token)
+        protected override async Task UploadResultImpl(MPlusTaskOutputInfo info, ITaskInputInfo input, ReadOnlyTaskFileList result, CancellationToken token)
         {
             // example: files=["input.g.jpg", "input.t.jpg"] returns "input."
             var commonprefix = result.Paths.Select(Path.GetFileNameWithoutExtension).Cast<string>().Aggregate((seed, z) => string.Join("", seed.TakeWhile((v, i) => z.Length > i && v == z[i])));
@@ -26,7 +26,7 @@ public static class MPlus
                 else postfix = postfix.Substring(commonprefix.Length);
 
                 Logger.LogInformation($"[MPlus] Uploading {file} with postfix '{postfix}'");
-                var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: postfix, ApiTask, Api.GlobalClient, Settings.SessionId), cancellationToken: token);
+                var iid = await PacketsTransporter.UploadAsync(await MPlusTaskResultUploadSessionData.InitializeAsync(file, postfix: postfix, ApiTask, Api.GlobalClient, Settings.SessionId, (input as IMPlusTaskInputInfo)?.Iid), cancellationToken: token);
 
                 ((ReceivedTask) ApiTask).UploadedFiles.Add(new MPlusUploadedFileInfo(iid, file));
             }
@@ -37,6 +37,6 @@ public static class MPlus
         public static TaskOutputType Type => TaskOutputType.MPlus;
 
         public override bool CheckCompletion(MPlusTaskOutputInfo info, TaskState state) =>
-            state == TaskState.Validation && info.IngesterHost is not null;
+            state == TaskState.Validation && info.Data?.Values.All(data => data.IngesterHost is not null) == true;
     }
 }

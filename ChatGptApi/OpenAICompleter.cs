@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using ChatGptApi.OpenAiApi;
-using Node.Common.Models;
 
 namespace ChatGptApi;
 
@@ -45,7 +44,7 @@ public partial class OpenAICompleter
 
         var img = messages.OfType<ChatRequest.ImageMessage>().FirstOrDefault()?.Content.OfType<ChatRequest.ImageMessageContent>().FirstOrDefault();
         Logger.LogInformation($"""
-            From prompt '{(messages.FirstOrDefault() as ChatRequest.TextMessage)?.Content}' {(img is null ? string.Empty : $"with an image (size {img.ImageUrl.Url.Length}, {img.ImageUrl.Detail} detail)")}
+            From prompt '{messages.OfType<ChatRequest.ImageMessage>().FirstOrDefault()?.Content.OfType<ChatRequest.TextMessageContent>().FirstOrDefault()?.Text}' {(img is null ? string.Empty : $"with an image (size {img.ImageUrl.Url.Length}, {img.ImageUrl.Detail} detail)")}
             generated {completion.Choices.Count} choices:
             {string.Join('\n', completion.Choices.Select((c, i) => $"  {i}: {c.Message?.Content}"))}
             """);
@@ -84,31 +83,53 @@ public partial class OpenAICompleter
     static readonly char[] KeywordSeparators = new[] { ',', '\n' };
 
 
-    public async Task<TKD> GenerateTKDChatGpt(ChatRequest.ImageMessageContent image, string? titleprompt, string? descrprompt, string? kwprompt)
+    public async Task<TK> GenerateTKChatGpt(ChatRequest.ImageMessageContent image, string? prompt)
     {
-        ChatRequest.IMessage[] getMessages(string prompt)
+        prompt ??= $$"""
+            Generate a set of 50 one-word keywords and a title for the provided image {{PromptEndBase}}
+            Write result as a JSON in the following format:
+            ```json
+            { "title": "string", "keywords": [ "string", "string" ] }
+            ```
+            """;
+        var messages = new[]
         {
-            return new[]
+            new ChatRequest.ImageMessage(ChatRole.User, new ChatRequest.IMessageContent[]
             {
-                new ChatRequest.ImageMessage(ChatRole.User, new ChatRequest.IMessageContent[]
-                {
-                    new ChatRequest.TextMessageContent(prompt),
-                    image,
-                }),
-            };
+                new ChatRequest.TextMessageContent(prompt),
+                image,
+            }),
+        };
+
+        var title = null as string;
+        var keywords = Array.Empty<string>();
+
+        for (int retry = 0; retry < 3; retry++)
+        {
+            var response = await SendChatRequestResult(messages, choices: 1, maxtokens: 300, model: ChatModels.Gpt4Vision);
+            var jsonstr = response.Choices[0].Message.Content;
+
+            if (jsonstr.StartsWith("```json"))
+                jsonstr = jsonstr.AsSpan()["```json".Length..].Trim().ToString();
+            jsonstr = jsonstr.Replace("`", string.Empty).Trim();
+
+            var tk = JsonConvert.DeserializeObject<TK>(jsonstr);
+            if (tk is not { Keywords.Count: > 0, Title: not null })
+            {
+                Logger.LogInformation($"Received invalid tk: '{jsonstr}', retrying ({retry + 1}/3)");
+                continue;
+            }
+
+            title ??= tk.Title;
+            keywords = keywords.Concat(tk.Keywords).Distinct().ToArray();
+
+            //if (keywords.Length >= 50)
+            return new TK(title, keywords);
+
+            //Logger.LogInformation($"Not enough keywords ({keywords.Length}), retrying");
         }
 
-        kwprompt ??= $"Generate a set of 50 one-word keywords for the provided image {PromptEndBase}";
-        titleprompt ??= $"Generate a title for the provided image {PromptEndBase}";
-        descrprompt ??= $"Generate an extended title for the provided image {PromptEndBase}";
-
-        var keywordcompletion = await SendChatRequestResult(getMessages(kwprompt), choices: 1, model: ChatModels.Gpt4Vision);
-        var keywords = ProcessKeywords(keywordcompletion).ToArray();
-
-        var title = await SendChatRequest(getMessages(titleprompt), maxtokens: 100, model: ChatModels.Gpt4Vision);
-        var description = await SendChatRequest(getMessages(descrprompt), maxtokens: 300, model: ChatModels.Gpt4Vision);
-
-        return new TKD(title, description, keywords);
+        throw new Exception("Could not generate the tk");
     }
 
     public async Task<string> GenerateNewTitle(IEnumerable<string> keywords, string? system, string? model)

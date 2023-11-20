@@ -58,7 +58,7 @@ public abstract record ApiBase
         await RetryUntilSuccess<Empty>(async () => await func())
             .Next(_ => OperationResult.Succ());
 
-    /// <summary> 
+    /// <summary>
     /// Repeatedly invokes <paramref name="func"/> until it succeeds, checking the success using <see cref="NeedsToRetryRequest(OperationResult)"/>.
     /// Does not retry upon receiving an exception, except <see cref="SocketException"/>.
     /// </summary>
@@ -78,7 +78,7 @@ public abstract record ApiBase
 
                 return result;
             }
-            catch (SocketException)
+            catch (Exception ex) when (ex is SocketException or HttpRequestException { InnerException: SocketException })
             {
                 await Task.Delay(RequestRetryDelay).ConfigureAwait(false);
                 continue;

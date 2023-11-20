@@ -10,6 +10,7 @@ public enum TaskInputType
     User,
     DirectUpload,
     TitleKeywords,
+    MPlusItem,
 }
 [JsonConverter(typeof(StringEnumConverter))]
 public enum TaskOutputType

@@ -28,6 +28,8 @@ public class TorrentTaskInputInfo : ILocalTaskInputInfo
 public class TorrentTaskOutputInfo : ITaskOutputInfo
 {
     public TaskOutputType Type => TaskOutputType.Torrent;
+    public Dictionary<string, TorrentData>? Data { get; init; }
 
-    [Hidden] public string? Link;
+
+    public record TorrentData(string? Link);
 }

@@ -12,13 +12,17 @@ public static class QSPreview
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required Apis Apis { get; init; }
 
-        protected override async Task UploadResultImpl(QSPreviewOutputInfo info, QSPreviewOutput files, CancellationToken token)
+        protected override async Task UploadResultImpl(QSPreviewOutputInfo info, ITaskInputInfo input, QSPreviewOutput files, CancellationToken token)
         {
             var jpegfooter = files.ImageFooter.ThrowIfNull();
             var jpegqr = files.ImageQr;
             var mov = files.Video;
 
-            var res = await Apis.ShardPost<InitOutputResult>(ApiTask, "initqspreviewoutput", null, "Initializing qs preview result upload", ("taskid", ApiTask.Id));
+            var args = new[] { ("taskid", ApiTask.Id) };
+            if (input is IMPlusTaskInputInfo mpinput)
+                args = args.Append(("iid", mpinput.Iid)).ToArray();
+
+            var res = await Apis.ShardPost<InitOutputResult>(ApiTask, "initqspreviewoutput", null, "Initializing qs preview result upload", args);
             if (!res && res.ToString()?.Contains("There is no such user", StringComparison.OrdinalIgnoreCase) == true)
                 throw new TaskFailedException(res.ToString());
 

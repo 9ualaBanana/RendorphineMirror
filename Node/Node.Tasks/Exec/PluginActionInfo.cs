@@ -25,6 +25,8 @@ public abstract class PluginActionInfo<TInput, TOutput, TData> : IPluginActionIn
     {
         if (typeof(TInput).IsAssignableToOpenGeneric(typeof(EitherTaskInput<,>)))
             input = Activator.CreateInstance(typeof(TInput), new object[] { input }).ThrowIfNull();
+        else if (typeof(TInput).IsAssignableToOpenGeneric(typeof(EitherTaskInput<,,>)))
+            input = Activator.CreateInstance(typeof(TInput), new object[] { input }).ThrowIfNull();
 
         return await Execute(
             container,

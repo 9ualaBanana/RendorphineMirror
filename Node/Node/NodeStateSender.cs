@@ -9,7 +9,7 @@ public class NodeStateSender
 
     public async Task SendingLoop(Stream stream)
     {
-        var instance = new Instance(stream) { State = State };
+        var instance = new Instance(stream) { State = State, Logger = Logger };
         Instances.Add(instance);
         using var _ = new FuncDispose(instance.Dispose);
 
@@ -29,6 +29,7 @@ public class NodeStateSender
     public class Instance : IDisposable
     {
         public required NodeGlobalState State { get; init; }
+        public required ILogger Logger { get; init; }
 
         readonly SemaphoreSlim WriteLock = new(1);
         readonly LocalPipe.Writer Writer;
@@ -67,7 +68,13 @@ public class NodeStateSender
 
                     await SendInternalAsync(new NodeStateUpdate(NodeStateUpdate.UpdateType.State, json)).ConfigureAwait(false);
                 }
-                catch (Exception ex) { exittask.SetException(ex); }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex);
+
+                    if (!exittask.Task.IsCompleted)
+                        exittask.SetException(ex);
+                }
             }
         }
 

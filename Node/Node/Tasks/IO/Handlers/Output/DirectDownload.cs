@@ -9,7 +9,7 @@ public static class DirectDownload
         public static TaskOutputType Type => TaskOutputType.DirectDownload;
         public required IRegisteredTaskApi ApiTask { get; init; }
 
-        protected override async Task UploadResultImpl(DirectDownloadTaskOutputInfo info, ReadOnlyTaskFileList result, CancellationToken token) =>
+        protected override async Task UploadResultImpl(DirectDownloadTaskOutputInfo info, ITaskInputInfo input, ReadOnlyTaskFileList result, CancellationToken token) =>
             await Listeners.DirectDownloadListener.WaitForUpload(ApiTask.Id, token);
     }
     public class CompletionChecker : TaskCompletionChecker<DirectDownloadTaskOutputInfo>, ITypedTaskOutput

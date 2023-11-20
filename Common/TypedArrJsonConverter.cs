@@ -6,14 +6,18 @@ public class TypedArrJsonConverter : JsonConverter
 {
     public override bool CanConvert(Type objectType) => true;
 
-    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+    public static object? Read(JToken jtoken, JsonSerializer serializer)
     {
-        if (reader.TokenType == JsonToken.Null)
-            return null;
+        JArray jarr;
+        IList result;
 
-        var jarr = JArray.Load(reader);
+        if (jtoken is JObject) jarr = (JArray) jtoken["$value$"].ThrowIfNull();
+        else if (jtoken is JArray jarrr) jarr = jarrr;
+        else throw new Exception("Unknown input type");
 
-        var result = new List<object>();
+        try { result = (IList) new JArray().ToObject(Type.GetType(jtoken["$type$"].ThrowIfNull().Value<string>().ThrowIfNull()).ThrowIfNull()).ThrowIfNull(); }
+        catch { return null; }
+
         foreach (var token in jarr)
         {
             if (token is JValue { Value: null })
@@ -24,7 +28,7 @@ public class TypedArrJsonConverter : JsonConverter
 
             var jobj = (JObject) token;
 
-            var typename = (jobj.Property("$type$")?.Value.Value<string>()).ThrowIfNull();
+            var typename = jobj.Property("$type$").ThrowIfNull().Value.Value<string>().ThrowIfNull();
             var type = Type.GetType(typename)!;
 
             var value = jobj.Property("value")?.Value.ToObject(type, serializer);
@@ -33,7 +37,7 @@ public class TypedArrJsonConverter : JsonConverter
 
         return result;
     }
-    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+    public static void Write(JsonWriter writer, object? value, JsonSerializer serializer)
     {
         if (value is null)
         {
@@ -42,7 +46,7 @@ public class TypedArrJsonConverter : JsonConverter
         }
 
 
-        var jarr = JToken.FromObject(value, serializer);
+        var jarr = JArray.FromObject(value, serializer);
         var index = 0;
         foreach (var obj in (IEnumerable) value)
         {
@@ -60,6 +64,22 @@ public class TypedArrJsonConverter : JsonConverter
             index++;
         }
 
-        jarr.WriteTo(writer, serializer.Converters.ToArray());
+
+        var jobj = new JObject()
+        {
+            ["$type$"] = value.GetType().AssemblyQualifiedName,
+            ["$value$"] = jarr,
+        };
+
+        jobj.WriteTo(writer, serializer.Converters.ToArray());
     }
+
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+    {
+        if (reader.TokenType == JsonToken.Null)
+            return null;
+
+        return Read(JToken.Load(reader), serializer);
+    }
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) => Write(writer, value, serializer);
 }

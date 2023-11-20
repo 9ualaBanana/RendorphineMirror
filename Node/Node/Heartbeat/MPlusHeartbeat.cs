@@ -15,10 +15,10 @@ public class MPlusHeartbeat : Heartbeat
     {
         var result = await Send(Api, await Profiler.GetAsync());
 
-        // upon receiving an error -195 from heartbeat, the node should switch to reconnect mode
+        // upon receiving an error -259 from heartbeat, the node should switch to reconnect mode
         // i don't know how to do this easily, like pausing all tasks and stuff like that
         // so we just exit and let the pinger restart the node
-        if (!result && result.Error is HttpError { ErrorCode: -195 })
+        if (!result && result.Error is HttpError { ErrorCode: -259 })
             Environment.Exit(0);
 
         result.ThrowIfError();
