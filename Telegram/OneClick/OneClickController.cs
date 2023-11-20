@@ -17,8 +17,9 @@ public class OneClickController
 		_subscribers = new ChatId[]
 		{
             624598614,	// GIBSON
-			223960353	// Kos
-		};
+			223960353,	// Kos
+			466253221	// 13ym
+        };
     }
 
     [HttpPost("display_renders")]
