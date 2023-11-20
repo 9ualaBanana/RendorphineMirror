@@ -11,7 +11,6 @@ namespace Node.Listeners
         public required ICompletedTasksStorage CompletedTasks { get; init; }
         public required IWatchingTasksStorage WatchingTasks { get; init; }
         public required DataDirs Dirs { get; init; }
-        public string oneClickFilesPath = "";
 
         static string[] imagesExtentions = { ".jpg", ".jpeg", ".png" };
 
@@ -19,16 +18,19 @@ namespace Node.Listeners
 
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
-            if (string.IsNullOrEmpty(oneClickFilesPath))
-            {
-                var source = WatchingTasks.WatchingTasks.Values
-                    .Select(d => d.Source)
-                    .OfType<OneClickWatchingTaskInputInfo>()
-                    .FirstOrDefault();
+            var images = new List<string>();
+            var source = WatchingTasks.WatchingTasks.Values
+                .Select(d => d.Source)
+                .OfType<OneClickWatchingTaskInputInfo>()
+                .First();
 
-                if (source != null)
+            foreach (var outdir in Directory.GetDirectories(source.OutputDirectory))
+            {
+                try
                 {
-                    var dir = Path.Combine(source.OutputDirectory, "unity", "Assets");
+                    var dir = Path.Combine(outdir, "unity", "Assets");
+                    if (!Directory.Exists(dir))
+                        continue;
 
                     var paath = Directory.GetFiles(dir)
                         .SingleOrDefault(file => Path.GetExtension(file) == ".fbx");
@@ -39,9 +41,13 @@ namespace Node.Listeners
                         paath = Directory.GetDirectories(dir)
                             .SingleOrDefault(dir => Path.GetFileName(dir) != "OneClickImport");
 
-                    if (paath != null)
-                        oneClickFilesPath = Path.Combine(paath, "renders");
+                    if (paath is not null)
+                    {
+                        string renders = Path.Combine(paath, "renders");
+                        images.Add(Directory.GetFiles(renders)[0]);
+                    }
                 }
+                catch { }
             }
 
             await Task.Delay(0); // to hide a warning
@@ -61,13 +67,9 @@ namespace Node.Listeners
                 info += $"<form method='get'>Страница: <input type ='number' name='days' value={page + 1}><input type = 'submit' value = 'Перейти'></form>";
                 info += $"<b>Page: {page} </b><br>";
 
-                string[] files = { };
-                if (oneClickFilesPath.Length > 0)
-                    files = Directory.GetFiles(oneClickFilesPath);
-
-                foreach (var file in files)
+                foreach (var file in images)
                 {
-                    info += $"<img width='200px' src='./getocfile/{file}'>";
+                    info += $"<img width='200px' src='./getocfile?file={HttpUtility.UrlEncode(file)}'>";
                     info += "</br>";
                 }
 
@@ -80,10 +82,10 @@ namespace Node.Listeners
 
             if (path.StartsWith("getocfile"))
             {
-                if (oneClickFilesPath.Length == 0) return HttpStatusCode.OK;
-                string name = Path.GetFileName(path);
-                string filename = Path.Combine(oneClickFilesPath, name);
-                using var filestream = File.OpenRead(filename);
+                var filepath = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
+                if (!images.Contains(filepath)) return HttpStatusCode.OK;
+
+                using var filestream = File.OpenRead(filepath);
                 await filestream.CopyToAsync(response.OutputStream);
                 return HttpStatusCode.OK;
             }
