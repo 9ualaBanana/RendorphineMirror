@@ -9,34 +9,41 @@ namespace Node.Listeners
         protected override ListenTypes ListenType => ListenTypes.WebServer;
 
         public required ICompletedTasksStorage CompletedTasks { get; init; }
+        public required IWatchingTasksStorage WatchingTasks { get; init; }
         public required DataDirs Dirs { get; init; }
         public string oneClickFilesPath = "";
 
         static string[] imagesExtentions = { ".jpg", ".jpeg", ".png" };
 
-        public PublicPagesListener(ILogger<PublicPagesListener> logger) : base(logger) {
-    var source = WatchingTasks.WatchingTasks.Values
-                    .Select(d => d.Source)
-                    .OfType<OneClickWatchingTaskInputInfo>()
-                    .FirstOrDefault();
-        if (source != null)
-        {
-            var d = Path.Combine(source, "unity", "Assets");
-
-            var path = Directory.GetFiles(d)
-                .SingleOrDefault(file => Path.GetExtension(file) == ".fbx");
-
-            if (path is not null)
-                path = Path.ChangeExtension(path, null);
-            else
-                path = Directory.GetDirectories(d)
-                    .SingleOrDefault(dir => Path.GetFileName(dir) != "OneClickImport");
-            oneClickFilesPath = Path.Combine(path, "renders");
-        }
-    }
+        public PublicPagesListener(ILogger<PublicPagesListener> logger) : base(logger) { }
 
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
+            if (string.IsNullOrEmpty(oneClickFilesPath))
+            {
+                var source = WatchingTasks.WatchingTasks.Values
+                    .Select(d => d.Source)
+                    .OfType<OneClickWatchingTaskInputInfo>()
+                    .FirstOrDefault();
+
+                if (source != null)
+                {
+                    var dir = Path.Combine(source.OutputDirectory, "unity", "Assets");
+
+                    var paath = Directory.GetFiles(dir)
+                        .SingleOrDefault(file => Path.GetExtension(file) == ".fbx");
+
+                    if (paath is not null)
+                        paath = Path.ChangeExtension(paath, null);
+                    else
+                        paath = Directory.GetDirectories(dir)
+                            .SingleOrDefault(dir => Path.GetFileName(dir) != "OneClickImport");
+
+                    if (paath != null)
+                        oneClickFilesPath = Path.Combine(paath, "renders");
+                }
+            }
+
             await Task.Delay(0); // to hide a warning
 
             var request = context.Request;
