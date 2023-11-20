@@ -10,10 +10,30 @@ namespace Node.Listeners
 
         public required ICompletedTasksStorage CompletedTasks { get; init; }
         public required DataDirs Dirs { get; init; }
+        public string oneClickFilesPath = "";
 
         static string[] imagesExtentions = { ".jpg", ".jpeg", ".png" };
 
-        public PublicPagesListener(ILogger<PublicPagesListener> logger) : base(logger) { }
+        public PublicPagesListener(ILogger<PublicPagesListener> logger) : base(logger) {
+    var source = WatchingTasks.WatchingTasks.Values
+                    .Select(d => d.Source)
+                    .OfType<OneClickWatchingTaskInputInfo>()
+                    .FirstOrDefault();
+        if (source != null)
+        {
+            var d = Path.Combine(source, "unity", "Assets");
+
+            var path = Directory.GetFiles(d)
+                .SingleOrDefault(file => Path.GetExtension(file) == ".fbx");
+
+            if (path is not null)
+                path = Path.ChangeExtension(path, null);
+            else
+                path = Directory.GetDirectories(d)
+                    .SingleOrDefault(dir => Path.GetFileName(dir) != "OneClickImport");
+            oneClickFilesPath = Path.Combine(path, "renders");
+        }
+    }
 
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
@@ -25,37 +45,23 @@ namespace Node.Listeners
 
             if (path == "gallery")
             {
-                string? daysString = context.Request.QueryString["days"];
-                int days;
+                string? pageString = context.Request.QueryString["days"];
+                int page;
 
-                if (daysString == null || !int.TryParse(daysString, out days)) days = 30;
+                if (pageString == null || !int.TryParse(pageString, out page)) page = 0;
 
                 string info = "<html><body>";
-                info += $"<form method='get'><input type ='number' name='days' value={days}><input type = 'submit'></form>";
-                info += $"<b>Files for last {days} days</b><br>";
+                info += $"<form method='get'>Страница: <input type ='number' name='days' value={page + 1}><input type = 'submit' value = 'Перейти'></form>";
+                info += $"<b>Page: {page} </b><br>";
 
-                var filteredTasks = CompletedTasks.CompletedTasks
-                    .Where(t => t.Value.StartTime >= DateTime.Now.AddDays(-1 * days));
+                string[] files = { };
+                if (oneClickFilesPath.Length > 0)
+                    files = Directory.GetFiles(oneClickFilesPath);
 
-                foreach (var task in filteredTasks)
+                foreach (var file in files)
                 {
-                    string[] resultfiles = Directory.GetFiles(task.Value.TaskInfo.FSOutputDirectory(Dirs));
-                    if (resultfiles.Length == 0)
-                        info += $"[no files]";
-
-                    foreach (string taskfile in resultfiles.OrderBy(Path.GetExtension))
-                    {
-                        string taskfilerelative = Path.GetRelativePath(task.Value.TaskInfo.FSOutputDirectory(Dirs), taskfile);
-                        string mime = MimeTypes.GetMimeType(taskfile);
-
-                        if (mime.Contains("image", StringComparison.Ordinal))
-                            info += $"<img width='200px' src='./getfile/{task.Key}?name={HttpUtility.UrlEncode(taskfilerelative)}'>";
-                        else if (mime.Contains("video", StringComparison.Ordinal))
-                            info += $"<video width='200px' controls><source src='./getfile/{task.Key}?name={HttpUtility.UrlEncode(taskfilerelative)}' type='video/mp4'></video>";
-                        // eps?
-                    }
-
-                    info += $"<details><p>ID:{task.Value.TaskInfo.Id}<br>Start:{task.Value.StartTime.ToString()}<br>Finish:{task.Value.FinishTime}<p></details><br><br>";
+                    info += $"<img width='200px' src='./getocfile/{file}'>";
+                    info += "</br>";
                 }
 
                 info += "</body></html>";
@@ -65,20 +71,11 @@ namespace Node.Listeners
                 return HttpStatusCode.OK;
             }
 
-            if (path.StartsWith("getfile"))
+            if (path.StartsWith("getocfile"))
             {
-                string taskId = Path.GetFileName(path);
-                var tasks = CompletedTasks.CompletedTasks;
-                if (!tasks.ContainsKey(taskId)) return HttpStatusCode.NotFound;
-
-                string? filename = context.Request.QueryString["name"];
-                if (filename is null) return HttpStatusCode.NotFound;
-
-                string outputdir = tasks[taskId].TaskInfo.FSOutputDirectory(Dirs);
-                filename = Path.Combine(outputdir, filename);
-                if (!filename.StartsWith(outputdir, StringComparison.Ordinal) || !File.Exists(filename))
-                    return HttpStatusCode.NotFound;
-
+                if (oneClickFilesPath.Length == 0) return HttpStatusCode.OK;
+                string name = Path.GetFileName(path);
+                string filename = Path.Combine(oneClickFilesPath, name);
                 using var filestream = File.OpenRead(filename);
                 await filestream.CopyToAsync(response.OutputStream);
                 return HttpStatusCode.OK;
