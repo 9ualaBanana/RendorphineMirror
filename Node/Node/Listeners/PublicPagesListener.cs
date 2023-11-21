@@ -18,7 +18,7 @@ namespace Node.Listeners
 
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
-            var images = new List<string>();
+            var images = new List<string[]>();
             var source = WatchingTasks.WatchingTasks.Values
                 .Select(d => d.Source)
                 .OfType<OneClickWatchingTaskInputInfo>()
@@ -29,7 +29,7 @@ namespace Node.Listeners
                 try
                 {
                     var files = Directory.GetFiles(Path.Combine(outdir, "renders"), "*.png");
-                    images.Add(files[Random.Shared.Next(files.Length)]);
+                    images.Add(files);
                 }
                 catch { }
             }
@@ -45,14 +45,16 @@ namespace Node.Listeners
 
                 if (pageString == null || !int.TryParse(pageString, out page)) page = 0;
 
-                string info = "<html><body>";
+                string info = "<html><head><meta charset=\"UTF-8\"></head><body>";
                 info += $"<form method='get'>Страница: <input type ='number' name='days' value={page + 1}><input type = 'submit' value = 'Перейти'></form>";
                 info += $"<b>Page: {page} </b><br>";
 
-                foreach (var file in images)
+                foreach (var files in images)
                 {
-                    info += $"<img width='200px' src='./getocfile?file={HttpUtility.UrlEncode(file)}'>";
-                    //info += "</br>";
+                    foreach (var file in files)
+                        info += $"<img width='200px' src='./getocfile?file={HttpUtility.UrlEncode(file)}'>";
+
+                    info += "</br>";
                 }
 
                 info += "</body></html>";
@@ -65,9 +67,11 @@ namespace Node.Listeners
             if (path.StartsWith("getocfile"))
             {
                 var filepath = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
-                if (!images.Contains(filepath)) return HttpStatusCode.OK;
+                if (!images.Any(files => files.Contains(filepath))) return HttpStatusCode.NotFound;
 
                 using var filestream = File.OpenRead(filepath);
+                response.ContentLength64 = filestream.Length;
+
                 await filestream.CopyToAsync(response.OutputStream);
                 return HttpStatusCode.OK;
             }
