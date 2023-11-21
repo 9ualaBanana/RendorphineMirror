@@ -54,28 +54,28 @@ public class OneClickWatchingTaskInputHandlerRunner
     string UnityAssetsResultDirectory => Directories.DirCreated(UnityResultDirectory, "Assets");
 
     /// <summary> C:\oneclick\output\{SmallGallery}\unity\Assets\{Handling_Machining_v6} </summary>
-    string UnityAssetsSceneResultDirectory
+    /// <remarks> Will throw an exception if Unity export was not completed </remarks>
+    string GetUnityAssetsSceneResultDirectory()
     {
-        get
-        {
-            var path = Directory.GetFiles(UnityAssetsResultDirectory)
-                .SingleOrDefault(file => Path.GetExtension(file) == ".fbx");
+        var path = Directory.GetFiles(UnityAssetsResultDirectory)
+            .SingleOrDefault(file => Path.GetExtension(file) == ".fbx");
 
-            if (path is not null)
-                path = Path.ChangeExtension(path, null);
-            else
-                path = Directory.GetDirectories(UnityAssetsResultDirectory)
-                    .SingleOrDefault(dir => Path.GetFileName(dir) != "OneClickImport");
+        if (path is not null)
+            path = Path.ChangeExtension(path, null);
+        else
+            path = Directory.GetDirectories(UnityAssetsResultDirectory)
+                .SingleOrDefault(dir => Path.GetFileName(dir) != "OneClickImport");
 
-            return path.ThrowIfNull();
-        }
+        return path.ThrowIfNull();
     }
 
     /// <summary> {Handling_Machining_v6} </summary>
-    string UnitySceneName => Path.GetFileName(UnityAssetsSceneResultDirectory);
+    /// <remarks> Will throw an exception if Unity export was not completed </remarks>
+    string GetUnitySceneName() => Path.GetFileName(GetUnityAssetsSceneResultDirectory());
 
     /// <summary> C:\oneclick\output\{SmallGallery}\unity\Assets\{Handling_Machining_v6}\renders </summary>
-    string UnityRendersDirectory => Directories.DirCreated(UnityAssetsSceneResultDirectory, "renders");
+    /// <remarks> Will throw an exception if Unity export was not completed </remarks>
+    string GetUnityRendersDirectory() => Directories.DirCreated(GetUnityAssetsSceneResultDirectory(), "renders");
 
     /// <summary> C:\oneclick\output\{SmallGallery}\exportinfo.txt </summary>
     string ExportInfoFile => Path.GetFullPath(Path.Combine(NamedOutputDirectory, "exportinfo.txt"));
@@ -163,16 +163,14 @@ public class OneClickWatchingTaskInputHandlerRunner
 
         try
         {
-            var scenename = "<none>";
-            try { scenename = UnitySceneName; }
-            catch { }
+            var sceneinfo = "\nScene name: ";
+            try { sceneinfo += GetUnitySceneName(); }
+            catch { sceneinfo += "<none>"; }
 
             var message = exception.Message;
             var errorstr = $"""
                 Error from renderfin OneClick export:
-                Scene name: {scenename}
-                Archive name: {Path.GetFileNameWithoutExtension(ZipFilePath)}
-
+                Archive name: {Path.GetFileNameWithoutExtension(ZipFilePath)}{sceneinfo}
                 ```
                 {message.Replace(@"\", @"\\")}
                 ```
@@ -191,7 +189,7 @@ public class OneClickWatchingTaskInputHandlerRunner
     async Task ReportResult()
     {
         using var content = new MultipartFormDataContent();
-        foreach (var renderfile in Directory.GetFiles(UnityRendersDirectory, "*.png"))
+        foreach (var renderfile in Directory.GetFiles(GetUnityRendersDirectory(), "*.png"))
             content.Add(new StreamContent(File.OpenRead(renderfile)), "renders", Path.GetFileName(renderfile));
 
         using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_renders", content);
@@ -493,6 +491,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                 };
                 await launcher.ExecuteAsync();
 
+                await Task.Delay(100);
                 for (int i = 0; i < 60; i++)
                 {
                     if (File.Exists(bakeCompletedFile))
@@ -511,10 +510,11 @@ public class OneClickWatchingTaskInputHandlerRunner
                 moveBack();
 
                 var buildProjectDir = Path.Combine(unityTemplateDir, "Builds");
-                var unityImportResultDir = UnityAssetsSceneResultDirectory;
+                var unityImportResultDir = GetUnityAssetsSceneResultDirectory();
+                var unitySceneName = GetUnitySceneName();
 
                 // entrance_hall_for_export_[2021.3.32f1]_[URP]_[50]
-                var buildResultDir = Path.Combine(unityImportResultDir, "Builds", $"{UnitySceneName}_[{unityVersion}]_[{rendererType}]_[{importerVersion}]");
+                var buildResultDir = Path.Combine(unityImportResultDir, "Builds", $"{unitySceneName}_[{unityVersion}]_[{rendererType}]_[{importerVersion}]");
                 if (!Directory.Exists(buildResultDir))
                 {
                     Logger.Error($"{buildResultDir} was not found; searching for an empty dir");
@@ -529,17 +529,17 @@ public class OneClickWatchingTaskInputHandlerRunner
 
                 {
                     var moved = false;
-                    for (int i = 0; i < 60 * 60; i++)
+                    for (int i = 0; i < 60; i++)
                     {
                         var exeprocess = Process.GetProcesses().Where(proc =>
                         {
-                            try { return Path.GetFileName(proc.MainModule?.FileName)?.StartsWith(UnitySceneName) == true; }
+                            try { return Path.GetFileName(proc.MainModule?.FileName)?.StartsWith(unitySceneName) == true; }
                             catch { return false; }
                         }).FirstOrDefault();
 
                         if (exeprocess is not null)
                         {
-                            if (i == 60 * 60 - 1)
+                            if (i == 60 - 1)
                                 exeprocess.Kill();
                             else
                             {

@@ -126,26 +126,22 @@ public class ProcessLauncher
         if (Timeout is not null)
             token.CancelAfter(Timeout.Value);
 
-        using var kill = token.Token.UnsafeRegister((_, _) =>
-        {
-            try
-            {
-                if (!proc.HasExited)
-                    proc.Kill();
-            }
-            catch { }
-        }, null);
-
         try
         {
             await proc.WaitForExitAsync(token.Token);
         }
         catch (TaskCanceledException)
         {
-            var code = 1;
-            if (proc.HasExited) code = proc.ExitCode;
+            if (!proc.HasExited)
+                proc.Kill(true);
 
-            throw new NodeProcessException($"Execution of {Executable} has reached its timeout of {Timeout}") { ExitCode = code };
+            while (!proc.HasExited)
+            {
+                await Task.Delay(1000);
+                proc.Kill(true);
+            }
+
+            throw new NodeProcessException($"Execution of {Executable} has reached its timeout of {Timeout}") { ExitCode = proc.ExitCode };
         }
 
         await readingtask;
