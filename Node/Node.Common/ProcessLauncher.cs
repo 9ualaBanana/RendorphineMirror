@@ -142,7 +142,10 @@ public class ProcessLauncher
         }
         catch (TaskCanceledException)
         {
-            throw new NodeProcessException($"Execution of {Executable} has reached its timeout of {Timeout}") { ExitCode = proc.ExitCode };
+            var code = 1;
+            if (proc.HasExited) code = proc.ExitCode;
+
+            throw new NodeProcessException($"Execution of {Executable} has reached its timeout of {Timeout}") { ExitCode = code };
         }
 
         await readingtask;
