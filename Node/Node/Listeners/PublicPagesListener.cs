@@ -28,7 +28,7 @@ namespace Node.Listeners
             {
                 try
                 {
-                    var files = Directory.GetFiles(Path.Combine(outdir, "renders"));
+                    var files = Directory.GetFiles(Path.Combine(outdir, "renders"), "*.png");
                     images.Add(files[Random.Shared.Next(files.Length)]);
                 }
                 catch { }
