@@ -236,7 +236,23 @@ public class OneClickWatchingTaskInputHandlerRunner
 
         Logger.Info($"Extracting");
         Directory.Delete(NamedOutputDirectory, true);
+        Logger.Info($"Extracting {ZipFilePath} to {NamedOutputDirectory}");
         ZipFile.ExtractToDirectory(ZipFilePath, NamedOutputDirectory);
+
+        while (true)
+        {
+            var zips = Directory.GetFiles(NamedOutputDirectory, "*.zip", SearchOption.AllDirectories);
+            if (zips.Length == 0) break;
+
+            foreach (var zip in zips)
+            {
+                var dest = Path.GetDirectoryName(zip)!;
+
+                Logger.Info($"Extracting {zip} to {dest}");
+                ZipFile.ExtractToDirectory(zip, dest);
+            }
+        }
+
         Logger.Info("Extracted");
 
         var scenefile = Directory.GetFiles(NamedOutputDirectory, "*.max", SearchOption.AllDirectories)
