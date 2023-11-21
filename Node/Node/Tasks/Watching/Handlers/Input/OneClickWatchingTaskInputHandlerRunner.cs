@@ -428,11 +428,18 @@ public class OneClickWatchingTaskInputHandlerRunner
                 Logger.Info($"Deleting already completed file {fbx}");
                 File.Delete(fbx);
 
-                var dirname = Path.ChangeExtension(fbx, null);
-                if (Directory.Exists(dirname))
+                var dir = Path.ChangeExtension(fbx, null);
+                if (Directory.Exists(dir))
                 {
-                    Logger.Info($"Deleting already completed dir {dirname}");
-                    Directory.Delete(dirname, true);
+                    Logger.Info($"Deleting already completed dir {dir}");
+                    Directory.Delete(dir, true);
+                }
+
+                var metafile = Path.ChangeExtension(fbx, ".meta");
+                if (File.Exists(metafile))
+                {
+                    Logger.Info($"Deleting already completed meta {metafile}");
+                    File.Delete(metafile);
                 }
             }
 
