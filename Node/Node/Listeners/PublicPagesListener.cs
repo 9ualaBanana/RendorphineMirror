@@ -52,7 +52,7 @@ namespace Node.Listeners
                 foreach (var file in images)
                 {
                     info += $"<img width='200px' src='./getocfile?file={HttpUtility.UrlEncode(file)}'>";
-                    info += "</br>";
+                    //info += "</br>";
                 }
 
                 info += "</body></html>";
