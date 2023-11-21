@@ -24,33 +24,15 @@ namespace Node.Listeners
                 .OfType<OneClickWatchingTaskInputInfo>()
                 .First();
 
-            foreach (var outdir in Directory.GetDirectories(source.OutputDirectory))
+            foreach (var outdir in Directory.GetDirectories(source.ResultDirectory))
             {
                 try
                 {
-                    var dir = Path.Combine(outdir, "unity", "Assets");
-                    if (!Directory.Exists(dir))
-                        continue;
-
-                    var paath = Directory.GetFiles(dir)
-                        .SingleOrDefault(file => Path.GetExtension(file) == ".fbx");
-
-                    if (paath is not null)
-                        paath = Path.ChangeExtension(paath, null);
-                    else
-                        paath = Directory.GetDirectories(dir)
-                            .SingleOrDefault(dir => Path.GetFileName(dir) != "OneClickImport");
-
-                    if (paath is not null)
-                    {
-                        string renders = Path.Combine(paath, "renders");
-                        images.Add(Directory.GetFiles(renders)[0]);
-                    }
+                    var files = Directory.GetFiles(Path.Combine(outdir, "renders"));
+                    images.Add(files[Random.Shared.Next(files.Length)]);
                 }
                 catch { }
             }
-
-            await Task.Delay(0); // to hide a warning
 
             var request = context.Request;
             var response = context.Response;

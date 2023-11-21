@@ -32,10 +32,12 @@ public class DebugListener : ExecutableListenerBase
                 new OneClickWatchingTaskInputInfo(
                     @"C:\\Users\user\Documents\oc\input",
                     @"C:\\Users\user\Documents\oc\output",
+                    @"C:\\Users\user\Documents\oc\result",
                     @"C:\\Users\user\Documents\oc\log",
                     @"C:\\Users\user\Documents\oc\testmzp",
                     @"C:\\Users\user\Documents\oc\testinput",
                     @"C:\\Users\user\Documents\oc\testoutput",
+                    @"C:\\Users\user\Documents\oc\testresult",
                     @"C:\\Users\user\Documents\oc\testlog"
                 ),
                 new MPlusWatchingTaskOutputInfo("asd"),

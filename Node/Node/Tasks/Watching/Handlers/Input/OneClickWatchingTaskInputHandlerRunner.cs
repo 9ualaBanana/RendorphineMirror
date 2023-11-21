@@ -13,6 +13,9 @@ public class OneClickWatchingTaskInputHandlerRunner
     /// <summary> C:\oneclick\output </summary>
     public required string OutputDir { get; init; }
 
+    /// <summary> C:\oneclick\result </summary>
+    public required string ResultDir { get; init; }
+
     /// <summary> C:\oneclick\log </summary>
     public required string LogDir { get; init; }
 
@@ -70,21 +73,18 @@ public class OneClickWatchingTaskInputHandlerRunner
     }
 
     /// <summary> {Handling_Machining_v6} </summary>
-    /// <remarks> Will throw an exception if Unity export was not completed </remarks>
+    /// <remarks> Will throw an exception if 3ds export was not completed </remarks>
     string GetUnitySceneName() => Path.GetFileName(GetUnityAssetsSceneResultDirectory());
-
-    /// <summary> C:\oneclick\output\{SmallGallery}\unity\Assets\{Handling_Machining_v6}\renders </summary>
-    /// <remarks> Will throw an exception if Unity export was not completed </remarks>
-    string GetUnityRendersDirectory() => Directories.DirCreated(GetUnityAssetsSceneResultDirectory(), "renders");
 
     /// <summary> C:\oneclick\output\{SmallGallery}\exportinfo.txt </summary>
     string ExportInfoFile => Path.GetFullPath(Path.Combine(NamedOutputDirectory, "exportinfo.txt"));
 
 
-    public static async Task RunAll(string inputdir, string outputdir, string logdir, IPluginList plugins, ILogger logger, Plugin? oneclick)
+    public static async Task RunAll(string inputdir, string outputdir, string resultdir, string logdir, IPluginList plugins, ILogger logger, Plugin? oneclick)
     {
         Directory.CreateDirectory(outputdir);
         Directory.CreateDirectory(inputdir);
+        Directory.CreateDirectory(resultdir);
         Directory.CreateDirectory(logdir);
 
         var max = plugins.GetPlugin(PluginType.Autodesk3dsMax);
@@ -102,6 +102,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                 ZipFilePath = zipfilepath,
                 InputDir = inputdir,
                 OutputDir = outputdir,
+                ResultDir = resultdir,
                 LogDir = logdir,
                 UnityTemplatesDir = unityTemplatesDir,
                 UnityTemplatesGitCommitHash = unityTemplatesCommitHash,
@@ -186,10 +187,10 @@ public class OneClickWatchingTaskInputHandlerRunner
         }
     }
 
-    async Task ReportResult()
+    async Task ReportResult(string sceneName)
     {
         using var content = new MultipartFormDataContent();
-        foreach (var renderfile in Directory.GetFiles(GetUnityRendersDirectory(), "*.png"))
+        foreach (var renderfile in Directory.GetFiles(Path.Combine(ResultDir, sceneName, "renders"), "*.png"))
             content.Add(new StreamContent(File.OpenRead(renderfile)), "renders", Path.GetFileName(renderfile));
 
         using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_renders", content);
@@ -248,6 +249,7 @@ public class OneClickWatchingTaskInputHandlerRunner
 
                 Logger.Info($"Extracting {zip} to {dest}");
                 ZipFile.ExtractToDirectory(zip, dest);
+                File.Delete(zip);
             }
         }
 
@@ -346,6 +348,27 @@ public class OneClickWatchingTaskInputHandlerRunner
             await tryProcess(unityTemplateName);
 
 
+        UnityBakedExportInfo readExportInfoFromFileName(string path)
+        {
+            // r1_2014_[2021.3.32f1]_[URP]_[51]
+            path = Path.GetFileNameWithoutExtension(path);
+
+            var spt = path.Split('[', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return new UnityBakedExportInfo(
+                parse(spt[3]),
+                parse(spt[1]),
+                parse(spt[2])
+            );
+
+
+            string parse(string str)
+            {
+                var index = str.IndexOf(']', StringComparison.Ordinal);
+                if (index == -1) throw new Exception($"Could not parse export info from filename {path}");
+
+                return str.Substring(0, index);
+            }
+        }
         bool readImporterVersionFile(string path, [MaybeNullWhen(false)] out UnityBakedExportInfo importerVersion)
         {
             importerVersion = null;
@@ -416,6 +439,34 @@ public class OneClickWatchingTaskInputHandlerRunner
         async Task process(string unityTemplateName, string unityTemplateDir, string unityTemplateAssetsDir, UnityBakedExportInfo ocImporterVersion)
         {
             var (importerVersion, unityVersion, rendererType) = ocImporterVersion;
+
+            var unitySceneName = GetUnitySceneName();
+            var assetsResultDir = GetUnityAssetsSceneResultDirectory();
+            var completeResultDir = Path.Combine(ResultDir, unitySceneName);
+
+            if (Path.Exists(completeResultDir))
+            {
+                void cleanup(string dir)
+                {
+                    dir = Path.Combine(completeResultDir, dir);
+                    if (!Directory.Exists(dir)) return;
+
+                    foreach (var render in Directory.GetFiles(dir))
+                    {
+                        var info = readExportInfoFromFileName(render);
+                        if (info.ImporterVersion != importerVersion)
+                        {
+                            Logger.Info($"Deleting {render} as it's not of latest version");
+                            File.Delete(render);
+                        }
+                    }
+                }
+
+                cleanup("Builds");
+                cleanup("renders");
+                cleanup("scenes");
+                Directories.Merge(completeResultDir, assetsResultDir);
+            }
 
 
             Logger.Info($"Importing with Unity {unityVersion} {rendererType} and importer v{importerVersion}");
@@ -511,7 +562,6 @@ public class OneClickWatchingTaskInputHandlerRunner
 
                 var buildProjectDir = Path.Combine(unityTemplateDir, "Builds");
                 var unityImportResultDir = GetUnityAssetsSceneResultDirectory();
-                var unitySceneName = GetUnitySceneName();
 
                 // entrance_hall_for_export_[2021.3.32f1]_[URP]_[50]
                 var buildResultDir = Path.Combine(unityImportResultDir, "Builds", $"{unitySceneName}_[{unityVersion}]_[{rendererType}]_[{importerVersion}]");
@@ -528,6 +578,8 @@ public class OneClickWatchingTaskInputHandlerRunner
                     Directory.Delete(buildResultDir, true);
 
                 {
+                    var dest = Directories.DirCreated(completeResultDir, "Builds");
+
                     var moved = false;
                     for (int i = 0; i < 60; i++)
                     {
@@ -543,7 +595,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                                 exeprocess.Kill();
                             else
                             {
-                                Logger.Info($"Found the exported app exe running: {exeprocess.Id} {exeprocess.MainModule!.FileName}; waiting a sec");
+                                Logger.Info($"Found the exported app exe running: {exeprocess.Id} {exeprocess.MainModule!.FileName}; waiting 5 sec");
                                 await System.Threading.Tasks.Task.Delay(5000);
                                 continue;
                             }
@@ -557,7 +609,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                         }
                         catch (Exception ex)
                         {
-                            Logger.Info($"Could not move the build dir {buildProjectDir} to {buildResultDir}: {ex.Message}; retrying after a sec");
+                            Logger.Info($"Could not move the build dir {buildProjectDir} to {dest}: {ex.Message}; retrying after 5 sec");
                             await System.Threading.Tasks.Task.Delay(5000);
                         }
                     }
@@ -571,11 +623,11 @@ public class OneClickWatchingTaskInputHandlerRunner
 
                     void moveBuildResult()
                     {
-                        Logger.Info($"Moving the build dir from {buildProjectDir} to {buildResultDir}");
-                        if (Directory.Exists(buildResultDir))
-                            Directory.Delete(buildResultDir, true);
+                        Logger.Info($"Moving the build dir from {buildProjectDir} to {dest}");
+                        if (Directory.Exists(dest))
+                            Directory.Delete(dest, true);
 
-                        Directory.Move(buildProjectDir, buildResultDir);
+                        Directory.Move(buildProjectDir, dest);
                     }
                 }
             }
@@ -584,7 +636,10 @@ public class OneClickWatchingTaskInputHandlerRunner
                 moveBack();
             }
 
-            await ReportResult();
+            Logger.Info($"Moving results to {ResultDir}");
+            Directories.Merge(assetsResultDir, completeResultDir);
+
+            await ReportResult(unitySceneName);
             Logger.Info("Completed");
 
 

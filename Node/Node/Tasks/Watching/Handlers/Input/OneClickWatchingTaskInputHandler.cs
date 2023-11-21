@@ -1,9 +1,7 @@
-using System.IO.Compression;
 using System.Net;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 using Node.Listeners;
-using SixLabors.ImageSharp;
 
 namespace Node.Tasks.Watching.Handlers.Input;
 
@@ -28,7 +26,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             if (betamzp is not null)
             {
                 var plugin = new Plugin(PluginType.OneClick, Path.GetFileNameWithoutExtension(betamzp)!.Substring("oneclickexport.v".Length), betamzp);
-                await Run(plugin, Input.TestInputDirectory, Input.TestOutputDirectory, Input.TestLogDirectory);
+                await Run(plugin, Input.TestInputDirectory, Input.TestOutputDirectory, Input.TestResultDirectory, Input.TestLogDirectory);
                 return;
             }
         }
@@ -40,7 +38,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         try
         {
             var plugin = PluginList.GetPlugin(PluginType.OneClick);
-            await Run(plugin, Input.InputDirectory, Input.OutputDirectory, Input.LogDirectory);
+            await Run(plugin, Input.InputDirectory, Input.OutputDirectory, Input.ResultDirectory, Input.LogDirectory);
         }
         catch (Exception ex)
         {
@@ -48,11 +46,12 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         }
     }
 
-    public async Task Run(Plugin oneClickPlugin, string inputdir, string outputdir, string logdir)
+    public async Task Run(Plugin oneClickPlugin, string inputdir, string outputdir, string resultdir, string logdir)
     {
         await OneClickWatchingTaskInputHandlerRunner.RunAll(
             inputdir,
             outputdir,
+            resultdir,
             logdir,
             PluginList,
             Logger,
