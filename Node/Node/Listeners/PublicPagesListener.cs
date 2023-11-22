@@ -18,7 +18,7 @@ namespace Node.Listeners
 
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
-            var images = new List<string[]>();
+            var images = new List<string>();
             var source = WatchingTasks.WatchingTasks.Values
                 .Select(d => d.Source)
                 .OfType<OneClickWatchingTaskInputInfo>()
@@ -29,10 +29,11 @@ namespace Node.Listeners
                 try
                 {
                     var files = Directory.GetFiles(Path.Combine(outdir, "renders"), "*.png");
-                    images.Add(files);
+                    images.AddRange(files);
                 }
                 catch { }
             }
+            
 
             var request = context.Request;
             var response = context.Response;
@@ -66,10 +67,10 @@ namespace Node.Listeners
 
             if (path.StartsWith("getocfile"))
             {
-                var filepath = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
-                if (!images.Any(files => files.Contains(filepath))) return HttpStatusCode.NotFound;
+                var fileIndex = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
+                if (fileIndex >= images.Length) return HttpStatusCode.NotFound;
 
-                using var filestream = File.OpenRead(filepath);
+                using var filestream = File.OpenRead(images[fileIndex]);
                 response.ContentLength64 = filestream.Length;
 
                 await filestream.CopyToAsync(response.OutputStream);
