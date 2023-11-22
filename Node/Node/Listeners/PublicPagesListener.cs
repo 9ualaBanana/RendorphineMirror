@@ -43,22 +43,43 @@ namespace Node.Listeners
             {
                 string now = DateTime.Now.Ticks.ToString();
                 string info = $@"
-                    <!doctype html>
-                    <html lang=""en"">
+                <!doctype html>
+                <html lang=""en"">
 
-                    <head>
-                        <meta charset=""UTF-8"" />
-                        <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
-                        <title>Vite + React + TS</title>
-                        <script type=""module"" crossorigin src=""https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery/dist/assets/index.js?time={now}""></script>
-                        <link rel=""stylesheet"" crossorigin href=""https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery/dist/assets/index.css?time={now}"">
-                    </head>
+                <head>
+                    <meta charset=""UTF-8"" />
+                    <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
+                    <title>Vite + React + TS</title>
+                    <script>
+                        const loadResource = (commitHash, isStyle = false) => {{
+                            if (isStyle) {{
+                                const link = document.createElement('link');
+                                link.href = `https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery@${{commitHash}}/dist/assets/index.css`;
+                                link.rel = 'stylesheet';
+                                document.head.appendChild(link);
+                            }} else {{
+                                const script = document.createElement('script');
+                                script.src = `https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery@${{commitHash}}/dist/assets/index.js`;
+                                script.type = 'module';
+                                document.body.appendChild(script);
+                            }}
+                        }};
 
-                    <body>
-                        <div id=""root""></div>
-                    </body>
+                        fetch('https://api.github.com/repos/slavamirniy/ocgallery/commits/main')
+                            .then(response => response.json())
+                            .then(data => {{
+                                const commitHash = data.sha;
+                                loadResource(commitHash); // Загрузка скрипта
+                                loadResource(commitHash, true); // Загрузка стилей
+                            }});
+                    </script>
+                </head>
 
-                    </html>";
+                <body>
+                    <div id=""root""></div>
+                </body>
+
+                </html>";
 
                 using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
                 writer.Write(info);
