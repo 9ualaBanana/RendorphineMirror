@@ -33,7 +33,7 @@ namespace Node.Listeners
                 }
                 catch { }
             }
-            
+
 
             var request = context.Request;
             var response = context.Response;
@@ -59,17 +59,17 @@ namespace Node.Listeners
 
                     </html>";
 
-                    using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-                    writer.Write(info);
-                    return HttpStatusCode.OK;
+                using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+                writer.Write(info);
+                return HttpStatusCode.OK;
             }
 
             if (path.StartsWith("getocfile"))
             {
-                var fileIndex = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
-                if (fileIndex >= images.Length) return HttpStatusCode.NotFound;
+                var filePath = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
+                if (!images.Contains(filePath)) return HttpStatusCode.NotFound;
 
-                using var filestream = File.OpenRead(images[fileIndex]);
+                using var filestream = File.OpenRead(filePath);
                 response.ContentLength64 = filestream.Length;
 
                 await filestream.CopyToAsync(response.OutputStream);
