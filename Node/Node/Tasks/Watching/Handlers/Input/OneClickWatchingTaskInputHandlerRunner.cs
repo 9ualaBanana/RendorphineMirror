@@ -47,6 +47,11 @@ public class OneClickWatchingTaskInputHandlerRunner
 
     public required ILogger Logger { get; init; }
 
+    string? _ProductName;
+    /// <summary> {Handling_Machining_v6} </summary>
+    /// <remarks> Will throw an exception if called before extracting the source zip </remarks>
+    string ProductName { get => _ProductName.ThrowIfNull(); set => _ProductName = value; }
+
     /// <summary> C:\oneclick\output\{SmallGallery} </summary>
     string NamedOutputDirectory => Directories.DirCreated(OutputDir, Path.GetFileNameWithoutExtension(ZipFilePath));
 
@@ -57,34 +62,17 @@ public class OneClickWatchingTaskInputHandlerRunner
     string UnityAssetsResultDirectory => Directories.DirCreated(UnityResultDirectory, "Assets");
 
     /// <summary> C:\oneclick\output\{SmallGallery}\unity\Assets\{Handling_Machining_v6} </summary>
-    /// <remarks> Will throw an exception if Unity export was not completed </remarks>
-    string GetUnityAssetsSceneResultDirectory()
-    {
-        var path = Directory.GetFiles(UnityAssetsResultDirectory)
-            .SingleOrDefault(file => Path.GetExtension(file) == ".fbx");
-
-        if (path is not null)
-            path = Path.ChangeExtension(path, null);
-        else
-            path = Directory.GetDirectories(UnityAssetsResultDirectory)
-                .SingleOrDefault(dir => Path.GetFileName(dir) != "OneClickImport");
-
-        return path.ThrowIfNull();
-    }
-
-    /// <summary> {Handling_Machining_v6} </summary>
-    /// <remarks> Will throw an exception if 3ds export was not completed </remarks>
-    string GetUnitySceneName() => Path.GetFileName(GetUnityAssetsSceneResultDirectory());
+    string UnityAssetsSceneResultDirectory => Path.Combine(UnityAssetsResultDirectory, ProductName);
 
     /// <summary> C:\oneclick\output\{SmallGallery}\exportinfo.txt </summary>
     string ExportInfoFile => Path.GetFullPath(Path.Combine(NamedOutputDirectory, "exportinfo.txt"));
 
-    /// <summary> C:\oneclick\log\unity\{SmallGallery}_log.log </summary>
+    /// <summary> C:\oneclick\log\unity\{Handling_Machining_v6}_log.log </summary>
     string UnityLogFile
     {
         get
         {
-            var logFileName = Path.GetFileNameWithoutExtension(ZipFilePath) + "_log.log";
+            var logFileName = Path.GetFileNameWithoutExtension(ProductName) + "_log.log";
             foreach (var invalid in Path.GetInvalidPathChars())
                 logFileName = logFileName.Replace(invalid, '_');
 
@@ -151,6 +139,7 @@ public class OneClickWatchingTaskInputHandlerRunner
         }
         catch (NodeProcessException)
         {
+            await startGit("add", ".");
             await startGit("reset", "--hard");
             await startGit("pull");
         }
@@ -178,7 +167,7 @@ public class OneClickWatchingTaskInputHandlerRunner
         try
         {
             var sceneinfo = "\nScene name: ";
-            try { sceneinfo += GetUnitySceneName(); }
+            try { sceneinfo += ProductName; }
             catch { sceneinfo += "<none>"; }
 
             var message = exception.Message;
@@ -262,36 +251,48 @@ public class OneClickWatchingTaskInputHandlerRunner
         using var _ = Logger.BeginScope($"3dsmax");
 
         Logger.Info($"Extracting");
-        Directory.Delete(NamedOutputDirectory, true);
-        Logger.Info($"Extracting {ZipFilePath} to {NamedOutputDirectory}");
-        ZipFile.ExtractToDirectory(ZipFilePath, NamedOutputDirectory);
 
-        while (true)
         {
-            var zips = Directory.GetFiles(NamedOutputDirectory, "*.zip", SearchOption.AllDirectories);
-            if (zips.Length == 0) break;
+            var archiveOutputDirectory = NamedOutputDirectory;
+            if (Directory.Exists(archiveOutputDirectory))
+                Directory.Delete(archiveOutputDirectory, true);
 
-            foreach (var zip in zips)
+            Logger.Info($"Extracting {ZipFilePath} to {archiveOutputDirectory}");
+            ZipFile.ExtractToDirectory(ZipFilePath, archiveOutputDirectory);
+
+            // extract all archives inside, recursively
+            while (true)
             {
-                var dest = Path.GetDirectoryName(zip)!;
+                var zips = Directory.GetFiles(archiveOutputDirectory, "*.zip", SearchOption.AllDirectories);
+                if (zips.Length == 0) break;
 
-                Logger.Info($"Extracting {zip} to {dest}");
-                ZipFile.ExtractToDirectory(zip, dest);
-                File.Delete(zip);
+                foreach (var zip in zips)
+                {
+                    var dest = Path.GetDirectoryName(zip)!;
+
+                    Logger.Info($"Extracting {zip} to {dest}");
+                    ZipFile.ExtractToDirectory(zip, dest);
+                    File.Delete(zip);
+                }
             }
+
+            ProductName = Path.GetFileNameWithoutExtension(getMaxSceneFile(archiveOutputDirectory));
         }
 
+        string getMaxSceneFile(string dir)
+        {
+            var maxSceneFile = Directory.GetFiles(dir, "*.max", SearchOption.AllDirectories)
+                  .Where(zip => !zip.ContainsOrdinal("backup"))
+                  .MaxBy(File.GetLastWriteTimeUtc);
+            maxSceneFile ??= Directory.GetFiles(dir, "*.max", SearchOption.AllDirectories)
+                .MaxBy(File.GetLastWriteTimeUtc);
+
+            return maxSceneFile.ThrowIfNull("No .max file found");
+        }
+
+        var maxSceneFile = getMaxSceneFile(NamedOutputDirectory);
         Logger.Info("Extracted");
-
-        var scenefile = Directory.GetFiles(NamedOutputDirectory, "*.max", SearchOption.AllDirectories)
-            .Where(zip => !zip.ContainsOrdinal("backup"))
-            .MaxBy(File.GetLastWriteTimeUtc);
-        scenefile ??= Directory.GetFiles(NamedOutputDirectory, "*.max", SearchOption.AllDirectories)
-            .MaxBy(File.GetLastWriteTimeUtc);
-        scenefile.ThrowIfNull("No .max file found");
-
-        Logger.Info($"Scene file: {scenefile}; Target directory: {UnityAssetsResultDirectory}");
-
+        Logger.Info($"Scene file: {maxSceneFile}; Target directory: {UnityAssetsResultDirectory}");
 
         var launcher = new ProcessLauncher(TdsMaxPlugin.Path)
         {
@@ -301,7 +302,7 @@ public class OneClickWatchingTaskInputHandlerRunner
             Arguments =
             {
                 // minimized, dialog boxes suppressed
-                "-ms", "-silent",
+                "-ma", "-silent",
 
                 // log path
                 "-log", Directories.NumberedNameInDirectory(LogDir, "log{0:0000}.log"),
@@ -318,7 +319,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                 "-mxs", $"oneclickexport.oc000 2 @\"{UnityAssetsResultDirectory}\" 3 3 true 960 540 false",
 
                 // scene to export
-                scenefile.Replace('\\', '/'),
+                maxSceneFile.Replace('\\', '/'),
             },
         };
 
@@ -466,9 +467,9 @@ public class OneClickWatchingTaskInputHandlerRunner
         {
             var (importerVersion, unityVersion, rendererType) = ocImporterVersion;
 
-            var unitySceneName = GetUnitySceneName();
-            var assetsResultDir = GetUnityAssetsSceneResultDirectory();
-            var completeResultDir = Path.Combine(ResultDir, unitySceneName);
+            var productName = ProductName;
+            var assetsResultDir = UnityAssetsSceneResultDirectory;
+            var completeResultDir = Path.Combine(ResultDir, productName);
 
             if (Path.Exists(completeResultDir))
             {
@@ -587,10 +588,10 @@ public class OneClickWatchingTaskInputHandlerRunner
                 moveBack();
 
                 var buildProjectDir = Path.Combine(unityTemplateDir, "Builds");
-                var unityImportResultDir = GetUnityAssetsSceneResultDirectory();
+                var unityImportResultDir = UnityAssetsSceneResultDirectory;
 
                 // entrance_hall_for_export_[2021.3.32f1]_[URP]_[50]
-                var buildResultDir = Path.Combine(unityImportResultDir, "Builds", $"{unitySceneName}_[{unityVersion}]_[{rendererType}]_[{importerVersion}]");
+                var buildResultDir = Path.Combine(unityImportResultDir, "Builds", $"{productName}_[{unityVersion}]_[{rendererType}]_[{importerVersion}]");
                 if (!Directory.Exists(buildResultDir))
                 {
                     Logger.Error($"{buildResultDir} was not found; searching for an empty dir");
@@ -611,7 +612,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                     {
                         var exeprocess = Process.GetProcesses().Where(proc =>
                         {
-                            try { return Path.GetFileName(proc.MainModule?.FileName)?.StartsWith(unitySceneName) == true; }
+                            try { return Path.GetFileName(proc.MainModule?.FileName)?.StartsWith(productName) == true; }
                             catch { return false; }
                         }).FirstOrDefault();
 
@@ -665,7 +666,7 @@ public class OneClickWatchingTaskInputHandlerRunner
             Logger.Info($"Moving results to {ResultDir}");
             Directories.Merge(assetsResultDir, completeResultDir);
 
-            await ReportResult(unitySceneName);
+            await ReportResult(productName);
             Logger.Info("Completed");
 
 

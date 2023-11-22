@@ -215,7 +215,7 @@ public class ProcessLauncher
     public class ProcessLogging
     {
         public ILogger? ILogger { get; set; }
-        public bool LogStartMessage { get; set; }
+        public bool LogStartMessage { get; set; } = true;
         public LogLevel StdOut { get; set; } = LogLevel.Trace;
         public LogLevel StdErr { get; set; } = LogLevel.Error;
     }
