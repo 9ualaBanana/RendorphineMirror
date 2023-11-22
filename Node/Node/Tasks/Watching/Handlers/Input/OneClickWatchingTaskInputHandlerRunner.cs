@@ -190,6 +190,8 @@ public class OneClickWatchingTaskInputHandlerRunner
             }
             else
             {
+                errorstr += $"\n(Unity log file {unityLogFile} was not found)";
+
                 using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_render_error?{query}", content: null);
                 result.EnsureSuccessStatusCode();
             }
