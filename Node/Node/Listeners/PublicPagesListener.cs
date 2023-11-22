@@ -41,28 +41,27 @@ namespace Node.Listeners
 
             if (path == "gallery")
             {
-                string? pageString = context.Request.QueryString["days"];
-                int page;
+                string info = @"
+                    <!doctype html>
+                    <html lang=""en"">
 
-                if (pageString == null || !int.TryParse(pageString, out page)) page = 0;
+                    <head>
+                        <meta charset=""UTF-8"" />
+                        <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
+                        <title>Vite + React + TS</title>
+                        <script type=""module"" crossorigin src=""https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery/dist/assets/index.js""></script>
+                        <link rel=""stylesheet"" crossorigin href=""https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery/dist/assets/index.css"">
+                    </head>
 
-                string info = "<html><head><meta charset=\"UTF-8\"></head><body>";
-                info += $"<form method='get'>Страница: <input type ='number' name='days' value={page + 1}><input type = 'submit' value = 'Перейти'></form>";
-                info += $"<b>Page: {page} </b><br>";
+                    <body>
+                        <div id=""root""></div>
+                    </body>
 
-                foreach (var files in images)
-                {
-                    foreach (var file in files)
-                        info += $"<img width='200px' src='./getocfile?file={HttpUtility.UrlEncode(file)}'>";
+                    </html>";
 
-                    info += "</br>";
-                }
-
-                info += "</body></html>";
-
-                using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-                writer.Write(info);
-                return HttpStatusCode.OK;
+                    using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+                    writer.Write(info);
+                    return HttpStatusCode.OK;
             }
 
             if (path.StartsWith("getocfile"))
