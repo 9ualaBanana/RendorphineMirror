@@ -41,7 +41,8 @@ namespace Node.Listeners
 
             if (path == "gallery")
             {
-                string info = @"
+                string now = DateTime.Now.Ticks.ToString();
+                string info = $@"
                     <!doctype html>
                     <html lang=""en"">
 
@@ -49,8 +50,8 @@ namespace Node.Listeners
                         <meta charset=""UTF-8"" />
                         <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
                         <title>Vite + React + TS</title>
-                        <script type=""module"" crossorigin src=""https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery/dist/assets/index.js""></script>
-                        <link rel=""stylesheet"" crossorigin href=""https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery/dist/assets/index.css"">
+                        <script type=""module"" crossorigin src=""https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery/dist/assets/index.js?time={now}""></script>
+                        <link rel=""stylesheet"" crossorigin href=""https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery/dist/assets/index.css?time={now}"">
                     </head>
 
                     <body>
