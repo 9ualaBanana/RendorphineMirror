@@ -66,10 +66,9 @@ namespace Node.Listeners
 
             if (path.StartsWith("getocfile"))
             {
-                var filePath = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
-                if (!images.Contains(filePath)) return HttpStatusCode.NotFound;
-
-                using var filestream = File.OpenRead(filePath);
+                var fileIndexString = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
+                if (fileIndexString == null || !int.TryParse(fileIndexString, out int fileIndex) || fileIndex >= images.Count) return HttpStatusCode.NotFound;
+                using var filestream = File.OpenRead(images[fileIndex]);
                 response.ContentLength64 = filestream.Length;
 
                 await filestream.CopyToAsync(response.OutputStream);
