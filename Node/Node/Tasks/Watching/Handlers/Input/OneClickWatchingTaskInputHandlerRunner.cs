@@ -79,6 +79,19 @@ public class OneClickWatchingTaskInputHandlerRunner
     /// <summary> C:\oneclick\output\{SmallGallery}\exportinfo.txt </summary>
     string ExportInfoFile => Path.GetFullPath(Path.Combine(NamedOutputDirectory, "exportinfo.txt"));
 
+    /// <summary> C:\oneclick\log\unity\{SmallGallery}_log.log </summary>
+    string UnityLogFile
+    {
+        get
+        {
+            var logFileName = Path.GetFileNameWithoutExtension(ZipFilePath) + "_log.log";
+            foreach (var invalid in Path.GetInvalidPathChars())
+                logFileName = logFileName.Replace(invalid, '_');
+
+            return Path.Combine(Directories.DirCreated(LogDir, "unity"), logFileName);
+        }
+    }
+
 
     public static async Task RunAll(string inputdir, string outputdir, string resultdir, string logdir, IPluginList plugins, ILogger logger, Plugin? oneclick)
     {
@@ -177,9 +190,20 @@ public class OneClickWatchingTaskInputHandlerRunner
                 ```
                 """;
 
+            var unityLogFile = UnityLogFile;
             var query = Api.ToQuery(("error", errorstr));
-            using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_render_error?{query}", content: null);
-            result.EnsureSuccessStatusCode();
+
+            if (File.Exists(unityLogFile))
+            {
+                using var content = new MultipartFormDataContent() { { new StreamContent(File.OpenRead(unityLogFile)), "log", Path.GetFileName(unityLogFile) } };
+                using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_render_error?{query}", content);
+                result.EnsureSuccessStatusCode();
+            }
+            else
+            {
+                using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_render_error?{query}", content: null);
+                result.EnsureSuccessStatusCode();
+            }
         }
         catch (Exception ex)
         {
@@ -190,10 +214,14 @@ public class OneClickWatchingTaskInputHandlerRunner
     async Task ReportResult(string sceneName)
     {
         using var content = new MultipartFormDataContent();
+        foreach (var renderfile in Directory.GetFiles(Path.Combine(ResultDir, sceneName, "renders"), "*.mp4"))
+            content.Add(new StreamContent(File.OpenRead(renderfile)), "renders", Path.GetFileName(renderfile));
         foreach (var renderfile in Directory.GetFiles(Path.Combine(ResultDir, sceneName, "renders"), "*.png"))
             content.Add(new StreamContent(File.OpenRead(renderfile)), "renders", Path.GetFileName(renderfile));
 
-        using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_renders", content);
+        var caption = $"{sceneName} from {Settings.NodeName}";
+        var query = Api.ToQuery(("caption", caption));
+        using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_renders?{query}", content);
         result.EnsureSuccessStatusCode();
     }
 
@@ -340,8 +368,6 @@ public class OneClickWatchingTaskInputHandlerRunner
 
         using var _ = Logger.BeginScope($"Unity");
         ExportInfo.Unity ??= new();
-
-        var unityLogDir = Directories.DirCreated(LogDir, "unity");
 
         var unityTemplateNames = new[] { "OCURP21+", /*"OCHDRP22+"*/ };
         foreach (var unityTemplateName in unityTemplateNames)
@@ -519,9 +545,9 @@ public class OneClickWatchingTaskInputHandlerRunner
 
                 Logger.Info("Launching unity");
 
-                var logFileName = Path.GetFileNameWithoutExtension(ZipFilePath) + "_log.log";
-                foreach (var invalid in Path.GetInvalidPathChars())
-                    logFileName = logFileName.Replace(invalid, '_');
+                var unityLogFile = UnityLogFile;
+                if (File.Exists(unityLogFile))
+                    File.Delete(unityLogFile);
 
                 //NonAdminRunner.RunAsDesktopUserWaitForExit(unity.Path, );
                 var launcher = new ProcessLauncher(unity.Path)
@@ -537,7 +563,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                         "-projectPath", unityTemplateDir,
                         "-executeMethod", "OCBatchScript.StartBake",
                         "-noLM",
-                        "-logFile", Path.Combine(unityLogDir, logFileName),
+                        "-logFile", unityLogFile,
                     },
                 };
                 await launcher.ExecuteAsync();
