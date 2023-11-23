@@ -266,8 +266,6 @@ public class OneClickWatchingTaskInputHandlerRunner
         using var content = new MultipartFormDataContent();
         foreach (var renderfile in Directory.GetFiles(Path.Combine(ResultDir, sceneName, "renders"), "*.mp4"))
             content.Add(new StreamContent(File.OpenRead(renderfile)), "renders", Path.GetFileName(renderfile));
-        foreach (var renderfile in Directory.GetFiles(Path.Combine(ResultDir, sceneName, "renders"), "*.png"))
-            content.Add(new StreamContent(File.OpenRead(renderfile)), "renders", Path.GetFileName(renderfile));
 
         var caption = $"{sceneName} from {Settings.NodeName}\n{GetExportInfoForLog()}";
         var query = Api.ToQuery(("caption", caption));
@@ -554,7 +552,6 @@ public class OneClickWatchingTaskInputHandlerRunner
                     }
                 }
 
-                cleanup("Builds");
                 cleanup("renders");
                 cleanup("scenes");
                 Directories.Merge(completeResultDir, assetsResultDir);
@@ -657,32 +654,10 @@ public class OneClickWatchingTaskInputHandlerRunner
                 ExportInfo.Unity[unityTemplateName] = new(newBakedInfo.ImporterVersion, newBakedInfo.UnityVersion, newBakedInfo.RendererType, UnityTemplatesGitCommitHash, true);
                 moveBack();
 
-                var buildProjectDir = Path.Combine(unityTemplateDir, "Builds");
-                var unityImportResultDir = UnityAssetsSceneResultDirectory;
-
-                // entrance_hall_for_export_[2021.3.32f1]_[URP]_[50]
-                var buildResultDir = Path.Combine(unityImportResultDir, "Builds", $"{productName}_[{unityVersion}]_[{rendererType}]_[{importerVersion}]");
-                if (!Directory.Exists(buildResultDir))
-                {
-                    Logger.Error($"{buildResultDir} was not found; searching for an empty dir");
-                    try
-                    {
-                        buildResultDir = Directory.GetDirectories(Path.Combine(unityImportResultDir, "Builds"))
-                            .Where(dir => Directory.GetFiles(dir).Length == 0 && Directory.GetDirectories(dir).Length == 0)
-                            .Single();
-                    }
-                    catch { Directory.CreateDirectory(buildResultDir); }
-                }
-
-
-                if (Directory.Exists(buildResultDir))
-                    Directory.Delete(buildResultDir, true);
-
+                try
                 {
                     var dest = Directories.DirCreated(completeResultDir, "Builds");
-
-                    var moved = false;
-                    for (int i = 0; i < 60; i++)
+                    for (int i = 0; i < 60 * 2; i++)
                     {
                         var exeprocess = Process.GetProcesses().Where(proc =>
                         {
@@ -692,7 +667,7 @@ public class OneClickWatchingTaskInputHandlerRunner
 
                         if (exeprocess is not null)
                         {
-                            if (i == 60 - 1)
+                            if (i == 60 * 2 - 1)
                                 exeprocess.Kill();
                             else
                             {
@@ -701,36 +676,9 @@ public class OneClickWatchingTaskInputHandlerRunner
                                 continue;
                             }
                         }
-
-                        try
-                        {
-                            moveBuildResult();
-                            moved = true;
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Info($"Could not move the build dir {buildProjectDir} to {dest}: {ex.Message}; retrying after 5 sec");
-                            await System.Threading.Tasks.Task.Delay(5000);
-                        }
-                    }
-
-                    if (!moved)
-                    {
-                        await killUnity();
-                        moveBuildResult();
-                    }
-
-
-                    void moveBuildResult()
-                    {
-                        Logger.Info($"Moving the build dir from {buildProjectDir} to {dest}");
-                        if (Directory.Exists(dest))
-                            Directory.Delete(dest, true);
-
-                        Directory.Move(buildProjectDir, dest);
                     }
                 }
+                catch { }
             }
             finally
             {
