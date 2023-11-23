@@ -26,14 +26,14 @@ public abstract record ApiBase
         using var content = ToPostContent(values);
         return await Send<T>(property, errorDetails, async () => await Client.PostAsync(url, content, CancellationToken));
     }
-    public async ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string errorDetails, HttpContent content) =>
+    public async ValueTask<OperationResult<T>> ApiPost<T>(string url, string? property, string errorDetails, HttpContent? content) =>
         await Send<T>(property, errorDetails, async () => await Client.PostAsync(url, content, CancellationToken)).ConfigureAwait(false);
 
     public async ValueTask<OperationResult> ApiGet(string url, string errorDetails, params (string, string)[] values) =>
         await ApiGet<bool>(url, "ok", errorDetails, values).Next(r => OperationResult.Succ());
     public async ValueTask<OperationResult> ApiPost(string url, string errorDetails, params (string, string)[] values) =>
         await ApiPost<bool>(url, "ok", errorDetails, values).Next(r => OperationResult.Succ());
-    public async ValueTask<OperationResult> ApiPost(string url, string errorDetails, HttpContent content) =>
+    public async ValueTask<OperationResult> ApiPost(string url, string errorDetails, HttpContent? content) =>
         await ApiPost<bool>(url, "ok", errorDetails, content).Next(r => OperationResult.Succ());
 
     public async ValueTask<OperationResult<T>> ApiSend<T>(HttpRequestMessage request, string? property, string errorDetails) =>

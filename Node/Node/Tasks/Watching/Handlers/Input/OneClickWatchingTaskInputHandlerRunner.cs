@@ -33,24 +33,25 @@ public class OneClickWatchingTaskInputHandlerRunner
     {
         get
         {
-            if (_ExportInfo is null)
+            try
             {
-                if (!File.Exists(ExportInfoFile))
-                    File.WriteAllText(ExportInfoFile, "{}");
-
-                _ExportInfo = JsonConvert.DeserializeObject<ProjectExportInfo>(File.ReadAllText(ExportInfoFile)).ThrowIfNull();
+                return _ExportInfo ??= JsonConvert.DeserializeObject<ProjectExportInfo>(File.ReadAllText(ExportInfoFile)).ThrowIfNull();
             }
-
-            return _ExportInfo;
+            catch
+            {
+                return _ExportInfo = new();
+            }
         }
     }
 
     public required ILogger Logger { get; init; }
 
+    IReadOnlyList<OneClickWatchingTaskInputHandlerRunner> Runners { get; set; } = null!;
+
     string? _ProductName;
     /// <summary> {Handling_Machining_v6} </summary>
     /// <remarks> Will throw an exception if called before extracting the source zip </remarks>
-    string ProductName { get => _ProductName.ThrowIfNull(); set => _ProductName = value; }
+    string ProductName { get => _ProductName ??= Path.GetFileNameWithoutExtension(GetMaxSceneFile(NamedOutputDirectory)); set => _ProductName = value; }
 
     /// <summary> C:\oneclick\output\{SmallGallery} </summary>
     string NamedOutputDirectory => Directories.DirCreated(OutputDir, Path.GetFileNameWithoutExtension(ZipFilePath));
@@ -96,9 +97,9 @@ public class OneClickWatchingTaskInputHandlerRunner
         await InstallOneClickIfNeeded(outputdir, oneclick, max, logger);
         var unityTemplatesCommitHash = await UpdateUnityTemplates(unityTemplatesDir, logger);
 
-        foreach (var zipfilepath in Directory.GetFiles(inputdir, "*.zip"))
-        {
-            var runner = new OneClickWatchingTaskInputHandlerRunner()
+        var runners = Directory.GetFiles(inputdir, "*.zip")
+            .Order()
+            .Select(zipfilepath => new OneClickWatchingTaskInputHandlerRunner()
             {
                 ZipFilePath = zipfilepath,
                 InputDir = inputdir,
@@ -111,8 +112,12 @@ public class OneClickWatchingTaskInputHandlerRunner
                 TdsMaxPlugin = max,
                 OneClickPlugin = oneclick,
                 Logger = logger,
-            };
+            })
+            .ToArray();
 
+        foreach (var runner in runners)
+        {
+            runner.Runners = runners;
             await runner.Run();
         }
     }
@@ -159,33 +164,30 @@ public class OneClickWatchingTaskInputHandlerRunner
         }
     }
 
+    string GetExportInfoForLog()
+    {
+        var all = Runners.Count;
+        var oneclickcompleted = Runners.Count(r => r.ExportInfo.OneClick is { Successful: true });
+        var unityfullcompleted = Runners.Count(r => r.ExportInfo.Unity?.All(u => u.Value.Successful) == true);
+
+        return $"""
+            [ {all} input achives; {oneclickcompleted} 3dsmax completed; {unityfullcompleted} unity completed ]
+            """;
+    }
+
     async Task SaveExportInfo() => await File.WriteAllTextAsync(ExportInfoFile, JsonConvert.SerializeObject(ExportInfo));
     async Task ReportError(Exception exception)
     {
         Logger.Error(exception);
 
+        var unityLogFile = UnityLogFile;
+        var secondlog = null as string;
+        try { secondlog = Path.Combine(UnityAssetsSceneResultDirectory, ProductName + ".log"); }
+        catch { }
+
+        var files = new List<string>();
         try
         {
-            var sceneinfo = "\nScene name: ";
-            try { sceneinfo += ProductName; }
-            catch { sceneinfo += "<none>"; }
-
-            var message = exception.Message;
-            var errorstr = $"""
-                Error from renderfin OneClick export:
-                Archive name: {Path.GetFileNameWithoutExtension(ZipFilePath)}{sceneinfo}
-                ```
-                {message.Replace(@"\", @"\\")}
-                ```
-                """;
-
-            var unityLogFile = UnityLogFile;
-            var secondlog = null as string;
-            try { secondlog = Path.Combine(UnityAssetsSceneResultDirectory, ProductName + ".log"); }
-            catch { }
-
-            var query = Api.ToQuery(("error", errorstr));
-
             if (File.Exists(unityLogFile))
             {
                 for (int i = 0; i < 10 || new FileInfo(unityLogFile).Length != 0; i++)
@@ -193,29 +195,65 @@ public class OneClickWatchingTaskInputHandlerRunner
                     await Task.Delay(1000);
                     continue;
                 }
-
-                using var content = new MultipartFormDataContent();
-                try { content.Add(new StreamContent(File.OpenRead(unityLogFile)), "logs", Path.GetFileName(unityLogFile)); }
-                catch { }
-
-                if (secondlog is not null)
-                    try { content.Add(new StreamContent(File.OpenRead(secondlog)), "logs", Path.GetFileName(secondlog)); }
-                    catch { }
-
-                using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_render_error?{query}", content);
-                result.EnsureSuccessStatusCode();
             }
-            else
-            {
-                errorstr += $"\n(Unity log file '{unityLogFile}' {(secondlog is null ? null : "or '${secondlog}'")} was not found)";
 
-                using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_render_error?{query}", content: null);
-                result.EnsureSuccessStatusCode();
+            File.OpenRead(unityLogFile).Dispose();
+            files.Add(unityLogFile);
+        }
+        catch { }
+
+        if (secondlog is not null)
+            try
+            {
+                File.OpenRead(secondlog).Dispose();
+                files.Add(secondlog);
+            }
+            catch { }
+
+        await ReportMessageToTg(exception.Message, files);
+    }
+    async Task ReportMessageToTg(string msg, IEnumerable<string> files)
+    {
+        try
+        {
+            var sceneinfo = "\nScene name: ";
+            try { sceneinfo += ProductName; }
+            catch { sceneinfo += "<none>"; }
+
+            var content = new MultipartFormDataContent();
+            try
+            {
+                foreach (var file in files)
+                {
+                    Logger.Info("Adding log file to requets " + file);
+                    try { content.Add(new StreamContent(File.OpenRead(file)), "logs", Path.GetFileName(file)); }
+                    catch { }
+                }
+
+                msg = $"""
+                    Archive name: {Path.GetFileNameWithoutExtension(ZipFilePath)}{sceneinfo}
+                    ```
+                    {msg.Replace(@"\", @"\\")}
+                    ```
+
+                    {GetExportInfoForLog()}
+                    """;
+
+                Logger.Info("Sending the " + msg + " of " + string.Join(", ", content.Select(x => x.ToString())));
+
+                if (!content.Any()) content = null;
+
+                var query = Api.ToQuery(("error", msg));
+                await Api.Default.ApiPost($"{Settings.ServerUrl}/oneclick/display_render_error?{query}", "Displaying render error", content);
+            }
+            finally
+            {
+                content?.Dispose();
             }
         }
         catch (Exception ex)
         {
-            Logger.Error($"Error sending the error to tg bot: {ex}");
+            Logger.Error($"Error sending a message to tg bot: {ex}");
         }
     }
 
@@ -227,10 +265,20 @@ public class OneClickWatchingTaskInputHandlerRunner
         foreach (var renderfile in Directory.GetFiles(Path.Combine(ResultDir, sceneName, "renders"), "*.png"))
             content.Add(new StreamContent(File.OpenRead(renderfile)), "renders", Path.GetFileName(renderfile));
 
-        var caption = $"{sceneName} from {Settings.NodeName}";
+        var caption = $"{sceneName} from {Settings.NodeName}\n{GetExportInfoForLog()}";
         var query = Api.ToQuery(("caption", caption));
-        using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_renders?{query}", content);
-        result.EnsureSuccessStatusCode();
+        await Api.Default.ApiPost($"{Settings.ServerUrl}/oneclick/display_renders?{query}", "Displaying renders", content);
+    }
+
+    static string GetMaxSceneFile(string dir)
+    {
+        var maxSceneFile = Directory.GetFiles(dir, "*.max", SearchOption.AllDirectories)
+              .Where(zip => !zip.ContainsOrdinal("backup"))
+              .MaxBy(File.GetLastWriteTimeUtc);
+        maxSceneFile ??= Directory.GetFiles(dir, "*.max", SearchOption.AllDirectories)
+            .MaxBy(File.GetLastWriteTimeUtc);
+
+        return maxSceneFile.ThrowIfNull("No .max file found");
     }
 
 
@@ -254,7 +302,7 @@ public class OneClickWatchingTaskInputHandlerRunner
         }
         catch (Exception ex)
         {
-            try { await ReportError(ex); }
+            try { Task.Run(async () => await ReportError(ex)).Consume(); }
             catch { }
         }
         finally
@@ -294,22 +342,9 @@ public class OneClickWatchingTaskInputHandlerRunner
                     File.Delete(zip);
                 }
             }
-
-            ProductName = Path.GetFileNameWithoutExtension(getMaxSceneFile(archiveOutputDirectory));
         }
 
-        string getMaxSceneFile(string dir)
-        {
-            var maxSceneFile = Directory.GetFiles(dir, "*.max", SearchOption.AllDirectories)
-                  .Where(zip => !zip.ContainsOrdinal("backup"))
-                  .MaxBy(File.GetLastWriteTimeUtc);
-            maxSceneFile ??= Directory.GetFiles(dir, "*.max", SearchOption.AllDirectories)
-                .MaxBy(File.GetLastWriteTimeUtc);
-
-            return maxSceneFile.ThrowIfNull("No .max file found");
-        }
-
-        var maxSceneFile = getMaxSceneFile(NamedOutputDirectory);
+        var maxSceneFile = GetMaxSceneFile(NamedOutputDirectory);
         Logger.Info("Extracted");
         Logger.Info($"Scene file: {maxSceneFile}; Target directory: {UnityAssetsResultDirectory}");
 
@@ -439,6 +474,8 @@ public class OneClickWatchingTaskInputHandlerRunner
 
             try
             {
+                Logger.Info($"Trying {ZipFilePath} {unityTemplateName}");
+
                 // C:\OneClickUnityDefaultProjects\{OCURP21+}
                 var unityTemplateDir = Path.Combine(UnityTemplatesDir, unityTemplateName);
 
@@ -467,7 +504,7 @@ public class OneClickWatchingTaskInputHandlerRunner
 
             bool needsConversion()
             {
-                if (ExportInfo.Unity?.TryGetValue(unityTemplateName, out var info) != true || info is null)
+                if (ExportInfo.Unity is null || !ExportInfo.Unity.TryGetValue(unityTemplateName, out var info) || info is null)
                     return true;
 
                 // convert only if either:
@@ -500,12 +537,16 @@ public class OneClickWatchingTaskInputHandlerRunner
 
                     foreach (var render in Directory.GetFiles(dir))
                     {
-                        var info = readExportInfoFromFileName(render);
-                        if (info.ImporterVersion != importerVersion)
+                        try
                         {
-                            Logger.Info($"Deleting {render} as it's not of latest version");
-                            File.Delete(render);
+                            var info = readExportInfoFromFileName(render);
+                            if (info.ImporterVersion != importerVersion)
+                            {
+                                Logger.Info($"Deleting {render} as it's not of latest version");
+                                File.Delete(render);
+                            }
                         }
+                        catch { }
                     }
                 }
 
@@ -696,9 +737,9 @@ public class OneClickWatchingTaskInputHandlerRunner
             Directories.Merge(assetsResultDir, completeResultDir);
 
             Logger.Info($"Moving fbx {Path.Combine(assetsResultDir, Path.GetFileName(assetsResultDir) + ".fbx")} to {Path.Combine(completeResultDir, Path.GetFileName(completeResultDir) + ".fbx")}");
-            File.Move(Path.Combine(assetsResultDir, Path.GetFileName(assetsResultDir) + ".fbx"), Path.Combine(completeResultDir, Path.GetFileName(completeResultDir) + ".fbx"));
+            File.Move(Path.ChangeExtension(assetsResultDir, ".fbx"), Path.Combine(completeResultDir, Path.GetFileName(completeResultDir) + ".fbx"));
 
-            await ReportResult(productName);
+            Task.Run(async () => await ReportResult(productName)).Consume();
             Logger.Info("Completed");
 
 
