@@ -117,6 +117,10 @@ public class OneClickWatchingTaskInputHandlerRunner
 
         foreach (var runner in runners)
         {
+            var newUnityTemplatesCommitHash = await UpdateUnityTemplates(unityTemplatesDir, logger);
+            if (newUnityTemplatesCommitHash != unityTemplatesCommitHash)
+                break;
+
             runner.Runners = runners;
             await runner.Run();
         }
