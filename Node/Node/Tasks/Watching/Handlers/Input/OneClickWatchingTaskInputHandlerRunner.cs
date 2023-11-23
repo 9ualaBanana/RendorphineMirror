@@ -180,17 +180,34 @@ public class OneClickWatchingTaskInputHandlerRunner
                 """;
 
             var unityLogFile = UnityLogFile;
+            var secondlog = null as string;
+            try { secondlog = Path.Combine(UnityAssetsSceneResultDirectory, ProductName + ".log"); }
+            catch { }
+
             var query = Api.ToQuery(("error", errorstr));
 
             if (File.Exists(unityLogFile))
             {
-                using var content = new MultipartFormDataContent() { { new StreamContent(File.OpenRead(unityLogFile)), "log", Path.GetFileName(unityLogFile) } };
+                for (int i = 0; i < 10 || new FileInfo(unityLogFile).Length != 0; i++)
+                {
+                    await Task.Delay(1000);
+                    continue;
+                }
+
+                using var content = new MultipartFormDataContent();
+                try { content.Add(new StreamContent(File.OpenRead(unityLogFile)), "logs", Path.GetFileName(unityLogFile)); }
+                catch { }
+
+                if (secondlog is not null)
+                    try { content.Add(new StreamContent(File.OpenRead(secondlog)), "logs", Path.GetFileName(secondlog)); }
+                    catch { }
+
                 using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_render_error?{query}", content);
                 result.EnsureSuccessStatusCode();
             }
             else
             {
-                errorstr += $"\n(Unity log file {unityLogFile} was not found)";
+                errorstr += $"\n(Unity log file '{unityLogFile}' {(secondlog is null ? null : "or '${secondlog}'")} was not found)";
 
                 using var result = await Api.Default.Client.PostAsync($"{Settings.ServerUrl}/oneclick/display_render_error?{query}", content: null);
                 result.EnsureSuccessStatusCode();
@@ -386,7 +403,8 @@ public class OneClickWatchingTaskInputHandlerRunner
             return new UnityBakedExportInfo(
                 parse(spt[3]),
                 parse(spt[1]),
-                parse(spt[2])
+                parse(spt[2]),
+                null
             );
 
 
@@ -406,13 +424,13 @@ public class OneClickWatchingTaskInputHandlerRunner
 
             var infofilecontents = File.ReadAllText(path);
             var infofile = infofilecontents.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            if (infofile.Length != 3)
+            if (infofile.Length < 3 || infofile.Length > 4)
             {
                 Logger.Error($"Invalid {Path.GetFileName(path)}: \n" + infofilecontents);
                 return false;
             }
 
-            importerVersion = new(infofile[0], infofile[1], infofile[2]);
+            importerVersion = new(infofile[0], infofile[1], infofile[2], infofile.Length >= 4 && !string.IsNullOrWhiteSpace(infofile[3]) ? infofile[3] : null);
             return true;
         }
         async Task tryProcess(string unityTemplateName)
@@ -467,7 +485,7 @@ public class OneClickWatchingTaskInputHandlerRunner
         }
         async Task process(string unityTemplateName, string unityTemplateDir, string unityTemplateAssetsDir, UnityBakedExportInfo ocImporterVersion)
         {
-            var (importerVersion, unityVersion, rendererType) = ocImporterVersion;
+            var (importerVersion, unityVersion, rendererType, launchArgs) = ocImporterVersion;
 
             var productName = ProductName;
             var assetsResultDir = UnityAssetsSceneResultDirectory;
@@ -552,6 +570,14 @@ public class OneClickWatchingTaskInputHandlerRunner
                 if (File.Exists(unityLogFile))
                     File.Delete(unityLogFile);
 
+                launchArgs ??= string.Join(' ', new[]
+                {
+                    "-accept-apiupdate",
+                    "-batchmode",
+                    "-executeMethod", "OCBatchScript.StartBake",
+                    "-noLM",
+                });
+
                 //NonAdminRunner.RunAsDesktopUserWaitForExit(unity.Path, );
                 var launcher = new ProcessLauncher(unity.Path)
                 {
@@ -561,11 +587,8 @@ public class OneClickWatchingTaskInputHandlerRunner
                     Timeout = TimeSpan.FromMinutes(10),
                     Arguments =
                     {
-                        "-accept-apiupdate",
-                        "-batchmode",
+                        launchArgs.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(arg => arg.Replace("\"", "")),
                         "-projectPath", unityTemplateDir,
-                        "-executeMethod", "OCBatchScript.StartBake",
-                        "-noLM",
                         "-logFile", unityLogFile,
                     },
                 };
@@ -597,9 +620,13 @@ public class OneClickWatchingTaskInputHandlerRunner
                 if (!Directory.Exists(buildResultDir))
                 {
                     Logger.Error($"{buildResultDir} was not found; searching for an empty dir");
-                    buildResultDir = Directory.GetDirectories(Path.Combine(unityImportResultDir, "Builds"))
-                        .Where(dir => Directory.GetFiles(dir).Length == 0 && Directory.GetDirectories(dir).Length == 0)
-                        .Single();
+                    try
+                    {
+                        buildResultDir = Directory.GetDirectories(Path.Combine(unityImportResultDir, "Builds"))
+                            .Where(dir => Directory.GetFiles(dir).Length == 0 && Directory.GetDirectories(dir).Length == 0)
+                            .Single();
+                    }
+                    catch { Directory.CreateDirectory(buildResultDir); }
                 }
 
 
@@ -665,8 +692,11 @@ public class OneClickWatchingTaskInputHandlerRunner
                 moveBack();
             }
 
-            Logger.Info($"Moving results to {ResultDir}");
+            Logger.Info($"Moving result dir {assetsResultDir} to {ResultDir}");
             Directories.Merge(assetsResultDir, completeResultDir);
+
+            Logger.Info($"Moving fbx {Path.Combine(assetsResultDir, Path.GetFileName(assetsResultDir) + ".fbx")} to {Path.Combine(completeResultDir, Path.GetFileName(completeResultDir) + ".fbx")}");
+            File.Move(Path.Combine(assetsResultDir, Path.GetFileName(assetsResultDir) + ".fbx"), Path.Combine(completeResultDir, Path.GetFileName(completeResultDir) + ".fbx"));
 
             await ReportResult(productName);
             Logger.Info("Completed");
@@ -761,7 +791,7 @@ public class OneClickWatchingTaskInputHandlerRunner
     }
 
 
-    public record UnityBakedExportInfo(string ImporterVersion, string UnityVersion, string RendererType);
+    public record UnityBakedExportInfo(string ImporterVersion, string UnityVersion, string RendererType, string? LaunchArgs);
 
     public record OneClickProjectExportInfo(string Version, bool Successful);
     public record UnityProjectExportInfo(string ImporterVersion, string UnityVersion, string RendererType, string ImporterCommitHash, bool Successful);
