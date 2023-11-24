@@ -36,8 +36,6 @@ public class MainController : ControllerBase
         [FromForm] IFormFile? img = null,
         [FromForm] string? url = null,
         [FromForm] string? model = null,
-        [FromForm] string? titleprompt = null,
-        [FromForm] string? kwprompt = null,
         [FromForm] string? prompt = null,
         [FromForm] GenerateTitleKeywordsSource source = GenerateTitleKeywordsSource.ChatGPT,
         [FromForm] ChatRequest.ImageMessageContent.ImageDetail detail = ChatRequest.ImageMessageContent.ImageDetail.Low
@@ -47,14 +45,14 @@ public class MainController : ControllerBase
         if (img is null && url is null) return JsonApi.Error("No img or url provided");
 
         if (source == GenerateTitleKeywordsSource.VisionDenseCaptioning)
-            return JsonApi.Success(await GenerateTKVision(img.ThrowIfNull("No img provided"), model, titleprompt, kwprompt));
+            return JsonApi.Success(await GenerateTKVision(img.ThrowIfNull("No img provided"), model, prompt));
         if (source == GenerateTitleKeywordsSource.ChatGPT)
         {
             try { return JsonApi.Success(await GenerateTKChatGpt(img, url, prompt, detail)); }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error in chatgpt api, retrying");
-                return JsonApi.Success(await GenerateTKVision(img.ThrowIfNull("No img provided"), model, titleprompt, kwprompt));
+                return JsonApi.Success(await GenerateTKVision(img.ThrowIfNull("No img provided"), model, prompt));
             }
         }
 
@@ -94,7 +92,7 @@ public class MainController : ControllerBase
 
         return tk;
     }
-    async Task<TK> GenerateTKVision(IFormFile img, string? model, string? titleprompt, string? kwprompt)
+    async Task<TK> GenerateTKVision(IFormFile img, string? model, string? prompt)
     {
         using var imgstream = img.OpenReadStream();
         var image = await Image.FromStreamAsync(imgstream);
@@ -107,10 +105,14 @@ public class MainController : ControllerBase
         var keywords = labels
             .Where(l => l.Score > kwcutoff)
             .Select(l => l.Description)
-            .ToArray();
+            .ToArray() as IReadOnlyList<string>;
 
-        var title = await OpenAICompleter.GenerateNewTitle(keywords, titleprompt, model);
-        keywords = await OpenAICompleter.GenerateBetterKeywords(title, keywords, kwprompt, model);
+        var bytes = new byte[img.Length];
+        await img.OpenReadStream().ReadExactlyAsync(bytes);
+
+        var tk = await OpenAICompleter.GenerateNewTKVision(bytes, keywords, prompt, model);
+        var title = tk.Title;
+        keywords = tk.Keywords;
 
         Logger.LogInformation($"""
             For image {img.FileName}:

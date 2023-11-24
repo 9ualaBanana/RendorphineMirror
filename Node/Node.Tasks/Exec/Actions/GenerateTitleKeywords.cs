@@ -44,9 +44,10 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                     using var img = Image.Load<Rgba32>(file.Path);
 
                     // google vision api accepts no more than 20MB images;
+                    // and we don't need that much quality anyways
                     // downscale the image
-                    if (img.Width > 2048)
-                        img.Mutate(ctx => ctx.Resize(new Size((int) (img.Height / (img.Width / 2048f)), 2048)));
+                    if (img.Width > 500) img.Mutate(ctx => ctx.Resize(new Size((int) (img.Height / (img.Width / 500f)), 500)));
+                    if (img.Height > 500) img.Mutate(ctx => ctx.Resize(new Size(500, (int) (img.Width / (img.Height / 500f)))));
 
                     using var stream = new MemoryStream();
                     img.SaveAsJpeg(stream);

@@ -6,6 +6,7 @@ namespace ChatGptApi;
 public partial class OpenAICompleter
 {
     readonly ChatApi Api;
+    readonly GoogleCloudApi GoogleApi;
     readonly ILogger Logger;
 
     decimal TotalSpent = 0;
@@ -14,6 +15,7 @@ public partial class OpenAICompleter
     {
         Logger = logger;
         Api = new ChatApi(config.GetValue<string>("openai_apikey").ThrowIfNull());
+        GoogleApi = new GoogleCloudApi("gcredentials-vertex.json");
     }
 
     async Task<ChatResult> SendChatRequestResult(IReadOnlyList<ChatRequest.IMessage> messages, double temperature = .1, int maxtokens = 400, int choices = 3, string? model = null)
@@ -132,10 +134,58 @@ public partial class OpenAICompleter
         throw new Exception("Could not generate the tk");
     }
 
-    public async Task<string> GenerateNewTitle(IEnumerable<string> keywords, string? system, string? model)
+    public async Task<TK> GenerateNewTKVision(byte[] image, IEnumerable<string> labels, string? system, string? model)
     {
-        var prompt = string.Join(", ", keywords);
-        return await SendChatRequest(system ?? $"Generate a title for an image using the provided keywords {PromptEnd}", prompt, maxtokens: 100, model: model);
+        var imgbase64 = Convert.ToBase64String(image);
+        var req = new GoogleCloudApi.GoogleRequest(new(1, "en"), new[] { new GoogleCloudApi.GoogleRequest.GoogleRequestInstances(new(imgbase64)) });
+        var gresponse = await GoogleApi.SendRequest(req);
+        var prediction = gresponse.Predictions[0];
+
+        system ??= $$"""
+            Generate a set of 50 one-word keywords and a title for the provided title and keywords {{PromptEndBase}}.
+            Title: {caption}.
+            Keywords: {labels}.
+
+            Write result as a JSON in the following format:
+            ```json
+            { "title": "string", "keywords": [ "string", "string" ] }
+            ```
+            """;
+
+        system = system
+            .Replace("{labels}", string.Join(", ", labels))
+            .Replace("{caption}", prediction);
+
+        var title = null as string;
+        var keywords = Array.Empty<string>();
+
+        for (int retry = 0; retry < 3; retry++)
+        {
+            var prompt = "";
+            var response = await SendChatRequestResult(system, prompt, choices: 1, maxtokens: 300, model: model);
+            var jsonstr = response.Choices[0].Message.Content;
+
+            if (jsonstr.StartsWith("```json"))
+                jsonstr = jsonstr.AsSpan()["```json".Length..].Trim().ToString();
+            jsonstr = jsonstr.Replace("`", string.Empty).Trim();
+
+            var tk = JsonConvert.DeserializeObject<TK>(jsonstr);
+            if (tk is not { Keywords.Count: > 0, Title: not null })
+            {
+                Logger.LogInformation($"Received invalid tk: '{jsonstr}', retrying ({retry + 1}/3)");
+                continue;
+            }
+
+            title ??= tk.Title;
+            keywords = keywords.Concat(tk.Keywords).Distinct().ToArray();
+
+            //if (keywords.Length >= 50)
+            return new TK(title, keywords);
+
+            //Logger.LogInformation($"Not enough keywords ({keywords.Length}), retrying");
+        }
+
+        throw new Exception("Could not generate the tk");
     }
 
     public async Task<string> GenerateNewDescription(string title, IEnumerable<string> keywords, string? system, string? model)
