@@ -656,7 +656,6 @@ public class OneClickWatchingTaskInputHandlerRunner
 
                 try
                 {
-                    var dest = Directories.DirCreated(completeResultDir, "Builds");
                     for (int i = 0; i < 60 * 2; i++)
                     {
                         var exeprocess = Process.GetProcesses().Where(proc =>
