@@ -12,26 +12,8 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
         var qwertykey = File.ReadAllText("qwertykey").Trim();
         var mpluskey = File.ReadAllText("mpluskey").Trim();
 
-        Logger.Info($"Fetching items (updatingfornewversion: {Input.IsUpdatingForNewVersion})");
-        return await process(getUsers().Next(users => getQSItems(users)))
-            .Next(async files =>
-            {
-                var isnewversion = files.Any(f => f.QSPreviewVersion != IO.Handlers.Output.QSPreview.Version);
-                Logger.Info($"Fetched {files.Length} items (isnewversion: {isnewversion}, updatingfornewversion: {Input.IsUpdatingForNewVersion})");
-
-                if (!Input.IsUpdatingForNewVersion && isnewversion)
-                {
-                    return await NotifyQSPreviewVersion(true)
-                        .Next(() =>
-                        {
-                            Input.IsUpdatingForNewVersion = true;
-                            SaveTask();
-                            return files.AsOpResult();
-                        });
-                }
-
-                return files.AsOpResult();
-            });
+        Logger.Info($"Fetching items");
+        return await process(getUsers().Next(users => getQSItems(users)));
 
 
         Task<OperationResult<ImmutableArray<MPlusNewItem>>> process(Task<OperationResult<ImmutableArray<QwertyStockItem>>> qitems) =>
@@ -81,29 +63,6 @@ public class QSWatchingTaskHandler : MPlusWatchingTaskHandlerBase<MPlusAllFilesW
         ValueTask<OperationResult<ImmutableDictionary<string, MPlusNewItem>>> getMPItems(string userid, IEnumerable<string> iids) =>
             Api.ApiPost<ImmutableDictionary<string, MPlusNewItem>>($"{Api.ContentDBEndpoint}/content/getitems", "items", "Getting m+ items info",
                 Api.SignRequest(mpluskey, ("userid", userid), ("iids", JsonConvert.SerializeObject(iids))));
-    }
-    async Task<OperationResult> NotifyQSPreviewVersion(bool updatingFiles) =>
-        await Api.ApiPost($"https://qwertystock.com/search/notifypreviewversion", "Notifying QS about preview version updates",
-            Api.SignRequest(File.ReadAllText("qwertykey").Trim(), ("version", IO.Handlers.Output.QSPreview.Version.ToStringInvariant()), ("isneedupdate", "false"), ("isfinished", (!updatingFiles).ToString()))
-        );
-
-
-    public override void OnCompleted(DbTaskFullState task)
-    {
-        base.OnCompleted(task);
-
-        if (Input.IsUpdatingForNewVersion && Task.PlacedNonCompletedTasks.Count == 0)
-        {
-            NotifyQSPreviewVersion(false)
-                .Next(() =>
-                {
-                    Input.IsUpdatingForNewVersion = false;
-                    SaveTask();
-                    return OperationResult.Succ();
-                })
-                .ThrowIfError()
-                .Consume();
-        }
     }
 
     protected override async Task Tick()
