@@ -6,22 +6,27 @@ namespace ChatGptApi;
 
 public class GoogleCloudApi
 {
+    readonly object CredsLock = new();
+
     readonly string CredsFile;
-    readonly HttpClient HttpClient = new();
+    readonly HttpClient HttpClient = new() { Timeout = TimeSpan.FromHours(1) };
     GoogleToken? Token;
 
     public GoogleCloudApi(string credsFile) => CredsFile = credsFile;
 
     public async Task<GoogleResult> SendRequest(GoogleRequest crequest)
     {
-        using var reqcontent = new StringContent(JsonConvert.SerializeObject(crequest)) { Headers = { ContentType = new("application/json", "utf-8") } };
-        using var request = new HttpRequestMessage(HttpMethod.Post, "https://us-central1-aiplatform.googleapis.com/v1/projects/arcane-footing-294111/locations/us-central1/publishers/google/models/imagetext:predict") { Content = reqcontent, };
-
         var respjson = null as JObject;
         for (int i = 0; i < 2; i++)
         {
-            if (Token is null || Token.ExpiresAt < DateTime.Now)
-                Token = await GetGoogleKey(CredsFile);
+            lock (CredsLock)
+            {
+                if (Token is null || Token.ExpiresAt < DateTime.Now)
+                    Token = GetGoogleKey(CredsFile).GetAwaiter().GetResult();
+            }
+
+            using var reqcontent = new StringContent(JsonConvert.SerializeObject(crequest)) { Headers = { ContentType = new("application/json", "utf-8") } };
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://us-central1-aiplatform.googleapis.com/v1/projects/arcane-footing-294111/locations/us-central1/publishers/google/models/imagetext:predict") { Content = reqcontent, };
 
             request.Headers.Authorization = new(Token.TokenType, Token.AccessToken);
 
@@ -29,12 +34,12 @@ public class GoogleCloudApi
             using var response = await HttpClient.SendAsync(request);
             using var resp = new JsonTextReader(new StreamReader(await response.Content.ReadAsStreamAsync()));
             respjson = await JObject.LoadAsync(resp);
-            Console.WriteLine("parsing req");
+            Console.WriteLine("parsing req " + respjson);
 
             if (respjson.ContainsKey("error"))
             {
                 var msg = respjson["error"]?["message"]?.Value<string>();
-                if (msg?.Contains("Rate limit") == true)
+                if (msg?.Contains("Rate limit") == true || msg?.Contains("Quota exceeded") == true)
                 {
                     try
                     {
@@ -45,9 +50,10 @@ public class GoogleCloudApi
                         var wait = double.Parse(msg.AsSpan(start, end - start));
                         await Task.Delay(TimeSpan.FromSeconds(wait));
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        await Task.Delay(5000);
+                        Console.WriteLine(ex);
+                        await Task.Delay(60_000);
                     }
 
                     return await SendRequest(crequest);
@@ -55,6 +61,7 @@ public class GoogleCloudApi
                 else
                 {
                     Token = null;
+                    await Task.Delay(60_000);
                     continue;
                 }
 

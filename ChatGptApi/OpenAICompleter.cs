@@ -134,9 +134,8 @@ public partial class OpenAICompleter
         throw new Exception("Could not generate the tk");
     }
 
-    public async Task<TK> GenerateNewTKVision(byte[] image, IEnumerable<string> labels, string? system, string? model)
+    public async Task<TK> GenerateNewTKVision(string imgbase64, IEnumerable<string> labels, string? system, string? model)
     {
-        var imgbase64 = Convert.ToBase64String(image);
         var req = new GoogleCloudApi.GoogleRequest(new(1, "en"), new[] { new GoogleCloudApi.GoogleRequest.GoogleRequestInstances(new(imgbase64)) });
         var gresponse = await GoogleApi.SendRequest(req);
         var prediction = gresponse.Predictions[0];

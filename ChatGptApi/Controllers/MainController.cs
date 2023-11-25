@@ -45,14 +45,14 @@ public class MainController : ControllerBase
         if (img is null && url is null) return JsonApi.Error("No img or url provided");
 
         if (source == GenerateTitleKeywordsSource.VisionDenseCaptioning)
-            return JsonApi.Success(await GenerateTKVision(img.ThrowIfNull("No img provided"), model, prompt));
+            return JsonApi.Success(await GenerateTKVision(img, url, model, prompt));
         if (source == GenerateTitleKeywordsSource.ChatGPT)
         {
             try { return JsonApi.Success(await GenerateTKChatGpt(img, url, prompt, detail)); }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error in chatgpt api, retrying");
-                return JsonApi.Success(await GenerateTKVision(img.ThrowIfNull("No img provided"), model, prompt));
+                return JsonApi.Success(await GenerateTKVision(img, url, model, prompt));
             }
         }
 
@@ -92,10 +92,15 @@ public class MainController : ControllerBase
 
         return tk;
     }
-    async Task<TK> GenerateTKVision(IFormFile img, string? model, string? prompt)
+    async Task<TK> GenerateTKVision(IFormFile? img, string? url, string? model, string? prompt)
     {
-        using var imgstream = img.OpenReadStream();
-        var image = await Image.FromStreamAsync(imgstream);
+        Image image;
+        if (img is not null)
+        {
+            using var imgstream = img.OpenReadStream();
+            image = await Image.FromStreamAsync(imgstream);
+        }
+        else image = await Image.FetchFromUriAsync(url.ThrowIfNull());
 
         // score and topicality always return the same value
         // https://issuetracker.google.com/issues/117855698
@@ -107,15 +112,12 @@ public class MainController : ControllerBase
             .Select(l => l.Description)
             .ToArray() as IReadOnlyList<string>;
 
-        var bytes = new byte[img.Length];
-        await img.OpenReadStream().ReadExactlyAsync(bytes);
-
-        var tk = await OpenAICompleter.GenerateNewTKVision(bytes, keywords, prompt, model);
+        var tk = await OpenAICompleter.GenerateNewTKVision(image.Content.ToBase64(), keywords, prompt, model);
         var title = tk.Title;
         keywords = tk.Keywords;
 
         Logger.LogInformation($"""
-            For image {img.FileName}:
+            For image {img?.FileName ?? url}:
                 Labels: {string.Join(", ", labels.Select(l => $"{(l.Score > kwcutoff ? "" : "*")}{(int) (l.Score * 100)}% {l.Description}"))}
                 Title: "{title}"
                 Keywords: ["{string.Join(", ", keywords)}"]

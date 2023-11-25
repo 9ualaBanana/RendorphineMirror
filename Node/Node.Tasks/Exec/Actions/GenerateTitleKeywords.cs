@@ -1,3 +1,5 @@
+using Autofac.Features.Indexed;
+
 namespace Node.Tasks.Exec.Actions;
 
 public record TitleKeywordsInput(string Title, ImmutableArray<string> Keywords);
@@ -35,7 +37,7 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                     content.Add(new StringContent(data.ChatGpt.Prompt), "prompt");
             }
 
-            return await input.If(
+            var task = async () => await input.If(
                 async files =>
                 {
                     var file = files.First();
@@ -90,6 +92,25 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                         .ThrowIfError();
                 }
             );
+
+
+            var lastex = null as Exception;
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    return await task();
+                }
+                catch (Exception ex)
+                {
+                    lastex = ex;
+                    Logger.LogError(ex, $"{ex.Message}; Retrying ({i}/5)");
+                }
+
+                await Task.Delay(5000);
+            }
+
+            throw lastex ?? new Exception("unknown error");
         }
     }
 }
