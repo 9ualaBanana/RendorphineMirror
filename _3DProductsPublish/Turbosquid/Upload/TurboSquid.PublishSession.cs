@@ -125,7 +125,7 @@ internal partial class TurboSquid
 
             async Task<List<ITurboSquidProcessed3DProductAsset<_3DProductThumbnail>>> UploadThumbnailsAsync()
             {
-                _logger.Trace("Starting 3D models thumbnails upload and processing.");
+                _logger.Trace("Starting 3D product thumbnails upload and processing.");
                 var thumbnailsUpload = await Draft._Product.Thumbnails
                     .Select(async thumbnail =>
                     {
@@ -135,7 +135,7 @@ internal partial class TurboSquid
                     })
                     .RunAsync();
                 var processedThumbnails = await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.WhenAll(thumbnailsUpload);
-                _logger.Trace("3D models thumbnails upload and processing failed.");
+                _logger.Trace("3D product thumbnails have been uploaded and processed.");
                 return processedThumbnails;
             }
 
