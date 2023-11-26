@@ -62,7 +62,8 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                     };
                     addChatGptInfo(content);
 
-                    return await Api.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/generatetkd?{query}", "value", "generating tkd using gcloud vision + openai", content)
+                    return await new Api(new HttpClient() { Timeout = TimeSpan.FromHours(1) })
+                        .ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/generatetkd?{query}", "value", "generating tkd using gcloud vision + openai", content)
                         .ThrowIfError();
                 },
                 async tk =>
@@ -75,7 +76,8 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                     addChatGptInfo(content);
 
                     var query = ApiBase.ToQuery(Api.AddSessionId(("taskid", ApiTask.Id)));
-                    return await Api.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/openai/generatebettertk?{query}", "value", "generating better tk using openai", content)
+                    return await new Api(new HttpClient() { Timeout = TimeSpan.FromHours(1) })
+                        .ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/openai/generatebettertk?{query}", "value", "generating better tk using openai", content)
                         .ThrowIfError();
                 },
                 async mpitem =>
@@ -88,7 +90,8 @@ public class GenerateTitleKeywords : FilePluginActionInfo<EitherFileTaskInput<Ti
                     addChatGptInfo(content);
 
                     var query = ApiBase.ToQuery(Api.AddSessionId(("taskid", ApiTask.Id)));
-                    return await Api.Api.ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/generatetkd?{query}", "value", "generating tkd using chatgpt", content)
+                    return await (Api.Api with { Client = new HttpClient() { Timeout = TimeSpan.FromHours(1) } })
+                        .ApiPost<TitleKeywordsOutput>($"https://t.microstock.plus:7899/generatetkd?{query}", "value", "generating tkd using chatgpt", content)
                         .ThrowIfError();
                 }
             );
