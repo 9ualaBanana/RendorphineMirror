@@ -194,7 +194,7 @@ public class OneClickWatchingTaskInputHandlerRunner
         {
             if (File.Exists(unityLogFile))
             {
-                for (int i = 0; i < 10 || new FileInfo(unityLogFile).Length != 0; i++)
+                for (int i = 0; i < 5 && new FileInfo(unityLogFile).Length == 0; i++)
                 {
                     await Task.Delay(1000);
                     continue;
@@ -216,10 +216,12 @@ public class OneClickWatchingTaskInputHandlerRunner
 
         await ReportMessageToTg(exception.Message, files);
     }
-    async Task ReportMessageToTg(string msg, IEnumerable<string> files)
+    async Task ReportMessageToTg(string msg, IReadOnlyCollection<string> files)
     {
         try
         {
+            Logger.Info($"Reporting an error {msg} with files {string.Join(", ", files)}");
+
             var sceneinfo = "\nScene name: ";
             try { sceneinfo += ProductName; }
             catch { sceneinfo += "<none>"; }
@@ -500,7 +502,11 @@ public class OneClickWatchingTaskInputHandlerRunner
                 if (ocImporterVersion is not null)
                     ExportInfo.Unity[unityTemplateName] = new(ocImporterVersion.ImporterVersion, ocImporterVersion.UnityVersion, ocImporterVersion.RendererType, UnityTemplatesGitCommitHash, false);
 
-                throw new Exception($"Could not process {unityTemplateName} for {ZipFilePath}: {ex.Message}", ex);
+                var msg = $"""
+                    Importer info: {JsonConvert.SerializeObject((ocImporterVersion as object) ?? "unknown")}
+                    Could not process {unityTemplateName} for {ZipFilePath}: {ex.Message}
+                    """;
+                throw new Exception(msg, ex);
             }
 
 
