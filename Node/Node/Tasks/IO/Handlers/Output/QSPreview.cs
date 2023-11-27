@@ -85,6 +85,6 @@ public static class QSPreview
         public static TaskOutputType Type => TaskOutputType.QSPreview;
 
         public override bool CheckCompletion(QSPreviewOutputInfo info, TaskState state) =>
-            state == TaskState.Validation && info.IngesterHost is not null;
+            state == TaskState.Validation && info.Data?.Values.All(data => data.IngesterHost is not null) == true;
     }
 }
