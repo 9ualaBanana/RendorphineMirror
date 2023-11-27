@@ -9,7 +9,7 @@ internal record TurboSquidAwsUploadCredentials
     /// Container for objects stored in Amazon S3 and is the subdomain of that storage URL.
     /// </summary>
     internal readonly string Bucket;
-    internal readonly string CurrentServerTime;
+    internal readonly DateTime CurrentServerTime;
     /// <remarks>
     /// Ends with a path separator '/'.
     /// </remarks>
@@ -24,7 +24,7 @@ internal record TurboSquidAwsUploadCredentials
         return new(
             (string)uploadCredentialsJson["access_key"]!,
             (string)uploadCredentialsJson["bucket"]!,
-            (string)uploadCredentialsJson["current_server_time"]!,
+            DateTimeOffset.Parse((string)uploadCredentialsJson["current_server_time"]!).ToOffset(DateTimeOffset.Now.Offset).DateTime,
             (string)uploadCredentialsJson["key_prefix"]!,
             (string)uploadCredentialsJson["region"]!,
             (string)uploadCredentialsJson["secret_key"]!,
@@ -34,7 +34,7 @@ internal record TurboSquidAwsUploadCredentials
     TurboSquidAwsUploadCredentials(
         string accessKey,
         string bucket,
-        string currentServerTime,
+        DateTime currentServerTime,
         string keyPrefix,
         string region,
         string secretKey,
@@ -49,19 +49,19 @@ internal record TurboSquidAwsUploadCredentials
         SessionToken = sessionToken;
     }
 
-    internal IEnumerable<KeyValuePair<string, IEnumerable<string>>> _XAmzHeadersWith(DateTime requestDateTime, bool includeAcl = true)
+    internal IEnumerable<KeyValuePair<string, IEnumerable<string>>> ToHeaders(bool includeAcl = true)
     {
         if (includeAcl) return new KeyValuePair<string, IEnumerable<string>>[]
         {
             new KeyValuePair<string, IEnumerable<string>>("x-amz-acl", "private"._ToHeaderValue()),
             new KeyValuePair<string, IEnumerable<string>>("x-amz-content-sha256", "UNSIGNED-PAYLOAD"._ToHeaderValue()),
-            new KeyValuePair<string, IEnumerable<string>>("x-amz-date", requestDateTime.ToIso8601BasicDateTime()._ToHeaderValue()),
+            new KeyValuePair<string, IEnumerable<string>>("x-amz-date", CurrentServerTime.ToIso8601BasicDateTime()._ToHeaderValue()),
             new KeyValuePair<string, IEnumerable<string>>("x-amz-security-token", SessionToken._ToHeaderValue())
         };
         else return new KeyValuePair<string, IEnumerable<string>>[]
         {
             new KeyValuePair<string, IEnumerable<string>>("x-amz-content-sha256", "UNSIGNED-PAYLOAD"._ToHeaderValue()),
-            new KeyValuePair<string, IEnumerable<string>>("x-amz-date", requestDateTime.ToIso8601BasicDateTime()._ToHeaderValue()),
+            new KeyValuePair<string, IEnumerable<string>>("x-amz-date", CurrentServerTime.ToIso8601BasicDateTime()._ToHeaderValue()),
             new KeyValuePair<string, IEnumerable<string>>("x-amz-security-token", SessionToken._ToHeaderValue())
         };
     }

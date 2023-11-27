@@ -87,13 +87,13 @@ namespace AwsSignatureVersion4.Private
         /// <summary>
         /// Converts instance into a ISO8601 basic date format of 'yyyyMMdd'.
         /// </summary>
-        public static string ToIso8601BasicDate(this DateTime self) =>
-            AWS4Signer.FormatDateTime(self, AWSSDKUtils.ISO8601BasicDateFormat);
+        public static string ToIso8601BasicDate(this DateTime dateTime) =>
+            dateTime.ToString("yyyyMMdd");
 
         /// <summary>
         /// Converts instance into a ISO8601 basic date/time format of 'yyyyMMddTHHmmssZ'.
         /// </summary>
-        public static string ToIso8601BasicDateTime(this DateTime self) =>
-            AWS4Signer.FormatDateTime(self, AWSSDKUtils.ISO8601BasicDateTimeFormat);
+        public static string ToIso8601BasicDateTime(this DateTime dateTime) =>
+            dateTime.ToString("yyyyMMddTHHmmssZ");
     }
 }
