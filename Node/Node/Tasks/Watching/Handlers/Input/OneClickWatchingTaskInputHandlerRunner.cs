@@ -632,7 +632,7 @@ public class OneClickWatchingTaskInputHandlerRunner
                     Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
                     ThrowOnStdErr = false,
                     ThrowOnNonZeroExitCode = false,
-                    Timeout = TimeSpan.FromMinutes(10),
+                    Timeout = TimeSpan.FromMinutes(5),
                     Arguments =
                     {
                         launchArgs.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(arg => arg.Replace("\"", "")),
