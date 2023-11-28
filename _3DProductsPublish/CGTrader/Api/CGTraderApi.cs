@@ -150,7 +150,7 @@ internal class CGTraderApi : IBaseAddressProvider
     internal async Task _UploadAssetsAsync(_3DProductDraft<CGTrader3DProductMetadata> _3DProductDraft, CancellationToken cancellationToken)
     {
         foreach (var _3DModel in _3DProductDraft._Product._3DModels)
-            foreach (var modelFilePath in _3DModel.Files)
+            foreach (var modelFilePath in _3DModel.EnumerateFiles())
                 await _UploadModelFileAsync(modelFilePath, _3DProductDraft, cancellationToken);
 
         foreach (var modelPreviewImage in _3DProductDraft.UpcastThumbnailsTo<CGTrader3DModelThumbnail>())

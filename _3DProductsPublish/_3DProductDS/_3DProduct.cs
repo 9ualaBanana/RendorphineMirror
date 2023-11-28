@@ -13,9 +13,8 @@ public partial record _3DProduct : IDisposable
 
     public static _3DProduct FromDirectory(string directoryPath) => new(
         directoryPath,
-        _3DModel.EnumerateIn(directoryPath)
-            .Select(_3DModelContainer => _3DModel.FromContainer(_3DModelContainer.OriginalPath)),
-        _3DProductThumbnail.EnumerateIn(directoryPath));
+        _3DModel.EnumerateAt(directoryPath),
+        _3DProductThumbnail.EnumerateAt(directoryPath));
 
     _3DProduct(string containerPath, IEnumerable<_3DModel> _3DModels, IEnumerable<_3DProductThumbnail> thumbnails)
     {

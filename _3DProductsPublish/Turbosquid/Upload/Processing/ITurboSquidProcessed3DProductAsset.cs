@@ -22,7 +22,7 @@ static class TurboSquidProcessed3DProductAssetFactory
         };
 }
 
-internal class TurboSquidProcessed3DModel
+internal record TurboSquidProcessed3DModel
     : _3DModel<TurboSquid3DModelMetadata>, ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>>
 {
     public string FileId { get; }

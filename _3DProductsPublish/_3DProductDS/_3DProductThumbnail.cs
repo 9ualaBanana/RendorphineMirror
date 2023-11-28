@@ -24,8 +24,8 @@ public record _3DProductThumbnail : I3DProductAsset
     long? _size;
     public FileStream AsFileStream => File.OpenRead(FilePath);
 
-    internal static IEnumerable<_3DProductThumbnail> EnumerateIn(string _3DModelDirectory) =>
-        Directory.EnumerateFiles(_3DModelDirectory)
+    internal static IEnumerable<_3DProductThumbnail> EnumerateAt(string _3DProductDirectory) =>
+        Directory.EnumerateFiles(_3DProductDirectory)
         .Where(HasValidExtension)
         .Select(thumbnailPath => new _3DProductThumbnail(thumbnailPath));
 

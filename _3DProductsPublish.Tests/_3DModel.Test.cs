@@ -19,8 +19,8 @@ public class _3DModelTest
         {
             using var model = _3DModelFixture.FromArchive;
 
-            model.OriginalContainer.Should().Be(_3DModel.ContainerType.Archive);
-            model.OriginalPath.Should().Be(_3DModelFixture.ArchivePath);
+            model.ContainerType.Should().Be(_3DProduct.AssetContainer.Type_.Archive);
+            model.Path.Should().Be(_3DModelFixture.ArchivePath);
         }
     }
 
@@ -34,12 +34,12 @@ public class _3DModelTest
         }
 
         [Fact]
-        public void Initidalization()
+        public void Initialization()
         {
             using var model = _3DModel.FromContainer(_3DModelFixture.DirectoryPath);
 
-            model.OriginalContainer.Should().Be(_3DModel.ContainerType.Directory);
-            model.OriginalPath.Should().Be(_3DModelFixture.DirectoryPath);
+            model.ContainerType.Should().Be(_3DProduct.AssetContainer.Type_.Directory);
+            model.Path.Should().Be(_3DModelFixture.DirectoryPath);
         }
     }
 }

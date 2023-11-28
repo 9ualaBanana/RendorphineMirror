@@ -29,7 +29,7 @@ internal partial class TurboSquid3DProductAssetProcessing
                 => Payload.For(_3DModel, uploadKey, session.Draft._ID, session.Credential._CsrfToken);
             static Payload For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, string draftId, string authenticityToken)
             {
-                using var archived3DModel = File.OpenRead(_3DModel.ArchiveAsync(CancellationToken.None).Result!);
+                using var archived3DModel = File.OpenRead(_3DModel.Archive().Result);
                 return new Payload._3DModel(uploadKey, draftId, archived3DModel.Name, archived3DModel.Length, authenticityToken,
                     _3DModel.Metadata.FileFormat, _3DModel.Metadata.FormatVersion, _3DModel.Metadata.Renderer, _3DModel.Metadata.RendererVersion, _3DModel.Metadata.IsNative);
             }
