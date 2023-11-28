@@ -149,10 +149,12 @@ public abstract record ApiBase
     {
         var text = $"[{errorDetails}] [{response.RequestMessage?.Method.Method} {response.RequestMessage?.RequestUri}";
         if (response.RequestMessage?.Method == HttpMethod.Post)
-            text = $"{text} {{ {await ContentToString(response.RequestMessage.Content, token)} }}";
-        text = $"{text}]: HTTP {(int) response.StatusCode}";
+            text += $" Content{{ {await ContentToString(response.RequestMessage.Content, token)} }}";
+        if (response.RequestMessage?.Headers.Any() == true)
+            text += $" Headers{{ {HeadersToString(response.RequestMessage.Headers)} }}";
+        text += $"]: HTTP {(int) response.StatusCode}";
         if (responseJson is not null)
-            text = $"{text}: {responseJson?.ToString(Formatting.None) ?? "<no message>"}";
+            text += $": {responseJson?.ToString(Formatting.None) ?? "<no message>"}";
 
         logger.LogTrace(text);
     }
@@ -176,6 +178,10 @@ public abstract record ApiBase
         {
             return $"<{ex.GetType().Name} at {content?.GetType()}>";
         }
+    }
+    public static string HeadersToString(HttpRequestHeaders headers)
+    {
+        return string.Join("; ", headers.Select(header => $"{header.Key}: {string.Join(", ", header.Value)}"));
     }
 
     public async Task<OperationResult> ApiGetFile(string url, string filename, string errorDetails, params (string, string)[] values) =>

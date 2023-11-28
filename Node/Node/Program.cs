@@ -25,7 +25,6 @@ global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
 global using NodeCommon.Tasks.Watching;
 global using NodeToUI;
-global using System.Collections.Immutable;
 global using Logger = NLog.Logger;
 global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
