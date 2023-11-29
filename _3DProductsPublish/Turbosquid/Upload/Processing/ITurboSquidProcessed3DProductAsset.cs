@@ -18,6 +18,7 @@ static class TurboSquidProcessed3DProductAssetFactory
         {
             _3DModel<TurboSquid3DModelMetadata> _3DModel => (new TurboSquidProcessed3DModel(_3DModel, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
             _3DProductThumbnail thumbnail => (new TurboSquidProcessed3DProductThumbnail(thumbnail, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
+            _3DProduct.Texture_ texture => (new TurboSquidProcessed3DProductTexture(texture, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
             _ => throw new ArgumentException("Unsupported asset type.")
         };
 }
@@ -60,4 +61,17 @@ static class TurboSquidProcessed3DProductThumbnailExtensions
         TurboSquid3DProductThumbnail.Type.wireframe => TurboSquidProcessed3DProductThumbnail.Type.wireframe,
         _ => throw new NotImplementedException()
     };
+}
+
+internal record TurboSquidProcessed3DProductTexture
+    : _3DProduct.Texture_, ITurboSquidProcessed3DProductAsset<_3DProduct.Texture_>
+{
+    public string FileId { get; }
+    public _3DProduct.Texture_ Asset => this;
+
+    internal TurboSquidProcessed3DProductTexture(_3DProduct.Texture_ texture, string fileId)
+        : base(texture)
+    {
+        FileId = fileId;
+    }
 }

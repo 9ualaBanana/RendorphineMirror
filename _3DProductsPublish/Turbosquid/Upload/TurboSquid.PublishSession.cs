@@ -99,6 +99,7 @@ internal partial class TurboSquid
             {
                 _logger.Trace("Starting 3D product assets upload and processing.");
                 await UploadModelsAsync().ForEachAwaitWithCancellationAsync(UploadMetadataAsync, CancellationToken);
+                if (Draft._Product.Textures is not null) await UploadTexturesAsync();
                 var finishedSession = new PublishSession.Finished(this, await UploadThumbnailsAsync());
                 _logger.Trace("3D product assets have been uploaded.");
                 return finishedSession;
@@ -136,6 +137,22 @@ internal partial class TurboSquid
                 var processedThumbnails = await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.WhenAll(thumbnailsUpload);
                 _logger.Trace("3D product thumbnails have been uploaded and processed.");
                 return processedThumbnails;
+            }
+
+            async Task<List<ITurboSquidProcessed3DProductAsset<_3DProduct.Texture_>>> UploadTexturesAsync()
+            {
+                _logger.Trace("Starting 3D product textures upload and processing.");
+                var texturesUpload = await Draft._Product.Textures.EnumerateFiles()
+                    .Select(async texture =>
+                    {
+                        string uploadKey = await UploadAssetAsyncAt(texture.Path);
+                        return await TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>
+                            .RunAsync(texture, uploadKey, this);
+                    })
+                    .RunAsync();
+                var processedTextures = await TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>.WhenAll(texturesUpload);
+                _logger.Trace("3D product textures have been uploaded and processed.");
+                return processedTextures;
             }
 
 

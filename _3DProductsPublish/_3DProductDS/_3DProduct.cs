@@ -8,19 +8,26 @@ public partial record _3DProduct : IDisposable
     public readonly string ContainerPath;
     public IEnumerable<_3DModel> _3DModels { get; }
     public IEnumerable<_3DProductThumbnail> Thumbnails { get; }
+    public Textures_? Textures { get; }
 
     #region Initialization
 
     public static _3DProduct FromDirectory(string directoryPath) => new(
         directoryPath,
         _3DModel.EnumerateAt(directoryPath),
-        _3DProductThumbnail.EnumerateAt(directoryPath));
+        _3DProductThumbnail.EnumerateAt(directoryPath),
+        Textures_.FindAt(directoryPath));
 
-    _3DProduct(string containerPath, IEnumerable<_3DModel> _3DModels, IEnumerable<_3DProductThumbnail> thumbnails)
+    _3DProduct(
+        string containerPath,
+        IEnumerable<_3DModel> _3DModels,
+        IEnumerable<_3DProductThumbnail> thumbnails,
+        Textures_? textures = null)
     {
         ContainerPath = containerPath;
         this._3DModels = _3DModels;
         Thumbnails = thumbnails;
+        Textures = textures;
     }
 
     #endregion
