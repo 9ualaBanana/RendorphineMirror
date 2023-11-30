@@ -77,10 +77,10 @@ public class TaskExecutor
             var inputs = task.DownloadedInputs.ThrowIfNull("No task input downloaded");
             if (inputs.Count == 0) throw new Exception("No task input downloaded");
 
-            object convertInput(object input)
+            object convertInput(object input, int index)
             {
                 if (input is IReadOnlyTaskFileList files)
-                    return new TaskFileInput(files, task.FSOutputDirectory(Dirs));
+                    return new TaskFileInput(files, Directories.DirCreated(task.FSOutputDirectory(Dirs), index.ToStringInvariant()));
 
                 return input;
             }
@@ -99,7 +99,7 @@ public class TaskExecutor
             var outputhandler = ResultUploaders[task.Output.Type];
             var result = task.Result.ThrowIfNull("No task result");
 
-            await outputhandler.UploadResult(task.Output, result, token);
+            await outputhandler.UploadResult(task.Output, task.Inputs.ToArray(), result, token);
             await Api.ChangeStateAsync(task, TaskState.Validation);
         }
         else Logger.LogWarning($"Task result seems to be already uploaded (??????????????)");

@@ -11,11 +11,14 @@ public static class TitleKeywords
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required Apis Api { get; init; }
 
-        protected override async Task UploadResultImpl(TitleKeywordsOutputInfo info, TitleKeywordsOutput result, CancellationToken token)
+        protected override async Task UploadResultImpl(TitleKeywordsOutputInfo info, ITaskInputInfo input, TitleKeywordsOutput result, CancellationToken token)
         {
-            var args = Api.AddSessionId(("taskid", ApiTask.Id), ("title", result.Title), ("keywords", JsonConvert.SerializeObject(result.Keywords)));
-            if (result.Description is not null)
-                args = args.Append(("description", result.Description)).ToArray();
+            var args = new[]
+            {
+                ("taskid", ApiTask.Id), ("title", result.Title),
+                ("keywords", JsonConvert.SerializeObject(result.Keywords)),
+                ("key", (input as IMPlusTaskInputInfo)?.Iid ?? Guid.NewGuid().ToString()),
+            };
 
             await Api.ShardPost(ApiTask, "settaskoutputtitlekeywords", "setting task output title&keywords", args).ThrowIfError();
         }

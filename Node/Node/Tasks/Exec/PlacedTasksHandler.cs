@@ -117,8 +117,9 @@ public class PlacedTasksHandler
         }
 
         var finished = await Api.GetFinishedTasksStatesAsync(copy.Select(x => x.Id).Except(checkedtasks)).ThrowIfError();
-        foreach (var (id, state) in finished)
-            await processTask(id, state, null);
+        if (finished is not null)
+            foreach (var (id, state) in finished)
+                await processTask(id, state, null);
 
 
         async ValueTask processTask(string taskid, ITaskStateInfo state, TaskState? newstate)

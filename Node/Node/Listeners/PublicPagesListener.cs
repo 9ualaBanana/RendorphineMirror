@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using System.Net;
+using System.Text;
 using System.Web;
 
 namespace Node.Listeners
@@ -9,6 +10,7 @@ namespace Node.Listeners
         protected override ListenTypes ListenType => ListenTypes.WebServer;
 
         public required ICompletedTasksStorage CompletedTasks { get; init; }
+        public required IWatchingTasksStorage WatchingTasks { get; init; }
         public required DataDirs Dirs { get; init; }
 
         static string[] imagesExtentions = { ".jpg", ".jpeg", ".png" };
@@ -17,69 +19,180 @@ namespace Node.Listeners
 
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
-            await Task.Delay(0); // to hide a warning
+            var images = new List<string>();
+            var source = WatchingTasks.WatchingTasks.Values
+                .Select(d => d.Source)
+                .OfType<OneClickWatchingTaskInputInfo>()
+                .First();
+
+            foreach (var outdir in Directory.GetDirectories(source.ResultDirectory))
+            {
+                try
+                {
+                    var files = Directory.GetFiles(Path.Combine(outdir, "renders"), "*.png");
+                    images.AddRange(files);
+                }
+                catch { }
+            }
+
+            var maxlogs = new List<string>();
+            var unitylogs = new List<string>();
+            var unitylogs2 = new List<string>();
+            try { maxlogs.AddRange(Directory.GetFiles(source.LogDirectory)); }
+            catch { }
+            try { unitylogs.AddRange(Directory.GetFiles(Path.Combine(source.LogDirectory, "unity"))); }
+            catch { }
+
+            try
+            {
+                foreach (var dir in Directory.GetDirectories(Path.Combine(source.OutputDirectory)))
+                {
+                    foreach (var ddir in Directory.GetDirectories(Path.Combine(dir, "unity", "Assets")))
+                    {
+                        var productName = Path.GetFileName(ddir);
+                        if (File.Exists(Path.Combine(ddir, productName + ".log")))
+                            unitylogs2.Add(Path.Combine(ddir, productName + ".log"));
+                    }
+                }
+            }
+            catch { }
+
 
             var request = context.Request;
             var response = context.Response;
 
+            if (path == "logpanel")
+            {
+                string now = DateTime.Now.Ticks.ToString();
+                string info = $@"
+                <!doctype html>
+                <html lang=""en"">
+                <head>
+                    <meta charset=""UTF-8"" />
+                    <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
+                    <title>Vite + React + TS</title>
+                    <script>
+                        const loadResource = (commitHash, isStyle = false) => {{
+                            if (isStyle) {{
+                                const link = document.createElement('link');
+                                link.href = `https://cdn.jsdelivr.net/gh/slavamirniy/oclogs@${{commitHash}}/dist/assets/index.css`;
+                                link.rel = 'stylesheet';
+                                document.head.appendChild(link);
+                            }} else {{
+                                const script = document.createElement('script');
+                                script.src = `https://cdn.jsdelivr.net/gh/slavamirniy/oclogs@${{commitHash}}/dist/assets/index.js`;
+                                script.type = 'module';
+                                document.body.appendChild(script);
+                            }}
+                        }};
+                        fetch('https://api.github.com/repos/slavamirniy/oclogs/commits/main')
+                            .then(response => response.json())
+                            .then(data => {{
+                                const commitHash = data.sha;
+                                loadResource(commitHash); // Загрузка скрипта
+                                loadResource(commitHash, true); // Загрузка стилей
+                            }});
+                    </script>
+                </head>
+                <body>
+                    <div id=""root""></div>
+                </body>
+                </html>";
+                using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+                writer.Write(info);
+                return HttpStatusCode.OK;
+            }
+
 
             if (path == "gallery")
             {
-                string? daysString = context.Request.QueryString["days"];
-                int days;
+                string now = DateTime.Now.Ticks.ToString();
+                string info = $@"
+                <!doctype html>
+                <html lang=""en"">
 
-                if (daysString == null || !int.TryParse(daysString, out days)) days = 30;
+                <head>
+                    <meta charset=""UTF-8"" />
+                    <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
+                    <title>Vite + React + TS</title>
+                    <script>
+                        const loadResource = (commitHash, isStyle = false) => {{
+                            if (isStyle) {{
+                                const link = document.createElement('link');
+                                link.href = `https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery@${{commitHash}}/dist/assets/index.css`;
+                                link.rel = 'stylesheet';
+                                document.head.appendChild(link);
+                            }} else {{
+                                const script = document.createElement('script');
+                                script.src = `https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery@${{commitHash}}/dist/assets/index.js`;
+                                script.type = 'module';
+                                document.body.appendChild(script);
+                            }}
+                        }};
 
-                string info = "<html><body>";
-                info += $"<form method='get'><input type ='number' name='days' value={days}><input type = 'submit'></form>";
-                info += $"<b>Files for last {days} days</b><br>";
+                        fetch('https://api.github.com/repos/slavamirniy/ocgallery/commits/main')
+                            .then(response => response.json())
+                            .then(data => {{
+                                const commitHash = data.sha;
+                                loadResource(commitHash); // Загрузка скрипта
+                                loadResource(commitHash, true); // Загрузка стилей
+                            }});
+                    </script>
+                </head>
 
-                var filteredTasks = CompletedTasks.CompletedTasks
-                    .Where(t => t.Value.StartTime >= DateTime.Now.AddDays(-1 * days));
+                <body>
+                    <div id=""root""></div>
+                </body>
 
-                foreach (var task in filteredTasks)
-                {
-                    string[] resultfiles = Directory.GetFiles(task.Value.TaskInfo.FSOutputDirectory(Dirs));
-                    if (resultfiles.Length == 0)
-                        info += $"[no files]";
-
-                    foreach (string taskfile in resultfiles.OrderBy(Path.GetExtension))
-                    {
-                        string taskfilerelative = Path.GetRelativePath(task.Value.TaskInfo.FSOutputDirectory(Dirs), taskfile);
-                        string mime = MimeTypes.GetMimeType(taskfile);
-
-                        if (mime.Contains("image", StringComparison.Ordinal))
-                            info += $"<img width='200px' src='./getfile/{task.Key}?name={HttpUtility.UrlEncode(taskfilerelative)}'>";
-                        else if (mime.Contains("video", StringComparison.Ordinal))
-                            info += $"<video width='200px' controls><source src='./getfile/{task.Key}?name={HttpUtility.UrlEncode(taskfilerelative)}' type='video/mp4'></video>";
-                        // eps?
-                    }
-
-                    info += $"<details><p>ID:{task.Value.TaskInfo.Id}<br>Start:{task.Value.StartTime.ToString()}<br>Finish:{task.Value.FinishTime}<p></details><br><br>";
-                }
-
-                info += "</body></html>";
+                </html>";
 
                 using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
                 writer.Write(info);
                 return HttpStatusCode.OK;
             }
 
-            if (path.StartsWith("getfile"))
+            if (path.StartsWith("getocfile"))
             {
-                string taskId = Path.GetFileName(path);
-                var tasks = CompletedTasks.CompletedTasks;
-                if (!tasks.ContainsKey(taskId)) return HttpStatusCode.NotFound;
+                var fileIndexString = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
+                if (fileIndexString == null || !int.TryParse(fileIndexString, out int fileIndex) || fileIndex >= images.Count) return HttpStatusCode.NotFound;
+                using var filestream = File.OpenRead(images[fileIndex]);
+                response.ContentLength64 = filestream.Length;
 
-                string? filename = context.Request.QueryString["name"];
-                if (filename is null) return HttpStatusCode.NotFound;
+                await filestream.CopyToAsync(response.OutputStream);
+                return HttpStatusCode.OK;
+            }
 
-                string outputdir = tasks[taskId].TaskInfo.FSOutputDirectory(Dirs);
-                filename = Path.Combine(outputdir, filename);
-                if (!filename.StartsWith(outputdir, StringComparison.Ordinal) || !File.Exists(filename))
-                    return HttpStatusCode.NotFound;
+            if (path.StartsWith("getoclogs"))
+            {
+                var resp = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { maxlogs, unitylogs, unitylogs2 }));
+                response.ContentLength64 = resp.Length;
+                await response.OutputStream.WriteAsync(resp);
 
-                using var filestream = File.OpenRead(filename);
+                return HttpStatusCode.OK;
+            }
+
+            if (path.StartsWith("getoclog"))
+            {
+                var fileIndexString = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
+                var type = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["type"].ThrowIfNull();
+
+                if (fileIndexString == null || !int.TryParse(fileIndexString, out int fileIndex)) return HttpStatusCode.NotFound;
+
+
+                var items = type switch
+                {
+                    "max" => maxlogs,
+                    "unity" => unitylogs,
+                    "unity2" => unitylogs2,
+                    _ => throw new Exception("Unknown type")
+                };
+                var item = items[fileIndex];
+
+                var filename = Encoding.UTF8.GetBytes(item + "\n");
+                using var filestream = File.OpenRead(item);
+                response.ContentLength64 = filestream.Length + filename.Length;
+
+                await response.OutputStream.WriteAsync(filename);
                 await filestream.CopyToAsync(response.OutputStream);
                 return HttpStatusCode.OK;
             }

@@ -71,6 +71,7 @@ public static class IOList
         builder.RegisterInput<Stub.InputDownloader, Stub.TaskObjectProvider>();
         builder.RegisterInput<IN.TitleKeywords.InputDownloader, IN.TitleKeywords.TaskObjectProvider>();
         builder.RegisterInput<IN.Torrent.InputDownloader, IN.Torrent.TaskObjectProvider, IN.Torrent.InputUploader>();
+        builder.RegisterInput<MPlusItem.InputDownloader, MPlusItem.TaskObjectProvider>();
 
         builder.RegisterOutput<DirectDownload.UploadHandler, DirectDownload.CompletionChecker, DirectDownload.CompletionHandler>();
         builder.RegisterOutput<OUT.MPlus.UploadHandler, OUT.MPlus.CompletionChecker>();

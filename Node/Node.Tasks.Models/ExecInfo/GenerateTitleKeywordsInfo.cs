@@ -13,10 +13,10 @@ public class GenerateTitleKeywordsInfo
     public GenerateTitleKeywordsSource Source { get; }
 
     [JsonProperty("chatgpt")]
-    public ChatGptInfo? ChatGpt { get; }
+    public ChatGptInfo? ChatGpt { get; init; }
 
     public GenerateTitleKeywordsInfo(GenerateTitleKeywordsSource source) => Source = source;
 
 
-    public record ChatGptInfo(string Model, string TitlePrompt, string DescrPrompt, string KwPrompt);
+    public record ChatGptInfo(string Model, string? TitlePrompt, string? KwPrompt, string? Prompt);
 }

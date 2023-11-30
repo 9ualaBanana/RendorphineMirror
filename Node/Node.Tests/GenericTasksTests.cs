@@ -22,8 +22,8 @@ public static partial class GenericTasksTests
             container,
             new object[]
             {
-                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt/2"),
-                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/62bd65167538331c6b6c6574.mov"), }), "/temp/tt/2"),
+                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt/2/1"),
+                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/62bd65167538331c6b6c6574.mov"), }), "/temp/tt/2/2"),
             },
             new EditVideoInfo() { Hflip = true }.ToData()
         );
@@ -32,8 +32,8 @@ public static partial class GenericTasksTests
             container,
             new object[]
             {
-                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt/3"),
-                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/62bd65167538331c6b6c6574.mov"), }), "/temp/tt/3"),
+                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt/3/1"),
+                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/62bd65167538331c6b6c6574.mov"), }), "/temp/tt/3/2"),
             },
             new EditVideoInfo() { Hflip = true }.ToData(),
             new EditVideoInfo() { Vflip = true, }.ToData()

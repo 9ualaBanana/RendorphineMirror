@@ -6,11 +6,14 @@ public class QSPreviewOutputInfo : ITaskOutputInfo
 
     public readonly string Iid;
     public readonly string? TUid;
-    [Hidden] public string? IngesterHost;
+    [Hidden] public Dictionary<string, QSPreviewData>? Data { get; init; }
 
     public QSPreviewOutputInfo(string iid, string? tuid = null)
     {
         Iid = iid;
         TUid = tuid;
     }
+
+
+    public record QSPreviewData(string? IngesterHost);
 }

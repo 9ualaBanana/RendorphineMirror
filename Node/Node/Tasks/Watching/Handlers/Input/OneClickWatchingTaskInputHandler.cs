@@ -1,5 +1,3 @@
-
-using System.IO.Compression;
 using System.Net;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
@@ -28,7 +26,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             if (betamzp is not null)
             {
                 var plugin = new Plugin(PluginType.OneClick, Path.GetFileNameWithoutExtension(betamzp)!.Substring("oneclickexport.v".Length), betamzp);
-                await Run(plugin, Input.TestInputDirectory, Input.TestOutputDirectory, Input.TestLogDirectory);
+                await Run(plugin, Input.TestInputDirectory, Input.TestOutputDirectory, Input.TestResultDirectory, Input.TestLogDirectory);
                 return;
             }
         }
@@ -40,7 +38,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         try
         {
             var plugin = PluginList.GetPlugin(PluginType.OneClick);
-            await Run(plugin, Input.InputDirectory, Input.OutputDirectory, Input.LogDirectory);
+            await Run(plugin, Input.InputDirectory, Input.OutputDirectory, Input.ResultDirectory, Input.LogDirectory);
         }
         catch (Exception ex)
         {
@@ -48,260 +46,18 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         }
     }
 
-    public async Task Run(Plugin mzp, string input, string output, string log)
+    public async Task Run(Plugin oneClickPlugin, string inputdir, string outputdir, string resultdir, string logdir)
     {
-        var max = PluginList.GetPlugin(PluginType.Autodesk3dsMax);
-        var unity = PluginList.GetPlugin(PluginType.Unity);
-
-        Directory.CreateDirectory(output);
-        Directory.CreateDirectory(input);
-        Directory.CreateDirectory(log);
-
-        var currentversion = Directory.GetFiles(output, "*.mzp")
-            .Select(Path.GetFileNameWithoutExtension)
-            .FirstOrDefault()
-            ?.Substring("oneclickexport.v".Length);
-
-        if (currentversion != mzp.Version)
-        {
-            await Install(mzp, max);
-            await CheckInstallation(mzp, max);
-            await MoveOldVersion(mzp, output, currentversion);
-        }
-
-        var unityTemplatesDir = @"C:\\OneClickUnityDefaultProjects";
-        await new ProcessLauncher("git", "pull")
-        {
-            Logging = { ILogger = Logger },
-            ThrowOnStdErr = false,
-            WorkingDirectory = unityTemplatesDir,
-        }.ExecuteAsync();
-        var unityTemplatesCommitHash = (await new ProcessLauncher("git", "rev-parse", "--verify", "HEAD")
-        {
-            Logging = { ILogger = Logger },
-            ThrowOnStdErr = false,
-            WorkingDirectory = unityTemplatesDir,
-        }.ExecuteFullAsync()).Trim();
-
-        foreach (var zip in Directory.GetFiles(input, "*.zip"))
-            await ProcessArchive(zip, output, log, max, unity, unityTemplatesDir, unityTemplatesCommitHash);
-
-        if (unityTemplatesCommitHash != Input.UnityProjectsCommitHash)
-        {
-            Input.UnityProjectsCommitHash = unityTemplatesCommitHash;
-            SaveTask();
-        }
+        await OneClickWatchingTaskInputHandlerRunner.RunAll(
+            inputdir,
+            outputdir,
+            resultdir,
+            logdir,
+            PluginList,
+            Logger,
+            oneClickPlugin
+        );
     }
-
-    async Task ProcessArchive(string zip, string output, string log, Plugin max, Plugin unity, string unityTemplatesDir, string unityTemplatesCommitHash)
-    {
-        using var _logscope = Logger.BeginScope($"Processing {Path.GetFileName(zip)}");
-
-        var resultDir = Path.Combine(output, Path.GetFileNameWithoutExtension(zip));
-        var resultUnityDir = Path.Combine(resultDir, "unity");
-        var resultUnityAssetsDir = Path.Combine(resultUnityDir, "Assets");
-
-        var runmax = !Directory.Exists(resultDir);
-        var rununity = runmax || Input.UnityProjectsCommitHash != unityTemplatesCommitHash;
-
-        if (runmax)
-        {
-            using var _ = Logger.BeginScope($"3dsmax");
-            Logger.Info($"Procesing {zip}");
-
-            Logger.Info($"Extracting");
-            ZipFile.ExtractToDirectory(zip, resultDir);
-            Logger.Info("Extracted");
-            var scenefile = Directory.GetFiles(resultDir, "*.max", SearchOption.AllDirectories).MaxBy(File.GetLastWriteTimeUtc).ThrowIfNull("No .max file found");
-            Logger.Info($"Scene file: {scenefile}");
-
-            Directory.CreateDirectory(resultUnityAssetsDir);
-            Logger.Info($"Target directory: {resultUnityAssetsDir}");
-
-            await RunMax(scenefile, zip, output, log, max, resultUnityAssetsDir);
-            Logger.Info("Success.");
-        }
-
-        if (false && rununity)
-        {
-            using var _ = Logger.BeginScope($"Unity");
-            await RunUnity(unity, unityTemplatesDir, resultUnityDir, resultUnityAssetsDir);
-            Logger.Info("Success.");
-        }
-    }
-
-    async Task RunMax(string scenefile, string zip, string output, string log, Plugin max, string resultUnityAssetsDir)
-    {
-        var launcher = new ProcessLauncher(max.Path)
-        {
-            Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
-            ThrowOnStdErr = false,
-            ThrowOnNonZeroExitCode = false,
-            Arguments =
-            {
-                // minimized, dialog boxes suppressed
-                "-ms", "-silent",
-
-                // log path
-                "-log", Directories.NumberedNameInDirectory(log, "log{0:0000}.log"),
-
-                // script parameters
-                /*
-                int - target engine; 1 = unreal, 2 = unity
-                string - output dir; should already exist
-                int - existing texture mode; 1 = skip copying, 2 = 256px, 3=512, 4=1024, 5=2048, 6=4096
-                int - bake texture mode; 1 = skip baking, 2 = 128px, 3=256, 4=512, 5=1024, 6=2048, 7=4096
-                bool int int - render cameras (true\false) and frame width height (always should be specified)
-                (1.35+) bool - deploy importer from internal zip
-                */
-                "-mxs", $"oneclickexport.oc000 2 @\"{resultUnityAssetsDir}\" 3 3 true 960 540 false",
-
-                // scene to export
-                scenefile.Replace('\\', '/'),
-            },
-        };
-
-        Logger.Info("Launching 3dsmax");
-        await launcher.ExecuteAsync();
-        Logger.Info("Conversion completed");
-
-        await ValidateConversionSuccessful(zip, output);
-    }
-    async Task RunUnity(Plugin unity, string unityTemplatesDir, string resultUnityDir, string resultUnityAssetsDir)
-    {
-        var unityTemplateNames = new[] { "OCHDRP22+" };
-
-        foreach (var unityTemplateName in unityTemplateNames)
-        {
-            var path = Path.Combine(resultUnityDir, unityTemplateName);
-            if (Directory.Exists(path))
-                Directory.Delete(path, true);
-        }
-
-
-        foreach (var unityTemplateName in unityTemplateNames)
-        {
-            using var _ = Logger.BeginScope(unityTemplateName);
-
-            var unityProjectDir = Path.Combine(unityTemplatesDir, unityTemplateName);
-            Directories.Copy(unityProjectDir, Path.Combine(resultUnityDir, unityTemplateName));
-            Directories.Copy(resultUnityAssetsDir, Path.Combine(resultUnityDir, unityTemplateName, "Assets"));
-
-            Logger.Info("Launching unity");
-
-            //NonAdminRunner.RunAsDesktopUserWaitForExit(unity.Path, $"-projectPath \"{unityProjectDir}\" -executeMethod OCBatchScript.StartBake");
-            var launcher = new ProcessLauncher(unity.Path)
-            {
-                Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
-                Arguments =
-                {
-                    "-projectPath", unityProjectDir,
-                    "-executeMethod", "OCBatchScript.StartBake",
-                },
-            };
-
-            await launcher.ExecuteAsync();
-            Logger.Info("Completed");
-        }
-
-        Logger.Info("Completed");
-    }
-
-    async Task ValidateConversionSuccessful(string zip, string output)
-    {
-        Logger.Info("Validating conversion");
-
-        var dir = Path.Combine(output, Path.GetFileNameWithoutExtension(zip), "unity", "Assets");
-        if (!Directory.Exists(dir))
-            throw new Exception("Result directory does not exists");
-
-        var logfiles = Directory.GetDirectories(dir)
-            .Select(dir => Path.Combine(dir, Path.GetFileName(dir) + ".txt"))
-            .Where(File.Exists)
-            .ToArray();
-
-        if (logfiles.Length == 0)
-            throw new Exception($"Log file was not found in {dir}");
-
-        foreach (var logfile in logfiles)
-        {
-            var data = await File.ReadAllTextAsync(logfile);
-            if (data.ContainsOrdinal("Export completed."))
-            {
-                Logger.Info("Conversion successful");
-                return;
-            }
-        }
-
-        throw new Exception("'Export completed.' was not found in the log");
-    }
-
-    async Task Install(Plugin mzp, Plugin max)
-    {
-        Logger.Info("Installing the plugin");
-
-        // fix for vray not being silent enough
-        const string vraySilentFix = "if setVRaySilentMode != undefined then setVRaySilentMode()";
-        await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(max.Path).ThrowIfNull(), "scripts", "Startup", "oneclicksilent.ms"), vraySilentFix);
-
-        foreach (var process in Process.GetProcessesByName("3dsmax"))
-        {
-            try { process.Kill(); }
-            catch { }
-        }
-
-        var launcher = new ProcessLauncher(max.Path)
-        {
-            Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
-            ThrowOnStdErr = false,
-            ThrowOnNonZeroExitCode = false,
-            Timeout = TimeSpan.FromMinutes(5),
-            Arguments = { "-ms", "-silent", "-mxs", $"fileIn @\"{mzp.Path}\"" },
-        };
-        await launcher.ExecuteAsync();
-
-        Logger.Info("Plugin installed");
-    }
-
-
-    async Task CheckInstallation(Plugin mzp, Plugin max)
-    {
-        Logger.Info("Checking plugin installation");
-
-        using var reader = File.OpenRead(mzp.Path);
-        var entry = new ZipArchive(reader).GetEntry("oneclickreadme.txt").ThrowIfNull("OneClick version was not found in mzp");
-        using var entrystream = new StreamReader(entry.Open());
-        var expectedversion = await entrystream.ReadToEndAsync();
-
-        // %localAppData%\Autodesk\3dsMax\20?? - 64bit\ENU\scripts\startup\oneclickreadme.txt
-        var installedpath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Autodesk", "3dsMax", $"{max.Version} - 64bit", "ENU", "scripts", "startup", "oneclickreadme.txt");
-
-        var installedversion = File.ReadAllText(installedpath);
-
-        if (installedversion != expectedversion)
-            throw new Exception($"Invalid mzp installation: versions are not equal ({installedversion} vs {expectedversion})");
-
-        Logger.Info($"Installed plugin version: {installedversion}");
-    }
-
-    async Task MoveOldVersion(Plugin mzp, string output, string? currentversion)
-    {
-        Logger.Info("Moving old dirs");
-
-        if (Directory.Exists(output))
-        {
-            if (currentversion is null) Directory.Delete("output", true);
-            else Directory.Move(output, output + currentversion);
-        }
-
-        Directory.CreateDirectory(output);
-        var target = Path.Combine(output, Path.GetFileName(mzp.Path));
-        File.Copy(mzp.Path, target);
-
-        Logger.Info($"Old output dir moved to {target}");
-    }
-
 
     class OneClickListener : ListenerBase
     {
@@ -309,13 +65,8 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
 
         public OneClickListener(ILogger<OneClickListener> logger) : base(logger) { }
 
-        protected override async ValueTask Execute(HttpListenerContext context)
-        {
-
-        }
+        protected override async ValueTask Execute(HttpListenerContext context) { }
     }
-
-
     static class NonAdminRunner
     {
         class ProcessWaitHandle : WaitHandle
@@ -411,7 +162,6 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
                 CloseHandle(hPrimaryToken);
                 CloseHandle(hShellProcess);
             }
-
         }
 
         #region Interop

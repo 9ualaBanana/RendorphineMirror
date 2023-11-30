@@ -6,7 +6,6 @@ public interface IReadOnlyTaskFileList : IEnumerable<FileWithFormat>
 {
     int Count { get; }
 }
-
 [JsonObject]
 public class ReadOnlyTaskFileList : IReadOnlyTaskFileList
 {
@@ -41,17 +40,13 @@ public class TaskFileList : ReadOnlyTaskFileList
 
     public static FileWithFormat NewFile(string directory, FileFormat format, string? filename = null)
     {
-        if (filename is not null && Path.GetExtension(filename) == string.Empty)
-            filename += format.AsExtension();
+        var extension = Path.GetExtension(filename ?? "file");
+        if (extension.Length == 0) extension = format.AsExtension();
 
-        // use input file name if there is only one input file
-        filename ??= ("file" + format.AsExtension());
-        filename = Path.Combine(directory, Path.GetFileName(filename));
-
+        filename = Directories.RandomNameInDirectory(directory, extension);
         return new FileWithFormat(format, filename);
     }
 }
-
 public static class TaskFileListExtensions
 {
     public static FileWithFormat First(this IReadOnlyTaskFileList list, FileFormat format) => list.First(f => f.Format == format);

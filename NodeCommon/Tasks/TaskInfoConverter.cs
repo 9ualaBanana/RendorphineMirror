@@ -10,7 +10,7 @@ public class EmptyJConverter<T> : JsonConverter<T>
     public sealed override void WriteJson(JsonWriter writer, T? value, JsonSerializer serializer) => throw new NotImplementedException();
     public sealed override T? ReadJson(JsonReader reader, Type objectType, T? existingValue, bool hasExistingValue, JsonSerializer serializer) => throw new NotImplementedException();
 }
-public abstract class TaskInfoJConverterBase<T> : JsonConverter<T>
+public abstract class TaskInfoJConverterBase<T> : JsonConverter<T> where T : class
 {
     readonly JsonSerializer DeeeeefaultSerializer = new() { ContractResolver = new Resolver() };
     public sealed override bool CanWrite => false;
@@ -21,6 +21,8 @@ public abstract class TaskInfoJConverterBase<T> : JsonConverter<T>
     public sealed override T? ReadJson(JsonReader reader, Type objectType, T? existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
         if (hasExistingValue) throw new NotImplementedException();
+        if (reader.TokenType == JsonToken.Null) return null;
+
         return Deserialize(JObject.Load(reader), DeeeeefaultSerializer);
     }
 

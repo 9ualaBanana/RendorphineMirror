@@ -31,8 +31,6 @@ public static class FileFormatExtensions
         throw new Exception($"Could not find {nameof(FileFormat)} for mime {mime}");
     }
 
-    public static string ToMime(this FileFormat format) => MimeTypes.GetMimeType($"file{format.AsExtension()}");
-
     [return: NotNullIfNotNull(nameof(extension))]
     static string? AsExtension(string? extension)
     {

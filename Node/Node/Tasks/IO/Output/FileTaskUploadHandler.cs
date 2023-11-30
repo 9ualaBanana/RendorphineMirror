@@ -8,11 +8,11 @@ public abstract class FileTaskUploadHandler<TData, TResult> : TaskUploadHandler<
     where TData : ITaskOutputInfo
     where TResult : IReadOnlyTaskFileList
 {
-    public override async Task UploadResult(TData info, TResult result, CancellationToken token)
+    public override async Task UploadResult(TData info, ITaskInputInfo input, TResult result, CancellationToken token)
     {
         result.AssertListValid("output");
         Logger.LogInformation($"Result files: {string.Join(", ", result)}");
 
-        await base.UploadResult(info, result, token);
+        await base.UploadResult(info, input, result, token);
     }
 }
