@@ -97,6 +97,7 @@ internal partial class TurboSquid3DProductAssetProcessing
         }
 
 
+        /// <remarks><c>/bulk_poll</c></remarks>
         internal static async Task<List<ITurboSquidProcessed3DProductAsset<TAsset>>> WhenAll(List<Task_<TAsset>> tasks)
         {
             var tcs = new TaskCompletionSource<List<ITurboSquidProcessed3DProductAsset<TAsset>>>();
@@ -168,11 +169,4 @@ internal partial class TurboSquid3DProductAssetProcessing
             }
         }
     }
-}
-
-static class TurboSquid3DAssetsProcessingExtensions
-{
-    internal static async Task<List<Task_<TAsset>>> RunAsync<TAsset>(this IEnumerable<Task<Task_<TAsset>>> tasks)
-        where TAsset : I3DProductAsset
-        => (await Task.WhenAll(tasks)).ToList();
 }

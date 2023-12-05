@@ -1,4 +1,6 @@
-﻿using _3DProductsPublish._3DProductDS;
+﻿#define ENABLE_PARALLELIZATION
+
+using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
@@ -95,83 +97,60 @@ internal partial class TurboSquid
 
         internal async Task<PublishSession.Finished> StartAsync()
         {
+            var processedThumbnails = new List<ITurboSquidProcessed3DProductAsset<_3DProductThumbnail>>();
             try
             {
                 _logger.Trace("Starting 3D product assets upload and processing.");
-                await UploadModelsAsync().ForEachAwaitWithCancellationAsync(UploadMetadataAsync, CancellationToken);
-                if (Draft._Product.Textures is not null) await UploadTexturesAsync();
-                var finishedSession = new PublishSession.Finished(this, await UploadThumbnailsAsync());
+#if ENABLE_PARALLELIZATION
+                await Task.WhenAll(
+                    UploadModelsAsync().ForEachAwaitWithCancellationAsync(
+                        UploadModelMetadataAsync, CancellationToken),
+                    UploadThumbnailsAsync(),
+                    UploadTexturesAsync());
+#else
+                await UploadModelsAsync().ForEachAwaitWithCancellationAsync(
+                    UploadModelMetadataAsync, CancellationToken);
+                await UploadThumbnailsAsync();
+                await UploadTexturesAsync();
+#endif
+                var finishedSession = new PublishSession.Finished(this, processedThumbnails);
                 _logger.Trace("3D product assets have been uploaded.");
                 return finishedSession;
             }
             catch (Exception ex)
             { throw new Exception("3D product assets upload and processing failed.", ex); }
 
+
             async IAsyncEnumerable<ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>>> UploadModelsAsync()
             {
                 _logger.Trace("Starting 3D models upload and processing.");
-                var modelsUpload = await Draft._Product._3DModels
-                    .Select(async _3DModel =>
+                var modelsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>>();
+#if ENABLE_PARALLELIZATION
+                await Parallel.ForEachAsync(Draft._Product._3DModels,
+                    async (_3DModel, _) =>
                     {
                         string uploadKey = await UploadAssetAsyncAt(await _3DModel.Archive());
-                        return await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>
-                            .RunAsync(_3DModel, uploadKey, this);
-                    })
-                    .RunAsync();
-                foreach (var processedAsset in await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.WhenAll(modelsUpload))
-                    yield return processedAsset;
+                        modelsProcessing.Add(
+                            await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.RunAsync(_3DModel, uploadKey, this)
+                            );
+                    });
+#else
+                foreach (var _3DModel in Draft._Product._3DModels)
+                {
+                    string uploadKey = await UploadAssetAsyncAt(await _3DModel.Archive());
+                    modelsProcessing.Add(
+                        await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.RunAsync(_3DModel, uploadKey, this)
+                        );
+                }
+#endif
+                foreach (var processedModel in await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.WhenAll(modelsProcessing))
+                    yield return processedModel;
                 _logger.Trace("3D models have been uploaded and processed.");
             }
 
-            async Task<List<ITurboSquidProcessed3DProductAsset<_3DProductThumbnail>>> UploadThumbnailsAsync()
-            {
-                _logger.Trace("Starting 3D product thumbnails upload and processing.");
-                var thumbnailsUpload = await Draft._Product.Thumbnails
-                    .Select(async thumbnail =>
-                    {
-                        string uploadKey = await UploadAssetAsyncAt(thumbnail.FilePath);
-                        return await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>
-                            .RunAsync(thumbnail, uploadKey, this);
-                    })
-                    .RunAsync();
-                var processedThumbnails = await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.WhenAll(thumbnailsUpload);
-                _logger.Trace("3D product thumbnails have been uploaded and processed.");
-                return processedThumbnails;
-            }
-
-            async Task<List<ITurboSquidProcessed3DProductAsset<_3DProduct.Texture_>>> UploadTexturesAsync()
-            {
-                _logger.Trace("Starting 3D product textures upload and processing.");
-                var texturesUpload = await Draft._Product.Textures.EnumerateFiles()
-                    .Select(async texture =>
-                    {
-                        string uploadKey = await UploadAssetAsyncAt(texture.Path);
-                        return await TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>
-                            .RunAsync(texture, uploadKey, this);
-                    })
-                    .RunAsync();
-                var processedTextures = await TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>.WhenAll(texturesUpload);
-                _logger.Trace("3D product textures have been uploaded and processed.");
-                return processedTextures;
-            }
-
-
-
-            async Task<string> UploadAssetAsyncAt(string assetPath)
-            {
-                try
-                {
-                    _logger.Trace($"Uploading asset at {assetPath}.");
-                    using var asset = File.OpenRead(assetPath);
-                    string uploadKey = await (await AssetUploadRequest.CreateAsyncFor(asset, this)).SendAsync();
-                    _logger.Trace($"Asset at {assetPath} has been uploaded.");
-                    return uploadKey;
-                }
-                catch (Exception ex)
-                { throw new HttpRequestException($"{assetPath} asset upload failed.", ex); }
-            }
-
-            async Task UploadMetadataAsync(ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>> processedModel, CancellationToken cancellationToken)
+            async Task UploadModelMetadataAsync(
+                ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>> processedModel,
+                CancellationToken cancellationToken)
             {
                 try
                 {
@@ -202,8 +181,7 @@ internal partial class TurboSquid
                         new JProperty("is_native", processedModel.Asset.Metadata.IsNative),
                         new JProperty("name", Path.GetFileName(archived3DModel.Name)),
                         new JProperty("product_id", 0.ToString()),
-                        new JProperty("size", archived3DModel.Length)
-                        );
+                        new JProperty("size", archived3DModel.Length));
                     if (processedModel.Asset.Metadata.Renderer is string renderer)
                     {
                         metadataForm.Add("renderer", renderer);
@@ -213,6 +191,55 @@ internal partial class TurboSquid
 
                     return metadataForm.ToJsonContent();
                 }
+            }
+
+            async Task<List<ITurboSquidProcessed3DProductAsset<_3DProductThumbnail>>> UploadThumbnailsAsync()
+            {
+                _logger.Trace("Starting 3D product thumbnails upload and processing.");
+                var thumbnailsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>>();
+                foreach (var thumbnail in Draft._Product.Thumbnails)
+                {
+                    string uploadKey = await UploadAssetAsyncAt(thumbnail.FilePath);
+                    thumbnailsProcessing.Add(
+                        await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.RunAsync(thumbnail, uploadKey, this)
+                        );
+                };
+                processedThumbnails = await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.WhenAll(thumbnailsProcessing);
+                _logger.Trace("3D product thumbnails have been uploaded and processed.");
+                return processedThumbnails;
+            }
+
+            async Task<List<ITurboSquidProcessed3DProductAsset<_3DProduct.Texture_>>?> UploadTexturesAsync()
+            {
+                if (Draft._Product.Textures is null) return null;
+                _logger.Trace("Starting 3D product textures upload and processing.");
+                var texturesProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>>();
+                foreach (var texture in Draft._Product.Textures.EnumerateFiles())
+                {
+                    string uploadKey = await UploadAssetAsyncAt(texture.Path);
+                    texturesProcessing.Add(
+                        await TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>.RunAsync(texture, uploadKey, this)
+                        );
+                }
+                var processedTextures = await TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>.WhenAll(texturesProcessing);
+                _logger.Trace("3D product textures have been uploaded and processed.");
+                return processedTextures;
+            }
+
+
+
+            async Task<string> UploadAssetAsyncAt(string assetPath)
+            {
+                try
+                {
+                    _logger.Trace($"Uploading asset at {assetPath}.");
+                    using var asset = File.OpenRead(assetPath);
+                    string uploadKey = await (await AssetUploadRequest.CreateAsyncFor(asset, this)).SendAsync();
+                    _logger.Trace($"Asset at {assetPath} has been uploaded.");
+                    return uploadKey;
+                }
+                catch (Exception ex)
+                { throw new HttpRequestException($"{assetPath} asset upload failed.", ex); }
             }
         }
 
@@ -249,24 +276,24 @@ internal partial class TurboSquid
 
                 StringContent ProductForm()
                     => new JObject(
-                    new JProperty("authenticity_token", _session.Credential._CsrfToken),
-                    new JProperty("turbosquid_product_form", _session.Draft._Product.Metadata.ToProductForm(_session.Draft._ID)),
-                    new JProperty("previews", new JObject(
-                        _processedThumbnails.Select(_ => new JProperty(
-                            _.FileId, JObject.FromObject(new
-                            {
-                                id = _.FileId,
-                                image_type = _.Type().ToString()
-                            }))
-                        ))),
-                    new JProperty("feature_ids", _session.Draft._Product.Metadata.Features.Values.ToArray()),
-                    new JProperty("missing_brand", JObject.FromObject(new
-                    {
-                        name = string.Empty,
-                        website = string.Empty
-                    })),
-                    new JProperty("publish", string.Empty)
-                ).ToJsonContent();
+                        new JProperty("authenticity_token", _session.Credential._CsrfToken),
+                        new JProperty("turbosquid_product_form", _session.Draft._Product.Metadata.ToProductForm(_session.Draft._ID)),
+                        new JProperty("previews", new JObject(
+                            _processedThumbnails.Select(_ => new JProperty(
+                                _.FileId, JObject.FromObject(new
+                                {
+                                    id = _.FileId,
+                                    image_type = _.Type().ToString()
+                                }))
+                            ))),
+                        new JProperty("feature_ids", _session.Draft._Product.Metadata.Features.Values.ToArray()),
+                        new JProperty("missing_brand", JObject.FromObject(new
+                        {
+                            name = string.Empty,
+                            website = string.Empty
+                        })),
+                        new JProperty("publish", string.Empty))
+                    .ToJsonContent();
             }
         }
 
