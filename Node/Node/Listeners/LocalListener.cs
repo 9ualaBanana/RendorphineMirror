@@ -1,8 +1,8 @@
+using System.Net;
+using System.Reflection;
 using _3DProductsPublish;
 using _3DProductsPublish._3DProductDS;
 using Node.Profiling;
-using System.Net;
-using System.Reflection;
 
 namespace Node.Listeners;
 
@@ -47,6 +47,15 @@ public class LocalListener : ExecutableListenerBase
                 }
 
                 return await WriteJson(response, resp).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
+        if (path == "setaccepttasks")
+        {
+            return await Test(request, response, "accept", async accept =>
+            {
+                Settings.AcceptTasks.Value = JsonConvert.DeserializeObject<bool>(accept);
+                return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
 

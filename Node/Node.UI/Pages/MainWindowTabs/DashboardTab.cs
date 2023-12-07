@@ -70,29 +70,33 @@ public class DashboardTab : Panel
         // Earned ~{earnedFromTasks.ToString(CultureInfo.InvariantCulture)} EUR from completing {completedTasks.Count} tasks since {lastTaskUpdate}
         void updatetext()
         {
-            Dispatcher.UIThread.Post(() =>
+            try
             {
-                infotb.Text = $"""
-                    Authenticated as {JsonConvert.SerializeObject(state.AuthInfo.Value ?? default, Formatting.None)}
-                    Balance: {state.Balance.Value.Balance.ToString(CultureInfo.InvariantCulture)} EUR
-                    Completed tasks since {state.CompletedTasks.MinBy(t => t.FinishTime)?.FinishTime.ToString(CultureInfo.InstalledUICulture) ?? "never"}:
-                    {string.Join(Environment.NewLine, state.CompletedTasks.GroupBy(t => t.TaskInfo.FirstAction).Select(t => $"    {t.Key}: {t.Count()}"))}
-                    """;
-
-                configtb.Text = $"""
-                    Ui start time: {starttime}
-
-                    Ports: {JsonConvert.SerializeObject(new
+                Dispatcher.UIThread.Post(() =>
                 {
-                    LocalListenPort = state.LocalListenPort.Value,
-                    UPnpPort = state.UPnpPort.Value,
-                    UPnpServerPort = state.UPnpServerPort.Value,
-                    DhtPort = state.DhtPort.Value,
-                    TorrentPort = state.TorrentPort.Value,
-                })}
-                    Benchmark: {state.BenchmarkResult.Value?.ToString(Formatting.None) ?? "not completed yet"}
-                    """;
-            });
+                    infotb.Text = $"""
+                        Authenticated as {JsonConvert.SerializeObject(state.AuthInfo.Value ?? default, Formatting.None)}
+                        Balance: {state.Balance.Value.Balance.ToString(CultureInfo.InvariantCulture)} EUR
+                        Completed tasks since {state.CompletedTasks.MinBy(t => t.FinishTime)?.FinishTime.ToString(CultureInfo.InstalledUICulture) ?? "never"}:
+                        {string.Join(Environment.NewLine, state.CompletedTasks.GroupBy(t => t.TaskInfo.FirstAction).Select(t => $"    {t.Key}: {t.Count()}"))}
+                        """;
+
+                    configtb.Text = $"""
+                        Ui start time: {starttime}
+
+                        Ports: {JsonConvert.SerializeObject(new
+                    {
+                        LocalListenPort = state.LocalListenPort.Value,
+                        UPnpPort = state.UPnpPort.Value,
+                        UPnpServerPort = state.UPnpServerPort.Value,
+                        DhtPort = state.DhtPort.Value,
+                        TorrentPort = state.TorrentPort.Value,
+                    })}
+                        Benchmark: {state.BenchmarkResult.Value?.ToString(Formatting.None) ?? "not completed yet"}
+                        """;
+                });
+            }
+            catch { }
         }
     }
 }

@@ -34,6 +34,7 @@ public class NodeGlobalState
     public readonly Bindable<ushort> TorrentPort = new();
     public readonly Bindable<string?> NodeName = new();
     public readonly Bindable<AuthInfo?> AuthInfo = new();
+    public readonly Bindable<bool> AcceptTasks = new();
 
     // string = request guid
     public readonly BindableDictionary<string, GuiRequest> Requests = new();

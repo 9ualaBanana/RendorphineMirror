@@ -13,6 +13,7 @@ public class SettingsTab : Panel
                 Children =
                 {
                     CreateNick(),
+                    CreateOthers(),
                     CreatePorts(),
                 },
             },
@@ -20,6 +21,31 @@ public class SettingsTab : Panel
         Children.Add(scroll);
     }
 
+    Control CreateOthers()
+    {
+        var receiveTasksCb = new CheckBox() { Content = new LocalizedString("Receive tasks") };
+        NodeGlobalState.Instance.AcceptTasks.SubscribeChanged(() => Dispatcher.UIThread.Post(() => receiveTasksCb.IsChecked = NodeGlobalState.Instance.AcceptTasks.Value), true);
+
+        receiveTasksCb.IsCheckedChanged += (obj, e) =>
+        {
+            var c = receiveTasksCb.IsChecked == true;
+
+            Task.Run(async () =>
+            {
+                var set = await LocalApi.Default.Get("setaccepttasks", "Setting Accept Tasks", ("accept", JsonConvert.SerializeObject(c)));
+            }).Consume();
+        };
+
+
+        return new Grid()
+        {
+            RowDefinitions = RowDefinitions.Parse("*"),
+            Children =
+            {
+                receiveTasksCb.WithRow(0),
+            }
+        };
+    }
     Control CreateNick()
     {
         var nicktb = new TextBox();
