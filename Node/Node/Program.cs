@@ -30,7 +30,6 @@ global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
 using Node;
 using Node.Services.Targets;
-using Node.Tasks.Watching.Handlers.Input;
 
 
 if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
@@ -41,6 +40,7 @@ var builder = Init.CreateContainer(new("renderfin"), typeof(Program).Assembly);
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
+Notifier.Notify("Starting");
 
 using var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
 initializeDotTracer(container);
@@ -52,6 +52,7 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
 
+Notifier.Notify("Started");
 Thread.Sleep(-1);
 GC.KeepAlive(main);
 

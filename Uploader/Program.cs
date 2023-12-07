@@ -50,6 +50,10 @@ var defaultActions = new Dictionary<string, ImmutableArray<IAction>>()
     {
         new BuildUploadAction(ProjectType.Release, "RApi", "linux-x64", "debian@51.91.57.112:/home/debian/rapi"),
     }.ToImmutableArray(),
+    ["notifier"] = new IAction[]
+    {
+        new BuildUploadAction(ProjectType.Release, "StatusNotifier", "linux-x64", "debian@t.microstock.plus:/home/debian/notifier"),
+    }.ToImmutableArray(),
 }.ToImmutableDictionary();
 
 

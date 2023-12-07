@@ -7,5 +7,5 @@ public class TaskFailedException : Exception
     public TaskFailedException(string message) : base(message) { }
     public TaskFailedException(string message, Exception innerException) : base(message, innerException) { }
 
-    public override string ToString() => this.ToString() + "\n " + FullError;
+    public override string ToString() => base.ToString() + "\n " + FullError;
 }

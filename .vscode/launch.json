@@ -38,18 +38,6 @@
             "stopAtEntry": false
         },
         {
-            "name": "Node-Benchmarks",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "buildnodebenchmarks",
-            "program": "${workspaceFolder}/Node/Node.Benchmarks/bin/Release/net7.0/linux-x64/Node.Benchmarks.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "stopAtEntry": false
-        },
-        {
             "name": "Node.UI",
             "type": "coreclr",
             "request": "launch",
@@ -107,6 +95,19 @@
             "args": [],
             "env": { "ASPNETCORE_ENVIRONMENT": "Development" },
             "cwd": "${workspaceFolder}/RApi",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Notifier",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildnotifier",
+            "program": "${workspaceFolder}/StatusNotifier/bin/Debug/net7.0/StatusNotifier.dll",
+            "args": [],
+            "env": { "ASPNETCORE_ENVIRONMENT": "Development" },
+            "cwd": "${workspaceFolder}/StatusNotifier",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "stopAtEntry": false

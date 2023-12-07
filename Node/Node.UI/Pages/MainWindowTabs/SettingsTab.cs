@@ -26,9 +26,13 @@ public class SettingsTab : Panel
         var receiveTasksCb = new CheckBox() { Content = new LocalizedString("Receive tasks") };
         NodeGlobalState.Instance.AcceptTasks.SubscribeChanged(() => Dispatcher.UIThread.Post(() => receiveTasksCb.IsChecked = NodeGlobalState.Instance.AcceptTasks.Value), true);
 
+        var prevReceiveTasksCb = NodeGlobalState.Instance.AcceptTasks.Value;
         receiveTasksCb.IsCheckedChanged += (obj, e) =>
         {
             var c = receiveTasksCb.IsChecked == true;
+            if (c == prevReceiveTasksCb)
+                return;
+            prevReceiveTasksCb = c;
 
             Task.Run(async () =>
             {

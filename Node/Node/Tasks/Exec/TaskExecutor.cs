@@ -7,7 +7,7 @@ namespace Node.Tasks.Exec;
 
 public class TaskExecutor
 {
-    static readonly SemaphoreSlim QSPreviewInputSemaphore = new SemaphoreSlim(5);
+    static readonly SemaphoreSlim QSPreviewInputSemaphore = new SemaphoreSlim(3);
     static readonly SemaphoreSlim NonQSPreviewInputSemaphore = new SemaphoreSlim(2);
     static readonly SemaphoreSlim ActiveSemaphore = new SemaphoreSlim(1);
     static readonly SemaphoreSlim OutputSemaphore = new SemaphoreSlim(5);

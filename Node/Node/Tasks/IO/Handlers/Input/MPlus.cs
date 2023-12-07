@@ -9,12 +9,15 @@ public static class MPlus
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required Apis Api { get; init; }
         public required IComponentContext ComponentContext { get; init; }
+        public required ParallelDownloader ParallelDownloader { get; init; }
 
         protected override async Task<ReadOnlyTaskFileList> DownloadImpl(MPlusTaskInputInfo input, TaskObject obj, CancellationToken tokenn)
         {
             var files = new TaskFileList(TaskDirectoryProvider.InputDirectory);
             var lastex = null as Exception;
             var firstaction = (IFilePluginActionInfo) ComponentContext.ResolveKeyed<IPluginActionInfo>(TaskExecutorByData.GetTaskName(((ReceivedTask) ApiTask).Info.Data));
+
+            var formatUrls = new Dictionary<FileFormat, string>();
 
             foreach (var inputformats in firstaction.InputFileFormats.OrderByDescending(fs => fs.Sum(f => (int) f + 1)))
             {
@@ -44,26 +47,46 @@ public static class MPlus
             {
                 while (true)
                 {
-                    var downloadLink = await Api.ShardGet<string>(ApiTask, "gettaskinputdownloadlink", "link", "Getting m+ input download link",
-                        ("taskid", ApiTask.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"), ("iid", input.Iid));
+                    var link = null as string;
+                    lock (formatUrls)
+                        formatUrls.TryGetValue(format, out link);
 
-                    if (!downloadLink && downloadLink.Error is HttpError { ErrorCode: -72 }) // There is no such content item
-                        downloadLink.ThrowIfError();
-
-                    if (!downloadLink && downloadLink.Error is HttpError { ErrorCode: -4 }) // internal network error
+                    if (link is null)
                     {
-                        await Task.Delay(1000, token);
-                        continue;
+                        var downloadLink = await Api.ShardGet<string>(ApiTask, "gettaskinputdownloadlink", "link", "Getting m+ input download link",
+                            ("taskid", ApiTask.Id), ("format", format.ToString().ToLowerInvariant()), ("original", format == FileFormat.Jpeg ? "1" : "0"), ("iid", input.Iid));
+
+                        if (!downloadLink && downloadLink.Error is HttpError { ErrorCode: -72 or -71 }) // There is no such content item
+                            downloadLink.ThrowIfError();
+
+                        if (!downloadLink && downloadLink.Error is HttpError { ErrorCode: -4 }) // internal network error
+                        {
+                            await Task.Delay(1000, token);
+                            continue;
+                        }
+
+                        link = downloadLink.ThrowIfError();
+
+                        lock (formatUrls)
+                            formatUrls[format] = link;
                     }
 
 
-                    using var response = await Api.Api.Client.GetAsync(downloadLink.ThrowIfError(), HttpCompletionOption.ResponseHeadersRead, token);
-                    using var file = File.Open(files.New(format).Path, FileMode.Create, FileAccess.Write);
+                    var fwf = files.New(format);
+                    try
+                    {
+                        using var file = File.Open(fwf.Path, FileMode.Create, FileAccess.Write);
+                        await ParallelDownloader.Download(new Uri(link), file, token);
+                    }
+                    catch
+                    {
+                        try { File.Delete(fwf.Path); }
+                        catch { }
 
-                    try { Logger.LogInformation($"[M+ ITH] {format} file is {response.Content.Headers.ContentLength} bytes"); }
-                    catch { }
+                        files.Remove(fwf);
+                        throw;
+                    }
 
-                    await response.Content.CopyToAsync(file, token);
                     break;
                 }
             }
