@@ -1,9 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="CefSharp.OffScreen.NETCore" Version="115.3.110" />
     <PackageReference Include="Direx" Version="0.2.0" />

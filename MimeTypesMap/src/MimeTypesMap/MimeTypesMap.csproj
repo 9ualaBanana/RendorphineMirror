@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>Simple dictionary provides a few methods to lookup mime type/extension, generated From Apache's mime.types.</Description>
     <Authors>red</Authors>
-    <TargetFrameworks>net7.0</TargetFrameworks>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <AssemblyName>MimeTypesMap</AssemblyName>
     <PackageId>MimeTypesMap</PackageId>
     <PackageTags>mime;mimetype</PackageTags>
