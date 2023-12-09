@@ -38,7 +38,7 @@ internal abstract class AssetUploadRequest
         var requestUri = new UriBuilder(new Uri(UploadEndpoint, assetName)) { Query = request.RequestUri.Query }.Uri;
 
         var optionsRequest = new HttpRequestMessage(HttpMethod.Options, requestUri);
-        optionsRequest.Headers.Add("Access-Control-Request-Headers", string.Join(',', new List<string>(Session.AwsCredential._XAmzHeadersWith(default).Select(header => header.Key))
+        optionsRequest.Headers.Add("Access-Control-Request-Headers", string.Join(',', new List<string>(Session.AwsCredential.ToHeaders().Select(header => header.Key))
         { HeaderNames.Authorization.ToLower() }
         .OrderBy(h => h)));
         optionsRequest.Headers.Add("Access-Control-Request-Method", request.Method.Method);

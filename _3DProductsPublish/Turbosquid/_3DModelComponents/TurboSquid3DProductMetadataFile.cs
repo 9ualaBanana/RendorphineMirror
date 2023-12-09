@@ -93,7 +93,7 @@ public partial record TurboSquid3DProductMetadata
             }
             static FileFormat FileFormat_(_3DModel model)
             {
-                foreach (var file in model.Files)
+                foreach (var file in model.EnumerateFiles())
                     if (DeduceFromExtension(file) is FileFormat fileFormat)
                         return fileFormat;
 

@@ -13,24 +13,24 @@ public class _3DModelArchiverTest : IClassFixture<_3DModelFixture>
     }
 
     [Fact]
-    public void Archive_3DModelFromArchiveContainer()
+    public async Task Archive_3DModelFromArchiveContainer()
     {
         using var model = _3DModelFixture.FromArchive;
 
-        string archivedModelPath = _3DModelArchiver.Archive(model);
+        string archivedModelPath = await model.Archive();
 
-        archivedModelPath.Should().Be(model.OriginalPath);
+        archivedModelPath.Should().Be(model.Path);
         File.Exists(archivedModelPath).Should().BeTrue();
     }
 
     [Fact]
-    public void Archive_3DModelFromDirectoryContainer()
+    public async Task Archive_3DModelFromDirectoryContainer()
     {
         using var model = _3DModelFixture.FromDirectory;
 
-        string archivedModelPath = _3DModelArchiver.Archive(model);
+        string archivedModelPath = await model.Archive();
 
-        archivedModelPath.Should().NotBe(model.OriginalPath);
+        archivedModelPath.Should().NotBe(model.Path);
         File.Exists(archivedModelPath).Should().BeTrue();
 
         File.Delete(archivedModelPath);
@@ -41,9 +41,9 @@ public class _3DModelArchiverTest : IClassFixture<_3DModelFixture>
     {
         using var model = _3DModelFixture.FromArchive;
 
-        string unpackedModelPath = _3DModelArchiver.Unpack(model);
+        string unpackedModelPath = _3DProduct.AssetContainer.Archive_.Unpack(model.Path);
 
-        unpackedModelPath.Should().NotBe(model.OriginalPath);
+        unpackedModelPath.Should().NotBe(model.Path);
         Directory.Exists(unpackedModelPath).Should().BeTrue();
     }
 
@@ -52,9 +52,9 @@ public class _3DModelArchiverTest : IClassFixture<_3DModelFixture>
     {
         using var model = _3DModelFixture.FromDirectory;
 
-        string unpackedModelPath = _3DModelArchiver.Unpack(model);
+        var unpackingDirectory = () => _3DProduct.AssetContainer.Archive_.Unpack(model.Path);
 
-        unpackedModelPath.Should().Be(model.OriginalPath);
-        Directory.Exists(unpackedModelPath).Should().BeTrue();
+        unpackingDirectory.Should().Throw<FileNotFoundException>();
+        Directory.Exists(model.Path).Should().BeTrue();
     }
 }
