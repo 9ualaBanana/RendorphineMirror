@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.WebUtilities;
 using System.Net;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace Node.Listeners;
 
@@ -57,13 +57,14 @@ public class DirectUploadListener : MultipartListenerBase
 
 
         var file = sections["file"];
-        var format = FileFormatExtensions.FromMime(file.Headers["Content-Type"]);
+        var headers = file.Headers.ThrowIfNull();
+        var format = FileFormatExtensions.FromMime(headers["Content-Type"].ToString());
         var last = (await (sections.GetValueOrDefault("last")?.ReadAsStringAsync() ?? Task.FromResult("0"))) == "1";
 
         // if there is only one input file, check length
         if (filelist.Files.Count == 0 && last)
         {
-            var length = long.Parse(file.Headers["Content-Length"]);
+            var length = long.Parse(headers["Content-Length"].ToString());
             if (Math.Abs(filelist.TaskObject.Size - length) > 1024 * 1024)
                 return await WriteErr(context.Response, "Invalid input file length");
         }

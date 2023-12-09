@@ -344,7 +344,7 @@ public abstract class ListenerBase : IServiceTarget
                 return value.AsOpResult();
             });
 
-    protected static string GetQueryPart(StringValues values, string name) => string.Join(" ", values).Split(name + "=")[1].Split(";")[0];
+    protected static string GetQueryPart(StringValues values, string name) => string.Join(" ", values.WhereNotNull()).Split(name + "=")[1].Split(";")[0];
 
 
     [Flags]
