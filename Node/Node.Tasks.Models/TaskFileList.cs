@@ -9,10 +9,6 @@ public interface IReadOnlyTaskFileList : IEnumerable<FileWithFormat>
 [JsonObject]
 public class ReadOnlyTaskFileList : IReadOnlyTaskFileList
 {
-    [Obsolete("DELETE")]
-    // TODO:: TEMPORARY AND WILL BE REFACTORED
-    public JToken? OutputJson;
-
     [JsonIgnore] public IEnumerable<string> Paths => Files.Select(f => f.Path);
     [JsonIgnore] public int Count => Files.Count;
     [JsonProperty] protected readonly HashSet<FileWithFormat> Files;
