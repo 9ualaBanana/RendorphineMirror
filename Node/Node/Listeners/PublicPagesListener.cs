@@ -25,7 +25,7 @@ namespace Node.Listeners
                 .OfType<OneClickWatchingTaskInputInfo>()
                 .First();
 
-            foreach (var outdir in Directory.GetDirectories(source.ResultDirectory))
+            foreach (var outdir in Directory.GetDirectories(source.OutputDirectory))
             {
                 try
                 {

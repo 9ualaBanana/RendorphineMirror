@@ -99,6 +99,7 @@ public class ReceivedTasksHandler
                     builder.RegisterDecorator<ITaskProgressSetter>((ctx, parameters, instance) => new ThrottledProgressSetter(TimeSpan.FromSeconds(5), instance));
                 });
 
+                Notifier.Notify($"Starting task {task.Id}\n ```json\n{JsonConvert.SerializeObject(task, JsonSettings.LowercaseIgnoreNull):n}\n```");
                 var executor = scope.Resolve<TaskExecutor>();
                 await executor.Execute(task, cancellationToken).ConfigureAwait(false);
 
@@ -108,6 +109,7 @@ public class ReceivedTasksHandler
                 CompletedTasks.CompletedTasks.Remove(task.Id);
                 CompletedTasks.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt });
 
+                Notifier.Notify($"Completed task {task.Id}\n ```json\n{JsonConvert.SerializeObject(task, JsonSettings.LowercaseIgnoreNull):n}\n```");
                 Logger.LogInformation($"Completed, removing");
 
                 Logger.LogInformation($"Deleting {task.FSDataDirectory(Dirs)}");
@@ -135,6 +137,7 @@ public class ReceivedTasksHandler
 
         async ValueTask fail(string errmsg, string fullerrmsg)
         {
+            Notifier.Notify($"Failing task {task.Id}\n ```json\n{JsonConvert.SerializeObject(task, JsonSettings.LowercaseIgnoreNull):n}\n```\n\n```\n{fullerrmsg}\n```");
             Logger.LogInformation($"Task was failed ({attempt + 1}/{maxattempts}): {fullerrmsg}");
             await Api.FailTaskAsync(task, errmsg, fullerrmsg).ThrowIfError();
 

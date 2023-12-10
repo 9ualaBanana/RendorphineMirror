@@ -34,7 +34,6 @@ global using APath = Avalonia.Controls.Shapes.Path;
 global using LogLevel = NLog.LogLevel;
 global using Path = System.IO.Path;
 using Autofac;
-using Avalonia.Controls.ApplicationLifetimes;
 
 namespace Node.UI;
 
@@ -50,12 +49,7 @@ static class Program
         builder.RegisterInstance(Api.Default)
             .SingleInstance();
 
-        var container =
-            args.Contains("--admin")
-            ? AdminApp.Initialize(builder)
-            : App.Initialize(builder);
-
-        AppBuilder.Configure(container.Resolve<Application>)
+        AppBuilder.Configure(App.Initialize(builder).Resolve<Application>)
             .UsePlatformDetect()
             .With(new X11PlatformOptions { UseDBusMenu = true })
             .LogToTrace()

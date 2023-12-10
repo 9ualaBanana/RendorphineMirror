@@ -1,3 +1,6 @@
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace Node.Tasks.Exec.Actions;
 
 public class VeeeVectorize : FilePluginActionInfo<VeeeVectorizeInfo>

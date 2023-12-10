@@ -1,5 +1,3 @@
-using System.Runtime.Serialization;
-
 namespace Node.Common;
 
 public class MultiDictionary<TKey, TValue> : Dictionary<TKey, TValue> where TKey : notnull
@@ -12,7 +10,6 @@ public class MultiDictionary<TKey, TValue> : Dictionary<TKey, TValue> where TKey
     public MultiDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey>? comparer) : base(dictionary, comparer) { }
     public MultiDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection, IEqualityComparer<TKey>? comparer) : base(collection, comparer) { }
     public MultiDictionary(int capacity, IEqualityComparer<TKey>? comparer) : base(capacity, comparer) { }
-    protected MultiDictionary(SerializationInfo info, StreamingContext context) : base(info, context) { }
 
     public void Add(IEnumerable<KeyValuePair<TKey, TValue>> values)
     {

@@ -26,35 +26,6 @@ public class DebugListener : ExecutableListenerBase
 
             return await WriteSuccess(response);
         }
-        if (path == "runoneclick")
-        {
-            var task = new WatchingTask(TaskAction.VeeeVectorize.ToString(), new JObject(),
-                new OneClickWatchingTaskInputInfo(
-                    @"C:\\Users\user\Documents\oc\input",
-                    @"C:\\Users\user\Documents\oc\output",
-                    @"C:\\Users\user\Documents\oc\result",
-                    @"C:\\Users\user\Documents\oc\log",
-                    @"C:\\Users\user\Documents\oc\testmzp",
-                    @"C:\\Users\user\Documents\oc\testinput",
-                    @"C:\\Users\user\Documents\oc\testoutput",
-                    @"C:\\Users\user\Documents\oc\testresult",
-                    @"C:\\Users\user\Documents\oc\testlog"
-                ),
-                new MPlusWatchingTaskOutputInfo("asd"),
-                TaskPolicy.AllNodes
-            );
-
-            var scope = Container.BeginLifetimeScope(builder =>
-            {
-                builder.RegisterInstance(task)
-                    .SingleInstance();
-            });
-
-            var handler = (OneClickWatchingTaskInputHandler) scope.ResolveKeyed<IWatchingTaskInputHandler>(task.Source.Type);
-            Task.Run(handler.RunOnce).Consume();
-
-            return await WriteSuccess(response);
-        }
 
         if (path == "login")
         {

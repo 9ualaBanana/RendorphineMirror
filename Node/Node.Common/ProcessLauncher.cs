@@ -118,11 +118,11 @@ public class ProcessLauncher
     }
 
     /// <summary> Start the process, wait for exit </summary>
-    public async Task ExecuteAsync()
+    public async Task ExecuteAsync(CancellationToken cancellation = default)
     {
         using var proc = Start(out var readingtask);
 
-        var token = new CancellationTokenSource();
+        var token = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         if (Timeout is not null)
             token.CancelAfter(Timeout.Value);
 
@@ -137,7 +137,7 @@ public class ProcessLauncher
 
             while (!proc.HasExited)
             {
-                await Task.Delay(1000);
+                await Task.Delay(1000, default);
                 proc.Kill(true);
             }
 

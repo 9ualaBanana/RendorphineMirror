@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Primitives;
 using System.Collections.Specialized;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -8,7 +6,6 @@ using System.Text;
 using System.Web;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
-using Node.Services;
 using Node.Services.Targets;
 
 namespace Node.Listeners;
@@ -213,6 +210,7 @@ public abstract class ListenerBase : IServiceTarget
 
     protected void LogRequest(HttpListenerRequest request) => Logger.Trace(@$"{request.RemoteEndPoint} {request.HttpMethod} {request.RawUrl}");
     protected static Task<HttpStatusCode> WriteSuccess(HttpListenerResponse response) => _Write(response, JsonApi.Success());
+    protected static Task<HttpStatusCode> WriteJsonInline<T>(HttpListenerResponse response, in OperationResult<T> result) where T : class => _Write(response, JsonApi.JsonFromOpResultInline(result));
     protected static Task<HttpStatusCode> WriteJson<T>(HttpListenerResponse response, in OperationResult<T> result) => _Write(response, JsonApi.JsonFromOpResult(result));
     protected static Task<HttpStatusCode> WriteJson(HttpListenerResponse response, in OperationResult result) => _Write(response, JsonApi.JsonFromOpResult(result));
     protected static Task<HttpStatusCode> WriteJToken(HttpListenerResponse response, JToken json) => _Write(response, JsonApi.JsonFromOpResult(json));
@@ -346,7 +344,7 @@ public abstract class ListenerBase : IServiceTarget
                 return value.AsOpResult();
             });
 
-    protected static string GetQueryPart(StringValues values, string name) => string.Join(" ", values).Split(name + "=")[1].Split(";")[0];
+    protected static string GetQueryPart(StringValues values, string name) => string.Join(" ", values.WhereNotNull()).Split(name + "=")[1].Split(";")[0];
 
 
     [Flags]

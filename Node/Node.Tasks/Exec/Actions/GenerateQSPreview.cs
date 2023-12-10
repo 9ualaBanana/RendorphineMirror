@@ -1,6 +1,9 @@
 using SixLabors.Fonts;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using ZXing;
 using ZXing.Common;
 using ZXing.QrCode;
@@ -130,7 +133,7 @@ public class GenerateQSPreview : FilePluginActionInfo<TaskFileInput, QSPreviewOu
                     Position = AnchorPositionMode.TopLeft,
                 })
                 .DrawImage(LogoImage, new Point(padding, outheight + (footerh / 2) - (LogoImage.Height / 2)), 1)
-                .DrawText(new TextOptions(new Font(font, 8f))
+                .DrawText(new RichTextOptions(new Font(font, 8f))
                 {
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = HorizontalAlignment.Right,

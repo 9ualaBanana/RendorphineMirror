@@ -22,6 +22,23 @@ public class LocalTests
         await GenericTasksTests.RunAsync(Context);
     }
 
+    async Task LaunchQSPreview(ILifetimeScope container)
+    {
+        using var ctx = container.BeginLifetimeScope(builder =>
+        {
+            builder.RegisterType<ConsoleProgressSetter>()
+                .AsImplementedInterfaces()
+                .SingleInstance();
+        });
+
+        var result = await ctx.Resolve<GenerateQSPreview>()
+            .Execute(
+                ctx,
+                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile(@"C:\mp4.mp4"), FileWithFormat.FromFile(@"C:\png.png") }), @"c:\resultdir\"),
+                new QSPreviewInfo("qwertystockfileid")
+            );
+    }
+
     async Task LaunchTask()
     {
         await ExecuteSingle(

@@ -14,5 +14,5 @@ public record struct BenchmarkResult
     }
 
     public double Bps => DataSize / Time.TotalSeconds;
-    public double MBps => Information.FromBytes(Bps).Megabytes;
+    public double MBps => (double) Information.FromBytes(Bps).Megabytes;
 }

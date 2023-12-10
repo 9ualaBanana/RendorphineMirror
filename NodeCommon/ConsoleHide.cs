@@ -14,7 +14,8 @@ public static class ConsoleHide
         if (Debugger.IsAttached) return;
 
 #if DEBUG
-        return;
+        var one = 1;
+        if (one == 1) return;
 #endif
 
         const int sw_hide = 0;

@@ -1,21 +1,34 @@
-using System.Web;
-
 namespace Node.Common;
 
+[AutoRegisteredService(false)]
 public class ParallelDownloader
 {
+    public required HttpClient HttpClient { get; init; }
     public required DataDirs Dirs { get; init; }
+    public required ILogger<ParallelDownloader> Logger { get; init; }
 
-    public Task Download(HttpClient client, Uri uri, Stream destination, CancellationToken token) => Download(client, uri, destination, 4, token);
-    async Task Download(HttpClient client, Uri uri, Stream destination, int parallelDownloads, CancellationToken token)
+    public Task Download(Uri uri, Stream destination, CancellationToken token) => Download(uri, destination, 4, token);
+    async Task Download(Uri uri, Stream destination, int parallelDownloads, CancellationToken token)
     {
-        var fileSize = await getFileSize();
-        async Task<long> getFileSize()
+        using var _logscope = Logger.BeginScope($"Downloading {uri}");
+
+        long fileSize;
         {
-            using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, uri), HttpCompletionOption.ResponseHeadersRead, token);
-            return response.Content.Headers.ContentLength.ThrowIfValueNull("Could not get content length");
+            using var fileSizeResponse = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, uri), HttpCompletionOption.ResponseHeadersRead, token);
+            if (!fileSizeResponse.IsSuccessStatusCode || fileSizeResponse.Content.Headers.ContentLength is null)
+            {
+                Logger.LogWarning($"Could not fetch file size, downloading normally...");
+                using var downloadResponse = await HttpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, token);
+                downloadResponse.EnsureSuccessStatusCode();
+                await downloadResponse.Content.CopyToAsync(destination, token);
+
+                return;
+            }
+
+            fileSize = fileSizeResponse.Content.Headers.ContentLength.Value;
         }
 
+        Logger.LogTrace($"File size: {fileSize / 1024f / 1024f} MB");
         using var _ = Directories.DisposeDelete(Dirs.TempFiles(parallelDownloads, $"chunkdownload{Guid.NewGuid()}"), out var tempfiles);
 
         var ranges = calculateRanges();
@@ -46,9 +59,10 @@ public class ParallelDownloader
         {
             await Task.WhenAll(ranges.Select(async range =>
             {
-                using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, uri) { Headers = { Range = new(range.Start, range.End) } });
-                using var fileStream = File.Create(range.ChunkFile);
+                using var response = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, uri) { Headers = { Range = new(range.Start, range.End) } }, HttpCompletionOption.ResponseHeadersRead, token);
+                response.EnsureSuccessStatusCode();
 
+                using var fileStream = File.Create(range.ChunkFile);
                 await response.Content.CopyToAsync(fileStream, token);
             }));
         }

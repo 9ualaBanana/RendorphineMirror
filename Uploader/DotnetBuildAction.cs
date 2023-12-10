@@ -29,7 +29,7 @@ public record DotnetBuildAction(ProjectType Type, string Name, string RId, Immut
     }
 
     string GetBuildDir(string name) => GetBuildDir(name, Type, RId);
-    static string GetBuildDir(string name, ProjectType type, string identifier) => $"{name}/bin/{Enum.GetName(type)}/net7.0/{identifier}/publish/";
+    static string GetBuildDir(string name, ProjectType type, string identifier) => $"{name}/bin/{Enum.GetName(type)}/net8.0/{identifier}/publish/";
 
     public void Build(string version)
     {

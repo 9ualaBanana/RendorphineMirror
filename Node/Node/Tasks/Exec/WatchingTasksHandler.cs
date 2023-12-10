@@ -6,6 +6,11 @@ public class WatchingTasksHandler
     public required IWatchingTasksStorage WatchingTasks { get; init; }
     public required ILogger<WatchingTasksHandler> Logger { get; init; }
 
+    readonly Dictionary<WatchingTask, IWatchingTaskInputHandler> Running = new();
+
+    public IWatchingTaskInputHandler GetHandler(WatchingTask task) => Running[task];
+    public T GetHandler<T>(WatchingTask task) where T : IWatchingTaskInputHandler => (T) GetHandler(task);
+
     public void StartWatchingTasks()
     {
         foreach (var task in WatchingTasks.WatchingTasks.Values)
@@ -19,6 +24,7 @@ public class WatchingTasksHandler
         var handler = CreateWatchingHandler(task);
         handler.StartListening();
         task.OnCompleted += handler.OnCompleted;
+        Running.Add(task, handler);
 
 
         IWatchingTaskInputHandler CreateWatchingHandler(WatchingTask task)

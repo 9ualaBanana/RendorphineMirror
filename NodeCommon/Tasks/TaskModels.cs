@@ -22,6 +22,7 @@ public static class TaskModels
         WatchingOutputs = wtypes.OfType<IWatchingTaskOutputInfo>().ToImmutableDictionary(x => x.Type, x => x.GetType());
 
 
+#pragma warning disable SYSLIB0050 // Formatter-based serialization is obsolete and should not be used.
         // FormatterServices.GetSafeUninitializedObject is being used to create valid object for getting only the .Type property
         // since all TaskInOutputInfo object implement ITaskInOutputInfo.Type property using `=>` and not `{ get; } =`
         static T[] CreateUninitializedObjects<T, TInput, TOutput>() where TInput : T where TOutput : T =>
@@ -34,6 +35,7 @@ public static class TaskModels
                 .Select(FormatterServices.GetSafeUninitializedObject)
                 .Cast<T>()
                 .ToArray();
+#pragma warning restore SYSLIB0050
     }
 
 

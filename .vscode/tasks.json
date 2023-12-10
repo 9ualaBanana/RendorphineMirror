@@ -14,12 +14,6 @@
             "args": [ "build", "${workspaceFolder}/Node/Node.Tests/Node.Tests.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
-            "label": "buildnodebenchmarks",
-            "command": "dotnet",
-            "type": "process",
-            "args": [ "build", "${workspaceFolder}/Node/Node.Benchmarks/Node.Benchmarks.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary", "-c", "Release" ]
-        },
-        {
             "label": "buildnodeui",
             "command": "dotnet",
             "type": "process",
@@ -42,6 +36,12 @@
             "command": "dotnet",
             "type": "process",
             "args": [ "build", "${workspaceFolder}/RApi/RApi.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
+        },
+        {
+            "label": "buildnotifier",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "build", "${workspaceFolder}/StatusNotifier/StatusNotifier.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary" ]
         },
         {
             "label": "buildchatgptapi",
@@ -121,6 +121,13 @@
             "command": "dotnet",
             "type": "process",
             "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "rapi" ],
+            "group": { "kind": "build", }
+        },
+        {
+            "label": "Upload Notifier",
+            "command": "dotnet",
+            "type": "process",
+            "args": [ "run", "--project", "${workspaceFolder}/Uploader/Uploader.csproj", "notifier" ],
             "group": { "kind": "build", }
         },
         {

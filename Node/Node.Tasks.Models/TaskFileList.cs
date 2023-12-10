@@ -9,10 +9,6 @@ public interface IReadOnlyTaskFileList : IEnumerable<FileWithFormat>
 [JsonObject]
 public class ReadOnlyTaskFileList : IReadOnlyTaskFileList
 {
-    [Obsolete("DELETE")]
-    // TODO:: TEMPORARY AND WILL BE REFACTORED
-    public JToken? OutputJson;
-
     [JsonIgnore] public IEnumerable<string> Paths => Files.Select(f => f.Path);
     [JsonIgnore] public int Count => Files.Count;
     [JsonProperty] protected readonly HashSet<FileWithFormat> Files;
@@ -35,6 +31,7 @@ public class TaskFileList : ReadOnlyTaskFileList
         NewFile(Directory, format, filename)
             .With(Add);
 
+    public void Remove(FileWithFormat file) => Files.Remove(file);
     public void Clear() => Files.Clear();
 
 
@@ -53,6 +50,8 @@ public static class TaskFileListExtensions
     public static FileWithFormat? TryFirst(this IReadOnlyTaskFileList list, FileFormat format) => list.FirstOrDefault(f => f.Format == format);
     public static FileWithFormat Single(this IReadOnlyTaskFileList list, FileFormat format) => list.Single(f => f.Format == format);
     public static FileWithFormat? TrySingle(this IReadOnlyTaskFileList list, FileFormat format) => list.SingleOrDefault(f => f.Format == format);
+
+    public static bool Contains(this IReadOnlyTaskFileList list, FileFormat format) => list.Any(f => f.Format == format);
 
     public static void AddFromLocalPath(this TaskFileList files, string path)
     {

@@ -42,6 +42,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         state.TorrentPort.Bind(Settings.BTorrentPort.Bindable);
         state.NodeName.Bind(Settings.BNodeName.Bindable);
         state.AuthInfo.Bind(Settings.BAuthInfo.Bindable);
+        state.AcceptTasks.Bind(Settings.AcceptTasks.Bindable);
 
         await Task.WhenAll(new[]
         {
