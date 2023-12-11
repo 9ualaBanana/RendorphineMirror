@@ -13,19 +13,19 @@ var defaultActions = new Dictionary<string, ImmutableArray<IAction>>()
 {
     ["node"] = new IAction[]
     {
-        new BuildUploadNodeAction("renderfin-win", ProjectType.Release, "win7-x64", updaterFilesPath),
+        new BuildUploadNodeAction("renderfin-win", ProjectType.Release, "win-x64", updaterFilesPath),
         new BuildUploadNodeAction("renderfin-lin", ProjectType.Release, "linux-x64", updaterFilesPath),
         // new BuildUploadNodeAction("renderfin-osx", ProjectType.Release, "osx-x64", updaterFilesPath),
     }.ToImmutableArray(),
     ["nodedbg"] = new IAction[]
     {
-        new BuildUploadNodeAction("renderfin-dbg-win", ProjectType.Release, "win7-x64", updaterFilesPath, debugConstantArgs),
+        new BuildUploadNodeAction("renderfin-dbg-win", ProjectType.Release, "win-x64", updaterFilesPath, debugConstantArgs),
         new BuildUploadNodeAction("renderfin-dbg-lin", ProjectType.Release, "linux-x64", updaterFilesPath, debugConstantArgs),
         // new BuildUploadNodeAction("renderfin-dbg-osx", ProjectType.Release, "osx-x64", updaterFilesPath, debugConstantArgs),
     }.ToImmutableArray(),
     ["nodetest"] = new IAction[]
     {
-        new BuildUploadNodeAction("renderfin-test-win", ProjectType.Release, "win7-x64", updaterFilesPath),
+        new BuildUploadNodeAction("renderfin-test-win", ProjectType.Release, "win-x64", updaterFilesPath),
         //new BuildUploadNodeAction("renderfin-test-lin", ProjectType.Release, "linux-x64", updaterFilesPath),
         // new BuildUploadNodeAction("renderfin-dbg-osx", ProjectType.Release, "osx-x64", updaterFilesPath),
     }.ToImmutableArray(),
