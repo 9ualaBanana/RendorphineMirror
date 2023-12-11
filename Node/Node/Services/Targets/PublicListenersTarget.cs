@@ -14,7 +14,7 @@ public class PublicListenersTarget : IServiceTarget
     public required SettingsInstance Settings { get; init; }
     public required ILogger<PublicListenersTarget> Logger { get; init; }
 
-    public async Task ExecuteAsync()
+    void IServiceTarget.Activated()
     {
         PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
         {

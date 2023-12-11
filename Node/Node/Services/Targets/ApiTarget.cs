@@ -16,9 +16,4 @@ public class ApiTarget : IServiceTarget
     }
 
     public required ReconnectTarget Reconnect { get; init; }
-
-    public async Task ExecuteAsync()
-    {
-
-    }
 }

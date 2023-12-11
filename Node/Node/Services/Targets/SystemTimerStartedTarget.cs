@@ -6,5 +6,5 @@ public class SystemTimerStartedTarget : IServiceTarget
 
     public required Init Init { get; init; }
 
-    public async Task ExecuteAsync() => SystemService.Start(Init.Configuration.UseAdminRights);
+    async Task IServiceTarget.ExecuteAsync() => SystemService.Start(Init.Configuration.UseAdminRights);
 }

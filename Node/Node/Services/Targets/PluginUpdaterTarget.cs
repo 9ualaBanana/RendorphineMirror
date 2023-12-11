@@ -28,7 +28,7 @@ public class PluginUpdaterTarget : IServiceTarget
 
     public required UserSettingsHeartbeat UserSettingsHeartbeat { get; init; }
 
-    public async Task ExecuteAsync()
+    void IServiceTarget.Activated()
     {
         UserSettingsHeartbeat.Start();
     }

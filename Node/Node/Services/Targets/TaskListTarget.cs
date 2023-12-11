@@ -32,9 +32,9 @@ public class TaskListTarget : IServiceTarget
     }
 
     public IReadOnlyList<IPluginActionInfo> Actions => _Actions;
-    readonly List<IPluginActionInfo> _Actions = new();
+    readonly List<IPluginActionInfo> _Actions = [];
 
     public required IComponentContext Container { get; init; }
 
-    public async Task ExecuteAsync() => _Actions.AddRange(Container.ResolveAllKeyed<IPluginActionInfo, TaskAction>());
+    async Task IServiceTarget.ExecuteAsync() => _Actions.AddRange(Container.ResolveAllKeyed<IPluginActionInfo, TaskAction>());
 }

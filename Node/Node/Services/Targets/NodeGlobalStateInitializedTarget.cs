@@ -22,7 +22,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
     public required IComponentContext Container { get; init; }
     public required ILogger<NodeGlobalStateInitializedTarget> Logger { get; init; }
 
-    public async Task ExecuteAsync()
+    async Task IServiceTarget.ExecuteAsync()
     {
         var state = NodeGlobalState;
 
@@ -44,12 +44,11 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         state.AuthInfo.Bind(Settings.BAuthInfo.Bindable);
         state.AcceptTasks.Bind(Settings.AcceptTasks.Bindable);
 
-        await Task.WhenAll(new[]
-        {
+        await Task.WhenAll([
             BalanceUpdater.Start(null, state.Balance, default),
             SoftwareUpdater.Start(null, state.Software, default),
             SoftwareStatsUpdater.Start(null, state.SoftwareStats, default),
-        });
+        ]);
 
 
         state.TaskDefinitions.Value = serializeActions();

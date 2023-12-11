@@ -10,9 +10,4 @@ public class TaskReceiverTarget : IServiceTarget
     public required TaskReceiver TaskReceiver { get; init; }
     public required DirectUploadListener DirectUploadListener { get; init; }
     public required DirectDownloadListener DirectDownloadListener { get; init; }
-
-    public async Task ExecuteAsync()
-    {
-
-    }
 }

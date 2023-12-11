@@ -6,9 +6,4 @@ public class PublishMainTarget : IServiceTarget
 
     public required ReleaseMainTarget Release { get; init; }
     public required SystemTimerStartedTarget SystemTimerStartedTarget { get; init; }
-
-    public async Task ExecuteAsync()
-    {
-
-    }
 }

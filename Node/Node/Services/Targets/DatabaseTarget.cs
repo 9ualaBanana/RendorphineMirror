@@ -11,9 +11,4 @@ public class DatabaseTarget : IServiceTarget
             .AsImplementedInterfaces()
             .SingleInstance();
     }
-
-    public async Task ExecuteAsync()
-    {
-
-    }
 }

@@ -9,7 +9,7 @@ public class PortsForwardedTarget : IServiceTarget
     public required SettingsInstance Settings { get; init; }
     public required ILogger<PortsForwardedTarget> Logger { get; init; }
 
-    public async Task ExecuteAsync()
+    async Task IServiceTarget.ExecuteAsync()
     {
         const int mapTimeSec = 60 * 30;
 

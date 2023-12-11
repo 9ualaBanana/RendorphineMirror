@@ -9,6 +9,7 @@ public static class PortsUpdatedTarget
         protected PortsUpdatedTargetBase(ILogger logger) => Logger = logger;
 
         public static void CreateRegistrations(ContainerBuilder builder) { }
+        Task IServiceTarget.ExecuteAsync() => ExecuteAsync();
         public abstract Task ExecuteAsync();
 
         /// <summary> Find first available port and set the value of <paramref name="port"/> </summary>

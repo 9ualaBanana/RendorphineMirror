@@ -10,14 +10,15 @@ public class UITarget : IServiceTarget
             .SingleInstance();
     }
 
+    public required SettingsInstance Settings { get; init; }
     public required LocalListener LocalListener { get; init; }
     public required NodeGlobalStateInitializedTarget NodeGlobalStateInitializedTarget { get; init; }
     public required NodeStateListener NodeStateListener { get; init; }
 
     public required DataDirs Dirs { get; init; }
 
-    public async Task ExecuteAsync()
+    async Task IServiceTarget.ExecuteAsync()
     {
-        Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Dirs.Data, "lport"), Settings.LocalListenPort.ToString()), true);
+        Settings.BLocalListenPort.Bindable.SubscribeChanged(() => File.WriteAllText(Path.Combine(Dirs.Data, "lport"), Settings.LocalListenPort.ToStringInvariant()), true);
     }
 }

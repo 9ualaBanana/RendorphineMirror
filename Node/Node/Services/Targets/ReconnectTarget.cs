@@ -9,7 +9,7 @@ public class ReconnectTarget : IServiceTarget
     public required IQueuedTasksStorage QueuedTasksStorage { get; init; }
     public required ILogger<ReconnectTarget> Logger { get; init; }
 
-    public async Task ExecuteAsync()
+    async Task IServiceTarget.ExecuteAsync()
     {
         Logger.LogInformation("Reconnecting to M+");
 
