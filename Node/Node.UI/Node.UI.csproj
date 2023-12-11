@@ -8,10 +8,6 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <SelfContained>true</SelfContained>
-    <!--<PublishReadyToRun>true</PublishReadyToRun>-->
-  </PropertyGroup>
 
   <ItemGroup>
     <Compile Update="**\*.xaml.cs">
