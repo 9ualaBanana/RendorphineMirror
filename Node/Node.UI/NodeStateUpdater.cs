@@ -16,7 +16,7 @@ public class NodeStateUpdater
         {
             try
             {
-                var port = ushort.Parse(await File.ReadAllTextAsync(new DataDirs("renderfin").DataFile("lport")), CultureInfo.InvariantCulture);
+                var port = ushort.Parse(await File.ReadAllTextAsync(new DataDirs(new Init.InitConfig("renderfin") { AutoClearTempDir = false }).DataFile("lport")), CultureInfo.InvariantCulture);
                 NodeHost.Value = $"127.0.0.1:{port}";
 
                 break;

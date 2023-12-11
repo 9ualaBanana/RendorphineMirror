@@ -5,7 +5,7 @@ namespace Node.Common;
 public class DataDirs
 {
     public string Data { get; }
-    public string Temp { get; }
+    readonly string Temp;
     readonly string AppName;
 
     public DataDirs(string appname) : this(new Init.InitConfig(appname)) { }
