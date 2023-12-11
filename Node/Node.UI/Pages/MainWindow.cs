@@ -1,7 +1,4 @@
 using System.Web;
-using Autofac;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Node.UI.Pages.MainWindowTabs;
 using NodeToUI.Requests;
 
@@ -9,11 +6,16 @@ namespace Node.UI.Pages
 {
     public partial class MainWindow : Window
     {
-        readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+        bool Shown = false;
 
-        public MainWindow(NodeStateUpdater nodeStateUpdater)
+        public MainWindow(NodeConnectionState connectionState)
         {
             this.AttachDevToolsIfDebug();
+
+            var savedState = App.Instance.Settings.MainWindowState.Value;
+            IsVisible = savedState.Visible;
+            if (savedState.Position is not null)
+                Position = savedState.Position.Value;
 
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.FixStartupLocation();
@@ -53,15 +55,35 @@ namespace Node.UI.Pages
             };
 
 
-            nodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            connectionState.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
             {
-                if (nodeStateUpdater.IsConnectedToNode.Value) statustb.Text = null;
+                if (connectionState.IsConnectedToNode.Value) statustb.Text = null;
                 else
                 {
                     statustb.Text = "!!! No connection to node !!!";
                     statustb.Foreground = Brushes.Red;
                 }
             }), true);
+        }
+
+        public override void Hide()
+        {
+            App.Instance.Settings.MainWindowState.Value = App.Instance.Settings.MainWindowState.Value with { Visible = false };
+            base.Hide();
+        }
+        public override void Show()
+        {
+            if (!Shown)
+            {
+                Shown = true;
+
+                var savedState = App.Instance.Settings.MainWindowState.Value;
+                if (!savedState.Visible) return;
+            }
+
+
+            App.Instance.Settings.MainWindowState.Value = App.Instance.Settings.MainWindowState.Value with { Visible = true };
+            base.Show();
         }
 
         void SubscribeToStateChanges()

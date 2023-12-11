@@ -10,6 +10,7 @@ namespace Node.UI
 
         public required NodeGlobalState NodeGlobalState { get; init; }
         public required NodeStateUpdater NodeStateUpdater { get; init; }
+        public required NodeConnectionState NodeConnectionState { get; init; }
         public required Updaters.BalanceUpdater BalanceUpdater { get; init; }
         public required Updaters.SoftwareUpdater SoftwareUpdater { get; init; }
         public required Updaters.SoftwareStatsUpdater SoftwareStatsUpdater { get; init; }
@@ -28,6 +29,8 @@ namespace Node.UI
             builder.RegisterType<UISettings>()
                 .SingleInstance();
             builder.RegisterType<NodeStateUpdater>()
+                .SingleInstance();
+            builder.RegisterType<NodeConnectionState>()
                 .SingleInstance();
 
             builder.RegisterInstance(NodeGlobalState.Instance)
@@ -119,30 +122,30 @@ namespace Node.UI
                 if (Settings.Language is { } lang) LocalizedString.SetLocale(lang);
                 else Settings.Language = LocalizedString.Locale;
 
-                this.InitializeTrayIndicator(NodeStateUpdater);
+                this.InitializeTrayIndicator(NodeConnectionState);
                 if (!Init.IsDebug) Task.Run(CreateShortcuts);
                 MainTheme.Apply(Resources, Styles);
 
-                BalanceUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Balance, default).Consume();
-                SoftwareUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.Software, default).Consume();
-                SoftwareStatsUpdater.Start(NodeStateUpdater.IsConnectedToNode, NodeGlobalState.SoftwareStats, default).Consume();
+                BalanceUpdater.Start(NodeConnectionState.IsConnectedToNode, NodeGlobalState.Balance, default).Consume();
+                SoftwareUpdater.Start(NodeConnectionState.IsConnectedToNode, NodeGlobalState.Software, default).Consume();
+                SoftwareStatsUpdater.Start(NodeConnectionState.IsConnectedToNode, NodeGlobalState.SoftwareStats, default).Consume();
 
                 StartUpdaterLoop().Consume();
 
-                NodeStateUpdater.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
-                NodeGlobalState.AuthInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop).Show()));
+                NodeConnectionState.IsConnectedToNode.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop)?.Show()));
+                NodeGlobalState.AuthInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(() => SetMainWindow(desktop)?.Show()));
 
                 if (!Environment.GetCommandLineArgs().Contains("hidden"))
                     SetMainWindow(desktop);
             }
         }
 
-        public Window SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime)
+        public Window? SetMainWindow(IClassicDesktopStyleApplicationLifetime lifetime)
         {
             var window = getWindow();
             LogManager.GetCurrentClassLogger().Info($"Switching main window from {lifetime.MainWindow?.ToString() ?? "nothing"} to {window}");
 
-            if (window.GetType() == lifetime.MainWindow?.GetType())
+            if (window?.GetType() == lifetime.MainWindow?.GetType())
                 return lifetime.MainWindow;
 
             if (lifetime.MainWindow is { } prev)
@@ -155,26 +158,35 @@ namespace Node.UI
             return lifetime.MainWindow = window;
 
 
-            Window getWindow()
+            Window? getWindow()
             {
                 if (WasConnected && NodeGlobalState.AuthInfo.Value?.SessionId is not null)
                     return lifetime.MainWindow.ThrowIfNull();
 
-                WasConnected |= NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.AuthInfo.Value?.SessionId is not null;
+                WasConnected |= NodeConnectionState.IsConnectedToNode.Value && NodeGlobalState.AuthInfo.Value?.SessionId is not null;
 
-                if (lifetime.MainWindow is MainWindow && NodeStateUpdater.IsConnectedToNode.Value && NodeGlobalState.AuthInfo.Value?.SessionId is not null)
+                if (lifetime.MainWindow is MainWindow && NodeConnectionState.IsConnectedToNode.Value && NodeGlobalState.AuthInfo.Value?.SessionId is not null)
                     return lifetime.MainWindow;
 
-                return (!NodeStateUpdater.IsConnectedToNode.Value)
-                    ? new InitializingWindow()
+                return (!NodeConnectionState.IsConnectedToNode.Value)
+                    ? null
                     : NodeGlobalState.AuthInfo.Value?.SessionId is null
                         ? new LoginWindow()
-                        : new MainWindow(NodeStateUpdater);
+                        : new MainWindow(NodeConnectionState);
             }
         }
 
         async Task StartUpdaterLoop()
         {
+            if (Environment.GetCommandLineArgs().Contains("--debug"))
+            {
+                var updater = new DebugNodeStateUpdater() { NodeConnectionState = NodeConnectionState };
+                var window = new DebugNodeStateUpdaterWindow(updater);
+
+                window.Show();
+                return;
+            }
+
             var loadcache = Init.IsDebug;
             var cacheloaded = !loadcache;
 

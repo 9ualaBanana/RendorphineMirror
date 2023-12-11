@@ -1,14 +1,14 @@
-namespace Node.UI;
+namespace Node.UI.State;
 
 public class NodeStateUpdater
 {
     public event Action<NodeStateUpdate>? OnReceive;
     public event Action<Exception>? OnException;
 
+    public required NodeConnectionState NodeConnectionState { get; init; }
     public required ILogger<NodeStateUpdater> Logger { get; init; }
 
     public Bindable<string?> NodeHost { get; } = new(null);
-    public Bindable<bool> IsConnectedToNode { get; } = new(false);
 
     public async Task ReceivingLoop()
     {
@@ -56,15 +56,15 @@ public class NodeStateUpdater
                     var info = (await JToken.LoadAsync(reader)).ToObject<NodeStateUpdate>().ThrowIfNull();
                     OnReceive?.Invoke(info);
 
-                    if (!IsConnectedToNode.Value)
-                        IsConnectedToNode.Value = true;
+                    if (!NodeConnectionState.IsConnectedToNode.Value)
+                        NodeConnectionState.IsConnectedToNode.Value = true;
                 }
             }
             catch (Exception ex)
             {
                 if (cancel) return;
 
-                IsConnectedToNode.Value = false;
+                NodeConnectionState.IsConnectedToNode.Value = false;
                 if (consecutive < 3) Logger.LogError($"Could not read node state: {ex.Message}, reconnecting...");
                 else if (consecutive == 3) Logger.LogError($"Could not read node state after {consecutive} retries, disabling connection retry logging...");
 

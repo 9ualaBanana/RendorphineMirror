@@ -50,6 +50,18 @@
             "stopAtEntry": false
         },
         {
+            "name": "Node.UI --debug",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildnodeui",
+            "program": "${workspaceFolder}/Node/Node.UI/bin/Debug/net8.0/Node.UI.dll",
+            "args": [ "--debug" ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "stopAtEntry": false
+        },
+        {
             "name": "Node.UI_admin",
             "type": "coreclr",
             "request": "launch",
