@@ -17,7 +17,7 @@ public class ReleaseMainTarget : IServiceTarget
     public required AutoCleanup AutoCleanup { get; init; }
     public required DebugListener DebugListener { get; init; }
 
-    public async Task ExecuteAsync()
+    async Task IServiceTarget.ExecuteAsync()
     {
         AutoCleanup.Start();
     }

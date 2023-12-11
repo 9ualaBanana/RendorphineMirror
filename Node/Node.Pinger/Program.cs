@@ -1,3 +1,4 @@
+using Autofac;
 using Node.Common;
 using UpdaterCommon;
 
@@ -10,7 +11,7 @@ await updater.Update().ThrowIfError();
 
 try
 {
-    var portfile = new DataDirs("renderfin").DataFile("lport");
+    var portfile = container.Resolve<DataDirs>().DataFile("lport");
     var port = ushort.Parse(await File.ReadAllTextAsync(portfile));
 
     var msg = await new HttpClient().GetAsync($"http://127.0.0.1:{port}/ping");

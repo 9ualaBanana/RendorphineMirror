@@ -20,7 +20,7 @@ public class ConnectedToMPlusTarget : IServiceTarget
     public required MPlusHeartbeat MPlusHeartbeat { get; init; }
     public required TelegramBotHeartbeat TelegramBotHeartbeat { get; init; }
 
-    public async Task ExecuteAsync()
+    void IServiceTarget.Activated()
     {
         MPlusHeartbeat.Start();
         TelegramBotHeartbeat.Start();

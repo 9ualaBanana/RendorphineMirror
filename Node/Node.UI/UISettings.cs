@@ -7,6 +7,7 @@ public class UISettings
 
     public readonly DatabaseValue<string?> BLanguage;
     public readonly DatabaseValue<bool> BShortcutsCreated;
+    public readonly DatabaseValue<SavedWindowState> MainWindowState;
 
     public UISettings(DataDirs dirs)
     {
@@ -14,5 +15,9 @@ public class UISettings
 
         BLanguage = new(db, nameof(Language), null);
         BShortcutsCreated = new(db, $"{nameof(ShortcutsCreated)}_2", false);
+        MainWindowState = new(db, $"{nameof(MainWindowState)}_2", new());
     }
+
+
+    public record SavedWindowState(bool Visible = true, PixelPoint? Position = null);
 }

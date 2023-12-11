@@ -14,9 +14,9 @@ public class TasksTab2 : Panel
         var api = App.Instance.Container.Resolve<Apis>();
 
         var tabs = new TabbedControl();
-        tabs.Add("Local", new LocalTaskManager() { Api = api });
-        tabs.Add("Watching", new WatchingTaskManager() { Api = api });
-        tabs.Add("Remote", new RemoteTaskManager() { Api = api });
+        tabs.Add("Local", new LocalTaskManager(api));
+        tabs.Add("Watching", new WatchingTaskManager(api));
+        tabs.Add("Remote", new RemoteTaskManager(api));
 
         Children.Add(tabs);
     }
@@ -24,10 +24,12 @@ public class TasksTab2 : Panel
 
     abstract class TaskManager<T> : Panel
     {
-        public required Apis Api { get; init; }
+        protected readonly Apis Api;
 
-        public TaskManager()
+        public TaskManager(Apis api)
         {
+            Api = api;
+
             var data = CreateDataGrid();
             Children.Add(WrapGrid(data));
 
@@ -65,6 +67,8 @@ public class TasksTab2 : Panel
     }
     abstract class NormalTaskManager : TaskManager<TaskBase>
     {
+        protected NormalTaskManager(Apis api) : base(api) { }
+
         protected override void CreateColumns(DataGrid data)
         {
             data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(TaskBase.Id)) });
@@ -94,6 +98,8 @@ public class TasksTab2 : Panel
     }
     class LocalTaskManager : NormalTaskManager
     {
+        public LocalTaskManager(Apis api) : base(api) { }
+
         protected override Task<IReadOnlyCollection<TaskBase>> Load() =>
             new IReadOnlyList<TaskBase>[] { NodeGlobalState.Instance.QueuedTasks, NodeGlobalState.Instance.PlacedTasks, NodeGlobalState.Instance.ExecutingTasks, }
                 .SelectMany(x => x)
@@ -103,11 +109,15 @@ public class TasksTab2 : Panel
     }
     class RemoteTaskManager : NormalTaskManager
     {
+        public RemoteTaskManager(Apis api) : base(api) { }
+
         protected override async Task<IReadOnlyCollection<TaskBase>> Load() =>
             await Api.GetMyTasksAsync(Enum.GetValues<TaskState>()).ThrowIfError();
     }
     class WatchingTaskManager : TaskManager<WatchingTask>
     {
+        public WatchingTaskManager(Apis api) : base(api) { }
+
         protected override void CreateColumns(DataGrid data)
         {
             data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(WatchingTask.Id)) });

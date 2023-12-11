@@ -2,7 +2,7 @@ namespace Uploader;
 
 public record BuildUploadNodeAction(string AppType, ProjectType Type, string Identifier, string Dest, ImmutableArray<string> Args = default) : IAction
 {
-    readonly DotnetBuildAction BuildAction = new DotnetBuildAction(Type, "Node/Node.Build", Identifier, ImmutableArray.Create("Updater"), Args: Args);
+    readonly DotnetBuildAction BuildAction = new DotnetBuildAction(Type, "Node/Node.Build", Identifier, ImmutableArray.Create("Updater", "Node/Node.Pinger"), Args: Args);
 
     public void Invoke()
     {

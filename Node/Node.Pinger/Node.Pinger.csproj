@@ -4,18 +4,16 @@
     <OutputType>WinExe</OutputType>
     <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)' == 'Pub'">
-    <SelfContained>true</SelfContained>
-    <!--<PublishReadyToRun>true</PublishReadyToRun>-->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <SelfContained>true</SelfContained>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Common\Common.csproj" />
     <ProjectReference Include="..\..\UpdaterCommon\UpdaterCommon.csproj" />
-    <ProjectReference Include="..\..\Updater\Updater.csproj" />
-    <ProjectReference Include="..\..\NodeCommon\NodeCommon.csproj" />
     <ProjectReference Include="..\Node.Common\Node.Common.csproj" />
   </ItemGroup>
 

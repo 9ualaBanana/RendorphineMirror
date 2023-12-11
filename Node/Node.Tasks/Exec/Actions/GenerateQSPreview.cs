@@ -29,7 +29,8 @@ public class GenerateQSPreview : FilePluginActionInfo<TaskFileInput, QSPreviewOu
         if (jpeg)
         {
             output.ImageFooter.ThrowIfNull("Footer image is null");
-            if (!mov) output.ImageQr.ThrowIfNull("QR image is null");
+            if (data.AlwaysGenerateQRPreview || !mov)
+                output.ImageQr.ThrowIfNull("QR image is null");
         }
         if (mov) output.Video.ThrowIfNull("Video is null");
     }
@@ -57,7 +58,7 @@ public class GenerateQSPreview : FilePluginActionInfo<TaskFileInput, QSPreviewOu
             {
                 await ProcessPreviewFooter(id, jpeg.Path, output.InitializeImageFooter().Path);
 
-                if (mov is null)
+                if (data.AlwaysGenerateQRPreview || mov is null)
                 {
                     using var qr = await GenerateQR(qrtext, "assets/qswatermark/qwerty_logo.png");
                     await ProcessPreviewQr(jpeg.Path, qr, output.InitializeImageQr().Path);

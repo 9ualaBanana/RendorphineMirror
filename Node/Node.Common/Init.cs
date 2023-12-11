@@ -48,6 +48,14 @@ public class Init : IServiceTarget
                     logger.LogInformation($"Resolved target {l.Instance}");
                     await ((IServiceTarget) l.Instance).ExecuteAsync().ConfigureAwait(false);
                     logger.LogInformation($"Reached target {l.Instance}");
+                })
+                .OnActivated(l =>
+                {
+                    var logger = l.Context.ResolveLogger(l.Instance.GetType());
+
+                    logger.LogInformation($"Activating target {l.Instance}");
+                    ((IServiceTarget) l.Instance).Activated();
+                    logger.LogInformation($"Activated target {l.Instance}");
                 });
 
             if (type == typeof(Init))

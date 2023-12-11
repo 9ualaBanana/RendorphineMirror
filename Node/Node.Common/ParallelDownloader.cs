@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Node.Common;
 
 [AutoRegisteredService(false)]
@@ -80,6 +82,78 @@ public class ParallelDownloader
         await destination.FlushAsync(token);
     }
 
+
+    public async Task DownloadInMemoryAsync(string url, Stream destination, CancellationToken token, int maxThreadCount = 4, long chunkSize = 100L * 1024L * 1024L)
+    {
+        using var _logscope = Logger.BeginScope($"Downloading {url}");
+
+        var maybeFileSize = await getFileSize();
+        async Task<long?> getFileSize()
+        {
+            using var fileSizeResponse = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, url), HttpCompletionOption.ResponseHeadersRead, token);
+            if (!fileSizeResponse.IsSuccessStatusCode || fileSizeResponse.Content.Headers.ContentLength is null)
+                return null;
+
+            return fileSizeResponse.Content.Headers.ContentLength.Value;
+        }
+
+        if (maybeFileSize is null)
+        {
+            Logger.LogWarning($"Could not fetch file size, downloading normally...");
+            using var downloadResponse = await HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
+            downloadResponse.EnsureSuccessStatusCode();
+            await downloadResponse.Content.CopyToAsync(destination, token);
+
+            return;
+        }
+
+        var fileSize = maybeFileSize.Value;
+
+        var i = 0;
+        await foreach (var stream in startDownloading(token))
+        {
+            Console.WriteLine((i * chunkSize) + "/" + fileSize + " ... " + chunkSize);
+            destination.Position = i * chunkSize;
+            await stream.CopyToAsync(destination);
+            stream.Dispose();
+
+            i++;
+        }
+
+
+        async IAsyncEnumerable<Stream> startDownloading([EnumeratorCancellation] CancellationToken token)
+        {
+            var semaphore = new PrioritySemaphore(maxThreadCount, maxThreadCount);
+
+            var tasks = new List<Task<Stream>>();
+            for (var i = 0L; i < fileSize; i += chunkSize)
+            {
+                token.ThrowIfCancellationRequested();
+
+                var start = i;
+                var end = Math.Min(fileSize, i + chunkSize);
+
+                tasks.Add(Task.Run(async () =>
+                {
+                    await semaphore.WaitAsync(start);
+                    using var _ = new FuncDispose(semaphore.Release);
+
+                    return await downloadChunk(start, end, token);
+                }));
+            }
+
+            foreach (var task in tasks)
+                yield return await task;
+        }
+
+        async Task<Stream> downloadChunk(long start, long end, CancellationToken token)
+        {
+            var response = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, url) { Headers = { Range = new(start, end) } }, HttpCompletionOption.ResponseHeadersRead, token);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadAsStreamAsync(token);
+        }
+    }
 
     record struct DownloadRange(string ChunkFile, long? Start, long? End);
 }

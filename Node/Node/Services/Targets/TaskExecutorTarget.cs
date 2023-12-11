@@ -1,5 +1,3 @@
-using Node.Tasks.Exec.Actions;
-
 namespace Node.Services.Targets;
 
 public class TaskExecutorTarget : IServiceTarget
@@ -17,6 +15,7 @@ public class TaskExecutorTarget : IServiceTarget
     }
 
     public required TaskListTarget TaskList { get; init; }
+    public required ReconnectTarget Reconnect { get; init; }
     public required PlacedTasksHandler PlacedTasksHandler { get; init; }
     public required ReceivedTasksHandler ReceivedTasksHandler { get; init; }
     public required WatchingTasksHandler WatchingTasksHandler { get; init; }
@@ -27,13 +26,8 @@ public class TaskExecutorTarget : IServiceTarget
     public required IPlacedTasksStorage PlacedTasks { get; init; }
     public required ILogger<TaskExecutorTarget> Logger { get; init; }
 
-    public async Task ExecuteAsync()
+    async Task IServiceTarget.ExecuteAsync()
     {
-        PlacedTasksHandler.InitializePlacedTasksAsync().Consume();
-        PlacedTasksHandler.StartUpdatingPlacedTasks();
-        WatchingTasksHandler.StartWatchingTasks();
-        ReceivedTasksHandler.StartListening();
-
         Logger.Info($"""
             Tasks found
             {CompletedTasks.CompletedTasks.Count} self-completed
@@ -42,5 +36,12 @@ public class TaskExecutorTarget : IServiceTarget
             {PlacedTasks.PlacedTasks.Count} placed
             {PlacedTasks.PlacedTasks.Values.Count(x => !x.State.IsFinished())} non-finished placed
             """.Replace("\n", "; ").Replace("\r", string.Empty));
+    }
+    void IServiceTarget.Activated()
+    {
+        PlacedTasksHandler.InitializePlacedTasksAsync().Consume();
+        PlacedTasksHandler.StartUpdatingPlacedTasks();
+        WatchingTasksHandler.StartWatchingTasks();
+        ReceivedTasksHandler.StartListening();
     }
 }

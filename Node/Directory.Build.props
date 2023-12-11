@@ -3,6 +3,11 @@
     <Import
       Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..\'))" />
   </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <SelfContained>true</SelfContained>
+    <DebugType>embedded</DebugType>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Common\Common.csproj" />

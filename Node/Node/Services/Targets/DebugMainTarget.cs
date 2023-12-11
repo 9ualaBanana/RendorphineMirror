@@ -8,9 +8,4 @@ public class DebugMainTarget : IServiceTarget
 
     public required BaseTarget Base { get; init; }
     public required DebugListener DebugListener { get; init; }
-
-    public async Task ExecuteAsync()
-    {
-
-    }
 }

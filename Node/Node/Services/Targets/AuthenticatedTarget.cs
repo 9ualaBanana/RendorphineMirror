@@ -17,7 +17,7 @@ public class AuthenticatedTarget : IServiceTarget
 
     public required Api Api { get; init; }
 
-    public async Task ExecuteAsync()
+    async Task IServiceTarget.ExecuteAsync()
     {
         if (Settings.SessionId is null)
         {

@@ -25,6 +25,7 @@ global using Node.Plugins.Models;
 global using Node.Tasks.Models;
 global using Node.UI.Controls;
 global using Node.UI.Pages;
+global using Node.UI.State;
 global using NodeCommon;
 global using NodeCommon.ApiModel;
 global using NodeCommon.Tasks;

@@ -64,7 +64,7 @@ namespace Node.UI
                 window.Hide();
             };
         }
-        public static void InitializeTrayIndicator(this Application app, NodeStateUpdater nodeStateUpdater)
+        public static void InitializeTrayIndicator(this Application app, NodeConnectionState connectionState)
         {
             var items = new (LocalizedString, Action)?[]
             {
@@ -78,7 +78,7 @@ namespace Node.UI
             icon.Clicked += (_, _) => open();
             icon.FixException();
 
-            InitializeIconInfo(icon, nodeStateUpdater);
+            InitializeIconInfo(icon, connectionState);
 
             LocalizedString.ChangeLangWeakEvent.Subscribe(app, () => Dispatcher.UIThread.Post(updateMenus));
             updateMenus();
@@ -122,7 +122,7 @@ namespace Node.UI
             }).Start();
         }
 
-        static void InitializeIconInfo(TrayIcon icon, NodeStateUpdater nodeStateUpdater)
+        static void InitializeIconInfo(TrayIcon icon, NodeConnectionState connectionState)
         {
             var iconcache = new Dictionary<string, WindowIcon>();
             int time = -1;
@@ -138,7 +138,7 @@ namespace Node.UI
 
                 WindowIcon getIcon()
                 {
-                    if (!nodeStateUpdater.IsConnectedToNode.Value)
+                    if (!connectionState.IsConnectedToNode.Value)
                     {
                         icon.ToolTipText = LocalizedString.String("No connection to node");
                         return Red;

@@ -27,9 +27,4 @@ public class BaseTarget : IServiceTarget
     public required TaskExecutorTarget TaskExecutor { get; init; }
     public required PluginUpdaterTarget PluginUpdater { get; init; }
     public required TaskListener TaskListener { get; init; }
-
-    public async Task ExecuteAsync()
-    {
-
-    }
 }

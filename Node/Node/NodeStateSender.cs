@@ -5,7 +5,7 @@ public class NodeStateSender
     public required NodeGlobalState State { get; init; }
     public required ILogger<NodeStateSender> Logger { get; init; }
 
-    readonly List<Instance> Instances = new();
+    readonly List<Instance> Instances = [];
 
     public async Task SendingLoop(Stream stream)
     {
