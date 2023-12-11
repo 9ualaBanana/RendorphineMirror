@@ -20,24 +20,27 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
 
     public async Task RunOnce()
     {
-        Directory.CreateDirectory(Input.TestMzpDirectory);
-
-        try
+        if (!string.IsNullOrWhiteSpace(Input.TestMzpDirectory))
         {
-            var betamzp = Directory.GetFiles(Input.TestMzpDirectory)
-                .Where(p => Path.GetFileName(p).StartsWith("oneclick") && p.EndsWith(".mzp"))
-                .Max();
+            Directory.CreateDirectory(Input.TestMzpDirectory);
 
-            if (betamzp is not null)
+            try
             {
-                var plugin = new Plugin(PluginType.OneClick, Path.GetFileNameWithoutExtension(betamzp)!.Substring("oneclickexport.v".Length), betamzp);
-                await CreateRunner(plugin, Input.TestInputDirectory, Input.TestOutputDirectory, Input.TestLogDirectory).Run();
-                return;
+                var betamzp = Directory.GetFiles(Input.TestMzpDirectory)
+                    .Where(p => Path.GetFileName(p).StartsWith("oneclick") && p.EndsWith(".mzp"))
+                    .Max();
+
+                if (betamzp is not null)
+                {
+                    var plugin = new Plugin(PluginType.OneClick, Path.GetFileNameWithoutExtension(betamzp)!.Substring("oneclickexport.v".Length), betamzp);
+                    await CreateRunner(plugin, Input.TestInputDirectory, Input.TestOutputDirectory, Input.TestLogDirectory).Run();
+                    return;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex);
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+            }
         }
 
         try
@@ -80,18 +83,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
 
         public OCLocalListener(ILogger<OCLocalListener> logger) : base(logger) { }
 
-        public async IAsyncEnumerable<ProductJson> WaitForCompletion(int amount, TimeSpan timeout)
-        {
-            for (int i = 0; i < amount; i++)
-            {
-                Completion = new();
-
-                var token = new CancellationTokenSource(timeout);
-                yield return await Completion.Task.WaitAsync(token.Token);
-                Completion = null;
-            }
-        }
-        public async Task<ProductJson> WaitForCompletion2(Action<ProductJson> onReceiveFunc, TimeSpan timeout, CancellationToken token)
+        public async Task<ProductJson> WaitForCompletion(Action<ProductJson> onReceiveFunc, TimeSpan timeout, CancellationToken token)
         {
             while (true)
             {

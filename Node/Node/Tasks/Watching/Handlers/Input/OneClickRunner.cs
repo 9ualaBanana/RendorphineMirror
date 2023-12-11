@@ -262,7 +262,7 @@ public class OneClickRunner
                 bool int int - render cameras (true\false) and frame width height (always should be specified)
                 (1.35+) bool - deploy importer from internal zip
                 */
-                "-mxs", $"oneclickexport.oc000 2 @\"{OutputUnityDirectory(inputArchiveFile)}\" 3 3 true 960 540 false",
+                "-mxs", $"oneclickexport.oc000 2 @\"{outputunitydir}\" 3 3 true 960 540 false",
 
                 // scene to export
                 maxSceneFile.Replace('\\', '/'),
@@ -445,7 +445,7 @@ public class OneClickRunner
                 {
                     try
                     {
-                        await LocalListener.WaitForCompletion2(add, TimeSpan.FromMinutes(5), killswitch.Token);
+                        await LocalListener.WaitForCompletion(add, TimeSpan.FromMinutes(5), killswitch.Token);
 
 
                         void add(ProductJson product)
@@ -473,7 +473,7 @@ public class OneClickRunner
                     }
                 });
 
-                await Task.WhenAny(execution, reading);
+                await Task.WhenAll(execution, reading);
                 killswitch.Cancel();
 
                 Logger.Info("Completed");
