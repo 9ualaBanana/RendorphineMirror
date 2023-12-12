@@ -1,7 +1,16 @@
 namespace Node.Tasks.Models;
 
-public record FileWithFormat(FileFormat Format, string Path)
+public record FileWithFormat
 {
+    public FileFormat Format { get; private set; }
+    public string Path { get; private set; }
+
+    public FileWithFormat(FileFormat format, string path)
+    {
+        Format = format;
+        Path = path;
+    }
+
     public static FileWithFormat FromFile(string path) => new(FileFormatExtensions.FromFilename(path), path);
     public static IEnumerable<FileWithFormat> FromLocalPath(string path)
     {
@@ -20,4 +29,13 @@ public record FileWithFormat(FileFormat Format, string Path)
             Directory.GetDirectories(dir).SelectMany(fromDir)
             .Concat(Directory.GetFiles(dir).Select(fromFile));
     }
+
+    public void MoveTo(string destination)
+    {
+        var newPath = System.IO.Path.Combine(Directory.CreateDirectory(destination).FullName, System.IO.Path.GetFileName(Path));
+        File.Move(Path, newPath);
+        Path = newPath;
+    }
+
+    public static implicit operator string(FileWithFormat file) => file.Path;
 }

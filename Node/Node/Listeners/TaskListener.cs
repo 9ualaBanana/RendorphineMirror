@@ -44,7 +44,7 @@ public class TaskListener : ExecutableListenerBase
         return HttpStatusCode.NotFound;
     }
 
-    record QSPreviewTaskExecutionInfo(IReadOnlyList<string> Input, QSPreviewInfo Data);
+    public record QSPreviewTaskExecutionInfo(IReadOnlyList<string> Input, QSPreviewInfo Data);
     class TaskProgressSetter : ITaskProgressSetter
     {
         public required ILogger<TaskProgressSetter> Logger { get; init; }

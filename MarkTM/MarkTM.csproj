@@ -7,4 +7,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Node\Node\Node.csproj" />
+    <ProjectReference Include="..\_3DProductsPublish\_3DProductsPublish.csproj" />
+  </ItemGroup>
+
 </Project>

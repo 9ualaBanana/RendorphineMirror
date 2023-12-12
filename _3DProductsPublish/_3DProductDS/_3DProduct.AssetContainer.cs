@@ -9,13 +9,17 @@ public partial record _3DProduct
         public enum Type_
         { Archive, Directory }
 
-        internal Type_ ContainerType { get; }
-        internal string Path { get; }
+        public Type_ ContainerType { get; }
+        public string Path { get; }
 
         string? _directoryPath;
         string? _archivePath;
 
-        internal AssetContainer(string path, bool disposeTemps = true)
+        /// <returns><inheritdoc cref="Directory.CreateDirectory(string)"/></returns>
+        public static AssetContainer Create(string path, bool disposeTemps = true)
+            => new(Directory.CreateDirectory(path).FullName, disposeTemps);
+
+        public AssetContainer(string path, bool disposeTemps = true)
         {
             if (Archive_.Exists(path))
             { Path = _archivePath = path; ContainerType = Type_.Archive; }
@@ -34,13 +38,33 @@ public partial record _3DProduct
         internal ValueTask<string> Archive()
             => ValueTask.FromResult(_archivePath ??= Archive_.Pack(_directoryPath!));
 
+        public IEnumerable<AssetContainer> EnumerateContainers()
+            => EnumerateFiles().Where(AssetContainer.Exists).Select(_ => new AssetContainer(_));
+
         /// <remarks>
         /// Creates a temporary directory if <see langword="this"/> <see cref="AssetContainer"/>'s OriginalContainer type is <see cref="Type_.Archive"/>.
         /// </remarks>
-        internal IEnumerable<string> EnumerateFiles()
-            => _directoryPath is not null ?
-            Directory.EnumerateFiles(_directoryPath) :
-            Archive_.EnumerateFiles(_archivePath!, out _directoryPath);
+        public IEnumerable<string> EnumerateFiles(FilesToEnumerate filesToEnumerate = FilesToEnumerate.All)
+        {
+            var allFiles = _directoryPath is not null ?
+                Directory.EnumerateFiles(_directoryPath) :
+                Archive_.EnumerateFiles(_archivePath!, out _directoryPath);
+
+            var files = new HashSet<string>();
+            if (filesToEnumerate.HasFlag(FilesToEnumerate.Containers))
+                files.UnionWith(allFiles.Where(AssetContainer.Exists));
+            if (filesToEnumerate.HasFlag(FilesToEnumerate.NonContainers))
+                files.UnionWith(allFiles.Where(_ => !AssetContainer.Exists(_)));
+            return files;
+        }
+
+        [Flags]
+        public enum FilesToEnumerate
+        {
+            Containers = 1,
+            NonContainers = 2,
+            All = Containers | NonContainers
+        }
 
         internal static IEnumerable<string> EnumerateAt(string directoryPath)
             => Archive_.EnumerateAt(directoryPath)
