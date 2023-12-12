@@ -1,3 +1,5 @@
+using HeyRed.Mime;
+
 namespace Node.Tasks.Models;
 
 [JsonConverter(typeof(StringEnumConverter))]
@@ -12,7 +14,7 @@ public enum FileFormat
 
 public static class FileFormatExtensions
 {
-    public static FileFormat FromFilename(string path) => FromMime(MimeTypes.GetMimeType(path));
+    public static FileFormat FromFilename(string path) => FromMime(MimeTypesMap.GetMimeType(path));
     public static FileFormat FromMime(string mime)
     {
         if (mime.Contains("image", StringComparison.Ordinal))
