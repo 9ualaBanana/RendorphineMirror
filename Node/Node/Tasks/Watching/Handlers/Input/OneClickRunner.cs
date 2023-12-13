@@ -376,21 +376,35 @@ public class OneClickRunner
 
             bool needsConversion(ProjectExportInfo exportInfo)
             {
-                if (exportInfo.OneClick is not { Successful: true })
-                    return false;
+                // OneClick
+                {
+                    // convert only if either:
+                    // - not converted
+                    // - versions are different
 
-                if (exportInfo.Unity is null || !exportInfo.Unity.TryGetValue(unityTemplateName, out var info) || info is null)
-                    return true;
+                    if (exportInfo.OneClick is null)
+                        return true;
 
-                // convert only if either:
-                // - versions are different
-                // - versions are the same but commit hashes are different and the previous convertion was not successful
+                    if (exportInfo.OneClick.Version != OneClickPlugin.Version)
+                        return true;
+                }
 
-                if (info.ImporterVersion != ocImporterVersion.ImporterVersion)
-                    return true;
+                // Unity
+                {
+                    // convert only if either:
+                    // - not converted
+                    // - versions are different
+                    // - versions are the same but commit hashes are different and the previous convertion was not successful
 
-                if (info.ImporterCommitHash != newUnityTemplatesCommitHash && !info.Successful)
-                    return true;
+                    if (exportInfo.Unity is null || !exportInfo.Unity.TryGetValue(unityTemplateName, out var unityinfo) || unityinfo is null)
+                        return true;
+
+                    if (unityinfo.ImporterVersion != ocImporterVersion.ImporterVersion)
+                        return true;
+
+                    if (unityinfo.ImporterCommitHash != newUnityTemplatesCommitHash && !unityinfo.Successful)
+                        return true;
+                }
 
                 return false;
             }
