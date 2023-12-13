@@ -1,23 +1,23 @@
-﻿using _3DProductsPublish._3DProductDS;
-using Node.Tasks.Models;
+﻿using Node.Tasks.Models;
 using Node.Tasks.Models.ExecInfo;
 using System.Collections;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
+using static _3DProductsPublish._3DProductDS._3DProduct;
 using static Node.Listeners.TaskListener;
 
 namespace MarkTM.RFProduct;
 
-public interface IRFProductCreator
+public interface IRFProductRecognizer
 {
-    static abstract ValueTask<RFProduct> RecognizeAsync(string input, string output, CancellationToken cancellationToken, bool disposeTemps = true);
+    static abstract ValueTask<RFProduct> RecognizeAsync(string idea, RFProduct.ID_ id, AssetContainer container, CancellationToken cancellationToken);
 }
 
-public abstract partial record RFProduct : _3DProduct.AssetContainer, IRFProductCreator
+public abstract partial record RFProduct : AssetContainer
 {
     public string Idea { get; }
-    public string ID { get; }
+    public ID_ ID { get; }
     public QSPreviews.Bound QSPreview { get; }
 
     readonly static Encoding _encoding = Encoding.UTF8;
@@ -28,37 +28,82 @@ public abstract partial record RFProduct : _3DProduct.AssetContainer, IRFProduct
         catch { return null; }
     }
 
-    // TODO: Check if RFProduct already exists and return already existing one.
+    // TODO: Check if RFProduct already exists and return it if so.
     public static async ValueTask<RFProduct> RecognizeAsync(string idea, string container, CancellationToken cancellationToken, bool disposeTemps = true)
-        => await RFProduct.Factory.CreateAsync(idea, container, CancellationToken.None, disposeTemps);
+        => await RFProduct.Factory.CreateAsync(idea, container, cancellationToken, disposeTemps);
 
-    protected RFProduct(string idea, string id, QSPreviews previews, string container, bool disposeTemps)
-        : base(container, disposeTemps)
+    protected RFProduct(string idea, ID_ id, QSPreviews previews, AssetContainer container)
+        : base(container)
     {
         Idea = idea;
         ID = id;
         QSPreview = QSPreviews.Bound.To(this, previews);
-        var idFile = new FileInfo(System.IO.Path.Combine(container, id));
-        using var _ = idFile.Create();
-        idFile.Attributes |= FileAttributes.Hidden;
 
         // Not sure if it supports archive containers.
-        // TODO: Implement Copy & Move for AssetContainer.
-        File.Copy(idea, System.IO.Path.Combine(container, System.IO.Path.GetFileName(idea)));
+        // TODO: Implement Copy & Move to AssetContainer.
+        File.Copy(idea, System.IO.Path.Combine(container, Idea_.FileName(idea)));
     }
 
-    
-    static class IDManager
+
+    static class Idea_
     {
-        internal static async Task<string> GenerateIDAsync(string productName, CancellationToken cancellationToken)
+        internal static bool Exists(string idea)
+            => File.Exists(idea) && System.IO.Path.GetFileNameWithoutExtension(idea) == _FileName;
+
+        internal static string FileName(string idea)
+            => System.IO.Path.ChangeExtension(_FileName, System.IO.Path.GetExtension(idea));
+        internal const string _FileName = "idea";
+    }
+    
+    public record ID_
+    {
+        readonly string _value;
+        internal File_ File { get; }
+
+        internal static async Task<ID_> GenerateAsync(AssetContainer container, CancellationToken cancellationToken)
         {
-            using var productNameStream = new MemoryStream(_encoding.GetBytes(productName));
-            return Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(Node.Settings.Guid), productNameStream, cancellationToken))
+            using var productNameStream = new MemoryStream(_encoding.GetBytes(System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(container))));
+            var id = Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(Node.Settings.Guid), productNameStream, cancellationToken))
                 .Replace('/', '-')
                 .Replace('+', '_');
+            return new ID_(id, container);
+        }
+
+        ID_(string id, string container)
+        {
+            _value = id;
+            File = new(id, container);
+        }
+
+        internal static async Task<ID_> AssignedTo(AssetContainer product, CancellationToken cancellationToken)
+        {
+            if (product.EnumerateFiles(FilesToEnumerate.NonContainers).SingleOrDefault(_ => System.IO.Path.GetExtension(_) == File_.Extension) is string idFile)
+            { var id = System.IO.Path.GetFileNameWithoutExtension(idFile); return new(id, product); }
+            else return await ID_.GenerateAsync(product, cancellationToken);
+        }
+
+        public static implicit operator string(ID_ id) => id._value;
+
+
+        internal record File_
+        {
+            internal string Name => _file.Name;
+            readonly FileInfo _file;
+            internal const string Extension = ".rfpid";
+
+            internal File_(string id, string container)
+            {
+                _file = new FileInfo(System.IO.Path.Combine(container, $"{id}{Extension}"));
+                if (!_file.Exists) { using var _ = _file.Create(); }
+                _file.Attributes |= FileAttributes.Hidden;
+            }
         }
     }
 
+    /// <remarks>
+    /// <see cref="QSPreviews"/> require <see cref="JsonConverter"/> with manual properties mapping
+    /// due to the default desirialization behaviour difference for classes implementing <see cref="IEnumerable{T}"/>.
+    /// </remarks>
     public abstract record QSPreviews : IEnumerable<FileWithFormat>
     {
         internal static async Task<QSPreviews> GenerateAsync<QSPreviews>(IReadOnlyList<string> input, CancellationToken cancellationToken)
@@ -76,11 +121,11 @@ public abstract partial record RFProduct : _3DProduct.AssetContainer, IRFProduct
             public RFProduct RFProduct { get; }
             public QSPreviews Preview { get; }
 
-            internal static QSPreviews.Bound To(RFProduct RFProduct, QSPreviews QSPreview)
+            internal static QSPreviews.Bound To(RFProduct product, QSPreviews previews)
             {
-                foreach (var preview in QSPreview)
-                    preview.MoveTo(RFProduct.Path);
-                return new(QSPreview, RFProduct);
+                foreach (var preview in previews)
+                    preview.MoveTo(product);
+                return new(previews, product);
             }
 
             Bound(QSPreviews preview, RFProduct product)

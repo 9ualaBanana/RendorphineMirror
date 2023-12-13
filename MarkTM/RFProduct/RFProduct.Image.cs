@@ -1,5 +1,6 @@
 ﻿using Node.Tasks.Exec.Output;
 using Node.Tasks.Models;
+using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace MarkTM.RFProduct;
 
@@ -7,18 +8,11 @@ public partial record RFProduct
 {
     public record Image : RFProduct
     {
-        new internal static async ValueTask<RFProduct.Image> RecognizeAsync(string idea, string container, CancellationToken cancellationToken, bool disposeTemps = true)
-        {
-            var product = new RFProduct.Image(
-                idea,
-                await IDManager.GenerateIDAsync(System.IO.Path.GetFileName(container), cancellationToken),
-                await QSPreviews.GenerateAsync<QSPreviews>(new string[] { idea }, cancellationToken),
-                container, disposeTemps);
-            return product;
-        }
+        internal static async ValueTask<RFProduct.Image> RecognizeAsync(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
+            => new RFProduct.Image(idea, id, await QSPreviews.GenerateAsync<QSPreviews>(new string[] { idea }, cancellationToken), container);
 
-        Image(string idea, string id, QSPreviews previews, string container, bool disposeTemps)
-            : base(idea, id, previews, container, disposeTemps)
+        Image(string idea, ID_ id, QSPreviews previews, AssetContainer container)
+            : base(idea, id, previews, container)
         {
         }
 
@@ -32,7 +26,6 @@ public partial record RFProduct
                 => new[] { ImageWithFooter, ImageWithQR }.AsEnumerable().GetEnumerator();
 
 
-            // Required for regular properties mapping because NewtonsoftJson tries to find JSON array fro mappeing to classes implementing IEnumerable.
             public class Converter : JsonConverter
             {
                 public override bool CanConvert(Type objectType)
