@@ -15,9 +15,9 @@ public partial record _3DProduct
         string? _directoryPath;
         string? _archivePath;
 
-        /// <returns><inheritdoc cref="Directory.CreateDirectory(string)"/></returns>
         public static AssetContainer Create(string path, bool disposeTemps = true)
-            => new(Directory.CreateDirectory(path).FullName, disposeTemps);
+            => AssetContainer.Exists(path) ?
+            new(path, disposeTemps) : new(Directory.CreateDirectory(path).FullName, disposeTemps);
 
         public AssetContainer(string path, bool disposeTemps = true)
         {
@@ -42,7 +42,7 @@ public partial record _3DProduct
             => EnumerateFiles().Where(AssetContainer.Exists).Select(_ => new AssetContainer(_));
 
         /// <remarks>
-        /// Creates a temporary directory if <see langword="this"/> <see cref="AssetContainer"/>'s OriginalContainer type is <see cref="Type_.Archive"/>.
+        /// Creates a temporary directory if <see langword="this"/> <see cref="AssetContainer.ContainerType"/> is <see cref="Type_.Archive"/>.
         /// </remarks>
         public IEnumerable<string> EnumerateFiles(FilesToEnumerate filesToEnumerate = FilesToEnumerate.All)
         {
@@ -101,6 +101,8 @@ public partial record _3DProduct
         }
         bool _isDisposed;
         readonly bool _disposeTemps;
+
+        public static implicit operator string(AssetContainer container) => container.Path;
 
 
         internal static class Archive_
