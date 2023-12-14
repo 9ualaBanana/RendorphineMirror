@@ -1,6 +1,4 @@
 using System.Net;
-using Node.Tasks.Exec.Input;
-using Node.Tasks.Models.ExecInfo;
 
 namespace Node.Listeners;
 
@@ -13,8 +11,6 @@ public class TaskListener : ExecutableListenerBase
     public required WatchingTasksHandler WatchingTasksHandler { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }
     public required NodeTaskRegistration TaskRegistration { get; init; }
-    public required DataDirs Dirs { get; init; }
-    public required ILifetimeScope Container { get; init; }
 
     public TaskListener(ILogger<TaskListener> logger) : base(logger) { }
 
@@ -44,7 +40,6 @@ public class TaskListener : ExecutableListenerBase
         return HttpStatusCode.NotFound;
     }
 
-    public record QSPreviewTaskExecutionInfo(IReadOnlyList<string> Input, QSPreviewInfo Data);
     class TaskProgressSetter : ITaskProgressSetter
     {
         public required ILogger<TaskProgressSetter> Logger { get; init; }
@@ -55,30 +50,6 @@ public class TaskListener : ExecutableListenerBase
     {
         var request = context.Request;
         var response = context.Response;
-
-        if (path == "executeqsp")
-        {
-            using var scope = Container.BeginLifetimeScope(builder =>
-            {
-                builder.RegisterType<TaskExecutorByData>()
-                    .SingleInstance();
-
-                builder.RegisterType<TaskProgressSetter>()
-                    .As<ITaskProgressSetter>()
-                    .SingleInstance();
-
-                builder.RegisterDecorator<ITaskProgressSetter>((ctx, parameters, instance) => new ThrottledProgressSetter(TimeSpan.FromSeconds(5), instance));
-            });
-
-            var info = new JsonSerializer().Deserialize<QSPreviewTaskExecutionInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
-
-            var executor = scope.Resolve<TaskExecutorByData>();
-            var input = new TaskFileInput(new ReadOnlyTaskFileList(info.Input.Select(FileWithFormat.FromFile)), ReceivedTask.FSOutputDirectory(Dirs, $"local_{Guid.NewGuid()}"));
-            var data = JObject.FromObject(info.Data).WithProperty("type", TaskAction.GenerateQSPreview.ToString());
-
-            var result = await executor.Execute(new[] { input }, new[] { data });
-            return await WriteJson(response, result.AsOpResult()).ConfigureAwait(false);
-        }
 
         if (path == "start")
         {
