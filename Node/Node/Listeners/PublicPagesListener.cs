@@ -7,7 +7,7 @@ namespace Node.Listeners
 {
     public class PublicPagesListener : ExecutableListenerBase
     {
-        protected override ListenTypes ListenType => ListenTypes.WebServer;
+        protected override ListenTypes ListenType => ListenTypes.Local | ListenTypes.WebServer;
 
         public required ICompletedTasksStorage CompletedTasks { get; init; }
         public required IWatchingTasksStorage WatchingTasks { get; init; }
