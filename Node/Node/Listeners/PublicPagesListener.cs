@@ -7,13 +7,11 @@ namespace Node.Listeners
 {
     public class PublicPagesListener : ExecutableListenerBase
     {
-        protected override ListenTypes ListenType => ListenTypes.Local | ListenTypes.WebServer;
+        protected override ListenTypes ListenType => ListenTypes.WebServer;
 
         public required ICompletedTasksStorage CompletedTasks { get; init; }
         public required IWatchingTasksStorage WatchingTasks { get; init; }
         public required DataDirs Dirs { get; init; }
-
-        static string[] imagesExtentions = { ".jpg", ".jpeg", ".png" };
 
         public PublicPagesListener(ILogger<PublicPagesListener> logger) : base(logger) { }
 
@@ -23,43 +21,83 @@ namespace Node.Listeners
             var source = WatchingTasks.WatchingTasks.Values
                 .Select(d => d.Source)
                 .OfType<OneClickWatchingTaskInputInfo>()
-                .First();
-
-            foreach (var outdir in Directory.GetDirectories(source.OutputDirectory))
-            {
-                try
-                {
-                    var files = Directory.GetFiles(Path.Combine(outdir, "renders"), "*.png");
-                    images.AddRange(files);
-                }
-                catch { }
-            }
-
-            var maxlogs = new List<string>();
-            var unitylogs = new List<string>();
-            var unitylogs2 = new List<string>();
-            try { maxlogs.AddRange(Directory.GetFiles(source.LogDirectory)); }
-            catch { }
-            try { unitylogs.AddRange(Directory.GetFiles(Path.Combine(source.LogDirectory, "unity"))); }
-            catch { }
-
-            try
-            {
-                foreach (var dir in Directory.GetDirectories(Path.Combine(source.OutputDirectory)))
-                {
-                    foreach (var ddir in Directory.GetDirectories(Path.Combine(dir, "unity", "Assets")))
-                    {
-                        var productName = Path.GetFileName(ddir);
-                        if (File.Exists(Path.Combine(ddir, productName + ".log")))
-                            unitylogs2.Add(Path.Combine(ddir, productName + ".log"));
-                    }
-                }
-            }
-            catch { }
-
+                .FirstOrDefault();
 
             var request = context.Request;
             var response = context.Response;
+
+            if (source is not null)
+            {
+                foreach (var outdir in Directory.GetDirectories(source.OutputDirectory))
+                {
+                    try
+                    {
+                        var files = Directory.GetFiles(Path.Combine(outdir, "renders"), "*.png");
+                        images.AddRange(files);
+                    }
+                    catch { }
+                }
+
+                var maxlogs = new List<string>();
+                var unitylogs = new List<string>();
+                var unitylogs2 = new List<string>();
+                try { maxlogs.AddRange(Directory.GetFiles(source.LogDirectory)); }
+                catch { }
+                try { unitylogs.AddRange(Directory.GetFiles(Path.Combine(source.LogDirectory, "unity"))); }
+                catch { }
+
+                try
+                {
+                    foreach (var dir in Directory.GetDirectories(Path.Combine(source.OutputDirectory)))
+                    {
+                        foreach (var ddir in Directory.GetDirectories(Path.Combine(dir, "unity", "Assets")))
+                        {
+                            var productName = Path.GetFileName(ddir);
+                            if (File.Exists(Path.Combine(ddir, productName + ".log")))
+                                unitylogs2.Add(Path.Combine(ddir, productName + ".log"));
+                        }
+                    }
+                }
+                catch { }
+
+
+
+                if (path.StartsWith("getoclogs"))
+                {
+                    var resp = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { maxlogs, unitylogs, unitylogs2 }));
+                    response.ContentLength64 = resp.Length;
+                    await response.OutputStream.WriteAsync(resp);
+
+                    return HttpStatusCode.OK;
+                }
+
+                if (path.StartsWith("getoclog"))
+                {
+                    var fileIndexString = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
+                    var type = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["type"].ThrowIfNull();
+
+                    if (fileIndexString == null || !int.TryParse(fileIndexString, out int fileIndex)) return HttpStatusCode.NotFound;
+
+
+                    var items = type switch
+                    {
+                        "max" => maxlogs,
+                        "unity" => unitylogs,
+                        "unity2" => unitylogs2,
+                        _ => throw new Exception("Unknown type")
+                    };
+                    var item = items[fileIndex];
+
+                    var filename = Encoding.UTF8.GetBytes(item + "\n");
+                    using var filestream = File.OpenRead(item);
+                    response.ContentLength64 = filestream.Length + filename.Length;
+
+                    await response.OutputStream.WriteAsync(filename);
+                    await filestream.CopyToAsync(response.OutputStream);
+                    return HttpStatusCode.OK;
+                }
+            }
+
 
             string getPageScript(string username, string path)
             {
@@ -117,41 +155,6 @@ namespace Node.Listeners
                 using var filestream = File.OpenRead(images[fileIndex]);
                 response.ContentLength64 = filestream.Length;
 
-                await filestream.CopyToAsync(response.OutputStream);
-                return HttpStatusCode.OK;
-            }
-
-            if (path.StartsWith("getoclogs"))
-            {
-                var resp = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { maxlogs, unitylogs, unitylogs2 }));
-                response.ContentLength64 = resp.Length;
-                await response.OutputStream.WriteAsync(resp);
-
-                return HttpStatusCode.OK;
-            }
-
-            if (path.StartsWith("getoclog"))
-            {
-                var fileIndexString = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
-                var type = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["type"].ThrowIfNull();
-
-                if (fileIndexString == null || !int.TryParse(fileIndexString, out int fileIndex)) return HttpStatusCode.NotFound;
-
-
-                var items = type switch
-                {
-                    "max" => maxlogs,
-                    "unity" => unitylogs,
-                    "unity2" => unitylogs2,
-                    _ => throw new Exception("Unknown type")
-                };
-                var item = items[fileIndex];
-
-                var filename = Encoding.UTF8.GetBytes(item + "\n");
-                using var filestream = File.OpenRead(item);
-                response.ContentLength64 = filestream.Length + filename.Length;
-
-                await response.OutputStream.WriteAsync(filename);
                 await filestream.CopyToAsync(response.OutputStream);
                 return HttpStatusCode.OK;
             }

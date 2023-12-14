@@ -14,7 +14,7 @@ public interface IRFProductRecognizer
     static abstract ValueTask<RFProduct> RecognizeAsync(string idea, RFProduct.ID_ id, AssetContainer container, CancellationToken cancellationToken);
 }
 
-public abstract partial record RFProduct : AssetContainer
+public partial record RFProduct : AssetContainer
 {
     public string Idea { get; }
     public ID_ ID { get; }
@@ -31,6 +31,13 @@ public abstract partial record RFProduct : AssetContainer
     // TODO: Check if RFProduct already exists and return it if so.
     public static async ValueTask<RFProduct> RecognizeAsync(string idea, string container, CancellationToken cancellationToken, bool disposeTemps = true)
         => await RFProduct.Factory.CreateAsync(idea, container, cancellationToken, disposeTemps);
+
+    /// <summary>
+    /// <see langword="async"/> constructor that disables <see cref="RFProduct"/> ability to be abstract as an instance of the class must be obtained as the <see langword="base"/> reference for children and their constructors.
+    /// </summary>
+    /// <returns><see langword="base"/> reference for children constructors.</returns>
+    protected static async ValueTask<RFProduct> RecognizeAsync(string idea, QSPreviews previews, AssetContainer container, CancellationToken cancellationToken)
+        => new(idea, await ID_.AssignedTo(container, cancellationToken), previews, container);
 
     protected RFProduct(string idea, ID_ id, QSPreviews previews, AssetContainer container)
         : base(container)
@@ -60,15 +67,6 @@ public abstract partial record RFProduct : AssetContainer
         readonly string _value;
         internal File_ File { get; }
 
-        internal static async Task<ID_> GenerateAsync(AssetContainer container, CancellationToken cancellationToken)
-        {
-            using var productNameStream = new MemoryStream(_encoding.GetBytes(System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(container))));
-            var id = Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(Node.Settings.Guid), productNameStream, cancellationToken))
-                .Replace('/', '-')
-                .Replace('+', '_');
-            return new ID_(id, container);
-        }
-
         ID_(string id, string container)
         {
             _value = id;
@@ -76,11 +74,7 @@ public abstract partial record RFProduct : AssetContainer
         }
 
         internal static async Task<ID_> AssignedTo(AssetContainer product, CancellationToken cancellationToken)
-        {
-            if (product.EnumerateFiles(FilesToEnumerate.NonContainers).SingleOrDefault(_ => System.IO.Path.GetExtension(_) == File_.Extension) is string idFile)
-            { var id = System.IO.Path.GetFileNameWithoutExtension(idFile); return new(id, product); }
-            else return await ID_.GenerateAsync(product, cancellationToken);
-        }
+            => ID_.File_.FindInside(product) ?? await ID_.File_.GenerateAsync(product, cancellationToken);
 
         public static implicit operator string(ID_ id) => id._value;
 
@@ -90,6 +84,19 @@ public abstract partial record RFProduct : AssetContainer
             internal string Name => _file.Name;
             readonly FileInfo _file;
             internal const string Extension = ".rfpid";
+
+            internal static ID_? FindInside(AssetContainer container)
+                => container.EnumerateFiles(FilesToEnumerate.NonContainers).SingleOrDefault(_ => System.IO.Path.GetExtension(_) == File_.Extension) is string file ?
+                new(System.IO.Path.GetFileNameWithoutExtension(file), container) : null;
+
+            internal static async Task<ID_> GenerateAsync(AssetContainer container, CancellationToken cancellationToken)
+            {
+                using var productNameStream = new MemoryStream(_encoding.GetBytes(System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(container))));
+                var id = Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(Node.Settings.Guid), productNameStream, cancellationToken))
+                    .Replace('/', '-')
+                    .Replace('+', '_');
+                return new ID_(id, container);
+            }
 
             internal File_(string id, string container)
             {

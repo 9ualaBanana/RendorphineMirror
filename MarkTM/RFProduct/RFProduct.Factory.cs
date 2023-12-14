@@ -11,11 +11,10 @@ public partial record RFProduct
             => await CreateAsync(idea, AssetContainer.Create(container, disposeTemps), cancellationToken);
         static async Task<RFProduct> CreateAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
         {
-            var id = await ID_.AssignedTo(container, cancellationToken);
             RFProduct product = FileFormatExtensions.FromFilename(idea) switch
             {
-                FileFormat.Mov => await Video.RecognizeAsync(idea, id, container, cancellationToken),
-                FileFormat.Png or FileFormat.Jpeg => await Image.RecognizeAsync(idea, id, container, cancellationToken),
+                FileFormat.Mov => await Video.RecognizeAsync(idea, container, cancellationToken),
+                FileFormat.Png or FileFormat.Jpeg => await Image.RecognizeAsync(idea, container, cancellationToken),
                 _ => throw new NotImplementedException($"{nameof(RFProduct.Idea)} has an unsupported {nameof(FileFormat)}.")
             };
 

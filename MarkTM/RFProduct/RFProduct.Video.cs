@@ -9,11 +9,11 @@ public partial record RFProduct
 {
     public record Video : RFProduct
     {
-        internal static async ValueTask<RFProduct.Video> RecognizeAsync(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
-            => new RFProduct.Video(idea, id, await QSPreviews.GenerateAsync(idea, container, cancellationToken), container);
+        internal static async ValueTask<RFProduct.Video> RecognizeAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
+            => new(await RFProduct.RecognizeAsync(idea, await QSPreviews.GenerateAsync(idea, container, cancellationToken), container, cancellationToken));
 
-        Video(string idea, ID_ id, QSPreviews previews, AssetContainer container)
-            : base(idea, id, previews, container)
+        Video(RFProduct core)
+            : base(core)
         {
         }
 

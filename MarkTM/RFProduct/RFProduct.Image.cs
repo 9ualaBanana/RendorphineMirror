@@ -8,11 +8,11 @@ public partial record RFProduct
 {
     public record Image : RFProduct
     {
-        internal static async ValueTask<RFProduct.Image> RecognizeAsync(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
-            => new RFProduct.Image(idea, id, await QSPreviews.GenerateAsync<QSPreviews>(new string[] { idea }, cancellationToken), container);
+        internal static async ValueTask<RFProduct.Image> RecognizeAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
+            => new(await RFProduct.RecognizeAsync(idea, await QSPreviews.GenerateAsync<QSPreviews>(new string[] { idea }, cancellationToken), container, cancellationToken));
 
-        Image(string idea, ID_ id, QSPreviews previews, AssetContainer container)
-            : base(idea, id, previews, container)
+        Image(RFProduct core)
+            : base(core)
         {
         }
 
