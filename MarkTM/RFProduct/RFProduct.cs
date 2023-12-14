@@ -47,19 +47,16 @@ public partial record RFProduct : AssetContainer
         QSPreview = QSPreviews.Bound.To(this, previews);
 
         // Not sure if it supports archive containers.
-        // TODO: Implement Copy & Move to AssetContainer.
-        File.Copy(idea, System.IO.Path.Combine(container, Idea_.FileName(idea)));
+        Store(idea, @as: System.IO.Path.ChangeExtension(Idea_.FileName, System.IO.Path.GetExtension(idea)), StoreMode.Copy);
     }
 
 
     static class Idea_
     {
         internal static bool Exists(string idea)
-            => File.Exists(idea) && System.IO.Path.GetFileNameWithoutExtension(idea) == _FileName;
+            => File.Exists(idea) && System.IO.Path.GetFileNameWithoutExtension(idea) == FileName;
 
-        internal static string FileName(string idea)
-            => System.IO.Path.ChangeExtension(_FileName, System.IO.Path.GetExtension(idea));
-        internal const string _FileName = "idea";
+        internal const string FileName = "idea";
     }
     
     public record ID_

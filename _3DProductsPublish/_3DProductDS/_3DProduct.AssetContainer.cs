@@ -36,7 +36,54 @@ public partial record _3DProduct
         /// </summary>
         /// <returns>Path to the archive where this <see cref="_3DModel"/> is stored.</returns>
         internal ValueTask<string> Archive()
-            => ValueTask.FromResult(_archivePath ??= Archive_.Pack(_directoryPath!));
+            => ValueTask.FromResult(new FileSystemOperation<string>
+            {
+                OnArchive = () => _archivePath!,
+                OnDirectory = () => Archive_.Pack(_directoryPath!)
+            }
+            .ExecuteOn(this);
+
+        // TODO: Add support for storing AssetContainer entries.
+        // TODO: Properly implement OnArchive Copy behaviour.
+        public enum StoreMode { Move, Copy }
+        /// <remarks>Currently only files can be stored using this method.</remarks>
+        public void Store(string file, string? @as = default, StoreMode mode = StoreMode.Move)
+        {
+            var name = System.IO.Path.ChangeExtension(System.IO.Path.GetFileNameWithoutExtension(@as ?? file), System.IO.Path.GetExtension(file));
+            var destination = System.IO.Path.Combine(Path, name);
+
+            (mode switch
+            {
+                StoreMode.Move => new FileSystemOperation
+                {
+                    OnArchive = () => ZipFile.Open(this, ZipArchiveMode.Create).CreateEntryFromFile(file, name),
+                    OnDirectory = () => File.Move(file, destination),
+                },
+                StoreMode.Copy => new FileSystemOperation
+                {
+                    OnArchive = () => ZipFile.Open(this, ZipArchiveMode.Create).CreateEntryFromFile(file, name),
+                    OnDirectory = () => File.Copy(file, destination),
+                },
+                _ => throw new NotImplementedException()
+            })
+            .ExecuteOn(this);
+        }
+
+        public void Move(string destinationContainerName)
+            => new FileSystemOperation
+            {
+                OnArchive = () => File.Move(this, destinationContainerName),
+                OnDirectory = () => Directory.Move(this, destinationContainerName)
+            }
+            .ExecuteOn(this);
+
+        public void Copy(string destinationContainerName)
+            => new FileSystemOperation
+            {
+                OnArchive = () => File.Copy(this, destinationContainerName),
+                OnDirectory = () => Directory.Copy(this, destinationContainerName)
+            }
+            .ExecuteOn(this);
 
         public IEnumerable<AssetContainer> EnumerateContainers()
             => EnumerateFiles().Where(AssetContainer.Exists).Select(_ => new AssetContainer(_));
@@ -107,6 +154,8 @@ public partial record _3DProduct
 
         internal static class Archive_
         {
+            static bool IsArchive(string path) => _validExtensions.Contains(System.IO.Path.GetExtension(path));
+            readonly static string[] _validExtensions = [".zip", ".rar"];
             internal static IEnumerable<string> EnumerateFiles(string path, out string tempDirectoryPath)
                 => Directory.EnumerateFiles(tempDirectoryPath = Archive_.Unpack(path));
 
@@ -139,9 +188,23 @@ public partial record _3DProduct
                 => Directory.EnumerateFiles(path).Where(IsArchive);
 
             internal static bool Exists(string path) => File.Exists(path) && IsArchive(path);
+        }
 
-            static bool IsArchive(string path) => _validExtensions.Contains(System.IO.Path.GetExtension(path));
-            readonly static string[] _validExtensions = { ".zip", ".rar" };
+        class FileSystemOperation
+        {
+            internal required Action OnArchive { get; init; }
+            internal required Action OnDirectory { get; init; }
+
+            internal void ExecuteOn(AssetContainer target)
+            { if (target._directoryPath is not null) OnDirectory(); else OnArchive(); }
+        }
+        class FileSystemOperation<TResult>
+        {
+            internal required Func<TResult> OnArchive { get; init; }
+            internal required Func<TResult> OnDirectory { get; init; }
+
+            internal TResult ExecuteOn(AssetContainer target)
+                => target._directoryPath is not null ? OnDirectory() : OnArchive();
         }
     }
 }
