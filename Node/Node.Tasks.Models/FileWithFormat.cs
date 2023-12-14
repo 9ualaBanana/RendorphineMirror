@@ -30,9 +30,10 @@ public record FileWithFormat
             .Concat(Directory.GetFiles(dir).Select(fromFile));
     }
 
-    public void MoveTo(string destination)
+    public void MoveTo(string destination, string? name = default)
     {
-        var newPath = System.IO.Path.Combine(Directory.CreateDirectory(destination).FullName, System.IO.Path.GetFileName(Path));
+        name = System.IO.Path.ChangeExtension(name ?? Path, System.IO.Path.GetExtension(Path));
+        var newPath = System.IO.Path.Combine(Directory.CreateDirectory(destination).FullName, name);
         File.Move(Path, newPath);
         Path = newPath;
     }

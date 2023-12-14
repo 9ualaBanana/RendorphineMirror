@@ -131,7 +131,7 @@ public partial record RFProduct : AssetContainer
             internal static QSPreviews.Bound To(RFProduct product, QSPreviews previews)
             {
                 foreach (var preview in previews)
-                    preview.MoveTo(product);
+                    preview.MoveTo(product, name: $"qs_{System.IO.Path.GetFileName(preview)}");
                 return new(previews, product);
             }
 
