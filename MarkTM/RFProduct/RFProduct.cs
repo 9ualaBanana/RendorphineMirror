@@ -107,10 +107,7 @@ public partial record RFProduct : AssetContainer
         }
     }
 
-    /// <remarks>
-    /// <see cref="QSPreviews"/> require <see cref="JsonConverter"/> with manual properties mapping
-    /// due to the default desirialization behaviour difference for classes implementing <see cref="IEnumerable{T}"/>.
-    /// </remarks>
+    [JsonObject]
     public abstract record QSPreviews : IEnumerable<FileWithFormat>
     {
         internal static async Task<QSPreviews> GenerateAsync<QSPreviews>(IReadOnlyList<string> input, CancellationToken cancellationToken)
