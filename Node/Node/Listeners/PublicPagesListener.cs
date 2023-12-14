@@ -140,11 +140,11 @@ namespace Node.Listeners
                 """;
             }
 
-            if (path.StartsWith("oc/"))
+            if (path.StartsWith("rf/"))
             {
                 var now = DateTime.Now.Ticks.ToString();
                 using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-                writer.Write(getPageScript("slavamirniy", path));
+                writer.Write(getPageScript("rfpages", path));
                 return HttpStatusCode.OK;
             }
 
