@@ -7,12 +7,12 @@ public class DashboardTab : Panel
     public DashboardTab(NodeGlobalState state)
     {
         var starttime = DateTimeOffset.Now;
-        var infotb = new TextBlock()
+        var infotb = new SelectableTextBlock()
         {
             VerticalAlignment = VerticalAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
         };
-        var configtb = new TextBlock()
+        var configtb = new SelectableTextBlock()
         {
             VerticalAlignment = VerticalAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
