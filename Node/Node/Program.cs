@@ -40,9 +40,9 @@ var builder = Init.CreateContainer(new("renderfin"), typeof(Program).Assembly);
 
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
-Notifier.Notify("Starting");
-
 using var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
+var notifier = container.Resolve<Notifier>();
+notifier.Notify("Starting");
 initializeDotTracer(container);
 
 IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release")) switch
@@ -52,7 +52,7 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
 
-Notifier.Notify("Started");
+notifier.Notify("Started");
 Thread.Sleep(-1);
 GC.KeepAlive(main);
 

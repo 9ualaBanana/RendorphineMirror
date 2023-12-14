@@ -8,6 +8,7 @@ public class ReceivedTasksHandler
     public required Apis Api { get; init; }
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required DataDirs Dirs { get; init; }
+    public required Notifier Notifier { get; init; }
     public required ILogger<ReceivedTasksHandler> Logger { get; init; }
 
     /// <summary> Subscribes to <see cref="QueuedTasks.QueuedTasks"/> and starts all the tasks from it </summary>
