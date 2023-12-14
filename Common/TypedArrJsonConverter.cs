@@ -6,8 +6,56 @@ public class TypedArrJsonConverter : JsonConverter
 {
     public override bool CanConvert(Type objectType) => true;
 
+    static JsonSerializer SetTypeNameHandling(JsonSerializer serializer)
+    {
+        var ret = new JsonSerializer()
+        {
+            TypeNameHandling = TypeNameHandling.All,
+
+            TypeNameAssemblyFormatHandling = serializer.TypeNameAssemblyFormatHandling,
+            PreserveReferencesHandling = serializer.PreserveReferencesHandling,
+            ReferenceLoopHandling = serializer.ReferenceLoopHandling,
+            MissingMemberHandling = serializer.MissingMemberHandling,
+            ObjectCreationHandling = serializer.ObjectCreationHandling,
+            NullValueHandling = serializer.NullValueHandling,
+            DefaultValueHandling = serializer.DefaultValueHandling,
+            ConstructorHandling = serializer.ConstructorHandling,
+            MetadataPropertyHandling = serializer.MetadataPropertyHandling,
+            // Converters = { serializer.Converters },
+            ContractResolver = serializer.ContractResolver,
+            TraceWriter = serializer.TraceWriter,
+            EqualityComparer = serializer.EqualityComparer,
+            SerializationBinder = serializer.SerializationBinder,
+            Context = serializer.Context,
+            ReferenceResolver = serializer.ReferenceResolver,
+
+            Formatting = serializer.Formatting,
+            DateFormatHandling = serializer.DateFormatHandling,
+            DateTimeZoneHandling = serializer.DateTimeZoneHandling,
+            DateParseHandling = serializer.DateParseHandling,
+            FloatFormatHandling = serializer.FloatFormatHandling,
+            FloatParseHandling = serializer.FloatParseHandling,
+            StringEscapeHandling = serializer.StringEscapeHandling,
+            Culture = serializer.Culture,
+            MaxDepth = serializer.MaxDepth,
+            CheckAdditionalContent = serializer.CheckAdditionalContent,
+            DateFormatString = serializer.DateFormatString,
+        };
+
+        foreach (var converter in serializer.Converters)
+            ret.Converters.Add(converter);
+
+        return ret;
+    }
+
     public static object? Read(JToken jtoken, JsonSerializer serializer)
     {
+        try
+        {
+            return jtoken.ToObject(null, SetTypeNameHandling(serializer));
+        }
+        catch { }
+
         JArray jarr;
         var result = new List<object>() as IList;
 
@@ -42,6 +90,8 @@ public class TypedArrJsonConverter : JsonConverter
             return;
         }
 
+        SetTypeNameHandling(serializer).Serialize(writer, value);
+        return;
 
         var jarr = JArray.FromObject(value, serializer);
         var index = 0;

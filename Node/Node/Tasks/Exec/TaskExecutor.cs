@@ -61,7 +61,7 @@ public class TaskExecutor
                 downloadedinput.AddRange(await inputhandler.MultiDownload(input, task.Info.Object, token));
             }
 
-            task.DownloadedInputs = downloadedinput;
+            task.DownloadedInputs2 = downloadedinput;
 
 
             await Api.ChangeStateAsync(task, TaskState.Active);
@@ -74,7 +74,7 @@ public class TaskExecutor
             using var _ = await WaitDisposed(ActiveSemaphore);
 
             var firstaction = Actions[TaskExecutorByData.GetTaskName(task.Info.Data)];
-            var inputs = task.DownloadedInputs.ThrowIfNull("No task input downloaded");
+            var inputs = task.DownloadedInputs2.ThrowIfNull("No task input downloaded");
             if (inputs.Count == 0) throw new Exception("No task input downloaded");
 
             object convertInput(object input, int index)
@@ -86,7 +86,7 @@ public class TaskExecutor
             }
             inputs = inputs.Select(convertInput).ToArray();
 
-            task.Result = await Executor.Execute(inputs, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
+            task.Result2 = await Executor.Execute(inputs, (task.Info.Next ?? ImmutableArray<JObject>.Empty).Prepend(task.Info.Data).ToArray());
             await Api.ChangeStateAsync(task, TaskState.Output);
             QueuedTasks.QueuedTasks.Save(task);
         }
@@ -97,7 +97,7 @@ public class TaskExecutor
             using var _ = await WaitDisposed(OutputSemaphore);
 
             var outputhandler = ResultUploaders[task.Output.Type];
-            var result = task.Result.ThrowIfNull("No task result");
+            var result = task.Result2.ThrowIfNull("No task result");
 
             await outputhandler.UploadResult(task.Output, task.Inputs.ToArray(), result, token);
             await Api.ChangeStateAsync(task, TaskState.Validation);

@@ -7,7 +7,7 @@ namespace Node.Listeners
 {
     public class PublicPagesListener : ExecutableListenerBase
     {
-        protected override ListenTypes ListenType => ListenTypes.WebServer;
+        protected override ListenTypes ListenType => ListenTypes.Local | ListenTypes.WebServer;
 
         public required ICompletedTasksStorage CompletedTasks { get; init; }
         public required IWatchingTasksStorage WatchingTasks { get; init; }
@@ -61,93 +61,52 @@ namespace Node.Listeners
             var request = context.Request;
             var response = context.Response;
 
-            if (path == "logpanel")
+            string getPageScript(string username, string path)
             {
-                string now = DateTime.Now.Ticks.ToString();
-                string info = $@"
+                path = path.Replace("/", string.Empty);
+
+                return $$"""
                 <!doctype html>
-                <html lang=""en"">
+                <html lang="en">
                 <head>
-                    <meta charset=""UTF-8"" />
-                    <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
+                    <meta charset="UTF-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
                     <title>Vite + React + TS</title>
                     <script>
-                        const loadResource = (commitHash, isStyle = false) => {{
-                            if (isStyle) {{
+                        const loadResource = (commitHash, isStyle = false) => {
+                            if (isStyle) {
                                 const link = document.createElement('link');
-                                link.href = `https://cdn.jsdelivr.net/gh/slavamirniy/oclogs@${{commitHash}}/dist/assets/index.css`;
+                                link.href = `https://cdn.jsdelivr.net/gh/{{username}}/{{path}}@${commitHash}/dist/assets/index.css`;
                                 link.rel = 'stylesheet';
                                 document.head.appendChild(link);
-                            }} else {{
+                            } else {
                                 const script = document.createElement('script');
-                                script.src = `https://cdn.jsdelivr.net/gh/slavamirniy/oclogs@${{commitHash}}/dist/assets/index.js`;
+                                script.src = `https://cdn.jsdelivr.net/gh/{{username}}/{{path}}@${commitHash}/dist/assets/index.js`;
                                 script.type = 'module';
                                 document.body.appendChild(script);
-                            }}
-                        }};
-                        fetch('https://api.github.com/repos/slavamirniy/oclogs/commits/main')
+                            }
+                        };
+                        fetch('https://api.github.com/repos/{{username}}/{{path}}/commits/main')
                             .then(response => response.json())
-                            .then(data => {{
+                            .then(data => {
                                 const commitHash = data.sha;
                                 loadResource(commitHash); // Загрузка скрипта
                                 loadResource(commitHash, true); // Загрузка стилей
-                            }});
+                            });
                     </script>
                 </head>
                 <body>
-                    <div id=""root""></div>
+                    <div id="root"></div>
                 </body>
-                </html>";
-                using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-                writer.Write(info);
-                return HttpStatusCode.OK;
+                </html>
+                """;
             }
 
-
-            if (path == "gallery")
+            if (path.StartsWith("oc/"))
             {
-                string now = DateTime.Now.Ticks.ToString();
-                string info = $@"
-                <!doctype html>
-                <html lang=""en"">
-
-                <head>
-                    <meta charset=""UTF-8"" />
-                    <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
-                    <title>Vite + React + TS</title>
-                    <script>
-                        const loadResource = (commitHash, isStyle = false) => {{
-                            if (isStyle) {{
-                                const link = document.createElement('link');
-                                link.href = `https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery@${{commitHash}}/dist/assets/index.css`;
-                                link.rel = 'stylesheet';
-                                document.head.appendChild(link);
-                            }} else {{
-                                const script = document.createElement('script');
-                                script.src = `https://cdn.jsdelivr.net/gh/slavamirniy/ocgallery@${{commitHash}}/dist/assets/index.js`;
-                                script.type = 'module';
-                                document.body.appendChild(script);
-                            }}
-                        }};
-
-                        fetch('https://api.github.com/repos/slavamirniy/ocgallery/commits/main')
-                            .then(response => response.json())
-                            .then(data => {{
-                                const commitHash = data.sha;
-                                loadResource(commitHash); // Загрузка скрипта
-                                loadResource(commitHash, true); // Загрузка стилей
-                            }});
-                    </script>
-                </head>
-
-                <body>
-                    <div id=""root""></div>
-                </body>
-
-                </html>";
-
+                var now = DateTime.Now.Ticks.ToString();
                 using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-                writer.Write(info);
+                writer.Write(getPageScript("slavamirniy", path));
                 return HttpStatusCode.OK;
             }
 
