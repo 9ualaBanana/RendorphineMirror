@@ -2,7 +2,7 @@ using Node.Profiling;
 
 namespace Node.DataStorage;
 
-public class SettingsInstance
+public class SettingsInstance : INodeSettings
 {
     public string SessionId => AuthInfo?.SessionId!;
     public string? Email => AuthInfo?.Email;

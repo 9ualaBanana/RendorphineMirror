@@ -1,11 +1,13 @@
-﻿using Node.Tasks.Models;
+﻿using Node.Common;
+using Node.Tasks;
+using Node.Tasks.Models;
 using Node.Tasks.Models.ExecInfo;
+using NodeToUI;
 using System.Collections;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using static _3DProductsPublish._3DProductDS._3DProduct;
-using static Node.Listeners.TaskListener;
 
 namespace MarkTM.RFProduct;
 
@@ -92,7 +94,7 @@ public partial record RFProduct : AssetContainer
             internal static async Task<ID_> GenerateAsync(AssetContainer container, CancellationToken cancellationToken)
             {
                 using var productNameStream = new MemoryStream(_encoding.GetBytes(System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(container))));
-                var id = Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(Node.Settings.Guid), productNameStream, cancellationToken))
+                var id = Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes((null as INodeSettings).AuthInfo.ThrowIfNull("Not authenticated").Guid), productNameStream, cancellationToken))
                     .Replace('/', '-')
                     .Replace('+', '_');
                 return new ID_(id, container);
@@ -115,12 +117,7 @@ public partial record RFProduct : AssetContainer
     {
         internal static async Task<QSPreviews> GenerateAsync<QSPreviews>(IReadOnlyList<string> input, CancellationToken cancellationToken)
             where QSPreviews : RFProduct.QSPreviews
-            => (await
-            (await Api.GlobalClient.PostAsJsonAsync(
-                $"http://localhost:{Node.Settings.LocalListenPort}/tasks/executeqsp",
-                new QSPreviewTaskExecutionInfo(input, new QSPreviewInfo(Guid.NewGuid().ToString()) { AlwaysGenerateQRPreview = true }), cancellationToken))
-            .GetJsonIfSuccessfulAsync($"{nameof(QSPreviews)} generation for {nameof(RFProduct)} failed."))
-            ["value"]?.ToObject<QSPreviews>() ?? throw new InvalidCastException($"{nameof(QSPreviews)} generation endpoint returned data in a wrong format.");
+            => await (null as ITaskExecutor).ExecuteQS(input, new QSPreviewInfo(Guid.NewGuid().ToString()) { AlwaysGenerateQRPreview = true }, cancellationToken);
 
 
         public record Bound : QSPreviews

@@ -12,6 +12,11 @@ public class TaskExecutorTarget : IServiceTarget
             .SingleInstance();
         builder.RegisterType<WatchingTasksHandler>()
             .SingleInstance();
+
+        builder.RegisterType<TaskExecutor>()
+            .AsSelf()
+            .AsImplementedInterfaces()
+            .SingleInstance();
     }
 
     public required TaskListTarget TaskList { get; init; }
@@ -19,6 +24,7 @@ public class TaskExecutorTarget : IServiceTarget
     public required PlacedTasksHandler PlacedTasksHandler { get; init; }
     public required ReceivedTasksHandler ReceivedTasksHandler { get; init; }
     public required WatchingTasksHandler WatchingTasksHandler { get; init; }
+    public required TaskExecutor TaskExecutor { get; init; }
 
     public required ICompletedTasksStorage CompletedTasks { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }
