@@ -44,7 +44,7 @@ public class DashboardTab : Panel
             {
                 NamedControl.Create("Info", infotb)
                     .With(c => c.Title.Bind(state.NodeName)),
-                NamedControl.Create("Web server", new StackPanel()
+                NamedControl.Create("Web server cool buttons to click", new StackPanel()
                 {
                     Orientation = Orientation.Vertical,
                     Children =
@@ -110,6 +110,10 @@ public class DashboardTab : Panel
 
                     configtb.Text = $"""
                         Ui start time: {starttime}
+
+                        webserver:
+                        http://{(await PortForwarding.GetPublicIPAsync())}:{state.UPnpServerPort.Value}
+                        http://127.0.0.1:{state.UPnpServerPort.Value}
 
                         Ports: {JsonConvert.SerializeObject(new
                     {
