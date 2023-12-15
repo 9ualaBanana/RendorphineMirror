@@ -17,6 +17,21 @@ public class TaskExecutorTarget : IServiceTarget
             .AsSelf()
             .AsImplementedInterfaces()
             .SingleInstance();
+
+        builder.RegisterType<RFProduct.ID_.Generator>()
+    .SingleInstance();
+
+        builder.RegisterType<RFProduct.Factory>()
+            .AsSelf()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct.Image.QSPreviews.Generator>()
+            .AsSelf()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct.Video.QSPreviews.Generator>()
+            .AsSelf()
+            .SingleInstance();
     }
 
     public required TaskListTarget TaskList { get; init; }

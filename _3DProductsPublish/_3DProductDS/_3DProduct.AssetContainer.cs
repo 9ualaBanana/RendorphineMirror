@@ -41,7 +41,7 @@ public partial record _3DProduct
                 OnArchive = () => _archivePath!,
                 OnDirectory = () => Archive_.Pack(_directoryPath!)
             }
-            .ExecuteOn(this);
+            .ExecuteOn(this));
 
         // TODO: Add support for storing AssetContainer entries.
         // TODO: Properly implement OnArchive Copy behaviour.
@@ -77,13 +77,13 @@ public partial record _3DProduct
             }
             .ExecuteOn(this);
 
-        public void Copy(string destinationContainerName)
-            => new FileSystemOperation
-            {
-                OnArchive = () => File.Copy(this, destinationContainerName),
-                OnDirectory = () => Directory.Copy(this, destinationContainerName)
-            }
-            .ExecuteOn(this);
+        //public void Copy(string destinationContainerName)
+        //    => new FileSystemOperation
+        //    {
+        //        OnArchive = () => File.Copy(this, destinationContainerName),
+        //        OnDirectory = () => Directory.Copy(this, destinationContainerName)
+        //    }
+        //    .ExecuteOn(this);
 
         public IEnumerable<AssetContainer> EnumerateContainers()
             => EnumerateFiles().Where(AssetContainer.Exists).Select(_ => new AssetContainer(_));
