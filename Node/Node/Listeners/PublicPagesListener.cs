@@ -102,6 +102,8 @@ namespace Node.Listeners
             string getPageScript(string username, string path)
             {
                 path = path.Replace("/", string.Empty);
+                if (string.IsNullOrWhiteSpace(path))
+                    path = "index";
 
                 return $$"""
                 <!doctype html>
@@ -140,11 +142,11 @@ namespace Node.Listeners
                 """;
             }
 
-            if (path.StartsWith("rf/"))
+            if (path.Length == 0 || path.StartsWith("rf/", StringComparison.Ordinal))
             {
-                var now = DateTime.Now.Ticks.ToString();
                 using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
                 writer.Write(getPageScript("rfpages", path));
+
                 return HttpStatusCode.OK;
             }
 
@@ -211,13 +213,6 @@ namespace Node.Listeners
                 using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
                 writer.Write(info);
 
-                return HttpStatusCode.OK;
-            }
-
-            if (path == "")
-            {
-                using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-                writer.Write("<a href='/gallery'>Gallery</a><br><a href='/logs'>Logs</a>");
                 return HttpStatusCode.OK;
             }
 
