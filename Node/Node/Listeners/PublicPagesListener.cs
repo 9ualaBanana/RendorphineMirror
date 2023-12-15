@@ -155,9 +155,9 @@ namespace Node.Listeners
             if (path.StartsWith("getocproductdata"))
             {
                 var id = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["id"].ThrowIfNull();
-                if (id is null) return HttpStatusCode.NotFound;
+                if (id is null || !RFProducts.RFProducts.TryGetValue(id, out var rfp)) return HttpStatusCode.NotFound;
 
-                return await WriteJson(response, RFProducts.RFProducts[id].AsOpResult());
+                return await WriteJson(response, rfp.AsOpResult());
             }
 
             if (path.StartsWith("getocfile"))
