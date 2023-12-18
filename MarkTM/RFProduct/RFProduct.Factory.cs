@@ -1,4 +1,5 @@
 ﻿using Node.Tasks.Models;
+using System.Diagnostics.CodeAnalysis;
 using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace MarkTM.RFProduct;
@@ -29,10 +30,14 @@ public partial record RFProduct
                 };
                 product.Store(idea, @as: System.IO.Path.ChangeExtension(Idea.FileName, System.IO.Path.GetExtension(idea)), StoreMode.Copy);
 
-                Storage.RFProducts.Add(product);
-
+                var subProducts = new HashSet<RFProduct>(IDEqualityComparer._);
                 foreach (var asset in product.EnumerateFiles().Where(IsValidProduct))
-                    await CreateAsync(asset, System.IO.Path.Combine(container, System.IO.Path.GetFileNameWithoutExtension(asset)), cancellationToken);
+                    subProducts.Add(
+                        await CreateAsync(asset, System.IO.Path.Combine(container, System.IO.Path.GetFileNameWithoutExtension(asset)), cancellationToken)
+                        );
+                product.SubProducts = subProducts.ToImmutableHashSet();
+
+                Storage.RFProducts.Add(product);
 
                 return product;
 
@@ -49,5 +54,13 @@ public partial record RFProduct
                 }
             }
         }
+    }
+    internal class IDEqualityComparer : IEqualityComparer<RFProduct>
+    {
+        internal static IDEqualityComparer _ = new();
+        public bool Equals(RFProduct? this_, RFProduct? that_)
+            => this_?.ID == that_?.ID;
+        public int GetHashCode([DisallowNull] RFProduct obj)
+            => obj.ID.GetHashCode();
     }
 }

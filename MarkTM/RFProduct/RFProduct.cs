@@ -23,6 +23,8 @@ public partial record RFProduct : AssetContainer
     /// <see cref="RFProduct"/> implementatinos provide type-specific data by overriding this property with its return type defined as that of type-specific <see cref="Data_"/> implementation.
     /// </summary>
     public virtual Data_? Data { get; } = null;
+    [JsonProperty]
+    public ImmutableHashSet<RFProduct> SubProducts { get; private set; } = default!;
 
     readonly static Encoding _encoding = Encoding.UTF8;
 
