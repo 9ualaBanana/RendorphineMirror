@@ -1,5 +1,6 @@
 ﻿using Node.Tasks.Exec.Output;
 using Node.Tasks.Models;
+using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace MarkTM.RFProduct;
 
@@ -7,8 +8,14 @@ public partial record RFProduct
 {
     public record Image : RFProduct
     {
-        Image(RFProduct core)
-            : base(core)
+        public record Constructor : Constructor<Image>
+        {
+            internal override async Task<Image> CreateAsync(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
+                => new(id, await QSPreviews.GenerateAsync(idea, container, cancellationToken), container);
+            public required QSPreviews.Generator QSPreviews { get; init; }
+        }
+        Image(ID_ id, QSPreviews previews, AssetContainer container)
+            : base(id, previews, container)
         {
         }
 

@@ -7,13 +7,16 @@ namespace MarkTM.RFProduct;
 
 public partial record RFProduct
 {
-    // Video is basically a core RFProduct with Video-specific `Video.QSPreviews`.
-    // Only QSPreviews differ at that point so RFProduct should be generic only on one QSPreviews type argument.
-    // Other potential RFProducts might have more differences but they all can be accomodated for using generics.
     public record Video : RFProduct
     {
-        Video(RFProduct core)
-            : base(core)
+        public record Constructor : Constructor<Video>
+        {
+            internal override async Task<Video> CreateAsync(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
+                => new(id, await QSPreviews.GenerateAsync(idea, container, cancellationToken), container);
+            public required QSPreviews.Generator QSPreviews { get; init; }
+        }
+        Video(ID_ id, QSPreviews previews, AssetContainer container)
+            : base(id, previews, container)
         {
         }
 

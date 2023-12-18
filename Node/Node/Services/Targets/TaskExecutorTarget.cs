@@ -25,6 +25,14 @@ public class TaskExecutorTarget : IServiceTarget
             .AsSelf()
             .SingleInstance();
 
+        builder.RegisterType<RFProduct.Video.Constructor>()
+            .AsSelf()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct.Image.Constructor>()
+            .AsSelf()
+            .SingleInstance();
+
         builder.RegisterType<RFProduct.Image.QSPreviews.Generator>()
             .AsSelf()
             .SingleInstance();
