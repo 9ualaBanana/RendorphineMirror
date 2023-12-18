@@ -17,7 +17,7 @@ public partial record RFProduct : AssetContainer
         init => _type = value;
     }
     string? _type;
-    public string Idea { get; }
+    public string Idea { get; private set; }
     public ID_ ID { get; }
     public QSPreviews QSPreview { get; }
     /// <summary>
@@ -41,7 +41,7 @@ public partial record RFProduct : AssetContainer
     protected RFProduct(string idea, ID_ id, QSPreviews previews, AssetContainer container)
         : base(container)
     {
-        Idea = Store(idea, @as: System.IO.Path.ChangeExtension(Idea_.FileName, System.IO.Path.GetExtension(idea)), StoreMode.Copy); ;
+        Idea = idea;
         ID = id;
         QSPreview = previews;
         QSPreview.BindTo(this);
@@ -75,6 +75,16 @@ public partial record RFProduct : AssetContainer
                 ArgumentNullException.ThrowIfNull(Data, $"Mismatch between {typeof(RFProduct)} {nameof(Type)} and its corresponding {nameof(Data)}.");
             }
             catch (Exception ex) { throw new JsonReaderException($"{nameof(Data)} deserialization failed.", ex); }
+    }
+
+    new public string Store(ref string file, string? @as = default, StoreMode mode = StoreMode.Move)
+        => file = Store(file, @as, mode);
+    new public string Store(string file, string? @as = default, StoreMode mode = StoreMode.Move)
+    {
+        var storedFile = base.Store(file, @as, mode);
+        if (System.IO.Path.GetFileNameWithoutExtension(storedFile) == Idea_.FileName)
+            Idea = storedFile;
+        return storedFile;
     }
 
 

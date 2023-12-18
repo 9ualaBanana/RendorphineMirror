@@ -43,6 +43,8 @@ public partial record _3DProduct
             }
             .ExecuteOn(this));
 
+        public string Store(ref string file, string? @as = default, StoreMode mode = StoreMode.Move)
+            => file = Store(file, @as, mode);
         // TODO: Add support for storing AssetContainer entries.
         // TODO: Properly implement OnArchive Copy behaviour.
         public enum StoreMode { Move, Copy }

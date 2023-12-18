@@ -28,6 +28,7 @@ public partial record RFProduct
                     FileFormat.Png or FileFormat.Jpeg => await Image.CreateAsync(idea, id, container, cancellationToken),
                     _ => throw new NotImplementedException($"{nameof(idea)} has an unsupported {nameof(FileFormat)}.")
                 };
+                container.Store(ref idea, @as: System.IO.Path.ChangeExtension(Idea_.FileName, System.IO.Path.GetExtension(idea)), StoreMode.Copy);
 
                 var subProducts = new HashSet<RFProduct>(IDEqualityComparer._);
                 foreach (var asset in product.EnumerateFiles().Where(IsValidProduct))
