@@ -67,9 +67,7 @@ public partial record RFProduct : AssetContainer
             {
                 Data = type switch
                 {
-                    nameof(Video) => data.ToObject<Video.Data_>()!,
-                    nameof(Image) => data.ToObject<Image.Data_>()!,
-                    _ => throw new ArgumentOutOfRangeException(nameof(type), type, $"{nameof(Type)} of a serialized {nameof(RFProduct)} is unknown.")
+                    _ => throw new InvalidOperationException($"{type} {nameof(RFProduct)} doesn't support type-specific {nameof(Data)}.")
                 };
                 ArgumentNullException.ThrowIfNull(Data, $"Mismatch between {typeof(RFProduct)} {nameof(Type)} and its corresponding {nameof(Data)}.");
             }
