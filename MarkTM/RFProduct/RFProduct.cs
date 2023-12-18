@@ -17,6 +17,7 @@ public partial record RFProduct : AssetContainer
         init => _type = value;
     }
     string? _type;
+    public string Idea { get; }
     public ID_ ID { get; }
     public QSPreviews QSPreview { get; }
     /// <summary>
@@ -37,19 +38,21 @@ public partial record RFProduct : AssetContainer
         // Move QSPreviews generator here to ABC ?
         internal abstract Task<TProduct> CreateAsync(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken);
     }
-    protected RFProduct(ID_ id, QSPreviews previews, AssetContainer container)
+    protected RFProduct(string idea, ID_ id, QSPreviews previews, AssetContainer container)
         : base(container)
     {
+        Idea = Store(idea, @as: System.IO.Path.ChangeExtension(Idea_.FileName, System.IO.Path.GetExtension(idea)), StoreMode.Copy); ;
         ID = id;
         QSPreview = previews;
         QSPreview.BindTo(this);
     }
 
     [JsonConstructor]
-    RFProduct(ID_ id, JObject qsPreview, JObject data, string path, string type)
+    RFProduct(string idea, ID_ id, JObject qsPreview, JObject data, string path, string type)
         : base(new(path))
     {
         Type = type;
+        Idea = idea;
         ID = id;
         try
         {
@@ -176,7 +179,7 @@ public partial record RFProduct : AssetContainer
         { throw new NotImplementedException(); }
     }
 
-    static class Idea
+    static class Idea_
     {
         internal static bool Exists(string idea)
             => File.Exists(idea) && System.IO.Path.GetFileNameWithoutExtension(idea) == FileName;

@@ -10,7 +10,7 @@ public partial record _3DProduct
         { Archive, Directory }
 
         [JsonIgnore] public Type_ ContainerType { get; }
-        public string Path { get; }
+        [JsonProperty("Container")] public string Path { get; }
 
         string? _directoryPath;
         string? _archivePath;
@@ -47,7 +47,7 @@ public partial record _3DProduct
         // TODO: Properly implement OnArchive Copy behaviour.
         public enum StoreMode { Move, Copy }
         /// <remarks>Currently only files can be stored using this method.</remarks>
-        public void Store(string file, string? @as = default, StoreMode mode = StoreMode.Move)
+        public string Store(string file, string? @as = default, StoreMode mode = StoreMode.Move)
         {
             var name = System.IO.Path.ChangeExtension(System.IO.Path.GetFileNameWithoutExtension(@as ?? file), System.IO.Path.GetExtension(file));
             var destination = System.IO.Path.Combine(Path, name);
@@ -67,6 +67,8 @@ public partial record _3DProduct
                 _ => throw new NotImplementedException()
             })
             .ExecuteOn(this);
+
+            return destination;
         }
 
         public void Move(string destinationContainerName)

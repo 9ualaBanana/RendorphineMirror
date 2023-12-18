@@ -28,7 +28,6 @@ public partial record RFProduct
                     FileFormat.Png or FileFormat.Jpeg => await Image.CreateAsync(idea, id, container, cancellationToken),
                     _ => throw new NotImplementedException($"{nameof(idea)} has an unsupported {nameof(FileFormat)}.")
                 };
-                product.Store(idea, @as: System.IO.Path.ChangeExtension(Idea.FileName, System.IO.Path.GetExtension(idea)), StoreMode.Copy);
 
                 var subProducts = new HashSet<RFProduct>(IDEqualityComparer._);
                 foreach (var asset in product.EnumerateFiles().Where(IsValidProduct))
@@ -47,7 +46,7 @@ public partial record RFProduct
                 {
                     var assetName = System.IO.Path.GetFileName(asset);
                     if (assetName == product.ID.File.Name
-                        || Idea.Exists(asset)
+                        || Idea_.Exists(asset)
                         || product.QSPreview.Any(preview => asset == preview))
                         return false;
                     else return true;
