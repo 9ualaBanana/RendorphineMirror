@@ -9,8 +9,8 @@ public partial record _3DProduct
         public enum Type_
         { Archive, Directory }
 
-        [JsonIgnore] public Type_ ContainerType { get; }
-        [JsonProperty("Container")] public string Path { get; }
+        public Type_ ContainerType { get; }
+        public string Path { get; }
 
         string? _directoryPath;
         string? _archivePath;

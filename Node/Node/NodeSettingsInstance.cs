@@ -14,6 +14,6 @@ public class NodeSettingsInstance : IPlacedTasksStorage, IQueuedTasksStorage, IC
         WatchingTasks = new(new Database(dirs.DataFile("watching.db")), nameof(WatchingTasks), t => t.Id, serializer: JsonSettings.Default);
         PlacedTasks = new(new Database(dirs.DataFile("placed.db")), nameof(PlacedTasks), t => t.Id, serializer: JsonSettings.Default);
         CompletedTasks = new(new Database(dirs.DataFile("completed.db")), nameof(CompletedTasks), t => t.TaskInfo.Id, serializer: JsonSettings.Default);
-        RFProducts = new(new Database(dirs.DataFile("rfproducts.db")), nameof(RFProducts), p => p.ID, serializer: new JsonSerializer { NullValueHandling = NullValueHandling.Ignore });
+        RFProducts = new(new Database(dirs.DataFile("rfproducts.db")), nameof(RFProducts), p => p.ID, serializer: new JsonSerializer { NullValueHandling = NullValueHandling.Ignore, ContractResolver = RFProduct.ContractResolver._});
     }
 }
