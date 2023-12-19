@@ -29,8 +29,8 @@ public class OneClickRunner
     /// <summary> C:\oneclick\output\{SmallGallery} </summary>
     string Output3dsMaxDirectory(string archiveFilePath) => Path.Combine(OutputDir, Path.GetFileNameWithoutExtension(archiveFilePath));
 
-    /// <summary> C:\oneclick\output\{SmallGallery} [UNITY] </summary>
-    string OutputUnityDirectory(string archiveFilePath) => Path.Combine(OutputDir, Path.GetFileNameWithoutExtension(archiveFilePath) + " [UNITY]");
+    /// <summary> C:\oneclick\output\{SmallGallery} [MaxOcExport] </summary>
+    string OutputUnityDirectory(string archiveFilePath) => Path.Combine(OutputDir, Path.GetFileNameWithoutExtension(archiveFilePath) + " [MaxOcExport]");
 
     public async Task Run()
     {
