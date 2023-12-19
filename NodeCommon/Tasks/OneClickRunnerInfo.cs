@@ -1,4 +1,4 @@
-namespace Node.Tasks.Watching.Handlers.Input;
+namespace NodeCommon.Tasks;
 
 public class OneClickRunnerInfo
 {
