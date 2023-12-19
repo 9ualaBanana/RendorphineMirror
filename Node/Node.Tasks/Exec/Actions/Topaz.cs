@@ -165,7 +165,7 @@ public class Topaz : FilePluginActionInfo<TopazInfo>
             The second one uses that data to stabilize
             */
 
-            using var _ = Directories.DisposeDelete(Dirs.TempFile("topaz", extension: "json"), out var jsonfile);
+            using var _ = Directories.DisposeDelete(Dirs.TempFile("topaz") + ".json", out var jsonfile);
 
             await Execute(input, data, ffprobe, new FFmpegLauncherOutput() { Codec = new NullFFmpegCodec(), Output = "-" }, addFirstPassArgs);
             await Execute(input, data, ffprobe, output, addSecondPassArgs);
