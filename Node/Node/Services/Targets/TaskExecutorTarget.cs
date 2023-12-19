@@ -12,6 +12,34 @@ public class TaskExecutorTarget : IServiceTarget
             .SingleInstance();
         builder.RegisterType<WatchingTasksHandler>()
             .SingleInstance();
+
+        builder.RegisterType<TaskExecutor>()
+            .AsSelf()
+            .AsImplementedInterfaces()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct.ID_.Generator>()
+    .SingleInstance();
+
+        builder.RegisterType<RFProduct.Factory>()
+            .AsSelf()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct.Video.Constructor>()
+            .AsSelf()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct.Image.Constructor>()
+            .AsSelf()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct.Image.QSPreviews.Generator>()
+            .AsSelf()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct.Video.QSPreviews.Generator>()
+            .AsSelf()
+            .SingleInstance();
     }
 
     public required TaskListTarget TaskList { get; init; }
@@ -19,6 +47,7 @@ public class TaskExecutorTarget : IServiceTarget
     public required PlacedTasksHandler PlacedTasksHandler { get; init; }
     public required ReceivedTasksHandler ReceivedTasksHandler { get; init; }
     public required WatchingTasksHandler WatchingTasksHandler { get; init; }
+    public required TaskExecutor TaskExecutor { get; init; }
 
     public required ICompletedTasksStorage CompletedTasks { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }

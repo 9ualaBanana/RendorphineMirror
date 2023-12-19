@@ -11,6 +11,7 @@ namespace Node.Listeners
 
         public required ICompletedTasksStorage CompletedTasks { get; init; }
         public required IWatchingTasksStorage WatchingTasks { get; init; }
+        public required IRFProductStorage RFProducts { get; init; }
         public required DataDirs Dirs { get; init; }
 
         public PublicPagesListener(ILogger<PublicPagesListener> logger) : base(logger) { }
@@ -148,6 +149,17 @@ namespace Node.Listeners
                 writer.Write(getPageScript("rfpages", path));
 
                 return HttpStatusCode.OK;
+            }
+
+            if (path.StartsWith("getocproducts"))
+                return await WriteJson(response, RFProducts.RFProducts.Keys.AsOpResult());
+
+            if (path.StartsWith("getocproductdata"))
+            {
+                var id = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["id"].ThrowIfNull();
+                if (id is null || !RFProducts.RFProducts.TryGetValue(id, out var rfp)) return HttpStatusCode.NotFound;
+
+                return await WriteJson(response, rfp.AsOpResult());
             }
 
             if (path.StartsWith("getocfile"))

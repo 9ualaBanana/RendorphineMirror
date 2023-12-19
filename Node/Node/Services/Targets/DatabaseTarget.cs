@@ -5,6 +5,8 @@ public class DatabaseTarget : IServiceTarget
     public static void CreateRegistrations(ContainerBuilder builder)
     {
         builder.RegisterInstance(Settings.Instance)
+            .AsSelf()
+            .AsImplementedInterfaces()
             .SingleInstance();
 
         builder.RegisterType<NodeSettingsInstance>()

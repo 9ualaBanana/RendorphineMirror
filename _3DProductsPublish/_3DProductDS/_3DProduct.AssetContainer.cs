@@ -9,13 +9,17 @@ public partial record _3DProduct
         public enum Type_
         { Archive, Directory }
 
-        internal Type_ ContainerType { get; }
-        internal string Path { get; }
+        [JsonIgnore] public Type_ ContainerType { get; }
+        [JsonProperty("Container")] public string Path { get; }
 
         string? _directoryPath;
         string? _archivePath;
 
-        internal AssetContainer(string path, bool disposeTemps = true)
+        public static AssetContainer Create(string path, bool disposeTemps = true)
+            => AssetContainer.Exists(path) ?
+            new(path, disposeTemps) : new(Directory.CreateDirectory(path).FullName, disposeTemps);
+
+        public AssetContainer(string path, bool disposeTemps = true)
         {
             if (Archive_.Exists(path))
             { Path = _archivePath = path; ContainerType = Type_.Archive; }
@@ -32,15 +36,84 @@ public partial record _3DProduct
         /// </summary>
         /// <returns>Path to the archive where this <see cref="_3DModel"/> is stored.</returns>
         internal ValueTask<string> Archive()
-            => ValueTask.FromResult(_archivePath ??= Archive_.Pack(_directoryPath!));
+            => ValueTask.FromResult(new FileSystemOperation<string>
+            {
+                OnArchive = () => _archivePath!,
+                OnDirectory = () => Archive_.Pack(_directoryPath!)
+            }
+            .ExecuteOn(this));
+
+        // TODO: Add support for storing AssetContainer entries.
+        // TODO: Properly implement OnArchive Copy behaviour.
+        public enum StoreMode { Move, Copy }
+        /// <remarks>Currently only files can be stored using this method.</remarks>
+        public string Store(string file, string? @as = default, StoreMode mode = StoreMode.Move)
+        {
+            var name = System.IO.Path.ChangeExtension(System.IO.Path.GetFileNameWithoutExtension(@as ?? file), System.IO.Path.GetExtension(file));
+            var destination = System.IO.Path.Combine(Path, name);
+
+            (mode switch
+            {
+                StoreMode.Move => new FileSystemOperation
+                {
+                    OnArchive = () => ZipFile.Open(this, ZipArchiveMode.Create).CreateEntryFromFile(file, name),
+                    OnDirectory = () => File.Move(file, destination),
+                },
+                StoreMode.Copy => new FileSystemOperation
+                {
+                    OnArchive = () => ZipFile.Open(this, ZipArchiveMode.Create).CreateEntryFromFile(file, name),
+                    OnDirectory = () => File.Copy(file, destination),
+                },
+                _ => throw new NotImplementedException()
+            })
+            .ExecuteOn(this);
+
+            return destination;
+        }
+
+        public void Move(string destinationContainerName)
+            => new FileSystemOperation
+            {
+                OnArchive = () => File.Move(this, destinationContainerName),
+                OnDirectory = () => Directory.Move(this, destinationContainerName)
+            }
+            .ExecuteOn(this);
+
+        //public void Copy(string destinationContainerName)
+        //    => new FileSystemOperation
+        //    {
+        //        OnArchive = () => File.Copy(this, destinationContainerName),
+        //        OnDirectory = () => Directory.Copy(this, destinationContainerName)
+        //    }
+        //    .ExecuteOn(this);
+
+        public IEnumerable<AssetContainer> EnumerateContainers()
+            => EnumerateFiles().Where(AssetContainer.Exists).Select(_ => new AssetContainer(_));
 
         /// <remarks>
-        /// Creates a temporary directory if <see langword="this"/> <see cref="AssetContainer"/>'s OriginalContainer type is <see cref="Type_.Archive"/>.
+        /// Creates a temporary directory if <see langword="this"/> <see cref="AssetContainer.ContainerType"/> is <see cref="Type_.Archive"/>.
         /// </remarks>
-        internal IEnumerable<string> EnumerateFiles()
-            => _directoryPath is not null ?
-            Directory.EnumerateFiles(_directoryPath) :
-            Archive_.EnumerateFiles(_archivePath!, out _directoryPath);
+        public IEnumerable<string> EnumerateFiles(FilesToEnumerate filesToEnumerate = FilesToEnumerate.All)
+        {
+            var allFiles = _directoryPath is not null ?
+                Directory.EnumerateFiles(_directoryPath) :
+                Archive_.EnumerateFiles(_archivePath!, out _directoryPath);
+
+            var files = new HashSet<string>();
+            if (filesToEnumerate.HasFlag(FilesToEnumerate.Containers))
+                files.UnionWith(allFiles.Where(AssetContainer.Exists));
+            if (filesToEnumerate.HasFlag(FilesToEnumerate.NonContainers))
+                files.UnionWith(allFiles.Where(_ => !AssetContainer.Exists(_)));
+            return files;
+        }
+
+        [Flags]
+        public enum FilesToEnumerate
+        {
+            Containers = 1,
+            NonContainers = 2,
+            All = Containers | NonContainers
+        }
 
         internal static IEnumerable<string> EnumerateAt(string directoryPath)
             => Archive_.EnumerateAt(directoryPath)
@@ -78,9 +151,13 @@ public partial record _3DProduct
         bool _isDisposed;
         readonly bool _disposeTemps;
 
+        public static implicit operator string(AssetContainer container) => container.Path;
+
 
         internal static class Archive_
         {
+            static bool IsArchive(string path) => _validExtensions.Contains(System.IO.Path.GetExtension(path));
+            readonly static string[] _validExtensions = [".zip", ".rar"];
             internal static IEnumerable<string> EnumerateFiles(string path, out string tempDirectoryPath)
                 => Directory.EnumerateFiles(tempDirectoryPath = Archive_.Unpack(path));
 
@@ -113,9 +190,23 @@ public partial record _3DProduct
                 => Directory.EnumerateFiles(path).Where(IsArchive);
 
             internal static bool Exists(string path) => File.Exists(path) && IsArchive(path);
+        }
 
-            static bool IsArchive(string path) => _validExtensions.Contains(System.IO.Path.GetExtension(path));
-            readonly static string[] _validExtensions = { ".zip", ".rar" };
+        class FileSystemOperation
+        {
+            internal required Action OnArchive { get; init; }
+            internal required Action OnDirectory { get; init; }
+
+            internal void ExecuteOn(AssetContainer target)
+            { if (target._directoryPath is not null) OnDirectory(); else OnArchive(); }
+        }
+        class FileSystemOperation<TResult>
+        {
+            internal required Func<TResult> OnArchive { get; init; }
+            internal required Func<TResult> OnDirectory { get; init; }
+
+            internal TResult ExecuteOn(AssetContainer target)
+                => target._directoryPath is not null ? OnDirectory() : OnArchive();
         }
     }
 }
