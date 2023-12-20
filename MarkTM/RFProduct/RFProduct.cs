@@ -11,7 +11,7 @@ namespace MarkTM.RFProduct;
 
 public partial record RFProduct : AssetContainer
 {
-    [JsonProperty] string Type
+    [JsonProperty] public string Type
     {
         get => _type ?? this.GetType().Name;
         init => _type = value;

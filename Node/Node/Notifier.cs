@@ -3,7 +3,8 @@ using System.Text;
 
 namespace Node;
 
-public static class Notifier
+[AutoRegisteredService(true)]
+public class Notifier
 {
     record NotifyApi : Api
     {
@@ -12,11 +13,13 @@ public static class Notifier
         protected override bool NeedsToRetryRequest(OperationResult result) => false;
     }
 
-    static readonly SemaphoreSlim Semaphore = new(1, 1);
-    static readonly NotifyApi Api = new(new HttpClient());
+    public required Init Init { get; init; }
 
-    public static void Notify(StringInterpolationHandler text) => Task.Run(() => _NotifyAsync(text.ToString())).Consume();
-    static async Task _NotifyAsync(string text)
+    readonly SemaphoreSlim Semaphore = new(1, 1);
+    readonly NotifyApi Api = new(new HttpClient());
+
+    public void Notify(StringInterpolationHandler text) => Task.Run(() => _NotifyAsync(text.ToString())).Consume();
+    async Task _NotifyAsync(string text)
     {
         await Semaphore.WaitAsync();
         using var _ = new FuncDispose(() => Semaphore.Release());
@@ -27,7 +30,7 @@ public static class Notifier
 
             var ip = await PortForwarding.GetPublicIPAsync();
             text = $"""
-                *{Settings.NodeName}*   `{ip}:{Settings.UPnpPort}`   `{ip}:{Settings.UPnpServerPort}`
+                *{Settings.NodeName}* *{Init.Version}*   `{ip}:{Settings.UPnpPort}`   `{ip}:{Settings.UPnpServerPort}`
                 ```json
                 {JsonConvert.SerializeObject((Settings.AuthInfo as object) ?? "unauth")}
                 ```

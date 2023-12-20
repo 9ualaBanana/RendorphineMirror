@@ -33,7 +33,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
                 if (betamzp is not null)
                 {
                     var plugin = new Plugin(PluginType.OneClick, Path.GetFileNameWithoutExtension(betamzp)!.Substring("oneclickexport.v".Length), betamzp);
-                    await CreateRunner(plugin, Input.TestInputDirectory, Input.TestOutputDirectory, Input.TestLogDirectory).Run();
+                    await CreateRunner(plugin, true).Run();
                     return;
                 }
             }
@@ -46,7 +46,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         try
         {
             var plugin = PluginList.GetPlugin(PluginType.OneClick);
-            await CreateRunner(plugin, Input.InputDirectory, Input.OutputDirectory, Input.LogDirectory).Run();
+            await CreateRunner(plugin, false).Run();
         }
         catch (Exception ex)
         {
@@ -54,18 +54,13 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         }
     }
 
-    OneClickRunner CreateRunner(Plugin? oneClickPlugin, string inputdir, string outputdir, string logdir)
+    OneClickRunner CreateRunner(Plugin? oneClickPlugin, bool test)
     {
-        return new OneClickRunner()
+        return new OneClickRunner(Input, test)
         {
-            InputDir = Directories.DirCreated(inputdir),
-            OutputDir = Directories.DirCreated(outputdir),
-            LogDir = Directories.DirCreated(logdir),
-            UnityTemplatesDir = @"C:\\OneClickUnityDefaultProjects",
             PluginList = PluginList,
             TdsMaxPlugin = PluginList.GetPlugin(PluginType.Autodesk3dsMax),
             OneClickPlugin = oneClickPlugin ?? PluginList.GetPlugin(PluginType.OneClick),
-            Input = Input,
             SaveFunc = SaveTask,
             LocalListener = LocalListener,
             Logger = Logger,
@@ -155,7 +150,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
 
             var task = WatchingTasks.WatchingTasks.Values.First(d => d.Source is OneClickWatchingTaskInputInfo);
             var handler = WatchingTasksHandler.GetHandler<OneClickWatchingTaskInputHandler>(task);
-            var runner = handler.CreateRunner(null, handler.Input.TestInputDirectory, handler.Input.TestOutputDirectory, handler.Input.TestLogDirectory);
+            var runner = new OneClickRunnerInfo(handler.Input);
 
             if (path.StartsWith("getproducts", StringComparison.Ordinal))
             {

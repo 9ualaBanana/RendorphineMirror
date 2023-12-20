@@ -3,21 +3,8 @@ using System.Text.RegularExpressions;
 
 namespace Node.Tasks.Watching.Handlers.Input;
 
-public class OneClickRunner
+public class OneClickRunner : OneClickRunnerInfo
 {
-    /// <summary> C:\oneclick\input </summary>
-    public required string InputDir { get; init; }
-
-    /// <summary> C:\oneclick\output </summary>
-    public required string OutputDir { get; init; }
-
-    /// <summary> C:\oneclick\log </summary>
-    public required string LogDir { get; init; }
-
-    /// <summary> C:\OneClickUnityDefaultProjects\ </summary>
-    public required string UnityTemplatesDir { get; init; }
-
-    public required OneClickWatchingTaskInputInfo Input { get; init; }
     public required Action SaveFunc { get; init; }
     public required OneClickWatchingTaskInputHandler.OCLocalListener LocalListener { get; init; }
 
@@ -26,11 +13,7 @@ public class OneClickRunner
     public required Plugin OneClickPlugin { get; init; }
     public required ILogger Logger { get; init; }
 
-    /// <summary> C:\oneclick\output\{SmallGallery} </summary>
-    string Output3dsMaxDirectory(string archiveFilePath) => Path.Combine(OutputDir, Path.GetFileNameWithoutExtension(archiveFilePath));
-
-    /// <summary> C:\oneclick\output\{SmallGallery} [UNITY] </summary>
-    string OutputUnityDirectory(string archiveFilePath) => Path.Combine(OutputDir, Path.GetFileNameWithoutExtension(archiveFilePath) + " [UNITY]");
+    public OneClickRunner(OneClickWatchingTaskInputInfo input, bool test) : base(input, test) { }
 
     public async Task Run()
     {
@@ -66,17 +49,6 @@ public class OneClickRunner
                 File.Delete(zip);
             }
         }
-    }
-
-    public ImmutableArray<ProjectExportInfo> GetExportInfosByArchiveFiles(IReadOnlyList<string> inputArchiveFiles)
-    {
-        return inputArchiveFiles
-            .Select(Output3dsMaxDirectory)
-            .Where(Directory.Exists)
-            .Select(GetMaxSceneFile)
-            .Select(Path.GetFileNameWithoutExtension)
-            .Select(GetExportInfoByProductName!)
-            .ToImmutableArray();
     }
 
     string GetExportInfoForLog()
@@ -157,14 +129,6 @@ public class OneClickRunner
         //await Api.Default.ApiPost($"{Settings.ServerUrl}/oneclick/display_renders?{query}", "Displaying renders", content);
     }
 
-
-    ProjectExportInfo GetExportInfoByProductName(string productName)
-    {
-        return (Input.ExportInfo ??= new()).TryGetValue(productName, out var exportInfo)
-             ? exportInfo
-             : Input.ExportInfo[productName] = new() { ProductName = productName };
-    }
-
     async Task RunChunk(IReadOnlyList<string> inputArchiveFiles)
     {
         foreach (var inputArchiveFile in inputArchiveFiles)
@@ -199,21 +163,11 @@ public class OneClickRunner
         }
     }
 
-    static string GetMaxSceneFile(string dir)
-    {
-        var maxSceneFile = Directory.GetFiles(dir, "*.max", SearchOption.AllDirectories)
-              .Where(zip => !zip.ContainsOrdinal("backup"))
-              .MaxBy(File.GetLastWriteTimeUtc);
-        maxSceneFile ??= Directory.GetFiles(dir, "*.max", SearchOption.AllDirectories)
-            .MaxBy(File.GetLastWriteTimeUtc);
-
-        return maxSceneFile.ThrowIfNull("No .max file found");
-    }
     async Task RunMax(string inputArchiveFile)
     {
         using var _ = Logger.BeginScope($"3dsmax");
 
-        var output3dsmaxdir = Output3dsMaxDirectory(inputArchiveFile);
+        var output3dsmaxdir = Achive3dsMaxExtractDirectory(inputArchiveFile);
         if (Directory.Exists(output3dsmaxdir))
         {
             try
@@ -237,7 +191,7 @@ public class OneClickRunner
         exportInfo.OneClick = null;
 
 
-        var outputunitydir = Directories.DirCreated(OutputUnityDirectory(inputArchiveFile));
+        var outputunitydir = Directories.DirCreated(Export3dsMaxResultDirectory(inputArchiveFile));
         Logger.Info($"Scene file: {maxSceneFile}; Target directory: {outputunitydir}");
 
         var launcher = new ProcessLauncher(TdsMaxPlugin.Path)

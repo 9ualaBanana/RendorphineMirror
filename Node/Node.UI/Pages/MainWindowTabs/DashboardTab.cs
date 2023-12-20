@@ -7,12 +7,27 @@ public class DashboardTab : Panel
     public DashboardTab(NodeGlobalState state)
     {
         var starttime = DateTimeOffset.Now;
-        var infotb = new TextBlock()
+        var infotb = new SelectableTextBlock()
         {
             VerticalAlignment = VerticalAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
         };
-        var configtb = new TextBlock()
+        var webserveruritb1 = new MPButton()
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            Background = Colors.AlmostTransparent,
+            Foreground = Colors.From(100, 100, 0),
+            OnClickSelf = (self) => Process.Start(new ProcessStartInfo(self.Text.ToString()) { UseShellExecute = true }),
+        };
+        var webserveruritb2 = new MPButton()
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            Background = Colors.AlmostTransparent,
+            Foreground = Colors.From(100, 100, 0),
+            OnClickSelf = (self) => Process.Start(new ProcessStartInfo(self.Text.ToString()) { UseShellExecute = true }),
+        };
+
+        var configtb = new SelectableTextBlock()
         {
             VerticalAlignment = VerticalAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
@@ -29,6 +44,15 @@ public class DashboardTab : Panel
             {
                 NamedControl.Create("Info", infotb)
                     .With(c => c.Title.Bind(state.NodeName)),
+                NamedControl.Create("Web server cool buttons to click", new StackPanel()
+                {
+                    Orientation = Orientation.Vertical,
+                    Children =
+                    {
+                        webserveruritb1,
+                        webserveruritb2,
+                    },
+                }),
                 NamedControl.Create("Info", configtb),
                 NamedControl.Create("Buttons", new StackPanel()
                 {
@@ -72,7 +96,7 @@ public class DashboardTab : Panel
         {
             try
             {
-                Dispatcher.UIThread.Post(() =>
+                Dispatcher.UIThread.Post(async () =>
                 {
                     infotb.Text = $"""
                         Authenticated as {JsonConvert.SerializeObject(state.AuthInfo.Value ?? default, Formatting.None)}
@@ -81,8 +105,15 @@ public class DashboardTab : Panel
                         {string.Join(Environment.NewLine, state.CompletedTasks.GroupBy(t => t.TaskInfo.FirstAction).Select(t => $"    {t.Key}: {t.Count()}"))}
                         """;
 
+                    webserveruritb1.Text = $"http://{(await PortForwarding.GetPublicIPAsync())}:{state.UPnpServerPort.Value}";
+                    webserveruritb2.Text = $"http://127.0.0.1:{state.UPnpServerPort.Value}";
+
                     configtb.Text = $"""
                         Ui start time: {starttime}
+
+                        webserver:
+                        http://{(await PortForwarding.GetPublicIPAsync())}:{state.UPnpServerPort.Value}
+                        http://127.0.0.1:{state.UPnpServerPort.Value}
 
                         Ports: {JsonConvert.SerializeObject(new
                     {

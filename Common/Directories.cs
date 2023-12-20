@@ -2,30 +2,20 @@ namespace Common;
 
 public static class Directories
 {
+    public static string NameInDirectory(string dir, Func<string> newName)
+    {
+        string path;
+        do { path = Path.Combine(dir, newName()); }
+        while (File.Exists(path) || Directory.Exists(path));
+
+        return path;
+    }
     public static string NumberedNameInDirectory(string dir, string format)
     {
         var num = 0;
-        string path;
-        do
-        {
-            path = Path.Combine(dir, string.Format(CultureInfo.InvariantCulture, format, num));
-            num++;
-        }
-        while (File.Exists(path) || Directory.Exists(path));
-
-        return path;
+        return NameInDirectory(dir, () => Path.Combine(dir, string.Format(CultureInfo.InvariantCulture, format, ++num)));
     }
-    public static string RandomNameInDirectory(string dir, string? extension = null)
-    {
-        string path;
-        do { path = Path.Combine(dir, Guid.NewGuid().ToString()); }
-        while (File.Exists(path) || Directory.Exists(path));
-
-        if (extension is not null)
-            return path + (extension.StartsWith('.') ? extension : ($".{extension}"));
-
-        return path;
-    }
+    public static string RandomNameInDirectory(string dir) => NameInDirectory(dir, () => Guid.NewGuid().ToString());
 
     public static FuncDispose DisposeDelete(string path, out string samepath)
     {
