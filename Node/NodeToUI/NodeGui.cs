@@ -1,11 +1,9 @@
-using NodeToUI.Requests;
-
 namespace NodeToUI;
 
-public static class NodeGui
+public class NodeGui : INodeGui
 {
-    public static readonly ImmutableDictionary<string, Type> GuiRequestTypes;
-    public static readonly ImmutableDictionary<Type, string> GuiRequestNames;
+    public static ImmutableDictionary<string, Type> GuiRequestTypes { get; }
+    public static ImmutableDictionary<Type, string> GuiRequestNames { get; }
 
     static NodeGui()
     {
@@ -19,7 +17,7 @@ public static class NodeGui
         GuiRequestNames = GuiRequestTypes.ToImmutableDictionary(x => x.Value, x => x.Key);
     }
 
-    public static async Task<OperationResult<TResult>> Request<TResult>(GuiRequest request, CancellationToken token)
+    public async Task<OperationResult<TResult>> Request<TResult>(GuiRequest request, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
@@ -47,5 +45,5 @@ public static class NodeGui
         return result.ThrowIfNull().ToObject<TResult>()!;
     }
 
-    public static Task<OperationResult<string>> RequestCaptchaInputAsync(string base64image, CancellationToken token = default) => Request<string>(new CaptchaRequest(base64image), token);
+    public Task<OperationResult<string>> RequestCaptchaInputAsync(string base64image, CancellationToken token = default) => Request<string>(new CaptchaRequest(base64image), token);
 }

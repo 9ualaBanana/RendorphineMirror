@@ -1,7 +1,7 @@
 ﻿using _3DProductsPublish.CGTrader.Network;
 using _3DProductsPublish.CGTrader.Network.Captcha;
 using Microsoft.AspNetCore.WebUtilities;
-using NodeToUI;
+using Node.Common.Models;
 
 namespace _3DProductsPublish.CGTrader.Api;
 
@@ -10,12 +10,14 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
     readonly HttpClient _httpClient;
+    readonly INodeGui _nodeGui;
 
     string IBaseAddressProvider.BaseAddress => "https://service.mtcaptcha.com/mtcv1/api/";
 
-    internal CGTraderCaptchaApi(HttpClient httpClient)
+    internal CGTraderCaptchaApi(HttpClient httpClient, INodeGui nodeGui)
     {
         _httpClient = httpClient;
+        _nodeGui = nodeGui;
     }
 
     #region Request
@@ -69,11 +71,11 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
         var foldChallengeConfiguration = captchaConfiguration["foldChlg"]!;
 
         return new CGTraderCaptchaConfiguration(
-            (string)captchaConfiguration["ct"]!,
+            (string) captchaConfiguration["ct"]!,
             new CGTraderCaptchaFoldChallenge(
-                (string)foldChallengeConfiguration["fseed"]!,
-                (int)foldChallengeConfiguration["fslots"]!,
-                (int)foldChallengeConfiguration["fdepth"]!)
+                (string) foldChallengeConfiguration["fseed"]!,
+                (int) foldChallengeConfiguration["fslots"]!,
+                (int) foldChallengeConfiguration["fdepth"]!)
             );
     }
 
@@ -95,7 +97,7 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
             await _httpClient.GetStringAsync(requestUri, cancellationToken)
             )._EnsureSuccessStatusCode();
 
-        return (string)response["result"]!["img"]!["image64"]!;
+        return (string) response["result"]!["img"]!["image64"]!;
     }
 
     #endregion
@@ -119,8 +121,8 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
     async Task<string> __SolveCaptchaAsync(CGTraderCaptcha captcha, CancellationToken cancellationToken) =>
         await _SolveCaptchaAsyncCore(captcha, await _RequestCaptchaSolutionFromGuiAsync(captcha), cancellationToken);
 
-    static async Task<string> _RequestCaptchaSolutionFromGuiAsync(string base64Image) =>
-        (await NodeGui.RequestCaptchaInputAsync(base64Image))
+    async Task<string> _RequestCaptchaSolutionFromGuiAsync(string base64Image) =>
+        (await _nodeGui.RequestCaptchaInputAsync(base64Image))
         .ThrowIfError("Could not get captcha user input: {0}");
 
     /// <returns>Verified token.</returns>
@@ -152,8 +154,8 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
             ); responseWithVerifiedToken._EnsureSuccessStatusCode();
         var verifiedToken = responseWithVerifiedToken["result"]!["verifyResult"]!;
 
-        if ((bool)verifiedToken["isVerified"]!)
-            return (string)verifiedToken["verifiedToken"]!["vt"]!;
+        if ((bool) verifiedToken["isVerified"]!)
+            return (string) verifiedToken["verifiedToken"]!["vt"]!;
         else throw new UnauthorizedAccessException($"The {nameof(captcha)} didn't pass verification.");
     }
 
@@ -164,7 +166,7 @@ static class CaptchaJObjectExtensions
 {
     internal static JObject _EnsureSuccessStatusCode(this JObject captchaServiceResponse)
     {
-        if ((int)captchaServiceResponse["code"]! != 1200) throw new HttpRequestException(
+        if ((int) captchaServiceResponse["code"]! != 1200) throw new HttpRequestException(
             $"CGTrader CAPTCHA service response code does not indicate success: {captchaServiceResponse["code"]}\n" +
             $"{captchaServiceResponse["msgs"]}.");
         else return captchaServiceResponse;

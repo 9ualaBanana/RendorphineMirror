@@ -1,5 +1,3 @@
-using NodeToUI.Requests;
-
 namespace NodeToUI;
 
 /// <summary> Node runtime state. Not being saved anywhere and is used for node -> ui communication </summary>
@@ -23,6 +21,7 @@ public class NodeGlobalState
     public readonly BindableList<DbTaskFullState> PlacedTasks = new();
     public readonly BindableList<CompletedTask> CompletedTasks = new();
     public readonly BindableList<WatchingTask> WatchingTasks = new();
+    public readonly BindableList<RFProduct> RFProducts = new();
     public readonly Bindable<JObject?> BenchmarkResult = new();
     public readonly Bindable<uint> TaskAutoDeletionDelayDays = new();
 
@@ -42,6 +41,8 @@ public class NodeGlobalState
 
     private NodeGlobalState()
     {
+        RFProducts.SubscribeChanged(() => Console.WriteLine("SUBSCRIBE CHANGED WOW " + RFProducts.Count));
+
         GetType().GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
             .Where(x => x.FieldType.IsAssignableTo(typeof(IBindable)))
             .Select(x => ((IBindable) x.GetValue(this)!, x.Name))

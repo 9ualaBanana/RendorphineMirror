@@ -133,9 +133,10 @@ public static class _3DProductMetadataExtensions
         };
     }
 
-    internal static async Task<_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, CancellationToken cancellationToken)
+    internal static async Task<_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
     {
         var tuboSquidMetadata = await TurboSquid3DProductMetadata.ProvideAsync(
+            nodeGui,
             _.Title,
             _.Description,
             _.Tags,
@@ -153,7 +154,7 @@ public static class _3DProductMetadataExtensions
             UnwrappedUVs(),
             cancellationToken
         );
-        return _3DProduct.With(tuboSquidMetadata);
+        return _3DProduct.With(nodeGui, tuboSquidMetadata);
 
 
         TurboSquid3DProductMetadata.License_ License() => _.License switch
@@ -189,12 +190,12 @@ public static class _3DProductMetadataExtensions
         };
     }
 
-    static _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> With(this _3DProduct _3DProduct, TurboSquid3DProductMetadata metadata)
+    static _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> With(this _3DProduct _3DProduct, INodeGui nodeGui, TurboSquid3DProductMetadata metadata)
     {
         var turboSquid3DProduct = _3DProduct.With_(metadata);
         var turboSquidMetadataFile = TurboSquid3DProductMetadata.File.For(turboSquid3DProduct);
         if (!File.Exists(turboSquidMetadataFile.Path))
-            turboSquidMetadataFile.Populate();
+            turboSquidMetadataFile.Populate(nodeGui);
         return new(turboSquid3DProduct, turboSquidMetadataFile.Read());
     }
 
