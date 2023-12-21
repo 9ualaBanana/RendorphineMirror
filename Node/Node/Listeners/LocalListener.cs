@@ -17,6 +17,7 @@ public class LocalListener : ExecutableListenerBase
     public required Profiler Profiler { get; init; }
     public required RFProduct.Factory RFProductFactory { get; init; }
     public required IComponentContext Container { get; init; }
+    public required IRFProductStorage RFProducts { get; init; }
 
     public LocalListener(ILogger<LocalListener> logger) : base(logger) { }
 
@@ -164,6 +165,14 @@ public class LocalListener : ExecutableListenerBase
             {
                 var product = await RFProductFactory.CreateAsync(idea, container, default);
                 return await WriteJson(response, product.AsOpResult()).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+        if (path == "deleterfproduct")
+        {
+            return await TestPost(await CreateCached(request), response, "id", async (id) =>
+            {
+                RFProducts.RFProducts.Remove(id);
+                return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
 

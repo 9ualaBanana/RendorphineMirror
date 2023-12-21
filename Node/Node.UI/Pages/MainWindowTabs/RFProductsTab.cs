@@ -11,6 +11,8 @@ public class RFProductsTab : Panel
             {
                 new CreateRFProductPanel()
                     .Named("Create"),
+                new RFProductListPanel()
+                    .Named("List"),
             },
         };
 
@@ -18,13 +20,6 @@ public class RFProductsTab : Panel
     }
 
 
-    class CreateRFProductPanelData
-    {
-        [LocalFile] public required string Idea { get; init; }
-
-        [LocalDirectory] public required string DirectoryContainer { get; init; }
-        [LocalFile] public required string ArchiveContainer { get; init; }
-    }
     class CreateRFProductPanel : Panel
     {
         public CreateRFProductPanel()
@@ -121,6 +116,72 @@ public class RFProductsTab : Panel
         {
             var result = await ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false });
             return result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty;
+        }
+    }
+    class RFProductListPanel : Panel
+    {
+        readonly IReadOnlyBindableCollection<RFProduct> Products;
+
+        public RFProductListPanel()
+        {
+            Products = NodeGlobalState.Instance.RFProducts.GetBoundCopy();
+
+            var stack = new StackPanel()
+            {
+                Orientation = Orientation.Vertical,
+                Spacing = 20,
+            };
+            Children.Add(new ScrollViewer() { Content = stack });
+
+            Products.SubscribeChanged(() =>
+            {
+                stack.Children.Clear();
+
+                foreach (var product in Products)
+                    stack.Children.Add(new RFProductUi(product));
+            }, true);
+        }
+    }
+    class RFProductUi : Panel
+    {
+        readonly RFProduct Product;
+
+        public RFProductUi(RFProduct product)
+        {
+            Product = product;
+
+            var grid = new Grid()
+            {
+                RowDefinitions = RowDefinitions.Parse("Auto Auto Auto Auto"),
+                ColumnDefinitions = ColumnDefinitions.Parse("Auto *"),
+                Children =
+                {
+                    new TextBlock() { Text = $"ID: {product.ID}" },
+                    new TextBlock() { Text = $"Path: {product.Path}" }.WithRow(1),
+                    new MPButton()
+                    {
+                        Text = "Open directory",
+                        OnClick = () =>
+                        {
+                            var target = Product.Path;
+                            if (!Directory.Exists(target))
+                                target = Path.GetDirectoryName(target)!;
+
+                            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+                        },
+                    }.WithRow(2),
+                    new MPButton()
+                    {
+                        Text = "Delete from DB (no files deleted)",
+                        OnClickSelf = async (self) =>
+                        {
+                            var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product.ID));
+                            await self.Flash(result);
+                        },
+                    }.WithRow(3),
+                },
+            };
+            Children.Add(grid);
         }
     }
 }

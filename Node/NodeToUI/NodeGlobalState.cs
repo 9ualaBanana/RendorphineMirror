@@ -41,6 +41,8 @@ public class NodeGlobalState
 
     private NodeGlobalState()
     {
+        RFProducts.SubscribeChanged(() => Console.WriteLine("SUBSCRIBE CHANGED WOW " + RFProducts.Count));
+
         GetType().GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
             .Where(x => x.FieldType.IsAssignableTo(typeof(IBindable)))
             .Select(x => ((IBindable) x.GetValue(this)!, x.Name))
