@@ -31,7 +31,7 @@ public partial record RFProduct
                 container.Store(ref idea, @as: System.IO.Path.ChangeExtension(Idea_.FileName, System.IO.Path.GetExtension(idea)), StoreMode.Copy);
 
                 var subProducts = new HashSet<RFProduct>(IDEqualityComparer._);
-                foreach (var asset in product.EnumerateFiles().Where(IsValidProduct))
+                foreach (var asset in product.EnumerateEntries().Where(IsValidProduct))
                     subProducts.Add(
                         await CreateAsync(asset, System.IO.Path.Combine(container, System.IO.Path.GetFileNameWithoutExtension(asset)), cancellationToken)
                         );

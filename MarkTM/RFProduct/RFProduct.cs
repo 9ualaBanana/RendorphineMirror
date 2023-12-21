@@ -137,7 +137,7 @@ public partial record RFProduct : AssetContainer
             internal const string Extension = ".rfpid";
 
             internal static ID_? FindInside(AssetContainer container)
-                => container.EnumerateFiles(FilesToEnumerate.NonContainers)
+                => container.EnumerateEntries(EntryType.NonContainers)
                 .SingleOrDefault(_ => System.IO.Path.GetExtension(_) == File_.Extension) is string file ?
 
                 new(System.IO.Path.GetFileNameWithoutExtension(file), container) : null;

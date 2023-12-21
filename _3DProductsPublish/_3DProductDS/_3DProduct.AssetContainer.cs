@@ -89,28 +89,36 @@ public partial record _3DProduct
         //    }
         //    .ExecuteOn(this);
 
-        public IEnumerable<AssetContainer> EnumerateContainers()
-            => EnumerateFiles().Where(AssetContainer.Exists).Select(_ => new AssetContainer(_));
+        //public IEnumerable<AssetContainer> EnumerateContainers()
+        //    => EnumerateFiles().Where(AssetContainer.Exists).Select(_ => new AssetContainer(_));
 
         /// <remarks>
         /// Creates a temporary directory if <see langword="this"/> <see cref="AssetContainer.ContainerType"/> is <see cref="Type_.Archive"/>.
         /// </remarks>
-        public IEnumerable<string> EnumerateFiles(FilesToEnumerate filesToEnumerate = FilesToEnumerate.All)
+        public IEnumerable<string> EnumerateEntries(EntryType entryTypes = EntryType.All)
         {
-            var allFiles = _directoryPath is not null ?
-                Directory.EnumerateFiles(_directoryPath) :
-                Archive_.EnumerateFiles(_archivePath!, out _directoryPath);
+            var allEntries = new FileSystemOperation<IEnumerable<string>>
+            {
+                OnDirectory = () => Directory.EnumerateFileSystemEntries(_directoryPath!),
+                OnArchive = () => Archive_.EnumerateFiles(_archivePath!, out _directoryPath)
+            }
+            .ExecuteOn(this);
 
-            var files = new HashSet<string>();
-            if (filesToEnumerate.HasFlag(FilesToEnumerate.Containers))
-                files.UnionWith(allFiles.Where(AssetContainer.Exists));
-            if (filesToEnumerate.HasFlag(FilesToEnumerate.NonContainers))
-                files.UnionWith(allFiles.Where(_ => !AssetContainer.Exists(_)));
-            return files;
+            if (entryTypes is EntryType.All)
+                return allEntries;
+            else
+            {
+                var entries = new HashSet<string>();
+                if (entryTypes.HasFlag(EntryType.Containers))
+                    entries.UnionWith(allEntries.Where(AssetContainer.Exists));
+                if (entryTypes.HasFlag(EntryType.NonContainers))
+                    entries.UnionWith(allEntries.Where(_ => !AssetContainer.Exists(_)));
+                return entries;
+            }
         }
 
         [Flags]
-        public enum FilesToEnumerate
+        public enum EntryType
         {
             Containers = 1,
             NonContainers = 2,
@@ -122,7 +130,7 @@ public partial record _3DProduct
             .Concat
             (Directory.EnumerateDirectories(directoryPath));
 
-        internal static bool Exists(string path) => Archive_.Exists(path) || Directory.Exists(path);
+        public static bool Exists(string path) => Archive_.Exists(path) || Directory.Exists(path);
 
         public void Dispose()
         { Dispose(true); GC.SuppressFinalize(this); }
@@ -200,7 +208,11 @@ public partial record _3DProduct
             internal required Action OnDirectory { get; init; }
 
             internal void ExecuteOn(AssetContainer target)
-            { if (target._directoryPath is not null) OnDirectory(); else OnArchive(); }
+            {
+                if (target._directoryPath is not null)
+                    OnDirectory();
+                else OnArchive();
+            }
         }
         class FileSystemOperation<TResult>
         {
