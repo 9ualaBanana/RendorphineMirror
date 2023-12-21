@@ -10,11 +10,11 @@ public partial record _3DProduct
         { Archive, Directory }
 
         public Type_ ContainerType { get; }
-        public string Path { get; }
-        public string Name { get; }
+        public string Path { get; private set; }
+        public string Name => System.IO.Path.GetFileName(Path);
 
         string? _directoryPath;
-        readonly string? _archivePath;
+        string? _archivePath;
 
         public static AssetContainer Create(string path, bool disposeTemps = true)
             => AssetContainer.Exists(path) ?
@@ -27,7 +27,6 @@ public partial record _3DProduct
             else if (Directory.Exists(path))
             { Path = _directoryPath = path; ContainerType = Type_.Directory; }
             else throw new ArgumentException($"{nameof(AssetContainer)} must reference either directory or archive.", nameof(path));
-            Name = System.IO.Path.GetFileName(path); 
 
             _disposeTemps = disposeTemps;
         }
