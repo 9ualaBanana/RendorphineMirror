@@ -15,6 +15,7 @@ public class LocalListener : ExecutableListenerBase
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required SessionManager SessionManager { get; init; }
     public required Profiler Profiler { get; init; }
+    public required RFProduct.Factory RFProductFactory { get; init; }
 
     public LocalListener(ILogger<LocalListener> logger) : base(logger) { }
 
@@ -153,6 +154,15 @@ public class LocalListener : ExecutableListenerBase
                     .PublishAsync(product, meta, default);
 
                 return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
+        if (path == "createrfproduct")
+        {
+            return await TestPost(await CreateCached(request), response, "idea", "container", async (idea, container) =>
+            {
+                var product = await RFProductFactory.CreateAsync(idea, container, default);
+                return await WriteJson(response, product.AsOpResult()).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
 

@@ -37,6 +37,7 @@ namespace Node.UI.Pages
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
             tabs.Add("3dupload", new Model3DUploadTab());
+            tabs.Add("rfproduct", new RFProductsTab());
 
             var statustb = new TextBlock()
             {
