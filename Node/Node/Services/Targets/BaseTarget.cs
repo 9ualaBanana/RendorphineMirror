@@ -28,5 +28,4 @@ public class BaseTarget : IServiceTarget
     public required TaskExecutorTarget TaskExecutor { get; init; }
     public required PluginUpdaterTarget PluginUpdater { get; init; }
     public required TaskListener TaskListener { get; init; }
-    public required _3DProductPublisherTarget _3DProductPublisher { get; init; }
 }

@@ -4,6 +4,9 @@ using Autofac.Core;
 
 namespace Node.Common;
 
+/// <summary>
+/// <see cref="IRegistrationSource"/> that automatically registers any type with <see cref="AutoRegisteredServiceAttribute"/>
+/// </summary>
 public class AutoServiceRegistrator : IRegistrationSource
 {
     public bool IsAdapterForIndividualComponents => false;

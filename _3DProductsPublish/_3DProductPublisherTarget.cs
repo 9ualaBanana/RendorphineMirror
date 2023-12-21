@@ -2,42 +2,47 @@ using _3DProductsPublish.CGTrader.Api;
 using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid.Upload;
 using Autofac;
-using Node.Common.Models;
+using Autofac.Builder;
+using Autofac.Core;
 
 namespace _3DProductsPublish;
 
-public class _3DProductPublisherTarget : IServiceTarget
+public class _3DProductPublisherTarget : IDelayedServiceTarget
 {
-    public static void CreateRegistrations(ContainerBuilder builder) { }
+    public static IEnumerable<IComponentRegistration> CreateRegistrations() => [];
 
     public required CGTraderTarget CGTrader { get; init; }
     public required TurboSquidTarget TurboSquid { get; init; }
 
 
-    public class CGTraderTarget : IServiceTarget
+    public class CGTraderTarget : IDelayedServiceTarget
     {
-        public static void CreateRegistrations(ContainerBuilder builder)
+        public static IEnumerable<IComponentRegistration> CreateRegistrations()
         {
-            builder.RegisterType<CGTraderApi>()
-                .InstancePerDependency();
+            yield return RegistrationBuilder.ForType<CGTraderApi>()
+                .InstancePerDependency()
+                .CreateRegistration();
 
-            builder.RegisterType<CGTraderCaptchaApi>()
-                .InstancePerDependency();
+            yield return RegistrationBuilder.ForType<CGTraderCaptchaApi>()
+                .InstancePerDependency()
+                .CreateRegistration();
 
-            builder.RegisterType<CGTrader3DProductPublisher>()
+            yield return RegistrationBuilder.ForType<CGTrader3DProductPublisher>()
                 .AsSelf()
                 .AsImplementedInterfaces()
-                .InstancePerDependency();
+                .InstancePerDependency()
+                .CreateRegistration();
         }
     }
-    public class TurboSquidTarget : IServiceTarget
+    public class TurboSquidTarget : IDelayedServiceTarget
     {
-        public static void CreateRegistrations(ContainerBuilder builder)
+        public static IEnumerable<IComponentRegistration> CreateRegistrations()
         {
-            builder.RegisterType<TurboSquid3DProductPublisher>()
+            yield return RegistrationBuilder.ForType<TurboSquid3DProductPublisher>()
                 .AsSelf()
                 .AsImplementedInterfaces()
-                .InstancePerDependency();
+                .InstancePerDependency()
+                .CreateRegistration();
         }
     }
 }
