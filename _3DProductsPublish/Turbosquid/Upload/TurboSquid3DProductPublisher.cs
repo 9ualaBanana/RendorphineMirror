@@ -8,8 +8,8 @@ internal class TurboSquid3DProductPublisher : I3DProductPublisher<TurboSquid3DPr
 {
     readonly TurboSquid _turboSquid;
 
-    internal static async Task<TurboSquid3DProductPublisher> InitializeAsync(NetworkCredential credential, CancellationToken cancellationToken)
-        => new(await TurboSquid.LogInAsyncUsing(credential, cancellationToken));
+    internal static async Task<TurboSquid3DProductPublisher> InitializeAsync(NetworkCredential credential, INodeGui nodeGui, CancellationToken cancellationToken)
+        => new(await TurboSquid.LogInAsyncUsing(credential, nodeGui, cancellationToken));
 
     TurboSquid3DProductPublisher(TurboSquid turboSquid)
     {

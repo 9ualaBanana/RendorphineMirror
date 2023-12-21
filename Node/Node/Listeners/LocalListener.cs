@@ -16,6 +16,7 @@ public class LocalListener : ExecutableListenerBase
     public required SessionManager SessionManager { get; init; }
     public required Profiler Profiler { get; init; }
     public required RFProduct.Factory RFProductFactory { get; init; }
+    public required IComponentContext Container { get; init; }
 
     public LocalListener(ILogger<LocalListener> logger) : base(logger) { }
 
@@ -150,7 +151,7 @@ public class LocalListener : ExecutableListenerBase
                 var meta = JsonConvert.DeserializeObject<_3DProduct.Metadata_>(jmeta).ThrowIfNull();
 
                 var product = _3DProduct.FromDirectory(dir);
-                await (await _3DProductPublisher.InitializeAsync(creds, default))
+                await (await _3DProductPublisher.InitializeAsync(Container, creds, default))
                     .PublishAsync(product, meta, default);
 
                 return await WriteSuccess(response).ConfigureAwait(false);

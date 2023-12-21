@@ -17,11 +17,11 @@ internal partial class TurboSquid : HttpClient
 
     internal required TurboSquidNetworkCredential Credential { get; init; }
 
-    internal static async Task<TurboSquid> LogInAsyncUsing(NetworkCredential credential, CancellationToken cancellationToken)
+    internal static async Task<TurboSquid> LogInAsyncUsing(NetworkCredential credential, INodeGui nodeGui, CancellationToken cancellationToken)
     {
         var handler = new SocketsHttpHandler();
         var client = new TurboSquid(handler) { Credential = await RequestTurboSquidNetworkCredentialAsync() };
-        await new TurboSquidAuthenticationApi(handler)._LoginAsyncUsing(client.Credential, cancellationToken);
+        await new TurboSquidAuthenticationApi(handler, nodeGui)._LoginAsyncUsing(client.Credential, cancellationToken);
         return client;
 
         async Task<TurboSquidNetworkCredential> RequestTurboSquidNetworkCredentialAsync()

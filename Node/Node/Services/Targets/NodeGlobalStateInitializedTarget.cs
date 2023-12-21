@@ -4,6 +4,11 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
 {
     public static void CreateRegistrations(ContainerBuilder builder)
     {
+        builder.RegisterType<NodeGui>()
+            .AsSelf()
+            .AsImplementedInterfaces()
+            .SingleInstance();
+
         builder.RegisterInstance(NodeGlobalState.Instance)
             .SingleInstance();
     }

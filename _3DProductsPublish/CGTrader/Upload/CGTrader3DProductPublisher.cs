@@ -6,13 +6,13 @@ using System.Net;
 
 namespace _3DProductsPublish.CGTrader.Upload;
 
-public class CGTrader3DProductPublisher : I3DProductPublisher<CGTrader3DProductMetadata>
+internal class CGTrader3DProductPublisher : I3DProductPublisher<CGTrader3DProductMetadata>
 {
     readonly CGTraderApi _api;
 
-    public CGTrader3DProductPublisher()
+    public CGTrader3DProductPublisher(CGTraderApi api)
     {
-        _api = new(new HttpClient());
+        _api = api;
     }
 
     public async Task PublishAsync(

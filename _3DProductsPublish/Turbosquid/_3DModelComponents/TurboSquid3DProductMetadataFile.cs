@@ -1,7 +1,5 @@
 ﻿using System.Reflection;
 using _3DProductsPublish._3DProductDS;
-using NodeToUI;
-using NodeToUI.Requests;
 using Tomlyn;
 using Tomlyn.Syntax;
 using static Tomlyn.Helpers.TomlNamingHelper;
@@ -25,12 +23,12 @@ public partial record TurboSquid3DProductMetadata
             Name = name;
         }
 
-        internal void Populate()
+        internal void Populate(INodeGui nodeGui)
         {
             using var _file = System.IO.File.OpenWrite(Path);
             using var file = new StreamWriter(_file);
 
-            var infos = requestInfo(_3DProduct._3DModels.ToArray()).Result.ThrowIfError();
+            var infos = requestInfo(nodeGui, _3DProduct._3DModels.ToArray()).Result.ThrowIfError();
             foreach (var (userinfo, model) in infos)
                 DescribedAndSerialized(userinfo, model).WriteTo(file);
 
@@ -49,7 +47,7 @@ public partial record TurboSquid3DProductMetadata
                 return type.GenericTypeArguments[0];
             }
 
-            static async Task<OperationResult<(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo?, _3DModel)[]>> requestInfo(IReadOnlyCollection<_3DModel> models)
+            static async Task<OperationResult<(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo?, _3DModel)[]>> requestInfo(INodeGui nodeGui, IReadOnlyCollection<_3DModel> models)
             {
                 var enumdict = Assembly.GetAssembly(typeof(File)).ThrowIfNull().GetTypes()
                     .Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(NativeFileFormatMetadata)))
@@ -67,7 +65,7 @@ public partial record TurboSquid3DProductMetadata
                 }).ToImmutableArray();
 
                 return await
-                    from response in NodeGui.Request<InputTurboSquidModelInfoRequest.Response>(new InputTurboSquidModelInfoRequest(infos), default)
+                    from response in nodeGui.Request<InputTurboSquidModelInfoRequest.Response>(new InputTurboSquidModelInfoRequest(infos), default)
                     select response.Infos.Zip(models).ToArray();
             }
             static DocumentSyntax DescribedAndSerialized(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo? userinfo, _3DModel _3DModel)

@@ -1,4 +1,4 @@
-namespace NodeToUI;
+namespace Node.Common.Models;
 
 public interface INodeSettings
 {

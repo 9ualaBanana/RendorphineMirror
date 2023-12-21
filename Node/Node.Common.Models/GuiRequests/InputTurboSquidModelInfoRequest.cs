@@ -1,4 +1,4 @@
-namespace NodeToUI.Requests;
+namespace Node.Common.Models.GuiRequests;
 
 public record InputTurboSquidModelInfoRequest(ImmutableArray<InputTurboSquidModelInfoRequest.ModelInfo> Infos) : GuiRequest
 {
