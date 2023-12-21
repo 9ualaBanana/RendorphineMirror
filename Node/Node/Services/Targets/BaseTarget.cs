@@ -20,6 +20,9 @@ public class BaseTarget : IServiceTarget
 
         builder.RegisterType<SessionManager>()
             .SingleInstance();
+
+        builder.RegisterType<SystemLoadStoreService>()
+            .SingleInstance();
     }
 
     public required ApiTarget Api { get; init; }
@@ -27,4 +30,10 @@ public class BaseTarget : IServiceTarget
     public required TaskExecutorTarget TaskExecutor { get; init; }
     public required PluginUpdaterTarget PluginUpdater { get; init; }
     public required TaskListener TaskListener { get; init; }
+    public required SystemLoadStoreService SystemLoadStoreService { get; init; }
+
+    async Task IServiceTarget.ExecuteAsync()
+    {
+        SystemLoadStoreService.Start(default);
+    }
 }

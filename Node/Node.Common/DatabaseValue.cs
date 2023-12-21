@@ -97,6 +97,8 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
     readonly BindableList<TValue> ItemsList = new();
     readonly Dictionary<TKey, TValue> Items;
 
+    readonly DatabaseAccessor<TKey, TValue> Accessor;
+
     readonly Func<TValue, TKey> KeyFunc;
     readonly string TableName;
     public readonly Database Database;
@@ -104,6 +106,7 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
     public DatabaseValueDictionary(Database database, string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null, JsonSerializer? serializer = null)
     {
         Database = database;
+        Accessor = new(database, table);
 
         if (serializer is not null) ItemsList.JsonSerializer = serializer;
         Items = new(comparer);
@@ -114,13 +117,6 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
         Reload();
     }
 
-    SQLiteParameter Parameter<T>(string name, T value) =>
-        new SQLiteParameter(name,
-            value is string str ? "\"" + str + "\""
-            : value is null ? JValue.CreateNull().ToString()
-            : JToken.FromObject(value, Bindable.JsonSerializer).ToString()
-        );
-
     public TValue this[TKey key] => Items[key];
     public void Add(TValue value)
     {
@@ -130,10 +126,7 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
             ItemsList.Add(value);
             Items.Add(key, value);
 
-            Database.ExecuteNonQuery(@$"insert into {TableName}(key, value) values (@key, @value)",
-                Parameter("key", key),
-                Parameter("value", value)
-            );
+            Accessor.Add(key, value);
         }
     }
     public void AddRange(IEnumerable<TValue> values)
@@ -152,7 +145,7 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
                 ItemsList.Remove(value);
             Items.Remove(key);
 
-            Database.ExecuteNonQuery(@$"delete from {TableName} where key=@key", Parameter("key", key));
+            Accessor.Remove(key);
         }
     }
 
@@ -162,7 +155,7 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
         {
             ItemsList.Clear();
             Items.Clear();
-            Database.ExecuteNonQuery(@$"delete from {TableName}");
+            Accessor.Clear();
         }
     }
 
@@ -189,8 +182,8 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
     public void Save(TValue value)
     {
         Database.ExecuteNonQuery($"insert into {TableName}(key,value) values (@key, @value) on conflict(key) do update set value=@value;",
-            Parameter("key", KeyFunc(value)),
-            Parameter("value", value)
+            Accessor.Parameter("key", KeyFunc(value)),
+            Accessor.Parameter("value", value)
         );
     }
 
