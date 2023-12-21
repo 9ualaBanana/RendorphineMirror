@@ -153,6 +153,7 @@ public partial record RFProduct : AssetContainer
         {
             public required INodeSettings NodeSettings { get; init; }
             public required ITaskExecutor TaskExecutor { get; init; }
+            public required ILogger<Generator<QSPreviews_>> Logger { get; init; }
 
             internal async Task<QSPreviews_> GenerateAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
             {
