@@ -4,6 +4,11 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
 {
     public static void CreateRegistrations(ContainerBuilder builder)
     {
+        builder.RegisterType<NodeGui>()
+            .AsSelf()
+            .AsImplementedInterfaces()
+            .SingleInstance();
+
         builder.RegisterInstance(NodeGlobalState.Instance)
             .SingleInstance();
     }
@@ -12,6 +17,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required PluginManager PluginManager { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }
+    public required IRFProductStorage RFProducts { get; init; }
     public required IQueuedTasksStorage QueuedTasks { get; init; }
     public required IPlacedTasksStorage PlacedTasks { get; init; }
     public required ICompletedTasksStorage CompletedTasks { get; init; }
@@ -27,6 +33,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         var state = NodeGlobalState;
 
         state.WatchingTasks.Bind(WatchingTasks.WatchingTasks.Bindable);
+        state.RFProducts.Bind(RFProducts.RFProducts.Bindable);
         state.PlacedTasks.Bind(PlacedTasks.PlacedTasks.Bindable);
         state.CompletedTasks.Bind(CompletedTasks.CompletedTasks.Bindable);
         QueuedTasks.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(QueuedTasks.QueuedTasks.Values), true);

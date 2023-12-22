@@ -36,6 +36,12 @@ namespace Node.UI.Controls
         }
 
 
+        public FuncDispose Lock()
+        {
+            IsEnabled = false;
+            return new FuncDispose(() => IsEnabled = true);
+        }
+
         public Task<bool> FlashErrorIfErr<T>(OperationResult<T> opres, int duration = 2000) => FlashErrorIfErr(opres.GetResult(), duration);
         public Task<bool> FlashErrorIfErr(OperationResult opres, int duration = 2000)
         {

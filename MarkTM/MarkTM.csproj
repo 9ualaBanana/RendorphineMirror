@@ -10,6 +10,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Node\Node.Tasks\Node.Tasks.csproj" />
     <ProjectReference Include="..\_3DProductsPublish\_3DProductsPublish.csproj" />
+    <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Remove="NLog" />
+    <Using Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
 
 </Project>

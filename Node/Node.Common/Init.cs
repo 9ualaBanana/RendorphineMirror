@@ -77,6 +77,7 @@ public class Init : IServiceTarget
             .SingleInstance();
 
         builder.RegisterSource<AutoServiceRegistrator>();
+        builder.RegisterSource<AutoDelayedTargetRegistrator>();
     }
 
     public required InitConfig Configuration { get; init; }

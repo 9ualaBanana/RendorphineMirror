@@ -15,6 +15,9 @@ public class LocalListener : ExecutableListenerBase
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required SessionManager SessionManager { get; init; }
     public required Profiler Profiler { get; init; }
+    public required RFProduct.Factory RFProductFactory { get; init; }
+    public required IComponentContext Container { get; init; }
+    public required IRFProductStorage RFProducts { get; init; }
 
     public LocalListener(ILogger<LocalListener> logger) : base(logger) { }
 
@@ -149,9 +152,26 @@ public class LocalListener : ExecutableListenerBase
                 var meta = JsonConvert.DeserializeObject<_3DProduct.Metadata_>(jmeta).ThrowIfNull();
 
                 var product = _3DProduct.FromDirectory(dir);
-                await (await _3DProductPublisher.InitializeAsync(creds, default))
+                await (await _3DProductPublisher.InitializeAsync(Container, creds, default))
                     .PublishAsync(product, meta, default);
 
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
+        if (path == "createrfproduct")
+        {
+            return await TestPost(await CreateCached(request), response, "idea", "container", async (idea, container) =>
+            {
+                var product = await RFProductFactory.CreateAsync(idea, container, default);
+                return await WriteJson(response, product.AsOpResult()).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+        if (path == "deleterfproduct")
+        {
+            return await TestPost(await CreateCached(request), response, "id", async (id) =>
+            {
+                RFProducts.RFProducts.Remove(id);
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }

@@ -1,7 +1,7 @@
-﻿using Node.Tasks;
+﻿using Node.Common.Models;
+using Node.Tasks;
 using Node.Tasks.Models;
 using Node.Tasks.Models.ExecInfo;
-using NodeToUI;
 using System.Collections;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,7 +11,7 @@ namespace MarkTM.RFProduct;
 
 public partial record RFProduct : AssetContainer
 {
-    [JsonProperty] string Type
+    [JsonProperty] public string Type
     {
         get => _type ?? this.GetType().Name;
         init => _type = value;
@@ -153,6 +153,7 @@ public partial record RFProduct : AssetContainer
         {
             public required INodeSettings NodeSettings { get; init; }
             public required ITaskExecutor TaskExecutor { get; init; }
+            public required ILogger<Generator<QSPreviews_>> Logger { get; init; }
 
             internal async Task<QSPreviews_> GenerateAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
             {

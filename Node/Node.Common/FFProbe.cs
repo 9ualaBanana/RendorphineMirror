@@ -26,6 +26,8 @@ public static class FFProbe
 
     public record FFProbeInfo(ImmutableArray<FFProbeStreamInfo> Streams, FFProbeFormatInfo Format)
     {
+        public TimeSpan Duration => TimeSpan.FromSeconds(Format.Duration);
+
         // die if there are multiple video streams
         public FFProbeStreamInfo VideoStream
         {
