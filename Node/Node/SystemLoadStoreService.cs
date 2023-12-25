@@ -1,6 +1,4 @@
 using Node.Profiling;
-using Node.Tasks.Exec.Actions;
-using Node.Tasks.Models.ExecInfo;
 
 namespace Node;
 
@@ -44,7 +42,7 @@ public class SystemLoadStoreService
                 .Select(t => new NodeLoadTask(t.TaskInfo.Id, t.TaskInfo.State, Enum.Parse<TaskAction>(t.TaskInfo.FirstAction), t.TaskInfo.Times)),
         ];
 
-        var load = new NodeLoad(hwload, tasks.ToDictionary(t => t.State));
+        var load = new NodeLoad(hwload, tasks.GroupBy(t => t.State).ToDictionary(g => g.Key, g => g.ToArray() as IReadOnlyCollection<NodeLoadTask>));
         Logger.Info($"System load: {JsonConvert.SerializeObject(load, Formatting.None)}");
         NodeLoadStorage.NodeFullLoad.Add(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), load);
     }

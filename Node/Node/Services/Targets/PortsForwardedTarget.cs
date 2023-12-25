@@ -34,7 +34,14 @@ public class PortsForwardedTarget : IServiceTarget
                 while (true)
                 {
                     try { await mapDevice(device); }
-                    catch (Exception ex) { Logger.Error($"Exception while mapping device {device.DeviceEndpoint}: {ex}"); }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Exception while mapping device {device.DeviceEndpoint}: {ex}");
+
+                        NatUtility.StopDiscovery();
+                        NatUtility.StartDiscovery(NatProtocol.Upnp);
+                        return;
+                    }
 
                     Thread.Sleep((mapTimeSec - (60 * 10)) * 1000);
                 }
