@@ -108,6 +108,8 @@ namespace Node.UI
                     var lifetime = (IClassicDesktopStyleApplicationLifetime) app.ApplicationLifetime!;
 
                     var window = lifetime.MainWindow ?? App.Current.SetMainWindow(lifetime);
+                    if (window is null) return;
+
                     if (window.IsVisible) window.Hide();
                     else window.Show();
                 });
