@@ -37,12 +37,7 @@ public partial record _3DProduct
         /// </summary>
         /// <returns>Path to the archive where this <see cref="_3DModel"/> is stored.</returns>
         internal ValueTask<string> Archive()
-            => ValueTask.FromResult(new FileSystemOperation<string>
-            {
-                OnArchive = () => _archivePath!,
-                OnDirectory = () => Archive_.Pack(_directoryPath!)
-            }
-            .ExecuteOn(this));
+            => ValueTask.FromResult(_archivePath ??= Archive_.Pack(_directoryPath!));
 
         public string Store(ref string file, string? @as = default, StoreMode mode = StoreMode.Move)
             => file = Store(file, @as, mode);
@@ -98,12 +93,9 @@ public partial record _3DProduct
         /// </remarks>
         public IEnumerable<string> EnumerateEntries(EntryType entryTypes = EntryType.All)
         {
-            var allEntries = new FileSystemOperation<IEnumerable<string>>
-            {
-                OnDirectory = () => Directory.EnumerateFileSystemEntries(_directoryPath!),
-                OnArchive = () => Archive_.EnumerateFiles(_archivePath!, out _directoryPath)
-            }
-            .ExecuteOn(this);
+            var allEntries = _directoryPath is null ?
+                Archive_.EnumerateFiles(_archivePath!, out _directoryPath) :
+                Directory.EnumerateFileSystemEntries(_directoryPath);
 
             if (entryTypes is EntryType.All)
                 return allEntries;
@@ -210,9 +202,12 @@ public partial record _3DProduct
 
             internal void ExecuteOn(AssetContainer target)
             {
-                if (target._directoryPath is not null)
-                    OnDirectory();
-                else OnArchive();
+                switch (target.ContainerType)
+                {
+                    case AssetContainer.Type_.Archive: OnArchive(); break;
+                    case AssetContainer.Type_.Directory: OnDirectory(); break;
+                    default: throw new NotImplementedException();
+                }
             }
         }
         class FileSystemOperation<TResult>
@@ -221,7 +216,14 @@ public partial record _3DProduct
             internal required Func<TResult> OnDirectory { get; init; }
 
             internal TResult ExecuteOn(AssetContainer target)
-                => target._directoryPath is not null ? OnDirectory() : OnArchive();
+            {
+                switch (target.ContainerType)
+                {
+                    case AssetContainer.Type_.Archive: return OnArchive();
+                    case AssetContainer.Type_.Directory: return OnDirectory();
+                    default: throw new NotImplementedException();
+                }
+            }
         }
     }
 }
