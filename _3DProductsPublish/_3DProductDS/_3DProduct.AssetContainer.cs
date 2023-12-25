@@ -125,6 +125,15 @@ public partial record _3DProduct
 
         public static bool Exists(string path) => Archive_.Exists(path) || Directory.Exists(path);
 
+        public void Delete()
+        {
+            switch (ContainerType)
+            {
+                case Type_.Archive: File.Delete(this); break;
+                case Type_.Directory: new DirectoryInfo(this).Delete(DeletionMode.Wipe); break;
+            }
+        }
+
         public void Dispose()
         { Dispose(true); GC.SuppressFinalize(this); }
 
