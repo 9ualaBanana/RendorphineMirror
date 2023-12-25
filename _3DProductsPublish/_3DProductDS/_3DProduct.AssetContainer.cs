@@ -170,8 +170,8 @@ public partial record _3DProduct
         {
             static bool IsArchive(string path) => _validExtensions.Contains(System.IO.Path.GetExtension(path));
             readonly static string[] _validExtensions = [".zip", ".rar"];
-            internal static IEnumerable<string> EnumerateFiles(string path, out string tempDirectoryPath)
-                => Directory.EnumerateFiles(tempDirectoryPath = Archive_.Unpack(path));
+            internal static IEnumerable<string> EnumerateFiles(string path, ref string? tempDirectoryPath)
+                => Directory.EnumerateFileSystemEntries(tempDirectoryPath ??= Archive_.Unpack(path));
 
             internal static string Unpack(string path)
             {
