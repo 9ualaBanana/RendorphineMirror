@@ -1,6 +1,4 @@
-﻿using NodeToUI.Requests;
-using NodeToUI;
-using System.Net;
+﻿using System.Net;
 using _3DProductsPublish.Turbosquid.Upload;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
@@ -10,6 +8,7 @@ public partial record TurboSquid3DProductMetadata
     internal const string FileName = "turbosquid.meta";
 
     public static async Task<TurboSquid3DProductMetadata> ProvideAsync(
+        INodeGui nodeGui,
         string title,
         string description,
         string[] tags,
@@ -36,7 +35,7 @@ public partial record TurboSquid3DProductMetadata
             string categoryPrompt;
             while (true)
             {
-                categoryPrompt = (await NodeGui.Request<string>(new InputRequest("Please specify 3D product category"), cancellationToken)).Result;
+                categoryPrompt = (await nodeGui.Request<string>(new InputRequest("Please specify 3D product category"), cancellationToken)).Result;
                 var suggestions = JArray.Parse(
                     await httpClient.GetStringAsync($"features/suggestions?fields%5Btags_and_synonyms%5D={WebUtility.UrlEncode(categoryPrompt)}&assignable=true&assignable_restricted=false&ancestry=1%2F6&limit=25", cancellationToken)
                     );

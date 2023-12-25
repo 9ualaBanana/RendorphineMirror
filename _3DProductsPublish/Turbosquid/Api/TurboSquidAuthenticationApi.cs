@@ -1,8 +1,6 @@
-﻿using _3DProductsPublish.Turbosquid.Network.Authenticity;
+﻿using System.Net;
+using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using Microsoft.Net.Http.Headers;
-using NodeToUI;
-using NodeToUI.Requests;
-using System.Net;
 
 namespace _3DProductsPublish.Turbosquid.Api;
 
@@ -13,10 +11,11 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
     readonly SocketsHttpHandler _socketsHttpHandler;
     readonly HttpClient _httpClient;
     readonly HttpClient _noAutoRedirectHttpClient;
+    readonly INodeGui _nodeGui;
 
     public string BaseAddress { get; init; } = "https://auth.turbosquid.com/";
 
-    internal TurboSquidAuthenticationApi(SocketsHttpHandler socketsHttpHandler)
+    internal TurboSquidAuthenticationApi(SocketsHttpHandler socketsHttpHandler, INodeGui nodeGui)
     {
         _socketsHttpHandler = socketsHttpHandler;
         _httpClient = new(socketsHttpHandler);
@@ -25,6 +24,7 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
             AllowAutoRedirect = false,
             CookieContainer = socketsHttpHandler.CookieContainer
         });
+        _nodeGui = nodeGui;
 
         _httpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
         _noAutoRedirectHttpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
@@ -66,7 +66,7 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
     {
         var _2faForm = await _Get2FAFormAsync(cancellationToken);
         var updatedCsrfToken = CsrfToken._ParseFromMetaTag(_2faForm);
-        string verificationCode = (await NodeGui.Request<string>(new InputRequest("TODO: we send you mesag to email please respond"), cancellationToken)).Result;
+        string verificationCode = (await _nodeGui.Request<string>(new InputRequest("TODO: we send you mesag to email please respond"), cancellationToken)).Result;
 
         await _SignInWith2FAAsyncCore(verificationCode, credential.WithUpdated(updatedCsrfToken), cancellationToken);
     }
@@ -113,7 +113,7 @@ static class RedirectHttpResponseMessageExtensions
 {
     internal static HttpResponseMessage _EnsureRedirectStatusCode(this HttpResponseMessage response)
     {
-        if ((int)response.StatusCode < 300 || (int)response.StatusCode >= 400)
+        if ((int) response.StatusCode < 300 || (int) response.StatusCode >= 400)
             throw new HttpRequestException("Response status code does not indicate redirect:", inner: null, response.StatusCode);
         else return response;
     }

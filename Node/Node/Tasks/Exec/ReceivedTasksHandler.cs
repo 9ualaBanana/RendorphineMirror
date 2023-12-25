@@ -62,13 +62,13 @@ public class ReceivedTasksHandler
         using var _ = new FuncDispose(() => NodeGlobalState.ExecutingTasks.Remove(task));
         Logger.LogInformation($"Execution started");
 
+        var starttime = DateTimeOffset.Now;
         var lastexception = null as Exception;
         int attempt;
         for (attempt = 0; attempt < maxattempts; attempt++)
         {
             try
             {
-                var starttime = DateTimeOffset.Now;
 
                 using var scope = Container.BeginLifetimeScope(builder =>
                 {
@@ -107,9 +107,6 @@ public class ReceivedTasksHandler
                 var endtime = DateTimeOffset.Now;
                 Logger.LogInformation($"Task completed in {(endtime - starttime)} and {attempt}/{maxattempts} attempts");
 
-                CompletedTasks.CompletedTasks.Remove(task.Id);
-                CompletedTasks.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt });
-
                 Notifier.Notify($"Completed task {task.Id}\n ```json\n{JsonConvert.SerializeObject(task, JsonSettings.LowercaseIgnoreNull):n}\n```");
                 Logger.LogInformation($"Completed, removing");
 
@@ -130,6 +127,13 @@ public class ReceivedTasksHandler
                 Logger.LogInformation($"Failed to execute task, retrying... ({attempt + 1}/{maxattempts})");
 
                 lastexception = ex;
+            }
+            finally
+            {
+                CompletedTasks.CompletedTasks.Remove(task.Id);
+
+                var endtime = DateTimeOffset.Now;
+                CompletedTasks.CompletedTasks.Add(new CompletedTask(starttime, endtime, task) { Attempt = attempt });
             }
         }
 

@@ -1,4 +1,4 @@
-namespace Node.Common;
+namespace Node.Common.Models;
 
 public interface IServiceTarget
 {

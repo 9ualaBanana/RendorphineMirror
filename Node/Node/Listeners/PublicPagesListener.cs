@@ -151,15 +151,70 @@ namespace Node.Listeners
                 return HttpStatusCode.OK;
             }
 
+            static JObject rfProductToJson(RFProduct product)
+            {
+                return new JObject()
+                {
+                    ["id"] = product.ID.Value,
+                    ["type"] = product.Type,
+                    ["subproducts"] = new JArray(product.SubProducts.Select(rfProductToJson).ToArray()),
+                };
+            }
+
             if (path.StartsWith("getocproducts"))
-                return await WriteJson(response, RFProducts.RFProducts.Keys.AsOpResult());
+                return await WriteJson(response, RFProducts.RFProducts.Select(p => KeyValuePair.Create(p.Key, rfProductToJson(p.Value))).ToImmutableDictionary().AsOpResult());
 
             if (path.StartsWith("getocproductdata"))
             {
-                var id = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["id"].ThrowIfNull();
+                var id = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["id"];
                 if (id is null || !RFProducts.RFProducts.TryGetValue(id, out var rfp)) return HttpStatusCode.NotFound;
 
-                return await WriteJson(response, rfp.AsOpResult());
+                return await WriteJson(response, rfProductToJson(rfp).AsOpResult());
+            }
+
+            if (path.StartsWith("getocproductqsp"))
+            {
+                var query = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query);
+                var id = query["id"];
+                var type = query["type"];
+
+                if (id is null || !RFProducts.RFProducts.TryGetValue(id, out var product))
+                    return await WriteErr(response, "Unknown product");
+
+                if (type is not ("imagefooter" or "imageqr" or "video"))
+                    return await WriteErr(response, "Unknown type");
+
+                var filepath = JObject.FromObject(product.QSPreview).Property(type, StringComparison.OrdinalIgnoreCase)
+                    .ThrowIfNull("Unknown type").Value.ToObject<FileWithFormat>().ThrowIfNull().Path;
+
+                using var file = File.OpenRead(filepath);
+                response.StatusCode = (int) HttpStatusCode.OK;
+                response.ContentLength64 = file.Length;
+                await file.CopyToAsync(response.OutputStream);
+
+                return HttpStatusCode.OK;
+            }
+
+            if (path.StartsWith("getocproductfile"))
+            {
+                var query = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query);
+                var id = query["id"].ThrowIfNull();
+                var sid = query["sid"].ThrowIfNull();
+
+                if (sid != "1111111111111111111111111111111111111")
+                    return HttpStatusCode.NotFound;
+
+                if (!RFProducts.RFProducts.TryGetValue(id, out var product))
+                    return await WriteErr(response, "Unknown product");
+
+                var filepath = product.Idea;
+
+                using var file = File.OpenRead(filepath);
+                response.StatusCode = (int) HttpStatusCode.OK;
+                response.ContentLength64 = file.Length;
+                await file.CopyToAsync(response.OutputStream);
+
+                return HttpStatusCode.OK;
             }
 
             if (path.StartsWith("getocfile"))

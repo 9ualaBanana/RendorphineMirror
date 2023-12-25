@@ -18,10 +18,10 @@ internal class CGTraderApi : IBaseAddressProvider
 
     string IBaseAddressProvider.BaseAddress => CGTraderUri.Https;
 
-    internal CGTraderApi(HttpClient httpClient)
+    internal CGTraderApi(HttpClient httpClient, CGTraderCaptchaApi captchaService)
     {
         _httpClient = httpClient;
-        _captchaService = new(httpClient);
+        _captchaService = captchaService;
     }
 
     #region Login

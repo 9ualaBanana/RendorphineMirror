@@ -1,4 +1,4 @@
-namespace Node.DataStorage;
+namespace NodeCommon.Tasks;
 
 public interface IWatchingTasksStorage
 {
