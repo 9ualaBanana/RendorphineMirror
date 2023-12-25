@@ -13,21 +13,6 @@ public class StatsListener : ExecutableListenerBase
 
     public StatsListener(ILogger<StatsListener> logger) : base(logger) { }
 
-    /*
-    Это задачи, нагрузка процессора, время работы, какие-то логи об ошибках, число этих логов, все это расставлено по времени
-
-    В запросе могу указывать период и шаг
-    Типа статистика задач "за месяц", одна точка - это "один день" или "один час"
-
-    Инфа по задачам же хранится. А логи по нагрузке процессора и оперативки не будут много памяти занимать.
-    Потом чтобы получить статистику с шагом в день, то нужно просто суммировать все точки с шагом за 24 часа
-
-    Главная цель - видеть, что происходит на ноде сейчас. Что происходило раньше. Какие задачи вызывают нагрузку на сервере. Есть ли ошибки на сервере.
-    Значит еще нужен метод, который вернет инфу, какие задачи делались в конкретной точке на графике
-
-    Нужна скорость аплоада и давнлоада посекундно
-    */
-
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
         var request = context.Request;
@@ -70,18 +55,7 @@ public class StatsListener : ExecutableListenerBase
 
 
             if (stephours == 0)
-            {
-                var result = new JObject()
-                {
-                    ["Full"] = JToken.FromObject(loadFull()),
-                    ["Partial"] = JToken.FromObject(await loadPartial()),
-                };
-
-                return await WriteJToken(response, result);
-            }
-
-            if (false && stephours == 1)
-                return await WriteJson(response, loadFull().AsOpResult());
+                return await WriteJson(response, (await loadPartial()).AsOpResult());
 
 
             NodeLoad sum(IReadOnlyCollection<NodeLoad> loads)
@@ -100,7 +74,13 @@ public class StatsListener : ExecutableListenerBase
                     .ToDictionary();
 
                 var hwload = new HardwareLoad(hwloadpartial, hwloaddrives);
-                return new NodeLoad(hwload, loads.SelectMany(l => l.Tasks ?? []).ToDictionary());
+                var tasks = loads
+                    .SelectMany(l => l.Tasks ?? [])
+                    .GroupBy(k => k.Key)
+                    .Select(k => KeyValuePair.Create(k.Key, k.SelectMany(t => t.Value).ToArray() as IReadOnlyCollection<NodeLoadTask>))
+                    .ToDictionary();
+
+                return new NodeLoad(hwload, tasks);
             }
 
             var stepLengthUnix = (DateTimeOffset.FromUnixTimeMilliseconds(0) + TimeSpan.FromHours(stephours)).ToUnixTimeMilliseconds();
@@ -112,6 +92,23 @@ public class StatsListener : ExecutableListenerBase
 
             return await WriteJson(response, data.AsOpResult());
         }
+
+        /*
+        if (path == "gettasksat")
+        {
+            var time = ReadQueryLong(request.QueryString, "time").ThrowIfError();
+
+            var load = LoadStorage.NodeFullLoad
+                .GetWhere($"key >= {start.ToStringInvariant()} and key <= {end.ToStringInvariant()}", [])
+                .ToDictionary();
+
+            bool filterTask(NodeLoadTask task) =>
+                task.Times.Input < time
+                && ((task.Times.Failed ?? task.Times.Canceled ?? task.Times.Finished ?? task.Times.Validation ?? task.Times.Output ?? task.Times.Active ?? task.Times.Input) > time);
+
+            return await WriteJson(response, load.Values.SelectMany(t => t.Tasks.Values.SelectMany(t => t).Where(filterTask)).AsOpResult());
+        }
+        */
 
         return await base.ExecuteGet(path, context);
     }

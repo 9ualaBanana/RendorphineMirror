@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+﻿using System.DirectoryServices;
+using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Web;
@@ -9,6 +10,7 @@ namespace Node.Listeners
     {
         protected override ListenTypes ListenType => ListenTypes.WebServer;
 
+        public required Apis Api { get; init; }
         public required ICompletedTasksStorage CompletedTasks { get; init; }
         public required IWatchingTasksStorage WatchingTasks { get; init; }
         public required IRFProductStorage RFProducts { get; init; }
@@ -226,6 +228,14 @@ namespace Node.Listeners
 
                 await filestream.CopyToAsync(response.OutputStream);
                 return HttpStatusCode.OK;
+            }
+
+            if (path.StartsWith("getmynodesips"))
+            {
+                var result = await Api.GetMyNodesAsync()
+                    .Next(nodes => nodes.Select(n => $"{n.Info.Ip}:{n.Info.Port}").ToArray().AsOpResult());
+
+                return await WriteJson(response, result);
             }
 
             if (path == "helloworld")

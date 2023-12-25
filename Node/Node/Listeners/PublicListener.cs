@@ -18,6 +18,12 @@ public class PublicListener : ExecutableListenerBase
         if (path == "ping")
             return await WriteJToken(response, $"ok from {Environment.MachineName} {Environment.UserName} {Settings.NodeName} v{Init.Version} web{Settings.UPnpServerPort}").ConfigureAwait(false);
 
+        if (path == "getpublicpagesport")
+        {
+            response.AddHeader("Access-Control-Allow-Origin", "*");
+            return await WriteJToken(response, Settings.UPnpServerPort).ConfigureAwait(false);
+        }
+
         if (path == "getcontents")
         {
             var authcheck = await CheckAuthentication(context).ConfigureAwait(false);
