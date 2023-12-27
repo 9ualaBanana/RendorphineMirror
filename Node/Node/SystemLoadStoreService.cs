@@ -24,7 +24,7 @@ public class SystemLoadStoreService
                 """);
 
         StartThreadRepeated(TimeSpan.FromHours(1), ExecuteFull, token);
-        StartThreadRepeated(TimeSpan.FromSeconds(1), ExecutePartial, token);
+        StartThreadRepeated(TimeSpan.FromSeconds(10), ExecutePartial, token);
     }
 
     async Task ExecuteFull()
