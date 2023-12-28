@@ -11,12 +11,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
     public required OCLocalListener LocalListener { get; init; }
     public required OCPublicListener PublicListener { get; init; }
 
-    public override void StartListening()
-    {
-        StartThreadRepeated(5_000, RunOnce);
-        LocalListener.Start();
-        PublicListener.Start();
-    }
+    public override void StartListening() => StartThreadRepeated(5_000, RunOnce);
 
     public async Task RunOnce()
     {
