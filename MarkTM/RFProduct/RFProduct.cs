@@ -77,7 +77,7 @@ public partial record RFProduct : AssetContainer
             Idea = type switch
             {
                 nameof(_3D) => idea.ToObject<_3D.Idea_>()!,
-                nameof(Video) or nameof(Image) => idea.ToObject<Idea_>()!,
+                nameof(_3D.Renders) or nameof(Video) or nameof(Image) => idea.ToObject<Idea_>()!,
                 _ => throw new InvalidOperationException($"{type} {nameof(RFProduct)} doesn't support type-specific {nameof(Idea)}.")
             };
             ArgumentNullException.ThrowIfNull(Idea, $"Mismatch between {typeof(RFProduct)} {nameof(Type)} and its corresponding {nameof(Idea)}.");
