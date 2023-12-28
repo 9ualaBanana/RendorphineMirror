@@ -40,7 +40,8 @@ public abstract class BindableBase<T> : IReadOnlyBindable<T>
 
     protected BindableBase(T defval) => _Value = defval;
 
-    public void UnsubsbribeAll() => Changed = delegate { };
+    public void UnsubscribeAll() => Changed = delegate { };
+
     public void SubscribeChanged(Action action, bool executeImmediately = false)
     {
         Changed += action;
@@ -51,9 +52,20 @@ public abstract class BindableBase<T> : IReadOnlyBindable<T>
     {
         Changed?.Invoke();
 
-        // TODO: remove weakrefs
         foreach (var weak in References)
-            if (weak.TryGetTarget(out var obj) && obj != eventSource)
+            if (weak.TryGetTarget(out var obj))
+                obj.InternalTriggerValueChanged(eventSource);
+    }
+
+    void InternalTriggerValueChanged(BindableBase<T> eventSource)
+    {
+        if (ReferenceEquals(this, eventSource))
+            return;
+
+        Changed?.Invoke();
+
+        foreach (var weak in References)
+            if (weak.TryGetTarget(out var obj))
                 obj.InternalSet(Value, this);
     }
 
@@ -127,11 +139,15 @@ public interface IReadOnlyBindableCollection<out T> : IBindable, IReadOnlyCollec
 {
     IReadOnlyBindableCollection<T> GetBoundCopy();
 }
+public interface IBindableCollection<out T> : IReadOnlyBindableCollection<T>
+{
+    void UnsubscribeAll();
+}
 public static class BindableCollection
 {
     public static BindableCollection<T, TVal> Create<T, TVal>(T collection) where T : notnull, ICollection<TVal> => new(collection);
 }
-public class BindableCollection<T, TVal> : BindableBase<T>, IReadOnlyBindable<T>, IReadOnlyBindableCollection<TVal> where T : notnull, ICollection<TVal>
+public class BindableCollection<T, TVal> : BindableBase<T>, IReadOnlyBindable<T>, IBindableCollection<TVal> where T : notnull, ICollection<TVal>
 {
     public int Count => Value.Count;
 
@@ -144,7 +160,7 @@ public class BindableCollection<T, TVal> : BindableBase<T>, IReadOnlyBindable<T>
     IEnumerator IEnumerable.GetEnumerator() => Value.GetEnumerator();
 }
 
-public class BindableList<T> : BindableBase<IReadOnlyList<T>>, IReadOnlyBindable<IReadOnlyList<T>>, IReadOnlyBindableCollection<T>, IReadOnlyList<T>
+public class BindableList<T> : BindableBase<IReadOnlyList<T>>, IReadOnlyBindable<IReadOnlyList<T>>, IBindableCollection<T>, IReadOnlyList<T>
 {
     public int Count => Value.Count;
     protected new List<T> Value => (List<T>) base.Value;
