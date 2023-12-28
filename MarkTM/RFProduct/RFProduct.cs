@@ -17,15 +17,12 @@ public partial record RFProduct : AssetContainer
         init => _type = value;
     }
     string? _type;
-    public string Idea { get; private set; }
     public ID_ ID { get; }
+    // TODO: Bind Data to RFProduct.
+    /// <remarks><see cref="Idea"/> is implemented akin to <see cref="QSPreview"/>.</remarks>
+    public Idea_ Idea { get; }
     public QSPreviews QSPreview { get; }
-    /// <summary>
-    /// <see cref="RFProduct"/> implementatinos provide type-specific data by overriding this property with its return type defined as that of type-specific <see cref="Data_"/> implementation.
-    /// </summary>
-    public virtual Data_? Data { get; } = null;
-    [JsonProperty]
-    public ImmutableHashSet<RFProduct> SubProducts { get; private set; } = default!;
+    public ImmutableHashSet<RFProduct> SubProducts { get; private set; } = [];
 
     readonly static Encoding _encoding = Encoding.UTF8;
 
@@ -36,9 +33,18 @@ public partial record RFProduct : AssetContainer
     public abstract record Constructor<TProduct> where TProduct : RFProduct
     {
         // Move QSPreviews generator here to ABC ?
+        internal async Task<TProduct> CreateAsync_(string idea, ID_ id, AssetContainer container, Factory factory, CancellationToken cancellationToken)
+        {
+            var product = await CreateAsync(idea, id, container, cancellationToken);
+            product.SubProducts = (await CreateSubProductsAsync(product, factory, cancellationToken)).ToImmutableHashSet();
+            return product;
+        }
         internal abstract Task<TProduct> CreateAsync(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken);
+        protected virtual Task<RFProduct[]> CreateSubProductsAsync(TProduct product, Factory factory, CancellationToken cancellationToken)
+            => Task.FromResult<RFProduct[]>([]);
+    
     }
-    protected RFProduct(string idea, ID_ id, QSPreviews previews, AssetContainer container)
+    protected RFProduct(Idea_ idea, ID_ id, QSPreviews previews, AssetContainer container)
         : base(container)
     {
         Idea = idea;
@@ -47,17 +53,18 @@ public partial record RFProduct : AssetContainer
         QSPreview.BindTo(this);
     }
 
+    // TODO: Move the logic to JsonConverter ? this way seems easier tho.
     [JsonConstructor]
-    RFProduct(string idea, ID_ id, JObject qsPreview, JObject data, string path, string type)
-        : base(new(path))
+    RFProduct(JObject idea, ID_ id, JObject qsPreview, JObject[] subproducts, string container, string type)
+        : base(new(container))
     {
         Type = type;
-        Idea = idea;
         ID = id;
         try
         {
             QSPreview = type switch
             {
+                nameof(_3D) or nameof(_3D.Renders) => qsPreview.ToObject<_3D.QSPreviews>()!,
                 nameof(Video) => qsPreview.ToObject<Video.QSPreviews>()!,
                 nameof(Image) => qsPreview.ToObject<Image.QSPreviews>()!,
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, $"{nameof(Type)} of a serialized {nameof(RFProduct)} is unknown.")
@@ -65,31 +72,54 @@ public partial record RFProduct : AssetContainer
             ArgumentNullException.ThrowIfNull(QSPreview, $"Mismatch between {typeof(RFProduct)} {nameof(Type)} and its corresponding {nameof(QSPreviews)}.");
         }
         catch (Exception ex) { throw new JsonReaderException($"{nameof(QSPreviews)} deserialization failed.", ex); }
-        if (data is not null)
-            try
+        try
+        {
+            Idea = type switch
             {
-                Data = type switch
-                {
-                    _ => throw new InvalidOperationException($"{type} {nameof(RFProduct)} doesn't support type-specific {nameof(Data)}.")
-                };
-                ArgumentNullException.ThrowIfNull(Data, $"Mismatch between {typeof(RFProduct)} {nameof(Type)} and its corresponding {nameof(Data)}.");
-            }
-            catch (Exception ex) { throw new JsonReaderException($"{nameof(Data)} deserialization failed.", ex); }
+                nameof(_3D) => idea.ToObject<_3D.Idea_>()!,
+                nameof(Video) or nameof(Image) => idea.ToObject<Idea_>()!,
+                _ => throw new InvalidOperationException($"{type} {nameof(RFProduct)} doesn't support type-specific {nameof(Idea)}.")
+            };
+            ArgumentNullException.ThrowIfNull(Idea, $"Mismatch between {typeof(RFProduct)} {nameof(Type)} and its corresponding {nameof(Idea)}.");
+        }
+        catch (Exception ex) { throw new JsonReaderException($"{nameof(Idea)} deserialization failed.", ex); }
+        SubProducts = subproducts.Select(_ => _.ToObject<RFProduct>()).ToImmutableHashSet()!;
     }
 
-    new public string Store(ref string file, string? @as = default, StoreMode mode = StoreMode.Move)
-        => file = Store(file, @as, mode);
+    new public string Store(AssetContainer container, string? @as = default, StoreMode mode = StoreMode.Move)
+    {
+        var storedFile = base.Store(container, @as, mode);
+        // TODO: Fix this.
+        if (System.IO.Path.GetFileNameWithoutExtension(@as) == Idea_.FileName)
+            Idea.Path = storedFile;
+
+        return storedFile;
+    }
+
     new public string Store(string file, string? @as = default, StoreMode mode = StoreMode.Move)
     {
         var storedFile = base.Store(file, @as, mode);
-        if (System.IO.Path.GetFileNameWithoutExtension(storedFile) == Idea_.FileName)
-            Idea = storedFile;
+        // TODO: Fix this.
+        if (System.IO.Path.GetFileNameWithoutExtension(@as) == Idea_.FileName)
+            Idea.Path = storedFile;
+
         return storedFile;
     }
 
 
-    // Data_.Generator might be necessary as soon as asynchronous operations needs to be performed for obtaining it. For now virtual properties suffice.
-    public abstract record Data_ { }
+    // Idea_.Generator might be necessary as soon as asynchronous operations needs to be performed for obtaining it. For now virtual properties suffice.
+    public record Idea_
+    {
+        internal const string FileName = "idea";
+        /// <remarks><see langword="internal"/> for now to support the ad-hoc binding inside <see cref="RFProduct.Store(string, string?, StoreMode)"/> methods.</remarks>
+        public string Path { get; internal set; }
+
+        [JsonConstructor]
+        internal Idea_(string path)
+        {
+            Path = path;
+        }
+    }
 
     public record ID_
     {
@@ -138,7 +168,7 @@ public partial record RFProduct : AssetContainer
 
             internal static ID_? FindInside(AssetContainer container)
                 => container.EnumerateEntries(EntryType.NonContainers)
-                .SingleOrDefault(_ => System.IO.Path.GetExtension(_) == File_.Extension) is string file ?
+                .SingleOrDefault(_ => System.IO.Path.GetExtension(_) == ID_.File_.Extension) is string file ?
 
                 new(System.IO.Path.GetFileNameWithoutExtension(file), container) : null;
 
@@ -167,6 +197,9 @@ public partial record RFProduct : AssetContainer
 
             internal async Task<QSPreviews_> GenerateAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
             {
+                if (!File.Exists(idea))
+                    throw new FileNotFoundException($"Idea for {nameof(QSPreviews)} wasn't found or doesn't refer to a file.", idea);
+
                 var qsOutput = await TaskExecutor.ExecuteQS(
                     await PrepareInputAsync(idea, container, cancellationToken),
                     new QSPreviewInfo(Guid.NewGuid().ToString()) { AlwaysGenerateQRPreview = true },
@@ -188,13 +221,5 @@ public partial record RFProduct : AssetContainer
         public abstract IEnumerator<FileWithFormat> GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator()
         { throw new NotImplementedException(); }
-    }
-
-    static class Idea_
-    {
-        internal static bool Exists(string idea)
-            => File.Exists(idea) && System.IO.Path.GetFileNameWithoutExtension(idea) == FileName;
-
-        internal const string FileName = "idea";
     }
 }

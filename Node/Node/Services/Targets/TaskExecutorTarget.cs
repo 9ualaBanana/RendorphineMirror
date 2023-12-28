@@ -33,11 +33,23 @@ public class TaskExecutorTarget : IServiceTarget
             .AsSelf()
             .SingleInstance();
 
+        builder.RegisterType<RFProduct._3D.Constructor>()
+            .AsSelf()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct._3D.Renders.Constructor>()
+            .AsSelf()
+            .SingleInstance();
+
         builder.RegisterType<RFProduct.Image.QSPreviews.Generator>()
             .AsSelf()
             .SingleInstance();
 
         builder.RegisterType<RFProduct.Video.QSPreviews.Generator>()
+            .AsSelf()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct._3D.QSPreviews.Generator>()
             .AsSelf()
             .SingleInstance();
     }

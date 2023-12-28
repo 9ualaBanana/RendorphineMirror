@@ -19,7 +19,7 @@ public partial record RFProduct
             public required QSPreviews.Generator QSPreviews { get; init; }
         }
         Video(string idea, ID_ id, QSPreviews previews, AssetContainer container)
-            : base(idea, id, previews, container)
+            : base(new(idea), id, previews, container)
         {
         }
 
