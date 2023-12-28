@@ -35,7 +35,7 @@ public class NodeStateUpdater
                 var stream = await LocalPipe.SendAsync($"http://{NodeHost.Value}/getstate").ConfigureAwait(false);
 
                 var host = NodeHost.GetBoundCopy();
-                using var _ = new FuncDispose(host.UnsubsbribeAll);
+                using var _ = new FuncDispose(host.UnsubscribeAll);
                 host.Changed += () =>
                 {
                     Logger.LogInformation($"Node host was changed to {host.Value}; Restarting /getstate ...");

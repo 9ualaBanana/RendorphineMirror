@@ -185,6 +185,8 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
             Accessor.Parameter("key", KeyFunc(value)),
             Accessor.Parameter("value", value)
         );
+
+        Bindable.TriggerValueChanged();
     }
 
     public bool ContainsKey(TKey key) => Items.ContainsKey(key);

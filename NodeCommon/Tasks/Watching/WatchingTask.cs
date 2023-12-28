@@ -10,7 +10,7 @@ public class WatchingTask
     public string TaskAction { get; init; }
     public JObject TaskData { get; init; }
     public TaskPolicy Policy { get; init; }
-    public bool IsPaused = false;
+    public bool IsPaused { get; set; } = false;
     public ImmutableArray<TaskSoftwareRequirement>? SoftwareRequirements { get; init; }
 
     public readonly List<string> PlacedNonCompletedTasks = new();

@@ -14,7 +14,9 @@ public class TasksTab2 : Panel
         var api = App.Instance.Container.Resolve<Apis>();
 
         var tabs = new TabbedControl();
-        tabs.Add("Local", new LocalTaskManager(api));
+        tabs.Add("Queued", new QueuedTaskManager(api));
+        tabs.Add("Placed", new PlacedTaskManager(api));
+        tabs.Add("Executing", new ExecutingTaskManager(api));
         tabs.Add("Watching", new WatchingTaskManager(api));
         tabs.Add("Remote", new RemoteTaskManager(api));
 
@@ -25,6 +27,7 @@ public class TasksTab2 : Panel
     abstract class TaskManager<T> : Panel
     {
         protected readonly Apis Api;
+        IBindableCollection<T>? Tasks;
 
         public TaskManager(Apis api)
         {
@@ -62,8 +65,18 @@ public class TasksTab2 : Panel
         }
         protected abstract void CreateColumns(DataGrid data);
 
-        protected async Task LoadSetItems(DataGrid grid) => grid.ItemsSource = await Load();
-        protected abstract Task<IReadOnlyCollection<T>> Load();
+        protected async Task LoadSetItems(DataGrid grid)
+        {
+            Tasks?.UnsubscribeAll();
+            Tasks = await Load();
+            Tasks.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            {
+                grid.ItemsSource = null;
+                grid.ItemsSource = Tasks;
+            }), true);
+        }
+
+        protected abstract Task<IBindableCollection<T>> Load();
     }
     abstract class NormalTaskManager : TaskManager<TaskBase>
     {
@@ -96,23 +109,30 @@ public class TasksTab2 : Panel
             });
         }
     }
-    class LocalTaskManager : NormalTaskManager
+    class QueuedTaskManager : NormalTaskManager
     {
-        public LocalTaskManager(Apis api) : base(api) { }
+        public QueuedTaskManager(Apis api) : base(api) { }
 
-        protected override Task<IReadOnlyCollection<TaskBase>> Load() =>
-            new IReadOnlyList<TaskBase>[] { NodeGlobalState.Instance.QueuedTasks, NodeGlobalState.Instance.PlacedTasks, NodeGlobalState.Instance.ExecutingTasks, }
-                .SelectMany(x => x)
-                .DistinctBy(x => x.Id)
-                .ToArray()
-                .AsTask<IReadOnlyCollection<TaskBase>>();
+        protected override async Task<IBindableCollection<TaskBase>> Load() => NodeGlobalState.Instance.QueuedTasks;
+    }
+    class PlacedTaskManager : NormalTaskManager
+    {
+        public PlacedTaskManager(Apis api) : base(api) { }
+
+        protected override async Task<IBindableCollection<TaskBase>> Load() => NodeGlobalState.Instance.PlacedTasks;
+    }
+    class ExecutingTaskManager : NormalTaskManager
+    {
+        public ExecutingTaskManager(Apis api) : base(api) { }
+
+        protected override async Task<IBindableCollection<TaskBase>> Load() => NodeGlobalState.Instance.ExecutingTasks;
     }
     class RemoteTaskManager : NormalTaskManager
     {
         public RemoteTaskManager(Apis api) : base(api) { }
 
-        protected override async Task<IReadOnlyCollection<TaskBase>> Load() =>
-            await Api.GetMyTasksAsync(Enum.GetValues<TaskState>()).ThrowIfError();
+        protected override async Task<IBindableCollection<TaskBase>> Load() =>
+            new BindableList<TaskBase>(await Api.GetMyTasksAsync(Enum.GetValues<TaskState>()).ThrowIfError());
     }
     class WatchingTaskManager : TaskManager<WatchingTask>
     {
@@ -154,8 +174,7 @@ public class TasksTab2 : Panel
             });
         }
 
-        protected override Task<IReadOnlyCollection<WatchingTask>> Load() =>
-            (NodeGlobalState.Instance.WatchingTasks as IReadOnlyCollection<WatchingTask>).AsTask();
+        protected override async Task<IBindableCollection<WatchingTask>> Load() => NodeGlobalState.Instance.WatchingTasks;
     }
 
 
