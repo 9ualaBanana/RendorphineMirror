@@ -138,9 +138,16 @@ public partial record _3DProduct
             => new FileSystemOperation
             {
                 OnArchive = () => File.Copy(this, System.IO.Path.ChangeExtension(destination, System.IO.Path.GetExtension(this))),
-                OnDirectory = () => Directory.Move(this, destination)
+                OnDirectory = () => DirectoryCopy(this, destination)
             }
             .ExecuteOn(this);
+        static void DirectoryCopy(string sourceDirName, string destDirName)
+        {
+            foreach (var file in Directory.EnumerateFiles(sourceDirName))
+                File.Copy(file, System.IO.Path.Combine(destDirName, System.IO.Path.GetFileName(file)), true);
+            foreach (var directory in Directory.EnumerateDirectories(sourceDirName))
+                DirectoryCopy(directory, System.IO.Path.Combine(destDirName, System.IO.Path.GetFileName(directory)));
+        }
 
         public IEnumerable<string> EnumerateEntries(EntryType entryTypes = EntryType.All)
         {
