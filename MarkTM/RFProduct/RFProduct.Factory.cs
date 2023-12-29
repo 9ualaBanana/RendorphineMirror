@@ -1,7 +1,4 @@
-﻿using Node.Tasks.Models;
-using NodeCommon.Tasks;
-using NodeCommon.Tasks.Watching;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace MarkTM.RFProduct;
@@ -16,13 +13,6 @@ public partial record RFProduct
         public required _3D.Constructor _3D { get; init; }
         public required _3D.Renders.Constructor Renders { get; init; }
         public required IRFProductStorage Storage { get; init; }
-        OneClickRunnerInfo OC { get; init; }
-            = new OneClickRunnerInfo(
-                new OneClickWatchingTaskInputInfo(
-                    @"C:\Users\User\Documents\oc\input",
-                    @"C:\Users\User\Documents\oc\output",
-                    @"C:\Users\User\Documents\oc\log","","","","")
-                );
 
 
         public async Task<RFProduct> CreateAsync(string idea, string container, CancellationToken cancellationToken, bool disposeTemps = true)
@@ -38,42 +28,32 @@ public partial record RFProduct
                 return product;
             else
             {
-                AssetContainer? ideaContainer = null;
-                try
-                {
-                    if (AssetContainer.Exists(idea))
-                    {
-                        ideaContainer = new AssetContainer(idea);
-                        if (RFProduct._3D.Idea_.Inside(ideaContainer) is _3D.Idea_ data)
-                            product = await CreateAsync<_3D>(idea, id, container, cancellationToken);
-                        else throw new NotImplementedException();
-                    }
-                    else if (File.Exists(idea))
-                        product = FileFormatExtensions.FromFilename(idea) switch
-                        {
-                            FileFormat.Mov => await CreateAsync<Video>(idea, id, container, cancellationToken),
-                            FileFormat.Png or FileFormat.Jpeg => await CreateAsync<Image>(idea, id, container, cancellationToken),
-                            _ => throw new NotImplementedException($"{nameof(idea)} has an unsupported {nameof(FileFormat)}.")  // Change FileFormat to something more generic.
-                        };
-                    else throw new FileNotFoundException($"{nameof(idea)} for {nameof(RFProduct._3D)} {nameof(RFProduct)} was not found.", idea);
-                }
-                finally { ideaContainer?.Dispose(); }
+                if (_3D.Recognizer.TryRecognize(idea) is _3D.Idea_ _3dIdea)
+                    product = await CreateAsync<_3D.Idea_, _3D>(_3dIdea, id, container, cancellationToken);
+                else if (Renders.Recognizer.TryRecognize(idea) is _3D.Renders.Idea_ _3dRendersIdea)
+                    product = await CreateAsync<_3D.Renders.Idea_, _3D.Renders>(_3dRendersIdea, id, container, cancellationToken);
+                else if (Video.Recognizer.TryRecognize(idea) is Video.Idea_ videoIdea)
+                    product = await CreateAsync<Video.Idea_, Video>(videoIdea, id, container, cancellationToken);
+                else if (Image.Recognizer.TryRecognize(idea) is Image.Idea_ imageIdea)
+                    product = await CreateAsync<Image.Idea_, Image>(imageIdea, id, container, cancellationToken);
+                else throw new NotImplementedException();
 
                 return product;
             }
         }
-        internal async Task<TProduct> CreateAsync<TProduct>(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
+        internal async Task<TProduct> CreateAsync<TIdea, TProduct>(TIdea idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
+            where TIdea : Idea_
             where TProduct : RFProduct
         {
             AssetContainer? ideaContainer = null;
             try
             {
-                RFProduct product = typeof(TProduct) switch
+                RFProduct product = idea switch
                 {
-                    Type type when type == typeof(_3D) => await _3D.CreateAsync_(idea, id, container, this, cancellationToken),
-                    Type type when type == typeof(_3D.Renders) => await Renders.CreateAsync_(idea, id, container, this, cancellationToken),
-                    Type type when type == typeof(Video) => await Video.CreateAsync_(idea, id, container, this, cancellationToken),
-                    Type type when type == typeof(Image) => await Image.CreateAsync_(idea, id, container, this, cancellationToken),
+                    _3D.Idea_ idea_ => await _3D.CreateAsync_(idea_, id, container, this, cancellationToken),
+                    _3D.Renders.Idea_ idea_ => await Renders.CreateAsync_(idea_, id, container, this, cancellationToken),
+                    Video.Idea_ idea_ => await Video.CreateAsync_(idea_, id, container, this, cancellationToken),
+                    Image.Idea_ idea_ => await Image.CreateAsync_(idea_, id, container, this, cancellationToken),
                     _ => throw new NotImplementedException()
                 };
 

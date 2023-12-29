@@ -12,17 +12,32 @@ public partial record RFProduct
 {
     public record Video : RFProduct
     {
-        public record Constructor : Constructor<Video>
+        public record Constructor : Constructor<Idea_, Video>
         {
-            internal override async Task<Video> CreateAsync(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
-                => new(idea, id, await QSPreviews.GenerateAsync(idea, container, cancellationToken), container);
+            internal override async Task<Video> CreateAsync(Idea_ idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
+                => new(idea, id, await QSPreviews.GenerateAsync(idea.Path, container, cancellationToken), container);
             public required QSPreviews.Generator QSPreviews { get; init; }
         }
-        Video(string idea, ID_ id, QSPreviews previews, AssetContainer container)
-            : base(new(idea), id, previews, container)
+        Video(Idea_ idea, ID_ id, QSPreviews previews, AssetContainer container)
+            : base(idea, id, previews, container)
         {
         }
 
+
+        new public record Idea_
+            : RFProduct.Idea_
+        {
+            Idea_(string path)
+                : base(path)
+            {
+            }
+
+            public record Recognizer : IRecognizer<Idea_>
+            {
+                public Idea_? TryRecognize(string idea)
+                    => File.Exists(idea) && FileFormatExtensions.FromFilename(idea) is FileFormat.Mov ? new(idea) : null;
+            }
+        }
 
         new public record QSPreviews(
             [property: JsonProperty(nameof(QSPreviewOutput.ImageFooter))] FileWithFormat ImageWithFooter,

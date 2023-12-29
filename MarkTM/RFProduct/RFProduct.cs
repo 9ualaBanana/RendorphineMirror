@@ -9,6 +9,10 @@ using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace MarkTM.RFProduct;
 
+// Describe this complex pattern that requires generalization on an arbitrary amount of properties, also must support [de]serialization and stuff.
+// This is needed to turn this information into a knowledge that can be used without going through the same process of re-learning each time I'm faced with that kind of a problem.
+// That's why it's called "Pattern" - it is repeated. Why not automating this process by abstracting it into a well-defined knowledge.
+// Currently existing RFProduct implementations differ only in the type of `QSPreviews` they store but not all RFProduct implemenations will be as simple.
 public partial record RFProduct : AssetContainer
 {
     [JsonProperty] public string Type
@@ -30,16 +34,21 @@ public partial record RFProduct : AssetContainer
     /// Asynchronous constructor for <see cref="RFProduct"/> implementations.
     /// </summary>
     /// <typeparam name="TProduct">Concrete <see cref="RFProduct"/> implementation to construct.</typeparam>
-    public abstract record Constructor<TProduct> where TProduct : RFProduct
+    public abstract record Constructor<TIdea, TProduct>
+        where TIdea : Idea_
+        where TProduct : RFProduct
     {
-        // Move QSPreviews generator here to ABC ?
-        internal async Task<TProduct> CreateAsync_(string idea, ID_ id, AssetContainer container, Factory factory, CancellationToken cancellationToken)
+        public required Idea_.IRecognizer<TIdea> Recognizer { get; init; }
+        // TODO: Move QSPreviews generator here to ABC.
+        //public required QSPreviews.Generator<> QSPreviews { get; init; }
+
+        internal async Task<TProduct> CreateAsync_(TIdea idea, ID_ id, AssetContainer container, Factory factory, CancellationToken cancellationToken)
         {
             var product = await CreateAsync(idea, id, container, cancellationToken);
             product.SubProducts = (await CreateSubProductsAsync(product, factory, cancellationToken)).ToImmutableHashSet();
             return product;
         }
-        internal abstract Task<TProduct> CreateAsync(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken);
+        internal abstract Task<TProduct> CreateAsync(TIdea idea, ID_ id, AssetContainer container, CancellationToken cancellationToken);
         protected virtual Task<RFProduct[]> CreateSubProductsAsync(TProduct product, Factory factory, CancellationToken cancellationToken)
             => Task.FromResult<RFProduct[]>([]);
     
@@ -111,13 +120,20 @@ public partial record RFProduct : AssetContainer
     public record Idea_
     {
         internal const string FileName = "idea";
-        /// <remarks><see langword="internal"/> for now to support the ad-hoc binding inside <see cref="RFProduct.Store(string, string?, StoreMode)"/> methods.</remarks>
+        /// <remarks><see langword="internal set"/> for now to support the ad-hoc binding inside <see cref="RFProduct.Store(string, string?, StoreMode)"/> methods.</remarks>
         public string Path { get; internal set; }
 
         [JsonConstructor]
         internal Idea_(string path)
         {
             Path = path;
+        }
+
+        // Consider passing some RecognitionContext to convey the information from parent RFProducts to its subproducts
+        // or come up with some better way to create subproducts.
+        public interface IRecognizer<TIdea>
+        {
+            TIdea? TryRecognize(string idea);
         }
     }
 

@@ -28,17 +28,30 @@ public class TaskExecutorTarget : IServiceTarget
         builder.RegisterType<RFProduct.Video.Constructor>()
             .AsSelf()
             .SingleInstance();
+        builder.RegisterType<RFProduct.Video.Idea_.Recognizer>()
+            .As<RFProduct.Idea_.IRecognizer<RFProduct.Video.Idea_>>()
+            .SingleInstance();
 
         builder.RegisterType<RFProduct.Image.Constructor>()
             .AsSelf()
+            .SingleInstance();
+        builder.RegisterType<RFProduct.Image.Idea_.Recognizer>()
+            .As<RFProduct.Idea_.IRecognizer<RFProduct.Image.Idea_>>()
             .SingleInstance();
 
         builder.RegisterType<RFProduct._3D.Constructor>()
             .AsSelf()
             .SingleInstance();
+        builder.RegisterType<RFProduct._3D.Idea_.Recognizer>()
+            .As<RFProduct.Idea_.IRecognizer<RFProduct._3D.Idea_>>()
+            .AsSelf()
+            .SingleInstance();
 
         builder.RegisterType<RFProduct._3D.Renders.Constructor>()
             .AsSelf()
+            .SingleInstance();
+        builder.RegisterType<RFProduct._3D.Renders.Idea_.Recognizer>()
+            .As<RFProduct.Idea_.IRecognizer<RFProduct._3D.Renders.Idea_>>()
             .SingleInstance();
 
         builder.RegisterType<RFProduct.Image.QSPreviews.Generator>()
