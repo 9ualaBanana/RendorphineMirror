@@ -16,37 +16,40 @@ public class PortsForwardedTarget : IServiceTarget
         int consec = 0;
         var devices = new List<INatDevice>();
 
-        NatUtility.DeviceFound += (_, args) => found(args);
+        var token = new CancellationTokenSource();
+        NatUtility.DeviceFound += (_, args) => found(args).Consume();
         NatUtility.StartDiscovery(NatProtocol.Upnp);
 
+        new Thread(() =>
+        {
+            while (true)
+            {
+                Thread.Sleep((mapTimeSec - (60 * 10)) * 1000);
 
-        void found(DeviceEventArgs args)
+                token.Cancel();
+                token = new CancellationTokenSource();
+
+                NatUtility.StopDiscovery();
+                NatUtility.StartDiscovery(NatProtocol.Upnp);
+            }
+        })
+        { IsBackground = true }.Start();
+
+        async Task found(DeviceEventArgs args)
         {
             var device = args.Device;
             if (devices.Contains(device) || devices.Any(d => d.DeviceEndpoint == device.DeviceEndpoint))
                 return;
 
             devices.Add(device);
-            Logger.Info($"Found device ip {device.DeviceEndpoint} ({device.GetExternalIP()})");
+            Logger.Info($"Found device ip {device.DeviceEndpoint} ({await device.GetExternalIPAsync()})");
 
-            new Thread(async () =>
+            try { await mapDevice(device); }
+            catch (Exception ex)
             {
-                while (true)
-                {
-                    try { await mapDevice(device); }
-                    catch (Exception ex)
-                    {
-                        Logger.Error($"Exception while mapping device {device.DeviceEndpoint}: {ex}");
-
-                        NatUtility.StopDiscovery();
-                        NatUtility.StartDiscovery(NatProtocol.Upnp);
-                        return;
-                    }
-
-                    Thread.Sleep((mapTimeSec - (60 * 10)) * 1000);
-                }
-            })
-            { IsBackground = true }.Start();
+                Logger.Error($"Exception while mapping device {device.DeviceEndpoint}: {ex}");
+                return;
+            }
         }
         async Task mapDevice(INatDevice device)
         {
