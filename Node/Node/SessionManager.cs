@@ -80,6 +80,6 @@ public class SessionManager
     }
 
 
-    record LoginResult(string SessionId, string UserId, AccessLevel AccessLevel);
-    enum AccessLevel { User, Level1, Level2, Leve3, Level4, Level5 }
+    public record LoginResult(string SessionId, string UserId, AccessLevel AccessLevel);
+    public enum AccessLevel { User, Level1, Level2, Leve3, Level4, Level5 }
 }

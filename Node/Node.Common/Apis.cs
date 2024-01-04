@@ -12,7 +12,7 @@ public record Apis(Api Api, bool LogErrors = true)
 
 
     public static Apis DefaultWithSessionId(string sid, CancellationToken token = default) => new(Api.Default with { CancellationToken = token }, sid);
-    public Apis WithSessionId(string sid) => this with { SessionId = sid };
+    public Apis WithSessionId(string sid) => new Apis(Api, sid, LogErrors);
     public Apis WithNoErrorLog() => this with { LogErrors = false };
 
     public (string, string)[] AddSessionId(params (string, string)[] values)

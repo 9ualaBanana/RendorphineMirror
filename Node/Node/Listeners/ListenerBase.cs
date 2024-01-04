@@ -127,12 +127,8 @@ public abstract class ListenerBase : IServiceTarget
                     {
                         try
                         {
-                            if (!context.Request.IsLocal && RequiresAuthentication && !(await CheckAuthentication(context)))
-                            {
-                                context.Response.StatusCode = (int) HttpStatusCode.BadRequest;
-                                context.Response.Close();
+                            if (!await CheckSendAuthentication(context))
                                 return;
-                            }
 
                             await Execute(context);
                         }
@@ -159,18 +155,34 @@ public abstract class ListenerBase : IServiceTarget
 
     protected abstract ValueTask Execute(HttpListenerContext context);
 
+    protected async Task<HttpStatusCode> CheckSendAuthentication(HttpListenerContext context, Func<Task<HttpStatusCode>> ifAuthenticated)
+    {
+        if (!await CheckSendAuthentication(context))
+            return HttpStatusCode.BadRequest;
+
+        return await ifAuthenticated();
+    }
+    protected async Task<bool> CheckSendAuthentication(HttpListenerContext context)
+    {
+        if (context.Request.IsLocal || !RequiresAuthentication || await CheckAuthentication(context))
+            return true;
+
+        context.Response.StatusCode = (int) HttpStatusCode.BadRequest;
+        context.Response.Close();
+        return false;
+    }
     protected async Task<bool> CheckAuthentication(HttpListenerContext context)
     {
         var sid = context.Request.QueryString["sessionid"];
         return sid is not null && await CheckAuthentication(sid);
     }
-    static readonly Dictionary<string, bool> CachedAuthentications = new();
+    // static readonly Dictionary<string, bool> CachedAuthentications = new();
 
     /// <summary> Returns true if provided sessionid is also from ours user </summary>
-    async ValueTask<bool> CheckAuthentication(string sid)
+    protected async ValueTask<bool> CheckAuthentication(string sid)
     {
         var check = await docheck();
-        CachedAuthentications[sid] = check;
+        // CachedAuthentications[sid] = check;
 
         return check;
 
@@ -179,8 +191,10 @@ public abstract class ListenerBase : IServiceTarget
         {
             var oursid = Settings.SessionId;
             if (sid == oursid) return true;
-            if (CachedAuthentications.TryGetValue(sid, out var cached))
-                return cached;
+
+            // cacheing is removed because sessionids can now have lifetime
+            // if (CachedAuthentications.TryGetValue(sid, out var cached))
+            //     return cached;
 
             var nodes = await ComponentContext.Resolve<Apis>().WithSessionId(sid).GetMyNodesAsync().ConfigureAwait(false);
             if (!nodes) return false;

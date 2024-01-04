@@ -6,6 +6,7 @@ namespace Node.Listeners;
 public class StatsListener : ExecutableListenerBase
 {
     protected override ListenTypes ListenType => ListenTypes.WebServer;
+    protected override bool RequiresAuthentication => true;
     protected override string Prefix => "stats";
 
     public required ICompletedTasksStorage CompletedTasks { get; init; }

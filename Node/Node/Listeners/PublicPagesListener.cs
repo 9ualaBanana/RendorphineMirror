@@ -20,7 +20,6 @@ namespace Node.Listeners
 
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
-            var images = new List<string>();
             var source = WatchingTasks.WatchingTasks.Values
                 .Select(d => d.Source)
                 .OfType<OneClickWatchingTaskInputInfo>()
@@ -31,16 +30,6 @@ namespace Node.Listeners
 
             if (source is not null)
             {
-                foreach (var outdir in Directory.GetDirectories(source.OutputDirectory))
-                {
-                    try
-                    {
-                        var files = Directory.GetFiles(Path.Combine(outdir, "renders"), "*.png");
-                        images.AddRange(files);
-                    }
-                    catch { }
-                }
-
                 var maxlogs = new List<string>();
                 var unitylogs = new List<string>();
                 var unitylogs2 = new List<string>();
@@ -64,40 +53,45 @@ namespace Node.Listeners
                 catch { }
 
 
-
-                if (path.StartsWith("getoclogs"))
+                if (path == "getoclogs")
                 {
-                    var resp = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { maxlogs, unitylogs, unitylogs2 }));
-                    response.ContentLength64 = resp.Length;
-                    await response.OutputStream.WriteAsync(resp);
+                    return await CheckSendAuthentication(context, async () =>
+                    {
+                        var resp = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { maxlogs, unitylogs, unitylogs2 }));
+                        response.ContentLength64 = resp.Length;
+                        await response.OutputStream.WriteAsync(resp);
 
-                    return HttpStatusCode.OK;
+                        return HttpStatusCode.OK;
+                    });
                 }
 
-                if (path.StartsWith("getoclog"))
+                if (path == "getoclog")
                 {
-                    var fileIndexString = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
-                    var type = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["type"].ThrowIfNull();
-
-                    if (fileIndexString == null || !int.TryParse(fileIndexString, out int fileIndex)) return HttpStatusCode.NotFound;
-
-
-                    var items = type switch
+                    return await CheckSendAuthentication(context, async () =>
                     {
-                        "max" => maxlogs,
-                        "unity" => unitylogs,
-                        "unity2" => unitylogs2,
-                        _ => throw new Exception("Unknown type")
-                    };
-                    var item = items[fileIndex];
+                        var fileIndexString = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
+                        var type = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["type"].ThrowIfNull();
 
-                    var filename = Encoding.UTF8.GetBytes(item + "\n");
-                    using var filestream = File.OpenRead(item);
-                    response.ContentLength64 = filestream.Length + filename.Length;
+                        if (fileIndexString == null || !int.TryParse(fileIndexString, out int fileIndex)) return HttpStatusCode.NotFound;
 
-                    await response.OutputStream.WriteAsync(filename);
-                    await filestream.CopyToAsync(response.OutputStream);
-                    return HttpStatusCode.OK;
+
+                        var items = type switch
+                        {
+                            "max" => maxlogs,
+                            "unity" => unitylogs,
+                            "unity2" => unitylogs2,
+                            _ => throw new Exception("Unknown type")
+                        };
+                        var item = items[fileIndex];
+
+                        var filename = Encoding.UTF8.GetBytes(item + "\n");
+                        using var filestream = File.OpenRead(item);
+                        response.ContentLength64 = filestream.Length + filename.Length;
+
+                        await response.OutputStream.WriteAsync(filename);
+                        await filestream.CopyToAsync(response.OutputStream);
+                        return HttpStatusCode.OK;
+                    });
                 }
             }
 
@@ -163,10 +157,10 @@ namespace Node.Listeners
                 };
             }
 
-            if (path.StartsWith("getocproducts"))
+            if (path == "getocproducts")
                 return await WriteJson(response, RFProducts.RFProducts.Select(p => KeyValuePair.Create(p.Key, rfProductToJson(p.Value))).ToImmutableDictionary().AsOpResult());
 
-            if (path.StartsWith("getocproductdata"))
+            if (path == "getocproductdata")
             {
                 var id = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["id"];
                 if (id is null || !RFProducts.RFProducts.TryGetValue(id, out var rfp)) return HttpStatusCode.NotFound;
@@ -174,7 +168,7 @@ namespace Node.Listeners
                 return await WriteJson(response, rfProductToJson(rfp).AsOpResult());
             }
 
-            if (path.StartsWith("getocproductqsp"))
+            if (path == "getocproductqsp")
             {
                 var query = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query);
                 var id = query["id"];
@@ -197,103 +191,145 @@ namespace Node.Listeners
                 return HttpStatusCode.OK;
             }
 
-            if (path.StartsWith("getocproductfile"))
+            // authenticated
+
+            if (path == "getocproductfile")
             {
-                var query = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query);
-                var id = query["id"].ThrowIfNull();
-                var sid = query["sid"].ThrowIfNull();
+                return await CheckSendAuthentication(context, async () =>
+                {
+                    var query = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query);
+                    var id = query["id"].ThrowIfNull();
 
-                if (sid != "1111111111111111111111111111111111111")
-                    return HttpStatusCode.NotFound;
+                    if (!RFProducts.RFProducts.TryGetValue(id, out var product))
+                        return await WriteErr(response, "Unknown product");
 
-                if (!RFProducts.RFProducts.TryGetValue(id, out var product))
-                    return await WriteErr(response, "Unknown product");
+                    var filepath = product.Idea;
 
-                var filepath = product.Idea;
+                    using var file = File.OpenRead(filepath);
+                    response.StatusCode = (int) HttpStatusCode.OK;
+                    response.ContentLength64 = file.Length;
+                    await file.CopyToAsync(response.OutputStream);
 
-                using var file = File.OpenRead(filepath);
-                response.StatusCode = (int) HttpStatusCode.OK;
-                response.ContentLength64 = file.Length;
-                await file.CopyToAsync(response.OutputStream);
-
-                return HttpStatusCode.OK;
+                    return HttpStatusCode.OK;
+                });
             }
 
-            if (path.StartsWith("getocfile"))
+            if (path == "getmynodesips")
             {
-                var fileIndexString = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull();
-                if (fileIndexString == null || !int.TryParse(fileIndexString, out int fileIndex) || fileIndex >= images.Count) return HttpStatusCode.NotFound;
-                using var filestream = File.OpenRead(images[fileIndex]);
-                response.ContentLength64 = filestream.Length;
+                return await CheckSendAuthentication(context, async () =>
+                {
+                    var result = await Api.GetMyNodesAsync()
+                        .Next(nodes => nodes.Select(n => $"{n.Info.Ip}:{n.Info.Port}").ToArray().AsOpResult());
 
-                await filestream.CopyToAsync(response.OutputStream);
-                return HttpStatusCode.OK;
-            }
-
-            if (path.StartsWith("getmynodesips"))
-            {
-                var result = await Api.GetMyNodesAsync()
-                    .Next(nodes => nodes.Select(n => $"{n.Info.Ip}:{n.Info.Port}").ToArray().AsOpResult());
-
-                return await WriteJson(response, result);
-            }
-
-            if (path == "helloworld")
-            {
-                using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-                writer.Write("Hello world, epta");
-
-                return HttpStatusCode.OK;
+                    return await WriteJson(response, result);
+                });
             }
 
             if (path == "logs")
             {
-                string logDir = "logs";
-                string? q = context.Request.QueryString["id"];
-                string info = "";
-
-                if (q == null)
+                return await CheckSendAuthentication(context, async () =>
                 {
-                    addFolder(logDir);
+                    string logDir = "logs";
+                    string? q = context.Request.QueryString["id"];
+                    string info = "";
 
-
-                    void addFolder(string folder)
+                    if (q == null)
                     {
-                        string[] files = Directory.GetFiles(folder);
-                        info += $"<b style='font-size: 32px'>{Path.GetFileName(folder)}</b></br>";
-                        foreach (string file in files)
+                        addFolder(logDir);
+
+
+                        void addFolder(string folder)
                         {
-                            info += $"<a href='/logs?id={Path.GetRelativePath(logDir, file)}'>{Path.GetFileName(file)}</a></br>";
+                            string[] files = Directory.GetFiles(folder);
+                            info += $"<b style='font-size: 32px'>{Path.GetFileName(folder)}</b></br>";
+                            foreach (string file in files)
+                            {
+                                info += $"<a href='/logs?id={Path.GetRelativePath(logDir, file)}'>{Path.GetFileName(file)}</a></br>";
+                            }
+
+                            info += "<div style=\"margin-left:4px\">";
+                            foreach (string f in Directory.GetDirectories(folder))
+                                addFolder(f);
+                            info += "</div>";
                         }
-
-                        info += "<div style=\"margin-left:4px\">";
-                        foreach (string f in Directory.GetDirectories(folder))
-                            addFolder(f);
-                        info += "</div>";
                     }
-                }
-                else
-                {
-                    string filepath = Path.Combine(logDir, q);
-                    if (!Path.GetFullPath(filepath).StartsWith(logDir, StringComparison.Ordinal))
-                        return HttpStatusCode.NotFound;
+                    else
+                    {
+                        string filepath = Path.Combine(logDir, q);
+                        if (!Path.GetFullPath(filepath).StartsWith(logDir, StringComparison.Ordinal))
+                            return HttpStatusCode.NotFound;
 
-                    response.Headers["Content-Encoding"] = "gzip";
+                        response.Headers["Content-Encoding"] = "gzip";
 
-                    using Stream file = File.Open(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                    using var gzip = new GZipStream(response.OutputStream, CompressionLevel.Fastest);
-                    await file.CopyToAsync(gzip);
+                        using Stream file = File.Open(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                        using var gzip = new GZipStream(response.OutputStream, CompressionLevel.Fastest);
+                        await file.CopyToAsync(gzip);
+
+                        return HttpStatusCode.OK;
+                    }
+
+                    using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+                    writer.Write(info);
 
                     return HttpStatusCode.OK;
-                }
-
-                using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-                writer.Write(info);
-
-                return HttpStatusCode.OK;
+                });
             }
 
             return HttpStatusCode.NotFound;
+        }
+
+        protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
+        {
+            var request = context.Request;
+            var response = context.Response;
+
+            if (path == "loginas")
+            {
+                return await TestPost(await CachedHttpListenerRequest.Create(request), response, "email", "password", async (email, password) =>
+                {
+                    var result = await Api.Api.ApiPost<SessionManager.LoginResult>($"{(global::Common.Api.TaskManagerEndpoint)}/login", null, "Logging in", ("email", email), ("password", password), ("lifetime", TimeSpan.FromDays(1).TotalMilliseconds.ToString()), ("guid", Guid.NewGuid().ToString()));
+
+                    // sessionid of another account
+                    if (result.Success && result.Value.UserId != Settings.UserId)
+                    {
+                        var nodes = await Api.WithSessionId(result.Value.SessionId).GetMyNodesAsync();
+                        if (!nodes)
+                            return await WriteErr(response, "Unknown server error");
+
+                        if (nodes.Value.Length == 0)
+                            return await WriteErr(response, "Account has no nodes");
+
+                        var node = null as NodeInfo;
+                        foreach (var n in nodes.Value)
+                        {
+                            try
+                            {
+                                var online = (await Api.Api.Client.GetAsync($"http://{n.Ip}:{n.Info.Port}/ping", new CancellationTokenSource(TimeSpan.FromSeconds(1)).Token)).IsSuccessStatusCode;
+                                if (!online) continue;
+
+                                node = n;
+                                break;
+                            }
+                            catch { }
+                        }
+                        if (node is null)
+                            return await WriteErr(response, "No online nodes found on that account");
+
+                        response.Headers.Set("Location", $"http://{node.Ip}:{node.Info.WebPort}/loginas");
+                        return HttpStatusCode.Redirect;
+                    }
+
+                    return await WriteJson(response, result);
+                });
+            }
+            if (path == "loginassid")
+            {
+                return await TestPost(await CachedHttpListenerRequest.Create(request), response, "sid", async (sid) =>
+                    await WriteJson(response, sid.AsOpResult())
+                );
+            }
+
+            return await base.ExecutePost(path, context);
         }
     }
 }
