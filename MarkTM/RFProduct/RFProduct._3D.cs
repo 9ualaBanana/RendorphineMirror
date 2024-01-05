@@ -11,7 +11,7 @@ public partial record RFProduct
         public record Constructor : Constructor<Idea_, QSPreviews, _3D>
         {
 
-            internal override async Task<_3D> CreateAsync(Idea_ idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
+            internal override async Task<_3D> CreateAsync(Idea_ idea, string id, AssetContainer container, CancellationToken cancellationToken)
                 => new _3D(idea, id, await QSPreviews.GenerateAsync(@"C:\Users\9uala\OneDrive\Documents\oc\input\btrfl.jpg", container, cancellationToken), container);
 
             protected override async Task<RFProduct[]> CreateSubProductsAsync(_3D product, Factory factory, CancellationToken cancellationToken)
@@ -20,7 +20,7 @@ public partial record RFProduct
                 return [await factory.CreateAsync(renders, renders, cancellationToken)];
             }
         }
-        _3D(Idea_ idea, ID_ id, QSPreviews previews, AssetContainer container)
+        _3D(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
             : base(idea, id, previews, container)
         {
         }
@@ -78,11 +78,11 @@ public partial record RFProduct
         {
             public record Constructor : Constructor<Idea_, _3D.QSPreviews, Renders>
             {
-                internal override async Task<Renders> CreateAsync(Idea_ idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
+                internal override async Task<Renders> CreateAsync(Idea_ idea, string id, AssetContainer container, CancellationToken cancellationToken)
                     => new Renders(idea, id, await QSPreviews.GenerateAsync(@"C:\Users\9uala\OneDrive\Documents\oc\input\btrfl.jpg", container, cancellationToken), container);
                 // TODO: Implement QSPreviews properly.
             }
-            protected Renders(Idea_ idea, ID_ id, QSPreviews previews, AssetContainer container)
+            protected Renders(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
                 : base(idea, id, previews, container)
             {
             }

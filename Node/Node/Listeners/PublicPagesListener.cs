@@ -156,7 +156,7 @@ namespace Node.Listeners
             {
                 return new JObject()
                 {
-                    ["id"] = product.ID.Value,
+                    ["id"] = product.ID,
                     ["type"] = product.Type,
                     ["subproducts"] = new JArray(product.SubProducts.Select(rfProductToJson).ToArray()),
                 };

@@ -3,7 +3,6 @@ using Node.Tasks;
 using Node.Tasks.Models;
 using Node.Tasks.Models.ExecInfo;
 using System.Collections;
-using System.Security.Cryptography;
 using System.Text;
 using static _3DProductsPublish._3DProductDS._3DProduct;
 
@@ -21,7 +20,7 @@ public partial record RFProduct : AssetContainer
         init => _type = value;
     }
     string? _type;
-    public ID_ ID { get; }
+    public string ID { get; }
     public Idea_ Idea { get; }
     public QSPreviews QSPreview { get; }
     public ImmutableHashSet<RFProduct> SubProducts { get; private set; } = [];
@@ -40,27 +39,19 @@ public partial record RFProduct : AssetContainer
         public required Idea_.IRecognizer<TIdea> Recognizer { get; init; }
         public required QSPreviews.Generator<TPreviews> QSPreviews { get; init; }
 
-        internal async Task<TProduct> CreateAsync_(TIdea idea, ID_ id, AssetContainer container, Factory factory, CancellationToken cancellationToken)
+        internal async Task<TProduct> CreateAsync_(TIdea idea, string id, AssetContainer container, Factory factory, CancellationToken cancellationToken)
         {
-            // TODO: Copy Idea first then generate previews and id file so they do not appear in the idea directory.
             // FIX: ID file doesn't change along with its container and it's fucked up, I guess QSPreviews too and Idea too but there is a kludge inside .Store().
             idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Move);
-            id.File.Path = File.Exists(id.File.Path) ? id.File.Path : System.IO.Path.Combine(idea.Path, id.File.Name);
-            if (Directory.GetParent(id.File.Path)?.FullName != container)
-            {
-                var newIdFilePath = System.IO.Path.Combine(container, id.File.Name);
-                File.Move(id.File.Path, newIdFilePath);
-                id.File.Path = newIdFilePath;
-            }
             var product = await CreateAsync(idea, id, container, cancellationToken);
             product.SubProducts = (await CreateSubProductsAsync(product, factory, cancellationToken)).ToImmutableHashSet();
             return product;
         }
-        internal abstract Task<TProduct> CreateAsync(TIdea idea, ID_ id, AssetContainer container, CancellationToken cancellationToken);
+        internal abstract Task<TProduct> CreateAsync(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken);
         protected virtual Task<RFProduct[]> CreateSubProductsAsync(TProduct product, Factory factory, CancellationToken cancellationToken)
             => Task.FromResult<RFProduct[]>([]);
     }
-    protected RFProduct(Idea_ idea, ID_ id, QSPreviews previews, AssetContainer container)
+    protected RFProduct(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
         : base(container)
     {
         Idea = idea;
@@ -71,7 +62,7 @@ public partial record RFProduct : AssetContainer
 
     // TODO: Move the logic to JsonConverter ? this way seems easier tho.
     [JsonConstructor]
-    RFProduct(JObject idea, ID_ id, JObject qsPreview, JObject[] subproducts, string container, string type)
+    RFProduct(JObject idea, string id, JObject qsPreview, JObject[] subproducts, string container, string type)
         : base(new(container))
     {
         Type = type;
@@ -141,70 +132,6 @@ public partial record RFProduct : AssetContainer
         public interface IRecognizer<TIdea>
         {
             TIdea? TryRecognize(string idea);
-        }
-    }
-
-    public record ID_
-    {
-        public string Value { get; }
-        [JsonProperty] internal File_ File { get; }
-
-        ID_(string id, string container)
-        {
-            Value = id;
-            File = new(id, container);
-        }
-
-        [JsonConstructor]
-        ID_(string value, File_ file)
-        {
-            Value = value;
-            File = file;
-        }
-
-        public static implicit operator string(ID_ id) => id.Value;
-
-        public class Generator
-        {
-            public required INodeSettings NodeSettings { get; init; }
-
-            internal async Task<ID_> AssignedTo(AssetContainer product, CancellationToken cancellationToken)
-                => ID_.File_.FindInside(product) ?? await GenerateAsync(product, cancellationToken);
-
-            public async Task<ID_> GenerateAsync(AssetContainer container, CancellationToken cancellationToken)
-            {
-                using var productNameStream = new MemoryStream(_encoding.GetBytes(System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(container))));
-                var id = Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(NodeSettings.AuthInfo.ThrowIfNull("Not authenticated").Guid), productNameStream, cancellationToken))
-                    .Replace('/', '-')
-                    .Replace('+', '_');
-                return new ID_(id, container);
-            }
-        }
-
-
-        internal record File_
-        {
-            [JsonIgnore] public string Name => _file.Name;
-            readonly FileInfo _file;
-            [JsonProperty] internal string Path { get; set; }
-            internal const string Extension = ".rfpid";
-
-            internal static ID_? FindInside(AssetContainer container)
-                => container.EnumerateEntries(EntryType.NonContainers)
-                .SingleOrDefault(_ => System.IO.Path.GetExtension(_) == ID_.File_.Extension) is string file ?
-
-                new(System.IO.Path.GetFileNameWithoutExtension(file), container) : null;
-
-            internal File_(string id, string container)
-            {
-                _file = new FileInfo(Path = System.IO.Path.Combine(container, $"{id}{Extension}"));
-                if (!_file.Exists) { using var _ = _file.Create(); }
-                _file.Attributes |= FileAttributes.Hidden;
-            }
-
-            [JsonConstructor]
-            File_(string path)
-            { _file = new(Path = path); }
         }
     }
 

@@ -18,9 +18,6 @@ public class TaskExecutorTarget : IServiceTarget
             .AsImplementedInterfaces()
             .SingleInstance();
 
-        builder.RegisterType<RFProduct.ID_.Generator>()
-    .SingleInstance();
-
         builder.RegisterType<RFProduct.Factory>()
             .AsSelf()
             .SingleInstance();

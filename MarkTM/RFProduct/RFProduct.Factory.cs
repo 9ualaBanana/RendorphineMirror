@@ -1,4 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using Node.Common.Models;
+using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace MarkTM.RFProduct;
@@ -7,12 +9,12 @@ public partial record RFProduct
 {
     public class Factory
     {
-        public required ID_.Generator ID { get; init; }
         public required Video.Constructor Video { get; init; }
         public required Image.Constructor Image { get; init; }
         public required _3D.Constructor _3D { get; init; }
         public required _3D.Renders.Constructor Renders { get; init; }
         public required IRFProductStorage Storage { get; init; }
+        public required INodeSettings NodeSettings { get; init; }
 
 
         public async Task<RFProduct> CreateAsync(string idea, string container, CancellationToken cancellationToken, bool disposeTemps = true)
@@ -23,7 +25,7 @@ public partial record RFProduct
         /// </summary>
         async Task<RFProduct> CreateAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
         {
-            ID_ id = await ID.AssignedTo(container, cancellationToken);
+            var id = await ID(container, cancellationToken);
             if (Storage.RFProducts.TryGetValue(id, out var product))
                 return product;
             else
@@ -40,28 +42,32 @@ public partial record RFProduct
 
                 return product;
             }
+
+
+            async Task<string> ID(AssetContainer container, CancellationToken cancellationToken)
+            {
+                using var productNameStream = new MemoryStream(_encoding.GetBytes(System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(container))));
+                return Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(NodeSettings.AuthInfo.ThrowIfNull("Not authenticated").Guid), productNameStream, cancellationToken))
+                    .Replace('/', '-')
+                    .Replace('+', '_');
+            }
         }
-        internal async Task<TProduct> CreateAsync<TIdea, TProduct>(TIdea idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
+        internal async Task<TProduct> CreateAsync<TIdea, TProduct>(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken)
             where TIdea : Idea_
             where TProduct : RFProduct
         {
-            AssetContainer? ideaContainer = null;
-            try
+            RFProduct product = idea switch
             {
-                RFProduct product = idea switch
-                {
-                    _3D.Idea_ idea_ => await _3D.CreateAsync_(idea_, id, container, this, cancellationToken),
-                    _3D.Renders.Idea_ idea_ => await Renders.CreateAsync_(idea_, id, container, this, cancellationToken),
-                    Video.Idea_ idea_ => await Video.CreateAsync_(idea_, id, container, this, cancellationToken),
-                    Image.Idea_ idea_ => await Image.CreateAsync_(idea_, id, container, this, cancellationToken),
-                    _ => throw new NotImplementedException()
-                };
+                _3D.Idea_ idea_ => await _3D.CreateAsync_(idea_, id, container, this, cancellationToken),
+                _3D.Renders.Idea_ idea_ => await Renders.CreateAsync_(idea_, id, container, this, cancellationToken),
+                Video.Idea_ idea_ => await Video.CreateAsync_(idea_, id, container, this, cancellationToken),
+                Image.Idea_ idea_ => await Image.CreateAsync_(idea_, id, container, this, cancellationToken),
+                _ => throw new NotImplementedException()
+            };
 
-                Storage.RFProducts.Add(product);
+            Storage.RFProducts.Add(product);
 
-                return product as TProduct ?? throw new TypeInitializationException(typeof(TProduct).FullName, default);
-            }
-            finally { ideaContainer?.Dispose(); }
+            return product as TProduct ?? throw new TypeInitializationException(typeof(TProduct).FullName, default);
         }
     }
 
