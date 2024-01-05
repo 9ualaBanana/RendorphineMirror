@@ -29,7 +29,7 @@ public partial record RFProduct
         new public record Idea_
             : RFProduct.Idea_
         {
-            internal AssetContainer Container;
+            internal AssetContainer Container => new(Path);
             AssetContainer Assets => _3DAssetsInside(Container) ??
                 throw new InvalidOperationException($"{nameof(AssetContainer)} with {nameof(_3D)} assets went missing.");
 
@@ -50,7 +50,6 @@ public partial record RFProduct
             internal Idea_(AssetContainer container)
                 : base(container)
             {
-                Container = container;
             }
 
             static AssetContainer? _3DAssetsInside(AssetContainer dataContainer)
