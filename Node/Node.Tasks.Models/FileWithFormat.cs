@@ -32,7 +32,7 @@ public record FileWithFormat
 
     public void MoveTo(string destination, string? name = default)
     {
-        name = System.IO.Path.ChangeExtension(name ?? Path, System.IO.Path.GetExtension(Path));
+        name = System.IO.Path.ChangeExtension(System.IO.Path.GetFileName(name ?? Path), System.IO.Path.GetExtension(Path));
         var newPath = System.IO.Path.Combine(Directory.CreateDirectory(destination).FullName, name);
         File.Move(Path, newPath);
         Path = newPath;
