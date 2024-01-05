@@ -8,23 +8,17 @@ public partial record RFProduct
 {
     public record _3D : RFProduct
     {
-        public record Constructor : Constructor<Idea_, _3D>
+        public record Constructor : Constructor<Idea_, QSPreviews, _3D>
         {
 
             internal override async Task<_3D> CreateAsync(Idea_ idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
-            {
-                var _3d = new _3D(idea, id, await QSPreviews.GenerateAsync(@"C:\Users\9uala\OneDrive\Documents\oc\input\btrfl.jpg", container, cancellationToken), container);
-                // Extract to the factory or Constructor as file Ideas of subproducts will have to be moved to their corresponding RFProduct AssetContainer too.
-                _3d.Store(idea.Container, @as: Idea_.FileName, StoreMode.Move);
-                return _3d;
-            }
+                => new _3D(idea, id, await QSPreviews.GenerateAsync(@"C:\Users\9uala\OneDrive\Documents\oc\input\btrfl.jpg", container, cancellationToken), container);
+
             protected override async Task<RFProduct[]> CreateSubProductsAsync(_3D product, Factory factory, CancellationToken cancellationToken)
             {
                 var renders = new AssetContainer(((Idea_)product.Idea).Renders);
                 return [await factory.CreateAsync(renders, renders, cancellationToken)];
             }
-
-            public required QSPreviews.Generator QSPreviews { get; init; }
         }
         _3D(Idea_ idea, ID_ id, QSPreviews previews, AssetContainer container)
             : base(idea, id, previews, container)
@@ -76,7 +70,6 @@ public partial record RFProduct
                             && assets.Any(_ => _ == textures)
                             && assets.Any(_ => _ == meshes))
                         return new(ideaContainer);
-                    //}
                     return null;
                 }
             }
@@ -84,13 +77,11 @@ public partial record RFProduct
 
         public record Renders : RFProduct
         {
-            public record Constructor : Constructor<Idea_, Renders>
+            public record Constructor : Constructor<Idea_, _3D.QSPreviews, Renders>
             {
                 internal override async Task<Renders> CreateAsync(Idea_ idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
-                    => new(idea, id, await QSPreviews.GenerateAsync(@"C:\Users\9uala\OneDrive\Documents\oc\input\btrfl.jpg", container, cancellationToken), container);
-
+                    => new Renders(idea, id, await QSPreviews.GenerateAsync(@"C:\Users\9uala\OneDrive\Documents\oc\input\btrfl.jpg", container, cancellationToken), container);
                 // TODO: Implement QSPreviews properly.
-                public required _3D.QSPreviews.Generator QSPreviews { get; init; }
             }
             protected Renders(Idea_ idea, ID_ id, QSPreviews previews, AssetContainer container)
                 : base(idea, id, previews, container)
@@ -108,8 +99,7 @@ public partial record RFProduct
                 public record Recognizer : IRecognizer<Idea_>
                 {
                     public Idea_? TryRecognize(string idea)
-                        => Directory.Exists(idea) && new DirectoryInfo(idea).Parent?.Parent?.FullName is string parentIdea
-                        && Parent.TryRecognize(parentIdea) is not null ?
+                        => new DirectoryInfo(idea).Parent?.Parent?.FullName is string parentIdea && Parent.TryRecognize(parentIdea) is not null ?
                         new(idea) : null;
 
                     public required _3D.Idea_.Recognizer Parent { get; init; }
@@ -121,7 +111,7 @@ public partial record RFProduct
             [JsonProperty(nameof(QSPreviewOutput.ImageFooter))] FileWithFormat ImageWithFooter,
             [JsonProperty(nameof(QSPreviewOutput.ImageQr))] FileWithFormat ImageWithQR) : RFProduct.QSPreviews
         {
-            public record Generator : Generator<_3D.QSPreviews>
+            public record Generator : Generator<QSPreviews>
             {
             }
 

@@ -22,8 +22,6 @@ public partial record RFProduct : AssetContainer
     }
     string? _type;
     public ID_ ID { get; }
-    // TODO: Bind Data to RFProduct.
-    /// <remarks><see cref="Idea"/> is implemented akin to <see cref="QSPreview"/>.</remarks>
     public Idea_ Idea { get; }
     public QSPreviews QSPreview { get; }
     public ImmutableHashSet<RFProduct> SubProducts { get; private set; } = [];
@@ -34,13 +32,13 @@ public partial record RFProduct : AssetContainer
     /// Asynchronous constructor for <see cref="RFProduct"/> implementations.
     /// </summary>
     /// <typeparam name="TProduct">Concrete <see cref="RFProduct"/> implementation to construct.</typeparam>
-    public abstract record Constructor<TIdea, TProduct>
+    public abstract record Constructor<TIdea, TPreviews, TProduct>
         where TIdea : Idea_
         where TProduct : RFProduct
+        where TPreviews : QSPreviews
     {
         public required Idea_.IRecognizer<TIdea> Recognizer { get; init; }
-        // TODO: Move QSPreviews generator here to ABC.
-        //public required QSPreviews.Generator<> QSPreviews { get; init; }
+        public required QSPreviews.Generator<TPreviews> QSPreviews { get; init; }
 
         internal async Task<TProduct> CreateAsync_(TIdea idea, ID_ id, AssetContainer container, Factory factory, CancellationToken cancellationToken)
         {
@@ -51,7 +49,6 @@ public partial record RFProduct : AssetContainer
         internal abstract Task<TProduct> CreateAsync(TIdea idea, ID_ id, AssetContainer container, CancellationToken cancellationToken);
         protected virtual Task<RFProduct[]> CreateSubProductsAsync(TProduct product, Factory factory, CancellationToken cancellationToken)
             => Task.FromResult<RFProduct[]>([]);
-    
     }
     protected RFProduct(Idea_ idea, ID_ id, QSPreviews previews, AssetContainer container)
         : base(container)

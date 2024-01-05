@@ -55,14 +55,17 @@ public class TaskExecutorTarget : IServiceTarget
             .SingleInstance();
 
         builder.RegisterType<RFProduct.Image.QSPreviews.Generator>()
+            .As<RFProduct.QSPreviews.Generator<RFProduct.Image.QSPreviews>>()
             .AsSelf()
             .SingleInstance();
 
         builder.RegisterType<RFProduct.Video.QSPreviews.Generator>()
+            .As<RFProduct.QSPreviews.Generator<RFProduct.Video.QSPreviews>>()
             .AsSelf()
             .SingleInstance();
 
         builder.RegisterType<RFProduct._3D.QSPreviews.Generator>()
+            .As<RFProduct.QSPreviews.Generator<RFProduct._3D.QSPreviews>>()
             .AsSelf()
             .SingleInstance();
     }

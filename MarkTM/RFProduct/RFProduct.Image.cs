@@ -8,11 +8,10 @@ public partial record RFProduct
 {
     public record Image : RFProduct
     {
-        public record Constructor : Constructor<Idea_, Image>
+        public record Constructor : Constructor<Idea_, QSPreviews, Image>
         {
             internal override async Task<Image> CreateAsync(Idea_ idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
                 => new(idea, id, await QSPreviews.GenerateAsync(idea.Path, container, cancellationToken), container);
-            public required QSPreviews.Generator QSPreviews { get; init; }
         }
         Image(Idea_ idea, ID_ id, QSPreviews previews, AssetContainer container)
             : base(idea, id, previews, container)
@@ -39,7 +38,7 @@ public partial record RFProduct
             [property: JsonProperty(nameof(QSPreviewOutput.ImageFooter))] FileWithFormat ImageWithFooter,
             [property: JsonProperty(nameof(QSPreviewOutput.ImageQr))] FileWithFormat ImageWithQR) : RFProduct.QSPreviews
         {
-            public record Generator : Generator<Image.QSPreviews>
+            public record Generator : Generator<QSPreviews>
             {
             }
 
