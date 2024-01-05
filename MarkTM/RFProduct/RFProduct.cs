@@ -42,6 +42,16 @@ public partial record RFProduct : AssetContainer
 
         internal async Task<TProduct> CreateAsync_(TIdea idea, ID_ id, AssetContainer container, Factory factory, CancellationToken cancellationToken)
         {
+            // TODO: Copy Idea first then generate previews and id file so they do not appear in the idea directory.
+            // FIX: ID file doesn't change along with its container and it's fucked up, I guess QSPreviews too and Idea too but there is a kludge inside .Store().
+            idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Move);
+            id.File.Path = File.Exists(id.File.Path) ? id.File.Path : System.IO.Path.Combine(idea.Path, id.File.Name);
+            if (Directory.GetParent(id.File.Path)?.FullName != container)
+            {
+                var newIdFilePath = System.IO.Path.Combine(container, id.File.Name);
+                File.Move(id.File.Path, newIdFilePath);
+                id.File.Path = newIdFilePath;
+            }
             var product = await CreateAsync(idea, id, container, cancellationToken);
             product.SubProducts = (await CreateSubProductsAsync(product, factory, cancellationToken)).ToImmutableHashSet();
             return product;
@@ -176,7 +186,7 @@ public partial record RFProduct : AssetContainer
         {
             [JsonIgnore] public string Name => _file.Name;
             readonly FileInfo _file;
-            [JsonProperty] readonly string path;
+            [JsonProperty] internal string Path { get; set; }
             internal const string Extension = ".rfpid";
 
             internal static ID_? FindInside(AssetContainer container)
@@ -187,14 +197,14 @@ public partial record RFProduct : AssetContainer
 
             internal File_(string id, string container)
             {
-                _file = new FileInfo(path = System.IO.Path.Combine(container, $"{id}{Extension}"));
+                _file = new FileInfo(Path = System.IO.Path.Combine(container, $"{id}{Extension}"));
                 if (!_file.Exists) { using var _ = _file.Create(); }
                 _file.Attributes |= FileAttributes.Hidden;
             }
 
             [JsonConstructor]
             File_(string path)
-            { _file = new(this.path = path); }
+            { _file = new(Path = path); }
         }
     }
 
