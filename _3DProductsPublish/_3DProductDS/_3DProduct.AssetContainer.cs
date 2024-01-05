@@ -113,7 +113,7 @@ public partial record _3DProduct
             }
             .ExecuteOn(this);
 
-            return container.Path = System.IO.Path.Combine(this, name);
+            return container.Path;
         }
         public enum StoreMode { Move, Copy }
 
@@ -123,7 +123,7 @@ public partial record _3DProduct
             new FileSystemOperation
             {
                 OnArchive = () => File.Move(this, System.IO.Path.ChangeExtension(destination, System.IO.Path.GetExtension(this))),
-                OnDirectory = () => Directory.Move(this, destination)
+                OnDirectory = () => new DirectoryInfo(this).MoveTo_(destination)
             }
             .ExecuteOn(this);
             Path = new FileSystemOperation<string>
@@ -135,18 +135,19 @@ public partial record _3DProduct
         }
 
         public void Copy(string destination)
-            => new FileSystemOperation
+        {
+            new FileSystemOperation
             {
                 OnArchive = () => File.Copy(this, System.IO.Path.ChangeExtension(destination, System.IO.Path.GetExtension(this))),
-                OnDirectory = () => DirectoryCopy(this, destination)
+                OnDirectory = () => new DirectoryInfo(this).CopyTo(destination)
             }
             .ExecuteOn(this);
-        static void DirectoryCopy(string sourceDirName, string destDirName)
-        {
-            foreach (var file in Directory.EnumerateFiles(sourceDirName))
-                File.Copy(file, System.IO.Path.Combine(destDirName, System.IO.Path.GetFileName(file)), true);
-            foreach (var directory in Directory.EnumerateDirectories(sourceDirName))
-                DirectoryCopy(directory, System.IO.Path.Combine(destDirName, System.IO.Path.GetFileName(directory)));
+            Path = new FileSystemOperation<string>
+            {
+                OnArchive = () => _archivePath = destination,
+                OnDirectory = () => _directoryPath = destination
+            }
+            .ExecuteOn(this);
         }
 
         public IEnumerable<string> EnumerateEntries(EntryType entryTypes = EntryType.All)
