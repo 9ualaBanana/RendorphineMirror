@@ -41,9 +41,14 @@ public partial record RFProduct : AssetContainer
 
         internal async Task<TProduct> CreateAsync_(TIdea idea, string id, AssetContainer container, Factory factory, CancellationToken cancellationToken)
         {
-            // FIX: ID file doesn't change along with its container and it's fucked up, I guess QSPreviews too and Idea too but there is a kludge inside .Store().
-            idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Move);
-            var product = await CreateAsync(idea, id, container, cancellationToken);
+            TProduct? product = null;
+            try
+            {
+                // FIX: QSPreviews and Idea paths don't change along with their container and it's fucked up.
+                idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Move);
+                product = await CreateAsync(idea, id, container, cancellationToken);
+            }
+            catch { product?.Delete(); throw; }
             product.SubProducts = (await CreateSubProductsAsync(product, factory, cancellationToken)).ToImmutableHashSet();
             return product;
         }
