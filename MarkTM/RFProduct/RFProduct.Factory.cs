@@ -23,24 +23,28 @@ public partial record RFProduct
         /// Creates a new <see cref="RFProduct"/> if <paramref name="container"/> representing the resulting product is not identified by the <see cref="IRFProductStorage"/>;
         /// otherwise, <see cref="RFProduct"/> object is deserialized from the <see cref="IRFProductStorage"/>.
         /// </summary>
-        async Task<RFProduct> CreateAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
+        public async Task<RFProduct> CreateAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
         {
             var id = await ID(container, cancellationToken);
             if (Storage.RFProducts.TryGetValue(id, out var product))
                 return product;
             else
             {
-                if (_3D.Recognizer.TryRecognize(idea) is _3D.Idea_ _3dIdea)
-                    product = await CreateAsync<_3D.Idea_, _3D>(_3dIdea, id, container, cancellationToken);
-                else if (Renders.Recognizer.TryRecognize(idea) is _3D.Renders.Idea_ _3dRendersIdea)
-                    product = await CreateAsync<_3D.Renders.Idea_, _3D.Renders>(_3dRendersIdea, id, container, cancellationToken);
-                else if (Video.Recognizer.TryRecognize(idea) is Video.Idea_ videoIdea)
-                    product = await CreateAsync<Video.Idea_, Video>(videoIdea, id, container, cancellationToken);
-                else if (Image.Recognizer.TryRecognize(idea) is Image.Idea_ imageIdea)
-                    product = await CreateAsync<Image.Idea_, Image>(imageIdea, id, container, cancellationToken);
-                else throw new NotImplementedException();
+                try
+                {
+                    if (_3D.Recognizer.TryRecognize(idea) is _3D.Idea_ _3dIdea)
+                        product = await CreateAsync<_3D.Idea_, _3D>(_3dIdea, id, container, cancellationToken);
+                    else if (Renders.Recognizer.TryRecognize(idea) is _3D.Renders.Idea_ _3dRendersIdea)
+                        product = await CreateAsync<_3D.Renders.Idea_, _3D.Renders>(_3dRendersIdea, id, container, cancellationToken);
+                    else if (Video.Recognizer.TryRecognize(idea) is Video.Idea_ videoIdea)
+                        product = await CreateAsync<Video.Idea_, Video>(videoIdea, id, container, cancellationToken);
+                    else if (Image.Recognizer.TryRecognize(idea) is Image.Idea_ imageIdea)
+                        product = await CreateAsync<Image.Idea_, Image>(imageIdea, id, container, cancellationToken);
+                    else throw new NotImplementedException();
 
-                return product;
+                    return product;
+                }
+                catch { container?.Delete(); throw; }
             }
 
 

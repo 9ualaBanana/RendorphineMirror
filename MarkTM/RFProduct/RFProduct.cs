@@ -40,15 +40,9 @@ public partial record RFProduct : AssetContainer
 
         internal async Task<TProduct> CreateAsync_(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken)
         {
-            TProduct? product = null;
-            try
-            {
-                // FIX: QSPreviews and Idea paths don't change along with their container and it's fucked up.
-                idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Move);
-                product = await CreateAsync(idea, id, container, cancellationToken);
-            }
-            catch { product?.Delete(); throw; }
-            return product;
+            // FIX: QSPreviews and Idea paths don't change along with their container and it's fucked up.
+            idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Move);
+            return await CreateAsync(idea, id, container, cancellationToken);
         }
         internal abstract Task<TProduct> CreateAsync(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken);
         internal virtual Func<TIdea, string[]> SubProductsIdeas { get; } = _ => [];
