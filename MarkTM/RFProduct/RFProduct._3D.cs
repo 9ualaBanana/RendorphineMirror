@@ -65,7 +65,7 @@ public partial record RFProduct
                         && assetsContainer.EnumerateEntries(EntryType.NonContainers)
                             .SingleOrDefault(_ => System.IO.Path.GetFileName(_) == $"{assetsContainer.Name}.txt") is string info && File.Exists(info)
                         && assetsContainer.EnumerateEntries().Select(_ => System.IO.Path.GetFileName(_)) is IEnumerable<string> assets
-                            && assets.Any(_ => _ == renders)
+                            && assets.FirstOrDefault(_ => _ == renders) is string renders_ && Directory.EnumerateFiles(System.IO.Path.Combine(assetsContainer, renders_)).Any()
                             && assets.Any(_ => _ == textures)
                             && assets.Any(_ => _ == meshes))
                         return new(ideaContainer);
