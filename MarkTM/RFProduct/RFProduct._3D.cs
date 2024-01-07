@@ -1,5 +1,6 @@
 ﻿using Node.Tasks.Exec.Output;
 using Node.Tasks.Models;
+using SixLabors.ImageSharp;
 using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace MarkTM.RFProduct;
@@ -10,9 +11,8 @@ public partial record RFProduct
     {
         public record Constructor : Constructor<Idea_, QSPreviews, _3D>
         {
-
             internal override async Task<_3D> CreateAsync(Idea_ idea, string id, AssetContainer container, CancellationToken cancellationToken)
-                => new _3D(idea, id, await QSPreviews.GenerateAsync(@"C:\Users\9uala\OneDrive\Documents\oc\input\btrfl.jpg", container, cancellationToken), container);
+                => new _3D(idea, id, await QSPreviews.GenerateAsync(await _3D.QSPreviews.GetRenderAsyncFrom(idea.Renders), container, cancellationToken), container);
 
             internal override Func<Idea_, string[]> SubProductsIdeas { get; } = _ => new string[] { _.Renders };
         }
@@ -75,8 +75,7 @@ public partial record RFProduct
             public record Constructor : Constructor<Idea_, _3D.QSPreviews, Renders>
             {
                 internal override async Task<Renders> CreateAsync(Idea_ idea, string id, AssetContainer container, CancellationToken cancellationToken)
-                    => new Renders(idea, id, await QSPreviews.GenerateAsync(@"C:\Users\9uala\OneDrive\Documents\oc\input\btrfl.jpg", container, cancellationToken), container);
-                // TODO: Implement QSPreviews properly.
+                    => new Renders(idea, id, await QSPreviews.GenerateAsync(await _3D.QSPreviews.GetRenderAsyncFrom(idea.Path), container, cancellationToken), container);
             }
             protected Renders(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
                 : base(idea, id, previews, container)
@@ -107,6 +106,13 @@ public partial record RFProduct
             [JsonProperty(nameof(QSPreviewOutput.ImageQr))] FileWithFormat ImageWithQR) : RFProduct.QSPreviews
         {
             public record Generator : Generator<QSPreviews>;
+
+            internal static async Task<string> GetRenderAsyncFrom(string rendersDirectory)
+            {
+                var render = await SixLabors.ImageSharp.Image.LoadAsync(Directory.EnumerateFiles(rendersDirectory).First());
+                // QSPreview generator accepts only .jpg images.
+                string jpgRender; render.SaveAsJpeg(jpgRender = $"{System.IO.Path.GetTempFileName()}.jpg"); return jpgRender;
+            }
 
             public override IEnumerator<FileWithFormat> GetEnumerator()
                 => new[] { ImageWithFooter, ImageWithQR }.AsEnumerable().GetEnumerator();
