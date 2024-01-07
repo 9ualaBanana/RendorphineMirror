@@ -1,5 +1,4 @@
-﻿using Node.Common.Models;
-using Node.Tasks;
+﻿using Node.Tasks;
 using Node.Tasks.Models;
 using Node.Tasks.Models.ExecInfo;
 using System.Collections;
@@ -39,7 +38,7 @@ public partial record RFProduct : AssetContainer
         public required Idea_.IRecognizer<TIdea> Recognizer { get; init; }
         public required QSPreviews.Generator<TPreviews> QSPreviews { get; init; }
 
-        internal async Task<TProduct> CreateAsync_(TIdea idea, string id, AssetContainer container, Factory factory, CancellationToken cancellationToken)
+        internal async Task<TProduct> CreateAsync_(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken)
         {
             TProduct? product = null;
             try
@@ -49,12 +48,10 @@ public partial record RFProduct : AssetContainer
                 product = await CreateAsync(idea, id, container, cancellationToken);
             }
             catch { product?.Delete(); throw; }
-            product.SubProducts = (await CreateSubProductsAsync(product, factory, cancellationToken)).ToImmutableHashSet();
             return product;
         }
         internal abstract Task<TProduct> CreateAsync(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken);
-        protected virtual Task<RFProduct[]> CreateSubProductsAsync(TProduct product, Factory factory, CancellationToken cancellationToken)
-            => Task.FromResult<RFProduct[]>([]);
+        internal virtual Func<TIdea, string[]> SubProductsIdeas { get; } = _ => [];
     }
     protected RFProduct(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
         : base(container)
@@ -98,26 +95,6 @@ public partial record RFProduct : AssetContainer
         SubProducts = subproducts.Select(_ => _.ToObject<RFProduct>()).ToImmutableHashSet()!;
     }
 
-    new public string Store(AssetContainer container, string? @as = default, StoreMode mode = StoreMode.Move)
-    {
-        var storedFile = base.Store(container, @as, mode);
-        // TODO: Fix this.
-        if (System.IO.Path.GetFileNameWithoutExtension(@as) == Idea_.FileName)
-            Idea.Path = storedFile;
-
-        return storedFile;
-    }
-
-    new public string Store(string file, string? @as = default, StoreMode mode = StoreMode.Move)
-    {
-        var storedFile = base.Store(file, @as, mode);
-        // TODO: Fix this.
-        if (System.IO.Path.GetFileNameWithoutExtension(@as) == Idea_.FileName)
-            Idea.Path = storedFile;
-
-        return storedFile;
-    }
-
 
     // Idea_.Generator might be necessary as soon as asynchronous operations needs to be performed for obtaining it. For now virtual properties suffice.
     public record Idea_
@@ -132,8 +109,6 @@ public partial record RFProduct : AssetContainer
             Path = path;
         }
 
-        // Consider passing some RecognitionContext to convey the information from parent RFProducts to its subproducts
-        // or come up with some better way to create subproducts.
         public interface IRecognizer<TIdea>
         {
             TIdea? TryRecognize(string idea);
@@ -146,7 +121,6 @@ public partial record RFProduct : AssetContainer
         public record Generator<QSPreviews_>
             where QSPreviews_ : QSPreviews
         {
-            public required INodeSettings NodeSettings { get; init; }
             public required ITaskExecutor TaskExecutor { get; init; }
             public required ILogger<Generator<QSPreviews_>> Logger { get; init; }
 

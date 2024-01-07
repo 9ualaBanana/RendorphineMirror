@@ -26,7 +26,6 @@ public partial record RFProduct
                 : base(path)
             {
             }
-
             public record Recognizer : IRecognizer<Idea_>
             {
                 public Idea_? TryRecognize(string idea)
@@ -38,9 +37,7 @@ public partial record RFProduct
             [property: JsonProperty(nameof(QSPreviewOutput.ImageFooter))] FileWithFormat ImageWithFooter,
             [property: JsonProperty(nameof(QSPreviewOutput.ImageQr))] FileWithFormat ImageWithQR) : RFProduct.QSPreviews
         {
-            public record Generator : Generator<QSPreviews>
-            {
-            }
+            public record Generator : Generator<QSPreviews>;
 
             public override IEnumerator<FileWithFormat> GetEnumerator()
                 => new[] { ImageWithFooter, ImageWithQR }.AsEnumerable().GetEnumerator();

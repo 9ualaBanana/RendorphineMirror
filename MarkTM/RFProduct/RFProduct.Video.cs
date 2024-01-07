@@ -30,7 +30,6 @@ public partial record RFProduct
                 : base(path)
             {
             }
-
             public record Recognizer : IRecognizer<Idea_>
             {
                 public Idea_? TryRecognize(string idea)
@@ -50,13 +49,11 @@ public partial record RFProduct
                 protected override async ValueTask<IReadOnlyList<string>> PrepareInputAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
                 {
                     var videoScreenshot = await CaptureScreenshotAsync();
-                    //File.Delete(videoScreenshot);
                     return new string[] { idea, videoScreenshot };
 
 
                     async Task<string> CaptureScreenshotAsync()
                     {
-                        // Screenshot should be taken and when its QS preview is ready it shall be replaced with it.
                         var screenshot = System.IO.Path.Combine(container, $"{System.IO.Path.GetFileNameWithoutExtension(idea)}_ss.jpg");
 
                         var launcher = new FFmpegLauncher(PluginList.GetPlugin(PluginType.FFmpeg).Path)

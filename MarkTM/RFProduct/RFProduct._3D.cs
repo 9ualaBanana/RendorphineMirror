@@ -14,11 +14,7 @@ public partial record RFProduct
             internal override async Task<_3D> CreateAsync(Idea_ idea, string id, AssetContainer container, CancellationToken cancellationToken)
                 => new _3D(idea, id, await QSPreviews.GenerateAsync(@"C:\Users\9uala\OneDrive\Documents\oc\input\btrfl.jpg", container, cancellationToken), container);
 
-            protected override async Task<RFProduct[]> CreateSubProductsAsync(_3D product, Factory factory, CancellationToken cancellationToken)
-            {
-                var renders = new AssetContainer(((Idea_)product.Idea).Renders);
-                return [await factory.CreateAsync(renders, renders, cancellationToken)];
-            }
+            internal override Func<Idea_, string[]> SubProductsIdeas { get; } = _ => new string[] { _.Renders };
         }
         _3D(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
             : base(idea, id, previews, container)
@@ -110,9 +106,7 @@ public partial record RFProduct
             [JsonProperty(nameof(QSPreviewOutput.ImageFooter))] FileWithFormat ImageWithFooter,
             [JsonProperty(nameof(QSPreviewOutput.ImageQr))] FileWithFormat ImageWithQR) : RFProduct.QSPreviews
         {
-            public record Generator : Generator<QSPreviews>
-            {
-            }
+            public record Generator : Generator<QSPreviews>;
 
             public override IEnumerator<FileWithFormat> GetEnumerator()
                 => new[] { ImageWithFooter, ImageWithQR }.AsEnumerable().GetEnumerator();

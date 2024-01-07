@@ -58,16 +58,35 @@ public partial record RFProduct
         {
             RFProduct product = idea switch
             {
-                _3D.Idea_ idea_ => await _3D.CreateAsync_(idea_, id, container, this, cancellationToken),
-                _3D.Renders.Idea_ idea_ => await Renders.CreateAsync_(idea_, id, container, this, cancellationToken),
-                Video.Idea_ idea_ => await Video.CreateAsync_(idea_, id, container, this, cancellationToken),
-                Image.Idea_ idea_ => await Image.CreateAsync_(idea_, id, container, this, cancellationToken),
+                _3D.Idea_ idea_ => (await _3D.CreateAsync_(idea_, id, container, cancellationToken)) with { SubProducts = await CreateSubProductsAsync(idea_, _3D, cancellationToken) },
+                _3D.Renders.Idea_ idea_ => await Renders.CreateAsync_(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Renders, cancellationToken) },
+                Video.Idea_ idea_ => await Video.CreateAsync_(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Video, cancellationToken) },
+                Image.Idea_ idea_ => await Image.CreateAsync_(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Image, cancellationToken) },
                 _ => throw new NotImplementedException()
             };
 
             Storage.RFProducts.Add(product);
 
             return product as TProduct ?? throw new TypeInitializationException(typeof(TProduct).FullName, default);
+
+
+            async Task<ImmutableHashSet<RFProduct>> CreateSubProductsAsync<TIdea, TPreviews, TProduct>(
+                TIdea idea,
+                Constructor<TIdea, TPreviews, TProduct> constructor,
+                CancellationToken cancellationToken)
+                    where TIdea : Idea_
+                    where TProduct : RFProduct
+                    where TPreviews : QSPreviews
+            {
+                return [.. (await CreateSubProductsAsyncCore().ToHashSetAsync(cancellationToken))];
+
+
+                async IAsyncEnumerable<RFProduct> CreateSubProductsAsyncCore()
+                {
+                    foreach (var subproduct in constructor.SubProductsIdeas(idea).Select(_ => CreateAsync(_, _, cancellationToken)))
+                        yield return await subproduct;
+                }
+            }
         }
     }
 
