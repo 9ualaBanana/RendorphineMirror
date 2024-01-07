@@ -62,10 +62,10 @@ public partial record RFProduct
         {
             RFProduct product = idea switch
             {
-                _3D.Idea_ idea_ => (await _3D.CreateAsync_(idea_, id, container, cancellationToken)) with { SubProducts = await CreateSubProductsAsync(idea_, _3D, cancellationToken) },
-                _3D.Renders.Idea_ idea_ => await Renders.CreateAsync_(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Renders, cancellationToken) },
-                Video.Idea_ idea_ => await Video.CreateAsync_(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Video, cancellationToken) },
-                Image.Idea_ idea_ => await Image.CreateAsync_(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Image, cancellationToken) },
+                _3D.Idea_ idea_ => (await _3D.CreateAsync(idea_, id, container, cancellationToken)) with { SubProducts = await CreateSubProductsAsync(idea_, _3D, cancellationToken) },
+                _3D.Renders.Idea_ idea_ => await Renders.CreateAsync(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Renders, cancellationToken) },
+                Video.Idea_ idea_ => await Video.CreateAsync(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Video, cancellationToken) },
+                Image.Idea_ idea_ => await Image.CreateAsync(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Image, cancellationToken) },
                 _ => throw new NotImplementedException()
             };
 

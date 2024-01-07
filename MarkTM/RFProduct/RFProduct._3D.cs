@@ -11,10 +11,12 @@ public partial record RFProduct
     {
         public record Constructor : Constructor<Idea_, QSPreviews, _3D>
         {
-            internal override async Task<_3D> CreateAsync(Idea_ idea, string id, AssetContainer container, CancellationToken cancellationToken)
-                => new _3D(idea, id, await QSPreviews.GenerateAsync(await _3D.QSPreviews.GetRenderAsyncFrom(idea.Renders), container, cancellationToken), container);
+            internal override _3D Create(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
+                => new(idea, id, previews, container);
 
-            internal override Func<Idea_, string[]> SubProductsIdeas { get; } = _ => new string[] { _.Renders };
+            protected override async ValueTask<string> GetPreviewInputAsync(Idea_ idea)
+                => await _3D.QSPreviews.GetRenderAsyncFrom(idea.Renders);
+            internal override string[] SubProductsIdeas(Idea_ idea) => new string[] { idea.Renders };
         }
         _3D(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
             : base(idea, id, previews, container)
@@ -74,8 +76,11 @@ public partial record RFProduct
         {
             public record Constructor : Constructor<Idea_, _3D.QSPreviews, Renders>
             {
-                internal override async Task<Renders> CreateAsync(Idea_ idea, string id, AssetContainer container, CancellationToken cancellationToken)
-                    => new Renders(idea, id, await QSPreviews.GenerateAsync(await _3D.QSPreviews.GetRenderAsyncFrom(idea.Path), container, cancellationToken), container);
+                internal override Renders Create(Idea_ idea, string id, _3D.QSPreviews previews, AssetContainer container)
+                    => new(idea, id, previews, container);
+
+                protected override async ValueTask<string> GetPreviewInputAsync(Idea_ idea)
+                    => await _3D.QSPreviews.GetRenderAsyncFrom(idea.Path);
             }
             protected Renders(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
                 : base(idea, id, previews, container)

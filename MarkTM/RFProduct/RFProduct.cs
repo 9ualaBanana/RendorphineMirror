@@ -10,7 +10,6 @@ namespace MarkTM.RFProduct;
 // Describe this complex pattern that requires generalization on an arbitrary amount of properties, also must support [de]serialization and stuff.
 // This is needed to turn this information into a knowledge that can be used without going through the same process of re-learning each time I'm faced with that kind of a problem.
 // That's why it's called "Pattern" - it is repeated. Why not automating this process by abstracting it into a well-defined knowledge.
-// Currently existing RFProduct implementations differ only in the type of `QSPreviews` they store but not all RFProduct implemenations will be as simple.
 public partial record RFProduct : AssetContainer
 {
     [JsonProperty] public string Type
@@ -38,14 +37,18 @@ public partial record RFProduct : AssetContainer
         public required Idea_.IRecognizer<TIdea> Recognizer { get; init; }
         public required QSPreviews.Generator<TPreviews> QSPreviews { get; init; }
 
-        internal async Task<TProduct> CreateAsync_(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken)
+        internal async Task<TProduct> CreateAsync(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken)
         {
             // FIX: QSPreviews and Idea paths don't change along with their container and it's fucked up.
             idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Move);
-            return await CreateAsync(idea, id, container, cancellationToken);
+            var previews = await QSPreviews.GenerateAsync(await GetPreviewInputAsync(idea), container, cancellationToken);
+            return Create(idea, id, previews, container);
         }
-        internal abstract Task<TProduct> CreateAsync(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken);
-        internal virtual Func<TIdea, string[]> SubProductsIdeas { get; } = _ => [];
+        // Represents virtual constructor method that merely delegates construction to concrete children constructors,
+        // thus circumvents placing new() constraint on TProduct and creating it right here in the base class.
+        internal abstract TProduct Create(TIdea idea, string id, TPreviews previews, AssetContainer container);
+        protected virtual ValueTask<string> GetPreviewInputAsync(TIdea idea) => ValueTask.FromResult(idea.Path);
+        internal virtual string[] SubProductsIdeas(TIdea idea) => [];
     }
     protected RFProduct(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
         : base(container)
@@ -108,6 +111,7 @@ public partial record RFProduct : AssetContainer
             TIdea? TryRecognize(string idea);
         }
     }
+
 
     [JsonObject]
     public abstract record QSPreviews : IEnumerable<FileWithFormat>

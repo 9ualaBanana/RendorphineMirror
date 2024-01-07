@@ -10,8 +10,8 @@ public partial record RFProduct
     {
         public record Constructor : Constructor<Idea_, QSPreviews, Image>
         {
-            internal override async Task<Image> CreateAsync(Idea_ idea, string id, AssetContainer container, CancellationToken cancellationToken)
-                => new(idea, id, await QSPreviews.GenerateAsync(idea.Path, container, cancellationToken), container);
+            internal override Image Create(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
+                => new(idea, id, previews, container);
         }
         Image(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
             : base(idea, id, previews, container)
