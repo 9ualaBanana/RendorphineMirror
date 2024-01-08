@@ -174,6 +174,8 @@ public abstract class ListenerBase : IServiceTarget
     protected async Task<bool> CheckAuthentication(HttpListenerContext context)
     {
         var sid = context.Request.QueryString["sessionid"];
+        sid ??= context.Request.Cookies["sessionid"]?.Value;
+
         return sid is not null && await CheckAuthentication(sid);
     }
     // static readonly Dictionary<string, bool> CachedAuthentications = new();
