@@ -31,6 +31,7 @@ global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
 using Node;
 using Node.Services.Targets;
+using SevenZip;
 
 
 if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
@@ -45,6 +46,9 @@ using var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
 var notifier = container.Resolve<Notifier>();
 notifier.Notify("Starting");
 initializeDotTracer(container);
+
+if (OperatingSystem.IsWindows())
+    SevenZipBase.SetLibraryPath(Path.GetFullPath("assets/7z.dll"));
 
 IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release")) switch
 {

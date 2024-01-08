@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.RegularExpressions;
+using SevenZip;
 
 namespace Node.Tasks.Watching.Handlers.Input;
 
@@ -20,6 +21,7 @@ public class OneClickRunner : OneClickRunnerInfo
         await InstallOneClickIfNeeded();
 
         var archives = Directory.GetFiles(InputDir, "*.zip")
+            .Concat(Directory.GetFiles(InputDir, "*.rar"))
             .Order()
             .Chunk(1);
 
@@ -32,20 +34,28 @@ public class OneClickRunner : OneClickRunnerInfo
         if (Directory.Exists(destination))
             Directory.Delete(destination, true);
 
+        // required for 7zextractor as it replaces / with _
+        destination = Path.GetFullPath(destination);
+
         Logger.Info($"Extracting {archive} to {destination}");
-        ZipFile.ExtractToDirectory(archive, destination);
+        using (var extractor = new SevenZipExtractor(archive))
+            extractor.ExtractArchive(destination);
 
         while (true)
         {
-            var zips = Directory.GetFiles(destination, "*.zip", SearchOption.AllDirectories);
-            if (zips.Length == 0) break;
+            var archives = Directory.GetFiles(destination, "*.zip", SearchOption.AllDirectories)
+                .Concat(Directory.GetFiles(destination, "*.rar", SearchOption.AllDirectories))
+                .ToArray();
 
-            foreach (var zip in zips)
+            if (archives.Length == 0) break;
+
+            foreach (var zip in archives)
             {
                 var dest = Path.GetDirectoryName(zip)!;
 
                 Logger.Info($"Extracting {zip} to {dest}");
-                ZipFile.ExtractToDirectory(zip, dest);
+                using (var extractor = new SevenZipExtractor(zip))
+                    extractor.ExtractArchive(dest);
                 File.Delete(zip);
             }
         }
@@ -491,7 +501,7 @@ public class OneClickRunner : OneClickRunnerInfo
             {
                 Logging = { ILogger = Logger, LogStartMessage = false, StdErr = Microsoft.Extensions.Logging.LogLevel.Trace, StdOut = Microsoft.Extensions.Logging.LogLevel.Trace },
                 ThrowOnStdErr = false,
-                WorkingDirectory = UnityTemplatesDir,
+                WorkingDirectory = Path.GetFullPath(UnityTemplatesDir),
             }.ExecuteFullAsync();
         }
     }
