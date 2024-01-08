@@ -2,6 +2,7 @@
 using _3DProductsPublish._3DProductDS;
 using Tomlyn;
 using Tomlyn.Syntax;
+using static _3DProductsPublish._3DProductDS._3DProduct;
 using static Tomlyn.Helpers.TomlNamingHelper;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
@@ -91,7 +92,7 @@ public partial record TurboSquid3DProductMetadata
             }
             static FileFormat FileFormat_(_3DModel model)
             {
-                foreach (var file in model.EnumerateFiles())
+                foreach (var file in model.EnumerateEntries(AssetContainer.EntryType.NonContainers))
                     if (DeduceFromExtension(file) is FileFormat fileFormat)
                         return fileFormat;
 

@@ -18,7 +18,7 @@ public partial record _3DProduct
         }
 
         new internal IEnumerable<Texture_> EnumerateFiles()
-            => base.EnumerateFiles()
+            => base.EnumerateEntries()
             .Where(Texture_.HasValidExtension)
             .Select(_ => new Texture_(_));
     }

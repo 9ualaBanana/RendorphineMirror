@@ -151,7 +151,7 @@ namespace Node.Listeners
             {
                 return new JObject()
                 {
-                    ["id"] = product.ID.Value,
+                    ["id"] = product.ID,
                     ["type"] = product.Type,
                     ["subproducts"] = new JArray(product.SubProducts.Select(rfProductToJson).ToArray()),
                 };
@@ -203,7 +203,7 @@ namespace Node.Listeners
                     if (!RFProducts.RFProducts.TryGetValue(id, out var product))
                         return await WriteErr(response, "Unknown product");
 
-                    var filepath = product.Idea;
+                    var filepath = product.Idea.Path;
 
                     using var file = File.OpenRead(filepath);
                     response.StatusCode = (int) HttpStatusCode.OK;

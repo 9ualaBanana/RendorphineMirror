@@ -12,37 +12,48 @@ public partial record RFProduct
 {
     public record Video : RFProduct
     {
-        public record Constructor : Constructor<Video>
+        public record Constructor : Constructor<Idea_, QSPreviews, Video>
         {
-            internal override async Task<Video> CreateAsync(string idea, ID_ id, AssetContainer container, CancellationToken cancellationToken)
-                => new(idea, id, await QSPreviews.GenerateAsync(idea, container, cancellationToken), container);
-            public required QSPreviews.Generator QSPreviews { get; init; }
+            internal override Video Create(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
+                => new(idea, id, previews, container);
         }
-        Video(string idea, ID_ id, QSPreviews previews, AssetContainer container)
+        Video(Idea_ idea, string id, QSPreviews previews, AssetContainer container)
             : base(idea, id, previews, container)
         {
         }
 
+
+        new public record Idea_
+            : RFProduct.Idea_
+        {
+            Idea_(string path)
+                : base(path)
+            {
+            }
+            public record Recognizer : IRecognizer<Idea_>
+            {
+                public Idea_? TryRecognize(string idea)
+                    => File.Exists(idea) && FileFormatExtensions.FromFilename(idea) is FileFormat.Mov ? new(idea) : null;
+            }
+        }
 
         new public record QSPreviews(
             [property: JsonProperty(nameof(QSPreviewOutput.ImageFooter))] FileWithFormat ImageWithFooter,
             [property: JsonProperty(nameof(QSPreviewOutput.ImageQr))] FileWithFormat ImageWithQR,
             [property: JsonProperty(nameof(QSPreviewOutput.Video))] FileWithFormat Video) : RFProduct.QSPreviews
         {
-            public record Generator : Generator<Video.QSPreviews>
+            public record Generator : Generator<QSPreviews>
             {
                 public required IPluginList PluginList { get; init; }
 
                 protected override async ValueTask<IReadOnlyList<string>> PrepareInputAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
                 {
                     var videoScreenshot = await CaptureScreenshotAsync();
-                    //File.Delete(videoScreenshot);
                     return new string[] { idea, videoScreenshot };
 
 
                     async Task<string> CaptureScreenshotAsync()
                     {
-                        // Screenshot should be taken and when its QS preview is ready it shall be replaced with it.
                         var screenshot = System.IO.Path.Combine(container, $"{System.IO.Path.GetFileNameWithoutExtension(idea)}_ss.jpg");
 
                         var launcher = new FFmpegLauncher(PluginList.GetPlugin(PluginType.FFmpeg).Path)
