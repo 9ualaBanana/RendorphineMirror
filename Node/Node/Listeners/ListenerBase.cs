@@ -127,7 +127,7 @@ public abstract class ListenerBase : IServiceTarget
                     {
                         try
                         {
-                            if (!await CheckSendAuthentication(context))
+                            if (RequiresAuthentication && !await CheckSendAuthentication(context))
                                 return;
 
                             await Execute(context);
@@ -164,7 +164,7 @@ public abstract class ListenerBase : IServiceTarget
     }
     protected async Task<bool> CheckSendAuthentication(HttpListenerContext context)
     {
-        if (context.Request.IsLocal || !RequiresAuthentication || await CheckAuthentication(context))
+        if (context.Request.IsLocal || await CheckAuthentication(context))
             return true;
 
         context.Response.StatusCode = (int) HttpStatusCode.BadRequest;
@@ -198,7 +198,7 @@ public abstract class ListenerBase : IServiceTarget
             // if (CachedAuthentications.TryGetValue(sid, out var cached))
             //     return cached;
 
-            var nodes = await ComponentContext.Resolve<Apis>().WithSessionId(sid).GetMyNodesAsync().ConfigureAwait(false);
+            var nodes = await new Apis(Api.Default, sid).GetMyNodesAsync().ConfigureAwait(false);
             if (!nodes) return false;
 
             var theiruserid = nodes.Result.Select(x => x.UserId).FirstOrDefault();
