@@ -177,6 +177,14 @@ public class OneClickRunner : OneClickRunnerInfo
     {
         using var _ = Logger.BeginScope($"3dsmax");
 
+        await killMax();
+        async Task killMax()
+        {
+            Logger.Info("Killing 3dsmax");
+            await new ProcessLauncher("taskkill", "/IM", "3dsmax.exe", "/F") { ThrowOnStdErr = false, ThrowOnNonZeroExitCode = false }
+                .ExecuteAsync();
+        }
+
         var output3dsmaxdir = Achive3dsMaxExtractDirectory(inputArchiveFile);
         if (Directory.Exists(output3dsmaxdir))
         {
