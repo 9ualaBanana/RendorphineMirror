@@ -11,6 +11,7 @@ public class Profiler
     public required PluginManager PluginManager { get; init; }
     public required SettingsInstance Settings { get; init; }
     public required Init Init { get; init; }
+    public required Benchmark Benchmark { get; init; }
     public required ILogger<Profiler> Logger { get; init; }
 
     async ValueTask<Profile> CreateDefault()

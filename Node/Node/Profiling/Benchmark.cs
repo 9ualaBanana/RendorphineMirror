@@ -2,22 +2,24 @@
 
 namespace Node.Profiling;
 
-internal static class Benchmark
+[AutoRegisteredService(true)]
+public class Benchmark
 {
-    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
+    public required NodeDataDirs DataDirs { get; init; }
+    public required ILogger<Benchmark> Logger { get; init; }
 
-    readonly static string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
-    readonly static string _sampleVideoPath = Path.Combine(_assetsPath, "4k_sample.mp4");
+    readonly string _assetsPath = Path.Combine(Directory.GetCurrentDirectory(), "assets");
+    string _sampleVideoPath => Path.Combine(_assetsPath, "4k_sample.mp4");
 
     /// <summary>
     /// true if <see cref="Benchmark"/> wasn't run yet after it had been updated; false, otherwise.
     /// </summary>
-    internal static bool ShouldBeRun => !isCompleted && IsUpdated;
-    static bool isCompleted;
+    internal bool ShouldBeRun => !isCompleted && IsUpdated;
+    bool isCompleted;
     /// <remarks>
     /// Evaluated once upon node start.
     /// </remarks>
-    static bool IsUpdated
+    bool IsUpdated
     {
         get
         {
@@ -30,18 +32,18 @@ internal static class Benchmark
         }
     }
 
-    internal static async Task<BenchmarkData> RunAsync(int testDataSize)
+    internal async Task<BenchmarkData> RunAsync(int testDataSize)
     {
         var result = await RunAsyncCore(testDataSize);
         Settings.BenchmarkResult.Value = new(BenchmarkMetadata.Version, result);
         UpdateValues(result);
 
         isCompleted = true;
-        _logger.Info("Benchmark completed:\n{BenchmarkResults}", JsonConvert.SerializeObject(result, Formatting.None));
+        Logger.LogInformation("Benchmark completed:\n{BenchmarkResults}", JsonConvert.SerializeObject(result, Formatting.None));
 
         return result;
     }
-    internal static void UpdateValues(BenchmarkData result)
+    internal void UpdateValues(BenchmarkData result)
     {
         // need to update these values every hearbeat
         // later benchmark will be decoupled from this
@@ -52,15 +54,21 @@ internal static class Benchmark
             result.GPU.Load = GPU.Info.First().LoadPercentage / 100d;
             result.RAM.Free = RAM.Info.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory);
 
-            var drives = Drive.Info;
+            var drives = new MultiList<Drive>()
+            {
+                Drive.Info
+                    .Where(d => d.LogicalDrives.Any(d => Path.GetFullPath(DataDirs.TaskDataDirectory()).StartsWith(d.RootDirectory.FullName, StringComparison.Ordinal)))
+                    .MaxBy(d => d.LogicalDrives.First().RootDirectory.FullName.Length),
+            };
+
             foreach (var disk in result.Disks)
-                disk.FreeSpace = drives.Find(x => x.Id == disk.Id)?.FreeSpace ?? disk.FreeSpace;
+                disk.FreeSpace = drives.FirstOrDefault(x => x.Id == disk.Id)?.FreeSpace ?? disk.FreeSpace;
         }
 
-        _logger.Trace($"Updated hardware values: cpu load {result.CPU.Load}; gpu load {result.GPU.Load}; ram free {result.RAM.Free}; disks free {string.Join(", ", result.Disks.Select(x => x.FreeSpace))};");
+        Logger.Trace($"Updated hardware values: cpu load {result.CPU.Load}; gpu load {result.GPU.Load}; ram free {result.RAM.Free}; disks free {string.Join(", ", result.Disks.Select(x => x.FreeSpace))};");
     }
 
-    static async Task<BenchmarkData> RunAsyncCore(int testDataSize)
+    async Task<BenchmarkData> RunAsyncCore(int testDataSize)
     {
         // todo remove when linux benchmark fixed
         if (!OperatingSystem.IsWindows())
@@ -95,7 +103,7 @@ internal static class Benchmark
         );
     }
 
-    static async Task<CPUBenchmarkResult> GetCpuBenchmarkResultsAsObjectAsync(int testDataSize)
+    async Task<CPUBenchmarkResult> GetCpuBenchmarkResultsAsObjectAsync(int testDataSize)
     {
         double ffmpegRating = default;
         try
@@ -106,7 +114,7 @@ internal static class Benchmark
         return new((await new ZipBenchmark(testDataSize).RunAsync()).Bps, new(ffmpegRating));
     }
 
-    static async Task<GPUBenchmarkResult> GetGpuBenchmarkResultsAsObjectAsync()
+    async Task<GPUBenchmarkResult> GetGpuBenchmarkResultsAsObjectAsync()
     {
         double ffmpegRating = default;
         try
@@ -118,7 +126,7 @@ internal static class Benchmark
     }
 
     [SupportedOSPlatform("windows")]
-    static async Task<List<DriveBenchmarkResult>> GetDrivesBenchmarkResultsAsObjectAsync(int testDataSize)
+    async Task<List<DriveBenchmarkResult>> GetDrivesBenchmarkResultsAsObjectAsync(int testDataSize)
     {
         var drivesBenchmarkResults = new List<(BenchmarkResult Read, BenchmarkResult Write)>();
         var readWriteBenchmark = new ReadWriteBenchmark(testDataSize);
@@ -136,7 +144,7 @@ internal static class Benchmark
         return result?.ToList() ?? new();
     }
 
-    static RAMInfo GetRamAsObject()
+    RAMInfo GetRamAsObject()
     {
         var ramInfo = RAM.Info;
 
