@@ -15,6 +15,7 @@ public class SettingsTab : Panel
                     CreateNick(),
                     CreateOthers(),
                     CreatePorts(),
+                    CreateTasksDir(),
                 },
             },
         };
@@ -131,6 +132,64 @@ public class SettingsTab : Panel
                     },
                 },
             },
+        };
+    }
+    Control CreateTasksDir()
+    {
+        var tb = new TextBox();
+        NodeGlobalState.Instance.TaskProcessingDirectory.SubscribeChanged(() => Dispatcher.UIThread.Post(() => tb.Text = NodeGlobalState.Instance.TaskProcessingDirectory.Value), true);
+
+        var panel = new Grid()
+        {
+            ColumnDefinitions = ColumnDefinitions.Parse("* Auto"),
+            Children =
+            {
+                tb.WithColumn(0),
+                new MPButton()
+                {
+                    Text = "Choose directory",
+                    OnClick = async () =>
+                    {
+                        var result = await OpenDirectoryPicker();
+                        tb.Text = result;
+                    },
+                }.WithColumn(1),
+            },
+        };
+
+        async Task<string> OpenDirectoryPicker()
+        {
+            var result = await ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false });
+            return result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty;
+        }
+
+        var setbtn = new MPButton() { Text = new("Set task directory"), };
+        setbtn.OnClickSelf += async self =>
+        {
+            if (string.IsNullOrWhiteSpace(tb.Text))
+            {
+                await self.FlashError("No directory");
+                return;
+            }
+
+
+
+            using var _ = new FuncDispose(() => Dispatcher.UIThread.Post(() => setbtn.IsEnabled = true));
+            setbtn.IsEnabled = false;
+
+            var dir = tb.Text.Trim();
+            var set = await LocalApi.Default.Get("settaskdir", "Changing task processing directory", ("dir", dir));
+            await self.Flash(set);
+        };
+
+        return new Grid()
+        {
+            RowDefinitions = RowDefinitions.Parse("* *"),
+            Children =
+            {
+                panel.WithRow(0),
+                setbtn.WithRow(1),
+            }
         };
     }
 }

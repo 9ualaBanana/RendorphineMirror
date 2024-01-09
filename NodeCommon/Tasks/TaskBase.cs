@@ -35,24 +35,5 @@ public abstract record TaskBase(string Id, TaskInfo Info) : IMPlusTask
 
     public static string GenerateLocalId() => "local_" + Guid.NewGuid();
 
-
-    public string FSDataDirectory(DataDirs dirs) => FSDataDirectory(dirs, Id);
-    public string FSOutputDirectory(DataDirs dirs, string? add = null) => FSOutputDirectory(dirs, Id, add);
-    public string FSInputDirectory(DataDirs dirs) => FSInputDirectory(dirs, Id);
-
-    public string FSPlacedDataDirectory(DataDirs dirs) => FSPlacedDataDirectory(dirs, Id);
-    public string FSPlacedResultsDirectory(DataDirs dirs) => FSPlacedResultsDirectory(dirs, Id);
-    public string FSPlacedSourcesDirectory(DataDirs dirs) => FSPlacedSourcesDirectory(dirs, Id);
-
-    public static string FSTaskDataDirectory(DataDirs dirs) => Directories.DirCreated(dirs.Data, "tasks");
-    public static string FSDataDirectory(DataDirs dirs, string id) => Directories.DirCreated(FSTaskDataDirectory(dirs), id);
-    public static string FSOutputDirectory(DataDirs dirs, string id, string? add = null) => Directories.DirCreated(FSDataDirectory(dirs, id), "output" + add);
-    public static string FSInputDirectory(DataDirs dirs, string id) => Directories.DirCreated(FSDataDirectory(dirs, id), "input");
-
-    public static string FSPlacedTaskDataDirectory(DataDirs dirs) => Directories.DirCreated(dirs.Data, "ptasks");
-    public static string FSPlacedDataDirectory(DataDirs dirs, string id) => Directories.DirCreated(FSPlacedTaskDataDirectory(dirs), id);
-    public static string FSPlacedResultsDirectory(DataDirs dirs, string id) => Directories.DirCreated(FSPlacedDataDirectory(dirs, id), "results");
-    public static string FSPlacedSourcesDirectory(DataDirs dirs, string id) => Directories.DirCreated(FSPlacedDataDirectory(dirs, id), "sources");
-
     public bool Equals(IRegisteredTask? other) => Id == other?.Id;
 }

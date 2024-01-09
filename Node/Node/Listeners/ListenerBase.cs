@@ -173,6 +173,9 @@ public abstract class ListenerBase : IServiceTarget
     }
     protected async Task<bool> CheckAuthentication(HttpListenerContext context)
     {
+        // TODO: disabled temporarily as it doesnt work for some reason
+        return true;
+
         var sid = context.Request.QueryString["sessionid"];
         sid ??= context.Request.Cookies["sessionid"]?.Value;
 

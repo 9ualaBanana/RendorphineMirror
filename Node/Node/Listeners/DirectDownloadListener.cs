@@ -7,7 +7,7 @@ public class DirectDownloadListener : ExecutableListenerBase
 {
     static readonly Dictionary<string, TaskCompletionSource> TasksToReceive = new();
 
-    public required DataDirs Dirs { get; init; }
+    public required NodeDataDirs Dirs { get; init; }
 
     public DirectDownloadListener(ILogger<DirectDownloadListener> logger) : base(logger) { }
 
@@ -41,7 +41,7 @@ public class DirectDownloadListener : ExecutableListenerBase
             return await WriteErr(response, "No task found with such id");
 
         // TODO: fix uploading FSOutputDirectory instead of outputfiles
-        var taskdir = ReceivedTask.FSOutputDirectory(Dirs, taskid);
+        var taskdir = Dirs.TaskOutputDirectory(taskid);
         if (!Directory.Exists(taskdir)) return HttpStatusCode.NotFound;
 
         var dirfiles = Directory.GetFiles(taskdir);

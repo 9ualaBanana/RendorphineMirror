@@ -7,7 +7,7 @@ public class ReceivedTasksHandler
     public required ICompletedTasksStorage CompletedTasks { get; init; }
     public required Apis Api { get; init; }
     public required NodeGlobalState NodeGlobalState { get; init; }
-    public required DataDirs Dirs { get; init; }
+    public required NodeDataDirs Dirs { get; init; }
     public required Notifier Notifier { get; init; }
     public required ILogger<ReceivedTasksHandler> Logger { get; init; }
 
@@ -110,8 +110,8 @@ public class ReceivedTasksHandler
                 Notifier.Notify($"Completed task {task.Id}\n ```json\n{JsonConvert.SerializeObject(task, JsonSettings.LowercaseIgnoreNull):n}\n```");
                 Logger.LogInformation($"Completed, removing");
 
-                Logger.LogInformation($"Deleting {task.FSDataDirectory(Dirs)}");
-                Directory.Delete(task.FSDataDirectory(Dirs), true);
+                Logger.LogInformation($"Deleting {Dirs.TaskDataDirectory(task.Id)}");
+                Directory.Delete(Dirs.TaskDataDirectory(task.Id), true);
 
                 QueuedTasks.QueuedTasks.Remove(task);
                 return;
@@ -193,16 +193,16 @@ public class ReceivedTasksHandler
     }
     class TaskInputDirectoryProvider : ITaskInputDirectoryProvider
     {
-        public required DataDirs Dirs { get; init; }
+        public required NodeDataDirs Dirs { get; init; }
         public required ReceivedTask Task { get; init; }
 
-        public string InputDirectory => Task.FSInputDirectory(Dirs);
+        public string InputDirectory => Dirs.TaskInputDirectory(Task.Id);
     }
     class TaskOutputDirectoryProvider : ITaskOutputDirectoryProvider
     {
-        public required DataDirs Dirs { get; init; }
+        public required NodeDataDirs Dirs { get; init; }
         public required ReceivedTask Task { get; init; }
 
-        public string OutputDirectory => Task.FSOutputDirectory(Dirs);
+        public string OutputDirectory => Dirs.TaskOutputDirectory(Task.Id);
     }
 }

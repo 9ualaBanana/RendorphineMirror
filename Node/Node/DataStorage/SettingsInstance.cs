@@ -28,6 +28,7 @@ public class SettingsInstance : INodeSettings
     public readonly DatabaseValue<bool> AcceptTasks;
     public readonly DatabaseValue<uint> TaskAutoDeletionDelayDays;
     public readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
+    public readonly DatabaseValue<string?> TaskProcessingDirectory;
 
     public SettingsInstance(DataDirs dirs)
     {
@@ -48,6 +49,7 @@ public class SettingsInstance : INodeSettings
         AcceptTasks = new(db, nameof(AcceptTasks), true);
         TaskAutoDeletionDelayDays = new(db, nameof(TaskAutoDeletionDelayDays), 4);
         BenchmarkResult = new(db, nameof(BenchmarkResult), default);
+        TaskProcessingDirectory = new(db, nameof(TaskProcessingDirectory), default);
 
 
         foreach (var bindable in new[] { BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort })

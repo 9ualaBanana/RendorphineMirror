@@ -27,7 +27,7 @@ public class TaskExecutor
     public required IIndex<TaskAction, IPluginActionInfo> Actions { get; init; }
     public required IIndex<TaskOutputType, ITaskUploadHandler> ResultUploaders { get; init; }
     public required TaskExecutorByData Executor { get; init; }
-    public required DataDirs Dirs { get; init; }
+    public required NodeDataDirs Dirs { get; init; }
     public required ILogger<TaskExecutor> Logger { get; init; }
 
 
@@ -80,7 +80,7 @@ public class TaskExecutor
             object convertInput(object input, int index)
             {
                 if (input is IReadOnlyTaskFileList files)
-                    return new TaskFileInput(files, Directories.DirCreated(task.FSOutputDirectory(Dirs), index.ToStringInvariant()));
+                    return new TaskFileInput(files, Directories.DirCreated(Dirs.TaskOutputDirectory(task.Id), index.ToStringInvariant()));
 
                 return input;
             }

@@ -18,6 +18,7 @@ public class LocalListener : ExecutableListenerBase
     public required RFProduct.Factory RFProductFactory { get; init; }
     public required IComponentContext Container { get; init; }
     public required IRFProductStorage RFProducts { get; init; }
+    public required SettingsInstance Settings { get; init; }
 
     public LocalListener(ILogger<LocalListener> logger) : base(logger) { }
 
@@ -50,6 +51,15 @@ public class LocalListener : ExecutableListenerBase
                 }
 
                 return await WriteJson(response, resp).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
+        if (path == "settaskdir")
+        {
+            return await Test(request, response, "dir", async dir =>
+            {
+                Settings.TaskProcessingDirectory.Value = string.IsNullOrWhiteSpace(dir) ? null : dir;
+                return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
 

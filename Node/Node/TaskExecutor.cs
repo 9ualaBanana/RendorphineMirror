@@ -6,12 +6,12 @@ namespace Node;
 
 public class TaskExecutor : ITaskExecutor
 {
-    public required DataDirs Dirs { get; init; }
+    public required NodeDataDirs Dirs { get; init; }
     public required ILifetimeScope Container { get; init; }
 
     public async Task<QSPreviewOutput> ExecuteQS(IReadOnlyList<string> filesinput, QSPreviewInfo qsinfo, CancellationToken token)
     {
-        var input = new TaskFileInput(new ReadOnlyTaskFileList(filesinput.Select(FileWithFormat.FromFile)), ReceivedTask.FSOutputDirectory(Dirs, $"local_{Guid.NewGuid()}"));
+        var input = new TaskFileInput(new ReadOnlyTaskFileList(filesinput.Select(FileWithFormat.FromFile)), Dirs.TaskOutputDirectory($"local_{Guid.NewGuid()}"));
         var data = JObject.FromObject(qsinfo).WithProperty("type", TaskAction.GenerateQSPreview.ToString());
 
         return (QSPreviewOutput) await Execute(input, data, token);

@@ -14,6 +14,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
     }
 
     public required TaskListTarget TaskList { get; init; }
+    public required SettingsInstance Settings { get; init; }
     public required NodeGlobalState NodeGlobalState { get; init; }
     public required PluginManager PluginManager { get; init; }
     public required IWatchingTasksStorage WatchingTasks { get; init; }
@@ -32,24 +33,25 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
     {
         var state = NodeGlobalState;
 
-        state.WatchingTasks.Bind(WatchingTasks.WatchingTasks.Bindable);
-        state.RFProducts.Bind(RFProducts.RFProducts.Bindable);
-        state.PlacedTasks.Bind(PlacedTasks.PlacedTasks.Bindable);
-        state.CompletedTasks.Bind(CompletedTasks.CompletedTasks.Bindable);
+        state.WatchingTasks.BindOneWayFrom(WatchingTasks.WatchingTasks.Bindable);
+        state.RFProducts.BindOneWayFrom(RFProducts.RFProducts.Bindable);
+        state.PlacedTasks.BindOneWayFrom(PlacedTasks.PlacedTasks.Bindable);
+        state.CompletedTasks.BindOneWayFrom(CompletedTasks.CompletedTasks.Bindable);
         QueuedTasks.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(QueuedTasks.QueuedTasks.Values), true);
         Settings.BenchmarkResult.Bindable.SubscribeChanged(() => state.BenchmarkResult.Value = Settings.BenchmarkResult.Value is null ? null : JObject.FromObject(Settings.BenchmarkResult.Value), true);
         PluginManager.CachedPluginsBindable.SubscribeChanged(() => NodeGlobalState.InstalledPlugins.SetRange(PluginManager.CachedPluginsBindable.Value ?? Array.Empty<Plugin>()), true);
-        state.TaskAutoDeletionDelayDays.Bind(Settings.TaskAutoDeletionDelayDays.Bindable);
+        state.TaskAutoDeletionDelayDays.BindOneWayFrom(Settings.TaskAutoDeletionDelayDays.Bindable);
 
-        state.ServerUrl.Bind(Settings.BServerUrl.Bindable);
-        state.LocalListenPort.Bind(Settings.BLocalListenPort.Bindable);
-        state.UPnpPort.Bind(Settings.BUPnpPort.Bindable);
-        state.UPnpServerPort.Bind(Settings.BUPnpServerPort.Bindable);
-        state.DhtPort.Bind(Settings.BDhtPort.Bindable);
-        state.TorrentPort.Bind(Settings.BTorrentPort.Bindable);
-        state.NodeName.Bind(Settings.BNodeName.Bindable);
-        state.AuthInfo.Bind(Settings.BAuthInfo.Bindable);
-        state.AcceptTasks.Bind(Settings.AcceptTasks.Bindable);
+        state.ServerUrl.BindOneWayFrom(Settings.BServerUrl.Bindable);
+        state.LocalListenPort.BindOneWayFrom(Settings.BLocalListenPort.Bindable);
+        state.UPnpPort.BindOneWayFrom(Settings.BUPnpPort.Bindable);
+        state.UPnpServerPort.BindOneWayFrom(Settings.BUPnpServerPort.Bindable);
+        state.DhtPort.BindOneWayFrom(Settings.BDhtPort.Bindable);
+        state.TorrentPort.BindOneWayFrom(Settings.BTorrentPort.Bindable);
+        state.NodeName.BindOneWayFrom(Settings.BNodeName.Bindable);
+        state.AuthInfo.BindOneWayFrom(Settings.BAuthInfo.Bindable);
+        state.AcceptTasks.BindOneWayFrom(Settings.AcceptTasks.Bindable);
+        state.TaskProcessingDirectory.BindOneWayFrom(Settings.TaskProcessingDirectory.Bindable);
 
         await Task.WhenAll([
             BalanceUpdater.Start(null, state.Balance, default),
