@@ -78,6 +78,9 @@ public abstract class BindableBase<T> : IReadOnlyBindable<T>
             TriggerValueChanged(eventSource);
     }
 
+    // Set THIS bindable value from the OTHER one
+    public void BindOneWayFrom(BindableBase<T> other) => other.SubscribeChanged(() => Value = other.Value, true);
+
     public void Bind(BindableBase<T> other)
     {
         References.Add(new(other));
