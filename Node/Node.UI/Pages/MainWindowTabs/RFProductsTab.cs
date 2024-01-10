@@ -95,6 +95,11 @@ public class RFProductsTab : Panel
                                 await self.FlashError("No container");
                                 return;
                             }
+                            if (!File.Exists(idea.Text))
+                            {
+                                await self.FlashError("Idea file doesn't exists");
+                                return;
+                            }
 
                             var result = await LocalApi.Default.Post("createrfproduct", "Creating an RF product", ("idea", idea.Text.Trim()), ("container", container.Text.Trim()));
                             await self.Flash(result);
