@@ -232,7 +232,7 @@ namespace Node.Listeners
             {
                 return await CheckSendAuthentication(context, async () =>
                 {
-                    string logDir = "logs";
+                    string logDir = Path.GetFullPath("logs");
                     string? q = context.Request.QueryString["id"];
                     string info = "";
 
