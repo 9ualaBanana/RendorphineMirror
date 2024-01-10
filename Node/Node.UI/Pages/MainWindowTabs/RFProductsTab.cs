@@ -95,6 +95,11 @@ public class RFProductsTab : Panel
                                 await self.FlashError("No container");
                                 return;
                             }
+                            if (!File.Exists(idea.Text))
+                            {
+                                await self.FlashError("Idea file doesn't exists");
+                                return;
+                            }
 
                             var result = await LocalApi.Default.Post("createrfproduct", "Creating an RF product", ("idea", idea.Text.Trim()), ("container", container.Text.Trim()));
                             await self.Flash(result);
@@ -110,12 +115,12 @@ public class RFProductsTab : Panel
         async Task<string> OpenFilePicker()
         {
             var result = await ((Window) VisualRoot!).StorageProvider.OpenFilePickerAsync(new() { AllowMultiple = false });
-            return result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty;
+            return result.FirstOrDefault()?.Path.LocalPath ?? string.Empty;
         }
         async Task<string> OpenDirectoryPicker()
         {
             var result = await ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false });
-            return result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty;
+            return result.FirstOrDefault()?.Path.LocalPath ?? string.Empty;
         }
     }
     class RFProductListPanel : Panel

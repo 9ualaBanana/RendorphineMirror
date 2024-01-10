@@ -100,7 +100,7 @@ public static class JsonUISetting
                 textinput.Subscribe(TextBox.TextProperty, text => File = text ?? string.Empty);
 
                 var btn = new MPButton() { Text = new("Pick a file") };
-                btn.OnClick += () => ((Window) VisualRoot!).StorageProvider.OpenFilePickerAsync(new() { AllowMultiple = false }).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = t.Result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty));
+                btn.OnClick += () => ((Window) VisualRoot!).StorageProvider.OpenFilePickerAsync(new() { AllowMultiple = false }).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = t.Result.FirstOrDefault()?.Path.LocalPath ?? string.Empty));
 
 
                 var grid = new Grid()
@@ -123,7 +123,7 @@ public static class JsonUISetting
                 textinput.Subscribe(TextBox.TextProperty, text => Dir = text ?? string.Empty);
 
                 var btn = new MPButton() { Text = new("Pick a directory") };
-                btn.OnClick += () => ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false }).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = t.Result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty));
+                btn.OnClick += () => ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false }).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = t.Result.FirstOrDefault()?.Path.LocalPath ?? string.Empty));
 
                 var grid = new Grid()
                 {
