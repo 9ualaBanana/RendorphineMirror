@@ -204,7 +204,8 @@ public class BindableDictionary<TKey, TValue> : BindableBase<IReadOnlyDictionary
     public IEnumerable<TKey> Keys => Value.Keys;
     public IEnumerable<TValue> Values => Value.Values;
 
-    public BindableDictionary(IEnumerable<KeyValuePair<TKey, TValue>>? values = null, IEqualityComparer<TKey>? keycomparer = null) : base(new Dictionary<TKey, TValue>(keycomparer))
+    public BindableDictionary(IEnumerable<KeyValuePair<TKey, TValue>>? values = null) : this(values, null) { }
+    public BindableDictionary(IEnumerable<KeyValuePair<TKey, TValue>>? values, IEqualityComparer<TKey>? keycomparer) : base(new Dictionary<TKey, TValue>(keycomparer))
     {
         if (values is not null)
             foreach (var (key, value) in values)
