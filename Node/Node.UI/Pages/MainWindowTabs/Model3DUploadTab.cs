@@ -139,7 +139,7 @@ public class Model3DUploadTab : Panel
             textinput.Subscribe(TextBox.TextProperty, text => Dir = text);
 
             var btn = new MPButton() { Text = new("Pick a directory") };
-            btn.OnClick += () => ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false }).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = t.Result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty));
+            btn.OnClick += () => ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false }).ContinueWith(t => Dispatcher.UIThread.Post(() => textinput.Text = t.Result.FirstOrDefault()?.Path.LocalPath ?? string.Empty));
 
             var grid = new Grid()
             {

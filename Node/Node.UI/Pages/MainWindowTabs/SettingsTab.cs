@@ -160,7 +160,7 @@ public class SettingsTab : Panel
         async Task<string> OpenDirectoryPicker()
         {
             var result = await ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false });
-            return result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty;
+            return result.FirstOrDefault()?.Path.LocalPath ?? string.Empty;
         }
 
         var setbtn = new MPButton() { Text = new("Set task directory"), };

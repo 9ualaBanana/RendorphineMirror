@@ -110,12 +110,12 @@ public class RFProductsTab : Panel
         async Task<string> OpenFilePicker()
         {
             var result = await ((Window) VisualRoot!).StorageProvider.OpenFilePickerAsync(new() { AllowMultiple = false });
-            return result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty;
+            return result.FirstOrDefault()?.Path.LocalPath ?? string.Empty;
         }
         async Task<string> OpenDirectoryPicker()
         {
             var result = await ((Window) VisualRoot!).StorageProvider.OpenFolderPickerAsync(new() { AllowMultiple = false });
-            return result.FirstOrDefault()?.Path.AbsolutePath ?? string.Empty;
+            return result.FirstOrDefault()?.Path.LocalPath ?? string.Empty;
         }
     }
     class RFProductListPanel : Panel
