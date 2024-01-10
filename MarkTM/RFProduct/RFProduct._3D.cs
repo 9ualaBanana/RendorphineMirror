@@ -98,7 +98,7 @@ public partial record RFProduct
                 public record Recognizer : IRecognizer<Idea_>
                 {
                     public Idea_? TryRecognize(string idea)
-                        => new DirectoryInfo(idea).Parent?.Parent?.FullName is string parentIdea && Parent.TryRecognize(parentIdea) is not null ?
+                        => Directory.Exists(idea) && new DirectoryInfo(idea).Parent?.Parent?.FullName is string parentIdea && Parent.TryRecognize(parentIdea) is not null ?
                         new(idea) : null;
 
                     public required _3D.Idea_.Recognizer Parent { get; init; }
