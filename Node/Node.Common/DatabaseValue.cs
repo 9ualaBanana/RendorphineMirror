@@ -106,9 +106,9 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
     public DatabaseValueDictionary(Database database, string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null, JsonSerializer? serializer = null)
     {
         Database = database;
-        Accessor = new(database, table);
 
         if (serializer is not null) ItemsList.JsonSerializer = serializer;
+        Accessor = new(database, table) { Serializer = ItemsList.JsonSerializer };
         Items = new(comparer);
 
         TableName = table;
