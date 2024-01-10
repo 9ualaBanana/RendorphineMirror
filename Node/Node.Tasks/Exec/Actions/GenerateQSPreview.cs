@@ -17,16 +17,16 @@ public class GenerateQSPreview : FilePluginActionInfo<TaskFileInput, QSPreviewOu
     protected override Type ExecutorType => typeof(Executor);
 
     public override IReadOnlyCollection<IReadOnlyCollection<FileFormat>> InputFileFormats =>
-        new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Mov }, new[] { FileFormat.Jpeg, FileFormat.Mov } };
+        new[] { new[] { FileFormat.Jpeg }, new[] { FileFormat.Png }, new[] { FileFormat.Mov }, new[] { FileFormat.Jpeg, FileFormat.Mov } };
 
     protected override void ValidateOutput(TaskFileInput input, QSPreviewInfo data, QSPreviewOutput output)
     {
         output.AssertListValid();
 
-        var jpeg = input.Files.TryFirst(FileFormat.Jpeg) is not null;
+        var img = input.Files.TryFirst(FileFormat.Png) is not null || input.Files.TryFirst(FileFormat.Jpeg) is not null;
         var mov = input.Files.TryFirst(FileFormat.Mov) is not null;
 
-        if (jpeg)
+        if (img)
         {
             output.ImageFooter.ThrowIfNull("Footer image is null");
             if (data.AlwaysGenerateQRPreview || !mov)
@@ -49,19 +49,19 @@ public class GenerateQSPreview : FilePluginActionInfo<TaskFileInput, QSPreviewOu
             var id = data.Qid;
             var output = new QSPreviewOutput(input.ResultDirectory);
 
-            var jpeg = input.Files.TryFirst(FileFormat.Jpeg);
+            var img = input.Files.TryFirst(FileFormat.Jpeg) ?? input.Files.TryFirst(FileFormat.Png);
             var mov = input.Files.TryFirst(FileFormat.Mov);
 
             var qrtext = $"https://qwertystock.com/{id}";
 
-            if (jpeg is not null)
+            if (img is not null)
             {
-                await ProcessPreviewFooter(id, jpeg.Path, output.InitializeImageFooter().Path);
+                await ProcessPreviewFooter(id, img.Path, output.InitializeImageFooter().Path);
 
                 if (data.AlwaysGenerateQRPreview || mov is null)
                 {
                     using var qr = await GenerateQR(qrtext, "assets/qswatermark/qwerty_logo.png");
-                    await ProcessPreviewQr(jpeg.Path, qr, output.InitializeImageQr().Path);
+                    await ProcessPreviewQr(img.Path, qr, output.InitializeImageQr().Path);
                 }
             }
 
