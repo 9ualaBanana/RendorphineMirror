@@ -158,7 +158,10 @@ namespace Node.Listeners
             }
 
             if (path == "getocproducts")
+            {
+                response.AddHeader("Access-Control-Allow-Origin", "*");
                 return await WriteJson(response, RFProducts.RFProducts.Select(p => KeyValuePair.Create(p.Key, rfProductToJson(p.Value))).ToImmutableDictionary().AsOpResult());
+            }
 
             if (path == "getocproductdata")
             {
