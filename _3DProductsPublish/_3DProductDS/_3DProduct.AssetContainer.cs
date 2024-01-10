@@ -223,16 +223,16 @@ public partial record _3DProduct
         public static implicit operator string(AssetContainer container) => container.Path;
 
 
-        internal static class Archive_
+        public static class Archive_
         {
             internal const string Extension = ".zip";
             internal static bool Exists(string path) => File.Exists(path) && IsArchive(path);
-            static bool IsArchive(string path) => System.IO.Path.GetExtension(path) == Archive_.Extension;
+            public static bool IsArchive(string path) => System.IO.Path.GetExtension(path) == Archive_.Extension;
 
             internal static IEnumerable<string> EnumerateEntries(string path, out string tempDirectoryPath)
                 => Directory.EnumerateFileSystemEntries(tempDirectoryPath = Archive_.Unpack(path));
 
-            internal static string Unpack(string path)
+            public static string Unpack(string path)
             {
                 if (Archive_.Exists(path))
                 {
