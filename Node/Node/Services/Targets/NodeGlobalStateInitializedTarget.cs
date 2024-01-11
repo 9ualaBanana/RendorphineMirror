@@ -34,7 +34,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         var state = NodeGlobalState;
 
         state.WatchingTasks.BindOneWayFrom(WatchingTasks.WatchingTasks.Bindable);
-        state.RFProducts.BindOneWayFrom(RFProducts.RFProducts.Bindable);
+        RFProducts.RFProducts.Bindable.SubscribeChanged(() => state.RFProducts.SetRange(RFProducts.RFProducts.Select(p => KeyValuePair.Create(p.Key, JObject.FromObject(p.Value)))), true);
         state.PlacedTasks.BindOneWayFrom(PlacedTasks.PlacedTasks.Bindable);
         state.CompletedTasks.BindOneWayFrom(CompletedTasks.CompletedTasks.Bindable);
         QueuedTasks.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(QueuedTasks.QueuedTasks.Values), true);

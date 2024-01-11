@@ -125,7 +125,7 @@ public class RFProductsTab : Panel
     }
     class RFProductListPanel : Panel
     {
-        readonly IReadOnlyBindableCollection<RFProduct> Products;
+        readonly IReadOnlyBindableCollection<KeyValuePair<string, JObject>> Products;
 
         public RFProductListPanel()
         {
@@ -140,18 +140,21 @@ public class RFProductsTab : Panel
 
             Products.SubscribeChanged(() =>
             {
-                stack.Children.Clear();
+                Dispatcher.UIThread.Post(() =>
+                {
+                    stack.Children.Clear();
 
-                foreach (var product in Products)
-                    stack.Children.Add(new RFProductUi(product));
+                    foreach (var product in Products)
+                        stack.Children.Add(new RFProductUi(product.Value));
+                });
             }, true);
         }
     }
     class RFProductUi : Panel
     {
-        readonly RFProduct Product;
+        readonly JObject Product;
 
-        public RFProductUi(RFProduct product)
+        public RFProductUi(JObject product)
         {
             Product = product;
 
@@ -161,8 +164,8 @@ public class RFProductsTab : Panel
                 ColumnDefinitions = ColumnDefinitions.Parse("Auto *"),
                 Children =
                 {
-                    new TextBlock() { Text = $"ID: {product.ID}" },
-                    new TextBlock() { Text = $"Path: {product.Path}" }.WithRow(1),
+                    new TextBlock() { Text = $"ID: {product[nameof(RFProduct.ID)]}" },
+                    new TextBlock() { Text = $"Path: {product[nameof(RFProduct.Path)]}" }.WithRow(1),
                     new MPButton()
                     {
                         Text = "Open directory",
@@ -180,7 +183,7 @@ public class RFProductsTab : Panel
                         Text = "Delete from DB (no files deleted)",
                         OnClickSelf = async (self) =>
                         {
-                            var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product.ID));
+                            var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product[nameof(RFProduct.ID)]!.Value<string>()!));
                             await self.Flash(result);
                         },
                     }.WithRow(3),

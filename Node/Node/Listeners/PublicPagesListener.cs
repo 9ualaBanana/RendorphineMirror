@@ -158,7 +158,10 @@ namespace Node.Listeners
             }
 
             if (path == "getocproducts")
+            {
+                response.AddHeader("Access-Control-Allow-Origin", "*");
                 return await WriteJson(response, RFProducts.RFProducts.Select(p => KeyValuePair.Create(p.Key, rfProductToJson(p.Value))).ToImmutableDictionary().AsOpResult());
+            }
 
             if (path == "getocproductdata")
             {
@@ -229,7 +232,7 @@ namespace Node.Listeners
             {
                 return await CheckSendAuthentication(context, async () =>
                 {
-                    string logDir = "logs";
+                    string logDir = Path.GetFullPath("logs");
                     string? q = context.Request.QueryString["id"];
                     string info = "";
 
@@ -262,7 +265,7 @@ namespace Node.Listeners
                         response.Headers["Content-Encoding"] = "gzip";
 
                         using Stream file = File.Open(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                        using var gzip = new GZipStream(response.OutputStream, CompressionLevel.Fastest);
+                        using var gzip = new GZipStream(response.OutputStream, CompressionLevel.Optimal);
                         await file.CopyToAsync(gzip);
 
                         return HttpStatusCode.OK;

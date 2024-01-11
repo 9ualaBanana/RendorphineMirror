@@ -14,11 +14,9 @@ global using Node.Plugins;
 global using Node.Plugins.Models;
 global using Node.Tasks;
 global using Node.Tasks.Exec;
-global using Node.Tasks.IO;
 global using Node.Tasks.IO.Input;
 global using Node.Tasks.IO.Output;
 global using Node.Tasks.Models;
-global using Node.Tasks.Watching;
 global using Node.Tasks.Watching.Input;
 global using NodeCommon;
 global using NodeCommon.ApiModel;
@@ -44,7 +42,7 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
 using var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
 var notifier = container.Resolve<Notifier>();
-notifier.Notify("Starting");
+notifier.Notify("Starting node");
 initializeDotTracer(container);
 
 if (OperatingSystem.IsWindows())
@@ -57,7 +55,7 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
 
-notifier.Notify("Started");
+notifier.Notify("Started node");
 Thread.Sleep(-1);
 GC.KeepAlive(main);
 
