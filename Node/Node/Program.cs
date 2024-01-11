@@ -44,7 +44,7 @@ _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
 using var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
 var notifier = container.Resolve<Notifier>();
-notifier.Notify("Starting");
+notifier.Notify("Starting node");
 initializeDotTracer(container);
 
 if (OperatingSystem.IsWindows())
@@ -57,7 +57,7 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
 
-notifier.Notify("Started");
+notifier.Notify("Started node");
 Thread.Sleep(-1);
 GC.KeepAlive(main);
 
