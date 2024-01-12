@@ -184,7 +184,7 @@ namespace Node.Listeners
                     return await WriteErr(response, "Unknown type");
 
                 var filepath = JObject.FromObject(product.QSPreview).Property(type, StringComparison.OrdinalIgnoreCase)
-                    .ThrowIfNull("Unknown type").Value.ToObject<FileWithFormat>().ThrowIfNull().Path;
+                    .ThrowIfNull("Type is not present on file").Value.ToObject<FileWithFormat>().ThrowIfNull().Path;
 
                 using var file = File.OpenRead(filepath);
                 response.StatusCode = (int) HttpStatusCode.OK;
