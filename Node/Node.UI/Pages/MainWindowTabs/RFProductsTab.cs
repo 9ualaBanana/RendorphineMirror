@@ -29,7 +29,7 @@ public class RFProductsTab : Panel
 
             var ideapanel = new Grid()
             {
-                ColumnDefinitions = ColumnDefinitions.Parse("* Auto"),
+                ColumnDefinitions = ColumnDefinitions.Parse("* Auto Auto"),
                 Children =
                 {
                     idea.WithColumn(0),
@@ -42,6 +42,15 @@ public class RFProductsTab : Panel
                             idea.Text = result;
                         },
                     }.WithColumn(1),
+                    new MPButton()
+                    {
+                        Text = "Choose idea directory",
+                        OnClick = async () =>
+                        {
+                            var result = await OpenDirectoryPicker();
+                            idea.Text = result;
+                        },
+                    }.WithColumn(2),
                 },
             };
             var containerpanel = new Grid()
