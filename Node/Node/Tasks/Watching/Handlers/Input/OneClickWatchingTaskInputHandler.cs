@@ -53,6 +53,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
     {
         return new OneClickRunner(Input, test)
         {
+            WatchingTask = Task,
             PluginList = PluginList,
             TdsMaxPlugin = PluginList.GetPlugin(PluginType.Autodesk3dsMax, pl => pl.Version != "2024"),
             OneClickPlugin = oneClickPlugin ?? PluginList.GetPlugin(PluginType.OneClick),

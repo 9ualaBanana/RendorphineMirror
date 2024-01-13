@@ -9,6 +9,7 @@ public class OneClickRunner : OneClickRunnerInfo
     public required Action SaveFunc { get; init; }
     public required OneClickWatchingTaskInputHandler.OCLocalListener LocalListener { get; init; }
 
+    public required WatchingTask WatchingTask { get; init; }
     public required IPluginList PluginList { get; init; }
     public required Plugin TdsMaxPlugin { get; init; }
     public required Plugin OneClickPlugin { get; init; }
@@ -141,6 +142,8 @@ public class OneClickRunner : OneClickRunnerInfo
 
     async Task RunChunk(IReadOnlyList<string> inputArchiveFiles)
     {
+        if (WatchingTask.IsPaused) return;
+
         foreach (var inputArchiveFile in inputArchiveFiles)
         {
             try
