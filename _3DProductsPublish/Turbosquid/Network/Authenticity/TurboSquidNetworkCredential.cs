@@ -3,7 +3,7 @@ using System.Security;
 
 namespace _3DProductsPublish.Turbosquid.Network.Authenticity;
 
-internal class TurboSquidNetworkCredential : NetworkCredential
+public class TurboSquidNetworkCredential : NetworkCredential
 {
     internal readonly string _CsrfToken;
     internal readonly string _CaptchaVerifiedToken;
@@ -11,7 +11,7 @@ internal class TurboSquidNetworkCredential : NetworkCredential
 
     #region Initialization
 
-    internal static ForeignThreadValue<string> _CapturedCefResponse = new(false);
+    internal static ForeignThreadValue<string> Response = new(false);
 
     internal TurboSquidNetworkCredential WithUpdated(string csrfToken) =>
         new(UserName, Password, csrfToken, _ApplicationUserID, _CaptchaVerifiedToken);

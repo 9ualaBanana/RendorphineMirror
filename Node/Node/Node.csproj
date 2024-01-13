@@ -8,7 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Autofac" Version="7.1.0" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="CefSharp.OffScreen.NETCore" Version="115.3.110" />
+    <PackageReference Include="CefSharp.OffScreen.NETCore" Version="120.1.110" />
     <PackageReference Include="Microsoft.PowerShell.Sdk" Version="7.4.0" />
     <PackageReference Include="NLog.Extensions.Logging" Version="5.3.7" />
     <PackageReference Include="Autofac.Diagnostics.DotGraph" Version="1.0.0" />

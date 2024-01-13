@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <PackageReference Include="CefSharp.OffScreen.NETCore" Version="115.3.110" />
+    <PackageReference Include="CefSharp.OffScreen.NETCore" Version="120.1.110" />
     <PackageReference Include="lvl" Version="1.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.0" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />

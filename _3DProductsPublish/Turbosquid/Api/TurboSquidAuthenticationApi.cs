@@ -1,12 +1,16 @@
 ﻿using System.Net;
+using _3DProductsPublish.Turbosquid.Network;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
+using CefSharp.OffScreen;
 using Microsoft.Net.Http.Headers;
+using _3DProductsPublish.Turbosquid.Upload;
+using CefSharp;
 
 namespace _3DProductsPublish.Turbosquid.Api;
 
 internal class TurboSquidAuthenticationApi : IBaseAddressProvider
 {
-    readonly ILogger _logger = LogManager.GetCurrentClassLogger();
+    readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     readonly SocketsHttpHandler _socketsHttpHandler;
     readonly HttpClient _httpClient;
@@ -28,6 +32,47 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
 
         _httpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
         _noAutoRedirectHttpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
+    }
+
+    internal async Task<TurboSquidNetworkCredential> RequestTurboSquidNetworkCredentialAsync(NetworkCredential credential, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var credential_ = await RequestTurboSquidNetworkCredentialAsyncCore();
+            _logger.Debug("{Credential} was received.", nameof(TurboSquidNetworkCredential));
+            return credential_;
+        }
+        catch (Exception ex)
+        {
+            string errorMessage = $"{nameof(TurboSquidNetworkCredential)} request failed.";
+            _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
+        }
+
+        // I don't remember why it's implemented via synchronous thread and if it's necessary.
+        async Task<TurboSquidNetworkCredential> RequestTurboSquidNetworkCredentialAsyncCore()
+        {
+            TurboSquidNetworkCredential credential_ = null!;
+            var thread = new Thread(() =>
+            {
+                using var browser = new ChromiumWebBrowser(new Uri(TurboSquid.Origin, "auth/keymaster").AbsoluteUri)
+                { RequestHandler = RequestHandler._ };  // Consider using ResourceRequestHandlerFactory.
+                _ = browser.WaitForInitialLoadAsync().Result;
+
+                string credentialResponse = TurboSquidNetworkCredential.Response.GetAsync(cancellationToken).Result;
+                string csrfToken = CsrfToken._ParseFromMetaTag(credentialResponse);
+                string applicationUserId = TurboSquidApplicationUserID._Parse(credentialResponse);
+                string captchaVerifiedTokenResponse = TurboSquidCaptchaVerifiedToken.Response.GetAsync(cancellationToken).Result;
+                string captchaVerifiedToken = TurboSquidCaptchaVerifiedToken._Parse(captchaVerifiedTokenResponse);
+
+                browser._DumpCookiesTo(_socketsHttpHandler.CookieContainer);
+
+                credential_ = new(credential, csrfToken, applicationUserId, captchaVerifiedToken);
+            });
+            thread.Start();
+            await Task.Run(thread.Join, cancellationToken);
+
+            return credential_;
+        }
     }
 
     internal async Task _LoginAsyncUsing(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)

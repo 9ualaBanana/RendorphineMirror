@@ -1,41 +1,42 @@
 ﻿using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using CefSharp;
-using CefSharp.Handler;
 using CefSharp.ResponseFilter;
+using System.Net;
 using System.Text;
 
 namespace _3DProductsPublish.Turbosquid.Network;
-internal class TurboSquidRequestHandler : RequestHandler
-{
-    protected override IResourceRequestHandler GetResourceRequestHandler(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, bool isNavigation, bool isDownload, string requestInitiator, ref bool disableDefaultHandling) =>
-        _resourceRequestHandler;
-    readonly IResourceRequestHandler _resourceRequestHandler = new TurboSquidResourceRequestHandler();
-}
 
-internal class TurboSquidResourceRequestHandler : ResourceRequestHandler
+internal class RequestHandler : CefSharp.Handler.RequestHandler
 {
-    protected override void OnResourceLoadComplete(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, IResponse response, UrlRequestStatus status, long receivedContentLength)
+    internal static RequestHandler _ = new();
+    protected override IResourceRequestHandler GetResourceRequestHandler(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, bool isNavigation, bool isDownload, string requestInitiator, ref bool disableDefaultHandling)
+        => ResourceRequestHandler._;
+}
+internal class ResourceRequestHandler : CefSharp.Handler.ResourceRequestHandler
+{
+    internal static ResourceRequestHandler _ = new();
+    protected override IResponseFilter? GetResourceResponseFilter(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, IResponse response)
     {
-        if (TurboSquidResponse.HasNetworkCredential(request))
-            TurboSquidNetworkCredential._CapturedCefResponse.SetAsync(_Response).Wait();
-        else if (TurboSquidResponse.HasCaptchaSolution(request))
-            TurboSquidCaptchaVerifiedToken._CapturedCefResponse.SetAsync(_Response).Wait();
+        var uri = new Uri(request.Url);
+        if (uri.PathAndQuery == "/users/sign_in" && response.StatusCode is (int)HttpStatusCode.OK
+            || uri.PathAndQuery.Contains("/reload"))
+            return Response.Read();
+        else return null;
     }
 
-    protected override IResponseFilter GetResourceResponseFilter(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, IResponse response) =>
-        TurboSquidResponse.HasNetworkCredential(request) || TurboSquidResponse.HasCaptchaSolution(request) ? _InterceptResponse() : default!;
-
-    IResponseFilter _InterceptResponse() => new StreamResponseFilter(_responseStream = new MemoryStream());
-
-    string _Response => Encoding.UTF8.GetString(_responseStream!.ToArray());
-    MemoryStream? _responseStream;
+    protected override void OnResourceLoadComplete(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, IResponse response, UrlRequestStatus status, long receivedContentLength)
+    {
+        var uri = new Uri(request.Url);
+        if (uri.PathAndQuery == "/users/sign_in" && response.StatusCode is (int)HttpStatusCode.OK)
+            TurboSquidNetworkCredential.Response.SetAsync(Response.Get()).Wait();
+        else if (uri.PathAndQuery.Contains("/reload"))
+            TurboSquidCaptchaVerifiedToken.Response.SetAsync(Response.Get()).Wait();
+    }
 }
 
-static class TurboSquidResponse
+internal static class Response
 {
-    internal static bool HasNetworkCredential(IRequest request) => HasSessionContext(request.Url);
-    static bool HasSessionContext(string url) => new Uri(url).PathAndQuery == "/users/sign_in";
-
-    internal static bool HasCaptchaSolution(IRequest resourceRequest) => HasCaptchaSolution(resourceRequest.Url);
-    static bool HasCaptchaSolution(string resourceUrl) => resourceUrl.Contains("/reload");
+    internal static string Get() => Encoding.UTF8.GetString(_stream!.ToArray());
+    internal static IResponseFilter Read() => new StreamResponseFilter(_stream = new MemoryStream());
+    static MemoryStream? _stream;
 }

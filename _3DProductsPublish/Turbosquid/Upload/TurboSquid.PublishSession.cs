@@ -12,7 +12,7 @@ using System.Net.Mime;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
-internal partial class TurboSquid
+public partial class TurboSquid
 {
     internal class PublishSession
     {
