@@ -4,6 +4,8 @@ public record TaskInfo(TaskObject Object, ITaskOutputInfo Output, JObject Data, 
 {
     public ITaskInputInfo? Input { get; init; }
     public IReadOnlyList<ITaskInputInfo>? Inputs { get; init; }
+    public ulong Registered { get; init; }
+    public string? UserName { get; init; }
 
     [JsonIgnore] public string FirstTaskType => GetTaskType(Data);
 

@@ -9,9 +9,4 @@ public record ReceivedTask(string Id, TaskInfo Info) : TaskBase(Id, Info)
 
     [JsonConverter(typeof(TypedJsonConverter))]
     public object? Result2;
-
-    [Obsolete("DELETE")] public ReadOnlyTaskFileList? InputFileList;
-
-    [JsonConverter(typeof(JsonSettings.ConcreteConverter<TaskFileListList, IReadOnlyTaskFileListList>))]
-    [Obsolete("DELETE")] public IReadOnlyTaskFileListList? OutputFileListList;
 }
