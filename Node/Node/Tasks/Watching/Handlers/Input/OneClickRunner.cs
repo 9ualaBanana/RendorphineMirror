@@ -13,6 +13,7 @@ public class OneClickRunner : OneClickRunnerInfo
     public required IPluginList PluginList { get; init; }
     public required Plugin TdsMaxPlugin { get; init; }
     public required Plugin OneClickPlugin { get; init; }
+    //public required RFProduct.Factory RFProductFactory { get; init; }
     public required ILogger Logger { get; init; }
 
     public OneClickRunner(OneClickWatchingTaskInputInfo input, bool test) : base(input, test) { }
@@ -252,6 +253,7 @@ public class OneClickRunner : OneClickRunnerInfo
         await validateConversionSuccessful();
         Logger.Info("Success.");
         exportInfo.OneClick = new(OneClickPlugin.Version.ToString(), true);
+        //await RFProductFactory.CreateAsync("");
 
 
         async Task validateConversionSuccessful()

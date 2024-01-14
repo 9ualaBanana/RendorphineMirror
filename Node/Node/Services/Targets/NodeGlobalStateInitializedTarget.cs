@@ -34,6 +34,25 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         var state = NodeGlobalState;
 
         state.WatchingTasks.BindOneWayFrom(WatchingTasks.WatchingTasks.Bindable);
+        WatchingTasks.WatchingTasks.Bindable.SubscribeChanged(() =>
+        {
+            var oc = WatchingTasks.WatchingTasks.FirstOrDefault(t => t.Value.Source is OneClickWatchingTaskInputInfo).Value;
+            if (oc is null) state.OneClickTaskInfo.Value = null;
+            else
+            {
+                var source = (OneClickWatchingTaskInputInfo) oc.Source;
+                state.OneClickTaskInfo.Value = new OneClickTaskInfo()
+                {
+                    IsPaused = oc.IsPaused,
+                    InputDir = source.InputDirectory,
+                    OutputDir = source.OutputDirectory,
+                    LogDir = source.OutputDirectory,
+                    UnityTemplatesDir = @"C:\\OneClickUnityDefaultProjects",
+                    ExportInfo = source.ExportInfo ?? [],
+                };
+            }
+        }, true);
+
         RFProducts.RFProducts.Bindable.SubscribeChanged(() => state.RFProducts.SetRange(RFProducts.RFProducts.Select(p => KeyValuePair.Create(p.Key, JObject.FromObject(p.Value)))), true);
         state.PlacedTasks.BindOneWayFrom(PlacedTasks.PlacedTasks.Bindable);
         state.CompletedTasks.BindOneWayFrom(CompletedTasks.CompletedTasks.Bindable);

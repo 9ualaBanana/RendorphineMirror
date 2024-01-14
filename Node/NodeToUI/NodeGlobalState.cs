@@ -24,6 +24,7 @@ public class NodeGlobalState
     public readonly BindableDictionary<string, JObject> RFProducts = new();
     public readonly Bindable<JObject?> BenchmarkResult = new();
     public readonly Bindable<uint> TaskAutoDeletionDelayDays = new();
+    public readonly Bindable<OneClickTaskInfo?> OneClickTaskInfo = new();
 
     public readonly Bindable<string> ServerUrl = new();
     public readonly Bindable<ushort> LocalListenPort = new();

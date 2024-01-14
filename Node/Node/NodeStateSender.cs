@@ -68,6 +68,10 @@ public class NodeStateSender
 
                     await SendInternalAsync(new NodeStateUpdate(NodeStateUpdate.UpdateType.State, json)).ConfigureAwait(false);
                 }
+                catch (ObjectDisposedException ex)
+                {
+                    exittask.SetException(ex);
+                }
                 catch (Exception ex)
                 {
                     Logger.Error(ex);

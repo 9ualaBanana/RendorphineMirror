@@ -72,6 +72,8 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
         protected override ListenTypes ListenType => ListenTypes.Local;
         protected override string? Prefix => "oc";
 
+        public required IWatchingTasksStorage WatchingTasks { get; init; }
+
         public OCLocalListener(ILogger<OCLocalListener> logger) : base(logger) { }
 
         public async Task<ProductJson> WaitForCompletion(Action<ProductJson> onReceiveFunc, TimeSpan timeout, CancellationToken token)
@@ -103,6 +105,27 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
                     userid = Settings.UserId,
                     publicport = Settings.UPnpServerPort,
                 }.AsOpResult());
+            }
+
+            if (path == "unpause")
+            {
+                var oc = WatchingTasks.WatchingTasks.Values
+                    .First(t => t.Source is OneClickWatchingTaskInputInfo);
+                oc.IsPaused = false;
+                WatchingTasks.WatchingTasks.Bindable.TriggerValueChanged();
+                WatchingTasks.WatchingTasks.Save(oc);
+
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }
+            if (path == "pause")
+            {
+                var oc = WatchingTasks.WatchingTasks.Values
+                    .First(t => t.Source is OneClickWatchingTaskInputInfo);
+                oc.IsPaused = true;
+                WatchingTasks.WatchingTasks.Bindable.TriggerValueChanged();
+                WatchingTasks.WatchingTasks.Save(oc);
+
+                return await WriteSuccess(response).ConfigureAwait(false);
             }
 
             return await base.ExecuteGet(path, context);

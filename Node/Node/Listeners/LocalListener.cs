@@ -106,7 +106,6 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
-
         return HttpStatusCode.NotFound;
     }
     protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)

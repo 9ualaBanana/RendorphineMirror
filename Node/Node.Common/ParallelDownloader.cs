@@ -17,6 +17,8 @@ public class ParallelDownloader
         long fileSize;
         {
             using var fileSizeResponse = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, uri), HttpCompletionOption.ResponseHeadersRead, token);
+            Logger.LogInformation("File size HEAD request response returned: " + string.Join(", ", fileSizeResponse.Headers.Select(h => $"{h.Key}: {string.Join(" | ", h.Value)}")));
+            Logger.LogInformation("and http " + fileSizeResponse.StatusCode);
             if (!fileSizeResponse.IsSuccessStatusCode || fileSizeResponse.Content.Headers.ContentLength is null)
             {
                 Logger.LogWarning($"Could not fetch file size, downloading normally...");

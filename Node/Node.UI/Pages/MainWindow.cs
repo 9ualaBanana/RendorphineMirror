@@ -38,6 +38,7 @@ namespace Node.UI.Pages
             tabs.Add("3dupload", new Model3DUploadTab());
             tabs.Add("Turbosquid sales", new TurboSquidSalesReportTab());
             tabs.Add("rfproduct", new RFProductsTab());
+            tabs.Add("oneclick", new OneClickTab(connectionState.NodeGlobalState));
 
             var statustb = new TextBlock()
             {

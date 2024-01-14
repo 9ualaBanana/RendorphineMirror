@@ -216,6 +216,44 @@ namespace Node.Listeners
                     return HttpStatusCode.OK;
                 });
             }
+            /*
+            if (path == "getocproductdir")
+            {
+                return await CheckSendAuthentication(context, async () =>
+                {
+                    var query = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query);
+                    var id = query["id"].ThrowIfNull();
+
+                    if (!RFProducts.RFProducts.TryGetValue(id, out var product))
+                        return await WriteErr(response, "Unknown product");
+
+                    var dirpath = product.Idea.Path;
+
+                    var result = new JArray(Directory.GetFiles(dirpath).Select(p => Path.GetFileName(p)).ToArray());
+                    return await WriteJson(response, result.AsOpResult());
+                });
+            }
+            if (path == "getocproductdirfile")
+            {
+                return await CheckSendAuthentication(context, async () =>
+                {
+                    var query = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query);
+                    var id = query["id"].ThrowIfNull();
+
+                    if (!RFProducts.RFProducts.TryGetValue(id, out var product))
+                        return await WriteErr(response, "Unknown product");
+
+                    var filepath = product.Idea.Path;
+
+                    using var file = File.OpenRead(filepath);
+                    response.StatusCode = (int) HttpStatusCode.OK;
+                    response.ContentLength64 = file.Length;
+                    await file.CopyToAsync(response.OutputStream);
+
+                    return HttpStatusCode.OK;
+                });
+            }
+            */
 
             if (path == "getmynodesips")
             {
