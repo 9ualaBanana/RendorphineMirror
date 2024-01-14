@@ -4,19 +4,22 @@ public class RFProductsTab : Panel
 {
     public RFProductsTab()
     {
-        var stack = new StackPanel()
+        var content = new ScrollViewer()
         {
-            Orientation = Orientation.Vertical,
-            Children =
+            Content = new StackPanel()
             {
-                new CreateRFProductPanel()
-                    .Named("Create"),
-                new RFProductListPanel()
-                    .Named("List"),
+                Orientation = Orientation.Vertical,
+                Children =
+                {
+                    new CreateRFProductPanel()
+                        .Named("Create"),
+                    new RFProductListPanel()
+                        .Named("List"),
+                },
             },
         };
 
-        this.Children.Add(stack);
+        Children.Add(content);
     }
 
 
