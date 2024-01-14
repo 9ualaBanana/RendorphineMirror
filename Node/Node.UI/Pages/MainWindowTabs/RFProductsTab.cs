@@ -107,9 +107,9 @@ public class RFProductsTab : Panel
                                 await self.FlashError("No container");
                                 return;
                             }
-                            if (!File.Exists(idea.Text))
+                            if (!File.Exists(idea.Text) && !Directory.Exists(idea.Text))
                             {
-                                await self.FlashError("Idea file doesn't exists");
+                                await self.FlashError("Idea file/dir doesn't exists");
                                 return;
                             }
 
