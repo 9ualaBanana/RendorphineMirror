@@ -58,12 +58,37 @@ public partial class TurboSquid : HttpClient
 
     public async Task ParseSalesAsync(CancellationToken cancellationToken)
     {
-        int month = 1; int year = 2024;
-        var report = (await _noAutoRedirectHttpClient.GetAsync(SaleReport.Uri.For(month, year), cancellationToken)).SetCookies(_handler);
-        report = (await report._FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken)).SetCookies(_handler);    // Redirects to https://www.turbosquid.com/Login/Index.cfm?stgRU=https%3A%2F%2Fwww.turbosquid.com%2FReport%2FIndex.cfm%3Freport_id%3D20
-        // Contains only _keymaster_session cookie which doesn't have Expires property.
-        report = (await report._FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken)).SetCookies(_handler);    // Redirects to https://auth.turbosquid.com/oauth/authorize?client_id=2c781a9f16cbd4fded77cf7f47db1927b85a5463185769bcb970cfdfe7463a0c&state=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3MDUyNDY2NjguNSwic3ViIjoiUmVwb3J0L0luZGV4LmNmbSIsImV4cCI6MTcwNTI0NjY5OC41LCJqdGkiOiJDRDFCOUEwNi05RDcyLTQxNEUtOUI5NzNBMDVCMkMzMTY5RCJ9.3xeC5SohQT665dLD53L-UWAbT-zR_5a6ETGzzL_B9Aw&response_type=code&redirect_uri=https://www.turbosquid.com/Login/Keymaster.cfm?endpoint=callback&scope=id%20email%20roles%20device
-        report = (await report._FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken)).SetCookies(_handler);    // Redirects to https://www.turbosquid.com/Login/Keymaster.cfm?endpoint=callback&code=e5e6d7dadca042c277a24a5688de356ea4e1c6aef298723ce5201803e537445c&state=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3MDUyNDY2NjguNSwic3ViIjoiUmVwb3J0L0luZGV4LmNmbSIsImV4cCI6MTcwNTI0NjY5OC41LCJqdGkiOiJDRDFCOUEwNi05RDcyLTQxNEUtOUI5NzNBMDVCMkMzMTY5RCJ9.3xeC5SohQT665dLD53L-UWAbT-zR_5a6ETGzzL_B9Aw
-        report = await report._FollowRedirectWith(this, cancellationToken); // Final redirect to https://www.turbosquid.com/Report/Index.cfm?report_id=20
+        var webpage = await (await RequestSalesReportWebPageAsync()).Content.ReadAsStringAsync(cancellationToken);
+        await ParseSalesReportAsync(webpage);
+
+
+        async Task<HttpResponseMessage> RequestSalesReportWebPageAsync()
+        {
+            int month = 1; int year = 2024;
+            var report = (await _noAutoRedirectHttpClient.GetAsync(SaleReport.Url.For(month, year), cancellationToken)).SetCookies(_handler);
+            report = (await report._FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken)).SetCookies(_handler);    // Redirects to https://www.turbosquid.com/Login/Index.cfm?stgRU=https%3A%2F%2Fwww.turbosquid.com%2FReport%2FIndex.cfm%3Freport_id%3D20
+            // Contains only _keymaster_session cookie which doesn't have Expires property.
+            report = (await report._FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken)).SetCookies(_handler);    // Redirects to https://auth.turbosquid.com/oauth/authorize?client_id=2c781a9f16cbd4fded77cf7f47db1927b85a5463185769bcb970cfdfe7463a0c&state=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3MDUyNDY2NjguNSwic3ViIjoiUmVwb3J0L0luZGV4LmNmbSIsImV4cCI6MTcwNTI0NjY5OC41LCJqdGkiOiJDRDFCOUEwNi05RDcyLTQxNEUtOUI5NzNBMDVCMkMzMTY5RCJ9.3xeC5SohQT665dLD53L-UWAbT-zR_5a6ETGzzL_B9Aw&response_type=code&redirect_uri=https://www.turbosquid.com/Login/Keymaster.cfm?endpoint=callback&scope=id%20email%20roles%20device
+            report = (await report._FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken)).SetCookies(_handler);    // Redirects to https://www.turbosquid.com/Login/Keymaster.cfm?endpoint=callback&code=e5e6d7dadca042c277a24a5688de356ea4e1c6aef298723ce5201803e537445c&state=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3MDUyNDY2NjguNSwic3ViIjoiUmVwb3J0L0luZGV4LmNmbSIsImV4cCI6MTcwNTI0NjY5OC41LCJqdGkiOiJDRDFCOUEwNi05RDcyLTQxNEUtOUI5NzNBMDVCMkMzMTY5RCJ9.3xeC5SohQT665dLD53L-UWAbT-zR_5a6ETGzzL_B9Aw
+            return await report._FollowRedirectWith(this, cancellationToken); // Final redirect to https://www.turbosquid.com/Report/Index.cfm?report_id=20
+        }
+
+        async Task<IEnumerable<SaleReport>> ParseSalesReportAsync(string webpage)
+        {
+            var recordDefinitions = webpage[webpage.EndIndexOf("var row=new Object();")..webpage.IndexOf("responseSchema.push")]
+                .Split(["row=new Object();", "colArr.push(row);"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var records = recordDefinitions.Select(SaleReport.Parse);
+            foreach (var record in records)
+                record.ProductPreview = await RequestProductPreviewAsync(record.ProductID);
+            return records;
+        }
+
+        async Task<Uri> RequestProductPreviewAsync(long id)
+        {
+            var response = await GetAsync(SaleReport.Url.ForProductPreview(id), cancellationToken); // Return 302 which is not recognized as a redirect by HttpClient for some reason. Also doesn't set any cookies.
+            var producPreviewWebpage = await (await GetAsync(response.Headers.Location!, cancellationToken)).Content.ReadAsStringAsync(cancellationToken);
+            var previewIndex = producPreviewWebpage.EndIndexOf("data-src=\"");
+            return new(producPreviewWebpage[previewIndex..producPreviewWebpage.IndexOf('"', previewIndex)]);
+        }
     }
 }

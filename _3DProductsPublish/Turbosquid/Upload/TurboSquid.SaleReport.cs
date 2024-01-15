@@ -6,8 +6,10 @@ public partial class TurboSquid
 {
     public partial record SaleReport(string Name, long ProductID, double Price, double Rate, double Royalty, DateTimeOffset Date, string OrderType, string Source, string Comment)
     {   
+        public Uri ProductPreview { get; internal set; }
+
         /// <param name="record">JS Object initialization string.</param>
-        public static SaleReport Parse(string record)
+        internal static SaleReport Parse(string record)
         {
             return new(
                 record.Value("Name"),
@@ -24,12 +26,15 @@ public partial class TurboSquid
         private static partial Regex Digit();
 
 
-        internal class Uri
+        internal class Url
         {
             const int ID = 20;
-            internal static System.Uri For(int month, int year)
-                // `xsl` argument defines a format of the requested resource: 0 - webpage; 1 - .csv file.
+            internal static Uri For(int month, int year)
                 => new UriBuilder { Scheme = "https", Host = "www.turbosquid.com", Path = "Report/Index.cfm", Query = $"report_id={ID}&xsl=0&theyear={year}&theMonth={month}" }.Uri;
+            // `xsl` argument defines a format of the requested resource: 0 - webpage; 1 - .csv file.
+
+            internal static Uri ForProductPreview(long id)
+                => new UriBuilder { Scheme = "https", Host = "www.turbosquid.com", Path = $"FullPreview/Index.cfm/ID/{id}" }.Uri;
         }
     }
 }
