@@ -168,6 +168,16 @@ static class RedirectHttpResponseMessageExtensions
         HttpClient httpClient,
         CancellationToken cancellationToken) => await httpClient.GetAsync(response.Headers.Location!, cancellationToken);
 
+    internal static HttpResponseMessage SetCookies(this HttpResponseMessage response, SocketsHttpHandler handler)
+    {
+        foreach (var cookie in response.Headers.SingleOrDefault(_ => _.Key == "Set-Cookie").Value
+            .Select(value => value.Contains("Expires") ? value[..value.IndexOf("Expires")] + value[value.IndexOf("Expires")..].Replace('-', ' ').Replace("UTC", "GMT") : value)
+            )
+            handler.CookieContainer.SetCookies(response.RequestMessage!.RequestUri!, cookie);
+
+        return response;
+    }
+
     /// <summary>
     /// Saves the reference to the <see cref="Cookie"/> with <paramref name="cookieName"/> stored inside <paramref name="cookieContainer"/>
     /// and removes it after sending the <paramref name="request"/>.
