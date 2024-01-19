@@ -25,6 +25,8 @@ public partial record RFProduct
         /// </summary>
         public async Task<RFProduct> CreateAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
         {
+            if (Archive_.IsArchive(idea))
+                idea = Archive_.Unpack(idea);
             var id = await ID(container, cancellationToken);
             if (Storage.RFProducts.TryGetValue(id, out var product))
                 return product;
