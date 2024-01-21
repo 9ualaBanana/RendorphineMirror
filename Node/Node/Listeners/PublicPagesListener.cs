@@ -216,7 +216,6 @@ namespace Node.Listeners
                     return HttpStatusCode.OK;
                 });
             }
-            /*
             if (path == "getocproductdir")
             {
                 return await CheckSendAuthentication(context, async () =>
@@ -227,9 +226,9 @@ namespace Node.Listeners
                     if (!RFProducts.RFProducts.TryGetValue(id, out var product))
                         return await WriteErr(response, "Unknown product");
 
-                    var dirpath = product.Idea.Path;
+                    var dirpath = Path.GetFullPath(product.Idea.Path);
+                    var result = new JArray(Directory.GetFiles(dirpath, "*", SearchOption.AllDirectories).Select(p => Path.GetRelativePath(dirpath, p)).ToArray());
 
-                    var result = new JArray(Directory.GetFiles(dirpath).Select(p => Path.GetFileName(p)).ToArray());
                     return await WriteJson(response, result.AsOpResult());
                 });
             }
@@ -239,11 +238,14 @@ namespace Node.Listeners
                 {
                     var query = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query);
                     var id = query["id"].ThrowIfNull();
+                    var filename = query["file"].ThrowIfNull();
 
                     if (!RFProducts.RFProducts.TryGetValue(id, out var product))
                         return await WriteErr(response, "Unknown product");
 
-                    var filepath = product.Idea.Path;
+                    var filepath = Path.GetFullPath(Path.Combine(product.Idea.Path, filename));
+                    if (!filepath.StartsWith(Path.GetFullPath(product.Idea.Path), StringComparison.Ordinal))
+                        return HttpStatusCode.NotFound;
 
                     using var file = File.OpenRead(filepath);
                     response.StatusCode = (int) HttpStatusCode.OK;
@@ -253,7 +255,6 @@ namespace Node.Listeners
                     return HttpStatusCode.OK;
                 });
             }
-            */
 
             if (path == "getmynodesips")
             {
