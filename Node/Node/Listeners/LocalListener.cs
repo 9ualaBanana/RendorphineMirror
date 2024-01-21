@@ -2,6 +2,8 @@ using System.Net;
 using System.Reflection;
 using _3DProductsPublish;
 using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.Turbosquid;
+using _3DProductsPublish.Turbosquid.Upload;
 using Node.Profiling;
 
 namespace Node.Listeners;
@@ -164,6 +166,20 @@ public class LocalListener : ExecutableListenerBase
                 var product = _3DProduct.FromDirectory(dir);
                 await (await _3DProductPublisher.InitializeAsync(Container, creds, default))
                     .PublishAsync(product, meta, default);
+
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+        if (path == "fetchturbosquidsales")
+        {
+            return await TestPost(await CreateCached(request), response, "mpcreds", "turbocreds", async (mpcredsjson, turbocredsjson) =>
+            {
+                var mpcreds = JsonConvert.DeserializeObject<NetworkCredential>(mpcredsjson).ThrowIfNull();
+                var turbocreds = JsonConvert.DeserializeObject<NetworkCredential>(turbocredsjson).ThrowIfNull();
+
+                var turbo = await TurboSquid.LogInAsyncUsing(turbocreds, Container.Resolve<INodeGui>(), default);
+                await (await MPAnalytics.LoginAsync(mpcreds, default))
+                    .SendAsync(turbo.SaleReports.ScanAsync(default), default);
 
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
