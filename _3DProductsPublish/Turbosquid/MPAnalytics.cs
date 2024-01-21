@@ -55,7 +55,7 @@ public class MPAnalytics
                         id = _.ProductID.ToString(),
                         fname = _.Name,
                         ctype = ContentType.model,
-                        preview = _.ProductPreview.AbsoluteUri,
+                        preview = _.ProductPreview?.AbsoluteUri ?? string.Empty,
                         title = _.Name,
                         date = _.Date.ToUnixTimeMilliseconds(),
                         type = SaleType.ondemand,
