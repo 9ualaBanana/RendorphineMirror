@@ -37,8 +37,8 @@ public partial class TurboSquid
             var year = DateTimeOffset.FromUnixTimeMilliseconds(olduntil).Year;
             int minYear; if (year < (minYear = 2001)) year = minYear;
             
-            for (var isNewYear = false; year <= current.Year; year++, isNewYear = true)
-                for (int month = isNewYear ? 1 : DateTimeOffset.FromUnixTimeMilliseconds(olduntil).Month;
+            for (; year <= current.Year; year++)
+                for (int month = DateTimeOffset.FromUnixTimeMilliseconds(olduntil).Month is int scannedMonth && scannedMonth is not 12 ? scannedMonth + 1 : 1;
                     month <= (year == current.Year ? current.Month : 12); month++)
                 {
                     until = (year == current.Year && month == current.Month ?
@@ -75,16 +75,18 @@ public partial class TurboSquid
             var records = recordDefinitions.Select(SaleReport.Parse).ToArray();
             // Avoid extra preview requests for the records describing the same product (they have the same preview cause refer to the same product with the same product ID).
             foreach (var record in records)
-                record.ProductPreview = await RequestProductPreviewAsync(record.ProductID);
+                try { record.ProductPreview = await RequestProductPreviewAsync(record.ProductID); } catch { }
+                
             return records;
 
 
             async Task<Uri> RequestProductPreviewAsync(long id)
             {
-                var response = await _turbosquid.GetAsync(SaleReports_.Url.ForProductPreview(id), cancellationToken); // Return 302 which is not recognized as a redirect by HttpClient for some reason. Also doesn't set any cookies.
-                var producPreviewWebpage = await (await _turbosquid.GetAsync(response.Headers.Location!, cancellationToken)).Content.ReadAsStringAsync(cancellationToken);
-                var previewIndex = producPreviewWebpage.EndIndexOf("data-src=\"");
-                return new(producPreviewWebpage[previewIndex..producPreviewWebpage.IndexOf('"', previewIndex)]);
+                var productPreviewWebpage = await
+                    (await _turbosquid.GetAsync(SaleReports_.Url.ForProductPreview(id), cancellationToken))
+                    .EnsureSuccessStatusCode().Content.ReadAsStringAsync(cancellationToken);
+                var previewIndex = productPreviewWebpage.EndIndexOf("data-src=\"");
+                return new(productPreviewWebpage[previewIndex..productPreviewWebpage.IndexOf('"', previewIndex)]);
             }
         }
 
@@ -98,7 +100,7 @@ public partial class TurboSquid
             // `xsl` argument defines a format of the requested resource: 0 - webpage; 1 - .csv file.
 
             internal static Uri ForProductPreview(long id)
-                => new UriBuilder { Scheme = "https", Host = "www.turbosquid.com", Path = $"FullPreview/Index.cfm/ID/{id}" }.Uri;
+                => new UriBuilder { Scheme = "https", Host = "www.turbosquid.com", Path = $"FullPreview/{id}" }.Uri;
         }
     }
 
@@ -106,7 +108,7 @@ public partial class TurboSquid
     public partial record SaleReport(string Name, long ProductID, double Price, double Rate, double Royalty, DateTimeOffset Date, string OrderType, string Source, string Comment)
     {   
         // TODO: Statically ensure the proper initialization.
-        public Uri ProductPreview { get; internal set; }
+        public Uri? ProductPreview { get; internal set; }
 
         /// <param name="record">JS Object initialization string.</param>
         internal static SaleReport Parse(string record)

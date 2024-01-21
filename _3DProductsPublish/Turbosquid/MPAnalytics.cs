@@ -13,25 +13,20 @@ public class MPAnalytics
 
         var mpAuthRequest = new HttpRequestMessage(
             HttpMethod.Get,
-            new UriBuilder { Scheme = "https", Host = "accounts.stocksubmitter.com", Path = "api/0.1/auth/native/authenticate" }.Uri)
-        {
-            Content = new FormUrlEncodedContent(new Dictionary<string, string>
+            new UriBuilder
             {
-                ["email"] = credential.UserName,
-                ["password"] = credential.Password,
-                ["service"] = "renderphine"
-            })
-        };
+                Scheme = "https",
+                Host = "accounts.stocksubmitter.com",
+                Path = "api/0.1/auth/native/authenticate",
+                Query = $"email={credential.UserName}&password={credential.Password}&service=renderphine"
+            }.Uri);
         var mpAuth = JObject.Parse(await (await client.SendAsync(mpAuthRequest, cancellationToken)).Content.ReadAsStringAsync(cancellationToken));
         if (!(bool)mpAuth["isOk"]!)
             throw new HttpRequestException($"M+ response doesn't indicate success. ({(int)mpAuth["errorCode"]!})");
 
         var analyticsAuthRequest = new HttpRequestMessage(
             HttpMethod.Get,
-            new UriBuilder { Scheme = "https", Host = Domain, Path = "getnewlogincode" }.Uri)
-        {
-            Content = new FormUrlEncodedContent(new Dictionary<string, string> { ["sid"] = (string)mpAuth["sid"]! })
-        };
+            new UriBuilder { Scheme = "https", Host = Domain, Path = "getnewlogincode", Query = $"sid={(string)mpAuth["sid"]!}" }.Uri);
         var analyticsAuth = JObject.Parse(await (await client.SendAsync(analyticsAuthRequest, cancellationToken)).Content.ReadAsStringAsync(cancellationToken));
         if ((string?)analyticsAuth["logincode"] is string logincode)
             handler.CookieContainer.Add(new Cookie(nameof(logincode), logincode, "/", Domain));
@@ -60,7 +55,7 @@ public class MPAnalytics
                         id = _.ProductID.ToString(),
                         fname = _.Name,
                         ctype = ContentType.model,
-                        preview = _.ProductPreview.AbsoluteUri,
+                        preview = _.ProductPreview?.AbsoluteUri ?? string.Empty,
                         title = _.Name,
                         date = _.Date.ToUnixTimeMilliseconds(),
                         type = SaleType.ondemand,
