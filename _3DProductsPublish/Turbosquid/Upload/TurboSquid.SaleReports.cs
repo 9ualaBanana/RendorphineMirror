@@ -37,8 +37,8 @@ public partial class TurboSquid
             var year = DateTimeOffset.FromUnixTimeMilliseconds(olduntil).Year;
             int minYear; if (year < (minYear = 2001)) year = minYear;
             
-            for (var isNewYear = false; year <= current.Year; year++, isNewYear = true)
-                for (int month = isNewYear ? 1 : DateTimeOffset.FromUnixTimeMilliseconds(olduntil).Month;
+            for (; year <= current.Year; year++)
+                for (int month = DateTimeOffset.FromUnixTimeMilliseconds(olduntil).Month is int scannedMonth && scannedMonth is not 12 ? scannedMonth + 1 : 1;
                     month <= (year == current.Year ? current.Month : 12); month++)
                 {
                     until = (year == current.Year && month == current.Month ?
