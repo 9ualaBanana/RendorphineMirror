@@ -40,7 +40,7 @@ public partial record RFProduct : AssetContainer
         internal async Task<TProduct> CreateAsync(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken)
         {
             // FIX: QSPreviews and Idea paths don't change along with their container and it's fucked up.
-            idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Move);
+            idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Copy);
             var previews = await QSPreviews.GenerateAsync(await GetPreviewInputAsync(idea), container, cancellationToken);
             return Create(idea, id, previews, container);
         }
