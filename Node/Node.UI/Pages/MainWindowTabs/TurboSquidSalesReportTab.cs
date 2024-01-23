@@ -58,7 +58,7 @@ public class TurboSquidSalesReportTab : Panel
                             var mpcred = new NetworkCredential(mplogintb.Text, mppasswordtb.Text);
                             var turbocred = new NetworkCredential(turbologintb.Text, turbopasswordtb.Text);
 
-                            var result = await LocalApi.Default.Post("fetchturbosquidsales", "Fetching turbosquid sales", ("mpcreds", JsonConvert.SerializeObject(mpcred)), ("turbocreds", JsonConvert.SerializeObject(mpcred)));
+                            var result = await LocalApi.Default.Post("fetchturbosquidsales", "Fetching turbosquid sales", ("mpcreds", JsonConvert.SerializeObject(mpcred)), ("turbocreds", JsonConvert.SerializeObject(turbocred)));
                             await self.Flash(result);
                         },
                     },
