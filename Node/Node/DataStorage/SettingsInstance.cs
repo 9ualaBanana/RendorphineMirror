@@ -30,6 +30,11 @@ public class SettingsInstance : INodeSettings
     public readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
     public readonly DatabaseValue<string?> TaskProcessingDirectory;
 
+    public readonly DatabaseValue<string?> MPlusUsername;
+    public readonly DatabaseValue<string?> MPlusPassword;
+    public readonly DatabaseValue<string?> TurboSquidUsername;
+    public readonly DatabaseValue<string?> TurboSquidPassword;
+
     public SettingsInstance(DataDirs dirs)
     {
         static ushort randomized(ushort port) => (ushort) (port + Random.Shared.Next(80));
@@ -50,6 +55,11 @@ public class SettingsInstance : INodeSettings
         TaskAutoDeletionDelayDays = new(db, nameof(TaskAutoDeletionDelayDays), 4);
         BenchmarkResult = new(db, nameof(BenchmarkResult), default);
         TaskProcessingDirectory = new(db, nameof(TaskProcessingDirectory), default);
+
+        MPlusUsername = new(db, nameof(MPlusUsername), default);
+        MPlusPassword = new(db, nameof(MPlusPassword), default);
+        TurboSquidUsername = new(db, nameof(TurboSquidUsername), default);
+        TurboSquidPassword = new(db, nameof(TurboSquidPassword), default);
 
 
         foreach (var bindable in new[] { BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort })

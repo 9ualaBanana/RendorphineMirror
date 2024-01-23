@@ -72,6 +72,11 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         state.AcceptTasks.BindOneWayFrom(Settings.AcceptTasks.Bindable);
         state.TaskProcessingDirectory.BindOneWayFrom(Settings.TaskProcessingDirectory.Bindable);
 
+        state.MPlusUsername.BindOneWayFrom(Settings.MPlusUsername.Bindable);
+        state.MPlusPassword.BindOneWayFrom(Settings.MPlusPassword.Bindable);
+        state.TurboSquidUsername.BindOneWayFrom(Settings.TurboSquidUsername.Bindable);
+        state.TurboSquidPassword.BindOneWayFrom(Settings.TurboSquidPassword.Bindable);
+
         await Task.WhenAll([
             BalanceUpdater.Start(null, state.Balance, default),
             SoftwareUpdater.Start(null, state.Software, default),

@@ -37,6 +37,11 @@ public class NodeGlobalState
     public readonly Bindable<bool> AcceptTasks = new();
     public readonly Bindable<string?> TaskProcessingDirectory = new();
 
+    public readonly Bindable<string?> MPlusUsername = new();
+    public readonly Bindable<string?> MPlusPassword = new();
+    public readonly Bindable<string?> TurboSquidUsername = new();
+    public readonly Bindable<string?> TurboSquidPassword = new();
+
     // string = request guid
     public readonly BindableDictionary<string, GuiRequest> Requests = new();
 

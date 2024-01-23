@@ -176,6 +176,11 @@ public class LocalListener : ExecutableListenerBase
                 var mpcreds = JsonConvert.DeserializeObject<NetworkCredential>(mpcredsjson).ThrowIfNull();
                 var turbocreds = JsonConvert.DeserializeObject<NetworkCredential>(turbocredsjson).ThrowIfNull();
 
+                Settings.MPlusUsername.Value = mpcreds.UserName;
+                Settings.MPlusPassword.Value = mpcreds.Password;
+                Settings.TurboSquidUsername.Value = turbocreds.UserName;
+                Settings.TurboSquidPassword.Value = turbocreds.Password;
+
                 var turbo = await TurboSquid.LogInAsyncUsing(turbocreds, Container.Resolve<INodeGui>(), default);
                 await (await MPAnalytics.LoginAsync(mpcreds, default))
                     .SendAsync(turbo.SaleReports.ScanAsync(default), default);

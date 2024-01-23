@@ -176,14 +176,14 @@ public class RFProductsTab : Panel
                 ColumnDefinitions = ColumnDefinitions.Parse("Auto *"),
                 Children =
                 {
-                    new TextBlock() { Text = $"ID: {product[nameof(RFProduct.ID)]}" },
-                    new TextBlock() { Text = $"Path: {product[nameof(RFProduct.Path)]}" }.WithRow(1),
+                    new TextBox() { Text = $"ID: {product[nameof(RFProduct.ID)]}", IsReadOnly = true },
+                    new TextBox() { Text = $"Path: {product[nameof(RFProduct.Path)]}", IsReadOnly = true }.WithRow(1),
                     new MPButton()
                     {
                         Text = "Open directory",
                         OnClick = () =>
                         {
-                            var target = Product.Path;
+                            var target = product[nameof(RFProduct.Path)]!.Value<string>();
                             if (!Directory.Exists(target))
                                 target = Path.GetDirectoryName(target)!;
 

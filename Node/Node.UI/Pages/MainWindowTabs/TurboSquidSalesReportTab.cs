@@ -6,23 +6,29 @@ namespace Node.UI.Pages.MainWindowTabs;
 
 public class TurboSquidSalesReportTab : Panel
 {
-    public TurboSquidSalesReportTab()
+    public TurboSquidSalesReportTab(NodeGlobalState state)
     {
         var mplogintb = new TextBox()
         {
             Watermark = "Login",
+            Text = state.MPlusUsername.Value,
         };
         var mppasswordtb = new TextBox()
         {
             Watermark = "Password",
+            PasswordChar = '*',
+            Text = state.MPlusPassword.Value,
         };
         var turbologintb = new TextBox()
         {
             Watermark = "Login",
+            Text = state.TurboSquidUsername.Value,
         };
         var turbopasswordtb = new TextBox()
         {
             Watermark = "Password",
+            PasswordChar = '*',
+            Text = state.TurboSquidPassword.Value,
         };
 
         var content = new ScrollViewer()
