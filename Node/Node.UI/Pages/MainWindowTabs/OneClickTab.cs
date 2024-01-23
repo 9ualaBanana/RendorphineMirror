@@ -7,7 +7,7 @@ public class OneClickTab : Panel
     public OneClickTab(NodeGlobalState nodeGlobalState)
     {
         NodeGlobalState = nodeGlobalState;
-        NodeGlobalState.OneClickTaskInfo.SubscribeChanged(Recreate, true);
+        NodeGlobalState.OneClickTaskInfo.SubscribeChanged(() => Dispatcher.UIThread.Post(Recreate), true);
     }
 
     void Recreate()
@@ -53,12 +53,6 @@ public class OneClickTab : Panel
                 Orientation = Orientation.Vertical,
                 Children =
                 {
-                    new TextBlock()
-                    {
-                        Text = "GUI WIP AND DOESNT FULLY WORK GO AWAE",
-                        FontWeight = FontWeight.Bold,
-                        Foreground = new SolidColorBrush(new Color(255, 255, 0, 0)),
-                    },
                     new ToggleSwitch()
                     {
                         Content = "Processing",
@@ -71,7 +65,21 @@ public class OneClickTab : Panel
                         {
                             await LocalApi.Default.Get($"oc/{(s.IsChecked == true ? "unpause" : "pause")}", $"{(s.IsChecked == true ? "Unpausing" : "Pausing")} oneclick");
                         };
-                    }).Named("Stuff"),
+                    }),
+                    new EditPart(task).Named("Task configuration"),
+                    new ToggleSwitch()
+                    {
+                        Content = "Automatically create RF products (doesnt worK)",
+                        OnContent = "ON",
+                        OffContent = "OFF",
+                        IsChecked = !task.IsPaused,
+                    }.With(s =>
+                    {
+                        s.IsCheckedChanged += async (obj, e) =>
+                        {
+                            await LocalApi.Default.Get($"oc/setautocreaterfp", $"Setting auto create oneclick rfproducts to " + (s.IsChecked == true), ("enabled", JsonConvert.SerializeObject(s.IsChecked == true)));
+                        };
+                    }),
                     new TextBlock()
                     {
                         Text = $"""
@@ -79,6 +87,8 @@ public class OneClickTab : Panel
                             Output dir: {task.OutputDir}
                             Log dir: {task.LogDir}
                             Unity templates dir: {task.UnityTemplatesDir}
+                            Auto create RFP: {task.AutoCreateRFProducts}
+                            RFP target directory: {task.RFProductTargetDirectory}
                             """,
                     }.Named("Info"),
                     new TextBlock().With(tb =>
@@ -110,6 +120,47 @@ public class OneClickTab : Panel
         }
 
         Children.Add(new ScrollViewer() { Content = panelContent });
+    }
+
+
+    class EditPart : StackPanel
+    {
+        public EditPart(OneClickTaskInfo task)
+        {
+            Orientation = Orientation.Vertical;
+
+            var rfproductTextBox = new TextBox()
+            {
+                Watermark = "RFProduct target directory",
+                Text = task.RFProductTargetDirectory ?? "",
+            };
+
+            var updateBtn = new MPButton()
+            {
+                Text = "Update",
+                OnClickSelf = async self =>
+                {
+                    async ValueTask<bool> errIfEmpty(TextBox textBox)
+                    {
+                        if (string.IsNullOrWhiteSpace(textBox.Text))
+                        {
+                            await self.FlashError(textBox.Watermark + " is empty");
+                            return false;
+                        }
+
+                        return true;
+                    }
+
+
+                    if (!await errIfEmpty(rfproductTextBox)) return;
+
+                    var result = await LocalApi.Default.Get($"oc/update", $"Updating oneclick config", ("rfproductTargetDirectory", rfproductTextBox.Text));
+                    await self.Flash(result);
+                },
+            };
+
+            Children.AddRange([rfproductTextBox, updateBtn]);
+        }
     }
 }
 

@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text;
+using System.Web;
 using Node.Listeners;
 
 namespace Node.Tasks.Watching.Handlers.Input;
@@ -10,6 +12,8 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
     public required IPluginList PluginList { get; init; }
     public required OCLocalListener LocalListener { get; init; }
     public required OCPublicListener PublicListener { get; init; }
+    public required RFProduct.Factory RFProductFactory { get; init; }
+    public required IRFProductStorage RFProducts { get; init; }
 
     public override void StartListening() => StartThreadRepeated(5_000, RunOnce);
 
@@ -59,6 +63,8 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             OneClickPlugin = oneClickPlugin ?? PluginList.GetPlugin(PluginType.OneClick),
             SaveFunc = SaveTask,
             LocalListener = LocalListener,
+            RFProductFactory = RFProductFactory,
+            RFProducts = RFProducts,
             Logger = Logger,
         };
     }
@@ -171,15 +177,99 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             var handler = WatchingTasksHandler.GetHandler<OneClickWatchingTaskInputHandler>(task);
             var runner = new OneClickRunnerInfo(handler.Input);
 
-            if (path.StartsWith("getproducts", StringComparison.Ordinal))
+            if (path == "getproducts")
             {
-                return await WriteJsonInline(response, new
+                return await CheckSendAuthentication(context, async () =>
                 {
-                    products = runner.GetExportInfosByArchiveFiles(Directory.GetFiles(handler.Input.InputDirectory))
-                        .SelectMany(info => info.Unity?.Values.Select(u => u.ProductInfo) ?? Enumerable.Empty<ProductJson>())
-                        .WhereNotNull()
-                        .ToArray(),
-                }.AsOpResult());
+                    return await WriteJsonInline(response, new
+                    {
+                        products = runner.GetExportInfosByArchiveFiles(Directory.GetFiles(handler.Input.InputDirectory))
+                            .SelectMany(info => info.Unity?.Values.Select(u => u.ProductInfo) ?? Enumerable.Empty<ProductJson>())
+                            .WhereNotNull()
+                            .ToArray(),
+                    }.AsOpResult());
+                });
+            }
+
+            if (path == "getexportstatus")
+            {
+                return await CheckSendAuthentication(context, async () =>
+                {
+                    return await WriteJsonInline(response, new
+                    {
+                        archives = Directory.GetFiles(runner.InputDir).Select(Path.GetFileName).ToArray(),
+                        export = runner.GetExportInfosByArchiveFilesDict(Directory.GetFiles(handler.Input.InputDirectory)),
+                    }.AsOpResult());
+                });
+            }
+
+            void getLogs(string archiveFileName, ProjectExportInfo exportInfo, out List<string> maxlogs, out List<string> unitylogs, out List<string> unitylogs2)
+            {
+                maxlogs = [];
+                unitylogs = [];
+                unitylogs2 = [];
+
+                try { maxlogs.AddRange(Directory.GetFiles(handler.Input.LogDirectory).Where(f => f.ContainsOrdinal(Path.GetFileNameWithoutExtension(archiveFileName)))); }
+                catch { }
+                try { unitylogs.AddRange(Directory.GetFiles(Path.Combine(handler.Input.LogDirectory, "unity")).Where(f => f.ContainsOrdinal(Path.GetFileNameWithoutExtension(archiveFileName)))); }
+                catch { }
+
+                try
+                {
+                    foreach (var dir in Directory.GetDirectories(Path.Combine(handler.Input.OutputDirectory)))
+                    {
+                        var ddir = Path.Combine(dir, "unity", "Assets", exportInfo.ProductName, exportInfo.ProductName + ".log");
+                        if (File.Exists(ddir))
+                            unitylogs2.Add(ddir);
+                    }
+                }
+                catch { }
+            }
+
+            if (path == "getexportlogs")
+            {
+                return await CheckSendAuthentication(context, async () =>
+                {
+                    var archive = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["archive"].ThrowIfNull();
+                    var exportinfo = runner.GetExportInfosByArchiveFiles([archive]);
+                    getLogs(archive, exportinfo.First(), out var maxlogs, out var unitylogs, out var unitylogs2);
+
+                    var resp = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { maxlogs, unitylogs, unitylogs2 }));
+                    response.ContentLength64 = resp.Length;
+                    await response.OutputStream.WriteAsync(resp);
+
+                    return HttpStatusCode.OK;
+                });
+            }
+            if (path == "getexportlog")
+            {
+                return await CheckSendAuthentication(context, async () =>
+                {
+                    var archive = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["archive"].ThrowIfNull();
+                    var type = HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["type"].ThrowIfNull();
+                    var fileidx = int.Parse(HttpUtility.ParseQueryString(context.Request.Url.ThrowIfNull().Query)["file"].ThrowIfNull(), CultureInfo.InvariantCulture);
+
+                    var exportinfo = runner.GetExportInfosByArchiveFiles([archive]);
+                    getLogs(archive, exportinfo.First(), out var maxlogs, out var unitylogs, out var unitylogs2);
+
+
+                    var items = type switch
+                    {
+                        "max" => maxlogs,
+                        "unity" => unitylogs,
+                        "unity2" => unitylogs2,
+                        _ => throw new Exception("Unknown type")
+                    };
+                    var item = items[fileidx];
+
+                    var filename = Encoding.UTF8.GetBytes(item + "\n");
+                    using var filestream = File.OpenRead(item);
+                    response.ContentLength64 = filestream.Length + filename.Length;
+
+                    await response.OutputStream.WriteAsync(filename);
+                    await filestream.CopyToAsync(response.OutputStream);
+                    return HttpStatusCode.OK;
+                });
             }
 
             return await base.ExecuteGet(path, context);

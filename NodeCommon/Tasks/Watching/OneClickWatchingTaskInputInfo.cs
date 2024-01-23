@@ -13,6 +13,11 @@ public class OneClickWatchingTaskInputInfo : IWatchingTaskInputInfo
     [LocalDirectory]
     public string LogDirectory { get; }
 
+    public bool AutoCreateRFProducts { get; init; } = false;
+
+    [LocalDirectory]
+    public string RFProductTargetDirectory { get; init; } = "";
+
     [LocalDirectory]
     public string TestMzpDirectory { get; }
 

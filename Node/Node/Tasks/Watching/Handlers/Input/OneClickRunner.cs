@@ -13,7 +13,8 @@ public class OneClickRunner : OneClickRunnerInfo
     public required IPluginList PluginList { get; init; }
     public required Plugin TdsMaxPlugin { get; init; }
     public required Plugin OneClickPlugin { get; init; }
-    //public required RFProduct.Factory RFProductFactory { get; init; }
+    public required RFProduct.Factory RFProductFactory { get; init; }
+    public required IRFProductStorage RFProducts { get; init; }
     public required ILogger Logger { get; init; }
 
     public OneClickRunner(OneClickWatchingTaskInputInfo input, bool test) : base(input, test) { }
@@ -177,6 +178,20 @@ public class OneClickRunner : OneClickRunnerInfo
         }
     }
 
+    async Task CreateRFProductsIfEnabledFromNewDirectories()
+    {
+        if (!Input.AutoCreateRFProducts) return;
+
+        foreach (var dir in Directory.GetDirectories(OutputDir))
+        {
+            if (RFProducts.GetProductsWithContainerAt(dir).Any()) continue;
+
+            var target = Path.Combine(Input.RFProductTargetDirectory, Path.GetFileName(dir));
+            Logger.Info($"Creating a new RFProduct from {dir} in {target}");
+            await RFProductFactory.CreateAsync(dir, target, default);
+        }
+    }
+
     async Task RunMax(string inputArchiveFile)
     {
         using var _ = Logger.BeginScope($"3dsmax");
@@ -253,7 +268,8 @@ public class OneClickRunner : OneClickRunnerInfo
         await validateConversionSuccessful();
         Logger.Info("Success.");
         exportInfo.OneClick = new(OneClickPlugin.Version.ToString(), true);
-        //await RFProductFactory.CreateAsync("");
+
+        await CreateRFProductsIfEnabledFromNewDirectories();
 
 
         async Task validateConversionSuccessful()
@@ -436,10 +452,10 @@ public class OneClickRunner : OneClickRunnerInfo
                 {
                     try
                     {
-                        await LocalListener.WaitForCompletion(add, TimeSpan.FromMinutes(5), killswitch.Token);
+                        await LocalListener.WaitForCompletion((product) => add(product).Consume(), TimeSpan.FromMinutes(5), killswitch.Token);
 
 
-                        void add(ProductJson product)
+                        async Task add(ProductJson product)
                         {
                             // _[2021.3.32f1]_[URP]_[85]
                             var version = product.OCVersion;
@@ -456,6 +472,7 @@ public class OneClickRunner : OneClickRunnerInfo
 
                             (GetExportInfoByProductName(product.OCPName).Unity ??= new())[unityTemplateName] = new(importerVersion, unityVersion, rendererType, newUnityTemplatesCommitHash, product);
                             Task.Run(async () => await ReportResult(product)).Consume();
+                            await CreateRFProductsIfEnabledFromNewDirectories();
                         }
                     }
                     catch
@@ -584,6 +601,15 @@ public class OneClickRunner : OneClickRunnerInfo
         var output = OutputDir;
         Logger.Info($"Moving old dir {output}");
 
+        Logger.Info($"Deleting old RFProducts {output}");
+        foreach (var dir in Directory.GetDirectories(OutputDir))
+            foreach (var product in RFProducts.GetProductsWithContainerAt(dir).SelectMany(p => p.GetSubProductsRecursive()))
+            {
+                Logger.Info($"Deleting old RFProduct {product.ID} {product.Path}");
+                product.Delete();
+                RFProducts.RFProducts.Remove(product.ID);
+            }
+
         if (Directory.Exists(output))
         {
             if (currentversion is null) Directory.Delete(output, true);
@@ -593,6 +619,7 @@ public class OneClickRunner : OneClickRunnerInfo
         Directory.CreateDirectory(output);
         var target = Path.Combine(output, Path.GetFileName(OneClickPlugin.Path));
         File.Copy(OneClickPlugin.Path, target);
+
 
         Logger.Info($"Old output dir moved to {target}");
     }

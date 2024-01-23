@@ -31,13 +31,19 @@ public class OneClickRunnerInfo
 
     public ImmutableArray<ProjectExportInfo> GetExportInfosByArchiveFiles(IReadOnlyList<string> inputArchiveFiles)
     {
-        return inputArchiveFiles
-            .Select(Achive3dsMaxExtractDirectory)
-            .Where(Directory.Exists)
-            .Select(GetMaxSceneFile)
-            .Select(Path.GetFileNameWithoutExtension)
-            .Select(GetExportInfoByProductName!)
+        return GetExportInfosByArchiveFilesDict(inputArchiveFiles).Values
             .ToImmutableArray();
+    }
+    // <string archiveFile, ProjectExportInfo exportInfo>
+    public IReadOnlyDictionary<string, ProjectExportInfo> GetExportInfosByArchiveFilesDict(IReadOnlyList<string> inputArchiveFiles)
+    {
+        return inputArchiveFiles
+            .Select(f => KeyValuePair.Create(Path.GetFileName(f), Achive3dsMaxExtractDirectory(f)))
+            .Where(f => Directory.Exists(f.Value))
+            .Select(f => KeyValuePair.Create(f.Key, GetMaxSceneFile(f.Value)))
+            .Select(f => KeyValuePair.Create(f.Key, Path.GetFileNameWithoutExtension(f.Value)))
+            .Select(f => KeyValuePair.Create(f.Key, GetExportInfoByProductName(f.Value)!))
+            .ToImmutableDictionary();
     }
     public static string GetMaxSceneFile(string dir)
     {
