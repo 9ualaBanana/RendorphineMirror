@@ -42,6 +42,7 @@ public class MPAnalytics
     { await foreach (var scan in scans) await SendAsync(scan, cancellationToken); }
     public async Task SendAsync(TurboSquid.SaleReports_.MonthlyScan scan, CancellationToken cancellationToken)
     {
+        if (scan.SaleReports.Length is 0) return;
         var request = new HttpRequestMessage(HttpMethod.Post, new UriBuilder { Scheme = "https", Host = Domain, Path = "storedata" }.Uri)
         {
             Content = new FormUrlEncodedContent(new Dictionary<string, string>
