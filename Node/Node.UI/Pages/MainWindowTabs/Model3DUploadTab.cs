@@ -1,12 +1,11 @@
 using System.Net;
-using _3DProductsPublish;
 using _3DProductsPublish._3DProductDS;
 
 namespace Node.UI.Pages.MainWindowTabs;
 
 public class Model3DUploadTab : Panel
 {
-    public Model3DUploadTab()
+    public Model3DUploadTab(NodeGlobalState state)
     {
         var meta = JObject.FromObject(
             new _3DProduct.Metadata_()
@@ -32,57 +31,79 @@ public class Model3DUploadTab : Panel
         );
         var jeditor = jeditorlist.Create(new JProperty("__", meta), FieldDescriber.Create(typeof(_3DProduct.Metadata_)));
 
-        var cgtradercredsinput = new CredentialsInput();
-        var turbosquidcredsinput = new CredentialsInput();
         var dirpicker = new DirectoryInput();
-        var submitbtn = new MPButton()
+
+        async Task submit(MPButton self, string target, NetworkCredential? creds)
         {
-            Text = "Submit",
-            Margin = new Thickness(0, 0, 0, 5),
-            OnClickSelf = async self =>
+            if (creds is null)
             {
-                var cgcreds = cgtradercredsinput.TryGet();
-                var turbocreds = turbosquidcredsinput.TryGet();
-                if (cgcreds is null || turbocreds is null)
-                    return;
+                await self.FlashError("No credentials");
+                return;
+            }
 
-                if (string.IsNullOrEmpty(dirpicker.Dir))
+            if (string.IsNullOrEmpty(dirpicker.Dir))
+            {
+                await self.FlashError("No directory selected");
+                return;
+            }
+            if (!Directory.Exists(dirpicker.Dir))
+            {
+                await self.FlashError("Directory doesn't exists");
+                return;
+            }
+
+            jeditor.UpdateValue();
+            ProcessObject(meta);
+            ProcessObject(meta); // two times, yes
+
+            var result = await LocalApi.Default.Post("3dupload", "Uploading 3d item to " + target,
+                ("target", target), ("creds", JsonConvert.SerializeObject(creds)), ("meta", meta.ToString()), ("dir", dirpicker.Dir)
+            );
+            await self.FlashErrorIfErr(result);
+        }
+
+        var turbosquidcredsinput = new CredentialsInput(state.TurboSquidUsername, state.TurboSquidPassword);
+        var turboSquidPanel = new StackPanel()
+        {
+            Orientation = Orientation.Vertical,
+            Children =
+            {
+                turbosquidcredsinput,
+                new MPButton()
                 {
-                    await self.FlashError("No directory selected");
-                    return;
-                }
-                if (!Directory.Exists(dirpicker.Dir))
-                {
-                    await self.FlashError("Directory doesn't exists");
-                    return;
-                }
-
-                jeditor.UpdateValue();
-                ProcessObject(meta);
-                ProcessObject(meta); // two times, yes
-
-                var cred = new _3DProductPublisher.Credentials(cgcreds, turbocreds);
-                var result = await LocalApi.Default.Post("3dupload", "Uploading 3d item",
-                    ("creds", JsonConvert.SerializeObject(cred)), ("meta", meta.ToString()), ("dir", dirpicker.Dir)
-                );
-                await self.FlashErrorIfErr(result);
+                    Text = "Submit",
+                    OnClickSelf = async self => await submit(self, "turbosquid", turbosquidcredsinput.TryGet()),
+                },
             },
         };
 
+        var cgtradercredsinput = new CredentialsInput(state.CGTraderUsername, state.CGTraderPassword);
+        var cgtraderPanel = new StackPanel()
+        {
+            Orientation = Orientation.Vertical,
+            Children =
+            {
+                cgtradercredsinput,
+                new MPButton()
+                {
+                    Text = "Submit",
+                    OnClickSelf = async self => await submit(self, "cgtrader", cgtradercredsinput.TryGet()),
+                },
+            },
+        };
 
         Children.Add(new ScrollViewer()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Visible,
-            Content = new Grid()
+            Content = new StackPanel()
             {
-                RowDefinitions = RowDefinitions.Parse("Auto Auto Auto Auto *"),
+                Orientation = Orientation.Vertical,
                 Children =
                 {
-                    cgtradercredsinput.Named("CGTrader credentials").WithRow(0),
-                    turbosquidcredsinput.Named("Turbosquid credentials").WithRow(1),
-                    submitbtn.Named("Submit").WithRow(2),
-                    dirpicker.Named("Model directory").WithRow(3),
-                    jeditor.Named("Metadata").WithRow(4),
+                    turboSquidPanel.Named("TurboSquid"),
+                    cgtraderPanel.Named("CGTrader"),
+                    dirpicker.Named("Model directory"),
+                    jeditor.Named("Metadata"),
                 },
             },
         });
@@ -153,10 +174,12 @@ public class Model3DUploadTab : Panel
     {
         readonly TextBox Username, Password;
 
-        public CredentialsInput()
+        public CredentialsInput(IReadOnlyBindable<string?> username, IReadOnlyBindable<string?> password)
         {
             Username = new() { Watermark = "Username" };
             Password = new() { Watermark = "Password" };
+            username.SubscribeChanged(() => Username.Text = username.Value, true);
+            password.SubscribeChanged(() => Password.Text = password.Value, true);
 
             Children.Add(new Grid()
             {

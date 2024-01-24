@@ -41,6 +41,8 @@ public class NodeGlobalState
     public readonly Bindable<string?> MPlusPassword = new();
     public readonly Bindable<string?> TurboSquidUsername = new();
     public readonly Bindable<string?> TurboSquidPassword = new();
+    public readonly Bindable<string?> CGTraderUsername = new();
+    public readonly Bindable<string?> CGTraderPassword = new();
 
     // string = request guid
     public readonly BindableDictionary<string, GuiRequest> Requests = new();

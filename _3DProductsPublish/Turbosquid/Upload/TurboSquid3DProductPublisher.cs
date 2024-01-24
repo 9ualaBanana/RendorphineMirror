@@ -4,11 +4,11 @@ using System.Net;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
-internal class TurboSquid3DProductPublisher : I3DProductPublisher<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>
+public class TurboSquid3DProductPublisher : I3DProductPublisher<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>
 {
     readonly TurboSquid _turboSquid;
 
-    internal static async Task<TurboSquid3DProductPublisher> InitializeAsync(NetworkCredential credential, INodeGui nodeGui, CancellationToken cancellationToken)
+    public static async Task<TurboSquid3DProductPublisher> InitializeAsync(NetworkCredential credential, INodeGui nodeGui, CancellationToken cancellationToken)
         => new(await TurboSquid.LogInAsyncUsing(credential, nodeGui, cancellationToken));
 
     TurboSquid3DProductPublisher(TurboSquid turboSquid)

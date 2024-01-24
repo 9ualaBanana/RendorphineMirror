@@ -2,6 +2,7 @@ using System.Net;
 using System.Reflection;
 using _3DProductsPublish;
 using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid;
 using _3DProductsPublish.Turbosquid.Upload;
 using Node.Profiling;
@@ -21,6 +22,7 @@ public class LocalListener : ExecutableListenerBase
     public required IComponentContext Container { get; init; }
     public required IRFProductStorage RFProducts { get; init; }
     public required SettingsInstance Settings { get; init; }
+    public required INodeGui NodeGui { get; init; }
 
     public LocalListener(ILogger<LocalListener> logger) : base(logger) { }
 
@@ -157,16 +159,33 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "3dupload")
         {
-            return await TestPost(await CreateCached(request), response, "creds", "meta", "dir", async (jcreds, jmeta, dir) =>
+            return await TestPost(await CreateCached(request), response, "target", "creds", "meta", "dir", async (target, jcreds, jmeta, dir) =>
             {
-                var creds = JsonConvert.DeserializeObject<_3DProductPublisher.Credentials>(jcreds).ThrowIfNull();
-                var meta = JsonConvert.DeserializeObject<_3DProduct.Metadata_>(jmeta).ThrowIfNull();
-
+                var cancellationToken = CancellationToken.None;
+                var creds = JsonConvert.DeserializeObject<NetworkCredential>(jcreds).ThrowIfNull();
+                var metadata = JsonConvert.DeserializeObject<_3DProduct.Metadata_>(jmeta).ThrowIfNull();
                 var product = _3DProduct.FromDirectory(dir);
-                await (await _3DProductPublisher.InitializeAsync(Container, creds, default))
-                    .PublishAsync(product, meta, default);
 
-                return await WriteSuccess(response).ConfigureAwait(false);
+                if (target == "turbosquid")
+                {
+                    Settings.TurboSquidUsername.Value = creds.UserName;
+                    Settings.TurboSquidPassword.Value = creds.Password;
+
+                    var turboSquid = await TurboSquid3DProductPublisher.InitializeAsync(creds, NodeGui, cancellationToken);
+                    await turboSquid.PublishAsync(await product.AsyncWithTurboSquid(metadata, NodeGui, cancellationToken), creds, cancellationToken);
+                    return await WriteSuccess(response).ConfigureAwait(false);
+                }
+                if (target == "cgtrader")
+                {
+                    Settings.CGTraderUsername.Value = creds.UserName;
+                    Settings.CGTraderPassword.Value = creds.Password;
+
+                    var cgtrader = Container.Resolve<CGTrader3DProductPublisher>();
+                    await cgtrader.PublishAsync(product.WithCGTrader(metadata), creds, cancellationToken);
+                    return await WriteSuccess(response).ConfigureAwait(false);
+                }
+
+                return await WriteErr(response, "Invalid target");
             }).ConfigureAwait(false);
         }
         if (path == "fetchturbosquidsales")
@@ -207,7 +226,7 @@ public class LocalListener : ExecutableListenerBase
         }
 
 
-        if (NodeGui.GuiRequestTypes.ContainsKey(path) && query["reqid"] is { } reqid && NodeGlobalState.Instance.Requests.TryGetValue(reqid, out var guirequest))
+        if (NodeToUI.NodeGui.GuiRequestTypes.ContainsKey(path) && query["reqid"] is { } reqid && NodeGlobalState.Instance.Requests.TryGetValue(reqid, out var guirequest))
         {
             using var reader = new StreamReader(request.InputStream);
             var value = await reader.ReadToEndAsync();

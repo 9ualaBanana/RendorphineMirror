@@ -6,7 +6,7 @@ using System.Net;
 
 namespace _3DProductsPublish.CGTrader.Upload;
 
-internal class CGTrader3DProductPublisher : I3DProductPublisher<CGTrader3DProductMetadata>
+public class CGTrader3DProductPublisher : I3DProductPublisher<CGTrader3DProductMetadata>
 {
     readonly CGTraderApi _api;
 

@@ -34,6 +34,8 @@ public class SettingsInstance : INodeSettings
     public readonly DatabaseValue<string?> MPlusPassword;
     public readonly DatabaseValue<string?> TurboSquidUsername;
     public readonly DatabaseValue<string?> TurboSquidPassword;
+    public readonly DatabaseValue<string?> CGTraderUsername;
+    public readonly DatabaseValue<string?> CGTraderPassword;
 
     public SettingsInstance(DataDirs dirs)
     {
@@ -60,6 +62,8 @@ public class SettingsInstance : INodeSettings
         MPlusPassword = new(db, nameof(MPlusPassword), default);
         TurboSquidUsername = new(db, nameof(TurboSquidUsername), default);
         TurboSquidPassword = new(db, nameof(TurboSquidPassword), default);
+        CGTraderUsername = new(db, nameof(CGTraderUsername), default);
+        CGTraderPassword = new(db, nameof(CGTraderPassword), default);
 
 
         foreach (var bindable in new[] { BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort })

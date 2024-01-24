@@ -10,7 +10,7 @@ using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace _3DProductsPublish.CGTrader.Api;
 
-internal class CGTraderApi : IBaseAddressProvider
+public class CGTraderApi : IBaseAddressProvider
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 

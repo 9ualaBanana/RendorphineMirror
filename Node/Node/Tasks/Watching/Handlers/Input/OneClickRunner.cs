@@ -163,6 +163,7 @@ public class OneClickRunner : OneClickRunnerInfo
             }
         }
 
+        return;
         try
         {
             await RunUnity(inputArchiveFiles);

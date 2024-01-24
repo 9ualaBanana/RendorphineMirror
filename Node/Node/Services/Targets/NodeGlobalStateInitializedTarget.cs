@@ -78,6 +78,8 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         state.MPlusPassword.BindOneWayFrom(Settings.MPlusPassword.Bindable);
         state.TurboSquidUsername.BindOneWayFrom(Settings.TurboSquidUsername.Bindable);
         state.TurboSquidPassword.BindOneWayFrom(Settings.TurboSquidPassword.Bindable);
+        state.CGTraderUsername.BindOneWayFrom(Settings.CGTraderUsername.Bindable);
+        state.CGTraderPassword.BindOneWayFrom(Settings.CGTraderPassword.Bindable);
 
         await Task.WhenAll([
             BalanceUpdater.Start(null, state.Balance, default),

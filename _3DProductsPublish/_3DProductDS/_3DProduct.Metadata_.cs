@@ -75,7 +75,7 @@ public partial record _3DProduct
 
 public static class _3DProductMetadataExtensions
 {
-    internal static _3DProduct<CGTrader3DProductMetadata> WithCGTrader(this _3DProduct _3DProduct, _3DProduct.Metadata_ _)
+    public static _3DProduct<CGTrader3DProductMetadata> WithCGTrader(this _3DProduct _3DProduct, _3DProduct.Metadata_ _)
     {
         var cgTraderMetadata = CGTrader3DProductMetadata.ForCG(
             _.Title,
@@ -133,7 +133,7 @@ public static class _3DProductMetadataExtensions
         };
     }
 
-    internal static async Task<_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
+    public static async Task<_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
     {
         var tuboSquidMetadata = await TurboSquid3DProductMetadata.ProvideAsync(
             nodeGui,
