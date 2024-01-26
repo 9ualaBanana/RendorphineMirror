@@ -266,7 +266,16 @@ public class OneClickRunner : OneClickRunnerInfo
         Logger.Info("Conversion completed");
 
         Logger.Info("Validating");
-        await validateConversionSuccessful();
+        try
+        {
+            await validateConversionSuccessful();
+        }
+        catch
+        {
+            exportInfo.OneClick = new(OneClickPlugin.Version.ToString(), false);
+            throw;
+        }
+
         Logger.Info("Success.");
         exportInfo.OneClick = new(OneClickPlugin.Version.ToString(), true);
 
