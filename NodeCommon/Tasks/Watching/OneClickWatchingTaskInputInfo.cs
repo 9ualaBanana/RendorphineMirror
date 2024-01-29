@@ -34,6 +34,9 @@ public class OneClickWatchingTaskInputInfo : IWatchingTaskInputInfo
     public string? UnityProjectsCommitHash { get; set; }
 
     [Hidden]
+    public int? Launched3dsMaxProcessId { get; set; }
+
+    [Hidden]
     public Dictionary<string, ProjectExportInfo>? ExportInfo { get; set; }
 
     public OneClickWatchingTaskInputInfo(string inputDirectory, string outputDirectory, string logDirectory, string testMzpDirectory, string testInputDirectory, string testOutputDirectory, string testLogDirectory, Dictionary<string, ProjectExportInfo>? exportInfo = null)

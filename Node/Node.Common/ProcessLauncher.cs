@@ -53,7 +53,8 @@ public class ProcessLauncher
     static string WrapWithSpaces(string str) => str.Contains(' ', StringComparison.Ordinal) ? $"\"{str}\"" : str;
 
 
-    Process Start(out Task readingtask)
+    /// <summary> Start the process, return a task that completes when the reading completes. </summary>
+    public Process Start(out Task readingtask)
     {
         var winesupport = WineSupport && Environment.OSVersion.Platform == PlatformID.Unix;
 
@@ -117,11 +118,9 @@ public class ProcessLauncher
         }
     }
 
-    /// <summary> Start the process, wait for exit </summary>
-    public async Task ExecuteAsync(CancellationToken cancellation = default)
+    /// <summary> Wait for process&reading exit, throw if non-zero exit code if enabledc </summary>
+    public async Task WaitForEnd(Process proc, Task readingtask, CancellationToken cancellation = default)
     {
-        using var proc = Start(out var readingtask);
-
         var token = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         if (Timeout is not null)
             token.CancelAfter(Timeout.Value);
@@ -148,6 +147,13 @@ public class ProcessLauncher
 
         if (ThrowOnNonZeroExitCode)
             EnsureZeroExitCode(proc);
+    }
+
+    /// <summary> Start the process, wait for exit </summary>
+    public async Task ExecuteAsync(CancellationToken cancellation = default)
+    {
+        using var proc = Start(out var readingtask);
+        await WaitForEnd(proc, readingtask, cancellation);
     }
 
     /// <inheritdoc cref="ExecuteFullAsync"/>

@@ -212,6 +212,27 @@ public class OneClickRunner : OneClickRunnerInfo
             catch { }
         }
 
+        // kill previous 3dsmax
+        try
+        {
+            if (Input.Launched3dsMaxProcessId is { } id)
+            {
+                Logger.Info($"Killing 3dsmax (pid {id})");
+                var prevproc = Process.GetProcessById(id);
+
+                Logger.Info($"Found process ({prevproc.ProcessName})");
+                if (prevproc.ProcessName != "3dsmax.exe")
+                    throw new Exception("Not a 3dsmax.exe");
+
+                prevproc.Kill(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Couldn't kill previous 3dsmax process: {ex.Message}");
+        }
+
+        /*
         await killMax();
         async Task killMax()
         {
@@ -219,6 +240,7 @@ public class OneClickRunner : OneClickRunnerInfo
             await new ProcessLauncher("taskkill", "/IM", "3dsmax.exe", "/F") { ThrowOnStdErr = false, ThrowOnNonZeroExitCode = false }
                 .ExecuteAsync();
         }
+        */
 
         RecursiveExtract(inputArchiveFile, output3dsmaxdir);
         Logger.Info("Extracted");
@@ -262,7 +284,12 @@ public class OneClickRunner : OneClickRunnerInfo
         };
 
         Logger.Info("Launching 3dsmax");
-        await launcher.ExecuteAsync();
+        using var proc = launcher.Start(out var procReadingTask);
+        Input.Launched3dsMaxProcessId = proc.Id;
+        SaveFunc();
+        await launcher.WaitForEnd(proc, procReadingTask);
+        Input.Launched3dsMaxProcessId = null;
+        SaveFunc();
         Logger.Info("Conversion completed");
 
         Logger.Info("Validating");
