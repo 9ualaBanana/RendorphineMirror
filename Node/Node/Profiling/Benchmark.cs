@@ -82,18 +82,24 @@ public class Benchmark
         }
 
 
+        using var _logscope = Logger.BeginScope("Benchmakr");
         using var _ = new FuncDispose(NodeGlobalState.Instance.ExecutingBenchmarks.Clear);
         var benchs = NodeGlobalState.Instance.ExecutingBenchmarks;
         benchs.Execute(() => benchs["cpu"] = benchs["gpu"] = benchs["ram"] = benchs["disks"] = null);
 
+        Logger.Info("Starting gpu");
         var cpu = await GetCpuBenchmarkResultsAsObjectAsync(testDataSize);
         benchs["cpu"] = JToken.FromObject(cpu);
+        Logger.Info("Starting ram");
         var gpu = await GetGpuBenchmarkResultsAsObjectAsync();
         benchs["gpu"] = JToken.FromObject(gpu);
+        Logger.Info("Starting cpu");
         var ram = GetRamAsObject();
         benchs["ram"] = JToken.FromObject(ram);
+        Logger.Info("Starting disks");
         var disks = await GetDrivesBenchmarkResultsAsObjectAsync(testDataSize);
         benchs["disks"] = JToken.FromObject(disks);
+        Logger.Info("Completed");
 
         return new(
             cpu,
@@ -132,7 +138,11 @@ public class Benchmark
         var readWriteBenchmark = new ReadWriteBenchmark(testDataSize);
 
         foreach (var logicalDiskName in Drive.LogicalDisksNamesFromDistinctDrives)
+        {
+            Logger.Info($"Running drive benchmark for {logicalDiskName}");
             drivesBenchmarkResults.Add(await readWriteBenchmark.RunAsync(logicalDiskName));
+            Logger.Info($"Completed drive benchmark for {logicalDiskName}");
+        }
 
         IEnumerable<DriveBenchmarkResult>? result = null;
         try
