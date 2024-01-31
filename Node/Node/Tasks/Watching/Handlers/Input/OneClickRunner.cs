@@ -232,20 +232,25 @@ public class OneClickRunner : OneClickRunnerInfo
             Logger.Warn($"Couldn't kill previous 3dsmax process: {ex.Message}");
         }
 
-        /*
-        await killMax();
-        async Task killMax()
-        {
-            Logger.Info("Killing 3dsmax");
-            await new ProcessLauncher("taskkill", "/IM", "3dsmax.exe", "/F") { ThrowOnStdErr = false, ThrowOnNonZeroExitCode = false }
-                .ExecuteAsync();
-        }
-        */
-
         RecursiveExtract(inputArchiveFile, output3dsmaxdir);
         Logger.Info("Extracted");
 
         var maxSceneFile = GetMaxSceneFile(output3dsmaxdir);
+
+        if (!Directory.Exists(Input.ProductsDirectory))
+            Logger.Info($"Product directory {Input.ProductsDirectory} doesn't exists, not copying settings.ini");
+        else
+        {
+            var settingsIniFile = Path.Combine(Input.ProductsDirectory, $"{Path.GetFileNameWithoutExtension(maxSceneFile)}_Settings.ini");
+            if (!File.Exists(settingsIniFile))
+                Logger.Info($"Settings.ini file {settingsIniFile} doesn't exists, not copying");
+            else
+            {
+                var target = Path.Combine(Path.GetDirectoryName(maxSceneFile)!, Path.GetFileNameWithoutExtension(maxSceneFile), Path.GetFileName(settingsIniFile));
+                Logger.Info($"Copying Settings.ini {settingsIniFile} to {target}");
+                File.Copy(settingsIniFile, target);
+            }
+        }
 
         var exportInfo = GetExportInfoByProductName(Path.GetFileNameWithoutExtension(maxSceneFile));
         exportInfo.OneClick = null;

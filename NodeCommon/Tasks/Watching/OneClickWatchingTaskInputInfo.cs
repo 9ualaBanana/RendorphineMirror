@@ -11,6 +11,9 @@ public class OneClickWatchingTaskInputInfo : IWatchingTaskInputInfo
     public string OutputDirectory { get; }
 
     [LocalDirectory]
+    public string ProductsDirectory { get; }
+
+    [LocalDirectory]
     public string LogDirectory { get; }
 
     public bool AutoCreateRFProducts { get; init; } = false;
@@ -39,10 +42,11 @@ public class OneClickWatchingTaskInputInfo : IWatchingTaskInputInfo
     [Hidden]
     public Dictionary<string, ProjectExportInfo>? ExportInfo { get; set; }
 
-    public OneClickWatchingTaskInputInfo(string inputDirectory, string outputDirectory, string logDirectory, string testMzpDirectory, string testInputDirectory, string testOutputDirectory, string testLogDirectory, Dictionary<string, ProjectExportInfo>? exportInfo = null)
+    public OneClickWatchingTaskInputInfo(string inputDirectory, string outputDirectory, string logDirectory, string testMzpDirectory, string testInputDirectory, string testOutputDirectory, string testLogDirectory, string? productsDirectory = null, Dictionary<string, ProjectExportInfo>? exportInfo = null)
     {
         InputDirectory = inputDirectory;
         OutputDirectory = outputDirectory;
+        ProductsDirectory = productsDirectory ?? Path.GetFullPath(Path.Combine(OutputDirectory, "..", "Products"));
         LogDirectory = logDirectory;
         TestMzpDirectory = testMzpDirectory;
         TestInputDirectory = testInputDirectory;

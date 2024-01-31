@@ -46,6 +46,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
                     IsPaused = oc.IsPaused,
                     InputDir = source.InputDirectory,
                     OutputDir = source.OutputDirectory,
+                    ProductsDir = source.ProductsDirectory,
                     LogDir = source.OutputDirectory,
                     UnityTemplatesDir = @"C:\\OneClickUnityDefaultProjects",
                     ExportInfo = source.ExportInfo ?? [],
