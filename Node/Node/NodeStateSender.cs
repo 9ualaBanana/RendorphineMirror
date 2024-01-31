@@ -70,14 +70,19 @@ public class NodeStateSender
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    exittask.SetException(ex);
+                    try { exittask.SetException(ex); }
+                    catch { }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex);
+                    try
+                    {
+                        Logger.Error(ex);
 
-                    if (!exittask.Task.IsCompleted)
-                        exittask.SetException(ex);
+                        if (!exittask.Task.IsCompleted)
+                            exittask.SetException(ex);
+                    }
+                    catch { }
                 }
             }
         }

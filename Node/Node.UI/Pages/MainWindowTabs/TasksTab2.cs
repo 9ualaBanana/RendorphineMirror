@@ -111,21 +111,24 @@ public class TasksTab2 : Panel
     }
     class QueuedTaskManager : NormalTaskManager
     {
+        readonly IBindableCollection<TaskBase> Value = NodeGlobalState.Instance.QueuedTasks.GetBoundCopy();
         public QueuedTaskManager(Apis api) : base(api) { }
 
-        protected override async Task<IBindableCollection<TaskBase>> Load() => NodeGlobalState.Instance.QueuedTasks;
+        protected override async Task<IBindableCollection<TaskBase>> Load() => Value;
     }
     class PlacedTaskManager : NormalTaskManager
     {
+        readonly IBindableCollection<TaskBase> Value = NodeGlobalState.Instance.PlacedTasks.GetBoundCopy();
         public PlacedTaskManager(Apis api) : base(api) { }
 
-        protected override async Task<IBindableCollection<TaskBase>> Load() => NodeGlobalState.Instance.PlacedTasks;
+        protected override async Task<IBindableCollection<TaskBase>> Load() => Value;
     }
     class ExecutingTaskManager : NormalTaskManager
     {
+        readonly IBindableCollection<TaskBase> Value = NodeGlobalState.Instance.ExecutingTasks.GetBoundCopy();
         public ExecutingTaskManager(Apis api) : base(api) { }
 
-        protected override async Task<IBindableCollection<TaskBase>> Load() => NodeGlobalState.Instance.ExecutingTasks;
+        protected override async Task<IBindableCollection<TaskBase>> Load() => Value;
     }
     class RemoteTaskManager : NormalTaskManager
     {
