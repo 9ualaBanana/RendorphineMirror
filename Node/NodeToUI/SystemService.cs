@@ -1,5 +1,6 @@
-using Microsoft.Win32.TaskScheduler;
 using System.Security.Principal;
+using Microsoft.Win32.TaskScheduler;
+using NLog;
 
 namespace NodeToUI;
 
@@ -28,35 +29,53 @@ public static class SystemService
             // to hide a CA1416 warning
             if (!OperatingSystem.IsWindows()) return;
 
-            using var ts = new TaskService();
+            try
+            {
+                tryRegister(true);
+            }
+            catch (Exception ex)
+            {
+                LogManager.GetCurrentClassLogger()
+                    .Error(ex, "Could not register service task, restarting without System.PowerTroubleshooter");
 
-            var task = ts.NewTask();
-            task.RegistrationInfo.Description = " pinger";
-            task.Actions.Add(new ExecAction(pingerexe, workingDirectory: Directory.GetCurrentDirectory()));
-            if (useAdminRights) task.Principal.RunLevel = TaskRunLevel.Highest;
-            task.Settings.DisallowStartIfOnBatteries = false;
-            task.Settings.StopIfGoingOnBatteries = false;
-            task.Settings.Enabled = true;
-            task.Settings.WakeToRun = true;
-            task.Settings.AllowHardTerminate = true;
-            task.Settings.ExecutionTimeLimit = TimeSpan.FromHours(3);
+                tryRegister(false);
+            }
 
-            // trigger immediately & then every minute forever
-            task.Triggers.Add(repeated(new RegistrationTrigger()));
-            if (useAdminRights) task.Triggers.Add(repeated(new BootTrigger()));
+            void tryRegister(bool addPowerTrigger)
+            {
+                using var ts = new TaskService();
 
-            var logon = new LogonTrigger();
-            if (!useAdminRights)
-                logon.UserId = WindowsIdentity.GetCurrent().Name;
-            task.Triggers.Add(repeated(logon));
+                var task = ts.NewTask();
+                task.RegistrationInfo.Description = " pinger";
+                task.Actions.Add(new ExecAction(pingerexe, workingDirectory: Directory.GetCurrentDirectory()));
+                if (useAdminRights) task.Principal.RunLevel = TaskRunLevel.Highest;
+                task.Settings.DisallowStartIfOnBatteries = false;
+                task.Settings.StopIfGoingOnBatteries = false;
+                task.Settings.Enabled = true;
+                task.Settings.WakeToRun = true;
+                task.Settings.AllowHardTerminate = true;
+                task.Settings.ExecutionTimeLimit = TimeSpan.FromHours(3);
 
-            // trigger on unhibernation
-            //try { task.Triggers.Add(repeated(new EventTrigger("Microsoft-Windows-Diagnostics-Performance/Operational", "PowerTroubleshooter", 1))); }
-            //catch { }
-            try { task.Triggers.Add(repeated(new EventTrigger("System", "PowerTroubleshooter", 1))); }
-            catch { }
+                // trigger immediately & then every minute forever
+                task.Triggers.Add(repeated(new RegistrationTrigger()));
+                if (useAdminRights) task.Triggers.Add(repeated(new BootTrigger()));
 
-            ts.RootFolder.RegisterTask(servicename, task.XmlText, createType: TaskCreation.CreateOrUpdate, logonType: TaskLogonType.InteractiveToken);
+                var logon = new LogonTrigger();
+                if (!useAdminRights)
+                    logon.UserId = WindowsIdentity.GetCurrent().Name;
+                task.Triggers.Add(repeated(logon));
+
+                if (addPowerTrigger)
+                {
+                    // trigger on unhibernation
+                    //try { task.Triggers.Add(repeated(new EventTrigger("Microsoft-Windows-Diagnostics-Performance/Operational", "PowerTroubleshooter", 1))); }
+                    //catch { }
+                    try { task.Triggers.Add(repeated(new EventTrigger("System", "PowerTroubleshooter", 1))); }
+                    catch { }
+                }
+
+                ts.RootFolder.RegisterTask(servicename, task.XmlText, createType: TaskCreation.CreateOrUpdate, logonType: TaskLogonType.InteractiveToken);
+            }
 
 
             static T repeated<T>(T trigger) where T : Trigger, ITriggerDelay
