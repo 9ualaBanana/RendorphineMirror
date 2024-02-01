@@ -139,4 +139,11 @@ static class StringExtensions
         var valueIndex = _.EndIndexOf($"{property}=");
         return _[valueIndex.._.IndexOf(';', startIndex: valueIndex)].Trim('"');
     }
+
+    internal static string? JsonValue(this string _, string property)
+    {
+        var valueIndex = _.EndIndexOf($@"""{property}"":");
+        var value = _[valueIndex.._.IndexOf(',', startIndex: valueIndex)].Trim('"');
+        return value == "null" ? null : value;
+    }
 }

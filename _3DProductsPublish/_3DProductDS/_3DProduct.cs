@@ -57,19 +57,17 @@ public partial record _3DProduct : IDisposable
 
 public record _3DProduct<TMetadata> : _3DProduct
 {
-    public readonly TMetadata Metadata;
-
     internal _3DProduct(_3DProduct _3DProduct, TMetadata metadata)
         : base(_3DProduct)
-    {
-        Metadata = metadata;
-    }
+    { Metadata = metadata; }
+    public readonly TMetadata Metadata;
 }
 
 public record _3DProduct<TProductMetadata, TModelsMetadata> : _3DProduct<TProductMetadata>
     where TModelsMetadata : I3DModelMetadata
 {
     new public IEnumerable<_3DModel<TModelsMetadata>> _3DModels { get; }
+    public int ID { get; internal set; } = default;
 
     internal _3DProduct(_3DProduct<TProductMetadata> _3DProduct, IEnumerable<TModelsMetadata> modelsMetadata)
         : base(_3DProduct)

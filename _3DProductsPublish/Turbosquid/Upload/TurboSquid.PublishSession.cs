@@ -3,7 +3,6 @@
 using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
-using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 using _3DProductsPublish.Turbosquid.Upload.Requests;
 using Microsoft.Net.Http.Headers;
@@ -16,57 +15,30 @@ public partial class TurboSquid
 {
     internal class PublishSession
     {
-        static readonly ILogger _logger = LogManager.GetCurrentClassLogger();
+        static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         internal readonly _3DProductDraft<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> Draft;
-        internal readonly TurboSquidNetworkCredential Credential;
         internal readonly TurboSquidAwsUploadCredentials AwsCredential;
         internal readonly TurboSquid Client;
         internal readonly CancellationToken CancellationToken;
 
-        internal static async Task<PublishSession> InitializeAsync(_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> _3DProduct, TurboSquid client, CancellationToken cancellationToken)
+        internal static async Task<PublishSession> InitializeAsync(_3DProductDraft<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> draft, TurboSquid client, CancellationToken cancellationToken)
         {
             try
             {
                 _logger.Trace("Initializing session.");
-                var authenticityToken = await RequestSessionAuthenticityTokenAsync();
-                var session = new PublishSession(
-                    new _3DProductDraft<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>(_3DProduct, await CreateNewProductDraftAsync()),
-                    client.Credential.WithUpdated(authenticityToken),
-                    await RequestAwsUploadCredentialsAsync(authenticityToken), client, cancellationToken);
-                _logger.Debug($"Session is initialized with {authenticityToken} authenticity token.");
+                // Session is initialized either as newly created draft or as already created draft (with ID) being edited so it's the draft functionality as well thus shall be moved there.
+                var session = new PublishSession(draft, await RequestAwsStorageCredentialsAsync(), client, cancellationToken);
+                _logger.Debug($"Session is initialized with {client.Credential.AuthenticityToken} authenticity token.");
                 return session;
             }
             catch (Exception ex)
             { throw new Exception("Session initialization failed.", ex); }
 
 
-            async Task<string> RequestSessionAuthenticityTokenAsync()
+            async Task<TurboSquidAwsUploadCredentials> RequestAwsStorageCredentialsAsync()
             {
-                try
-                {
-                    var authenticityToken = CsrfToken._ParseFromMetaTag(await client.GetStringAsync("turbosquid/products/new", cancellationToken));
-                    _logger.Trace("Authenticity token has been obtained.");
-                    return authenticityToken;
-                }
-                catch (Exception ex)
-                { throw new Exception("Authenticity token request failed.", ex); }
-            }
-
-            async Task<string> CreateNewProductDraftAsync()
-            {
-                try
-                {
-                    var draftId = JObject.Parse(await client.GetStringAsync("turbosquid/products/0/create_draft", cancellationToken))["id"]!.Value<string>()!;
-                    _logger.Trace($"3D product draft with {draftId} ID has been created.");
-                    return draftId;
-                }
-                catch (Exception ex)
-                { throw new Exception("Failed to create 3D product draft.", ex); }
-            }
-
-            async Task<TurboSquidAwsUploadCredentials> RequestAwsUploadCredentialsAsync(string authenticity_token)
-            {
+                var authenticity_token = client.Credential.AuthenticityToken;
                 try
                 {
                     var credentials = TurboSquidAwsUploadCredentials.Parse(await
@@ -83,13 +55,11 @@ public partial class TurboSquid
 
         PublishSession(
             _3DProductDraft<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> draft,
-            TurboSquidNetworkCredential credential,
             TurboSquidAwsUploadCredentials awsCredential,
             TurboSquid client,
             CancellationToken cancellationToken)
         {
             Draft = draft;
-            Credential = credential;
             AwsCredential = awsCredential;
             Client = client;
             CancellationToken = cancellationToken;
@@ -126,7 +96,7 @@ public partial class TurboSquid
                 _logger.Trace("Starting 3D models upload and processing.");
                 var modelsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>>();
 #if ENABLE_PARALLELIZATION
-                await Parallel.ForEachAsync(Draft._Product._3DModels,
+                await Parallel.ForEachAsync(Draft.Product._3DModels,
                     async (_3DModel, _) =>
                     {
                         string uploadKey = await UploadAssetAsyncAt(await _3DModel.Archive());
@@ -159,7 +129,7 @@ public partial class TurboSquid
                         new HttpRequestMessage(
                             HttpMethod.Patch,
 
-                            $"turbosquid/products/{Draft._ID}/product_files/{processedModel.FileId}")
+                            $"turbosquid/products/{Draft.ID}/product_files/{processedModel.FileId}")
                         { Content = MetadataForm() },
                         cancellationToken);
                     _logger.Trace($"Metadata for {processedModel.Asset.Name} has been uploaded.");
@@ -173,14 +143,14 @@ public partial class TurboSquid
                     using var archived3DModel = File.OpenRead(processedModel.Asset.Archive().Result);
                     // Explicit conversions of numbers to strings are required.
                     var metadataForm = new JObject(
-                        new JProperty("authenticity_token", Credential._CsrfToken),
-                        new JProperty("draft_id", Draft._ID),
+                        new JProperty("authenticity_token", Client.Credential.AuthenticityToken),
+                        new JProperty("draft_id", Draft.ID),
                         new JProperty("file_format", processedModel.Asset.Metadata.FileFormat),
                         new JProperty("format_version", processedModel.Asset.Metadata.FormatVersion.ToString()),
                         new JProperty("id", processedModel.FileId),
                         new JProperty("is_native", processedModel.Asset.Metadata.IsNative),
                         new JProperty("name", Path.GetFileName(archived3DModel.Name)),
-                        new JProperty("product_id", 0.ToString()),
+                        new JProperty("product_id", Draft.Product.ID.ToString()),
                         new JProperty("size", archived3DModel.Length));
                     if (processedModel.Asset.Metadata.Renderer is string renderer)
                     {
@@ -197,7 +167,7 @@ public partial class TurboSquid
             {
                 _logger.Trace("Starting 3D product thumbnails upload and processing.");
                 var thumbnailsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>>();
-                foreach (var thumbnail in Draft._Product.Thumbnails)
+                foreach (var thumbnail in Draft.Product.Thumbnails)
                 {
                     string uploadKey = await UploadAssetAsyncAt(thumbnail.FilePath);
                     thumbnailsProcessing.Add(
@@ -211,10 +181,10 @@ public partial class TurboSquid
 
             async Task<List<ITurboSquidProcessed3DProductAsset<_3DProduct.Texture_>>?> UploadTexturesAsync()
             {
-                if (Draft._Product.Textures is null) return null;
+                if (Draft.Product.Textures is null) return null;
                 _logger.Trace("Starting 3D product textures upload and processing.");
                 var texturesProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>>();
-                foreach (var texture in Draft._Product.Textures.EnumerateFiles())
+                foreach (var texture in Draft.Product.Textures.EnumerateFiles())
                 {
                     string uploadKey = await UploadAssetAsyncAt(texture.Path);
                     texturesProcessing.Add(
@@ -259,25 +229,26 @@ public partial class TurboSquid
             {
                 try
                 {
-                    _logger.Trace($"Sending {_session.Draft._Product.Metadata.Title} 3D product publish request.");
+                    _logger.Trace($"Sending {_session.Draft.Product.Metadata.Title} 3D product publish request.");
                     var productPublishRequest = new HttpRequestMessage(
                         HttpMethod.Patch,
 
-                        "turbosquid/products/0")
+                        $"turbosquid/products/{_session.Draft.Product.ID}")
                     { Content = ProductForm() };
                     productPublishRequest.Headers.Add(HeaderNames.Origin, Origin.OriginalString);
                     productPublishRequest.Headers.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
                     await _session.Client.SendAsync(productPublishRequest, _session.CancellationToken);
-                    _logger.Trace($"{_session.Draft._Product.Metadata.Title} 3D product publish request has been sent.");
+                    _logger.Trace($"{_session.Draft.Product.Metadata.Title} 3D product publish request has been sent.");
+                    _session.Draft.Product.ID = await RequestPublishedProductIdAsync();
                 }
                 catch (Exception ex)
-                { throw new HttpRequestException($"{_session.Draft._Product.Metadata.Title} 3D product publish request failed.", ex); }
+                { throw new HttpRequestException($"{_session.Draft.Product.Metadata.Title} 3D product publish request failed.", ex); }
 
 
                 StringContent ProductForm()
                     => new JObject(
-                        new JProperty("authenticity_token", _session.Credential._CsrfToken),
-                        new JProperty("turbosquid_product_form", _session.Draft._Product.Metadata.ToProductForm(_session.Draft._ID)),
+                        new JProperty("authenticity_token", _session.Client.Credential.AuthenticityToken),
+                        new JProperty("turbosquid_product_form", _session.Draft.Product.Metadata.ToProductForm(_session.Draft.ID)),
                         new JProperty("previews", new JObject(
                             _processedThumbnails.Select(_ => new JProperty(
                                 _.FileId, JObject.FromObject(new
@@ -286,7 +257,7 @@ public partial class TurboSquid
                                     image_type = _.Type().ToString()
                                 }))
                             ))),
-                        new JProperty("feature_ids", _session.Draft._Product.Metadata.Features.Values.ToArray()),
+                        new JProperty("feature_ids", _session.Draft.Product.Metadata.Features.Values.ToArray()),
                         new JProperty("missing_brand", JObject.FromObject(new
                         {
                             name = string.Empty,
@@ -294,6 +265,23 @@ public partial class TurboSquid
                         })),
                         new JProperty("publish", string.Empty))
                     .ToJsonContent();
+
+                async Task<int> RequestPublishedProductIdAsync()
+                {
+                    const string ID = "turbosquid_id";
+                    try
+                    {
+                        if (JObject.Parse(await _session.Client.GetStringAsync("/turbosquid/products.json?page=1", _session.CancellationToken))["data"] is JArray publishedProducts)
+                            if (publishedProducts.FirstOrDefault(_ => (string)_["name"]! == _session.Draft.Product.Metadata.Title) is JToken publishedProduct)
+                                if (publishedProduct[ID]?.Value<int>() is int id)
+                                { _logger.Trace($"{_session.Draft.Product.Metadata.Title} 3D product ID is obtained."); return id; }
+                                else throw new MissingFieldException("PublishedProduct", ID);
+                            else throw new Exception($"{_session.Draft.Product.Metadata.Title} wasn't found among published 3D products.");
+                        else throw new InvalidDataException("Published products request failed.");
+                    }
+                    catch (Exception ex)
+                    { throw new HttpRequestException($"{_session.Draft.Product.Metadata.Title} 3D product ID request failed.", ex); }
+                }
             }
         }
 
