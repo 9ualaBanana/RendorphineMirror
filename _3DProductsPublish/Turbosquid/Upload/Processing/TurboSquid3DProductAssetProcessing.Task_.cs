@@ -1,27 +1,25 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
-using static _3DProductsPublish.Turbosquid.Upload.Processing.TurboSquid3DProductAssetProcessing;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
 internal partial class TurboSquid3DProductAssetProcessing
 {
-    internal partial class Task_<TAsset> : Task<ITurboSquidProcessed3DProductAsset<TAsset>>, IEquatable<Task_<TAsset>>
-        where TAsset : I3DProductAsset
+    internal partial class Task_ : Task<ITurboSquidProcessed3DProductAsset>, IEquatable<Task_>
     {
         new internal string Id { get; }
 
         readonly ServerTask _serverTask;
-        readonly TAsset _asset;
+        readonly I3DProductAsset _asset;
         readonly Context _context;
 
-        internal static async Task<Task_<TAsset>> RunAsync(TAsset asset, string uploadKey, TurboSquid.PublishSession session)
+        internal static async Task<Task_> RunAsync(I3DProductAsset asset, string uploadKey, TurboSquid.PublishSession session)
             => await RunAsync(asset, Payload.For(asset, uploadKey, session), session.Client, TimeSpan.FromMilliseconds(1000), session.CancellationToken);
-        internal static async Task<Task_<TAsset>> RunAsync(TAsset asset, string uploadKey, TurboSquid.PublishSession session, TimeSpan pollInterval)
+        internal static async Task<Task_> RunAsync(I3DProductAsset asset, string uploadKey, TurboSquid.PublishSession session, TimeSpan pollInterval)
             => await RunAsync(asset, Payload.For(asset, uploadKey, session), session.Client, pollInterval, session.CancellationToken);
-        static async Task<Task_<TAsset>> RunAsync(TAsset asset, Payload payload, HttpClient client, TimeSpan pollInterval, CancellationToken cancellationToken)
+        static async Task<Task_> RunAsync(I3DProductAsset asset, Payload payload, HttpClient client, TimeSpan pollInterval, CancellationToken cancellationToken)
             => await RunAsync(asset, new Context(payload, client, (int)pollInterval.TotalMilliseconds, cancellationToken));
-        static async Task<Task_<TAsset>> RunAsync(TAsset asset, Context context)
+        static async Task<Task_> RunAsync(I3DProductAsset asset, Context context)
         {
             return new(await QueueTaskAsync(), asset, context);
 
@@ -39,14 +37,14 @@ internal partial class TurboSquid3DProductAssetProcessing
         }
 
 
-        internal async Task<Task_<TAsset>> RestartedAsync()
+        internal async Task<Task_> RestartedAsync()
             => await RestartedAsync(_context.CancellationToken);
-        internal async Task<Task_<TAsset>> RestartedAsync(CancellationToken cancellationToken)
+        internal async Task<Task_> RestartedAsync(CancellationToken cancellationToken)
             => await RunAsync(_asset, _context with { CancellationToken = cancellationToken });
 
-        static Task_<TAsset> Updated(Task_<TAsset> task, ServerTask updatedServerTask)
+        static Task_ Updated(Task_ task, ServerTask updatedServerTask)
             => new(updatedServerTask, task._asset, task._context);
-        Task_(ServerTask serverTask, TAsset asset, Context context)
+        Task_(ServerTask serverTask, I3DProductAsset asset, Context context)
             : base(() => Core(serverTask, asset, context).Result, context.CancellationToken, TaskCreationOptions.LongRunning)
         {
             Id = serverTask.Id;
@@ -55,7 +53,7 @@ internal partial class TurboSquid3DProductAssetProcessing
             _context = context;
         }
 
-        static async Task<ITurboSquidProcessed3DProductAsset<TAsset>> Core(ServerTask serverTask, TAsset asset, Context context)
+        static async Task<ITurboSquidProcessed3DProductAsset> Core(ServerTask serverTask, I3DProductAsset asset, Context context)
         {
             while (true)
             {
@@ -71,7 +69,7 @@ internal partial class TurboSquid3DProductAssetProcessing
 
         static async Task<ServerTask> UpdateAsync(ServerTask serverTask, Context context)
             => (await UpdatedAsync(new[] { serverTask }, context)).Single();
-        static async Task<List<Task_<TAsset>>> UpdatedAsync(IEnumerable<Task_<TAsset>> tasks, Context context)
+        static async Task<List<Task_>> UpdatedAsync(IEnumerable<Task_> tasks, Context context)
             => tasks.Zip(await UpdatedAsync(tasks.Select(_ => _._serverTask), context))
             .Select(_ => new { Task = _.First, ServerTask = _.Second })
             .Select(_ => Updated(_.Task, _.ServerTask))
@@ -98,13 +96,13 @@ internal partial class TurboSquid3DProductAssetProcessing
 
 
         /// <remarks><c>/bulk_poll</c></remarks>
-        internal static async Task<List<ITurboSquidProcessed3DProductAsset<TAsset>>> WhenAll(List<Task_<TAsset>> tasks)
+        internal static async Task<List<ITurboSquidProcessed3DProductAsset>> WhenAll(List<Task_> tasks)
         {
-            var tcs = new TaskCompletionSource<List<ITurboSquidProcessed3DProductAsset<TAsset>>>();
-            var result = new List<ITurboSquidProcessed3DProductAsset<TAsset>>(tasks.Count);
+            var tcs = new TaskCompletionSource<List<ITurboSquidProcessed3DProductAsset>>();
+            var result = new List<ITurboSquidProcessed3DProductAsset>(tasks.Count);
             var exceptions = new List<Exception>();
 
-            while (tasks.FirstOrDefault() is Task_<TAsset> task)
+            while (tasks.FirstOrDefault() is Task_ task)
             {
                 foreach (var updatedTask in await UpdatedAsync(tasks, task._context))
                     if (updatedTask._context.CancellationToken.IsCancellationRequested)
@@ -131,8 +129,8 @@ internal partial class TurboSquid3DProductAssetProcessing
 
         #region EqualityContract
 
-        public override bool Equals(object? obj) => Equals(obj as Task_<TAsset>);
-        public bool Equals(Task_<TAsset>? other) => Id == other?.Id;
+        public override bool Equals(object? obj) => Equals(obj as Task_);
+        public bool Equals(Task_? other) => Id == other?.Id;
         public override int GetHashCode() => Id.GetHashCode();
 
         #endregion

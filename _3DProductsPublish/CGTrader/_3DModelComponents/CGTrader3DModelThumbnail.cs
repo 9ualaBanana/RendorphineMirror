@@ -3,14 +3,14 @@ using System.Security.Cryptography;
 
 namespace _3DProductsPublish.CGTrader._3DModelComponents;
 
-internal record CGTrader3DModelThumbnail : _3DProductThumbnail
+internal class CGTrader3DModelThumbnail : _3DProductThumbnail
 {
     internal async ValueTask<string> ChecksumAsync(CancellationToken cancellationToken)
     {
         if (_checksum is null)
         {
             using var hasher = MD5.Create();
-            using var fileStream = AsFileStream;
+            using var fileStream = File.OpenRead(FilePath);
             _checksum = Convert.ToBase64String(
                 await hasher.ComputeHashAsync(fileStream, cancellationToken)
                 );

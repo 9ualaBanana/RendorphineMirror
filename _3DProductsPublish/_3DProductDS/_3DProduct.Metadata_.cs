@@ -107,16 +107,16 @@ public static class _3DProductMetadataExtensions
             _ => throw new NotImplementedException()
         };
 
-        CGTrader._3DModelComponents.Geometry_? Geometry() => _.Geometry switch
+        Geometry_? Geometry() => _.Geometry switch
         {
             _3DProduct.Metadata_.Geometry_.PolygonalQuadsOnly or
             _3DProduct.Metadata_.Geometry_.PolygonalQuadsTris or
             _3DProduct.Metadata_.Geometry_.PolygonalTrisOnly or
             _3DProduct.Metadata_.Geometry_.PolygonalNgonsUsed or
-            _3DProduct.Metadata_.Geometry_.Polygonal => CGTrader._3DModelComponents.Geometry_.polygonal_mesh,
-            _3DProduct.Metadata_.Geometry_.Subdivision => CGTrader._3DModelComponents.Geometry_.subdivision_ready,
-            _3DProduct.Metadata_.Geometry_.Nurbs => CGTrader._3DModelComponents.Geometry_.nurbs,
-            _3DProduct.Metadata_.Geometry_.Unknown => CGTrader._3DModelComponents.Geometry_.other,
+            _3DProduct.Metadata_.Geometry_.Polygonal => Geometry_.polygonal_mesh,
+            _3DProduct.Metadata_.Geometry_.Subdivision => Geometry_.subdivision_ready,
+            _3DProduct.Metadata_.Geometry_.Nurbs => Geometry_.nurbs,
+            _3DProduct.Metadata_.Geometry_.Unknown => Geometry_.other,
             null => null,
             _ => throw new NotImplementedException()
         };

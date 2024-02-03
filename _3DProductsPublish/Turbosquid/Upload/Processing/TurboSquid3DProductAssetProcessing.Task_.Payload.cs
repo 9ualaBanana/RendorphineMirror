@@ -6,7 +6,7 @@ namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
 internal partial class TurboSquid3DProductAssetProcessing
 {
-    internal partial class Task_<TAsset>
+    internal partial class Task_
     {
         abstract class Payload
         {
@@ -17,7 +17,7 @@ internal partial class TurboSquid3DProductAssetProcessing
             readonly long size;
             internal readonly string authenticity_token;
 
-            internal static Payload For(TAsset asset, string uploadKey, TurboSquid.PublishSession session)
+            internal static Payload For(I3DProductAsset asset, string uploadKey, TurboSquid.PublishSession session)
                 => asset switch
                 {
                     _3DModel<TurboSquid3DModelMetadata> _3DModel => Payload.For(_3DModel, uploadKey, session),
@@ -38,7 +38,7 @@ internal partial class TurboSquid3DProductAssetProcessing
             static Payload For(_3DProductThumbnail thumbnail, string uploadKey, TurboSquid.PublishSession session)
                 => Payload.For(thumbnail, uploadKey, session.Draft.ID, session.Client.Credential.AuthenticityToken);
             static Payload For(_3DProductThumbnail thumbnail, string uploadKey, string draftId, string authenticityToken)
-                => new Payload.Thumbnail(uploadKey, draftId, thumbnail.FileName, thumbnail.Size, thumbnail.TurboSquidType().ToString(), authenticityToken);
+                => new Payload.Thumbnail(uploadKey, draftId, thumbnail.FileName, thumbnail.Size, TurboSquidProcessed3DProductThumbnail.PreprocessedType(thumbnail).ToString(), authenticityToken);
 
             static Payload For(_3DProduct.Texture_ texture, string uploadKey, TurboSquid.PublishSession session)
                 => Payload.For(texture, uploadKey, session.Draft.ID, session.Client.Credential.AuthenticityToken);

@@ -240,7 +240,7 @@ internal class CGTraderApi : IBaseAddressProvider
         CGTrader3DModelThumbnail modelPreviewImage,
         CancellationToken cancellationToken)
     {
-        using var fileStream = modelPreviewImage.AsFileStream;
+        using var fileStream = File.OpenRead(modelPreviewImage.FilePath);
         using var request = new HttpRequestMessage(HttpMethod.Post,
             (this as IBaseAddressProvider).Endpoint("/api/internal/direct-uploads/item-images"))
         {

@@ -122,7 +122,7 @@ public partial record TurboSquid3DProductMetadata
     public bool Textures { get; }
     public bool UVMapped { get; }
     public UnwrappedUVs_? UnwrappedUVs { get; }
-    internal Dictionary<string, int> Features { get; } = new();
+    internal Dictionary<string, int> Features { get; } = [];
 
     public JObject ToProductForm(string draftId)
     {

@@ -5,9 +5,9 @@ namespace _3DProductsPublish._3DProductDS;
 /// <summary>
 /// Wraps either directory or archive in which 3D model parts are stored.
 /// </summary>
-public partial record _3DModel : _3DProduct.AssetContainer, I3DProductAsset, IDisposable
+public partial record _3DModel : AssetContainer, I3DProductAsset, IDisposable
 {
-    public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
+    new public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
 
     #region Initialization
 
@@ -23,7 +23,7 @@ public partial record _3DModel : _3DProduct.AssetContainer, I3DProductAsset, IDi
 
     internal static IEnumerable<_3DModel> EnumerateAt(string directoryPath, bool disposeTemps = true)
     {
-        var _3DModelContainers = _3DProduct.AssetContainer.EnumerateAt(directoryPath).ToList();
+        var _3DModelContainers = AssetContainer.EnumerateAt(directoryPath).ToList();
         // TODO: _3DModel shouldn't know about Textures_ of _3DProduct.
         _3DModelContainers.Remove(System.IO.Path.Combine(directoryPath, Textures_.ContainerName));
 
