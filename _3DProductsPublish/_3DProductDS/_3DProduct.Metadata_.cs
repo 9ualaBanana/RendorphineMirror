@@ -121,7 +121,7 @@ public static class _3DProductMetadataExtensions
             _ => throw new NotImplementedException()
         };
 
-        CGTrader._3DModelComponents.UnwrappedUVs_? UnwrappedUVs() => _.UnwrappedUVs switch
+        UnwrappedUVs_? UnwrappedUVs() => _.UnwrappedUVs switch
         {
             _3DProduct.Metadata_.UnwrappedUVs_.NonOverlapping => UnwrappedUVs_.non_overlapping,
             _3DProduct.Metadata_.UnwrappedUVs_.Overlapping => UnwrappedUVs_.overlapping,
@@ -133,7 +133,7 @@ public static class _3DProductMetadataExtensions
         };
     }
 
-    internal static async Task<_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
+    public static async Task<TurboSquid3DProduct> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
     {
         var tuboSquidMetadata = await TurboSquid3DProductMetadata.ProvideAsync(
             nodeGui,
@@ -190,13 +190,17 @@ public static class _3DProductMetadataExtensions
         };
     }
 
-    static _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> With(this _3DProduct _3DProduct, INodeGui nodeGui, TurboSquid3DProductMetadata metadata)
+    static TurboSquid3DProduct With(this _3DProduct _3DProduct, INodeGui nodeGui, TurboSquid3DProductMetadata metadata)
     {
         var turboSquid3DProduct = _3DProduct.With_(metadata);
         var turboSquidMetadataFile = TurboSquid3DProductMetadata.File.For(turboSquid3DProduct);
         if (!File.Exists(turboSquidMetadataFile.Path))
             turboSquidMetadataFile.Populate(nodeGui);
-        return new(turboSquid3DProduct, turboSquidMetadataFile.Read());
+        var meta = turboSquidMetadataFile.Read();
+
+        return meta._3DProductID is int id ?
+            new TurboSquid3DProduct(turboSquid3DProduct, meta.Item2) with { ID = id } :
+            new TurboSquid3DProduct(turboSquid3DProduct, meta.Item2);
     }
 
     public static _3DProduct<TMetadata> With_<TMetadata>(this _3DProduct _3DProduct, TMetadata metadata)

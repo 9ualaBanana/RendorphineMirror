@@ -1,10 +1,9 @@
 ﻿using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.Turbosquid._3DModelComponents;
 using System.Net;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
-internal class TurboSquid3DProductPublisher : I3DProductPublisher<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>
+internal class TurboSquid3DProductPublisher
 {
     readonly TurboSquid _turboSquid;
 
@@ -16,9 +15,6 @@ internal class TurboSquid3DProductPublisher : I3DProductPublisher<TurboSquid3DPr
         _turboSquid = turboSquid;
     }
 
-    public async Task PublishAsync(
-        _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> _3DProduct,
-        NetworkCredential credential,
-        CancellationToken cancellationToken)
+    public async Task PublishAsync(TurboSquid3DProduct _3DProduct, CancellationToken cancellationToken)
         => await _turboSquid.PublishAsync(_3DProduct, cancellationToken);
 }

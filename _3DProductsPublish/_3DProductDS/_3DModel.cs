@@ -7,8 +7,6 @@ namespace _3DProductsPublish._3DProductDS;
 /// </summary>
 public partial record _3DModel : AssetContainer, I3DProductAsset, IDisposable
 {
-    new public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
-
     #region Initialization
 
     public static _3DModel FromContainer(string path, bool disposeTemps = true) => new(path, disposeTemps);
@@ -33,10 +31,13 @@ public partial record _3DModel : AssetContainer, I3DProductAsset, IDisposable
 
     public static implicit operator _3DModel(string containerPath) =>
         new(containerPath);
+
+
+    public interface IMetadata { string Name { get; } }
 }
 
 public partial record _3DModel<TMetadata> : _3DModel
-    where TMetadata : I3DModelMetadata
+    where TMetadata : _3DModel.IMetadata
 {
     internal readonly TMetadata Metadata;
 
@@ -51,11 +52,6 @@ public partial record _3DModel<TMetadata> : _3DModel
     {
         Metadata = _3DModel.Metadata;
     }
-}
-
-public interface I3DModelMetadata
-{
-    string Name { get; }
 }
 
 static class _3DModelFilesExtensions

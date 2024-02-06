@@ -59,10 +59,10 @@ public partial record TurboSquid3DProductMetadata
                 {
                     var format = FileFormat_(f);
                     if (!format.IsNative())
-                        return new InputTurboSquidModelInfoRequest.ModelInfo(f.Name, format.ToString(), null);
+                        return new InputTurboSquidModelInfoRequest.ModelInfo(System.IO.Path.GetFileNameWithoutExtension(f.Path), format.ToString(), null);
 
                     var renderertype = getRendererType(getFormatType(format.ToString()));
-                    return new InputTurboSquidModelInfoRequest.ModelInfo(f.Name, format.ToString(), Enum.GetNames(renderertype).ToImmutableArray());
+                    return new InputTurboSquidModelInfoRequest.ModelInfo(System.IO.Path.GetFileNameWithoutExtension(f.Path), format.ToString(), Enum.GetNames(renderertype).ToImmutableArray());
                 }).ToImmutableArray();
 
                 return await
@@ -72,18 +72,17 @@ public partial record TurboSquid3DProductMetadata
             static DocumentSyntax DescribedAndSerialized(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo? userinfo, _3DModel _3DModel)
             {
                 var metadata = new DocumentSyntax();
-                var table = new TableSyntax(_3DModel.Name);
+                var table = new TableSyntax(System.IO.Path.GetFileNameWithoutExtension(_3DModel.Path));
                 var fileFormat = FileFormat_(_3DModel);
                 table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.FileFormat)), fileFormat.ToString_());
                 if (userinfo is not null && fileFormat.IsNative())
                 {
                     var type = getFormatType(FileFormat_(_3DModel).ToString());
                     var renderer = Enum.Parse(getRendererType(type), userinfo.Renderer);
-                    var instance = (NativeFileFormatMetadata) Activator.CreateInstance(type, new object?[] { userinfo.FormatVersion, renderer, userinfo.RendererVersion }).ThrowIfNull();
+                    var instance = (NativeFileFormatMetadata) Activator.CreateInstance(type, [userinfo.FormatVersion, renderer, userinfo.RendererVersion]).ThrowIfNull();
 
                     table.Items.Add(instance);
                 }
-
                 table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.IsNative)), userinfo?.IsNative ?? false);
                 metadata.Tables.Add(table);
                 metadata.AddTrailingTriviaNewLine();
@@ -96,7 +95,7 @@ public partial record TurboSquid3DProductMetadata
                     if (DeduceFromExtension(file) is FileFormat fileFormat)
                         return fileFormat;
 
-                throw new InvalidDataException($"{nameof(TurboSquid3DModelMetadata.FileFormat)} of {nameof(_3DModel)} ({model.Name}) can't be deduced.");
+                throw new InvalidDataException($"{nameof(TurboSquid3DModelMetadata.FileFormat)} of {nameof(_3DModel)} ({System.IO.Path.GetFileNameWithoutExtension(model.Path)}) can't be deduced.");
 
 
                 static FileFormat? DeduceFromExtension(string path)
@@ -117,24 +116,49 @@ public partial record TurboSquid3DProductMetadata
             }
         }
 
-        internal IEnumerable<TurboSquid3DModelMetadata> Read()
+        internal (int? _3DProductID, IEnumerable<TurboSquid3DModelMetadata>) Read()
         {
-            var modelsMetadata = Toml.Parse(System.IO.File.ReadAllText(Path))
-                .Tables
-                .Select(TurboSquid3DModelMetadata.Read);
-            return Validated(modelsMetadata);
+            var toml = Toml.Parse(System.IO.File.ReadAllText(Path));
+            var modelsMetadata = int.TryParse(toml.Tables.FirstOrDefault()?.Name?.ToString(), out int _3DProductID) ?
+                toml.Tables.Skip(1).Select(TurboSquid3DModelMetadata.Read) :
+                toml.Tables.Select(TurboSquid3DModelMetadata.Read);
+            return (_3DProductID, Validated(modelsMetadata));
         }
 
         IEnumerable<TurboSquid3DModelMetadata> Validated(IEnumerable<TurboSquid3DModelMetadata> modelsMetadata)
         {
             Exception? exception;
-            if (modelsMetadata.Count() == _3DProduct._3DModels.Count())
+            if (modelsMetadata.Count() == _3DProduct._3DModels.Count)
                 if (modelsMetadata.Count(_ => _.IsNative) is 1)
                     return modelsMetadata;
                 else exception = new InvalidDataException($"Metadata file must mark one {nameof(_3DModel)} as native.");
             else exception = new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({Path}).");
             System.IO.File.Delete(Path);
             throw exception;
+        }
+    }
+}
+
+static class TurboSquid3DProductMetadataFileExtensions
+{
+    internal static void Write(this TurboSquid3DProductMetadata.File metadataFile, _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> _3DProduct)
+    {
+        using var _file = File.OpenWrite(metadataFile.Path);
+        using var file = new StreamWriter(_file);
+
+        if (_3DProduct.ID is not 0)
+        {
+            var document = new DocumentSyntax();
+            document.Tables.Add(new TableSyntax(_3DProduct.ID.ToString()));
+            document.AddTrailingTriviaNewLine();
+            document.WriteTo(file);
+        }
+        foreach (var model in _3DProduct._3DModels)
+        {
+            var document = new DocumentSyntax();
+            document.Tables.Add(model.Metadata);
+            document.AddTrailingTriviaNewLine();
+            document.WriteTo(file);
         }
     }
 }

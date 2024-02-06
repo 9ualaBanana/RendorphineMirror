@@ -102,7 +102,6 @@ abstract class NativeFileFormatMetadata<TRenderer> : NativeFileFormatMetadata wh
     protected NativeFileFormatMetadata(FileFormat fileFormat, double formatVersion = 1.0, TRenderer? renderer = null, double? rendererVersion = null)
         : base(fileFormat, formatVersion, renderer?.ToString(), rendererVersion) { }
 }
-
 static class NativeFileFormatMetadataExtensions
 {
     internal static void Add(this SyntaxList<KeyValueSyntax> tableItems, NativeFileFormatMetadata nativeFileFormatMetadata)
