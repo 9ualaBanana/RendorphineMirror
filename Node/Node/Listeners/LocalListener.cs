@@ -6,6 +6,8 @@ using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid;
 using _3DProductsPublish.Turbosquid.Upload;
 using Node.Profiling;
+using Node.Tasks.Exec.Input;
+using Node.Tasks.Exec.Output;
 
 namespace Node.Listeners;
 
@@ -23,6 +25,8 @@ public class LocalListener : ExecutableListenerBase
     public required IRFProductStorage RFProducts { get; init; }
     public required SettingsInstance Settings { get; init; }
     public required INodeGui NodeGui { get; init; }
+    public required TaskExecutor TaskExecutor { get; init; }
+    public required NodeDataDirs Dirs { get; init; }
 
     public LocalListener(ILogger<LocalListener> logger) : base(logger) { }
 
@@ -225,6 +229,19 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
+        if (path == "tasktopaz")
+        {
+            return await TestPost(await CreateCached(request), response, "file", "info", async (file, info) =>
+            {
+                var input = new TaskFileInput(new ReadOnlyTaskFileList([FileWithFormat.FromFile(file)]), Dirs.TaskOutputDirectory($"local_{Guid.NewGuid()}"));
+                var data = JObject.Parse(info).WithProperty("type", TaskAction.Topaz.ToString());
+                
+                return await WriteJson(response, new TaskFileOutput(new TaskFileListList("/temp/asd"){new ReadOnlyTaskFileList([FileWithFormat.FromFile("/temp/file.png")])}).Files.Single().Single().Path.AsOpResult()).ConfigureAwait(false);
+
+                var result = (TaskFileOutput) await TaskExecutor.Execute(input, data, default);
+                return await WriteJson(response, result.Files.Single().Single().Path.AsOpResult()).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
 
         if (NodeToUI.NodeGui.GuiRequestTypes.ContainsKey(path) && query["reqid"] is { } reqid && NodeGlobalState.Instance.Requests.TryGetValue(reqid, out var guirequest))
         {
