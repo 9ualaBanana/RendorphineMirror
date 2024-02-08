@@ -13,17 +13,17 @@ namespace Common
     {
         readonly Dictionary<WeakReference<object>, T> Dictionary = new Dictionary<WeakReference<object>, T>();
 
-        protected IEnumerable<T> GetCallbacks()
+        protected IEnumerable<(object, T)> GetCallbacks()
         {
             foreach (var (wr, val) in Dictionary.ToArray())
             {
-                if (!wr.TryGetTarget(out _))
+                if (!wr.TryGetTarget(out var obj))
                 {
                     Dictionary.Remove(wr);
                     continue;
                 }
 
-                yield return val;
+                yield return (obj, val);
             }
         }
 
@@ -34,28 +34,20 @@ namespace Common
             if (wr is { Key: { }, Value: { } }) Dictionary.Remove(wr.Key);
         }
     }
-    public class WeakEventManager : WeakEventManagerBase<Action>, IReadOnlyWeakEventManager
+    public class WeakEventManager<T> : WeakEventManagerBase<Action<T>>, IReadOnlyWeakEventManager<T>
     {
         public void Invoke()
         {
-            foreach (var callback in GetCallbacks())
-                callback();
+            foreach (var (obj, callback) in GetCallbacks())
+                callback((T) obj);
         }
     }
-    public class WeakEventManager<T> : WeakEventManagerBase<Action<T>>, IReadOnlyWeakEventManager<T>
+    public class WeakEventManager<TObj, T> : WeakEventManagerBase<Action<T>>, IReadOnlyWeakEventManager<T>
     {
-        public void Invoke(T value)
+        public void Invoke(T arg)
         {
-            foreach (var callback in GetCallbacks())
-                callback(value);
-        }
-    }
-    public class WeakEventManager<T1, T2> : WeakEventManagerBase<Action<T1, T2>>, IReadOnlyWeakEventManager<T1, T2>
-    {
-        public void Invoke(T1 value1, T2 value2)
-        {
-            foreach (var callback in GetCallbacks())
-                callback(value1, value2);
+            foreach (var (obj, callback) in GetCallbacks())
+                callback(arg);
         }
     }
 }

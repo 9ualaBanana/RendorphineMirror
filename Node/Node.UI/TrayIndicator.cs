@@ -80,7 +80,7 @@ namespace Node.UI
 
             InitializeIconInfo(icon, connectionState);
 
-            LocalizedString.ChangeLangWeakEvent.Subscribe(app, () => Dispatcher.UIThread.Post(updateMenus));
+            LocalizedString.ChangeLangWeakEvent.Subscribe(app, (_) => Dispatcher.UIThread.Post(updateMenus));
             updateMenus();
 
             void updateMenus()

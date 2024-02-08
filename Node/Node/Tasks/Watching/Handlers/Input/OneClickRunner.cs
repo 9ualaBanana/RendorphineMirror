@@ -157,10 +157,6 @@ public class OneClickRunner : OneClickRunnerInfo
                 Logger.Error(ex);
                 await ReportError($"[3dsmax export] {ex.Message}", new[] { inputArchiveFile });
             }
-            finally
-            {
-                SaveFunc();
-            }
         }
 
         return;
@@ -254,6 +250,7 @@ public class OneClickRunner : OneClickRunnerInfo
 
         var exportInfo = GetExportInfoByProductName(Path.GetFileNameWithoutExtension(maxSceneFile));
         exportInfo.OneClick = null;
+        SaveFunc();
 
 
         var outputunitydir = Directories.DirCreated(Export3dsMaxResultDirectory(inputArchiveFile));
@@ -305,11 +302,13 @@ public class OneClickRunner : OneClickRunnerInfo
         catch
         {
             exportInfo.OneClick = new(OneClickPlugin.Version.ToString(), false);
+            SaveFunc();
             throw;
         }
 
         Logger.Info("Success.");
         exportInfo.OneClick = new(OneClickPlugin.Version.ToString(), true);
+        SaveFunc();
 
         await CreateRFProductsIfEnabledFromNewDirectories();
 

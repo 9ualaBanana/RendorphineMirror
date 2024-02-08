@@ -29,6 +29,7 @@ global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
 using Node;
 using Node.Services.Targets;
+using Node.Tasks.Models.ExecInfo;
 using SevenZip;
 
 
@@ -54,6 +55,27 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (true, true) => container.Resolve<ReleaseMainTarget>(),
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
+
+await Task.Delay(1000);
+while (true)
+{
+    await Task.Delay(100);
+
+    NodeGlobalState.Instance.OneClickTaskInfo.Value = new OneClickTaskInfo()
+    {
+        IsPaused = false,
+        InputDir = "asd",
+        OutputDir = "dsa",
+        ProductsDir = "prod",
+        LogDir = "log",
+        UnityTemplatesDir = @"C:\\OneClickUnityDefaultProjects",
+        ExportInfo = new Dictionary<string, ProjectExportInfo>() { ["A"] = new ProjectExportInfo() { ProductName = "dsadsad", OneClick = new OneClickProjectExportInfo("asd", true) } },
+        AutoCreateRFProducts = false,
+        RFProductTargetDirectory = "rfpt",
+    };
+    // NodeGlobalState.Instance.ExecutingTasks
+    //     .SetRange([new ReceivedTask("asd", new TaskInfo(new TaskObject("/temp/a", 123), new MPlusTaskOutputInfo("nam", "dir"), JObject.FromObject(new EditVideoInfo() { Brightness = 2 }).WithProperty("type", "EditVideo")) { Input = new MPlusTaskInputInfo("asd") })]);
+}
 
 notifier.Notify("Started node");
 Thread.Sleep(-1);

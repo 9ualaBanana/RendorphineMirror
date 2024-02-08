@@ -6,7 +6,7 @@ public class NodeGlobalState
     public static readonly NodeGlobalState Instance = new();
 
     [JsonIgnore]
-    public readonly WeakEventManager<string> AnyChanged = new();
+    public readonly WeakEventManager<object, string> AnyChanged = new();
 
     public readonly Bindable<TasksFullDescriber> TaskDefinitions = new();
     public readonly Bindable<ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>> Software = new(ImmutableDictionary<PluginType, ImmutableDictionary<PluginVersion, SoftwareVersionInfo>>.Empty);

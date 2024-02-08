@@ -5,7 +5,7 @@ namespace Node.UI
     public readonly struct LocalizedString
     {
         readonly static Logger _logger = LogManager.GetCurrentClassLogger();
-        public static readonly IReadOnlyWeakEventManager ChangeLangWeakEvent = new WeakEventManager();
+        public static readonly WeakEventManager<AvaloniaObject> ChangeLangWeakEvent = new WeakEventManager<AvaloniaObject>();
 
         static ImmutableDictionary<string, ImmutableDictionary<string, string>> Translations = null!;
         public static string Locale { get; private set; }
@@ -55,7 +55,7 @@ namespace Node.UI
 
             App.Instance.Settings.Language = culture;
             Locale = culture;
-            ((WeakEventManager) ChangeLangWeakEvent).Invoke();
+            ChangeLangWeakEvent.Invoke();
         }
 
         public static void Reload()
@@ -81,7 +81,7 @@ namespace Node.UI
                 .Select(x => x!.Value)
                 .ToImmutableDictionary(x => x.locale, x => x.keys);
 
-            ((WeakEventManager) ChangeLangWeakEvent).Invoke();
+            ChangeLangWeakEvent.Invoke();
             CheckTranslations();
 
 

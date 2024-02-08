@@ -71,7 +71,7 @@ public class DashboardTab : Panel
                         {
                             Text = "lang.current",
                             OnClick = () => App.Current.Settings.Language = App.Current.Settings.Language == "ru-RU" ? "en-US" : "ru-RU",
-                        }.With(btn => LocalizedString.ChangeLangWeakEvent.Subscribe(btn, () => btn.Text = "Language: " + new LocalizedString("lang.current"))),
+                        }.With(btn => LocalizedString.ChangeLangWeakEvent.Subscribe(btn, (_) => btn.Text = "Language: " + new LocalizedString("lang.current"))),
                         new MPButton()
                         {
                             Text = new("Log out"),
