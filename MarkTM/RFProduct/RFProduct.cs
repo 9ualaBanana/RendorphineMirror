@@ -59,7 +59,7 @@ public partial record RFProduct : AssetContainer
         QSPreview.BindTo(this);
     }
 
-    // TODO: Move the logic to JsonConverter ? this way seems easier tho.
+    // TODO: Move the logic to JsonConverter ?.
     [JsonConstructor]
     RFProduct(JObject idea, string id, JObject qsPreview, JObject[] subproducts, string container, string type)
         : base(new(container))
@@ -70,7 +70,7 @@ public partial record RFProduct : AssetContainer
         {
             QSPreview = type switch
             {
-                nameof(_3D) or nameof(_3D.Renders) => qsPreview.ToObject<_3D.QSPreviews>()!,
+                nameof(_3D) => qsPreview.ToObject<_3D.QSPreviews>()!,
                 nameof(Video) => qsPreview.ToObject<Video.QSPreviews>()!,
                 nameof(Image) => qsPreview.ToObject<Image.QSPreviews>()!,
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, $"{nameof(Type)} of a serialized {nameof(RFProduct)} is unknown.")
@@ -83,7 +83,7 @@ public partial record RFProduct : AssetContainer
             Idea = type switch
             {
                 nameof(_3D) => idea.ToObject<_3D.Idea_>()!,
-                nameof(_3D.Renders) or nameof(Video) or nameof(Image) => idea.ToObject<Idea_>()!,
+                nameof(Video) or nameof(Image) => idea.ToObject<Idea_>()!,
                 _ => throw new InvalidOperationException($"{type} {nameof(RFProduct)} doesn't support type-specific {nameof(Idea)}.")
             };
             ArgumentNullException.ThrowIfNull(Idea, $"Mismatch between {typeof(RFProduct)} {nameof(Type)} and its corresponding {nameof(Idea)}.");

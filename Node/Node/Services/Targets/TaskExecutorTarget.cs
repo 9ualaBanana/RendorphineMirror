@@ -44,13 +44,6 @@ public class TaskExecutorTarget : IServiceTarget
             .AsSelf()
             .SingleInstance();
 
-        builder.RegisterType<RFProduct._3D.Renders.Constructor>()
-            .AsSelf()
-            .SingleInstance();
-        builder.RegisterType<RFProduct._3D.Renders.Idea_.Recognizer>()
-            .As<RFProduct.Idea_.IRecognizer<RFProduct._3D.Renders.Idea_>>()
-            .SingleInstance();
-
         builder.RegisterType<RFProduct.Image.QSPreviews.Generator>()
             .As<RFProduct.QSPreviews.Generator<RFProduct.Image.QSPreviews>>()
             .AsSelf()
