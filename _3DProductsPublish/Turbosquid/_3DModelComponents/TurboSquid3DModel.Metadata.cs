@@ -12,7 +12,7 @@ public partial record TurboSquid3DModelMetadata : _3DModel.IMetadata
     public string Name { get; init; } = default!;
     public string FileFormat { get; init; } = default!;
     public double FormatVersion { get; init; } = 1.0;
-    public bool IsNative { get; init; } = false;
+    public bool IsNative { get; init; } = true;
     public string Renderer { get; init; } = "other"!;
     public double? RendererVersion { get; init; } = default;
 
