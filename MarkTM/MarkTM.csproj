@@ -8,14 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Node\Node.Common.Models\Node.Common.Models.csproj" />
     <ProjectReference Include="..\Node\Node.Tasks\Node.Tasks.csproj" />
-    <ProjectReference Include="..\_3DProductsPublish\_3DProductsPublish.csproj" />
     <ProjectReference Include="..\NodeCommon\NodeCommon.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Remove="NLog" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.2" />
+    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     <Using Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
 

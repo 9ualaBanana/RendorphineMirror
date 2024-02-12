@@ -2,7 +2,7 @@
 
 public partial record _3DProduct
 {
-    public record Textures_ : _3DProduct.AssetContainer
+    public record Textures_ : AssetContainer
     {
         internal const string ContainerName = "textures.zip";
 

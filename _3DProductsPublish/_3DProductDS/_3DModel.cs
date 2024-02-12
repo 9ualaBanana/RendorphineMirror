@@ -53,15 +53,3 @@ public partial record _3DModel<TMetadata> : _3DModel
         Metadata = _3DModel.Metadata;
     }
 }
-
-static class _3DModelFilesExtensions
-{
-    internal static void CopyTo(this IEnumerable<string> files, DirectoryInfo directory)
-    {
-        foreach (string filePath in files)
-        {
-            string destinationFilePath = Path.Combine(directory.FullName, Path.GetFileName(filePath));
-            File.Copy(filePath, destinationFilePath);
-        }
-    }
-}

@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json.Serialization;
+﻿using Node.Common.Models;
+using Newtonsoft.Json.Serialization;
 using System.Reflection;
-using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace MarkTM.RFProduct;
 

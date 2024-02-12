@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Direx" Version="0.2.0" />
+    <PackageReference Include="lvl" Version="1.0.1" />
   </ItemGroup>
 
   <ItemGroup>

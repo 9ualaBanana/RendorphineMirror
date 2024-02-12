@@ -1,4 +1,4 @@
-﻿using _3DProductsPublish._3DProductDS;
+﻿using Node.Common.Models;
 using FluentAssertions;
 
 namespace _3DProductsPublish.Tests;
@@ -41,7 +41,7 @@ public class _3DModelArchiverTest : IClassFixture<_3DModelFixture>
     {
         using var model = _3DModelFixture.FromArchive;
 
-        string unpackedModelPath = _3DProduct.AssetContainer.Archive_.Unpack(model.Path);
+        string unpackedModelPath = AssetContainer.Archive_.Unpack(model.Path);
 
         unpackedModelPath.Should().NotBe(model.Path);
         Directory.Exists(unpackedModelPath).Should().BeTrue();
@@ -52,7 +52,7 @@ public class _3DModelArchiverTest : IClassFixture<_3DModelFixture>
     {
         using var model = _3DModelFixture.FromDirectory;
 
-        var unpackingDirectory = () => _3DProduct.AssetContainer.Archive_.Unpack(model.Path);
+        var unpackingDirectory = () => AssetContainer.Archive_.Unpack(model.Path);
 
         unpackingDirectory.Should().Throw<FileNotFoundException>();
         Directory.Exists(model.Path).Should().BeTrue();
