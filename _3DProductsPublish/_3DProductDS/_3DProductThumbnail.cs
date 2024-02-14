@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using MarkTM.RFProduct;
+using System.Net.Mime;
 
 namespace _3DProductsPublish._3DProductDS;
 
@@ -24,13 +25,9 @@ public class _3DProductThumbnail : I3DProductAsset, IEquatable<_3DProductThumbna
 
     internal static IEnumerable<_3DProductThumbnail> EnumerateAt(string _3DProductDirectory) =>
         Directory.EnumerateFiles(_3DProductDirectory)
-        .Where(HasValidExtension)
-        .Select(thumbnailPath => new _3DProductThumbnail(thumbnailPath));
+        .Where(RFProduct._3D.Idea_.IsRender)
+        .Select(_ => new _3DProductThumbnail(_));
 
-    static bool HasValidExtension(string pathOrExtension) =>
-        _validExtensions.Contains(Path.GetExtension(pathOrExtension));
-
-    readonly static string[] _validExtensions = [".jpeg", ".jpg", ".png"];
 
     protected _3DProductThumbnail(_3DProductThumbnail original)
         : this(original.FilePath)

@@ -6,7 +6,6 @@ using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.CGTrader.Upload.SessionData;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Net.Http.Json;
-using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace _3DProductsPublish.CGTrader.Api;
 
@@ -149,8 +148,7 @@ internal class CGTraderApi : IBaseAddressProvider
     internal async Task _UploadAssetsAsync(_3DProductDraft<CGTrader3DProductMetadata> _3DProductDraft, CancellationToken cancellationToken)
     {
         foreach (var _3DModel in _3DProductDraft.Product._3DModels)
-            foreach (var modelFilePath in _3DModel.EnumerateEntries(AssetContainer.EntryType.NonContainers))
-                await _UploadModelFileAsync(modelFilePath, _3DProductDraft, cancellationToken);
+            await _UploadModelFileAsync(_3DModel, _3DProductDraft, cancellationToken);
 
         foreach (var modelPreviewImage in _3DProductDraft.UpcastThumbnailsTo<CGTrader3DModelThumbnail>())
         {

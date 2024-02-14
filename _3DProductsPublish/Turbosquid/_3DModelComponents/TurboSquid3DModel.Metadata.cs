@@ -12,7 +12,7 @@ public partial record TurboSquid3DModelMetadata : _3DModel.IMetadata
     public string Name { get; init; } = default!;
     public string FileFormat { get; init; } = default!;
     public double FormatVersion { get; init; } = 1.0;
-    public bool IsNative { get; init; } = true;
+    public bool IsNative { get; init; } = false;
     public string Renderer { get; init; } = "other"!;
     public double? RendererVersion { get; init; } = default;
 
@@ -24,6 +24,14 @@ public partial record TurboSquid3DModelMetadata : _3DModel.IMetadata
         return Toml.ToModel<TurboSquid3DModelMetadata>(table.Items.ToString()) with { Name = modelName };
     }
     public TurboSquid3DModelMetadata() { }
+
+    public TurboSquid3DModelMetadata(_3DModel _3DModel)
+    {
+        Name = Path.GetFileNameWithoutExtension(_3DModel.Path);
+        var fileFormat = FileFormat_.ToEnum(_3DModel);
+        FileFormat = fileFormat.ToString_();
+        IsNative = FileFormat_.IsNative(fileFormat);
+    }
 
 
     public static implicit operator TableSyntax(TurboSquid3DModelMetadata metadata)

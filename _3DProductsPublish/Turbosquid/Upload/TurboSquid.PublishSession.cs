@@ -97,7 +97,7 @@ public partial class TurboSquid
                 await Parallel.ForEachAsync(Draft.LocalProduct._3DModels.Where(_ => _ is not ITurboSquidProcessed3DProductAsset),
                     async (_3DModel, _) =>
                     {
-                        string uploadKey = await UploadAssetAsync(await _3DModel.Archive());
+                        string uploadKey = await UploadAssetAsync(_3DModel.Archived);
                         modelsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.RunAsync(_3DModel, uploadKey, this));
                     });
 #else
@@ -136,8 +136,8 @@ public partial class TurboSquid
 
                 StringContent MetadataForm()
                 {
-                    using var archived3DModel = File.OpenRead(processedModel.Archive().Result);
-                    // Explicit conversions of numbers to strings are required.
+                    using var archived3DModel = File.OpenRead(processedModel.Archived);
+                    // Explicit conversions of numbers to strings are required (except `size`).
                     var metadataForm = new JObject(
                         new JProperty("authenticity_token", Client.Credential.AuthenticityToken),
                         new JProperty("draft_id", Draft.ID.ToString()),

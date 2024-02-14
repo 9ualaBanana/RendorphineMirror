@@ -4,10 +4,10 @@ namespace _3DProductsPublish.Tests;
 
 public class _3DModelFixture
 {
-    internal _3DModel FromArchive => _3DModel.FromContainer(ArchivePath);
+    internal _3DModel FromArchive => new(ArchivePath);
     internal readonly string ArchivePath;
 
-    internal _3DModel FromDirectory => _3DModel.FromContainer(DirectoryPath);
+    internal _3DModel FromDirectory => new(DirectoryPath);
     internal readonly string DirectoryPath;
 
     public _3DModelFixture()

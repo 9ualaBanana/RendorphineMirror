@@ -115,7 +115,7 @@ public record TurboSquid3DProduct : _3DProduct<TurboSquid3DProductMetadata, Turb
         {
             foreach (var _3DModel in remote.files.Join(_3DModels,
                 _ => _.attributes.name,
-                _ => _.Name,
+                _ => Path.GetFileName(_.Archived),
                 (remote, local) => new { _ = local, remote.id }))
             {
                 if (_3DModels.IndexOf(_3DModel._) is int index and not -1)

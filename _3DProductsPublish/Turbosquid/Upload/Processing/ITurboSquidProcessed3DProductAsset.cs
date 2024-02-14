@@ -1,5 +1,6 @@
 ﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
+using MarkTM.RFProduct;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
@@ -70,7 +71,7 @@ internal class TurboSquidProcessed3DProductThumbnail : _3DProductThumbnail,
 
     internal enum PreprocessedType_ { regular, wireframe }
     internal static PreprocessedType_ PreprocessedType(_3DProductThumbnail thumbnail)
-        => Path.GetFileNameWithoutExtension(thumbnail.FilePath).StartsWith("wire") ?
+        => RFProduct._3D.Idea_.IsWireframe(thumbnail.FilePath) ?
         PreprocessedType_.wireframe : PreprocessedType_.regular;
 }
 

@@ -197,10 +197,11 @@ public static class _3DProductMetadataExtensions
         if (!File.Exists(turboSquidMetadataFile.Path))
             turboSquidMetadataFile.Populate(nodeGui);
         var meta = turboSquidMetadataFile.Read();
+        var (_3DProductID, _3DModelsMetadata) = turboSquidMetadataFile.Read();
 
-        return meta._3DProductID is int id ?
-            new TurboSquid3DProduct(turboSquid3DProduct, meta.Item2) with { ID = id } :
-            new TurboSquid3DProduct(turboSquid3DProduct, meta.Item2);
+        return _3DProductID is int id ?
+            new TurboSquid3DProduct(turboSquid3DProduct, _3DModelsMetadata) with { ID = id } :
+            new TurboSquid3DProduct(turboSquid3DProduct, _3DModelsMetadata);
     }
 
     public static _3DProduct<TMetadata> With_<TMetadata>(this _3DProduct _3DProduct, TMetadata metadata)

@@ -241,13 +241,20 @@ public record AssetContainer : IDisposable
             else throw new FileNotFoundException("Archive doesn't exist.", path);
         }
 
-        internal static string Pack(string path)
+        public static string Pack(string path, bool preserveName = false)
         {
-            DirectoryInfo archiveBuffer = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName()));
+            DirectoryInfo archiveBuffer = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), preserveName ? System.IO.Path.GetFileName(path) : System.IO.Path.GetRandomFileName()));
             try
             {
-                Directory.EnumerateFileSystemEntries(path).CopyTo(archiveBuffer);
+                foreach (var entry in archiveBuffer.EnumerateFileSystemInfos())
+                    entry.Delete();
+
+                if (Directory.Exists(path))
+                    Directory.EnumerateFileSystemEntries(path).CopyTo(archiveBuffer, true);
+                else File.Copy(path, System.IO.Path.Combine(archiveBuffer.FullName, System.IO.Path.GetFileName(path)), true);
                 var archivePath = System.IO.Path.ChangeExtension(archiveBuffer.FullName, ".zip");
+                if (File.Exists(archivePath))
+                    File.Delete(archivePath);
                 System.IO.Compression.ZipFile.CreateFromDirectory(archiveBuffer.FullName, archivePath);
 
                 return archivePath;
@@ -288,12 +295,12 @@ public record AssetContainer : IDisposable
 
 static class _3DModelFilesExtensions
 {
-    internal static void CopyTo(this IEnumerable<string> files, DirectoryInfo directory)
+    internal static void CopyTo(this IEnumerable<string> files, DirectoryInfo directory, bool overwrite = true)
     {
         foreach (string filePath in files)
         {
             string destinationFilePath = Path.Combine(directory.FullName, Path.GetFileName(filePath));
-            File.Copy(filePath, destinationFilePath);
+            File.Copy(filePath, destinationFilePath, overwrite);
         }
     }
 }

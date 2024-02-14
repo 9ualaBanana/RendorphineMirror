@@ -91,6 +91,7 @@ public partial class TurboSquid : HttpClient
             async Task<long> CreateDraftAsync()
                 => JObject.Parse(await GetStringAsync($"turbosquid/products/{_3DProduct.ID}/create_draft", cancellationToken))["id"]!.Value<long>()!;
 
+            // TODO: Response returns 422 and the product doesn't get deleted which preserves draft information in `remote`. `/create_draft` returns already existing draft ID in such case.
             async Task DeleteDraftAsync()
                 => await DeleteAsync($"turbosquid/products/{_3DProduct.ID}/delete_draft", cancellationToken);
         }
