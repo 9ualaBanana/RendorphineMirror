@@ -4,6 +4,10 @@ public class FFMpegCrop
 {
     public int X, Y, W, H;
 }
+public class FFMpegResolution
+{
+    public int W, H;
+}
 public class FFMpegSpeed
 {
     [JsonProperty("spd")]
@@ -17,6 +21,7 @@ public class FFMpegSpeed
 public abstract class MediaEditInfo
 {
     public FFMpegCrop? Crop;
+    public FFMpegResolution? Scale;
 
     [Default(false)]
     public bool? Hflip;

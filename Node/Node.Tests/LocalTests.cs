@@ -17,9 +17,9 @@ public class LocalTests
         Logger.LogInformation("Running tests...");
 
         // await ElevenLabsTest();
-        //await LaunchTask();
+        await LaunchTask();
         //await PluginTest();
-        await GenericTasksTests.RunAsync(Context);
+        //await GenericTasksTests.RunAsync(Context);
     }
 
     async Task LaunchQSPreview(ILifetimeScope container)
@@ -45,14 +45,14 @@ public class LocalTests
             Context,
             new EditRaster(),
             new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/landscape.jpg"), }), "/temp/tt"),
-            new EditRasterInfo() { Hflip = true }
+            new EditRasterInfo() { Scale = new() { W = 512, H = 512 } }
         );
 
         await ExecuteSingle(
             Context,
             new EditVideo(),
-            new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/mjpeg.mov"), }), "/temp/tt"),
-            new EditVideoInfo() { Hflip = true }
+            new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile("/home/i3ym/workspace/workdir/testvideo/61dc19f37af4207cb6fb6ebb.mov"), }), "/temp/tt"),
+            new EditVideoInfo() { Scale = new() { W = 512, H = 512 } }
         );
     }
 
