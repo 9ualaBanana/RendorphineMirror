@@ -78,11 +78,12 @@ public static class MPlus
                         using var file = File.Open(fwf.Path, FileMode.Create, FileAccess.Write);
                         await ParallelDownloader.Download(new Uri(link), file, token);
                     }
-                    catch
+                    catch (Exception ex)
                     {
                         try { File.Delete(fwf.Path); }
                         catch { }
 
+                        Logger.Error(ex, "Error while downloading a file");
                         files.Remove(fwf);
                         throw;
                     }
