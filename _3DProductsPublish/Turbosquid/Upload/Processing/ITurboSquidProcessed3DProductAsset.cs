@@ -1,77 +1,90 @@
 ﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
+using MarkTM.RFProduct;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
-internal interface ITurboSquidProcessed3DProductAsset<TAsset>
+internal interface ITurboSquidProcessed3DProductAsset : I3DProductAsset;
+internal interface ITurboSquidProcessed3DProductAsset<TAsset> : ITurboSquidProcessed3DProductAsset
     where TAsset : I3DProductAsset
 {
-    string FileId { get; }
+    long FileId { get; }
+    /// <summary>
+    /// Reference to the original asset which is to be replaced by this processed asset in <see cref="_3DProduct"/>.
+    /// </summary>
     TAsset Asset { get; }
 }
 
 static class TurboSquidProcessed3DProductAssetFactory
 {
-    public static ITurboSquidProcessed3DProductAsset<TAsset> Create<TAsset>(TAsset asset, string fileId)
+    public static ITurboSquidProcessed3DProductAsset<TAsset> Create<TAsset>(TAsset asset, long fileId)
         where TAsset : I3DProductAsset
         => asset switch
         {
-            _3DModel<TurboSquid3DModelMetadata> _3DModel => (new TurboSquidProcessed3DModel(_3DModel, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
-            _3DProductThumbnail thumbnail => (new TurboSquidProcessed3DProductThumbnail(thumbnail, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
-            _3DProduct.Texture_ texture => (new TurboSquidProcessed3DProductTexture(texture, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>)!,
+            _3DModel<TurboSquid3DModelMetadata> _3DModel =>
+                new TurboSquidProcessed3DModel(_3DModel, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>,
+            _3DProductThumbnail thumbnail =>
+                new TurboSquidProcessed3DProductThumbnail(thumbnail, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>,
+            _3DProduct.Texture_ texture =>
+                new TurboSquidProcessed3DProductTexture(texture, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>,
             _ => throw new ArgumentException("Unsupported asset type.")
-        };
+        } ?? throw new ArgumentNullException(nameof(asset));
 }
 
-internal record TurboSquidProcessed3DModel
-    : _3DModel<TurboSquid3DModelMetadata>, ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>>
+public record TurboSquidProcessed3DModel : _3DModel<TurboSquid3DModelMetadata>,
+    ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>>
 {
-    public string FileId { get; }
-    public _3DModel<TurboSquid3DModelMetadata> Asset => this;
+    public long FileId { get; }
+    public _3DModel<TurboSquid3DModelMetadata> Asset { get; }
 
-    internal TurboSquidProcessed3DModel(_3DModel<TurboSquid3DModelMetadata> _3DModel, string fileId)
+    internal TurboSquidProcessed3DModel(_3DModel<TurboSquid3DModelMetadata> _3DModel, long fileId)
         : base(_3DModel)
     {
         FileId = fileId;
+        Asset = _3DModel;
+        _3DModel.Metadata.ID = fileId;
     }
 }
 
-internal record TurboSquidProcessed3DProductThumbnail
-    : _3DProductThumbnail, ITurboSquidProcessed3DProductAsset<_3DProductThumbnail>
+internal class TurboSquidProcessed3DProductThumbnail : _3DProductThumbnail,
+    ITurboSquidProcessed3DProductAsset<_3DProductThumbnail>
 {
-    public string FileId { get; }
-    public _3DProductThumbnail Asset => this;
+    public long FileId { get; }
+    public _3DProductThumbnail Asset { get; }
 
-    internal TurboSquidProcessed3DProductThumbnail(_3DProductThumbnail thumbnail, string fileId)
+    internal TurboSquidProcessed3DProductThumbnail(_3DProductThumbnail thumbnail, long fileId)
         : base(thumbnail)
     {
         FileId = fileId;
+        Asset = thumbnail;
     }
 
-
-    internal enum Type { image, wireframe }
-}
-
-static class TurboSquidProcessed3DProductThumbnailExtensions
-{
-    internal static TurboSquidProcessed3DProductThumbnail.Type Type(this ITurboSquidProcessed3DProductAsset<_3DProductThumbnail> processedThumbnail)
-        => processedThumbnail.Asset.TurboSquidType() switch
+    // Type posted in the final product form request.
+    internal enum Type_ { image, wireframe }
+    internal Type_ Type => PreprocessedType(this) switch
     {
-        TurboSquid3DProductThumbnail.Type.regular => TurboSquidProcessed3DProductThumbnail.Type.image,
-        TurboSquid3DProductThumbnail.Type.wireframe => TurboSquidProcessed3DProductThumbnail.Type.wireframe,
+        PreprocessedType_.regular => Type_.image,
+        PreprocessedType_.wireframe => Type_.wireframe,
         _ => throw new NotImplementedException()
     };
+
+
+    internal enum PreprocessedType_ { regular, wireframe }
+    internal static PreprocessedType_ PreprocessedType(_3DProductThumbnail thumbnail)
+        => RFProduct._3D.Idea_.IsWireframe(thumbnail.FilePath) ?
+        PreprocessedType_.wireframe : PreprocessedType_.regular;
 }
 
-internal record TurboSquidProcessed3DProductTexture
-    : _3DProduct.Texture_, ITurboSquidProcessed3DProductAsset<_3DProduct.Texture_>
+internal record TurboSquidProcessed3DProductTexture : _3DProduct.Texture_,
+    ITurboSquidProcessed3DProductAsset<_3DProduct.Texture_>
 {
-    public string FileId { get; }
-    public _3DProduct.Texture_ Asset => this;
+    public long FileId { get; }
+    public _3DProduct.Texture_ Asset { get; }
 
-    internal TurboSquidProcessed3DProductTexture(_3DProduct.Texture_ texture, string fileId)
+    internal TurboSquidProcessed3DProductTexture(_3DProduct.Texture_ texture, long fileId)
         : base(texture)
     {
         FileId = fileId;
+        Asset = texture;
     }
 }

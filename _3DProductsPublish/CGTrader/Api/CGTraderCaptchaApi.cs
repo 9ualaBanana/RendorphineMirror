@@ -5,7 +5,7 @@ using Node.Common.Models;
 
 namespace _3DProductsPublish.CGTrader.Api;
 
-internal class CGTraderCaptchaApi : IBaseAddressProvider
+public class CGTraderCaptchaApi : IBaseAddressProvider
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -14,7 +14,7 @@ internal class CGTraderCaptchaApi : IBaseAddressProvider
 
     string IBaseAddressProvider.BaseAddress => "https://service.mtcaptcha.com/mtcv1/api/";
 
-    internal CGTraderCaptchaApi(HttpClient httpClient, INodeGui nodeGui)
+    public CGTraderCaptchaApi(HttpClient httpClient, INodeGui nodeGui)
     {
         _httpClient = httpClient;
         _nodeGui = nodeGui;

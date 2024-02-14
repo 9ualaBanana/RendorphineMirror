@@ -5,7 +5,7 @@ namespace _3DProductsPublish.Turbosquid.Network.Authenticity;
 
 public class TurboSquidNetworkCredential : NetworkCredential
 {
-    internal readonly string _CsrfToken;
+    internal string AuthenticityToken { get; private set; }
     internal readonly string _CaptchaVerifiedToken;
     internal readonly string _ApplicationUserID;
 
@@ -13,8 +13,10 @@ public class TurboSquidNetworkCredential : NetworkCredential
 
     internal static ForeignThreadValue<string> Response = new(false);
 
-    internal TurboSquidNetworkCredential WithUpdated(string csrfToken) =>
-        new(UserName, Password, csrfToken, _ApplicationUserID, _CaptchaVerifiedToken);
+
+    internal void Update(string authenticityToken) => WithUpdated(authenticityToken);
+    internal TurboSquidNetworkCredential WithUpdated(string authenticityToken)
+    { AuthenticityToken = authenticityToken; return this; }
 
     internal TurboSquidNetworkCredential(
         NetworkCredential credential,
@@ -32,7 +34,7 @@ public class TurboSquidNetworkCredential : NetworkCredential
         string applicationUserId,
         string captchaVerifiedToken) : base(userName, password)
     {
-        _CsrfToken = csrfToken;
+        AuthenticityToken = csrfToken;
         _CaptchaVerifiedToken = captchaVerifiedToken;
         _ApplicationUserID = applicationUserId;
     }
@@ -44,7 +46,7 @@ public class TurboSquidNetworkCredential : NetworkCredential
         string applicationUserId,
         string captchaVerifiedToken) : base(userName, password)
     {
-        _CsrfToken = csrfToken;
+        AuthenticityToken = csrfToken;
         _CaptchaVerifiedToken = captchaVerifiedToken;
         _ApplicationUserID = applicationUserId;
     }
@@ -54,7 +56,7 @@ public class TurboSquidNetworkCredential : NetworkCredential
     internal MultipartFormDataContent _ToLoginMultipartFormData() => new()
     {
         { new StringContent("✓"), "utf8" },
-        { new StringContent(_CsrfToken), "authenticity_token" },
+        { new StringContent(AuthenticityToken), "authenticity_token" },
         { new StringContent(_CaptchaVerifiedToken), "g-recaptcha-response-data[login]" },
         { new StringContent(string.Empty), "g-recaptcha-response-data" },
         { new StringContent(UserName), "user[email]" },
@@ -67,7 +69,7 @@ public class TurboSquidNetworkCredential : NetworkCredential
         {
             { "utf8", "✓" },
             { "_method", "put" },
-            { "authenticity_token" , _CsrfToken },
+            { "authenticity_token" , AuthenticityToken },
             { "code", emailVerificationCode },
             { "application_uid", _ApplicationUserID },
             { "commit", "Submit" }

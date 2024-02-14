@@ -59,7 +59,7 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
                 _ = browser.WaitForInitialLoadAsync().Result;
 
                 string credentialResponse = TurboSquidNetworkCredential.Response.GetAsync(cancellationToken).Result;
-                string csrfToken = CsrfToken._ParseFromMetaTag(credentialResponse);
+                string csrfToken = AuthenticityToken.ParseFromMetaTag(credentialResponse);
                 string applicationUserId = TurboSquidApplicationUserID._Parse(credentialResponse);
                 string captchaVerifiedTokenResponse = TurboSquidCaptchaVerifiedToken.Response.GetAsync(cancellationToken).Result;
                 string captchaVerifiedToken = TurboSquidCaptchaVerifiedToken._Parse(captchaVerifiedTokenResponse);
@@ -110,7 +110,7 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
     async Task _SignInWith2FAAsync(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
     {
         var _2faForm = await _Get2FAFormAsync(cancellationToken);
-        var updatedCsrfToken = CsrfToken._ParseFromMetaTag(_2faForm);
+        var updatedCsrfToken = AuthenticityToken.ParseFromMetaTag(_2faForm);
         string verificationCode = (await _nodeGui.Request<string>(new InputRequest("TODO: we send you mesag to email please respond"), cancellationToken)).Result;
 
         await _SignInWith2FAAsyncCore(verificationCode, credential.WithUpdated(updatedCsrfToken), cancellationToken);

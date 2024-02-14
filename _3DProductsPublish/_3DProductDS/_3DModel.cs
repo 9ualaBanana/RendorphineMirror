@@ -1,42 +1,51 @@
-﻿using static _3DProductsPublish._3DProductDS._3DProduct;
+﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
 
 namespace _3DProductsPublish._3DProductDS;
 
-/// <summary>
-/// Wraps either directory or archive in which 3D model parts are stored.
-/// </summary>
-public partial record _3DModel : _3DProduct.AssetContainer, I3DProductAsset, IDisposable
+public partial record _3DModel(string Path) : I3DProductAsset, IDisposable
 {
-    public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
+    public string Name => System.IO.Path.GetFileName(Path);
 
-    #region Initialization
+    public static implicit operator string(_3DModel model) => model.Path;
+    public static implicit operator _3DModel(string path) => new(path);
 
-    public static _3DModel FromContainer(string path, bool disposeTemps = true) => new(path, disposeTemps);
+    internal string Archived => _archived ??= AssetContainer.Archive_.Pack(this, true);
+    string? _archived;
 
-    _3DModel(string containerPath, bool disposeTemps = true)
-        : base(containerPath, disposeTemps)
+
+    // Currently pre-archived _3DModels are not supported.
+    internal static IEnumerable<_3DModel> EnumerateAt(string directoryPath)
+        => Directory.EnumerateFiles(directoryPath)
+        .Where(_ => FileFormat_.Dictionary.ContainsKey(System.IO.Path.GetExtension(_).ToLowerInvariant()))
+        .Select(_ => new _3DModel(_));
+
+    #region IDisposable
+
+    public void Dispose()
+    { Dispose(true); GC.SuppressFinalize(this); }
+
+    protected void Dispose(bool managed)
     {
+        if (managed)
+        {
+            if (!_isDisposed)
+            {
+                if (_archived is not null)
+                    File.Delete(_archived);
+
+                _isDisposed = true;
+            }
+        }
     }
+    bool _isDisposed;
 
     #endregion
 
-
-    internal static IEnumerable<_3DModel> EnumerateAt(string directoryPath, bool disposeTemps = true)
-    {
-        var _3DModelContainers = _3DProduct.AssetContainer.EnumerateAt(directoryPath).ToList();
-        // TODO: _3DModel shouldn't know about Textures_ of _3DProduct.
-        _3DModelContainers.Remove(System.IO.Path.Combine(directoryPath, Textures_.ContainerName));
-
-        return _3DModelContainers.Select(containerPath => new _3DModel(containerPath, disposeTemps));
-    }
-
-
-    public static implicit operator _3DModel(string containerPath) =>
-        new(containerPath);
+    public interface IMetadata { string Name { get; } }
 }
 
 public partial record _3DModel<TMetadata> : _3DModel
-    where TMetadata : I3DModelMetadata
+    where TMetadata : _3DModel.IMetadata
 {
     internal readonly TMetadata Metadata;
 
@@ -47,25 +56,8 @@ public partial record _3DModel<TMetadata> : _3DModel
     }
 
     protected _3DModel(_3DModel<TMetadata> _3DModel)
-        : base(_3DModel)
+        : base(_3DModel as _3DModel)
     {
         Metadata = _3DModel.Metadata;
-    }
-}
-
-public interface I3DModelMetadata
-{
-    string Name { get; }
-}
-
-static class _3DModelFilesExtensions
-{
-    internal static void CopyTo(this IEnumerable<string> files, DirectoryInfo directory)
-    {
-        foreach (string filePath in files)
-        {
-            string destinationFilePath = Path.Combine(directory.FullName, Path.GetFileName(filePath));
-            File.Copy(filePath, destinationFilePath);
-        }
     }
 }

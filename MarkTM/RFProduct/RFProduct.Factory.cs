@@ -1,7 +1,6 @@
 ﻿using Node.Common.Models;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
-using static _3DProductsPublish._3DProductDS._3DProduct;
 
 namespace MarkTM.RFProduct;
 
@@ -12,7 +11,6 @@ public partial record RFProduct
         public required Video.Constructor Video { get; init; }
         public required Image.Constructor Image { get; init; }
         public required _3D.Constructor _3D { get; init; }
-        public required _3D.Renders.Constructor Renders { get; init; }
         public required IRFProductStorage Storage { get; init; }
         public required INodeSettings NodeSettings { get; init; }
 
@@ -36,8 +34,6 @@ public partial record RFProduct
                 {
                     if (_3D.Recognizer.TryRecognize(idea) is _3D.Idea_ _3dIdea)
                         product = await CreateAsync<_3D.Idea_, _3D>(_3dIdea, id, container, cancellationToken);
-                    else if (Renders.Recognizer.TryRecognize(idea) is _3D.Renders.Idea_ _3dRendersIdea)
-                        product = await CreateAsync<_3D.Renders.Idea_, _3D.Renders>(_3dRendersIdea, id, container, cancellationToken);
                     else if (Video.Recognizer.TryRecognize(idea) is Video.Idea_ videoIdea)
                         product = await CreateAsync<Video.Idea_, Video>(videoIdea, id, container, cancellationToken);
                     else if (Image.Recognizer.TryRecognize(idea) is Image.Idea_ imageIdea)
@@ -65,7 +61,6 @@ public partial record RFProduct
             RFProduct product = idea switch
             {
                 _3D.Idea_ idea_ => (await _3D.CreateAsync(idea_, id, container, cancellationToken)) with { SubProducts = await CreateSubProductsAsync(idea_, _3D, cancellationToken) },
-                _3D.Renders.Idea_ idea_ => await Renders.CreateAsync(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Renders, cancellationToken) },
                 Video.Idea_ idea_ => await Video.CreateAsync(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Video, cancellationToken) },
                 Image.Idea_ idea_ => await Image.CreateAsync(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Image, cancellationToken) },
                 _ => throw new NotImplementedException()
@@ -89,7 +84,8 @@ public partial record RFProduct
 
                 async IAsyncEnumerable<RFProduct> CreateSubProductsAsyncCore()
                 {
-                    foreach (var subproduct in constructor.SubProductsIdeas(idea).Select(_ => CreateAsync(_, _, cancellationToken)))
+                    // Pass proper container name so it doesn't complain about already existing file entry with such name.
+                    foreach (var subproduct in constructor.SubProductsIdeas(idea).Select(_ => CreateAsync(_, System.IO.Path.ChangeExtension(_, null), cancellationToken)))
                         yield return await subproduct;
                 }
             }

@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
-using static _3DProductsPublish.Turbosquid.Upload.Processing.TurboSquid3DProductAssetProcessing;
+using _3DProductsPublish._3DProductDS;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
@@ -61,7 +61,7 @@ internal partial class TurboSquid3DProductAssetProcessing
             {
                 serverTask = await UpdateAsync(serverTask, context);
                 if (serverTask.IsCompletedSuccessfully)
-                    return TurboSquidProcessed3DProductAssetFactory.Create(asset, serverTask.FileId!);
+                    return TurboSquidProcessed3DProductAssetFactory.Create(asset, serverTask.FileId!.Value);
                 else if (serverTask.IsFailed)
                     throw new HttpRequestException("Asset processing task has failed due to an unknown exception.");
 
@@ -93,15 +93,15 @@ internal partial class TurboSquid3DProductAssetProcessing
                     .Select(_ => _.ToObject<ServerTask>()!)
                     .ToArray();
             }
-            else return Array.Empty<ServerTask>();
+            else return [];
         }
 
 
         /// <remarks><c>/bulk_poll</c></remarks>
-        internal static async Task<List<ITurboSquidProcessed3DProductAsset<TAsset>>> WhenAll(List<Task_<TAsset>> tasks)
+        internal static async Task<List<ITurboSquidProcessed3DProductAsset>> WhenAll(List<Task_<TAsset>> tasks)
         {
-            var tcs = new TaskCompletionSource<List<ITurboSquidProcessed3DProductAsset<TAsset>>>();
-            var result = new List<ITurboSquidProcessed3DProductAsset<TAsset>>(tasks.Count);
+            var tcs = new TaskCompletionSource<List<ITurboSquidProcessed3DProductAsset>>();
+            var result = new List<ITurboSquidProcessed3DProductAsset>(tasks.Count);
             var exceptions = new List<Exception>();
 
             while (tasks.FirstOrDefault() is Task_<TAsset> task)
@@ -110,7 +110,7 @@ internal partial class TurboSquid3DProductAssetProcessing
                     if (updatedTask._context.CancellationToken.IsCancellationRequested)
                     { tcs.SetCanceled(updatedTask._context.CancellationToken); break; }
                     else if (updatedTask._serverTask.IsCompletedSuccessfully)
-                    { tasks.Remove(updatedTask); result.Add(TurboSquidProcessed3DProductAssetFactory.Create(updatedTask._asset, updatedTask._serverTask.FileId!)); }
+                    { tasks.Remove(updatedTask); result.Add(TurboSquidProcessed3DProductAssetFactory.Create(updatedTask._asset, updatedTask._serverTask.FileId!.Value)); }
                     else if (updatedTask._serverTask.IsFailed)
                     {
                         tasks.Remove(updatedTask);
@@ -150,7 +150,7 @@ internal partial class TurboSquid3DProductAssetProcessing
 
             [JsonProperty("file_id")]
             [MemberNotNullWhen(true, nameof(IsCompletedSuccessfully))]
-            internal string? FileId { get; init; } = default!;
+            internal long? FileId { get; init; } = default!;
 
             #region EqualityContract
 

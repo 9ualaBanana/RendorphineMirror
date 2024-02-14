@@ -66,10 +66,11 @@ enum FileFormat
     _3d_studio_project
 }
 
-static class FileFormatExtensions
+static class FileFormat_
 {
     internal static bool IsNative(this FileFormat fileFormat)
         => fileFormat is
+        FileFormat.unity or
         FileFormat._3ds_max or
         FileFormat.blender or
         FileFormat.cinema_4d or
@@ -80,6 +81,30 @@ static class FileFormatExtensions
 
     internal static string ToString_(this FileFormat fileFormat)
         => fileFormat.ToString().TrimStart('_');
+
+    internal static FileFormat ToEnum(string path)
+        => Dictionary.TryGetValue(Path.GetExtension(path).ToLowerInvariant(), out FileFormat fileFormat) ?
+        fileFormat : throw new FileFormatException();
+
+    internal static ImmutableDictionary<string, FileFormat> Dictionary { get; }
+        = new Dictionary<string, FileFormat>
+        {
+            [".unitypackage"] = FileFormat.unity,
+            [".blend"] = FileFormat.blender,
+            [".c4d"] = FileFormat.cinema_4d,
+            [".max"] = FileFormat._3ds_max,
+            [".dwg"] = FileFormat.autocad_drawing,
+            [".lwo"] = FileFormat.lightwave,
+            [".fbx"] = FileFormat.fbx,
+            [".ma"] = FileFormat.maya,
+            [".mb"] = FileFormat.maya,
+            [".hrc"] = FileFormat.softimage,
+            [".scn"] = FileFormat.softimage,
+            [".rfa"] = FileFormat.revit_family,
+            [".rvt"] = FileFormat.revit_family,
+            [".obj"] = FileFormat.obj,
+            [".mtl"] = FileFormat.obj
+        }.ToImmutableDictionary();
 }
 
 abstract class NativeFileFormatMetadata
@@ -102,7 +127,6 @@ abstract class NativeFileFormatMetadata<TRenderer> : NativeFileFormatMetadata wh
     protected NativeFileFormatMetadata(FileFormat fileFormat, double formatVersion = 1.0, TRenderer? renderer = null, double? rendererVersion = null)
         : base(fileFormat, formatVersion, renderer?.ToString(), rendererVersion) { }
 }
-
 static class NativeFileFormatMetadataExtensions
 {
     internal static void Add(this SyntaxList<KeyValueSyntax> tableItems, NativeFileFormatMetadata nativeFileFormatMetadata)
@@ -111,6 +135,19 @@ static class NativeFileFormatMetadataExtensions
         tableItems.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.Renderer)), nativeFileFormatMetadata.Renderer);
         if (nativeFileFormatMetadata.RendererVersion is double rendererVersion)
             tableItems.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.RendererVersion)), rendererVersion);
+    }
+}
+
+// It doesn't even need to implement generic version of NativeFileFormatMetadata but due to some fucked up reflection wizardry in MetadataFile class it has to.
+class unity : NativeFileFormatMetadata<unity.Renderer_>
+{
+    public unity(double formatVersion = 1.0, Renderer_? renderer = null, double? rendererVersion = null)
+        : base(FileFormat.unity, formatVersion, renderer, rendererVersion)
+    {
+    }
+    internal enum Renderer_
+    {
+        other
     }
 }
 

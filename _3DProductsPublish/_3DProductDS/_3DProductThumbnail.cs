@@ -1,9 +1,9 @@
-﻿using Node.Common.Models;
+﻿using MarkTM.RFProduct;
 using System.Net.Mime;
 
 namespace _3DProductsPublish._3DProductDS;
 
-public record _3DProductThumbnail : I3DProductAsset
+public class _3DProductThumbnail : I3DProductAsset, IEquatable<_3DProductThumbnail>
 {
     public readonly string FilePath;
     public readonly string FileName;
@@ -22,22 +22,26 @@ public record _3DProductThumbnail : I3DProductAsset
         }
     }
     long? _size;
-    public FileStream AsFileStream => File.OpenRead(FilePath);
 
     internal static IEnumerable<_3DProductThumbnail> EnumerateAt(string _3DProductDirectory) =>
         Directory.EnumerateFiles(_3DProductDirectory)
-        .Where(HasValidExtension)
-        .Select(thumbnailPath => new _3DProductThumbnail(thumbnailPath));
+        .Where(RFProduct._3D.Idea_.IsRender)
+        .Select(_ => new _3DProductThumbnail(_));
 
-    static bool HasValidExtension(string pathOrExtension) =>
-        _validExtensions.Contains(Path.GetExtension(pathOrExtension));
 
-    readonly static string[] _validExtensions = { ".jpeg", ".jpg", ".png" };
-
+    protected _3DProductThumbnail(_3DProductThumbnail original)
+        : this(original.FilePath)
+    {
+    }
     protected _3DProductThumbnail(string path)
     {
         FilePath = path;
         FileName = Path.GetFileName(path);
         MimeType = new(MimeTypes.GetMimeType(path));
     }
+
+    public override bool Equals(object? obj) => Equals(obj as _3DProductThumbnail);
+    public bool Equals(_3DProductThumbnail? other)
+        => FileName == other?.FileName && Size == other?.Size;
+    public override int GetHashCode() => HashCode.Combine(FileName, Size);
 }

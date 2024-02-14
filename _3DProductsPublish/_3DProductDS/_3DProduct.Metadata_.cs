@@ -107,21 +107,21 @@ public static class _3DProductMetadataExtensions
             _ => throw new NotImplementedException()
         };
 
-        CGTrader._3DModelComponents.Geometry_? Geometry() => _.Geometry switch
+        Geometry_? Geometry() => _.Geometry switch
         {
             _3DProduct.Metadata_.Geometry_.PolygonalQuadsOnly or
             _3DProduct.Metadata_.Geometry_.PolygonalQuadsTris or
             _3DProduct.Metadata_.Geometry_.PolygonalTrisOnly or
             _3DProduct.Metadata_.Geometry_.PolygonalNgonsUsed or
-            _3DProduct.Metadata_.Geometry_.Polygonal => CGTrader._3DModelComponents.Geometry_.polygonal_mesh,
-            _3DProduct.Metadata_.Geometry_.Subdivision => CGTrader._3DModelComponents.Geometry_.subdivision_ready,
-            _3DProduct.Metadata_.Geometry_.Nurbs => CGTrader._3DModelComponents.Geometry_.nurbs,
-            _3DProduct.Metadata_.Geometry_.Unknown => CGTrader._3DModelComponents.Geometry_.other,
+            _3DProduct.Metadata_.Geometry_.Polygonal => Geometry_.polygonal_mesh,
+            _3DProduct.Metadata_.Geometry_.Subdivision => Geometry_.subdivision_ready,
+            _3DProduct.Metadata_.Geometry_.Nurbs => Geometry_.nurbs,
+            _3DProduct.Metadata_.Geometry_.Unknown => Geometry_.other,
             null => null,
             _ => throw new NotImplementedException()
         };
 
-        CGTrader._3DModelComponents.UnwrappedUVs_? UnwrappedUVs() => _.UnwrappedUVs switch
+        UnwrappedUVs_? UnwrappedUVs() => _.UnwrappedUVs switch
         {
             _3DProduct.Metadata_.UnwrappedUVs_.NonOverlapping => UnwrappedUVs_.non_overlapping,
             _3DProduct.Metadata_.UnwrappedUVs_.Overlapping => UnwrappedUVs_.overlapping,
@@ -133,7 +133,7 @@ public static class _3DProductMetadataExtensions
         };
     }
 
-    public static async Task<_3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata>> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
+    public static async Task<TurboSquid3DProduct> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
     {
         var tuboSquidMetadata = await TurboSquid3DProductMetadata.ProvideAsync(
             nodeGui,
@@ -190,13 +190,18 @@ public static class _3DProductMetadataExtensions
         };
     }
 
-    static _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> With(this _3DProduct _3DProduct, INodeGui nodeGui, TurboSquid3DProductMetadata metadata)
+    static TurboSquid3DProduct With(this _3DProduct _3DProduct, INodeGui nodeGui, TurboSquid3DProductMetadata metadata)
     {
         var turboSquid3DProduct = _3DProduct.With_(metadata);
         var turboSquidMetadataFile = TurboSquid3DProductMetadata.File.For(turboSquid3DProduct);
         if (!File.Exists(turboSquidMetadataFile.Path))
             turboSquidMetadataFile.Populate(nodeGui);
-        return new(turboSquid3DProduct, turboSquidMetadataFile.Read());
+        var meta = turboSquidMetadataFile.Read();
+        var (_3DProductID, _3DModelsMetadata) = turboSquidMetadataFile.Read();
+
+        return _3DProductID is int id ?
+            new TurboSquid3DProduct(turboSquid3DProduct, _3DModelsMetadata) with { ID = id } :
+            new TurboSquid3DProduct(turboSquid3DProduct, _3DModelsMetadata);
     }
 
     public static _3DProduct<TMetadata> With_<TMetadata>(this _3DProduct _3DProduct, TMetadata metadata)

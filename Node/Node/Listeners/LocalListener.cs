@@ -176,7 +176,7 @@ public class LocalListener : ExecutableListenerBase
                     Settings.TurboSquidPassword.Value = creds.Password;
 
                     var turboSquid = await TurboSquid3DProductPublisher.InitializeAsync(creds, NodeGui, cancellationToken);
-                    await turboSquid.PublishAsync(await product.AsyncWithTurboSquid(metadata, NodeGui, cancellationToken), creds, cancellationToken);
+                    await turboSquid.PublishAsync(await product.AsyncWithTurboSquid(metadata, NodeGui, cancellationToken), cancellationToken);
                     return await WriteSuccess(response).ConfigureAwait(false);
                 }
                 if (target == "cgtrader")
