@@ -194,9 +194,8 @@ public static class _3DProductMetadataExtensions
     {
         var turboSquid3DProduct = _3DProduct.With_(metadata);
         var turboSquidMetadataFile = TurboSquid3DProductMetadata.File.For(turboSquid3DProduct);
-        if (!File.Exists(turboSquidMetadataFile.Path))
-            turboSquidMetadataFile.Populate(nodeGui);
-        var meta = turboSquidMetadataFile.Read();
+        //if (!File.Exists(turboSquidMetadataFile.Path))
+        //    turboSquidMetadataFile.Populate(nodeGui);
         var (_3DProductID, _3DModelsMetadata) = turboSquidMetadataFile.Read();
 
         return _3DProductID is int id ?
