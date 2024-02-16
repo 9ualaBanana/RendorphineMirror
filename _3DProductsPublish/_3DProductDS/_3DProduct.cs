@@ -76,7 +76,7 @@ public record _3DProduct<TProductMetadata, TModelsMetadata> : _3DProduct<TProduc
         : base(_3DProduct)
     {
         _3DModels = _3DProduct._3DModels.Join(modelsMetadata,
-            _3DModel => Path.GetFileNameWithoutExtension(_3DModel.Path),
+            _3DModel => _3DModel.Name,
             metadata => metadata.Name,  // IMetadata.Name is used here.
             (_3DModel, metadata) => new _3DModel<TModelsMetadata>(_3DModel, metadata))
             .ToList();

@@ -54,14 +54,14 @@ public partial record TurboSquid3DProductMetadata
                     .Select(t => KeyValuePair.Create(t.Name, Enum.GetNames(getRendererType(t)).ToImmutableArray()))
                     .ToImmutableDictionary();
 
-                var infos = models.Select(f =>
+                var infos = models.Select(model =>
                 {
-                    var format = FileFormat_(f);
+                    var format = FileFormat_(model);
                     if (!format.IsNative())
-                        return new InputTurboSquidModelInfoRequest.ModelInfo(System.IO.Path.GetFileNameWithoutExtension(f.Path), format.ToString(), null);
+                        return new InputTurboSquidModelInfoRequest.ModelInfo(model.Name, format.ToString(), null);
 
                     var renderertype = getRendererType(getFormatType(format.ToString()));
-                    return new InputTurboSquidModelInfoRequest.ModelInfo(System.IO.Path.GetFileNameWithoutExtension(f.Path), format.ToString(), Enum.GetNames(renderertype).ToImmutableArray());
+                    return new InputTurboSquidModelInfoRequest.ModelInfo(model.Name, format.ToString(), Enum.GetNames(renderertype).ToImmutableArray());
                 }).ToImmutableArray();
 
                 return await
@@ -71,7 +71,7 @@ public partial record TurboSquid3DProductMetadata
             static DocumentSyntax DescribedAndSerialized(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo? userinfo, _3DModel _3DModel)
             {
                 var metadata = new DocumentSyntax();
-                var table = new TableSyntax(System.IO.Path.GetFileNameWithoutExtension(_3DModel.Path));
+                var table = new TableSyntax(_3DModel.Name);
                 var fileFormat = FileFormat_(_3DModel);
                 table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.FileFormat)), fileFormat.ToString_());
                 if (userinfo is not null && fileFormat.IsNative())
@@ -92,7 +92,7 @@ public partial record TurboSquid3DProductMetadata
             {
                 try { return _3DModelComponents.FileFormat_.ToEnum(model); }
                 catch (Exception ex)
-                { throw new InvalidDataException($"{nameof(TurboSquid3DModelMetadata.FileFormat)} of {nameof(_3DModel)} ({System.IO.Path.GetFileNameWithoutExtension(model.Path)}) can't be deduced.", ex); }
+                { throw new InvalidDataException($"{nameof(TurboSquid3DModelMetadata.FileFormat)} of {nameof(_3DModel)} ({model.Name}) can't be deduced.", ex); }
             }
         }
 
