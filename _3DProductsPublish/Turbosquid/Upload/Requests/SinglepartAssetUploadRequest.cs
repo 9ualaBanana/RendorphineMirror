@@ -4,23 +4,16 @@ internal class SinglepartAssetUploadRequest : AssetUploadRequest
 {
     readonly HttpRequestMessage _assetUploadRequest;
 
-    new internal static async Task<SinglepartAssetUploadRequest> CreateAsyncFor(
-        FileStream asset, TurboSquid.PublishSession session)
-    {
-        var unixTimestamp = DateTime.UtcNow.AsUnixTimestamp();
-        var uploadEndpoint = session.UploadEndpointFor(asset, unixTimestamp);
-        var assetUploadRequest = await new HttpRequestMessage(HttpMethod.Put, uploadEndpoint)
-        { Content = new StreamContent(asset) }
-        .SignAsyncWith(session.AwsCredential, includeAcl: true);
+    internal static async Task<SinglepartAssetUploadRequest> CreateAsyncFor(
+        FileStream asset, Uri endpoint, TurboSquid.PublishSession session)
+        => new(
+            await new HttpRequestMessage(HttpMethod.Put, endpoint)
+            { Content = new StreamContent(asset) }
+            .SignedAsyncWith(session.Draft.AWS, includeAcl: true),
+            endpoint, session);
 
-        return new(assetUploadRequest, unixTimestamp, uploadEndpoint, session);
-    }
-
-    SinglepartAssetUploadRequest(
-        HttpRequestMessage assetUploadRequest,
-        string unixTimestamp,
-        Uri uploadEndpoint,
-        TurboSquid.PublishSession session) : base(uploadEndpoint, unixTimestamp, session)
+    SinglepartAssetUploadRequest(HttpRequestMessage assetUploadRequest, Uri endpoint, TurboSquid.PublishSession session)
+        : base(endpoint, session)
     {
         _assetUploadRequest = assetUploadRequest;
     }

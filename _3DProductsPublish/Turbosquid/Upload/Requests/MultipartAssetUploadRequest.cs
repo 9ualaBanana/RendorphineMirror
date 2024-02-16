@@ -13,25 +13,21 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
 
     internal static async Task<MultipartAssetUploadRequest> CreateAsyncFor(
         FileStream asset,
+        Uri endpoint,
         TurboSquid.PublishSession session,
         int partsCount)
-    {
-        var unixTimestamp = DateTime.UtcNow.AsUnixTimestamp();
-        var uploadEndpoint = session.UploadEndpointFor(asset, unixTimestamp);
-        var requestUri = new UriBuilder(uploadEndpoint) { Query = "uploads" }.Uri;
-        var initializingUploadIdRequest = await new HttpRequestMessage(HttpMethod.Post, requestUri)
-            .SignAsyncWith(session.AwsCredential, includeAcl: true);
-
-        return new(asset, initializingUploadIdRequest, unixTimestamp, uploadEndpoint, session, partsCount);
-    }
+        => new(
+            asset,
+            await new HttpRequestMessage(HttpMethod.Post, new UriBuilder(endpoint) { Query = "uploads" }.Uri)
+            .SignedAsyncWith(session.Draft.AWS, includeAcl: true),
+            endpoint, session, partsCount);
 
     MultipartAssetUploadRequest(
         FileStream asset,
         HttpRequestMessage initializingUploadIdRequest,
-        string unixTimestamp,
         Uri uploadEndpoint,
         TurboSquid.PublishSession session,
-        int partsCount) : base(uploadEndpoint, unixTimestamp, session)
+        int partsCount) : base(uploadEndpoint, session)
     {
         _asset = asset;
         _initializingUploadIdRequest = initializingUploadIdRequest;
@@ -43,7 +39,7 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
         string uploadId = await RequestUploadIDAsync();
 
         var assetPartsUploadRequests = await
-            CreateAssetPartsUploadRequestsAsyncFor(_asset, UploadEndpoint, Session.AwsCredential, uploadId, _partsCount, Session.CancellationToken);
+            CreateAssetPartsUploadRequestsAsyncFor(_asset, UploadEndpoint, Session.Draft.AWS, uploadId, _partsCount, Session.CancellationToken);
         var multipartAssetUploadResult = await UploadAssetPartsAsyncUsing(assetPartsUploadRequests);
 
         await CompleteMultipartUploadAsync(uploadId, multipartAssetUploadResult);
@@ -64,7 +60,7 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
     static async Task<IList<AssetPartUploadRequest>> CreateAssetPartsUploadRequestsAsyncFor(
     FileStream asset,
     Uri uploadEndpoint,
-    TurboSquidAwsUploadCredentials awsUploadCredentials,
+    TurboSquidAwsSession awsUploadCredentials,
     string uploadId,
     int partsCount,
     CancellationToken cancellationToken)
@@ -102,7 +98,7 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
     {
         var multipartUploadCompletionRequest = await new HttpRequestMessage(HttpMethod.Post, $"{UploadEndpoint}?uploadId={uploadId}")
         { Content = new StringContent(assetMultipartUploadResult._ToXML()) }
-        .SignAsyncWith(Session.AwsCredential);
+        .SignedAsyncWith(Session.Draft.AWS);
 
         (await Session.Client.SendAsync(OptionsRequestFor(multipartUploadCompletionRequest), Session.CancellationToken))
             .EnsureSuccessStatusCode();
@@ -130,7 +126,7 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
         internal static async Task<AssetPartUploadRequest> CreateAsyncFor(
             FileStream asset,
             Uri uploadEndpoint,
-            TurboSquidAwsUploadCredentials awsUploadCredentials,
+            TurboSquidAwsSession awsUploadCredentials,
             int partNumber,
             string uploadId,
             CancellationToken cancellationToken)
@@ -140,7 +136,7 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
             content.Position = 0;
             var requestUri = new UriBuilder(uploadEndpoint) { Query = $"partNumber={partNumber}&uploadId={uploadId}" }.Uri;
 
-            return (AssetPartUploadRequest)await new AssetPartUploadRequest(content, requestUri).SignAsyncWith(awsUploadCredentials);
+            return (AssetPartUploadRequest)await new AssetPartUploadRequest(content, requestUri).SignedAsyncWith(awsUploadCredentials);
         }
 
         AssetPartUploadRequest(MemoryStream content, Uri requestUri)

@@ -1,8 +1,9 @@
-﻿using AwsSignatureVersion4.Private;
+﻿using _3DProductsPublish.Turbosquid.Upload.Requests;
+using AwsSignatureVersion4.Private;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
-internal record TurboSquidAwsUploadCredentials
+internal record TurboSquidAwsSession
 {
     internal readonly string AccessKey;
     /// <summary>
@@ -18,7 +19,7 @@ internal record TurboSquidAwsUploadCredentials
     internal readonly string SecretKey;
     internal readonly string SessionToken;
 
-    internal static TurboSquidAwsUploadCredentials Parse(string response)
+    internal static TurboSquidAwsSession Parse(string response)
     {
         var uploadCredentialsJson = JObject.Parse(response);
         return new(
@@ -31,7 +32,7 @@ internal record TurboSquidAwsUploadCredentials
             (string)uploadCredentialsJson["session_token"]!);
     }
 
-    TurboSquidAwsUploadCredentials(
+    TurboSquidAwsSession(
         string accessKey,
         string bucket,
         DateTime currentServerTime,
@@ -66,6 +67,8 @@ internal record TurboSquidAwsUploadCredentials
         };
     }
 
+    internal Uri UploadEndpointFor(FileStream asset, string unixTimestamp) =>
+        new(new Uri(new($"https://{Bucket}.s3.amazonaws.com/{KeyPrefix}"), unixTimestamp + '/'), Path.GetFileName(asset.Name));
 }
 
 static class HeaderExtensions

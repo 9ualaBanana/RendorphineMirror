@@ -1,6 +1,7 @@
 ﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
+using _3DProductsPublish.Turbosquid.Upload;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 
 namespace _3DProductsPublish.CGTrader.Upload;
@@ -51,12 +52,14 @@ public record _3DProductDraft<TProductMetadata, TModelMetadata>
 internal record TurboSquid3DProductDraft
 {
     internal long ID { get; init; }
+    internal TurboSquidAwsSession AWS { get; init; }
     internal TurboSquid3DProduct LocalProduct { get; init; }
     internal TurboSquid3DProductMetadata.Product RemoteProduct { get; init; }
 
-    public TurboSquid3DProductDraft(long id, TurboSquid3DProduct localProduct, TurboSquid3DProductMetadata.Product remoteProduct)
+    public TurboSquid3DProductDraft(long id, TurboSquidAwsSession awsSession, TurboSquid3DProduct localProduct, TurboSquid3DProductMetadata.Product remoteProduct)
     {
         ID = id;
+        AWS = awsSession;
         RemoteProduct = remoteProduct;
         LocalProduct = remoteProduct is null ? localProduct : localProduct.SynchronizedWith(remoteProduct);
     }
