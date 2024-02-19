@@ -69,15 +69,28 @@ public class OneClickTab : Panel
                     new EditPart(task).Named("Task configuration"),
                     new ToggleSwitch()
                     {
-                        Content = "Automatically create RF products (doesnt worK)",
+                        Content = "Automatically create RF products",
                         OnContent = "ON",
                         OffContent = "OFF",
-                        IsChecked = !task.IsPaused,
+                        IsChecked = task.AutoCreateRFProducts,
                     }.With(s =>
                     {
                         s.IsCheckedChanged += async (obj, e) =>
                         {
                             await LocalApi.Default.Get($"oc/setautocreaterfp", $"Setting auto create oneclick rfproducts to " + (s.IsChecked == true), ("enabled", JsonConvert.SerializeObject(s.IsChecked == true)));
+                        };
+                    }),
+                    new ToggleSwitch()
+                    {
+                        Content = "Automatically publish created RF products",
+                        OnContent = "ON",
+                        OffContent = "OFF",
+                        IsChecked = task.AutoPublishRFProducts,
+                    }.With(s =>
+                    {
+                        s.IsCheckedChanged += async (obj, e) =>
+                        {
+                            await LocalApi.Default.Get($"oc/setautopublishrfp", $"Setting auto publish oneclick rfproducts to " + (s.IsChecked == true), ("enabled", JsonConvert.SerializeObject(s.IsChecked == true)));
                         };
                     }),
                     new TextBlock()
@@ -88,6 +101,7 @@ public class OneClickTab : Panel
                             Log dir: {task.LogDir}
                             Unity templates dir: {task.UnityTemplatesDir}
                             Auto create RFP: {task.AutoCreateRFProducts}
+                            Auto publish RFP: {task.AutoCreateRFProducts}
                             RFP target directory: {task.RFProductTargetDirectory}
                             """,
                     }.Named("Info"),

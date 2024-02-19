@@ -11,5 +11,6 @@ public class OneClickTaskInfo
     public required IReadOnlyDictionary<string, ProjectExportInfo> ExportInfo { get; set; }
 
     public required bool AutoCreateRFProducts { get; init; }
+    public required bool AutoPublishRFProducts { get; init; }
     public required string RFProductTargetDirectory { get; init; }
 }
