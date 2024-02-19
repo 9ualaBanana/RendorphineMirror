@@ -85,6 +85,11 @@ public class DatabaseValueKeyDictionary<TKey, TValue> : DatabaseValueDictionary<
     public void Add(TKey key, TValue value) => base.Add(KeyValuePair.Create(key, value));
 }
 
+public enum ErrorValueHandling
+{
+    Throw,
+    Delete,
+}
 public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnlyDictionary<TKey, TValue> where TKey : notnull
 {
     public IEnumerable<TKey> Keys => Items.Keys;
@@ -102,10 +107,12 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
     readonly Func<TValue, TKey> KeyFunc;
     readonly string TableName;
     public readonly Database Database;
+    readonly ErrorValueHandling ErrorValueHandling;
 
-    public DatabaseValueDictionary(Database database, string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null, JsonSerializer? serializer = null)
+    public DatabaseValueDictionary(Database database, string table, Func<TValue, TKey> keyFunc, IEqualityComparer<TKey>? comparer = null, JsonSerializer? serializer = null, ErrorValueHandling errorValueHandling = ErrorValueHandling.Throw)
     {
         Database = database;
+        ErrorValueHandling = errorValueHandling;
 
         if (serializer is not null) ItemsList.JsonSerializer = serializer;
         Accessor = new(database, table) { Serializer = ItemsList.JsonSerializer };
@@ -171,11 +178,22 @@ public class DatabaseValueDictionary<TKey, TValue> : IDatabaseBindable, IReadOnl
 
             while (reader.Read())
             {
-                var valuejson = reader.GetString(reader.GetOrdinal("value"));
-                var item = JToken.Parse(valuejson).ToObject<TValue>(Bindable.JsonSerializer)!;
+                try
+                {
+                    var valuejson = reader.GetString(reader.GetOrdinal("value"));
+                    var item = JToken.Parse(valuejson).ToObject<TValue>(Bindable.JsonSerializer)!;
 
-                Items.Add(KeyFunc(item), item);
-                ItemsList.Add(item);
+                    Items.Add(KeyFunc(item), item);
+                    ItemsList.Add(item);
+                }
+                catch
+                {
+                    if (ErrorValueHandling == ErrorValueHandling.Throw)
+                        throw;
+
+                    if (ErrorValueHandling == ErrorValueHandling.Delete)
+                        continue;
+                }
             }
         }
     }

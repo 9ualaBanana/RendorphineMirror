@@ -35,8 +35,9 @@ namespace Node.UI.Pages
             tabs.Add("tab.plugins", new PluginsTab());
             tabs.Add("menu.settings", new SettingsTab());
             tabs.Add("logs", new LogsTab());
+            tabs.Add("accounts", new AccountsTab(connectionState.NodeGlobalState));
             tabs.Add("3dupload", new Model3DUploadTab(connectionState.NodeGlobalState));
-            tabs.Add("Turbosquid sales", new TurboSquidSalesReportTab(connectionState.NodeGlobalState));
+            tabs.Add("Turbosquid sales", new TurboSquidSalesReportTab());
             tabs.Add("rfproduct", new RFProductsTab());
             tabs.Add("oneclick", new OneClickTab(connectionState.NodeGlobalState));
 

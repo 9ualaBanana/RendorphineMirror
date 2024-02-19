@@ -10,4 +10,7 @@ public interface INodeSettings
     ushort DhtPort { get; set; }
     ushort TorrentPort { get; set; }
     string NodeName { get; set; }
+
+    string? TurboSquidUsername { get; set; }
+    string? TurboSquidPassword { get; set; }
 }

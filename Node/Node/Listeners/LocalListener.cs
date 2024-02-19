@@ -163,54 +163,113 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "3dupload")
         {
-            return await TestPost(await CreateCached(request), response, "target", "creds", "meta", "dir", async (target, jcreds, jmeta, dir) =>
+            return await TestPost(await CreateCached(request), response, "target", "meta", "dir", async (target, jmeta, dir) =>
             {
                 var cancellationToken = CancellationToken.None;
-                var creds = JsonConvert.DeserializeObject<NetworkCredential>(jcreds).ThrowIfNull();
                 var metadata = JsonConvert.DeserializeObject<_3DProduct.Metadata_>(jmeta).ThrowIfNull();
                 var product = _3DProduct.FromDirectory(dir);
 
                 if (target == "turbosquid")
                 {
-                    Settings.TurboSquidUsername.Value = creds.UserName;
-                    Settings.TurboSquidPassword.Value = creds.Password;
-
-                    var turboSquid = await TurboSquid3DProductPublisher.InitializeAsync(creds, NodeGui, cancellationToken);
-                    await turboSquid.PublishAsync(await product.AsyncWithTurboSquid(metadata, NodeGui, cancellationToken), cancellationToken);
+                    var tsp = await product.AsyncWithTurboSquid(metadata, NodeGui, cancellationToken);
+                    await (await Container.Resolve<TurboSquidContainer>().GetAsync(default)).PublishAsync(tsp, cancellationToken);
                     return await WriteSuccess(response).ConfigureAwait(false);
                 }
                 if (target == "cgtrader")
                 {
-                    Settings.CGTraderUsername.Value = creds.UserName;
-                    Settings.CGTraderPassword.Value = creds.Password;
-
                     var cgtrader = Container.Resolve<CGTrader3DProductPublisher>();
-                    await cgtrader.PublishAsync(product.WithCGTrader(metadata), creds, cancellationToken);
+                    await cgtrader.PublishAsync(product.WithCGTrader(metadata), new NetworkCredential(Settings.CGTraderUsername.Value, Settings.CGTraderPassword.Value), cancellationToken);
                     return await WriteSuccess(response).ConfigureAwait(false);
                 }
 
                 return await WriteErr(response, "Invalid target");
             }).ConfigureAwait(false);
         }
+        if (path == "upload3drfproduct")
+        {
+            return await TestPost(await CreateCached(request), response, "target", "id", async (target, id) =>
+            {
+                if (!RFProducts.RFProducts.TryGetValue(id, out var rfproduct))
+                    return await WriteErr(response, "Product not found");
+
+                var token = CancellationToken.None;
+                if (target == "turbosquid")
+                {
+                    var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(token);
+                    var ui = Container.Resolve<INodeGui>();
+
+                    if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
+                    {
+                        Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First());
+                        if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First().Contains(@"\[\d+\]"))
+                            return await WriteJson(response, "Item is already published.".AsOpResult());
+                    }
+
+                    Logger.Info($"Publishing {rfproduct}");
+                    await turbo.PublishAsync(rfproduct, ui, token);
+                    return await WriteJson(response, "Item is successfully published.".AsOpResult());
+                }
+
+                return await WriteErr(response, "Unknown target");
+
+
+            }).ConfigureAwait(false);
+
+        }
+
         if (path == "fetchturbosquidsales")
         {
-            return await TestPost(await CreateCached(request), response, "mpcreds", "turbocreds", async (mpcredsjson, turbocredsjson) =>
+            var mpcreds = new NetworkCredential(Settings.MPlusUsername.Value, Settings.MPlusUsername.Value);
+            var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(default);
+            await (await MPAnalytics.LoginAsync(mpcreds, default))
+                .SendAsync(turbo.SaleReports.ScanAsync(default), default);
+
+            return await WriteSuccess(response).ConfigureAwait(false);
+        }
+
+        if (path == "unsetcreds")
+        {
+            return await TestPost(await CreateCached(request), response, "target", async (target) =>
             {
-                var mpcreds = JsonConvert.DeserializeObject<NetworkCredential>(mpcredsjson).ThrowIfNull();
-                var turbocreds = JsonConvert.DeserializeObject<NetworkCredential>(turbocredsjson).ThrowIfNull();
+                if (target == "MPlus")
+                    Settings.MPlusPassword.Value = Settings.MPlusUsername.Value = null;
+                else if (target == "TurboSquid")
+                    Settings.TurboSquidPassword.Value = Settings.TurboSquidUsername.Value = null;
+                else if (target == "CGTrader")
+                    Settings.CGTraderPassword.Value = Settings.CGTraderUsername.Value = null;
+                else return await WriteErr(response, "Unknown target");
 
-                Settings.MPlusUsername.Value = mpcreds.UserName;
-                Settings.MPlusPassword.Value = mpcreds.Password;
-                Settings.TurboSquidUsername.Value = turbocreds.UserName;
-                Settings.TurboSquidPassword.Value = turbocreds.Password;
-
-                var turbo = await TurboSquid.LogInAsyncUsing(turbocreds, Container.Resolve<INodeGui>(), default);
-                await (await MPAnalytics.LoginAsync(mpcreds, default))
-                    .SendAsync(turbo.SaleReports.ScanAsync(default), default);
-
-                return await WriteSuccess(response).ConfigureAwait(false);
+                return await WriteSuccess(response);
             }).ConfigureAwait(false);
         }
+        if (path == "setcreds")
+        {
+            return await TestPost(await CreateCached(request), response, "target", "creds", async (target, credsstr) =>
+            {
+                var creds = JsonConvert.DeserializeObject<NetworkCredential>(credsstr);
+                if (creds is null) return await WriteErr(response, "Could not parse creds");
+
+                if (target == "MPlus")
+                {
+                    Settings.MPlusPassword.Value = creds.Password;
+                    Settings.MPlusUsername.Value = creds.UserName;
+                }
+                else if (target == "TurboSquid")
+                {
+                    Settings.TurboSquidPassword.Value = creds.Password;
+                    Settings.TurboSquidUsername.Value = creds.UserName;
+                }
+                else if (target == "CGTrader")
+                {
+                    Settings.CGTraderPassword.Value = creds.Password;
+                    Settings.CGTraderUsername.Value = creds.UserName;
+                }
+                else return await WriteErr(response, "Unknown target");
+
+                return await WriteSuccess(response);
+            }).ConfigureAwait(false);
+        }
+
 
         if (path == "createrfproduct")
         {
@@ -235,8 +294,8 @@ public class LocalListener : ExecutableListenerBase
             {
                 var input = new TaskFileInput(new ReadOnlyTaskFileList([FileWithFormat.FromFile(file)]), Dirs.TaskOutputDirectory($"local_{Guid.NewGuid()}"));
                 var data = JObject.Parse(info).WithProperty("type", TaskAction.Topaz.ToString());
-                
-                return await WriteJson(response, new TaskFileOutput(new TaskFileListList("/temp/asd"){new ReadOnlyTaskFileList([FileWithFormat.FromFile("/temp/file.png")])}).Files.Single().Single().Path.AsOpResult()).ConfigureAwait(false);
+
+                return await WriteJson(response, new TaskFileOutput(new TaskFileListList("/temp/asd") { new ReadOnlyTaskFileList([FileWithFormat.FromFile("/temp/file.png")]) }).Files.Single().Single().Path.AsOpResult()).ConfigureAwait(false);
 
                 var result = (TaskFileOutput) await TaskExecutor.Execute(input, data, default);
                 return await WriteJson(response, result.Files.Single().Single().Path.AsOpResult()).ConfigureAwait(false);

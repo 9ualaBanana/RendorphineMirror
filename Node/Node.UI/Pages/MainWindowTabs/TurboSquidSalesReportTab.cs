@@ -1,36 +1,9 @@
-using System.Net;
-using _3DProductsPublish.Turbosquid;
-using _3DProductsPublish.Turbosquid.Upload;
-
 namespace Node.UI.Pages.MainWindowTabs;
 
 public class TurboSquidSalesReportTab : Panel
 {
-    public TurboSquidSalesReportTab(NodeGlobalState state)
+    public TurboSquidSalesReportTab()
     {
-        var mplogintb = new TextBox()
-        {
-            Watermark = "Login",
-            Text = state.MPlusUsername.Value,
-        };
-        var mppasswordtb = new TextBox()
-        {
-            Watermark = "Password",
-            PasswordChar = '*',
-            Text = state.MPlusPassword.Value,
-        };
-        var turbologintb = new TextBox()
-        {
-            Watermark = "Login",
-            Text = state.TurboSquidUsername.Value,
-        };
-        var turbopasswordtb = new TextBox()
-        {
-            Watermark = "Password",
-            PasswordChar = '*',
-            Text = state.TurboSquidPassword.Value,
-        };
-
         var content = new ScrollViewer()
         {
             Content = new StackPanel()
@@ -38,33 +11,12 @@ public class TurboSquidSalesReportTab : Panel
                 Orientation = Orientation.Vertical,
                 Children =
                 {
-                    new StackPanel()
-                    {
-                        Orientation = Orientation.Vertical,
-                        Children =
-                        {
-                            mplogintb,
-                            mppasswordtb,
-                        },
-                    }.Named("M+ credentials"),
-                    new StackPanel()
-                    {
-                        Orientation = Orientation.Vertical,
-                        Children =
-                        {
-                            turbologintb,
-                            turbopasswordtb,
-                        },
-                    }.Named("TurboSquid credentials"),
                     new MPButton()
                     {
                         Text = "Fetch sales",
                         OnClickSelf = async self =>
                         {
-                            var mpcred = new NetworkCredential(mplogintb.Text, mppasswordtb.Text);
-                            var turbocred = new NetworkCredential(turbologintb.Text, turbopasswordtb.Text);
-
-                            var result = await LocalApi.Default.Post("fetchturbosquidsales", "Fetching turbosquid sales", ("mpcreds", JsonConvert.SerializeObject(mpcred)), ("turbocreds", JsonConvert.SerializeObject(turbocred)));
+                            var result = await LocalApi.Default.Post("fetchturbosquidsales", "Fetching turbosquid sales");
                             await self.Flash(result);
                         },
                     },

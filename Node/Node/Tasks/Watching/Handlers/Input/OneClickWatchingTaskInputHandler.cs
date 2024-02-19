@@ -14,6 +14,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
     public required OCPublicListener PublicListener { get; init; }
     public required RFProduct.Factory RFProductFactory { get; init; }
     public required IRFProductStorage RFProducts { get; init; }
+    public required IComponentContext Container { get; init; }
 
     public override void StartListening() => StartThreadRepeated(5_000, RunOnce);
 
@@ -65,6 +66,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             LocalListener = LocalListener,
             RFProductFactory = RFProductFactory,
             RFProducts = RFProducts,
+            Container = Container,
             Logger = Logger,
         };
     }
@@ -102,6 +104,7 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
 
         protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
         {
+            var request = context.Request;
             var response = context.Response;
 
             if (path.StartsWith("getnodeinfo", StringComparison.Ordinal))
@@ -132,6 +135,36 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
                 WatchingTasks.WatchingTasks.Save(oc);
 
                 return await WriteSuccess(response).ConfigureAwait(false);
+            }
+            if (path == "setautocreaterfp")
+            {
+                return await Test(request, response, "enabled", async enabledstr =>
+                {
+                    var enabled = JsonConvert.DeserializeObject<bool>(enabledstr);
+
+                    var oc = WatchingTasks.WatchingTasks.Values
+                        .First(t => t.Source is OneClickWatchingTaskInputInfo);
+                    ((OneClickWatchingTaskInputInfo) oc.Source).AutoCreateRFProducts = enabled;
+                    WatchingTasks.WatchingTasks.Bindable.TriggerValueChanged();
+                    WatchingTasks.WatchingTasks.Save(oc);
+
+                    return await WriteSuccess(response).ConfigureAwait(false);
+                }).ConfigureAwait(false);
+            }
+            if (path == "setautopublishrfp")
+            {
+                return await Test(request, response, "enabled", async enabledstr =>
+                {
+                    var enabled = JsonConvert.DeserializeObject<bool>(enabledstr);
+
+                    var oc = WatchingTasks.WatchingTasks.Values
+                        .First(t => t.Source is OneClickWatchingTaskInputInfo);
+                    ((OneClickWatchingTaskInputInfo) oc.Source).AutoPublishRFProducts = enabled;
+                    WatchingTasks.WatchingTasks.Bindable.TriggerValueChanged();
+                    WatchingTasks.WatchingTasks.Save(oc);
+
+                    return await WriteSuccess(response).ConfigureAwait(false);
+                }).ConfigureAwait(false);
             }
 
             return await base.ExecuteGet(path, context);

@@ -51,6 +51,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
                     UnityTemplatesDir = @"C:\\OneClickUnityDefaultProjects",
                     ExportInfo = source.ExportInfo ?? [],
                     AutoCreateRFProducts = source.AutoCreateRFProducts,
+                    AutoPublishRFProducts = source.AutoPublishRFProducts,
                     RFProductTargetDirectory = source.RFProductTargetDirectory,
                 };
             }

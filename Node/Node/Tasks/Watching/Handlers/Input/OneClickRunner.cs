@@ -1,5 +1,8 @@
 using System.IO.Compression;
 using System.Text.RegularExpressions;
+using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.Turbosquid;
+using _3DProductsPublish.Turbosquid.Upload;
 using SevenZip;
 
 namespace Node.Tasks.Watching.Handlers.Input;
@@ -16,6 +19,7 @@ public class OneClickRunner : OneClickRunnerInfo
     public required RFProduct.Factory RFProductFactory { get; init; }
     public required IRFProductStorage RFProducts { get; init; }
     public required ILogger Logger { get; init; }
+    public required IComponentContext Container { get; init; }
 
     public OneClickRunner(OneClickWatchingTaskInputInfo input, bool test) : base(input, test) { }
 
@@ -159,19 +163,55 @@ public class OneClickRunner : OneClickRunnerInfo
             }
         }
 
-        return;
-        try
+        if (false)
         {
-            await RunUnity(inputArchiveFiles);
+            try
+            {
+                await RunUnity(inputArchiveFiles);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+                await ReportError($"[Unity import] {ex.Message}", inputArchiveFiles);
+            }
+            finally
+            {
+                SaveFunc();
+            }
         }
-        catch (Exception ex)
+
+        if (Input.AutoCreateRFProducts)
         {
-            Logger.Error(ex);
-            await ReportError($"[Unity import] {ex.Message}", inputArchiveFiles);
+            try
+            {
+                await GenerateQSProducts();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+                await ReportError($"[RFP autocreation] {ex.Message}", inputArchiveFiles);
+            }
+            finally
+            {
+                SaveFunc();
+            }
         }
-        finally
+
+        if (Input.AutoPublishRFProducts)
         {
-            SaveFunc();
+            try
+            {
+                await PublishRFProducts(default);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+                await ReportError($"[RFP autopublish] {ex.Message}", inputArchiveFiles);
+            }
+            finally
+            {
+                SaveFunc();
+            }
         }
     }
 
@@ -546,6 +586,35 @@ public class OneClickRunner : OneClickRunnerInfo
                     catch { }
                 }
             }
+        }
+    }
+    async Task GenerateQSProducts()
+    {
+        foreach (var productDir in Directory.GetDirectories(Input.ProductsDirectory))
+        {
+            if (File.Exists(Path.Combine(productDir, "rfproducted"))) continue;
+
+            var rfp = await RFProductFactory.CreateAsync(productDir, Directories.DirCreated(Input.RFProductsDirectory, Path.GetFileNameWithoutExtension(productDir)), default, false);
+            Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
+            File.Create(Path.Combine(productDir, "rfproducted")).Dispose();
+        }
+    }
+    async Task PublishRFProducts(CancellationToken token)
+    {
+        var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(token);
+        var ui = Container.Resolve<INodeGui>();
+
+        foreach (var rfproduct in RFProducts.RFProducts.Values.Where(r => r.Type == nameof(RFProduct._3D) && r.Path.StartsWith(Path.GetFullPath(Input.RFProductsDirectory))))
+        {
+            if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
+            {
+                Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First());
+                if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First().Contains(@"\[\d+\]"))
+                    continue;
+            }
+
+            Logger.Info($"Publishing {rfproduct}");
+            await turbo.PublishAsync(rfproduct, ui, token);
         }
     }
 

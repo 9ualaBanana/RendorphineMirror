@@ -1,5 +1,7 @@
+using System.Net;
 using _3DProductsPublish.CGTrader.Api;
 using _3DProductsPublish.CGTrader.Upload;
+using _3DProductsPublish.Turbosquid;
 using _3DProductsPublish.Turbosquid.Upload;
 using Autofac;
 using Autofac.Builder;
@@ -38,10 +40,10 @@ public class _3DProductPublisherTarget : IDelayedServiceTarget
     {
         public static IEnumerable<IComponentRegistration> CreateRegistrations()
         {
-            yield return RegistrationBuilder.ForType<TurboSquid3DProductPublisher>()
+            yield return RegistrationBuilder.ForType<TurboSquidContainer>()
                 .AsSelf()
                 .AsImplementedInterfaces()
-                .InstancePerDependency()
+                .SingleInstance()
                 .CreateRegistration();
         }
     }
