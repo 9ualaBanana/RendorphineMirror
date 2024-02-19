@@ -608,8 +608,8 @@ public class OneClickRunner : OneClickRunnerInfo
         {
             if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
             {
-                Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First());
-                if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First().Contains(@"\[\d+\]"))
+                Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault() ?? "<empty turbosquid.meta>");
+                if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault()?.Contains(@"\[\d+\]") ?? false)
                     continue;
             }
 

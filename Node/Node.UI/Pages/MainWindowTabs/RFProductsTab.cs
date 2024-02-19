@@ -15,6 +15,8 @@ public class RFProductsTab : Panel
                         .Named("Create"),
                     new RFProductListPanel()
                         .Named("List"),
+                    new TextBlock()
+                        .Named("~ The end ~"),
                 },
             },
         };
