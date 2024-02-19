@@ -4,6 +4,9 @@ namespace Node.DataStorage;
 
 public class SettingsInstance : INodeSettings
 {
+    string? INodeSettings.TurboSquidUsername { get => TurboSquidUsername.Value; set => TurboSquidUsername.Value = value; }
+    string? INodeSettings.TurboSquidPassword { get => TurboSquidPassword.Value; set => TurboSquidPassword.Value = value; }
+
     public string SessionId => AuthInfo?.SessionId!;
     public string? Email => AuthInfo?.Email;
     public string Guid => AuthInfo?.Guid!;
