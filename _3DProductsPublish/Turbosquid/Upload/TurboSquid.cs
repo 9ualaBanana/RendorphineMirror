@@ -3,6 +3,7 @@ using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Api;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
+using MarkTM.RFProduct;
 using Microsoft.Net.Http.Headers;
 using System.Net;
 using System.Net.Http.Json;
@@ -48,6 +49,17 @@ public partial class TurboSquid : HttpClient
         _noAutoRedirectHttpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
     }
 
+    public async Task PublishAsync(RFProduct rfProduct, INodeGui gui, CancellationToken cancellationToken)
+    {
+        await PublishAsync(await ConvertAsync(rfProduct, gui, cancellationToken), cancellationToken);
+
+        static async Task<TurboSquid3DProduct> ConvertAsync(RFProduct rfProduct, INodeGui gui, CancellationToken cancellationToken)
+        {
+            var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
+            var metadata = JObject.Parse(File.ReadAllText(idea.Metadata)).ToObject<_3DProduct.Metadata_>()!;
+            return await _3DProduct.FromDirectory(rfProduct.Path).AsyncWithTurboSquid(metadata, gui, cancellationToken);
+        }
+    }
     public async Task PublishAsync(TurboSquid3DProduct _3DProduct, CancellationToken cancellationToken)
         => await PublishAsync(await CreateDraftAsync(_3DProduct, cancellationToken), cancellationToken);
     async Task PublishAsync(TurboSquid3DProductDraft draft, CancellationToken cancellationToken)

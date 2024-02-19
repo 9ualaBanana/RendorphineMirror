@@ -34,14 +34,8 @@ public class Model3DUploadTab : Panel
 
         var dirpicker = new DirectoryInput();
 
-        async Task submit(MPButton self, string target, NetworkCredential? creds)
+        async Task submit(MPButton self, string target)
         {
-            if (creds is null)
-            {
-                await self.FlashError("No credentials");
-                return;
-            }
-
             if (string.IsNullOrEmpty(dirpicker.Dir))
             {
                 await self.FlashError("No directory selected");
@@ -58,37 +52,33 @@ public class Model3DUploadTab : Panel
             ProcessObject(meta); // two times, yes
 
             var result = await LocalApi.Default.Post("3dupload", "Uploading 3d item to " + target,
-                ("target", target), ("creds", JsonConvert.SerializeObject(creds)), ("meta", meta.ToString()), ("dir", dirpicker.Dir)
+                ("target", target), ("meta", meta.ToString()), ("dir", dirpicker.Dir)
             );
             await self.FlashErrorIfErr(result);
         }
 
-        var turbosquidcredsinput = new CredentialsInput(state.TurboSquidUsername, state.TurboSquidPassword);
         var turboSquidPanel = new StackPanel()
         {
             Orientation = Orientation.Vertical,
             Children =
             {
-                turbosquidcredsinput,
                 new MPButton()
                 {
-                    Text = "Submit",
-                    OnClickSelf = async self => await submit(self, "turbosquid", turbosquidcredsinput.TryGet()),
+                    Text = "Submit TurboSquid",
+                    OnClickSelf = async self => await submit(self, "turbosquid"),
                 },
             },
         };
 
-        var cgtradercredsinput = new CredentialsInput(state.CGTraderUsername, state.CGTraderPassword);
         var cgtraderPanel = new StackPanel()
         {
             Orientation = Orientation.Vertical,
             Children =
             {
-                cgtradercredsinput,
                 new MPButton()
                 {
-                    Text = "Submit",
-                    OnClickSelf = async self => await submit(self, "cgtrader", cgtradercredsinput.TryGet()),
+                    Text = "Submit CGTrader",
+                    OnClickSelf = async self => await submit(self, "cgtrader"),
                 },
             },
         };
@@ -169,43 +159,6 @@ public class Model3DUploadTab : Panel
                 Children = { textinput.WithColumn(0), btn.WithColumn(1), },
             };
             Children.Add(grid);
-        }
-    }
-    class CredentialsInput : Panel
-    {
-        readonly TextBox Username, Password;
-
-        public CredentialsInput(IReadOnlyBindable<string?> username, IReadOnlyBindable<string?> password)
-        {
-            Username = new() { Watermark = "Username" };
-            Password = new() { Watermark = "Password" };
-            username.SubscribeChanged(() => Username.Text = username.Value, true);
-            password.SubscribeChanged(() => Password.Text = password.Value, true);
-
-            Children.Add(new Grid()
-            {
-                RowDefinitions = RowDefinitions.Parse("Auto Auto"),
-                Children =
-                {
-                    Username.WithRow(0),
-                    Password.WithRow(1),
-                },
-            });
-        }
-
-        public NetworkCredential? TryGet()
-        {
-            Username.BorderBrush = Password.BorderBrush = null;
-
-            if (string.IsNullOrEmpty(Username.Text))
-                Username.BorderBrush = Brushes.Red;
-            if (string.IsNullOrEmpty(Password.Text))
-                Password.BorderBrush = Brushes.Red;
-
-            if (string.IsNullOrEmpty(Username.Text) || string.IsNullOrEmpty(Password.Text))
-                return null;
-
-            return new NetworkCredential(Username.Text, Password.Text);
         }
     }
 }

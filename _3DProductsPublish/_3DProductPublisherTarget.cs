@@ -1,3 +1,4 @@
+using System.Net;
 using _3DProductsPublish.CGTrader.Api;
 using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid.Upload;
@@ -38,10 +39,17 @@ public class _3DProductPublisherTarget : IDelayedServiceTarget
     {
         public static IEnumerable<IComponentRegistration> CreateRegistrations()
         {
-            yield return RegistrationBuilder.ForType<TurboSquid3DProductPublisher>()
+            yield return RegistrationBuilder.ForDelegate((ctx, _) =>
+            {
+                var username = ctx.Resolve<INodeSettings>().TurboSquidUsername;
+                var password = ctx.Resolve<INodeSettings>().TurboSquidPassword;
+
+                return _3DProductsPublish.Turbosquid.Upload.TurboSquid.LogInAsyncUsing(new NetworkCredential(username, password), ctx.Resolve<INodeGui>(), default)
+                    .GetAwaiter().GetResult();
+            })
                 .AsSelf()
                 .AsImplementedInterfaces()
-                .InstancePerDependency()
+                .SingleInstance()
                 .CreateRegistration();
         }
     }

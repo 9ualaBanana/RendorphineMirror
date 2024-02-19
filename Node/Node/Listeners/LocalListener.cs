@@ -163,29 +163,22 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "3dupload")
         {
-            return await TestPost(await CreateCached(request), response, "target", "creds", "meta", "dir", async (target, jcreds, jmeta, dir) =>
+            return await TestPost(await CreateCached(request), response, "target", "meta", "dir", async (target, jmeta, dir) =>
             {
                 var cancellationToken = CancellationToken.None;
-                var creds = JsonConvert.DeserializeObject<NetworkCredential>(jcreds).ThrowIfNull();
                 var metadata = JsonConvert.DeserializeObject<_3DProduct.Metadata_>(jmeta).ThrowIfNull();
                 var product = _3DProduct.FromDirectory(dir);
 
                 if (target == "turbosquid")
                 {
-                    Settings.TurboSquidUsername.Value = creds.UserName;
-                    Settings.TurboSquidPassword.Value = creds.Password;
-
-                    var turboSquid = await TurboSquid3DProductPublisher.InitializeAsync(creds, NodeGui, cancellationToken);
-                    await turboSquid.PublishAsync(await product.AsyncWithTurboSquid(metadata, NodeGui, cancellationToken), cancellationToken);
+                    var tsp = await product.AsyncWithTurboSquid(metadata, NodeGui, cancellationToken);
+                    await Container.Resolve<TurboSquid>().PublishAsync(tsp, cancellationToken);
                     return await WriteSuccess(response).ConfigureAwait(false);
                 }
                 if (target == "cgtrader")
                 {
-                    Settings.CGTraderUsername.Value = creds.UserName;
-                    Settings.CGTraderPassword.Value = creds.Password;
-
                     var cgtrader = Container.Resolve<CGTrader3DProductPublisher>();
-                    await cgtrader.PublishAsync(product.WithCGTrader(metadata), creds, cancellationToken);
+                    await cgtrader.PublishAsync(product.WithCGTrader(metadata), new NetworkCredential(Settings.CGTraderUsername.Value, Settings.CGTraderPassword.Value), cancellationToken);
                     return await WriteSuccess(response).ConfigureAwait(false);
                 }
 
@@ -212,6 +205,50 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
+        if (path == "unsetcreds")
+        {
+            return await TestPost(await CreateCached(request), response, "target", async (target) =>
+            {
+                if (target == "MPlus")
+                    Settings.MPlusPassword.Value = Settings.MPlusUsername.Value = null;
+                else if (target == "TurboSquid")
+                    Settings.TurboSquidPassword.Value = Settings.TurboSquidUsername.Value = null;
+                else if (target == "CGTrader")
+                    Settings.CGTraderPassword.Value = Settings.CGTraderUsername.Value = null;
+                else return await WriteErr(response, "Unknown target");
+
+                return await WriteSuccess(response);
+            }).ConfigureAwait(false);
+        }
+        if (path == "setcreds")
+        {
+            return await TestPost(await CreateCached(request), response, "target", "creds", async (target, credsstr) =>
+            {
+                var creds = JsonConvert.DeserializeObject<NetworkCredential>(credsstr);
+                if (creds is null) return await WriteErr(response, "Could not parse creds");
+
+                if (target == "MPlus")
+                {
+                    Settings.MPlusPassword.Value = creds.Password;
+                    Settings.MPlusUsername.Value = creds.UserName;
+                }
+                else if (target == "TurboSquid")
+                {
+                    Settings.TurboSquidPassword.Value = creds.Password;
+                    Settings.TurboSquidUsername.Value = creds.UserName;
+                }
+                else if (target == "CGTrader")
+                {
+                    Settings.CGTraderPassword.Value = creds.Password;
+                    Settings.CGTraderUsername.Value = creds.UserName;
+                }
+                else return await WriteErr(response, "Unknown target");
+
+                return await WriteSuccess(response);
+            }).ConfigureAwait(false);
+        }
+
+
         if (path == "createrfproduct")
         {
             return await TestPost(await CreateCached(request), response, "idea", "container", async (idea, container) =>
@@ -235,8 +272,8 @@ public class LocalListener : ExecutableListenerBase
             {
                 var input = new TaskFileInput(new ReadOnlyTaskFileList([FileWithFormat.FromFile(file)]), Dirs.TaskOutputDirectory($"local_{Guid.NewGuid()}"));
                 var data = JObject.Parse(info).WithProperty("type", TaskAction.Topaz.ToString());
-                
-                return await WriteJson(response, new TaskFileOutput(new TaskFileListList("/temp/asd"){new ReadOnlyTaskFileList([FileWithFormat.FromFile("/temp/file.png")])}).Files.Single().Single().Path.AsOpResult()).ConfigureAwait(false);
+
+                return await WriteJson(response, new TaskFileOutput(new TaskFileListList("/temp/asd") { new ReadOnlyTaskFileList([FileWithFormat.FromFile("/temp/file.png")]) }).Files.Single().Single().Path.AsOpResult()).ConfigureAwait(false);
 
                 var result = (TaskFileOutput) await TaskExecutor.Execute(input, data, default);
                 return await WriteJson(response, result.Files.Single().Single().Path.AsOpResult()).ConfigureAwait(false);
