@@ -57,7 +57,7 @@ public partial class TurboSquid : HttpClient
         {
             var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
             var metadata = JObject.Parse(File.ReadAllText(idea.Metadata)).ToObject<_3DProduct.Metadata_>()!;
-            return await _3DProduct.FromDirectory(rfProduct.Path).AsyncWithTurboSquid(metadata, gui, cancellationToken);
+            return await _3DProduct.FromDirectory(idea.Path).AsyncWithTurboSquid(metadata, gui, cancellationToken);
         }
     }
     public async Task PublishAsync(TurboSquid3DProduct _3DProduct, CancellationToken cancellationToken)
