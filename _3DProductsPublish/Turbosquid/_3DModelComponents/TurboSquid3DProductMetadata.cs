@@ -11,9 +11,9 @@ public partial record TurboSquid3DProductMetadata
     internal const string FileName = "turbosquid.meta";
 
     public static async Task<TurboSquid3DProductMetadata> ProvideAsync(
-        INodeGui nodeGui,
         string title,
         string description,
+        string category,
         string[] tags,
         int polygons,
         int vertices,
@@ -32,20 +32,18 @@ public partial record TurboSquid3DProductMetadata
         return new(title, description, tags, await Category(), polygons, vertices, price, license, animated, collection, geometry, materials, rigged, textures, uvMapped, unwrappedUvs);
 
 
-        async Task<_3DProduct.Metadata_.Category_> Category()
+        async Task<Category_> Category()
         {
             var httpClient = new HttpClient() { BaseAddress = TurboSquid.Origin};
-            string categoryPrompt;
             while (true)
             {
-                categoryPrompt = (await nodeGui.Request<string>(new InputRequest("Please specify 3D product category"), cancellationToken)).Result;
                 var suggestions = JArray.Parse(
-                    await httpClient.GetStringAsync($"features/suggestions?fields%5Btags_and_synonyms%5D={WebUtility.UrlEncode(categoryPrompt)}&assignable=true&assignable_restricted=false&ancestry=1%2F6&limit=25", cancellationToken)
+                    await httpClient.GetStringAsync($"features/suggestions?fields%5Btags_and_synonyms%5D={WebUtility.UrlEncode(category)}&assignable=true&assignable_restricted=false&ancestry=1%2F6&limit=25", cancellationToken)
                     );
                 if (suggestions.FirstOrDefault() is JToken suggestion &&
-                    suggestion["text"]?.Value<string>() is string category &&
+                    suggestion["text"]?.Value<string>() is string category_ &&
                     suggestion["id"]?.Value<int>() is int id)
-                        return new(category, id);
+                        return new(category_, id);
             }
         }
     }
@@ -55,7 +53,7 @@ public partial record TurboSquid3DProductMetadata
         string title,
         string description,
         string[] tags,
-        _3DProduct.Metadata_.Category_ category,
+        Category_ category,
         int polygons,
         int vertices,
         double price,

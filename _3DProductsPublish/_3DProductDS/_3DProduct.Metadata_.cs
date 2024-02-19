@@ -140,9 +140,9 @@ public static class _3DProductMetadataExtensions
     public static async Task<TurboSquid3DProduct> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
     {
         var tuboSquidMetadata = await TurboSquid3DProductMetadata.ProvideAsync(
-            nodeGui,
             _.Title,
             _.Description,
+            _.Category,
             _.Tags,
             _.Polygons,
             _.Vertices,
