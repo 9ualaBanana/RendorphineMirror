@@ -82,13 +82,12 @@ public partial class TurboSquid
 #else
                 foreach (var _3DModel in Draft.LocalProduct._3DModels.Where(_ => _ is not ITurboSquidProcessed3DProductAsset))
                 {
-                    string uploadKey = await UploadAssetAsyncAt(await _3DModel.Archive());
-                    modelsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_.RunAsync(_3DModel, uploadKey, this));
+                    string uploadKey = await UploadAssetAsyncAt(await _3DModel.Archived);
+                    modelsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.RunAsync(_3DModel, uploadKey, this));
                 }
 #endif
                 var processedModels = (await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.WhenAll(modelsProcessing)).Cast<TurboSquidProcessed3DModel>();
-                foreach (var processedModel in processedModels)
-                    Draft.LocalProduct.Synchronize(processedModel);
+                Draft.LocalProduct.Synchronize(processedModels);
                 _logger.Trace("3D models have been uploaded and processed.");
                 foreach (var processedModel in processedModels.Concat(Draft.Edited3DModels))
                     yield return processedModel;

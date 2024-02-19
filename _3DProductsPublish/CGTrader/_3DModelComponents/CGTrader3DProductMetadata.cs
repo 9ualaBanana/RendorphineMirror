@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using _3DProductsPublish._3DProductDS;
+using System.Net.Http.Json;
 
 namespace _3DProductsPublish.CGTrader._3DModelComponents;
 
@@ -22,8 +23,8 @@ public record CGTrader3DProductMetadata
         }
     }
     string[] _tags = null!;
-    public int Category { get; }
-    public int SubCategory { get; }
+    public _3DProduct.Metadata_.Category_ Category { get; }
+    public _3DProduct.Metadata_.Category_ SubCategory { get; }
     public CGTraderLicense License { get; }
     public string? CustomLicense { get; }
     public bool Free => Price == 0;
@@ -159,8 +160,8 @@ public record CGTrader3DProductMetadata
         Title = title;
         Description = description;
         Tags = tags;
-        Category = category.CategoryID;
-        SubCategory = category.SubCategoryID;
+        Category = category.Category;
+        SubCategory = category.SubCategory;
         License = license;
         Price = price;
         CustomLicense = customLicenseText;
@@ -194,8 +195,8 @@ public record CGTrader3DProductMetadata
         Title = title;
         Description = description;
         Tags = tags;
-        Category = category;
-        SubCategory = subCategory;
+        Category = new(null, category);
+        SubCategory = new(null, subCategory);
         License = license;
         CustomLicense = customLicense;
         Price = price;
