@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 using _3DProductsPublish._3DProductDS;
+using _3DProductsPublish.Turbosquid;
 using _3DProductsPublish.Turbosquid.Upload;
 using SevenZip;
 
@@ -600,7 +601,7 @@ public class OneClickRunner : OneClickRunnerInfo
     }
     async Task PublishRFProducts(CancellationToken token)
     {
-        var turbo = Container.Resolve<TurboSquid>();
+        var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(token);
         var ui = Container.Resolve<INodeGui>();
 
         foreach (var rfproduct in RFProducts.RFProducts.Values.Where(r => r.Type == nameof(RFProduct._3D) && r.Path.StartsWith(Path.GetFullPath(Input.RFProductsDirectory))))

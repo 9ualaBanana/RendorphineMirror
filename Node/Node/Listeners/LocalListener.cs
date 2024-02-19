@@ -172,7 +172,7 @@ public class LocalListener : ExecutableListenerBase
                 if (target == "turbosquid")
                 {
                     var tsp = await product.AsyncWithTurboSquid(metadata, NodeGui, cancellationToken);
-                    await Container.Resolve<TurboSquid>().PublishAsync(tsp, cancellationToken);
+                    await (await Container.Resolve<TurboSquidContainer>().GetAsync(default)).PublishAsync(tsp, cancellationToken);
                     return await WriteSuccess(response).ConfigureAwait(false);
                 }
                 if (target == "cgtrader")
@@ -185,24 +185,46 @@ public class LocalListener : ExecutableListenerBase
                 return await WriteErr(response, "Invalid target");
             }).ConfigureAwait(false);
         }
+        if (path == "upload3drfproduct")
+        {
+            return await TestPost(await CreateCached(request), response, "target", "id", async (target, id) =>
+            {
+                if (!RFProducts.RFProducts.TryGetValue(id, out var rfproduct))
+                    return await WriteErr(response, "Product not found");
+
+                var token = CancellationToken.None;
+                if (target == "turbosquid")
+                {
+                    var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(token);
+                    var ui = Container.Resolve<INodeGui>();
+
+                    if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
+                    {
+                        Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First());
+                        if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First().Contains(@"\[\d+\]"))
+                            return await WriteJson(response, "Item is already published.".AsOpResult());
+                    }
+
+                    Logger.Info($"Publishing {rfproduct}");
+                    await turbo.PublishAsync(rfproduct, ui, token);
+                    return await WriteJson(response, "Item is successfully published.".AsOpResult());
+                }
+
+                return await WriteErr(response, "Unknown target");
+
+
+            }).ConfigureAwait(false);
+
+        }
+
         if (path == "fetchturbosquidsales")
         {
-            return await TestPost(await CreateCached(request), response, "mpcreds", "turbocreds", async (mpcredsjson, turbocredsjson) =>
-            {
-                var mpcreds = JsonConvert.DeserializeObject<NetworkCredential>(mpcredsjson).ThrowIfNull();
-                var turbocreds = JsonConvert.DeserializeObject<NetworkCredential>(turbocredsjson).ThrowIfNull();
+            var mpcreds = new NetworkCredential(Settings.MPlusUsername.Value, Settings.MPlusUsername.Value);
+            var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(default);
+            await (await MPAnalytics.LoginAsync(mpcreds, default))
+                .SendAsync(turbo.SaleReports.ScanAsync(default), default);
 
-                Settings.MPlusUsername.Value = mpcreds.UserName;
-                Settings.MPlusPassword.Value = mpcreds.Password;
-                Settings.TurboSquidUsername.Value = turbocreds.UserName;
-                Settings.TurboSquidPassword.Value = turbocreds.Password;
-
-                var turbo = await TurboSquid.LogInAsyncUsing(turbocreds, Container.Resolve<INodeGui>(), default);
-                await (await MPAnalytics.LoginAsync(mpcreds, default))
-                    .SendAsync(turbo.SaleReports.ScanAsync(default), default);
-
-                return await WriteSuccess(response).ConfigureAwait(false);
-            }).ConfigureAwait(false);
+            return await WriteSuccess(response).ConfigureAwait(false);
         }
 
         if (path == "unsetcreds")

@@ -172,7 +172,7 @@ public class RFProductsTab : Panel
 
             var grid = new Grid()
             {
-                RowDefinitions = RowDefinitions.Parse("Auto Auto Auto Auto"),
+                RowDefinitions = RowDefinitions.Parse("Auto Auto Auto Auto Auto"),
                 ColumnDefinitions = ColumnDefinitions.Parse("Auto *"),
                 Children =
                 {
@@ -199,6 +199,17 @@ public class RFProductsTab : Panel
                             await self.Flash(result);
                         },
                     }.WithRow(3),
+                    new MPButton()
+                    {
+                        Text = "Upload to TurboSquid",
+                        OnClickSelf = async (self) =>
+                        {
+                            var result = await LocalApi.Default.Post("upload3drfproduct", "Uploading 3d rfproduct to turbosquid",
+                                ("target", "turbosquid"), ("id", product[nameof(RFProduct.ID)]!.Value<string>().ThrowIfNull())
+                            );
+                            await self.Flash(result);
+                        },
+                    }.WithRow(4),
                 },
             };
             Children.Add(grid);
