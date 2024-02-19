@@ -1,5 +1,8 @@
 ﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
+using Tomlyn.Syntax;
+using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
+using static Tomlyn.Helpers.TomlNamingHelper;
 
 namespace _3DProductsPublish._3DProductDS;
 
@@ -60,6 +63,7 @@ public partial record _3DProduct : IDisposable
 
 public record _3DProduct<TMetadata> : _3DProduct
 {
+    public int ID { get; internal set; } = default;
     internal _3DProduct(_3DProduct _3DProduct, TMetadata metadata)
         : base(_3DProduct)
     { Metadata = metadata; }
@@ -70,13 +74,12 @@ public record _3DProduct<TProductMetadata, TModelsMetadata> : _3DProduct<TProduc
     where TModelsMetadata : _3DModel.IMetadata
 {
     new public List<_3DModel<TModelsMetadata>> _3DModels { get; }
-    public int ID { get; internal set; } = default;
 
     internal _3DProduct(_3DProduct<TProductMetadata> _3DProduct, IEnumerable<TModelsMetadata> modelsMetadata)
         : base(_3DProduct)
     {
         _3DModels = _3DProduct._3DModels.Join(modelsMetadata,
-            _3DModel => Path.GetFileNameWithoutExtension(_3DModel.Path),
+            _3DModel => _3DModel.Name,
             metadata => metadata.Name,  // IMetadata.Name is used here.
             (_3DModel, metadata) => new _3DModel<TModelsMetadata>(_3DModel, metadata))
             .ToList();
@@ -98,18 +101,6 @@ public record TurboSquid3DProduct : _3DProduct<TurboSquid3DProductMetadata, Turb
         SynchronizeTextures();
         return this;
 
-
-        //IEnumerable<TurboSquidProcessed3DModel> ModelsWithEditedMetadata()
-        //    => _3DModels.OfType<TurboSquidProcessed3DModel>() is IEnumerable<TurboSquidProcessed3DModel> processedModels ?
-        //        Remote is not null ?
-        //            processedModels.Join(Remote.files.Where(_ => _.type == "product_file"),
-        //            local => local.FileId,
-        //            remote => remote.id,
-        //            (local, remote) => new { Local = local, Remote = remote })
-        //            .Where(_ => !_.Remote.Equals(_.Local))
-        //            .Select(_ => _.Local) :
-        //        processedModels :
-        //    throw new InvalidOperationException();
 
         void Synchronize3DModels()
         {
@@ -148,9 +139,34 @@ public record TurboSquid3DProduct : _3DProduct<TurboSquid3DProductMetadata, Turb
         }
     }
 
-    internal void Synchronize(TurboSquidProcessed3DModel _)
+    internal void Synchronize(IEnumerable<ITurboSquidProcessed3DProductAsset> assets)
+    { foreach (var asset in assets) Synchronize(asset); }
+    internal void Synchronize(ITurboSquidProcessed3DProductAsset asset)
+    {
+        switch (asset)
+        {
+            case TurboSquidProcessed3DModel model:
+                Synchronize(model);
+                break;
+            case TurboSquidProcessed3DProductThumbnail thumbnail:
+                Synchronize(thumbnail);
+                break;
+            default:
+                throw new ArgumentException($"Unsupported type of {nameof(ITurboSquidProcessed3DProductAsset)}: {asset}");
+        }   
+    }
+    void Synchronize(TurboSquidProcessed3DModel _)
     { _3DModels.Remove((_3DModel<TurboSquid3DModelMetadata>)_.Asset); _3DModels.Add((TurboSquidProcessed3DModel)_); }
-
-    internal void Synchronize(TurboSquidProcessed3DProductThumbnail _)
+    void Synchronize(TurboSquidProcessed3DProductThumbnail _)
     { Thumbnails.Remove((_3DProductThumbnail)_.Asset); Thumbnails.Add((TurboSquidProcessed3DProductThumbnail)_); }
+
+
+    public static implicit operator TableSyntax(TurboSquid3DProduct _3DProduct)
+    {
+        var table = new TableSyntax(_3DProduct.ID.ToString());
+        table.Items.Add(_3DProduct.Metadata.Category.Name, _3DProduct.Metadata.Category.ID);
+        if (_3DProduct.Metadata.SubCategory is Category_ subcategory)
+            table.Items.Add(subcategory.Name, subcategory.ID);
+        return table;
+    }
 }

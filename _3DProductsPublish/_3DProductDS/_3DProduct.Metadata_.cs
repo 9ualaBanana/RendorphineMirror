@@ -9,6 +9,8 @@ public partial record _3DProduct
     {
         public required string Title { get; init; }
         public required string Description { get; init; }
+        public required string Category { get; init; }
+        public string? SubCategory { get; init; }
         public required string[] Tags
         {
             get => _tags;
@@ -47,6 +49,8 @@ public partial record _3DProduct
         public bool AdultContent { get; init; } = false;
         public bool PluginsUsed { get; init; } = false;
 
+
+        public record struct Category_(string Name, int ID);
 
         public enum License_ { RoyaltyFree, Editorial }
 
@@ -194,13 +198,12 @@ public static class _3DProductMetadataExtensions
     {
         var turboSquid3DProduct = _3DProduct.With_(metadata);
         var turboSquidMetadataFile = TurboSquid3DProductMetadata.File.For(turboSquid3DProduct);
-        //if (!File.Exists(turboSquidMetadataFile.Path))
-        //    turboSquidMetadataFile.Populate(nodeGui);
-        var (_3DProductID, _3DModelsMetadata) = turboSquidMetadataFile.Read();
-
-        return _3DProductID is int id ?
-            new TurboSquid3DProduct(turboSquid3DProduct, _3DModelsMetadata) with { ID = id } :
-            new TurboSquid3DProduct(turboSquid3DProduct, _3DModelsMetadata);
+        if (!File.Exists(turboSquidMetadataFile.Path))
+        {
+            using var _ = File.Create(turboSquidMetadataFile.Path);
+            //turboSquidMetadataFile.Populate(nodeGui);
+        }
+        return new TurboSquid3DProduct(turboSquid3DProduct, turboSquidMetadataFile.Read());
     }
 
     public static _3DProduct<TMetadata> With_<TMetadata>(this _3DProduct _3DProduct, TMetadata metadata)

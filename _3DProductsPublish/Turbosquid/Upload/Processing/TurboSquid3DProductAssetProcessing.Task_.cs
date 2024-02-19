@@ -145,6 +145,7 @@ internal partial class TurboSquid3DProductAssetProcessing
             internal bool IsCompletedSuccessfully => Status == "success";
             internal bool IsFailed => Status == "failed";
 
+            // Might also be "virus" but apparently only if the corresponding requests are unsigned.
             [JsonProperty("status")]
             string Status { get; init; } = default!;
 

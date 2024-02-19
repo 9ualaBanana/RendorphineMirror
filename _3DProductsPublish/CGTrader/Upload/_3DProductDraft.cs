@@ -1,6 +1,7 @@
 ﻿using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
+using _3DProductsPublish.Turbosquid.Upload;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 
 namespace _3DProductsPublish.CGTrader.Upload;
@@ -51,22 +52,33 @@ public record _3DProductDraft<TProductMetadata, TModelMetadata>
 internal record TurboSquid3DProductDraft
 {
     internal long ID { get; init; }
+    internal TurboSquidAwsSession AWS { get; init; }
     internal TurboSquid3DProduct LocalProduct { get; init; }
     internal TurboSquid3DProductMetadata.Product RemoteProduct { get; init; }
 
-    public TurboSquid3DProductDraft(long id, TurboSquid3DProduct localProduct, TurboSquid3DProductMetadata.Product remoteProduct)
+    public TurboSquid3DProductDraft(long id, TurboSquidAwsSession awsSession, TurboSquid3DProduct localProduct, TurboSquid3DProductMetadata.Product remoteProduct)
     {
         ID = id;
+        AWS = awsSession;
         RemoteProduct = remoteProduct;
         LocalProduct = remoteProduct is null ? localProduct : localProduct.SynchronizedWith(remoteProduct);
     }
 
     internal IEnumerable<TurboSquidProcessed3DModel> Edited3DModels
-        => LocalProduct._3DModels.Cast<TurboSquidProcessed3DModel>()
-        .Join(RemoteProduct.files.Where(_ => _.type == "product_file"),
+        => Synchronized3DModels.Join(RemoteProduct.models,
             local => local.FileId,
             remote => remote.id,
             (local, remote) => new { Local = local, Remote = remote })
         .Where(_ => !_.Remote.Equals(_.Local))
         .Select(_ => _.Local);
+
+    IEnumerable<TurboSquidProcessed3DModel> Synchronized3DModels
+    {
+        get
+        {
+            try { return LocalProduct._3DModels.Cast<TurboSquidProcessed3DModel>(); }
+            catch (InvalidCastException)
+            { throw new InvalidOperationException($"Local {nameof(_3DModel)}s were not synchronized."); }
+        }
+    }
 }

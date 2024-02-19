@@ -5,6 +5,7 @@ using _3DProductsPublish.Turbosquid.Api;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using Microsoft.Net.Http.Headers;
 using System.Net;
+using System.Net.Http.Json;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
@@ -77,7 +78,7 @@ public partial class TurboSquid : HttpClient
             //if (remote.draft_id is not (null or 0))
             //{ await DeleteDraftAsync(); remote = TurboSquid3DProductMetadata.Product.Parse(await EditAsync()); }
 
-            var draft = new TurboSquid3DProductDraft(await CreateDraftAsync(), _3DProduct, remote);
+            var draft = new TurboSquid3DProductDraft(await CreateDraftAsync(), await RequestAwsStorageCredentialAsync(), _3DProduct, remote);
             _logger.Trace($"3D product draft with {draft.ID} ID has been created for {_3DProduct.Metadata.Title}.");
             return draft;
 
@@ -94,6 +95,22 @@ public partial class TurboSquid : HttpClient
             // TODO: Response returns 422 and the product doesn't get deleted which preserves draft information in `remote`. `/create_draft` returns already existing draft ID in such case.
             async Task DeleteDraftAsync()
                 => await DeleteAsync($"turbosquid/products/{_3DProduct.ID}/delete_draft", cancellationToken);
+
+            async Task<TurboSquidAwsSession> RequestAwsStorageCredentialAsync()
+            {
+                var authenticity_token = Credential.AuthenticityToken;
+                try
+                {
+                    var awsCredential = TurboSquidAwsSession.Parse(await
+                        (await this.PostAsJsonAsync("turbosquid/uploads//credentials", new { authenticity_token }, cancellationToken))
+                        .EnsureSuccessStatusCode()
+                        .Content.ReadAsStringAsync(cancellationToken));
+                    _logger.Trace($"AWS credential for {authenticity_token} session has been obtained.");
+                    return awsCredential;
+                }
+                catch (Exception ex)
+                { throw new Exception($"AWS credential request for {authenticity_token} session failed.", ex); }
+            }
         }
         catch (Exception ex)
         { throw new Exception($"Failed to create a 3D product draft for {_3DProduct.Metadata.Title}.", ex); }

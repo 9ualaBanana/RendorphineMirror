@@ -2,6 +2,7 @@
 using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.Turbosquid.Upload;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
+using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
@@ -31,7 +32,7 @@ public partial record TurboSquid3DProductMetadata
         return new(title, description, tags, await Category(), polygons, vertices, price, license, animated, collection, geometry, materials, rigged, textures, uvMapped, unwrappedUvs);
 
 
-        async Task<KeyValuePair<string, int>> Category()
+        async Task<_3DProduct.Metadata_.Category_> Category()
         {
             var httpClient = new HttpClient() { BaseAddress = TurboSquid.Origin};
             string categoryPrompt;
@@ -54,7 +55,7 @@ public partial record TurboSquid3DProductMetadata
         string title,
         string description,
         string[] tags,
-        KeyValuePair<string, int> category,
+        _3DProduct.Metadata_.Category_ category,
         int polygons,
         int vertices,
         double price,
@@ -71,7 +72,7 @@ public partial record TurboSquid3DProductMetadata
         Title = title;
         Description = description;
         Tags = tags;
-        Category = category.Key; Features.Add(category.Key, category.Value);
+        Category = category; Features.Add(category.Name, category.ID);
         Polygons = polygons;
         Vertices = vertices;
         Price = price;
@@ -102,7 +103,8 @@ public partial record TurboSquid3DProductMetadata
         }
     }
     string[] _tags = null!;
-    public string Category { get; }
+    public Category_ Category { get; internal set; }
+    public Category_? SubCategory { get; internal set; }
     public int Polygons
     {
         get => _polygons;
@@ -215,6 +217,7 @@ public partial record TurboSquid3DProductMetadata
         public bool? textures { get; init; } = default!;
         public bool? uv_mapped { get; init; } = default!;
         public List<File> files { get; init; } = default!;
+        internal IEnumerable<File> models => files.Where(_ => _.type == "product_file");
         public List<Preview> previews { get; init; } = default!;
 
 

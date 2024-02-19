@@ -12,6 +12,7 @@ public class Model3DUploadTab : Panel
             {
                 Title = "CAT X-Æ 727",
                 Description = "Dog on the catwalk",
+                Category = "animal",
                 Tags = new[] { "cat", "dog", "car", "death" },
                 License = _3DProduct.Metadata_.License_.Editorial,
                 Polygons = 123456,

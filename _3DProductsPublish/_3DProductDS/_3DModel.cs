@@ -4,10 +4,8 @@ namespace _3DProductsPublish._3DProductDS;
 
 public partial record _3DModel(string Path) : I3DProductAsset, IDisposable
 {
-    public string Name => System.IO.Path.GetFileName(Path);
-
     public static implicit operator string(_3DModel model) => model.Path;
-    public static implicit operator _3DModel(string path) => new(path);
+    public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
 
     internal string Archived => _archived ??= AssetContainer.Archive_.Pack(this, true);
     string? _archived;
@@ -56,7 +54,7 @@ public partial record _3DModel<TMetadata> : _3DModel
     }
 
     protected _3DModel(_3DModel<TMetadata> _3DModel)
-        : base(_3DModel as _3DModel)
+        : base(_3DModel)
     {
         Metadata = _3DModel.Metadata;
     }

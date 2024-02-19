@@ -54,14 +54,14 @@ public partial record TurboSquid3DProductMetadata
                     .Select(t => KeyValuePair.Create(t.Name, Enum.GetNames(getRendererType(t)).ToImmutableArray()))
                     .ToImmutableDictionary();
 
-                var infos = models.Select(f =>
+                var infos = models.Select(model =>
                 {
-                    var format = FileFormat_(f);
+                    var format = FileFormat_(model);
                     if (!format.IsNative())
-                        return new InputTurboSquidModelInfoRequest.ModelInfo(System.IO.Path.GetFileNameWithoutExtension(f.Path), format.ToString(), null);
+                        return new InputTurboSquidModelInfoRequest.ModelInfo(model.Name, format.ToString(), null);
 
                     var renderertype = getRendererType(getFormatType(format.ToString()));
-                    return new InputTurboSquidModelInfoRequest.ModelInfo(System.IO.Path.GetFileNameWithoutExtension(f.Path), format.ToString(), Enum.GetNames(renderertype).ToImmutableArray());
+                    return new InputTurboSquidModelInfoRequest.ModelInfo(model.Name, format.ToString(), Enum.GetNames(renderertype).ToImmutableArray());
                 }).ToImmutableArray();
 
                 return await
@@ -71,7 +71,7 @@ public partial record TurboSquid3DProductMetadata
             static DocumentSyntax DescribedAndSerialized(InputTurboSquidModelInfoRequest.Response.ResponseModelInfo? userinfo, _3DModel _3DModel)
             {
                 var metadata = new DocumentSyntax();
-                var table = new TableSyntax(System.IO.Path.GetFileNameWithoutExtension(_3DModel.Path));
+                var table = new TableSyntax(_3DModel.Name);
                 var fileFormat = FileFormat_(_3DModel);
                 table.Items.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.FileFormat)), fileFormat.ToString_());
                 if (userinfo is not null && fileFormat.IsNative())
@@ -92,17 +92,32 @@ public partial record TurboSquid3DProductMetadata
             {
                 try { return _3DModelComponents.FileFormat_.ToEnum(model); }
                 catch (Exception ex)
-                { throw new InvalidDataException($"{nameof(TurboSquid3DModelMetadata.FileFormat)} of {nameof(_3DModel)} ({System.IO.Path.GetFileNameWithoutExtension(model.Path)}) can't be deduced.", ex); }
+                { throw new InvalidDataException($"{nameof(TurboSquid3DModelMetadata.FileFormat)} of {nameof(_3DModel)} ({model.Name}) can't be deduced.", ex); }
             }
         }
 
-        internal (int? _3DProductID, IEnumerable<TurboSquid3DModelMetadata> _3DModelsMetadata) Read()
+        internal IEnumerable<TurboSquid3DModelMetadata> Read()
         {
             var toml = Toml.Parse(System.IO.File.ReadAllText(Path));
-            var modelsMetadata = int.TryParse(toml.Tables.FirstOrDefault()?.Name?.ToString(), out int _3DProductID) ?
-                toml.Tables.Skip(1).Select(TurboSquid3DModelMetadata.Read) :
-                toml.Tables.Select(TurboSquid3DModelMetadata.Read);
-            return (_3DProductID, Validated(modelsMetadata));
+            var modelsMetadata = int.TryParse(toml.Tables.FirstOrDefault()?.Name?.ToString(), out int _) ?
+                ReadPubished3DProductMetadata(toml.Tables) :
+                ReadUnpubished3DProductMetadata(toml.Tables);
+            return Validated(modelsMetadata);
+
+
+            IEnumerable<TurboSquid3DModelMetadata> ReadPubished3DProductMetadata(SyntaxList<TableSyntaxBase> tables)
+            {
+                var productMeta = tables.First();
+                _3DProduct.ID = int.Parse(productMeta.Name!.ToString()!);
+                _3DProduct.Metadata.Category = productMeta.Items.First() is KeyValueSyntax category ?
+                    new _3DProduct.Metadata_.Category_(category.Key!.ToString(), int.Parse(category.Value!.ToString())) :
+                    throw new MissingFieldException(nameof(_3DProduct.Metadata.Category));
+                if (productMeta.Items.LastOrDefault(_ => _.Value?.ToString() != _3DProduct.Metadata.Category.ID.ToString()) is KeyValueSyntax subcategory)
+                    _3DProduct.Metadata.SubCategory = new _3DProduct.Metadata_.Category_(category.Key!.ToString(), int.Parse(category.Value!.ToString()));
+                return ReadUnpubished3DProductMetadata(tables.Skip(1));
+            }
+            IEnumerable<TurboSquid3DModelMetadata> ReadUnpubished3DProductMetadata(IEnumerable<TableSyntaxBase> tables)
+                => tables.Select(TurboSquid3DModelMetadata.Read);
         }
 
         IEnumerable<TurboSquid3DModelMetadata> Validated(IEnumerable<TurboSquid3DModelMetadata> modelsMetadata)
@@ -123,7 +138,7 @@ public partial record TurboSquid3DProductMetadata
 
 static class TurboSquid3DProductMetadataFileExtensions
 {
-    internal static void Write(this TurboSquid3DProductMetadata.File metadataFile, _3DProduct<TurboSquid3DProductMetadata, TurboSquid3DModelMetadata> _3DProduct)
+    internal static void Write(this TurboSquid3DProductMetadata.File metadataFile, TurboSquid3DProduct _3DProduct)
     {
         using var _file = File.OpenWrite(metadataFile.Path);
         using var file = new StreamWriter(_file);
@@ -131,7 +146,7 @@ static class TurboSquid3DProductMetadataFileExtensions
         if (_3DProduct.ID is not 0)
         {
             var document = new DocumentSyntax();
-            document.Tables.Add(new TableSyntax(_3DProduct.ID.ToString()));
+            document.Tables.Add(_3DProduct);
             document.AddTrailingTriviaNewLine();
             document.WriteTo(file);
         }

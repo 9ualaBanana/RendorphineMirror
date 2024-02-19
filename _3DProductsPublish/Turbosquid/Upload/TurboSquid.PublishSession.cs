@@ -6,7 +6,6 @@ using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 using _3DProductsPublish.Turbosquid.Upload.Requests;
 using Microsoft.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Net.Mime;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
@@ -18,7 +17,6 @@ public partial class TurboSquid
         static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         internal readonly TurboSquid3DProductDraft Draft;
-        internal readonly TurboSquidAwsUploadCredentials AwsCredential;
         internal readonly TurboSquid Client;
         internal readonly CancellationToken CancellationToken;
 
@@ -28,39 +26,20 @@ public partial class TurboSquid
             {
                 _logger.Trace("Initializing session.");
                 // Session is initialized either as newly created draft or as already created draft (with ID) being edited so it's the draft functionality as well thus shall be moved there.
-                var session = new PublishSession(draft, await RequestAwsStorageCredentialsAsync(), client, cancellationToken);
+                var session = new PublishSession(draft, client, cancellationToken);
                 _logger.Debug($"Session is initialized with {client.Credential.AuthenticityToken} authenticity token.");
                 return session;
             }
             catch (Exception ex)
             { throw new Exception("Session initialization failed.", ex); }
-
-
-            async Task<TurboSquidAwsUploadCredentials> RequestAwsStorageCredentialsAsync()
-            {
-                var authenticity_token = client.Credential.AuthenticityToken;
-                try
-                {
-                    var credentials = TurboSquidAwsUploadCredentials.Parse(await
-                        (await client.PostAsJsonAsync("turbosquid/uploads//credentials", new { authenticity_token }, cancellationToken))
-                        .EnsureSuccessStatusCode()
-                        .Content.ReadAsStringAsync(cancellationToken));
-                    _logger.Trace($"AWS credential for {authenticity_token} session has been obtained.");
-                    return credentials;
-                }
-                catch (Exception ex)
-                { throw new Exception($"AWS credential request for {authenticity_token} session failed.", ex); }
-            }
         }
 
         PublishSession(
             TurboSquid3DProductDraft draft,
-            TurboSquidAwsUploadCredentials awsCredential,
             TurboSquid client,
             CancellationToken cancellationToken)
         {
             Draft = draft;
-            AwsCredential = awsCredential;
             Client = client;
             CancellationToken = cancellationToken;
         }
@@ -103,13 +82,12 @@ public partial class TurboSquid
 #else
                 foreach (var _3DModel in Draft.LocalProduct._3DModels.Where(_ => _ is not ITurboSquidProcessed3DProductAsset))
                 {
-                    string uploadKey = await UploadAssetAsyncAt(await _3DModel.Archive());
-                    modelsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_.RunAsync(_3DModel, uploadKey, this));
+                    string uploadKey = await UploadAssetAsyncAt(await _3DModel.Archived);
+                    modelsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.RunAsync(_3DModel, uploadKey, this));
                 }
 #endif
                 var processedModels = (await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.WhenAll(modelsProcessing)).Cast<TurboSquidProcessed3DModel>();
-                foreach (var processedModel in processedModels)
-                    Draft.LocalProduct.Synchronize(processedModel);
+                Draft.LocalProduct.Synchronize(processedModels);
                 _logger.Trace("3D models have been uploaded and processed.");
                 foreach (var processedModel in processedModels.Concat(Draft.Edited3DModels))
                     yield return processedModel;
@@ -279,9 +257,5 @@ public partial class TurboSquid
                 }
             }
         }
-
-
-        internal Uri UploadEndpointFor(FileStream asset, string unixTimestamp) =>
-            new(new Uri(new($"https://{AwsCredential.Bucket}.s3.amazonaws.com/{AwsCredential.KeyPrefix}"), unixTimestamp + '/'), Path.GetFileName(asset.Name));
     }
 }

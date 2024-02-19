@@ -1,37 +1,40 @@
-﻿namespace _3DProductsPublish.CGTrader._3DModelComponents;
+﻿using _3DProductsPublish._3DProductDS;
+using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
+
+namespace _3DProductsPublish.CGTrader._3DModelComponents;
 
 public record CGTrader3DProductCategory
 {
-    public readonly int CategoryID;
-    public readonly int SubCategoryID;
+    public readonly _3DProduct.Metadata_.Category_ Category;
+    public readonly _3DProduct.Metadata_.Category_ SubCategory;
 
-    CGTrader3DProductCategory(int categoryId, int subCategoryId) =>
-        (CategoryID, SubCategoryID) = (categoryId, subCategoryId);
+    CGTrader3DProductCategory(_3DProduct.Metadata_.Category_ category, _3DProduct.Metadata_.Category_ subCategory) =>
+        (Category, SubCategory) = (category, subCategory);
 
-    public static CGTrader3DProductCategory Aircraft(AircraftSubCategory subCategory) => new(1, (int)subCategory);
-    public static CGTrader3DProductCategory Animals(AnimalsSubCategory subCategory) => new(10, (int)subCategory);
-    public static CGTrader3DProductCategory Architectural(ArchitecturalSubCategory subCategory) => new(18, (int)subCategory);
-    public static CGTrader3DProductCategory Exterior(ExteriorSubCategory subCategory) => new(27, (int)subCategory);
-    public static CGTrader3DProductCategory Interior(InteriorSubCategory subCategory) => new(40, (int)subCategory);
-    public static CGTrader3DProductCategory Car(CarSubCategory subCategory) => new(50, (int)subCategory);
-    public static CGTrader3DProductCategory Character(CharacterSubCategory subCategory) => new(58, (int)subCategory);
-    public static CGTrader3DProductCategory Electoronics(ElectronicsSubCategory subCategory) => new(67, (int)subCategory);
-    public static CGTrader3DProductCategory Food(FoodSubCategory subCategory) => new(73, (int)subCategory);
-    public static CGTrader3DProductCategory Furniture(FurnitureSubCategory subCategory) => new(78, (int)subCategory);
-    public static CGTrader3DProductCategory Household(HouseholdSubCategory subCategory) => new(98, (int)subCategory);
-    public static CGTrader3DProductCategory Industrial(IndustrialSubCategory subCategory) => new(102, (int)subCategory);
-    public static CGTrader3DProductCategory Plant(PlantSubCategory subCategory) => new(107, (int)subCategory);
-    public static CGTrader3DProductCategory Science(ScienceSubCategory subCategory) => new(115, (int)subCategory);
-    public static CGTrader3DProductCategory Space(SpaceSubCategory subCategory) => new(119, (int)subCategory);
-    public static CGTrader3DProductCategory Sports(SportsSubCategory subCategory) => new(124, (int)subCategory);
-    public static CGTrader3DProductCategory Vehicle(VehicleSubCategory subCategory) => new(130, (int)subCategory);
-    public static CGTrader3DProductCategory Watercraft(WatercraftSubCategory subCategory) => new(141, (int)subCategory);
-    public static CGTrader3DProductCategory Military(MilitarySubCategory subCategory) => new(147, (int)subCategory);
-    public static CGTrader3DProductCategory Scanned3DModels(Scanned3DModelsSubCategory subCategory) => new(147, (int)subCategory);
-    public static CGTrader3DProductCategory ScriptsAndPlugins(ScriptsAndPluginsSubCategory subCategory) => new(230, (int)subCategory);
-    public static CGTrader3DProductCategory EngineeringParts(EngineeringPartsSubCategory subCategory) => new(237, (int)subCategory);
-    public static CGTrader3DProductCategory Various(VariousSubCategory subCategory) => new(315, (int)subCategory);
-    public static CGTrader3DProductCategory Textures(TexturesSubCategory subCategory) => new(849, (int)subCategory);
+    public static CGTrader3DProductCategory Aircraft(AircraftSubCategory subCategory) => new(new Category_(nameof(Aircraft), 1), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Animals(AnimalsSubCategory subCategory) => new(new Category_(nameof(Animals), 10), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Architectural(ArchitecturalSubCategory subCategory) => new(new Category_(nameof(Architectural), 18), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Exterior(ExteriorSubCategory subCategory) => new(new Category_(nameof(Exterior), 27), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Interior(InteriorSubCategory subCategory) => new(new Category_(nameof(Interior), 40), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Car(CarSubCategory subCategory) => new(new Category_(nameof(Car), 50), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Character(CharacterSubCategory subCategory) => new(new Category_(nameof(Character), 58), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Electoronics(ElectronicsSubCategory subCategory) => new(new Category_(nameof(Electoronics), 67), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Food(FoodSubCategory subCategory) => new(new Category_(nameof(Food), 73), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Furniture(FurnitureSubCategory subCategory) => new(new Category_(nameof(Furniture), 78), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Household(HouseholdSubCategory subCategory) => new(new Category_(nameof(Household), 98), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Industrial(IndustrialSubCategory subCategory) => new(new Category_(nameof(Industrial), 102), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Plant(PlantSubCategory subCategory) => new(new Category_(nameof(Plant), 107), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Science(ScienceSubCategory subCategory) => new(new Category_(nameof(Science), 115), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Space(SpaceSubCategory subCategory) => new(new Category_(nameof(Space), 119), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Sports(SportsSubCategory subCategory) => new(new Category_(nameof(Sports), 124), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Vehicle(VehicleSubCategory subCategory) => new(new Category_(nameof(Vehicle), 130), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Watercraft(WatercraftSubCategory subCategory) => new(new Category_(nameof(Watercraft), 141), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Military(MilitarySubCategory subCategory) => new(new Category_(nameof(Military), 147), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Scanned3DModels(Scanned3DModelsSubCategory subCategory) => new(new Category_(nameof(Scanned3DModels), 147), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory ScriptsAndPlugins(ScriptsAndPluginsSubCategory subCategory) => new(new Category_(nameof(ScriptsAndPlugins), 230), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory EngineeringParts(EngineeringPartsSubCategory subCategory) => new(new Category_(nameof(EngineeringParts), 237), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Various(VariousSubCategory subCategory) => new(new Category_(nameof(Various), 315), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
+    public static CGTrader3DProductCategory Textures(TexturesSubCategory subCategory) => new(new Category_(nameof(Textures), 849), new Category_(Enum.GetName(subCategory)!, (int)subCategory));
 }
 
 public enum AircraftSubCategory
