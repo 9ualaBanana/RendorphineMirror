@@ -6,28 +6,30 @@ namespace _3DProductsPublish.Turbosquid;
 
 public class TurboSquidContainer
 {
-    readonly INodeSettings _settings;
     readonly INodeGui _gui;
-    public required ILogger<TurboSquidContainer> Logger { get; init; }
-    NetworkCredential? _prevNetworkCredentials;
-    TurboSquid? _turboSquid;
+    readonly ILogger<TurboSquidContainer> _logger;
+    readonly Dictionary<string, TurboSquidInstance> _instances = [];
 
-    public TurboSquidContainer(INodeSettings settings, INodeGui gui)
+    public TurboSquidContainer(INodeGui gui, ILogger<TurboSquidContainer> logger)
     {
-        _settings = settings;
         _gui = gui;
+        _logger = logger;
     }
 
-    public async Task<TurboSquid> GetAsync(CancellationToken token)
+    public async Task<TurboSquid> GetAsync(string username, string password, CancellationToken token)
     {
-        Logger.LogInformation("Getting the turbo squidder thingamajig");
-        if (_turboSquid is not null && (_prevNetworkCredentials is null || (_prevNetworkCredentials.UserName == _settings.TurboSquidUsername && _prevNetworkCredentials.Password == _settings.TurboSquidPassword)))
-        {
-            Logger.LogInformation("Already logged in and the creds were not changed, returning");
-            return _turboSquid;
-        }
+        _logger.LogInformation("Getting the turbo squidder thingamajig");
+        if (_instances.TryGetValue(username, out var turbo) && (turbo.Credentials.UserName == username && turbo.Credentials.Password == password))
+            return turbo.TurboSquid;
 
-        Logger.LogInformation("Logging in...");
-        return _turboSquid = await TurboSquid.LogInAsyncUsing(_prevNetworkCredentials = new NetworkCredential(_settings.TurboSquidUsername, _settings.TurboSquidPassword), _gui, token);
+        _logger.LogInformation("Logging in...");
+        var cred = new NetworkCredential(username, password);
+        var instance = await TurboSquid.LogInAsyncUsing(cred, _gui, token);
+        _instances[username] = new TurboSquidInstance(instance, cred);
+
+        return instance;
     }
+
+
+    record TurboSquidInstance(TurboSquid TurboSquid, NetworkCredential Credentials);
 }

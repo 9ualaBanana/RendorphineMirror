@@ -172,46 +172,63 @@ public class RFProductsTab : Panel
         {
             Product = product;
 
-            var grid = new Grid()
+            var grid = new StackPanel()
             {
-                RowDefinitions = RowDefinitions.Parse("Auto Auto Auto Auto Auto"),
-                ColumnDefinitions = ColumnDefinitions.Parse("Auto *"),
+                Orientation = Orientation.Vertical,
                 Children =
                 {
                     new TextBox() { Text = $"ID: {product[nameof(RFProduct.ID)]}", IsReadOnly = true },
-                    new TextBox() { Text = $"Path: {product[nameof(RFProduct.Path)]}", IsReadOnly = true }.WithRow(1),
-                    new MPButton()
+                    new TextBox() { Text = $"Path: {product[nameof(RFProduct.Path)]}", IsReadOnly = true },
+                    new StackPanel()
                     {
-                        Text = "Open directory",
-                        OnClick = () =>
+                        Orientation = Orientation.Horizontal,
+                        Children =
                         {
-                            var target = product[nameof(RFProduct.Path)]!.Value<string>();
-                            if (!Directory.Exists(target))
-                                target = Path.GetDirectoryName(target)!;
+                            new MPButton()
+                            {
+                                Text = "Open directory",
+                                OnClick = () =>
+                                {
+                                    var target = product[nameof(RFProduct.Path)]!.Value<string>();
+                                    if (!Directory.Exists(target))
+                                        target = Path.GetDirectoryName(target)!;
 
-                            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+                                    Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+                                },
+                            },
+                            new MPButton()
+                            {
+                                Text = "Delete from DB (no files deleted)",
+                                OnClickSelf = async (self) =>
+                                {
+                                    var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product[nameof(RFProduct.ID)]!.Value<string>()!));
+                                    await self.Flash(result);
+                                },
+                            },
+                            new MPButton()
+                            {
+                                Text = "Upload to TurboSquid",
+                                OnClickSelf = async (self) =>
+                                {
+                                    var result = await LocalApi.Default.Post("upload3drfproduct", "Uploading 3d rfproduct to turbosquid",
+                                        ("target", "turbosquid"), ("id", product[nameof(RFProduct.ID)]!.Value<string>().ThrowIfNull())
+                                    );
+                                    await self.Flash(result);
+                                },
+                            },
+                            new MPButton()
+                            {
+                                Text = "Upload to TurboSquid using account from _Submit.json",
+                                OnClickSelf = async (self) =>
+                                {
+                                    var result = await LocalApi.Default.Post("upload3drfproductsubmitjson", "Uploading 3d rfproduct to turbosquid",
+                                        ("target", "turbosquid"), ("id", product[nameof(RFProduct.ID)]!.Value<string>().ThrowIfNull())
+                                    );
+                                    await self.Flash(result);
+                                },
+                            },
                         },
-                    }.WithRow(2),
-                    new MPButton()
-                    {
-                        Text = "Delete from DB (no files deleted)",
-                        OnClickSelf = async (self) =>
-                        {
-                            var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product[nameof(RFProduct.ID)]!.Value<string>()!));
-                            await self.Flash(result);
-                        },
-                    }.WithRow(3),
-                    new MPButton()
-                    {
-                        Text = "Upload to TurboSquid",
-                        OnClickSelf = async (self) =>
-                        {
-                            var result = await LocalApi.Default.Post("upload3drfproduct", "Uploading 3d rfproduct to turbosquid",
-                                ("target", "turbosquid"), ("id", product[nameof(RFProduct.ID)]!.Value<string>().ThrowIfNull())
-                            );
-                            await self.Flash(result);
-                        },
-                    }.WithRow(4),
+                    },
                 },
             };
             Children.Add(grid);

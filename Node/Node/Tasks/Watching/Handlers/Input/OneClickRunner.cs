@@ -223,7 +223,7 @@ public class OneClickRunner : OneClickRunnerInfo
         {
             if (RFProducts.GetProductsWithContainerAt(dir).Any()) continue;
 
-            var target = Path.Combine(Input.RFProductTargetDirectory, Path.GetFileName(dir));
+            var target = Path.Combine(Input.RFProductsDirectory, Path.GetFileName(dir));
             Logger.Info($"Creating a new RFProduct from {dir} in {target}");
             await RFProductFactory.CreateAsync(dir, target, default);
         }
@@ -601,22 +601,36 @@ public class OneClickRunner : OneClickRunnerInfo
     }
     async Task PublishRFProducts(CancellationToken token)
     {
-        var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(token);
         var ui = Container.Resolve<INodeGui>();
 
         foreach (var rfproduct in RFProducts.RFProducts.Values.Where(r => r.Type == nameof(RFProduct._3D) && r.Path.StartsWith(Path.GetFullPath(Input.RFProductsDirectory))))
         {
-            if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
-            {
-                Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault() ?? "<empty turbosquid.meta>");
-                if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault()?.Contains(@"\[\d+\]") ?? false)
-                    continue;
-            }
+            var submitJson = JObject.Parse(Directory.GetFiles(rfproduct.Idea.Path).Single(f => f.EndsWith("_Submit.json")));
 
-            Logger.Info($"Publishing {rfproduct}");
-            await turbo.PublishAsync(rfproduct, ui, token);
+            if ((submitJson["toSubmitSquid"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
+            {
+                if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
+                {
+                    Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault() ?? "<empty turbosquid.meta>");
+                    if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault()?.Contains(@"\[\d+\]") ?? false)
+                        continue;
+                }
+
+                var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
+                var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
+
+                Logger.Info($"Publishing to turbosquid: {rfproduct}");
+                var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(username, password, token);
+                await turbo.PublishAsync(rfproduct, ui, token);
+            }
+            else if ((submitJson["toSubmitTrader"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
+            {
+                var username = submitJson["LoginCGTrader"]!.ToObject<string>().ThrowIfNull();
+                var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
+            }
         }
     }
+    enum ToSubmit { Submit, SubmitOffline, None }
 
     async Task<string> UpdateUnityTemplates()
     {

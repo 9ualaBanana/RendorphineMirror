@@ -23,9 +23,6 @@ public class OneClickWatchingTaskInputInfo : IWatchingTaskInputInfo
     public bool AutoPublishRFProducts { get; set; } = false;
 
     [LocalDirectory]
-    public string RFProductTargetDirectory { get; init; } = "";
-
-    [LocalDirectory]
     public string TestMzpDirectory { get; }
 
     [LocalDirectory]

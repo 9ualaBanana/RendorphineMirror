@@ -52,7 +52,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
                     ExportInfo = source.ExportInfo ?? [],
                     AutoCreateRFProducts = source.AutoCreateRFProducts,
                     AutoPublishRFProducts = source.AutoPublishRFProducts,
-                    RFProductTargetDirectory = source.RFProductTargetDirectory,
+                    RFProductsDirectory = source.RFProductsDirectory,
                 };
             }
         }, true);

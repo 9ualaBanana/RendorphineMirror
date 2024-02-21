@@ -102,7 +102,7 @@ public class OneClickTab : Panel
                             Unity templates dir: {task.UnityTemplatesDir}
                             Auto create RFP: {task.AutoCreateRFProducts}
                             Auto publish RFP: {task.AutoCreateRFProducts}
-                            RFP target directory: {task.RFProductTargetDirectory}
+                            RFP target directory: {task.RFProductsDirectory}
                             """,
                     }.Named("Info"),
                     new TextBlock().With(tb =>
@@ -146,7 +146,7 @@ public class OneClickTab : Panel
             var rfproductTextBox = new TextBox()
             {
                 Watermark = "RFProduct target directory",
-                Text = task.RFProductTargetDirectory ?? "",
+                Text = task.RFProductsDirectory ?? "",
             };
 
             var updateBtn = new MPButton()

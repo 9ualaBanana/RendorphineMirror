@@ -27,6 +27,7 @@ global using NodeToUI;
 global using Logger = NLog.Logger;
 global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
+using _3DProductsPublish.Turbosquid;
 using Node;
 using Node.Services.Targets;
 using SevenZip;
@@ -55,6 +56,8 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
 
+var logger = container.Resolve<ILogger<Program>>();
+logger.Info("PRODUCTS: " + string.Join(", ", container.Resolve<IRFProductStorage>().RFProducts.Values.Select(r => r.Type + ": " + r.GetType().Name)));
 if (false)
 {
     var RFProductFactory = container.Resolve<RFProduct.Factory>();
@@ -67,53 +70,55 @@ if (false)
     var Logger = container.Resolve<ILogger<Program>>();
     while (true)
     {
+        await Task.Delay(1000);
+
         try
         {
-            var read = Console.ReadLine()?.Trim();
-            Logger.Info("Received " + read);
+            var rfps = container.Resolve<IRFProductStorage>();
 
-            if (read == "rf")
+            Logger.Info("rf");
+            foreach (var productDir in Directory.GetDirectories("C:/occ/inproc"))
             {
-                var rfps = container.Resolve<IRFProductStorage>();
+                Logger.Info($"Producting {productDir}");
 
-                foreach (var productDir in Directory.GetDirectories("C:/occ/inproc"))
-                {
-                    Logger.Info($"Producting {productDir}");
+                if (File.Exists(Path.Combine(productDir, ".rfproducted")))
+                    Logger.Info("No, already exists");
 
-                    if (File.Exists(Path.Combine(productDir, ".rfproducted")))
-                        Logger.Info("No, already exists");
+                if (File.Exists(Path.Combine(productDir, ".rfproducted"))) continue;
 
-                    if (File.Exists(Path.Combine(productDir, ".rfproducted"))) continue;
-
-                    var rfp = await RFProductFactory.CreateAsync(productDir, Directories.DirCreated(Input.RFProductsDirectory, Path.GetFileNameWithoutExtension(productDir)), default, false);
-                    Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
-                    File.Create(Path.Combine(productDir, ".rfproducted")).Dispose();
-                }
+                var rfp = await RFProductFactory.CreateAsync(productDir, Directories.DirCreated(Input.RFProductsDirectory, Path.GetFileNameWithoutExtension(productDir)), default, false);
+                Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
+                File.Create(Path.Combine(productDir, ".rfproducted")).Dispose();
             }
-            if (read == "publish")
+            Logger.Info("rfe");
+
+            //
+
+            Logger.Info("brfes t");
+            var turbo = container.Resolve<TurboSquidContainer>();
+            Logger.Info("AREST");
+            var ui = container.Resolve<INodeGui>();
+            Logger.Info("re");
+
+            Logger.Info($"Products: {string.Join(", ", container.Resolve<IRFProductStorage>().RFProducts.Values.Select(r => $"{r.Type} ${r.Path}"))}");
+
+            foreach (var rfproduct in container.Resolve<IRFProductStorage>().RFProducts.Values.Where(r => r.Type == nameof(RFProduct._3D) && r.Path.StartsWith(Path.GetFullPath(Input.RFProductsDirectory))))
             {
-                var turbo = container.Resolve<_3DProductsPublish.Turbosquid.Upload.TurboSquid>();
-                var ui = container.Resolve<INodeGui>();
-
-                Logger.Info($"Products: {string.Join(", ", container.Resolve<IRFProductStorage>().RFProducts.Values.Select(r => $"{r.Type} ${r.Path}"))}");
-
-                foreach (var rfproduct in container.Resolve<IRFProductStorage>().RFProducts.Values.Where(r => r.Type == nameof(RFProduct._3D) && r.Path.StartsWith(Path.GetFullPath(Input.RFProductsDirectory))))
+                Logger.Info($"Publishing {rfproduct}");
+                if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
                 {
-                    Logger.Info($"Publishing {rfproduct}");
-                    if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
+                    Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First());
+                    if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First().Contains(@"\[\d+\]"))
                     {
-                        Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First());
-                        if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).First().Contains(@"\[\d+\]"))
-                        {
-                            Logger.Info("No, not really.");
-                            continue;
-                        }
+                        Logger.Info("No, not really.");
+                        continue;
                     }
-
-                    //var p = _3DProduct.FromDirectory(rfproduct.Path);
-                    //TurboSquid3DProduct.FromDirectory(rfproduct.Idea.Path).With_();
-                    await turbo.PublishAsync(rfproduct, ui, token);
                 }
+
+                Logger.Info("pubpusfbiop");
+                //var p = _3DProduct.FromDirectory(rfproduct.Path);
+                //TurboSquid3DProduct.FromDirectory(rfproduct.Idea.Path).With_();
+                // await (await turbo.GetAsync(default)).PublishAsync(rfproduct, ui, token);
             }
         }
         catch (Exception ex)
