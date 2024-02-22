@@ -9,6 +9,7 @@ public enum WatchingTaskInputType
     OtherNode,
     RectReleases,
     OneClick,
+    Generate3DRFProduct,
 }
 [JsonConverter(typeof(StringEnumConverter))]
 public enum WatchingTaskOutputType
