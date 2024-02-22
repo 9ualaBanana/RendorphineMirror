@@ -25,7 +25,8 @@ public partial record RFProduct
         {
             if (Archive_.IsArchive(idea))
                 idea = Archive_.Unpack(idea);
-            var id = await ID(container, cancellationToken);
+
+            var id = await GenerateIDAsync(cancellationToken);
             if (Storage.RFProducts.TryGetValue(id, out var product))
                 return product;
             else
@@ -46,10 +47,19 @@ public partial record RFProduct
             }
 
 
-            async Task<string> ID(AssetContainer container, CancellationToken cancellationToken)
+            static async Task<string> GenerateIDAsync(CancellationToken cancellationToken)
             {
-                using var productNameStream = new MemoryStream(_encoding.GetBytes(System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(container))));
-                return Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(NodeSettings.AuthInfo.ThrowIfNull("Not authenticated").Guid), productNameStream, cancellationToken))
+                string userFile = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "renderfin", "user");
+                if (!File.Exists(userFile)) File.Create(userFile).Dispose();
+                var userId = (await File.ReadAllLinesAsync(userFile, cancellationToken)).SingleOrDefault();
+                if (userId is null)
+                {
+                    userId = Guid.NewGuid().ToString();
+                    File.WriteAllText(userFile, userId);
+                }
+
+                using var productNameStream = new MemoryStream(_encoding.GetBytes(Guid.NewGuid().ToString()));
+                return Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(userId), productNameStream, cancellationToken))
                     .Replace('/', '-')
                     .Replace('+', '_');
             }
