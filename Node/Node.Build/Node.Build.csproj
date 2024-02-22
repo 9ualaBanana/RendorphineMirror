@@ -10,6 +10,9 @@
     <ProjectReference Include="..\Node.Pinger\Node.Pinger.csproj" />
     <ProjectReference Include="..\Node\Node.csproj" />
     <ProjectReference Include="..\Node.UI\Node.UI.csproj" />
+    
+    <!-- To fix th existance of CefSharp.MinimalExample.OffScreen.netcore.runtimeconfig.json which breaks everything -->
+    <PackageReference Include="CefSharp.OffScreen.NETCore" Version="120.1.110" />
   </ItemGroup>
 
 </Project>
