@@ -35,7 +35,12 @@ public partial record RFProduct
                     return await CreateAsync<Image.Idea_, Image>(imageIdea, container, cancellationToken);
                 else throw new NotImplementedException();
             }
-            catch { container?.Delete(); throw; }
+            catch
+            {
+                foreach (var qsPreview in container.EnumerateEntries(EntryType.NonContainers).Where(_ => _.StartsWith("qs_")))
+                    File.Delete(qsPreview);
+                throw;
+            }
         }
         internal async Task<TProduct> CreateAsync<TIdea, TProduct>(TIdea idea, AssetContainer container, CancellationToken cancellationToken)
             where TIdea : Idea_
