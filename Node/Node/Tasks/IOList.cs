@@ -85,5 +85,6 @@ public static class IOList
         builder.RegisterWatchingInput<OtherUserWatchingTaskHandler>();
         builder.RegisterWatchingInput<RectReleasesWatchingTaskHandler>();
         builder.RegisterWatchingInput<OneClickWatchingTaskInputHandler>();
+        builder.RegisterWatchingInput<Generate3DRFProductTaskHandler>();
     }
 }

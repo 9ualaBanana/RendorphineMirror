@@ -158,7 +158,7 @@ public class RFProductsTab : Panel
                 {
                     stack.Children.Clear();
 
-                    foreach (var product in Products)
+                    foreach (var product in Products.ToArray())
                         stack.Children.Add(new RFProductUi(product.Value));
                 });
             }, true);

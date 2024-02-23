@@ -25,7 +25,7 @@ internal record TurboSquidAwsSession
         return new(
             (string)uploadCredentialsJson["access_key"]!,
             (string)uploadCredentialsJson["bucket"]!,
-            DateTimeOffset.Parse((string)uploadCredentialsJson["current_server_time"]!).ToOffset(DateTimeOffset.Now.Offset).DateTime,
+            uploadCredentialsJson["current_server_time"]!.ToObject<DateTime>(),
             (string)uploadCredentialsJson["key_prefix"]!,
             (string)uploadCredentialsJson["region"]!,
             (string)uploadCredentialsJson["secret_key"]!,

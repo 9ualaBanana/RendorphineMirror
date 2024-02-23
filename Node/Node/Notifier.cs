@@ -31,6 +31,7 @@ public class Notifier
             var ip = await PortForwarding.GetPublicIPAsync();
             text = $"""
                 *{Settings.NodeName}* *{Init.Version}*   `{ip}:{Settings.UPnpPort}`   `{ip}:{Settings.UPnpServerPort}`
+                *{Environment.UserName}* *{Environment.MachineName}*
                 ```json
                 {JsonConvert.SerializeObject((Settings.AuthInfo as object) ?? "unauth")}
                 ```
