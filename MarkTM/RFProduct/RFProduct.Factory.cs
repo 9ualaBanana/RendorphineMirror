@@ -1,6 +1,5 @@
 ﻿using Node.Common.Models;
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
 
 namespace MarkTM.RFProduct;
 
@@ -8,9 +7,9 @@ public partial record RFProduct
 {
     public class Factory
     {
+        public required _3D.Constructor _3D { get; init; }
         public required Video.Constructor Video { get; init; }
         public required Image.Constructor Image { get; init; }
-        public required _3D.Constructor _3D { get; init; }
         public required IRFProductStorage Storage { get; init; }
         public required INodeSettings NodeSettings { get; init; }
 
@@ -26,59 +25,33 @@ public partial record RFProduct
             if (Archive_.IsArchive(idea))
                 idea = Archive_.Unpack(idea);
 
-            var id = await GenerateIDAsync(cancellationToken);
-            if (Storage.RFProducts.TryGetValue(id, out var product))
-                return product;
-            else
+            try
             {
-                try
-                {
-                    if (_3D.Recognizer.TryRecognize(idea) is _3D.Idea_ _3dIdea)
-                        product = await CreateAsync<_3D.Idea_, _3D>(_3dIdea, id, container, cancellationToken);
-                    else if (Video.Recognizer.TryRecognize(idea) is Video.Idea_ videoIdea)
-                        product = await CreateAsync<Video.Idea_, Video>(videoIdea, id, container, cancellationToken);
-                    else if (Image.Recognizer.TryRecognize(idea) is Image.Idea_ imageIdea)
-                        product = await CreateAsync<Image.Idea_, Image>(imageIdea, id, container, cancellationToken);
-                    else throw new NotImplementedException();
-
-                    return product;
-                }
-                catch { container?.Delete(); throw; }
+                if (_3D.Recognizer.TryRecognize(idea) is _3D.Idea_ _3dIdea)
+                    return await CreateAsync<_3D.Idea_, _3D>(_3dIdea, container, cancellationToken);
+                else if (Video.Recognizer.TryRecognize(idea) is Video.Idea_ videoIdea)
+                    return await CreateAsync<Video.Idea_, Video>(videoIdea, container, cancellationToken);
+                else if (Image.Recognizer.TryRecognize(idea) is Image.Idea_ imageIdea)
+                    return await CreateAsync<Image.Idea_, Image>(imageIdea, container, cancellationToken);
+                else throw new NotImplementedException();
             }
-
-
-            static async Task<string> GenerateIDAsync(CancellationToken cancellationToken)
-            {
-                string userFile = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "renderfin", "user");
-                if (!File.Exists(userFile)) File.Create(userFile).Dispose();
-                var userId = (await File.ReadAllLinesAsync(userFile, cancellationToken)).SingleOrDefault();
-                if (userId is null)
-                {
-                    userId = Guid.NewGuid().ToString();
-                    File.WriteAllText(userFile, userId);
-                }
-
-                using var productNameStream = new MemoryStream(_encoding.GetBytes(Guid.NewGuid().ToString()));
-                return Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(userId), productNameStream, cancellationToken))
-                    .Replace('/', '-')
-                    .Replace('+', '_');
-            }
+            catch { container?.Delete(); throw; }
         }
-        internal async Task<TProduct> CreateAsync<TIdea, TProduct>(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken)
+        internal async Task<TProduct> CreateAsync<TIdea, TProduct>(TIdea idea, AssetContainer container, CancellationToken cancellationToken)
             where TIdea : Idea_
             where TProduct : RFProduct
         {
             RFProduct product = idea switch
             {
-                _3D.Idea_ idea_ => (await _3D.CreateAsync(idea_, id, container, cancellationToken)) with { SubProducts = await CreateSubProductsAsync(idea_, _3D, cancellationToken) },
-                Video.Idea_ idea_ => await Video.CreateAsync(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Video, cancellationToken) },
-                Image.Idea_ idea_ => await Image.CreateAsync(idea_, id, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Image, cancellationToken) },
+                _3D.Idea_ idea_ => (await _3D.CreateAsync(idea_, container, cancellationToken)) with { SubProducts = await CreateSubProductsAsync(idea_, _3D, cancellationToken) },
+                Video.Idea_ idea_ => await Video.CreateAsync(idea_, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Video, cancellationToken) },
+                Image.Idea_ idea_ => await Image.CreateAsync(idea_, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Image, cancellationToken) },
                 _ => throw new NotImplementedException()
             };
 
             Storage.RFProducts.Add(product);
 
-            return product as TProduct ?? throw new TypeInitializationException(typeof(TProduct).FullName, default);
+            return product as TProduct ?? throw new TypeInitializationException(typeof(TProduct).FullName, null);
 
 
             async Task<ImmutableHashSet<RFProduct>> CreateSubProductsAsync<TIdea, TPreviews, TProduct>(

@@ -3,6 +3,7 @@ using Node.Tasks;
 using Node.Tasks.Models;
 using Node.Tasks.Models.ExecInfo;
 using System.Collections;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace MarkTM.RFProduct;
@@ -37,15 +38,39 @@ public partial record RFProduct : AssetContainer
         public required Idea_.IRecognizer<TIdea> Recognizer { get; init; }
         public required QSPreviews.Generator<TPreviews> QSPreviews { get; init; }
 
-        internal async Task<TProduct> CreateAsync(TIdea idea, string id, AssetContainer container, CancellationToken cancellationToken)
+        internal async Task<TProduct> CreateAsync(TIdea idea, AssetContainer container, CancellationToken cancellationToken)
         {
-            // FIX: QSPreviews and Idea paths don't change along with their container and it's fucked up.
-            idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Copy);
+            if (idea.Path != container.Path)
+                // FIX: QSPreviews and Idea paths don't change along with their container and it's fucked up.
+                idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Copy);
+
             var previews = await QSPreviews.GenerateAsync(await GetPreviewInputAsync(idea), container, cancellationToken);
-            return Create(idea, id, previews, container);
+            previews.MoveTo(container);
+
+            return Create(idea, await GenerateIDAsync(cancellationToken), previews, container);
+
+
+            static async Task<string> GenerateIDAsync(CancellationToken cancellationToken)
+            {
+                string userFile = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "renderfin", "user");
+                if (!File.Exists(userFile)) File.Create(userFile).Dispose();
+                var userId = (await File.ReadAllLinesAsync(userFile, cancellationToken)).SingleOrDefault();
+                if (userId is null)
+                {
+                    userId = Guid.NewGuid().ToString();
+                    File.WriteAllText(userFile, userId);
+                }
+
+                using var productNameStream = new MemoryStream(_encoding.GetBytes(Guid.NewGuid().ToString()));
+                return Convert.ToBase64String(await HMACSHA512.HashDataAsync(_encoding.GetBytes(userId), productNameStream, cancellationToken))
+                    .Replace('/', '-')
+                    .Replace('+', '_');
+            }
         }
-        // Represents virtual constructor method that merely delegates construction to concrete children constructors,
-        // thus circumvents placing new() constraint on TProduct and creating it right here in the base class.
+        /// <summary>
+        /// Represents virtual constructor method that merely delegates construction to concrete children constructors,
+        /// thus circumvents placing <see langword="new()"/> constraint on <typeparamref name="TProduct"/> and creating it right here in the base class.
+        /// </summary>
         internal abstract TProduct Create(TIdea idea, string id, TPreviews previews, AssetContainer container);
         protected virtual ValueTask<string> GetPreviewInputAsync(TIdea idea) => ValueTask.FromResult(idea.Path);
         internal virtual string[] SubProductsIdeas(TIdea idea) => [];
@@ -56,7 +81,6 @@ public partial record RFProduct : AssetContainer
         Idea = idea;
         ID = id;
         QSPreview = previews;
-        QSPreview.BindTo(this);
     }
 
     // TODO: Move the logic to JsonConverter ?.
@@ -139,10 +163,10 @@ public partial record RFProduct : AssetContainer
                 => ValueTask.FromResult(new string[] { idea } as IReadOnlyList<string>);
         }
 
-        public void BindTo(RFProduct product)
+        public void MoveTo(string container)
         {
             foreach (var preview in this)
-                preview.MoveTo(product, name: $"qs_{System.IO.Path.GetFileName(preview)}");
+                preview.MoveTo(container, name: $"qs_{System.IO.Path.GetFileName(preview)}");
         }
 
         public abstract IEnumerator<FileWithFormat> GetEnumerator();
