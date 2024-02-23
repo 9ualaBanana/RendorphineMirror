@@ -301,6 +301,7 @@ public class OneClickRunner : OneClickRunnerInfo
             Logging = new ProcessLauncher.ProcessLogging() { ILogger = Logger, },
             ThrowOnStdErr = false,
             ThrowOnNonZeroExitCode = false,
+            Timeout = TimeSpan.FromHours(2),
             Arguments =
             {
                 // minimized, dialog boxes suppressed
