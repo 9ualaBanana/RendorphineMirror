@@ -150,13 +150,25 @@ public class RFProductsTab : Panel
                 Orientation = Orientation.Vertical,
                 Spacing = 20,
             };
-            Children.Add(new ScrollViewer() { Content = stack });
+            var amounttb = new TextBlock();
+            Children.Add(new ScrollViewer()
+            {
+                Content = new StackPanel()
+                {
+                    Children =
+                    {
+                        amounttb,
+                        stack,
+                    },
+                }
+            });
 
             Products.SubscribeChanged(() =>
             {
                 Dispatcher.UIThread.Post(() =>
                 {
                     stack.Children.Clear();
+                    amounttb.Text = $"Products: {Products.Count}";
 
                     foreach (var product in Products.ToArray())
                         stack.Children.Add(new RFProductUi(product.Value));
