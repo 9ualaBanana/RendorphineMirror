@@ -33,7 +33,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
     {
         var state = NodeGlobalState;
 
-        state.WatchingTasks.BindOneWayFrom(WatchingTasks.WatchingTasks.Bindable);
+        WatchingTasks.WatchingTasks.Bindable.SubscribeChanged(() => state.WatchingTasks.SetRange(WatchingTasks.WatchingTasks.Values), true);
         WatchingTasks.WatchingTasks.Bindable.SubscribeChanged(() =>
         {
             var oc = WatchingTasks.WatchingTasks.FirstOrDefault(t => t.Value.Source is OneClickWatchingTaskInputInfo).Value;
@@ -50,38 +50,35 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
                     LogDir = source.OutputDirectory,
                     UnityTemplatesDir = @"C:\\OneClickUnityDefaultProjects",
                     ExportInfo = source.ExportInfo ?? [],
-                    AutoCreateRFProducts = source.AutoCreateRFProducts,
-                    AutoPublishRFProducts = source.AutoPublishRFProducts,
-                    RFProductsDirectory = source.RFProductsDirectory,
                 };
             }
         }, true);
 
         RFProducts.RFProducts.Bindable.SubscribeChanged(() => state.RFProducts.SetRange(RFProducts.RFProducts.Select(p => KeyValuePair.Create(p.Key, JObject.FromObject(p.Value)))), true);
-        state.PlacedTasks.BindOneWayFrom(PlacedTasks.PlacedTasks.Bindable);
-        state.CompletedTasks.BindOneWayFrom(CompletedTasks.CompletedTasks.Bindable);
+        PlacedTasks.PlacedTasks.Bindable.SubscribeChanged(() => state.PlacedTasks.SetRange(PlacedTasks.PlacedTasks.Values), true);
+        CompletedTasks.CompletedTasks.Bindable.SubscribeChanged(() => state.CompletedTasks.SetRange(CompletedTasks.CompletedTasks.Values), true);
         QueuedTasks.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(QueuedTasks.QueuedTasks.Values), true);
         Settings.BenchmarkResult.Bindable.SubscribeChanged(() => state.BenchmarkResult.Value = Settings.BenchmarkResult.Value is null ? null : JObject.FromObject(Settings.BenchmarkResult.Value), true);
         PluginManager.CachedPluginsBindable.SubscribeChanged(() => NodeGlobalState.InstalledPlugins.SetRange(PluginManager.CachedPluginsBindable.Value ?? Array.Empty<Plugin>()), true);
-        state.TaskAutoDeletionDelayDays.BindOneWayFrom(Settings.TaskAutoDeletionDelayDays.Bindable);
 
-        state.ServerUrl.BindOneWayFrom(Settings.BServerUrl.Bindable);
-        state.LocalListenPort.BindOneWayFrom(Settings.BLocalListenPort.Bindable);
-        state.UPnpPort.BindOneWayFrom(Settings.BUPnpPort.Bindable);
-        state.UPnpServerPort.BindOneWayFrom(Settings.BUPnpServerPort.Bindable);
-        state.DhtPort.BindOneWayFrom(Settings.BDhtPort.Bindable);
-        state.TorrentPort.BindOneWayFrom(Settings.BTorrentPort.Bindable);
-        state.NodeName.BindOneWayFrom(Settings.BNodeName.Bindable);
-        state.AuthInfo.BindOneWayFrom(Settings.BAuthInfo.Bindable);
-        state.AcceptTasks.BindOneWayFrom(Settings.AcceptTasks.Bindable);
-        state.TaskProcessingDirectory.BindOneWayFrom(Settings.TaskProcessingDirectory.Bindable);
+        Settings.TaskAutoDeletionDelayDays.Bindable.SubscribeChanged(() => state.TaskAutoDeletionDelayDays.Value = Settings.TaskAutoDeletionDelayDays.Value, true);
+        Settings.BServerUrl.Bindable.SubscribeChanged(() => state.ServerUrl.Value = Settings.BServerUrl.Bindable.Value, true);
+        Settings.BLocalListenPort.Bindable.SubscribeChanged(() => state.LocalListenPort.Value = Settings.BLocalListenPort.Bindable.Value, true);
+        Settings.BUPnpPort.Bindable.SubscribeChanged(() => state.UPnpPort.Value = Settings.BUPnpPort.Bindable.Value, true);
+        Settings.BUPnpServerPort.Bindable.SubscribeChanged(() => state.UPnpServerPort.Value = Settings.BUPnpServerPort.Bindable.Value, true);
+        Settings.BDhtPort.Bindable.SubscribeChanged(() => state.DhtPort.Value = Settings.BDhtPort.Bindable.Value, true);
+        Settings.BTorrentPort.Bindable.SubscribeChanged(() => state.TorrentPort.Value = Settings.BTorrentPort.Bindable.Value, true);
+        Settings.BNodeName.Bindable.SubscribeChanged(() => state.NodeName.Value = Settings.BNodeName.Bindable.Value, true);
+        Settings.BAuthInfo.Bindable.SubscribeChanged(() => state.AuthInfo.Value = Settings.BAuthInfo.Bindable.Value, true);
+        Settings.AcceptTasks.Bindable.SubscribeChanged(() => state.AcceptTasks.Value = Settings.AcceptTasks.Bindable.Value, true);
+        Settings.TaskProcessingDirectory.Bindable.SubscribeChanged(() => state.TaskProcessingDirectory.Value = Settings.TaskProcessingDirectory.Bindable.Value, true);
 
-        state.MPlusUsername.BindOneWayFrom(Settings.MPlusUsername.Bindable);
-        state.MPlusPassword.BindOneWayFrom(Settings.MPlusPassword.Bindable);
-        state.TurboSquidUsername.BindOneWayFrom(Settings.TurboSquidUsername.Bindable);
-        state.TurboSquidPassword.BindOneWayFrom(Settings.TurboSquidPassword.Bindable);
-        state.CGTraderUsername.BindOneWayFrom(Settings.CGTraderUsername.Bindable);
-        state.CGTraderPassword.BindOneWayFrom(Settings.CGTraderPassword.Bindable);
+        Settings.MPlusUsername.Bindable.SubscribeChanged(() => state.MPlusUsername.Value = Settings.MPlusUsername.Bindable.Value, true);
+        Settings.MPlusPassword.Bindable.SubscribeChanged(() => state.MPlusPassword.Value = Settings.MPlusPassword.Bindable.Value, true);
+        Settings.TurboSquidUsername.Bindable.SubscribeChanged(() => state.TurboSquidUsername.Value = Settings.TurboSquidUsername.Bindable.Value, true);
+        Settings.TurboSquidPassword.Bindable.SubscribeChanged(() => state.TurboSquidPassword.Value = Settings.TurboSquidPassword.Bindable.Value, true);
+        Settings.CGTraderUsername.Bindable.SubscribeChanged(() => state.CGTraderUsername.Value = Settings.CGTraderUsername.Bindable.Value, true);
+        Settings.CGTraderPassword.Bindable.SubscribeChanged(() => state.CGTraderPassword.Value = Settings.CGTraderPassword.Bindable.Value, true);
 
         await Task.WhenAll([
             BalanceUpdater.Start(null, state.Balance, default),
