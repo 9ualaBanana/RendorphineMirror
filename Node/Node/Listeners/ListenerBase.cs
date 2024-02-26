@@ -30,8 +30,8 @@ public abstract class ListenerBase : IServiceTarget
     static void IServiceTarget.CreateRegistrations(ContainerBuilder builder) { }
     async Task IServiceTarget.ExecuteAsync() => Start();
 
-    public void Start() => _Start(true);
-    void _Start(bool firsttime)
+    public void Start() => _Start(0);
+    void _Start(int time)
     {
         if (!Listeners.Contains(this))
             Listeners.Add(this);
@@ -91,10 +91,10 @@ public abstract class ListenerBase : IServiceTarget
         Listener = new();
         foreach (var prefix in prefixes)
             Listener.Prefixes.Add(prefix);
-        Logger.Info($"{(firsttime ? null : "(re)")}Starting HTTP {GetType().Name} on {string.Join(", ", prefixes)}");
+        Logger.Info($"{(time == 0 ? null : "(re)")}Starting HTTP {GetType().Name} on {string.Join(", ", prefixes)}");
 
         try { Listener.Start(); }
-        catch (Exception ex) when (firsttime && Init.Configuration.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        catch (Exception ex) when (time == 0 && Init.Configuration.UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             Logger.Error($"Could not start HttpListener: {ex.Message}, bypassing...");
 
@@ -106,7 +106,19 @@ public abstract class ListenerBase : IServiceTarget
             }
 
 
-            _Start(false);
+            _Start(1);
+            return;
+        }
+        catch (Exception) when (time == 1)
+        {
+            if (ListenType.HasFlag(ListenTypes.Local))
+                Settings.LocalListenPort++;
+            if (ListenType.HasFlag(ListenTypes.Public))
+                Settings.UPnpPort++;
+            if (ListenType.HasFlag(ListenTypes.WebServer))
+                Settings.UPnpServerPort++;
+
+            _Start(2);
             return;
         }
 
