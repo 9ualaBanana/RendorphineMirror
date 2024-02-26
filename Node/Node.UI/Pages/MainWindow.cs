@@ -152,10 +152,22 @@ namespace Node.UI.Pages
                         };
 
                         request.OnRemoved = () => Dispatcher.UIThread.Post(() => { try { window.ForceClose(); } catch { } });
+                        window.Cancelled += () => sendCancel().Consume();
                         window.Show();
                     });
 
 
+                    async Task sendCancel()
+                    {
+                        var token = new JObject() { ["cancelled"] = true };
+
+                        using var content = new StringContent(token.ToString());
+                        var reqtype = NodeGui.GuiRequestNames[request.GetType()];
+                        var post = await LocalApi.Default.Post($"{reqtype}?reqid={HttpUtility.UrlEncode(reqid)}", $"Cancelling {reqtype} request", content);
+                        post.LogIfError();
+
+                        receivedrequests.Remove(reqid);
+                    }
                     async Task sendResponse(JToken token)
                     {
                         token = new JObject() { ["value"] = token };

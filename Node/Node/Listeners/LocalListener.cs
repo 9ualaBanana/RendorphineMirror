@@ -339,7 +339,11 @@ public class LocalListener : ExecutableListenerBase
         {
             using var reader = new StreamReader(request.InputStream);
             var value = await reader.ReadToEndAsync();
-            guirequest.Task.SetResult(JToken.Parse(value)["value"]!);
+
+            var obj = JObject.Parse(value);
+            if (obj["cancelled"]?.Value<bool>() == true)
+                guirequest.Task.SetCanceled();
+            else guirequest.Task.SetResult(obj["value"]!);
 
             return await WriteSuccess(response);
         }
