@@ -10,9 +10,6 @@ public class Generate3DRFProductTaskInputInfo : IWatchingTaskInputInfo
     [LocalDirectory]
     public string RFProductDirectory { get; }
 
-    public bool AutoCreateRFProducts { get; set; } = false;
-    public bool AutoPublishRFProducts { get; set; } = false;
-
     public Generate3DRFProductTaskInputInfo(string inputDirectory, string rFProductDirectory)
     {
         InputDirectory = inputDirectory;

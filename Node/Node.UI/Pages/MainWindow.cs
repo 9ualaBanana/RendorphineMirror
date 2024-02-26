@@ -40,6 +40,7 @@ namespace Node.UI.Pages
             tabs.Add("Turbosquid sales", new TurboSquidSalesReportTab());
             tabs.Add("rfproduct", new RFProductsTab());
             tabs.Add("oneclick", new OneClickTab(connectionState.NodeGlobalState));
+            tabs.Add("Auto 3d publish", new Auto3DPublishTab(connectionState.NodeGlobalState));
 
             var statustb = new TextBlock()
             {
