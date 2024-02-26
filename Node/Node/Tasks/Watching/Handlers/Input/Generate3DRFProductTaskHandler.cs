@@ -28,7 +28,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         }
 
         state = editfunc(state);
-        Logger.Info("Setstate " + JsonConvert.SerializeObject(state, Formatting.None));
         GlobalState.AutoRFProductPublishInfos[Task.Id] = state;
     }
 
