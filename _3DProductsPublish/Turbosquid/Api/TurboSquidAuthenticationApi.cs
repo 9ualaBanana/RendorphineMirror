@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using _3DProductsPublish.Turbosquid.Network;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using CefSharp.OffScreen;
@@ -111,7 +111,7 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
     {
         var _2faForm = await _Get2FAFormAsync(cancellationToken);
         var updatedCsrfToken = AuthenticityToken.ParseFromMetaTag(_2faForm);
-        string verificationCode = (await _nodeGui.Request<string>(new InputRequest("TODO: we send you mesag to email please respond"), cancellationToken)).Result;
+        string verificationCode = (await _nodeGui.Request<string>(new InputRequest("Please input the code for TurboSquid from your e-mail"), cancellationToken)).Result;
 
         await _SignInWith2FAAsyncCore(verificationCode, credential.WithUpdated(updatedCsrfToken), cancellationToken);
     }

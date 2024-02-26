@@ -18,9 +18,9 @@ public class DataDirs
         if (config.AutoClearTempDir)
         {
             try { Temp = NewDirCreated(Data, "temp"); }
-            catch { Temp = DirCreated("temp"); }
+            catch { Temp = DirCreated(Data, "temp"); }
         }
-        else Temp = DirCreated("temp");
+        else Temp = DirCreated(Data, "temp");
     }
 
     public string DataDir(string name, bool create = true) => DirCreated(create, Data, name);
