@@ -1,23 +1,25 @@
+using Avalonia.Controls.Utils;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
+using Avalonia.Interactivity;
+
 namespace Node.UI.Pages.MainWindowTabs;
 
 public class RFProductsTab : Panel
 {
     public RFProductsTab()
     {
-        var content = new ScrollViewer()
+        var content = new StackPanel()
         {
-            Content = new StackPanel()
+            Orientation = Orientation.Vertical,
+            Children =
             {
-                Orientation = Orientation.Vertical,
-                Children =
-                {
-                    new CreateRFProductPanel()
-                        .Named("Create"),
-                    new RFProductListPanel()
-                        .Named("List"),
-                    new TextBlock()
-                        .Named("~ The end ~"),
-                },
+                new CreateRFProductPanel()
+                    .Named("Create"),
+                new RFProductListPanel()
+                    .Named("List"),
+                new TextBlock()
+                    .Named("~ The end ~"),
             },
         };
 
@@ -145,105 +147,88 @@ public class RFProductsTab : Panel
         {
             Products = NodeGlobalState.Instance.RFProducts.GetBoundCopy();
 
-            var stack = new StackPanel()
-            {
-                Orientation = Orientation.Vertical,
-                Spacing = 20,
-            };
+            var dg = CreateDataGrid();
             var amounttb = new TextBlock();
-            Children.Add(new ScrollViewer()
+            Children.Add(new StackPanel()
             {
-                Content = new StackPanel()
-                {
-                    Children =
-                    {
-                        amounttb,
-                        stack,
-                    },
-                }
-            });
-
-            Products.SubscribeChanged(() =>
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    stack.Children.Clear();
-                    amounttb.Text = $"Products: {Products.Count}";
-
-                    foreach (var product in Products.ToArray())
-                        stack.Children.Add(new RFProductUi(product.Value));
-                });
-            }, true);
-        }
-    }
-    class RFProductUi : Panel
-    {
-        readonly JObject Product;
-
-        public RFProductUi(JObject product)
-        {
-            Product = product;
-
-            var grid = new StackPanel()
-            {
-                Orientation = Orientation.Vertical,
                 Children =
                 {
-                    new TextBox() { Text = $"ID: {product[nameof(RFProduct.ID)]}", IsReadOnly = true },
-                    new TextBox() { Text = $"Path: {product[nameof(RFProduct.Path)]}", IsReadOnly = true },
-                    new StackPanel()
-                    {
-                        Orientation = Orientation.Horizontal,
-                        Children =
-                        {
-                            new MPButton()
-                            {
-                                Text = "Open directory",
-                                OnClick = () =>
-                                {
-                                    var target = product[nameof(RFProduct.Path)]!.Value<string>();
-                                    if (!Directory.Exists(target))
-                                        target = Path.GetDirectoryName(target)!;
-
-                                    Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
-                                },
-                            },
-                            new MPButton()
-                            {
-                                Text = "Delete from DB (no files deleted)",
-                                OnClickSelf = async (self) =>
-                                {
-                                    var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product[nameof(RFProduct.ID)]!.Value<string>()!));
-                                    await self.Flash(result);
-                                },
-                            },
-                            new MPButton()
-                            {
-                                Text = "Upload to TurboSquid",
-                                OnClickSelf = async (self) =>
-                                {
-                                    var result = await LocalApi.Default.Post("upload3drfproduct", "Uploading 3d rfproduct to turbosquid",
-                                        ("target", "turbosquid"), ("id", product[nameof(RFProduct.ID)]!.Value<string>().ThrowIfNull())
-                                    );
-                                    await self.Flash(result);
-                                },
-                            },
-                            new MPButton()
-                            {
-                                Text = "Upload to TurboSquid using account from _Submit.json",
-                                OnClickSelf = async (self) =>
-                                {
-                                    var result = await LocalApi.Default.Post("upload3drfproductsubmitjson", "Uploading 3d rfproduct to turbosquid",
-                                        ("target", "turbosquid"), ("id", product[nameof(RFProduct.ID)]!.Value<string>().ThrowIfNull())
-                                    );
-                                    await self.Flash(result);
-                                },
-                            },
-                        },
-                    },
+                    amounttb,
+                    dg,
                 },
-            };
-            Children.Add(grid);
+            });
+
+
+            Products.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            {
+                amounttb.Text = $"Products: {Products.Count}";
+                dg.ItemsSource = Products.Select(k => k.Value).ToArray();
+            }, DispatcherPriority.Background), true);
+        }
+
+        DataGrid CreateDataGrid()
+        {
+            var data = new DataGrid() { AutoGenerateColumns = false };
+            data.BeginningEdit += (obj, e) => e.Cancel = true;
+
+            CreateColumns(data);
+            return data;
+        }
+        void CreateColumns(DataGrid data)
+        {
+            data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(RFProduct.ID)) });
+            data.Columns.Add(new DataGridTextColumn() { Header = "Path", Binding = new Binding(nameof(RFProduct.Path)) });
+
+            data.Columns.Add(new DataGridButtonColumn<JObject>()
+            {
+                Header = "Open directory",
+                Text = "Open directory",
+                SelfAction = async (product, self) =>
+                {
+                    var target = product[nameof(RFProduct.Path)]!.Value<string>();
+                    if (!Directory.Exists(target))
+                        target = Path.GetDirectoryName(target)!;
+
+                    Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+                },
+            });
+            data.Columns.Add(new DataGridButtonColumn<JObject>()
+            {
+                Header = "Delete from DB only",
+                Text = "Delete from DB only",
+                SelfAction = async (product, self) =>
+                {
+                    var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product[nameof(RFProduct.ID)]!.Value<string>()!));
+                    await self.Flash(result);
+                },
+            });
+        }
+
+
+        class DataGridButtonColumn<T> : DataGridColumn
+        {
+            public string? Text;
+            public Action<T>? Action;
+            public Action<T, MPButton>? SelfAction;
+            public Func<T, bool>? CreationRequirements;
+
+            protected override Control GenerateElement(DataGridCell cell, object dataItem)
+            {
+                if (dataItem is not T item) return new Control();
+
+                var btn = new MPButton()
+                {
+                    Text = Text ?? string.Empty,
+                    OnClick = () => Action?.Invoke(item),
+                    OnClickSelf = self => SelfAction?.Invoke(item, self),
+                };
+                btn.Bind(MPButton.IsVisibleProperty, new Binding("") { Converter = new FuncValueConverter<T, bool>(t => t is null ? false : CreationRequirements?.Invoke(t) ?? true) });
+
+                return btn;
+            }
+
+            protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
+            protected override object PrepareCellForEdit(Control editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
         }
     }
 }
