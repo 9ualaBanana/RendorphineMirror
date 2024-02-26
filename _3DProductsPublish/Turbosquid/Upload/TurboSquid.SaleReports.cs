@@ -1,4 +1,5 @@
 ﻿using _3DProductsPublish.Turbosquid.Api;
+using MarkTM.RFProduct;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
@@ -129,7 +130,7 @@ public partial class TurboSquid
     }
 }
 
-static class StringExtensions
+public static class StringExtensions
 {
     internal static int EndIndexOf(this string _, string value)
         => _.IndexOf(value) is int index && index is not -1 ? index += value.Length : index;
@@ -146,4 +147,17 @@ static class StringExtensions
         var value = _[valueIndex.._.IndexOf(',', startIndex: valueIndex)].Trim('"');
         return value == "null" ? null : value;
     }
+
+    public static async Task UpdateSalesAsync(this RFProduct rfProduct, IEnumerable<TurboSquid.SaleReport> saleReports, CancellationToken cancellationToken)
+    {
+        var _3DProduct = (RFProduct._3D.Idea_)rfProduct.Idea;
+        // Assumes that the first line of the metadata file contains the product ID.
+        long productID = long.Parse(File.ReadLines(_3DProduct.TSMeta).First().Trim(['[', ']']));
+        var jSales = await File.ReadAllTextAsync(_3DProduct.Sales, cancellationToken) is string contents && contents.Length is not 0 ?
+            JArray.Parse(contents) : [];
+        foreach (var saleReport in saleReports.Where(_ => _.ProductID == productID))
+            jSales.Add(JObject.FromObject(saleReport));
+        await File.WriteAllTextAsync(_3DProduct.Sales, jSales.ToString(), cancellationToken);
+    }
+
 }

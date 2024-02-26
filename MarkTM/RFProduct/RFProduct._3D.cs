@@ -32,6 +32,16 @@ public partial record RFProduct
             [JsonIgnore] public IEnumerable<string> Packages => Assets.Where(IsPackage);
             [JsonIgnore] public string Metadata => Assets.Single(IsMetadata);
             [JsonIgnore] public IEnumerable<string> Renders => Assets.Where(IsRender);
+            [JsonIgnore] public string Sales
+            {
+                get
+                {
+                    if (Assets.SingleOrDefault(_ => _.EndsWith("_Sales.json")) is string sales)
+                        return sales;
+                    else { using var _ = File.Create($"{System.IO.Path.Combine(Path, System.IO.Path.GetFileNameWithoutExtension(Packages.First()))}_Sales.json"); return _.Name; }
+                }
+            }
+            [JsonIgnore] public string TSMeta => Assets.Single(_ => System.IO.Path.GetFileName(_) == "turbosquid.meta");
 
             [JsonConstructor]
             Idea_(string path)
