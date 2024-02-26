@@ -14,13 +14,7 @@ public class OneClickWatchingTaskInputInfo : IWatchingTaskInputInfo
     public string ProductsDirectory { get; }
 
     [LocalDirectory]
-    public string RFProductsDirectory { get; }
-
-    [LocalDirectory]
     public string LogDirectory { get; }
-
-    public bool AutoCreateRFProducts { get; set; } = false;
-    public bool AutoPublishRFProducts { get; set; } = false;
 
     [LocalDirectory]
     public string TestMzpDirectory { get; }
@@ -48,7 +42,6 @@ public class OneClickWatchingTaskInputInfo : IWatchingTaskInputInfo
         InputDirectory = inputDirectory;
         OutputDirectory = outputDirectory;
         ProductsDirectory = productsDirectory ?? Path.GetFullPath(Path.Combine(OutputDirectory, "..", "Products"));
-        RFProductsDirectory = rfproductsDirectory ?? Path.GetFullPath(Path.Combine(OutputDirectory, "..", "RFProducts"));
         LogDirectory = logDirectory;
         TestMzpDirectory = testMzpDirectory;
         TestInputDirectory = testInputDirectory;

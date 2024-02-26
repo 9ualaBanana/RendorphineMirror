@@ -9,8 +9,4 @@ public class OneClickTaskInfo
     public required string UnityTemplatesDir { get; init; }
     public required bool IsPaused { get; init; }
     public required IReadOnlyDictionary<string, ProjectExportInfo> ExportInfo { get; set; }
-
-    public required bool AutoCreateRFProducts { get; init; }
-    public required bool AutoPublishRFProducts { get; init; }
-    public required string RFProductsDirectory { get; init; }
 }

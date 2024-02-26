@@ -19,7 +19,6 @@ public class OneClickRunner : OneClickRunnerInfo
     public required RFProduct.Factory RFProductFactory { get; init; }
     public required IRFProductStorage RFProducts { get; init; }
     public required ILogger Logger { get; init; }
-    public required IComponentContext Container { get; init; }
 
     public OneClickRunner(OneClickWatchingTaskInputInfo input, bool test) : base(input, test) { }
 
@@ -179,54 +178,6 @@ public class OneClickRunner : OneClickRunnerInfo
                 SaveFunc();
             }
         }
-
-        if (Input.AutoCreateRFProducts)
-        {
-            try
-            {
-                await GenerateQSProducts();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex);
-                await ReportError($"[RFP autocreation] {ex.Message}", inputArchiveFiles);
-            }
-            finally
-            {
-                SaveFunc();
-            }
-        }
-
-        if (Input.AutoPublishRFProducts)
-        {
-            try
-            {
-                await PublishRFProducts(default);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex);
-                await ReportError($"[RFP autopublish] {ex.Message}", inputArchiveFiles);
-            }
-            finally
-            {
-                SaveFunc();
-            }
-        }
-    }
-
-    async Task CreateRFProductsIfEnabledFromNewDirectories()
-    {
-        if (!Input.AutoCreateRFProducts) return;
-
-        foreach (var dir in Directory.GetDirectories(OutputDir))
-        {
-            if (RFProducts.GetProductsWithContainerAt(dir).Any()) continue;
-
-            var target = Path.Combine(Input.RFProductsDirectory, Path.GetFileName(dir));
-            Logger.Info($"Creating a new RFProduct from {dir} in {target}");
-            await RFProductFactory.CreateAsync(dir, target, default);
-        }
     }
 
     async Task RunMax(string inputArchiveFile)
@@ -350,8 +301,6 @@ public class OneClickRunner : OneClickRunnerInfo
         Logger.Info("Success.");
         exportInfo.OneClick = new(OneClickPlugin.Version.ToString(), true);
         SaveFunc();
-
-        await CreateRFProductsIfEnabledFromNewDirectories();
 
 
         async Task validateConversionSuccessful()
@@ -554,7 +503,6 @@ public class OneClickRunner : OneClickRunnerInfo
 
                             (GetExportInfoByProductName(product.OCPName).Unity ??= new())[unityTemplateName] = new(importerVersion, unityVersion, rendererType, newUnityTemplatesCommitHash, product);
                             Task.Run(async () => await ReportResult(product)).Consume();
-                            await CreateRFProductsIfEnabledFromNewDirectories();
                         }
                     }
                     catch
@@ -589,49 +537,6 @@ public class OneClickRunner : OneClickRunnerInfo
             }
         }
     }
-    async Task GenerateQSProducts()
-    {
-        foreach (var productDir in Directory.GetDirectories(Input.ProductsDirectory))
-        {
-            if (File.Exists(Path.Combine(productDir, "rfproducted"))) continue;
-
-            var rfp = await RFProductFactory.CreateAsync(productDir, Directories.DirCreated(Input.RFProductsDirectory, Path.GetFileNameWithoutExtension(productDir)), default, false);
-            Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
-            File.Create(Path.Combine(productDir, "rfproducted")).Dispose();
-        }
-    }
-    async Task PublishRFProducts(CancellationToken token)
-    {
-        var ui = Container.Resolve<INodeGui>();
-
-        foreach (var rfproduct in RFProducts.RFProducts.Values.Where(r => r.Type == nameof(RFProduct._3D) && r.Path.StartsWith(Path.GetFullPath(Input.RFProductsDirectory))))
-        {
-            var submitJson = JObject.Parse(Directory.GetFiles(rfproduct.Idea.Path).Single(f => f.EndsWith("_Submit.json")));
-
-            if ((submitJson["toSubmitSquid"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
-            {
-                if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
-                {
-                    Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault() ?? "<empty turbosquid.meta>");
-                    if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault()?.Contains(@"\[\d+\]") ?? false)
-                        continue;
-                }
-
-                var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
-                var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
-
-                Logger.Info($"Publishing to turbosquid: {rfproduct}");
-                var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(username, password, token);
-                await turbo.PublishAsync(rfproduct, ui, token);
-            }
-            else if ((submitJson["toSubmitTrader"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
-            {
-                var username = submitJson["LoginCGTrader"]!.ToObject<string>().ThrowIfNull();
-                var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
-            }
-        }
-    }
-    enum ToSubmit { Submit, SubmitOffline, None }
 
     async Task<string> UpdateUnityTemplates()
     {

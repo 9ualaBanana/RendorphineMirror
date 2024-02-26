@@ -68,12 +68,11 @@ public class TasksTab2 : Panel
         protected async Task LoadSetItems(DataGrid grid)
         {
             Tasks?.UnsubscribeAll();
-            Tasks = await Load();
-            Tasks.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
+            Tasks = (IBindableCollection<T>) (await Load()).GetBoundCopy();
+            Tasks.SubscribeChanged(() =>
             {
-                grid.ItemsSource = null;
-                grid.ItemsSource = Tasks;
-            }), true);
+                Dispatcher.UIThread.Post(() => grid.ItemsSource = Tasks.ToArray());
+            }, true);
         }
 
         protected abstract Task<IBindableCollection<T>> Load();
@@ -111,24 +110,21 @@ public class TasksTab2 : Panel
     }
     class QueuedTaskManager : NormalTaskManager
     {
-        readonly IBindableCollection<TaskBase> Value = NodeGlobalState.Instance.QueuedTasks.GetBoundCopy();
         public QueuedTaskManager(Apis api) : base(api) { }
 
-        protected override async Task<IBindableCollection<TaskBase>> Load() => Value;
+        protected override async Task<IBindableCollection<TaskBase>> Load() => NodeGlobalState.Instance.QueuedTasks;
     }
     class PlacedTaskManager : NormalTaskManager
     {
-        readonly IBindableCollection<TaskBase> Value = NodeGlobalState.Instance.PlacedTasks.GetBoundCopy();
         public PlacedTaskManager(Apis api) : base(api) { }
 
-        protected override async Task<IBindableCollection<TaskBase>> Load() => Value;
+        protected override async Task<IBindableCollection<TaskBase>> Load() => NodeGlobalState.Instance.PlacedTasks;
     }
     class ExecutingTaskManager : NormalTaskManager
     {
-        readonly IBindableCollection<TaskBase> Value = NodeGlobalState.Instance.ExecutingTasks.GetBoundCopy();
         public ExecutingTaskManager(Apis api) : base(api) { }
 
-        protected override async Task<IBindableCollection<TaskBase>> Load() => Value;
+        protected override async Task<IBindableCollection<TaskBase>> Load() => NodeGlobalState.Instance.ExecutingTasks;
     }
     class RemoteTaskManager : NormalTaskManager
     {
