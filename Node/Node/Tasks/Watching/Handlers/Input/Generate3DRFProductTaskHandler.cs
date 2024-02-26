@@ -23,7 +23,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             {
                 IsPaused = Task.IsPaused,
                 InputDirectory = Input.InputDirectory,
-                RFProductDirectory = Input.RFProductDirectory,
             };
         }
 
@@ -89,7 +88,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 SetState(state => state with { CurrentRFProducting = productDir });
 
                 Logger.Info("Creating product " + productDir);
-                var rfp = await RFProductFactory.CreateAsync(productDir, Directories.DirCreated(Input.RFProductDirectory, Path.GetFileNameWithoutExtension(productDir)), default, false);
+                var rfp = await RFProductFactory.CreateAsync(productDir, productDir, default, false);
                 Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
                 File.Create(Path.Combine(productDir, ".rfproducted")).Dispose();
 
@@ -97,6 +96,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             }
             catch (Exception ex)
             {
+                SetState(state => state with { Error = $"Error RFPRODUCTING product {productDir}:\n{ex}", });
+
                 Logger.Error(ex);
                 File.WriteAllText(Path.Combine(productDir, "publish_exception.txt"), ex.ToString());
             }
@@ -114,12 +115,12 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             return firstline is not null && Regex.IsMatch(firstline, @"\[\d+\]");
         }
 
-        var products = RFProducts.RFProducts.Values.Where(r => r.Type == nameof(RFProduct._3D) && r.Path.StartsWith(Path.GetFullPath(Input.RFProductDirectory))).ToArray();
+        var products = RFProducts.RFProducts.Values.Where(r => r.Type == nameof(RFProduct._3D) && r.Path.StartsWith(Path.GetFullPath(Input.InputDirectory))).ToArray();
 
         SetState(state => state with
         {
-            FileCount = products.Length,
-            PublishedCount = products.Count(p => shouldSubmitToTurboSquid(p.Idea.Path, readSubmitJson(p.Idea.Path)) && !isSubmittedTurboSquid(p.Idea.Path)),
+            RFProductedCount = products.Length,
+            PublishedCount = products.Count(p => shouldSubmitToTurboSquid(p.Idea.Path, readSubmitJson(p.Idea.Path)) && isSubmittedTurboSquid(p.Idea.Path)),
         });
 
         foreach (var rfproduct in products)
@@ -134,7 +135,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
                     var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
 
-                    Logger.Info($"Publishing to turbosquid: {rfproduct}");
+                    Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
                     var turbo = await TurboSquidContainer.GetAsync(username, password, token);
                     await turbo.PublishAsync(rfproduct, NodeGui, token);
 
@@ -143,6 +144,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             }
             catch (Exception ex)
             {
+                SetState(state => state with { Error = $"Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
+
                 Logger.Error(ex);
                 File.WriteAllText(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt"), ex.ToString());
             }

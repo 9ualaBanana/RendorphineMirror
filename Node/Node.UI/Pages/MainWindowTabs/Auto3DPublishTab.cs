@@ -41,11 +41,11 @@ public class Auto3DPublishTab : Panel
     class Part : StackPanel
     {
         readonly TextBlock InputDir;
-        readonly TextBlock RFProductsDir;
         readonly TextBlock State;
         readonly TextBlock Files;
         readonly TextBlock RFProducted;
         readonly TextBlock Published;
+        readonly TextBlock Error;
 
         public Part()
         {
@@ -53,18 +53,17 @@ public class Auto3DPublishTab : Panel
             Children.Clear();
             Children.AddRange([
                 InputDir = new TextBlock(),
-                RFProductsDir = new TextBlock(),
                 State = new TextBlock(),
                 Files = new TextBlock(),
                 RFProducted = new TextBlock(),
                 Published = new TextBlock(),
+                Error = new TextBlock() { Foreground = Colors.From(255, 0, 0), TextWrapping = TextWrapping.Wrap },
             ]);
         }
 
         public void SetInfo(AutoRFProductPublishInfo info)
         {
             InputDir.Text = $"Input dir: {info.InputDirectory}";
-            RFProductsDir.Text = $"RFProduct dir: {info.RFProductDirectory}";
 
             State.Text =
                 info.CurrentRFProducting is not null ? $"Creating RFProduct of {info.CurrentRFProducting}"
@@ -74,6 +73,7 @@ public class Auto3DPublishTab : Panel
             Files.Text = $"Files: {info.FileCount}";
             RFProducted.Text = $"RFProducted: {info.RFProductedCount?.ToString() ?? "?"}";
             Published.Text = $"Published: {info.PublishedCount?.ToString() ?? "?"}";
+            Error.Text = info.Error;
         }
     }
 }

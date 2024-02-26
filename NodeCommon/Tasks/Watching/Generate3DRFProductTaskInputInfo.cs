@@ -7,12 +7,5 @@ public class Generate3DRFProductTaskInputInfo : IWatchingTaskInputInfo
     [LocalDirectory]
     public string InputDirectory { get; }
 
-    [LocalDirectory]
-    public string RFProductDirectory { get; }
-
-    public Generate3DRFProductTaskInputInfo(string inputDirectory, string rFProductDirectory)
-    {
-        InputDirectory = inputDirectory;
-        RFProductDirectory = rFProductDirectory;
-    }
+    public Generate3DRFProductTaskInputInfo(string inputDirectory) => InputDirectory = inputDirectory;
 }

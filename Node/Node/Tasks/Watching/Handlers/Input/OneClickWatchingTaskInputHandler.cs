@@ -12,7 +12,6 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
     public required IPluginList PluginList { get; init; }
     public required OCLocalListener LocalListener { get; init; }
     public required OCPublicListener PublicListener { get; init; }
-    public required RFProduct.Factory RFProductFactory { get; init; }
     public required IRFProductStorage RFProducts { get; init; }
 
     public override void StartListening() => StartThreadRepeated(5_000, RunOnce);
@@ -63,7 +62,6 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             OneClickPlugin = oneClickPlugin ?? PluginList.GetPlugin(PluginType.OneClick),
             SaveFunc = SaveTask,
             LocalListener = LocalListener,
-            RFProductFactory = RFProductFactory,
             RFProducts = RFProducts,
             Logger = Logger,
         };

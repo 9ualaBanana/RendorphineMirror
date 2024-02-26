@@ -1,8 +1,6 @@
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.Turbosquid;
-using _3DProductsPublish.Turbosquid.Upload;
 using SevenZip;
 
 namespace Node.Tasks.Watching.Handlers.Input;
@@ -16,7 +14,6 @@ public class OneClickRunner : OneClickRunnerInfo
     public required IPluginList PluginList { get; init; }
     public required Plugin TdsMaxPlugin { get; init; }
     public required Plugin OneClickPlugin { get; init; }
-    public required RFProduct.Factory RFProductFactory { get; init; }
     public required IRFProductStorage RFProducts { get; init; }
     public required ILogger Logger { get; init; }
 
