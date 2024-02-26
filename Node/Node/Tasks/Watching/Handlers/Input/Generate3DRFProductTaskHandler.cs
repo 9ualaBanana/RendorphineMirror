@@ -56,9 +56,17 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         {
             if (File.Exists(Path.Combine(productDir, ".rfproducted"))) continue;
 
-            var rfp = await RFProductFactory.CreateAsync(productDir, Directories.DirCreated(Input.RFProductDirectory, Path.GetFileNameWithoutExtension(productDir)), default, false);
-            Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
-            File.Create(Path.Combine(productDir, ".rfproducted")).Dispose();
+            try
+            {
+                Logger.Info("Creating product " + productDir);
+                var rfp = await RFProductFactory.CreateAsync(productDir, Directories.DirCreated(Input.RFProductDirectory, Path.GetFileNameWithoutExtension(productDir)), default, false);
+                Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
+                File.Create(Path.Combine(productDir, ".rfproducted")).Dispose();
+            }
+            catch (Exception ex)
+            {
+                File.WriteAllText(Path.Combine(productDir, "publish_exception.txt"), ex.ToString());
+            }
         }
     }
     async Task PublishRFProducts(CancellationToken token)
