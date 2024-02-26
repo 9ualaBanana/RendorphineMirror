@@ -1,5 +1,6 @@
-﻿using Node.Common.Models;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
+using NLog;
+using Node.Common.Models;
 
 namespace MarkTM.RFProduct;
 
@@ -22,6 +23,10 @@ public partial record RFProduct
         /// </summary>
         public async Task<RFProduct> CreateAsync(string idea, AssetContainer container, CancellationToken cancellationToken)
         {
+            LogManager.GetCurrentClassLogger().Info($"Full path: {idea}");
+            if (Directory.Exists(idea))
+                LogManager.GetCurrentClassLogger().Info($"Children: {string.Join(", ", Directory.GetDirectories(idea, "*", SearchOption.AllDirectories).Concat(Directory.GetFiles(idea, "*", SearchOption.AllDirectories)))}");
+
             if (Archive_.IsArchive(idea))
                 idea = Archive_.Unpack(idea);
 
