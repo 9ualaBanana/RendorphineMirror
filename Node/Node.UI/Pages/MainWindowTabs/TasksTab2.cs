@@ -86,6 +86,7 @@ public class TasksTab2 : Panel
             data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(TaskBase.Id)) });
             data.Columns.Add(new DataGridTextColumn() { Header = "State", Binding = new Binding(nameof(TaskBase.State)) });
             data.Columns.Add(new DataGridTextColumn() { Header = "FirstAction", Binding = new Binding(nameof(TaskBase.FirstAction)) });
+            data.Columns.Add(new DataGridTextColumn() { Header = "Creation", Binding = new Binding("Info.Registered") { Converter = new UnixToDateTimeConverter() } });
             data.Columns.Add(new DataGridTextColumn() { Header = "Input", Binding = new Binding("Input.Type") });
             data.Columns.Add(new DataGridTextColumn() { Header = "Output", Binding = new Binding("Output.Type") });
 
@@ -106,6 +107,13 @@ public class TasksTab2 : Panel
                     if (change) await LoadSetItems(data);
                 },
             });
+        }
+
+
+        class UnixToDateTimeConverter : IValueConverter
+        {
+            public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => DateTimeOffset.FromUnixTimeMilliseconds(System.Convert.ToInt64(value));
+            public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException();
         }
     }
     class QueuedTaskManager : NormalTaskManager

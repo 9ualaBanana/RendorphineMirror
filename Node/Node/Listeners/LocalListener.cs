@@ -79,6 +79,14 @@ public class LocalListener : ExecutableListenerBase
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
+        if (path == "setprocesstasks")
+        {
+            return await Test(request, response, "process", async process =>
+            {
+                Settings.ProcessTasks.Value = JsonConvert.DeserializeObject<bool>(process);
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
 
         if (path == "deploy")
         {

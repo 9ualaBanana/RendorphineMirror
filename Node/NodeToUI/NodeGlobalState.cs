@@ -36,6 +36,7 @@ public class NodeGlobalState
     public readonly Bindable<string?> NodeName = new();
     public readonly Bindable<AuthInfo?> AuthInfo = new();
     public readonly Bindable<bool> AcceptTasks = new();
+    public readonly Bindable<bool> ProcessTasks = new();
     public readonly Bindable<string?> TaskProcessingDirectory = new();
 
     public readonly Bindable<string?> MPlusUsername = new();

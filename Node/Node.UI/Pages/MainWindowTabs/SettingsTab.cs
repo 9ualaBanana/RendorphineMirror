@@ -41,13 +41,30 @@ public class SettingsTab : Panel
             }).Consume();
         };
 
+        var processTasksCb = new CheckBox() { Content = new LocalizedString("Process tasks") };
+        NodeGlobalState.Instance.ProcessTasks.SubscribeChanged(() => Dispatcher.UIThread.Post(() => receiveTasksCb.IsChecked = NodeGlobalState.Instance.ProcessTasks.Value), true);
+        var prevProcessTasksCb = NodeGlobalState.Instance.ProcessTasks.Value;
+        processTasksCb.IsCheckedChanged += (obj, e) =>
+        {
+            var c = processTasksCb.IsChecked == true;
+            if (c == prevProcessTasksCb)
+                return;
+            prevProcessTasksCb = c;
+
+            Task.Run(async () =>
+            {
+                var set = await LocalApi.Default.Get("setprocesstasks", "Setting Process Tasks", ("process", JsonConvert.SerializeObject(c)));
+            }).Consume();
+        };
+
 
         return new Grid()
         {
-            RowDefinitions = RowDefinitions.Parse("*"),
+            RowDefinitions = RowDefinitions.Parse("* *"),
             Children =
             {
                 receiveTasksCb.WithRow(0),
+                processTasksCb.WithRow(1),
             }
         };
     }

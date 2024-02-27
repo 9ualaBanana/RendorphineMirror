@@ -71,6 +71,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         Settings.BNodeName.Bindable.SubscribeChanged(() => state.NodeName.Value = Settings.BNodeName.Bindable.Value, true);
         Settings.BAuthInfo.Bindable.SubscribeChanged(() => state.AuthInfo.Value = Settings.BAuthInfo.Bindable.Value, true);
         Settings.AcceptTasks.Bindable.SubscribeChanged(() => state.AcceptTasks.Value = Settings.AcceptTasks.Bindable.Value, true);
+        Settings.ProcessTasks.Bindable.SubscribeChanged(() => state.ProcessTasks.Value = Settings.ProcessTasks.Bindable.Value, true);
         Settings.TaskProcessingDirectory.Bindable.SubscribeChanged(() => state.TaskProcessingDirectory.Value = Settings.TaskProcessingDirectory.Bindable.Value, true);
 
         Settings.MPlusUsername.Bindable.SubscribeChanged(() => state.MPlusUsername.Value = Settings.MPlusUsername.Bindable.Value, true);
