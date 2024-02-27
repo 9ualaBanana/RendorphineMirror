@@ -61,8 +61,8 @@ public partial record RFProduct
                         && AssetsInside(ideaContainer) is IEnumerable<string> assets
                             && assets.Any(IsPackage)
                             && assets.Single(IsMetadata) is not null
-                            && assets.Count(IsRender) >= 7
-                            && assets.Any(IsSettings))
+                            && assets.Count(IsRender) >= 7)
+                            //&& assets.Any(IsSettings))
                         return new(ideaContainer);
                     return null;
                 }
@@ -81,7 +81,7 @@ public partial record RFProduct
 
             static bool IsMetadata(string asset) => asset.EndsWith("_Submit.json");
 
-            static bool IsSettings(string asset) => asset.EndsWith("_Settings.ini");
+            //static bool IsSettings(string asset) => asset.EndsWith("_Settings.ini");
         }
 
         new public record QSPreviews(
