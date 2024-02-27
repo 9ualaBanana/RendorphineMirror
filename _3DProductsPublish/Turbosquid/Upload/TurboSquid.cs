@@ -87,8 +87,8 @@ public partial class TurboSquid : HttpClient
             var remote = TurboSquid3DProductMetadata.Product.Parse(_3DProduct.ID is 0 ? await NewAsync() : await EditAsync());
 
             // Currently all created drafts are published, so if there is a draft already, it will be deleted not to mess up synchronization.
-            //if (remote.draft_id is not (null or 0))
-            //{ await DeleteDraftAsync(); remote = TurboSquid3DProductMetadata.Product.Parse(await EditAsync()); }
+            if (remote.draft_id is not (null or 0))
+            { await DeleteDraftAsync(); remote = TurboSquid3DProductMetadata.Product.Parse(await EditAsync()); }
 
             var draft = new TurboSquid3DProductDraft(await CreateDraftAsync(), await RequestAwsStorageCredentialAsync(), _3DProduct, remote);
             _logger.Trace($"3D product draft with {draft.ID} ID has been created for {_3DProduct.Metadata.Title}.");
@@ -101,12 +101,15 @@ public partial class TurboSquid : HttpClient
             async Task<string> EditAsync()
                 => await this.GetStringAndUpdateAuthenticityTokenAsync($"turbosquid/products/{_3DProduct.ID}/edit", cancellationToken);
 
+            // Returns the ID of the newly created or already existing draft for the given `_3DProduct.ID`.
             async Task<long> CreateDraftAsync()
                 => JObject.Parse(await GetStringAsync($"turbosquid/products/{_3DProduct.ID}/create_draft", cancellationToken))["id"]!.Value<long>()!;
 
-            // TODO: Response returns 422 and the product doesn't get deleted which preserves draft information in `remote`. `/create_draft` returns already existing draft ID in such case.
+            // Deletes the draft for the given `_3DProduct.ID`.
             async Task DeleteDraftAsync()
-                => await DeleteAsync($"turbosquid/products/{_3DProduct.ID}/delete_draft", cancellationToken);
+                => await SendAsync(new(HttpMethod.Delete, $"turbosquid/products/{_3DProduct.ID}/delete_draft")
+                { Content = JsonContent.Create(new { authenticity_token = Credential.AuthenticityToken }) },
+                cancellationToken);
 
             async Task<TurboSquidAwsSession> RequestAwsStorageCredentialAsync()
             {
