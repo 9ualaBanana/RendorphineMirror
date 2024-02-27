@@ -52,6 +52,11 @@ public partial class TurboSquid : HttpClient
     public async Task PublishAsync(RFProduct rfProduct, INodeGui gui, CancellationToken cancellationToken)
     {
         await PublishAsync(await ConvertAsync(rfProduct, gui, cancellationToken), cancellationToken);
+        
+        await File.WriteAllTextAsync(((RFProduct._3D.Idea_)rfProduct.Idea).Status,
+            JsonConvert.SerializeObject(new { status = "published" }),
+            cancellationToken);
+
 
         static async Task<TurboSquid3DProduct> ConvertAsync(RFProduct rfProduct, INodeGui gui, CancellationToken cancellationToken)
         {
