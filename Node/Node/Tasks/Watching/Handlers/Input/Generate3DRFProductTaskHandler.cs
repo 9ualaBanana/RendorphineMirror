@@ -13,7 +13,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     public required TurboSquidContainer TurboSquidContainer { get; init; }
     public required NodeGlobalState GlobalState { get; init; }
 
-    public override void StartListening() => StartThreadRepeated(5_000, RunOnce);
+    public override void StartListening() => StartThreadRepeated(10_000, RunOnce);
 
     void SetState(Func<AutoRFProductPublishInfo, AutoRFProductPublishInfo> editfunc)
     {
@@ -34,13 +34,17 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     {
         SetState(state =>
         {
+            var products = RFProducts.RFProducts.Values
+                .Where(p => p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
+                .ToArray();
+
             return state with
             {
                 FileCount = Directory.GetDirectories(Input.InputDirectory).Length,
                 CurrentPublishing = null,
                 CurrentRFProducting = null,
-                PublishedCount = null,
-                RFProductedCount = null,
+                RFProductedCount = products.Length,
+                PublishedCount = products.Count(p => ShouldSubmitToTurboSquid(ReadSubmitJson(p.Idea.Path)) && IsSubmittedTurboSquid(p.Idea.Path))
             };
         });
 
@@ -73,12 +77,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
     async Task GenerateQSProducts()
     {
-        SetState(state => state with
-        {
-            FileCount = Directory.GetDirectories(Input.InputDirectory).Length,
-            RFProductedCount = Directory.GetDirectories(Input.InputDirectory).Count(dir => File.Exists(Path.Combine(dir, ".rfproducted"))),
-        });
-
         foreach (var productDir in Directory.GetDirectories(Input.InputDirectory))
         {
             if (File.Exists(Path.Combine(productDir, ".rfproducted"))) continue;
@@ -103,25 +101,21 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             }
         }
     }
+
+    static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json"))));
+    static bool ShouldSubmitToTurboSquid(JObject submitJson) => (submitJson["toSubmitSquid"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit;
+    static bool IsSubmittedTurboSquid(string dir)
+    {
+        if (!File.Exists(Path.Combine(dir, "turbosquid.meta"))) return false;
+
+        var firstline = File.ReadLines(Path.Combine(dir, "turbosquid.meta")).FirstOrDefault();
+        return firstline is not null && Regex.IsMatch(firstline, @"\[\d+\]");
+    }
     async Task PublishRFProducts(CancellationToken token)
     {
-        JObject readSubmitJson(string dir) => JObject.Parse(File.ReadAllText(Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json"))));
-        bool shouldSubmitToTurboSquid(string dir, JObject submitJson) => (submitJson["toSubmitSquid"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit;
-        bool isSubmittedTurboSquid(string dir)
-        {
-            if (!File.Exists(Path.Combine(dir, "turbosquid.meta"))) return false;
-
-            var firstline = File.ReadLines(Path.Combine(dir, "turbosquid.meta")).FirstOrDefault();
-            return firstline is not null && Regex.IsMatch(firstline, @"\[\d+\]");
-        }
-
-        var products = RFProducts.RFProducts.Values.Where(r => r.Type == nameof(RFProduct._3D) && r.Path.StartsWith(Path.GetFullPath(Input.InputDirectory))).ToArray();
-
-        SetState(state => state with
-        {
-            RFProductedCount = products.Length,
-            PublishedCount = products.Count(p => shouldSubmitToTurboSquid(p.Idea.Path, readSubmitJson(p.Idea.Path)) && isSubmittedTurboSquid(p.Idea.Path)),
-        });
+        var products = RFProducts.RFProducts.Values
+            .Where(p => p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
+            .ToArray();
 
         foreach (var rfproduct in products)
         {
@@ -129,8 +123,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
             try
             {
-                var submitJson = readSubmitJson(rfproduct.Idea.Path);
-                if (shouldSubmitToTurboSquid(rfproduct.Idea.Path, submitJson) && !isSubmittedTurboSquid(rfproduct.Idea.Path))
+                var submitJson = ReadSubmitJson(rfproduct.Idea.Path);
+                if (ShouldSubmitToTurboSquid(submitJson) && !IsSubmittedTurboSquid(rfproduct.Idea.Path))
                 {
                     var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
                     var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
