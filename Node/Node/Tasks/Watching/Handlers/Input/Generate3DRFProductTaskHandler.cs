@@ -1,5 +1,7 @@
+using System.Net;
 using System.Text.RegularExpressions;
 using _3DProductsPublish.Turbosquid;
+using _3DProductsPublish.Turbosquid.Upload;
 
 namespace Node.Tasks.Watching.Handlers.Input;
 
@@ -12,6 +14,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     public required INodeGui NodeGui { get; init; }
     public required TurboSquidContainer TurboSquidContainer { get; init; }
     public required NodeGlobalState GlobalState { get; init; }
+    public required INodeSettings Settings { get; init; }
 
     public override void StartListening() => StartThreadRepeated(10_000, RunOnce);
 
@@ -126,8 +129,35 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             .ToArray();
 
         SetState(state => state with { PublishedCount = 0 });
+
         foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]!.Value<string>().ThrowIfNull()))
         {
+            async Task updateSalesIfNeeded()
+            {
+                if (Input.LastSalesFetch.AddHours(1) > DateTimeOffset.Now)
+                    return;
+
+                //if (Settings.MPlusUsername is null || Settings.MPlusPassword is null)
+                //    return;
+
+                //var mpcreds = new NetworkCredential(Settings.MPlusUsername, Settings.MPlusUsername);
+
+                var submitJson = ReadSubmitJson(rfpgroup.First().Idea.Path);
+                var tsusername = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
+                var tspassword = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
+
+                var turbo = await TurboSquidContainer.GetAsync(tsusername, tspassword, token);
+
+                var sales = await turbo.SaleReports.ScanAsync(token).ToArrayAsync(token);
+                foreach (var product in rfpgroup)
+                    await product.UpdateSalesAsync(sales.SelectMany(s => s.SaleReports).ToArray(), token);
+
+                //await (await MPAnalytics.LoginAsync(mpcreds, token)).SendAsync(sales.ToAsyncEnumerable(), token);
+            }
+
+            await updateSalesIfNeeded();
+
+
             foreach (var rfproduct in rfpgroup)
             {
                 try
@@ -176,6 +206,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             }
         }
 
+        Input.LastSalesFetch = DateTimeOffset.Now;
     }
     enum ToSubmit { Submit, SubmitOffline, None }
 
