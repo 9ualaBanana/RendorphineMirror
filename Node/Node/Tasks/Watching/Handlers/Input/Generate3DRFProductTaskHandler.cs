@@ -44,7 +44,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 CurrentPublishing = null,
                 CurrentRFProducting = null,
                 RFProductedCount = products.Length,
-                PublishedCount = products.Count(p => ShouldSubmitToTurboSquid(ReadSubmitJson(p.Idea.Path)) && IsSubmittedTurboSquid(p.Idea.Path))
             };
         });
 
@@ -104,9 +103,18 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
     static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json"))));
     static bool ShouldSubmitToTurboSquid(JObject submitJson) => (submitJson["toSubmitSquid"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit;
-    static bool IsSubmittedTurboSquid(string dir)
+    bool IsSubmittedTurboSquid(string dir)
     {
         if (!File.Exists(Path.Combine(dir, "turbosquid.meta"))) return false;
+
+        var changed = WasDirectoryChanged(dir, out var newdata);
+        if (changed is not null)
+        {
+            Logger.Info(changed + " CHANGED, reWOUDING");
+            (Input.DirectoryStructure ??= [])[dir] = newdata;
+            SaveTask();
+            return false;
+        }
 
         var firstline = File.ReadLines(Path.Combine(dir, "turbosquid.meta")).FirstOrDefault();
         return firstline is not null && Regex.IsMatch(firstline, @"\[\d+\]");
@@ -117,23 +125,22 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             .Where(p => p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
             .ToArray();
 
+        SetState(state => state with { PublishedCount = 0 });
         foreach (var rfproduct in products)
         {
-            SetState(state => state with { CurrentPublishing = rfproduct.Path });
-
             try
             {
                 var submitJson = ReadSubmitJson(rfproduct.Idea.Path);
                 if (ShouldSubmitToTurboSquid(submitJson) && !IsSubmittedTurboSquid(rfproduct.Idea.Path))
                 {
+                    SetState(state => state with { CurrentPublishing = rfproduct.Path });
+
                     var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
                     var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
 
                     Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
                     var turbo = await TurboSquidContainer.GetAsync(username, password, token);
                     await turbo.PublishAsync(rfproduct, NodeGui, token);
-
-                    SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
                 }
             }
             catch (Exception ex)
@@ -151,8 +158,70 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
             }
             */
+
+            SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
+            (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = GetDirectoryData(rfproduct.Idea.Path);
+            SaveTask();
         }
+
     }
     enum ToSubmit { Submit, SubmitOffline, None }
 
+    string? WasDirectoryChanged(string directory, out Dictionary<string, DirectoryStructurePart> data)
+    {
+        if (Input.DirectoryStructure is null || !Input.DirectoryStructure.TryGetValue(directory, out var prevdirstr))
+        {
+            data = GetDirectoryData(directory);
+            return null;
+        }
+
+        data = GetDirectoryData(directory);
+        foreach (var (path, _) in data)
+        {
+            if (path.Contains("_Submit.")) continue;
+            if (path.Contains("_Status.")) continue;
+            if (path.Contains("turbosquid.meta")) continue;
+
+            if (!Input.DirectoryStructure.TryGetValue(directory, out var dirstr))
+                return "dirstructure no get value ";
+
+            if (!dirstr.ContainsKey(path))
+                return "dirstr no get value";
+        }
+
+        foreach (var (path, info) in prevdirstr)
+        {
+            // submit file and turbosquid.meta are being updated so exclude them from the check
+            if (path.Contains("_Submit.")) continue;
+            if (path.Contains("_Status.")) continue;
+            if (path.Contains("turbosquid.meta")) continue;
+
+            if (File.Exists(path))
+            {
+                if (new FileInfo(path).Length != info.Size)
+                    return path + " length not equals";
+                if (new DateTimeOffset(new FileInfo(path).LastWriteTimeUtc) != info.LastChanged)
+                    return path + " last write not equals";
+            }
+            else if (Directory.Exists(path))
+            {
+                if (new DateTimeOffset(new DirectoryInfo(path).LastWriteTimeUtc) != info.LastChanged)
+                    return path + " dir last write not equals";
+            }
+            else return path + " not exists";
+        }
+
+        return null;
+    }
+    Dictionary<string, DirectoryStructurePart> GetDirectoryData(string directory)
+    {
+        var dirs = new Dictionary<string, DirectoryStructurePart>();
+
+        foreach (var file in Directory.GetFiles(Path.Combine(Input.InputDirectory, directory), "*", SearchOption.AllDirectories))
+            dirs[file] = new(new DateTimeOffset(new FileInfo(file).LastWriteTimeUtc), new FileInfo(file).Length);
+        foreach (var dir in Directory.GetDirectories(Path.Combine(Input.InputDirectory, directory), "*", SearchOption.AllDirectories))
+            dirs[dir] = new(new DateTimeOffset(new DirectoryInfo(dir).LastWriteTimeUtc), null);
+
+        return dirs;
+    }
 }
