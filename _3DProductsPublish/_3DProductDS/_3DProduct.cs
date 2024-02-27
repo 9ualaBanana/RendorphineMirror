@@ -2,7 +2,6 @@
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 using Tomlyn.Syntax;
 using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
-using static Tomlyn.Helpers.TomlNamingHelper;
 
 namespace _3DProductsPublish._3DProductDS;
 

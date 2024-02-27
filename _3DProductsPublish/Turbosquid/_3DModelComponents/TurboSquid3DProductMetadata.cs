@@ -8,8 +8,6 @@ namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
 public partial record TurboSquid3DProductMetadata
 {
-    internal const string FileName = "turbosquid.meta";
-
     public static async Task<TurboSquid3DProductMetadata> ProvideAsync(
         string title,
         string description,

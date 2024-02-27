@@ -22,7 +22,8 @@ public partial record _3DProduct
             }
         }
         [JsonIgnore] string[] _tags = null!;
-        public required double Price { get; init; }
+        public required double PriceSquid { get; init; }
+        public required double PriceTrader { get; init; }
         public required License_ License { get; init; }
         public Geometry_? Geometry { get; init; } = default;
         public required int Polygons
@@ -87,7 +88,7 @@ public static class _3DProductMetadataExtensions
             _.Tags,
             Category(),
             License(),
-            _.Price,
+            _.PriceTrader,
             _.GameReady,
             _.Animated,
             _.Rigged,
@@ -146,7 +147,7 @@ public static class _3DProductMetadataExtensions
             _.Tags,
             _.Polygons,
             _.Vertices,
-            _.Price,
+            _.PriceSquid,
             License(),
             _.Animated,
             _.Collection,

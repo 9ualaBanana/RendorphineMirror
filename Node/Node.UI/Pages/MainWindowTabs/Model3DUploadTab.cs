@@ -17,7 +17,8 @@ public class Model3DUploadTab : Panel
                 License = _3DProduct.Metadata_.License_.Editorial,
                 Polygons = 123456,
                 Vertices = 321654,
-                Price = 727,
+                PriceSquid = 727,
+                PriceTrader = 727,
             },
             JsonSettings.LowercaseS
         );
