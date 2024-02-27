@@ -10,18 +10,14 @@ public partial record TurboSquid3DProductMetadata
 {
     internal class File
     {
-        internal readonly string Name;
+        internal const string Name = "turbosquid.meta";
         internal string Path => _path ??= System.IO.Path.Combine(_3DProduct.ContainerPath, Name);
         string? _path;
         internal readonly _3DProduct<TurboSquid3DProductMetadata> _3DProduct;
 
-        internal static File For(_3DProduct<TurboSquid3DProductMetadata> _3DProduct, string name = "turbosquid.meta")
-            => new(_3DProduct, name);
-        File(_3DProduct<TurboSquid3DProductMetadata> _3DProduct, string name = "turbosquid.meta")
-        {
-            this._3DProduct = _3DProduct;
-            Name = name;
-        }
+        internal static File For(_3DProduct<TurboSquid3DProductMetadata> _3DProduct) => new(_3DProduct);
+        File(_3DProduct<TurboSquid3DProductMetadata> _3DProduct)
+        { this._3DProduct = _3DProduct; }
 
         internal void Populate(INodeGui nodeGui)
         {
@@ -133,29 +129,33 @@ public partial record TurboSquid3DProductMetadata
             System.IO.File.Delete(Path);
             throw exception;
         }
-    }
-}
 
-static class TurboSquid3DProductMetadataFileExtensions
-{
-    internal static void Write(this TurboSquid3DProductMetadata.File metadataFile, TurboSquid3DProduct _3DProduct)
-    {
-        using var _file = File.OpenWrite(metadataFile.Path);
-        using var file = new StreamWriter(_file);
+        internal void Write(TurboSquid3DProduct _3DProduct)
+        {
+            using var _file = System.IO.File.OpenWrite(Path);
+            using var file = new StreamWriter(_file);
 
-        if (_3DProduct.ID is not 0)
-        {
-            var document = new DocumentSyntax();
-            document.Tables.Add(_3DProduct);
-            document.AddTrailingTriviaNewLine();
-            document.WriteTo(file);
-        }
-        foreach (var model in _3DProduct._3DModels)
-        {
-            var document = new DocumentSyntax();
-            document.Tables.Add(model.Metadata);
-            document.AddTrailingTriviaNewLine();
-            document.WriteTo(file);
+            if (_3DProduct.ID is not 0)
+                Write_(_3DProduct);
+            foreach (var model in _3DProduct._3DModels)
+                Write(model);
+
+
+            void Write_(TurboSquid3DProduct _3DProduct)
+            {
+                var document = new DocumentSyntax();
+                document.Tables.Add(_3DProduct);
+                document.AddTrailingTriviaNewLine();
+                document.WriteTo(file);
+            }
+
+            void Write(_3DModel<TurboSquid3DModelMetadata> model)
+            {
+                var document = new DocumentSyntax();
+                document.Tables.Add(model.Metadata);
+                document.AddTrailingTriviaNewLine();
+                document.WriteTo(file);
+            }
         }
     }
 }
