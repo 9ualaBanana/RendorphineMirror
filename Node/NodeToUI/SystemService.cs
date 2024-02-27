@@ -149,7 +149,7 @@ public static class SystemService
         {
             while (true)
             {
-                Thread.Sleep(1000 * 60);
+                Thread.Sleep(1000 * 60 * 60);
                 if (Stopped) return;
 
                 ExecuteForOs(Windows, Linux, Mac);
