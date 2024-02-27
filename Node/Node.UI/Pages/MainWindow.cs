@@ -119,7 +119,7 @@ namespace Node.UI.Pages
 
 
             var receivedrequests = new Dictionary<string, GuiRequest>();
-            NodeGlobalState.Instance.Requests.Changed += () => Dispatcher.UIThread.Post(() =>
+            void handleRequests()
             {
                 var requests = NodeGlobalState.Instance.Requests.Value;
                 foreach (var req in receivedrequests.ToArray())
@@ -137,8 +137,6 @@ namespace Node.UI.Pages
                     receivedrequests.Add(req.Key, req.Value);
                     handle(req.Key, req.Value);
                 }
-
-
 
                 void handle(string reqid, GuiRequest request)
                 {
@@ -181,7 +179,9 @@ namespace Node.UI.Pages
                         receivedrequests.Remove(reqid);
                     }
                 }
-            });
+            }
+            NodeGlobalState.Instance.Requests.Changed += () => Dispatcher.UIThread.Post(handleRequests);
+            handleRequests();
         }
     }
 }
