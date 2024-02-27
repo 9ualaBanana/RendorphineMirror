@@ -20,6 +20,7 @@ public class ReceivedTasksHandler
             {
                 await Task.Delay(2_000);
                 if (QueuedTasks.QueuedTasks.Count == 0) continue;
+                if (!Settings.Instance.ProcessTasks.Value) continue;
 
                 foreach (var task in QueuedTasks.QueuedTasks.Values.ToArray())
                     HandleAsync(task).Consume();
@@ -100,7 +101,7 @@ public class ReceivedTasksHandler
                     builder.RegisterDecorator<ITaskProgressSetter>((ctx, parameters, instance) => new ThrottledProgressSetter(TimeSpan.FromSeconds(5), instance));
                 });
 
-                Notifier.Notify($"Starting task {task.Id}\n ```json\n{JsonConvert.SerializeObject(task, JsonSettings.LowercaseIgnoreNull):n}\n```");
+                Notifier.Notify($"Starting task {task.Id} ({QueuedTasks.QueuedTasks.Count} left)\n ```json\n{JsonConvert.SerializeObject(task, JsonSettings.LowercaseIgnoreNull):n}\n```");
                 var executor = scope.Resolve<TaskExecutor>();
                 await executor.Execute(task, cancellationToken).ConfigureAwait(false);
 

@@ -11,6 +11,7 @@ public class TaskReceiver : ListenerBase
 
     public required PortsForwardedTarget PortsForwarded { get; init; }
     public required IQueuedTasksStorage QueuedTasks { get; init; }
+    public required Notifier Notifier { get; init; }
 
     public TaskReceiver(ILogger<TaskReceiver> logger) : base(logger) { }
 
@@ -40,5 +41,6 @@ public class TaskReceiver : ListenerBase
         response.Close();
 
         QueuedTasks.QueuedTasks.Add(new ReceivedTask(taskid, taskinfo) { HostShard = host });
+        Notifier.Notify($"Received task {taskid}\n ```json\n{JsonConvert.SerializeObject(task, JsonSettings.LowercaseIgnoreNull):n}\n```");
     }
 }

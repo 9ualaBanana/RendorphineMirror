@@ -25,24 +25,10 @@ public class NodeGui : INodeGui
         var task = new TaskCompletionSource<JToken>();
         request.Task = task;
 
-        bool completed = false;
-        JToken? result = null;
-        task.Task.ContinueWith(t =>
-        {
-            result = t.Result;
-            completed = true;
-        }, token).Consume();
-
         using var _ = new FuncDispose(() => NodeGlobalState.Instance.Requests.Remove(reqid));
         NodeGlobalState.Instance.Requests.Add(reqid, request);
 
-        while (!completed)
-        {
-            await Task.Delay(500, token);
-            token.ThrowIfCancellationRequested();
-        }
-
-        return result.ThrowIfNull().ToObject<TResult>()!;
+        return (await task.Task).ToObject<TResult>().ThrowIfNull();
     }
 
     public Task<OperationResult<string>> RequestCaptchaInputAsync(string base64image, CancellationToken token = default) => Request<string>(new CaptchaRequest(base64image), token);

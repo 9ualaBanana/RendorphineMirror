@@ -1,5 +1,7 @@
+using System.Net;
 using System.Text.RegularExpressions;
 using _3DProductsPublish.Turbosquid;
+using _3DProductsPublish.Turbosquid.Upload;
 
 namespace Node.Tasks.Watching.Handlers.Input;
 
@@ -12,8 +14,9 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     public required INodeGui NodeGui { get; init; }
     public required TurboSquidContainer TurboSquidContainer { get; init; }
     public required NodeGlobalState GlobalState { get; init; }
+    public required INodeSettings Settings { get; init; }
 
-    public override void StartListening() => StartThreadRepeated(5_000, RunOnce);
+    public override void StartListening() => StartThreadRepeated(10_000, RunOnce);
 
     void SetState(Func<AutoRFProductPublishInfo, AutoRFProductPublishInfo> editfunc)
     {
@@ -34,13 +37,16 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     {
         SetState(state =>
         {
+            var products = RFProducts.RFProducts.Values
+                .Where(p => p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
+                .ToArray();
+
             return state with
             {
                 FileCount = Directory.GetDirectories(Input.InputDirectory).Length,
                 CurrentPublishing = null,
                 CurrentRFProducting = null,
-                PublishedCount = null,
-                RFProductedCount = null,
+                RFProductedCount = products.Length,
             };
         });
 
@@ -73,12 +79,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
     async Task GenerateQSProducts()
     {
-        SetState(state => state with
-        {
-            FileCount = Directory.GetDirectories(Input.InputDirectory).Length,
-            RFProductedCount = Directory.GetDirectories(Input.InputDirectory).Count(dir => File.Exists(Path.Combine(dir, ".rfproducted"))),
-        });
-
         foreach (var productDir in Directory.GetDirectories(Input.InputDirectory))
         {
             if (File.Exists(Path.Combine(productDir, ".rfproducted"))) continue;
@@ -103,62 +103,168 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             }
         }
     }
+
+    static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json"))));
+    static bool ShouldSubmitToTurboSquid(JObject submitJson) => (submitJson["toSubmitSquid"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit;
+    bool IsSubmittedTurboSquid(string dir)
+    {
+        if (!File.Exists(Path.Combine(dir, "turbosquid.meta"))) return false;
+
+        var changed = WasDirectoryChanged(dir, out var newdata);
+        if (changed is not null)
+        {
+            Logger.Info(changed + " CHANGED, reWOUDING");
+            (Input.DirectoryStructure ??= [])[dir] = newdata;
+            SaveTask();
+            return false;
+        }
+
+        var firstline = File.ReadLines(Path.Combine(dir, "turbosquid.meta")).FirstOrDefault();
+        return firstline is not null && Regex.IsMatch(firstline, @"\[\d+\]");
+    }
     async Task PublishRFProducts(CancellationToken token)
     {
-        JObject readSubmitJson(string dir) => JObject.Parse(File.ReadAllText(Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json"))));
-        bool shouldSubmitToTurboSquid(string dir, JObject submitJson) => (submitJson["toSubmitSquid"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit;
-        bool isSubmittedTurboSquid(string dir)
+        var products = RFProducts.RFProducts.Values
+            .Where(p => p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
+            .ToArray();
+
+        SetState(state => state with { PublishedCount = 0 });
+
+        foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]!.Value<string>().ThrowIfNull()))
         {
-            if (!File.Exists(Path.Combine(dir, "turbosquid.meta"))) return false;
-
-            var firstline = File.ReadLines(Path.Combine(dir, "turbosquid.meta")).FirstOrDefault();
-            return firstline is not null && Regex.IsMatch(firstline, @"\[\d+\]");
-        }
-
-        var products = RFProducts.RFProducts.Values.Where(r => r.Type == nameof(RFProduct._3D) && r.Path.StartsWith(Path.GetFullPath(Input.InputDirectory))).ToArray();
-
-        SetState(state => state with
-        {
-            RFProductedCount = products.Length,
-            PublishedCount = products.Count(p => shouldSubmitToTurboSquid(p.Idea.Path, readSubmitJson(p.Idea.Path)) && isSubmittedTurboSquid(p.Idea.Path)),
-        });
-
-        foreach (var rfproduct in products)
-        {
-            SetState(state => state with { CurrentPublishing = rfproduct.Path });
-
-            try
+            async Task updateSalesIfNeeded()
             {
-                var submitJson = readSubmitJson(rfproduct.Idea.Path);
-                if (shouldSubmitToTurboSquid(rfproduct.Idea.Path, submitJson) && !isSubmittedTurboSquid(rfproduct.Idea.Path))
+                if (Input.LastSalesFetch.AddHours(1) > DateTimeOffset.Now)
+                    return;
+
+                //if (Settings.MPlusUsername is null || Settings.MPlusPassword is null)
+                //    return;
+
+                //var mpcreds = new NetworkCredential(Settings.MPlusUsername, Settings.MPlusUsername);
+
+                var submitJson = ReadSubmitJson(rfpgroup.First().Idea.Path);
+                var tsusername = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
+                var tspassword = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
+
+                var turbo = await TurboSquidContainer.GetAsync(tsusername, tspassword, token);
+
+                var sales = await turbo.SaleReports.ScanAsync(token).ToArrayAsync(token);
+                foreach (var product in rfpgroup)
+                    await product.UpdateSalesAsync(sales.SelectMany(s => s.SaleReports).ToArray(), token);
+
+                //await (await MPAnalytics.LoginAsync(mpcreds, token)).SendAsync(sales.ToAsyncEnumerable(), token);
+            }
+
+            await updateSalesIfNeeded();
+
+
+            foreach (var rfproduct in rfpgroup)
+            {
+                try
                 {
-                    var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
-                    var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
+                    var submitJson = ReadSubmitJson(rfproduct.Idea.Path);
+                    if (ShouldSubmitToTurboSquid(submitJson) && !IsSubmittedTurboSquid(rfproduct.Idea.Path))
+                    {
+                        SetState(state => state with { CurrentPublishing = rfproduct.Path });
 
-                    Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
-                    var turbo = await TurboSquidContainer.GetAsync(username, password, token);
-                    await turbo.PublishAsync(rfproduct, NodeGui, token);
+                        var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
+                        var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
 
-                    SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
+                        Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
+
+                        try
+                        {
+                            var turbo = await TurboSquidContainer.GetAsync(username, password, token);
+                            await turbo.PublishAsync(rfproduct, NodeGui, token);
+                        }
+                        catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+                        {
+                            Logger.Info($"Username {rfpgroup.Key} cancelled login, skipping.");
+                            break;
+                        }
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                SetState(state => state with { Error = $"Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
+                catch (Exception ex)
+                {
+                    SetState(state => state with { Error = $"Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
 
-                Logger.Error(ex);
-                File.WriteAllText(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt"), ex.ToString());
-            }
+                    Logger.Error(ex);
+                    File.WriteAllText(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt"), ex.ToString());
+                }
 
-            /*
-            if ((submitJson["toSubmitTrader"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
-            {
-                var username = submitJson["LoginCGTrader"]!.ToObject<string>().ThrowIfNull();
-                var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
+                /*
+                if ((submitJson["toSubmitTrader"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
+                {
+                    var username = submitJson["LoginCGTrader"]!.ToObject<string>().ThrowIfNull();
+                    var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
+                }
+                */
+
+                SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
+                (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = GetDirectoryData(rfproduct.Idea.Path);
+                SaveTask();
             }
-            */
         }
+
+        Input.LastSalesFetch = DateTimeOffset.Now;
     }
     enum ToSubmit { Submit, SubmitOffline, None }
 
+    string? WasDirectoryChanged(string directory, out Dictionary<string, DirectoryStructurePart> data)
+    {
+        if (Input.DirectoryStructure is null || !Input.DirectoryStructure.TryGetValue(directory, out var prevdirstr))
+        {
+            data = GetDirectoryData(directory);
+            return null;
+        }
+
+        data = GetDirectoryData(directory);
+        foreach (var (path, _) in data)
+        {
+            if (path.Contains("_Submit.")) continue;
+            if (path.Contains("_Status.")) continue;
+            if (path.Contains("turbosquid.meta")) continue;
+
+            if (!Input.DirectoryStructure.TryGetValue(directory, out var dirstr))
+                return "dirstructure no get value ";
+
+            if (!dirstr.ContainsKey(path))
+                return "dirstr no get value";
+        }
+
+        foreach (var (path, info) in prevdirstr)
+        {
+            // submit file and turbosquid.meta are being updated so exclude them from the check
+            if (path.Contains("_Submit.")) continue;
+            if (path.Contains("_Status.")) continue;
+            if (path.Contains("turbosquid.meta")) continue;
+
+            if (File.Exists(path))
+            {
+                if (new FileInfo(path).Length != info.Size)
+                    return path + " length not equals";
+                if (new DateTimeOffset(new FileInfo(path).LastWriteTimeUtc) != info.LastChanged)
+                    return path + " last write not equals";
+            }
+            else if (Directory.Exists(path))
+            {
+                if (new DateTimeOffset(new DirectoryInfo(path).LastWriteTimeUtc) != info.LastChanged)
+                    return path + " dir last write not equals";
+            }
+            else return path + " not exists";
+        }
+
+        return null;
+    }
+    Dictionary<string, DirectoryStructurePart> GetDirectoryData(string directory)
+    {
+        var dirs = new Dictionary<string, DirectoryStructurePart>();
+
+        foreach (var file in Directory.GetFiles(Path.Combine(Input.InputDirectory, directory), "*", SearchOption.AllDirectories))
+            dirs[file] = new(new DateTimeOffset(new FileInfo(file).LastWriteTimeUtc), new FileInfo(file).Length);
+        foreach (var dir in Directory.GetDirectories(Path.Combine(Input.InputDirectory, directory), "*", SearchOption.AllDirectories))
+            dirs[dir] = new(new DateTimeOffset(new DirectoryInfo(dir).LastWriteTimeUtc), null);
+
+        return dirs;
+    }
 }

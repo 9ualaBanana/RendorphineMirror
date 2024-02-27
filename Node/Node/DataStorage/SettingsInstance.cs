@@ -29,6 +29,7 @@ public class SettingsInstance : INodeSettings
 
     public readonly DatabaseValue<ImmutableArray<TaskAction>> DisabledTaskTypes;
     public readonly DatabaseValue<bool> AcceptTasks;
+    public readonly DatabaseValue<bool> ProcessTasks;
     public readonly DatabaseValue<uint> TaskAutoDeletionDelayDays;
     public readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
     public readonly DatabaseValue<string?> TaskProcessingDirectory;
@@ -57,6 +58,7 @@ public class SettingsInstance : INodeSettings
 
         DisabledTaskTypes = new(db, nameof(DisabledTaskTypes), ImmutableArray<TaskAction>.Empty);
         AcceptTasks = new(db, nameof(AcceptTasks), true);
+        ProcessTasks = new(db, nameof(ProcessTasks), true);
         TaskAutoDeletionDelayDays = new(db, nameof(TaskAutoDeletionDelayDays), 4);
         BenchmarkResult = new(db, nameof(BenchmarkResult), default);
         TaskProcessingDirectory = new(db, nameof(TaskProcessingDirectory), default);
