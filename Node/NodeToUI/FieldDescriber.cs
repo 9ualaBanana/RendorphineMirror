@@ -28,9 +28,12 @@ public abstract class FieldDescriber
     }
 
 
-    public static FieldDescriber Create(Type type, ImmutableArray<Attribute> attributes) => Create(new PropInfo(type, attributes));
-    public static FieldDescriber Create(PropInfo prop)
+    public static FieldDescriber? Create(Type type, ImmutableArray<Attribute> attributes) => Create(new PropInfo(type, attributes));
+    public static FieldDescriber? Create(PropInfo prop)
     {
+        if (prop.GetAttribute<HiddenAttribute>() is not null)
+            return null;
+
         var type = prop.FieldType;
 
         if (istype<bool>()) return new BooleanDescriber(prop);
@@ -160,7 +163,7 @@ public class ObjectDescriber : FieldDescriber
 
     [JsonConstructor]
     public ObjectDescriber(string name, string jsonTypeName) : base(name, jsonTypeName) { }
-    public ObjectDescriber(PropInfo prop) : base(prop) => Fields = PropInfo.CreateFromChildren(prop.FieldType).Select(Create).ToImmutableArray();
+    public ObjectDescriber(PropInfo prop) : base(prop) => Fields = PropInfo.CreateFromChildren(prop.FieldType).Select(Create).WhereNotNull().ToImmutableArray();
 }
 public class EnumDescriber : FieldDescriber
 {
