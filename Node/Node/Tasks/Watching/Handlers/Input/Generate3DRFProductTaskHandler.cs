@@ -93,6 +93,9 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 File.Create(Path.Combine(productDir, ".rfproducted")).Dispose();
 
                 SetState(state => state with { RFProductedCount = state.RFProductedCount + 1 });
+
+                try { File.Delete(Path.Combine(productDir, "publish_exception.txt")); }
+                catch { }
             }
             catch (Exception ex)
             {
@@ -138,6 +141,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     return;
 
                 //if (Settings.MPlusUsername is null || Settings.MPlusPassword is null)
+
                 //    return;
 
                 //var mpcreds = new NetworkCredential(Settings.MPlusUsername, Settings.MPlusUsername);
@@ -183,6 +187,9 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                             break;
                         }
                     }
+
+                    try { File.Delete(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt")); }
+                    catch { }
                 }
                 catch (Exception ex)
                 {
