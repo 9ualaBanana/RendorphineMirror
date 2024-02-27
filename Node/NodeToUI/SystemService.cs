@@ -9,6 +9,7 @@ public static class SystemService
     const string SystemctlExe = "/usr/bin/systemctl";
     const string LaunchctlExe = "/usr/bin/launchctl";
     const string ServiceName = "renderfin_pinger";
+    static bool Stopped = false;
 
     static void Initialize(bool useAdminRights, string servicename)
     {
@@ -142,9 +143,40 @@ public static class SystemService
             File.WriteAllText(Path.Combine(configdir, @$"{servicename}.plist"), service);
         }
     }
+    static void StartWatching(string servicename)
+    {
+        new Thread(() =>
+        {
+            while (true)
+            {
+                Thread.Sleep(1000 * 60);
+                if (Stopped) return;
+
+                ExecuteForOs(Windows, Linux, Mac);
+            }
+        })
+        { IsBackground = true }.Start();
+
+
+        void Windows()
+        {
+            // to hide a CA1416 warning
+            if (!OperatingSystem.IsWindows()) return;
+
+            using var ts = new TaskService();
+            using var task = ts.GetTask(servicename);
+
+            task.Run();
+        }
+        void Linux() => Launch(SystemctlExe, @$"--user start ${servicename}.service");
+        void Mac() => throw new NotImplementedException();
+    }
+
     public static void Start(bool useAdminRights, string? servicename = null)
     {
+        Stopped = false;
         servicename ??= ServiceName;
+        StartWatching(servicename);
         Initialize(useAdminRights, servicename);
         ExecuteForOs(Windows, Linux, Mac);
 
@@ -159,6 +191,7 @@ public static class SystemService
     }
     public static void Stop(string? servicename = null)
     {
+        Stopped = true;
         servicename ??= ServiceName;
         ExecuteForOs(Windows, Linux, Mac);
 
