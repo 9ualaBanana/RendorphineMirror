@@ -245,12 +245,12 @@ public partial record TurboSquid3DProductMetadata
             }
         }
 
-        public static Product Parse(string productPage)
+        internal static Product Parse(string productPage)
         {
-            var featuresIndex = productPage.EndIndexOf("gon.features=");
-            var featuresDefinition = productPage[featuresIndex..productPage.IndexOf(';', featuresIndex)];
+            var featuresIndex = productPage.EndIndexOf(";gon.features=");
+            var featuresDefinition = productPage[featuresIndex..productPage.IndexOf(";gon.is_published", featuresIndex)];
             var productIndex = productPage.EndIndexOf("gon.product=");
-            var productDefinition = productPage[productIndex..productPage.IndexOf(';', productIndex)];
+            var productDefinition = productPage[productIndex..productPage.IndexOf(";gon.features", productIndex)];
             var product = JObject.Parse(productDefinition); product["features"]!.Replace(JArray.Parse(featuresDefinition));
 
             return product.ToObject<Product>() ?? throw new InvalidDataException();
