@@ -126,42 +126,54 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             .ToArray();
 
         SetState(state => state with { PublishedCount = 0 });
-        foreach (var rfproduct in products)
+        foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]!.Value<string>().ThrowIfNull()))
         {
-            try
+            foreach (var rfproduct in rfpgroup)
             {
-                var submitJson = ReadSubmitJson(rfproduct.Idea.Path);
-                if (ShouldSubmitToTurboSquid(submitJson) && !IsSubmittedTurboSquid(rfproduct.Idea.Path))
+                try
                 {
-                    SetState(state => state with { CurrentPublishing = rfproduct.Path });
+                    var submitJson = ReadSubmitJson(rfproduct.Idea.Path);
+                    if (ShouldSubmitToTurboSquid(submitJson) && !IsSubmittedTurboSquid(rfproduct.Idea.Path))
+                    {
+                        SetState(state => state with { CurrentPublishing = rfproduct.Path });
 
-                    var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
-                    var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
+                        var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
+                        var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
 
-                    Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
-                    var turbo = await TurboSquidContainer.GetAsync(username, password, token);
-                    await turbo.PublishAsync(rfproduct, NodeGui, token);
+                        Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
+
+                        try
+                        {
+                            var turbo = await TurboSquidContainer.GetAsync(username, password, token);
+                            await turbo.PublishAsync(rfproduct, NodeGui, token);
+                        }
+                        catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+                        {
+                            Logger.Info($"Username {rfpgroup.Key} cancelled login, skipping.");
+                            break;
+                        }
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                SetState(state => state with { Error = $"Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
+                catch (Exception ex)
+                {
+                    SetState(state => state with { Error = $"Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
 
-                Logger.Error(ex);
-                File.WriteAllText(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt"), ex.ToString());
-            }
+                    Logger.Error(ex);
+                    File.WriteAllText(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt"), ex.ToString());
+                }
 
-            /*
-            if ((submitJson["toSubmitTrader"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
-            {
-                var username = submitJson["LoginCGTrader"]!.ToObject<string>().ThrowIfNull();
-                var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
-            }
-            */
+                /*
+                if ((submitJson["toSubmitTrader"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
+                {
+                    var username = submitJson["LoginCGTrader"]!.ToObject<string>().ThrowIfNull();
+                    var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
+                }
+                */
 
-            SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
-            (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = GetDirectoryData(rfproduct.Idea.Path);
-            SaveTask();
+                SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
+                (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = GetDirectoryData(rfproduct.Idea.Path);
+                SaveTask();
+            }
         }
 
     }
