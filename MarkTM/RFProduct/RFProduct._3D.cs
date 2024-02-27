@@ -70,7 +70,7 @@ public partial record RFProduct
 
             static IEnumerable<string> AssetsInside(AssetContainer container) => container.EnumerateEntries(EntryType.NonContainers);
 
-            static bool IsPackage(string asset) => _packageExtensions.Contains(System.IO.Path.GetExtension(asset));
+            public static bool IsPackage(string asset) => _packageExtensions.Contains(System.IO.Path.GetExtension(asset));
             readonly static HashSet<string> _packageExtensions = [".UnityPackage"];
 
             public static bool IsWireframe(string asset) => _wireframeSuffixes.Any(wireframeSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(wireframeSuffix));
