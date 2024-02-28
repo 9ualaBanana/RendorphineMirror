@@ -19,6 +19,8 @@ public class Model3DUploadTab : Panel
                 Vertices = 321654,
                 PriceSquid = 727,
                 PriceTrader = 727,
+                StatusSquid = "none",
+                StatusTrader = "none",
             },
             JsonSettings.LowercaseS
         );
