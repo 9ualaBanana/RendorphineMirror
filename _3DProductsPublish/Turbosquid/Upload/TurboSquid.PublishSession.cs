@@ -210,7 +210,8 @@ public partial class TurboSquid
                     {
                         // Change to Poly retry policy.
                         await Task.Delay(3000);
-                        _session.Draft.LocalProduct.ID = await RequestPublishedProductIdAsync();
+                        _session.Draft.LocalProduct.ID = _session.Draft.LocalProduct.Metadata.Status is TurboSquid3DProductMetadata.Product.Status.online ?
+                            await RequestPublishedProductIdAsync() : _session.Draft.ID;
                     }
                     TurboSquid3DProductMetadata.File.For(_session.Draft.LocalProduct).Write(_session.Draft.LocalProduct);
                 }
@@ -219,7 +220,8 @@ public partial class TurboSquid
 
 
                 StringContent ProductForm()
-                    => new JObject(
+                {
+                    var productForm = new JObject(
                         new JProperty("authenticity_token", _session.Client.Credential.AuthenticityToken),
                         new JProperty("turbosquid_product_form", _session.Draft.LocalProduct.Metadata.ToProductForm(_session.Draft.ID)),
                         new JProperty("previews", new JObject(
@@ -235,18 +237,20 @@ public partial class TurboSquid
                         {
                             name = string.Empty,
                             website = string.Empty
-                        })),
-                        new JProperty("publish", string.Empty))
-                    .ToJsonContent();
+                        })));
+                    if (_session.Draft.LocalProduct.Metadata.Status is TurboSquid3DProductMetadata.Product.Status.online)
+                        productForm.Add("publish", string.Empty);
+                    return productForm.ToJsonContent();
+                }
 
-                async Task<int> RequestPublishedProductIdAsync()
+                async Task<long> RequestPublishedProductIdAsync()
                 {
                     const string ID = "turbosquid_id";
                     try
                     {
                         if (JObject.Parse(await _session.Client.GetStringAsync("/turbosquid/products.json?page=1", _session.CancellationToken))["data"] is JArray publishedProducts)
                             if (publishedProducts.FirstOrDefault(_ => (string)_["name"]! == _session.Draft.LocalProduct.Metadata.Title) is JToken publishedProduct)
-                                if (publishedProduct[ID]?.Value<int>() is int id)
+                                if (publishedProduct[ID]?.Value<long>() is long id)
                                 { _logger.Trace($"{_session.Draft.LocalProduct.Metadata.Title} 3D product ID is obtained."); return id; }
                                 else throw new MissingFieldException("PublishedProduct", ID);
                             else throw new Exception($"{_session.Draft.LocalProduct.Metadata.Title} wasn't found among published 3D products.");

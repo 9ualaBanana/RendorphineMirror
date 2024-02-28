@@ -62,7 +62,7 @@ public partial record _3DProduct : IDisposable
 
 public record _3DProduct<TMetadata> : _3DProduct
 {
-    public int ID { get; internal set; } = default;
+    public long ID { get; internal set; } = default;
     internal _3DProduct(_3DProduct _3DProduct, TMetadata metadata)
         : base(_3DProduct)
     { Metadata = metadata; }

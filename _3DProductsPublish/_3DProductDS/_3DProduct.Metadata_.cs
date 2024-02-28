@@ -7,6 +7,8 @@ public partial record _3DProduct
 {
     public record Metadata_
     {
+        [JsonProperty("toSubmitSquid")] public required string StatusSquid { get; init; }
+        [JsonProperty("toSubmitTrader")] public required string StatusTrader { get; init; }
         public required string Title { get; init; }
         public required string Description { get; init; }
         public required string Category { get; init; }
@@ -141,6 +143,7 @@ public static class _3DProductMetadataExtensions
     public static async Task<TurboSquid3DProduct> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
     {
         var tuboSquidMetadata = await TurboSquid3DProductMetadata.ProvideAsync(
+            Status(),
             _.Title,
             _.Description,
             _.Category,
@@ -161,6 +164,14 @@ public static class _3DProductMetadataExtensions
         );
         return _3DProduct.With(nodeGui, tuboSquidMetadata);
 
+
+        TurboSquid3DProductMetadata.Product.Status Status() => _.StatusSquid.ToLowerInvariant() switch
+        {
+            "draft" => TurboSquid3DProductMetadata.Product.Status.draft,
+            "online" => TurboSquid3DProductMetadata.Product.Status.online,
+            "none" => TurboSquid3DProductMetadata.Product.Status.none,
+            _ => throw new NotImplementedException()
+        };
 
         TurboSquid3DProductMetadata.License_ License() => _.License switch
         {
