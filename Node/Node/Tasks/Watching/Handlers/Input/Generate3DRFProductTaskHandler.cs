@@ -108,7 +108,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     }
 
     static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json"))));
-    static bool ShouldSubmitToTurboSquid(JObject submitJson) => (submitJson["toSubmitSquid"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Online;
     bool IsSubmittedTurboSquid(string dir)
     {
         if (!File.Exists(Path.Combine(dir, "turbosquid.meta"))) return false;
@@ -167,25 +166,22 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 try
                 {
                     var submitJson = ReadSubmitJson(rfproduct.Idea.Path);
-                    if (ShouldSubmitToTurboSquid(submitJson) && !IsSubmittedTurboSquid(rfproduct.Idea.Path))
+                    SetState(state => state with { CurrentPublishing = rfproduct.Path });
+
+                    var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
+                    var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
+
+                    Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
+
+                    try
                     {
-                        SetState(state => state with { CurrentPublishing = rfproduct.Path });
-
-                        var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
-                        var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
-
-                        Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
-
-                        try
-                        {
-                            var turbo = await TurboSquidContainer.GetAsync(username, password, token);
-                            await turbo.PublishAsync(rfproduct, NodeGui, token);
-                        }
-                        catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
-                        {
-                            Logger.Info($"Username {rfpgroup.Key} cancelled login, skipping.");
-                            break;
-                        }
+                        var turbo = await TurboSquidContainer.GetAsync(username, password, token);
+                        await turbo.PublishAsync(rfproduct, NodeGui, token);
+                    }
+                    catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+                    {
+                        Logger.Info($"Username {rfpgroup.Key} cancelled login, skipping.");
+                        break;
                     }
 
                     try { File.Delete(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt")); }
@@ -215,7 +211,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         Input.LastSalesFetch = DateTimeOffset.Now;
     }
-    enum ToSubmit { Online, Draft, None }
 
     string? WasDirectoryChanged(string directory, out Dictionary<string, DirectoryStructurePart> data)
     {
