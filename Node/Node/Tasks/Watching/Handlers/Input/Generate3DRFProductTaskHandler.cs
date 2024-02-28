@@ -108,7 +108,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     }
 
     static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json"))));
-    static bool ShouldSubmitToTurboSquid(JObject submitJson) => (submitJson["toSubmitSquid"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit;
+    static bool ShouldSubmitToTurboSquid(JObject submitJson) => (submitJson["toSubmitSquid"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Online;
     bool IsSubmittedTurboSquid(string dir)
     {
         if (!File.Exists(Path.Combine(dir, "turbosquid.meta"))) return false;
@@ -215,7 +215,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         Input.LastSalesFetch = DateTimeOffset.Now;
     }
-    enum ToSubmit { Submit, SubmitOffline, None }
+    enum ToSubmit { Online, Draft, None }
 
     string? WasDirectoryChanged(string directory, out Dictionary<string, DirectoryStructurePart> data)
     {
