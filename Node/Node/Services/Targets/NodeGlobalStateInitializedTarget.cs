@@ -54,7 +54,7 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
             }
         }, true);
 
-        RFProducts.RFProducts.Bindable.SubscribeChanged(() => state.RFProducts.SetRange(RFProducts.RFProducts.Select(p => KeyValuePair.Create(p.Key, JObject.FromObject(p.Value)))), true);
+        RFProducts.RFProducts.Bindable.SubscribeChanged(() => state.RFProducts.SetRange(RFProducts.RFProducts.Select(p => KeyValuePair.Create(p.Key, new UIRFProduct(p.Value.ID, p.Value.Path)))), true);
         PlacedTasks.PlacedTasks.Bindable.SubscribeChanged(() => state.PlacedTasks.SetRange(PlacedTasks.PlacedTasks.Values), true);
         CompletedTasks.CompletedTasks.Bindable.SubscribeChanged(() => state.CompletedTasks.SetRange(CompletedTasks.CompletedTasks.Values), true);
         QueuedTasks.QueuedTasks.Bindable.SubscribeChanged(() => state.QueuedTasks.SetRange(QueuedTasks.QueuedTasks.Values), true);
