@@ -202,6 +202,30 @@ public class RFProductsTab : Panel
                     await self.Flash(result);
                 },
             });
+            data.Columns.Add(new DataGridButtonColumn<UIRFProduct>()
+            {
+                Header = "Upload 1",
+                Text = "Upload to TurboSquid using account from settings",
+                SelfAction = async (product, self) =>
+                {
+                    var result = await LocalApi.Default.Post("upload3drfproduct", "Uploading 3d rfproduct to turbosquid",
+                        ("target", "turbosquid"), ("id", product.Id)
+                    );
+                    await self.Flash(result);
+                },
+            });
+            data.Columns.Add(new DataGridButtonColumn<UIRFProduct>()
+            {
+                Header = "Upload 2",
+                Text = "Upload to TurboSquid using account from _Submit.json",
+                SelfAction = async (product, self) =>
+                {
+                    var result = await LocalApi.Default.Post("upload3drfproductsubmitjson", "Uploading 3d rfproduct to turbosquid",
+                        ("target", "turbosquid"), ("id", product.Id)
+                    );
+                    await self.Flash(result);
+                },
+            });
         }
 
 
