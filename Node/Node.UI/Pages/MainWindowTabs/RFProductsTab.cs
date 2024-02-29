@@ -168,7 +168,7 @@ public class RFProductsTab : Panel
 
         DataGrid CreateDataGrid()
         {
-            var data = new DataGrid() { AutoGenerateColumns = false };
+            var data = new DataGrid() { AutoGenerateColumns = false, CanUserReorderColumns = true, CanUserResizeColumns = true, CanUserSortColumns = true };
             data.BeginningEdit += (obj, e) => e.Cancel = true;
 
             CreateColumns(data);
