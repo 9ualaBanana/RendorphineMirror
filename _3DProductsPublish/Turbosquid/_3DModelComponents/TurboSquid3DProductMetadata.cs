@@ -229,6 +229,7 @@ public partial record TurboSquid3DProductMetadata
             none,
             draft,
             awaiting_review,
+            suspended_awaiting_review,
             online
         }
 
