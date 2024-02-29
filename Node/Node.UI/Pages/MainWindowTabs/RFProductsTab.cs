@@ -1,25 +1,23 @@
-using Avalonia.Controls.Utils;
-using Avalonia.Data;
-using Avalonia.Data.Converters;
-using Avalonia.Interactivity;
-
 namespace Node.UI.Pages.MainWindowTabs;
 
 public class RFProductsTab : Panel
 {
     public RFProductsTab()
     {
-        var content = new StackPanel()
+        var content = new ScrollViewer()
         {
-            Orientation = Orientation.Vertical,
-            Children =
+            Content = new StackPanel()
             {
-                new CreateRFProductPanel()
-                    .Named("Create"),
-                new RFProductListPanel()
-                    .Named("List"),
-                new TextBlock()
-                    .Named("~ The end ~"),
+                Orientation = Orientation.Vertical,
+                Children =
+                {
+                    new CreateRFProductPanel()
+                        .Named("Create"),
+                    new RFProductListPanel()
+                        .Named("List"),
+                    new TextBlock()
+                        .Named("~ The end ~"),
+                },
             },
         };
 
@@ -147,112 +145,106 @@ public class RFProductsTab : Panel
         {
             Products = NodeGlobalState.Instance.RFProducts.GetBoundCopy();
 
-            var dg = CreateDataGrid();
-            var amounttb = new TextBlock();
-            Children.Add(new StackPanel()
+            var stack = new StackPanel()
             {
+                Orientation = Orientation.Vertical,
+                Spacing = 20,
+            };
+            var amounttb = new TextBlock();
+            Children.Add(new ScrollViewer()
+            {
+                Content = new StackPanel()
+                {
+                    Children =
+                    {
+                        amounttb,
+                        stack,
+                    },
+                }
+            });
+
+            Products.SubscribeChanged(() =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    stack.Children.Clear();
+                    amounttb.Text = $"Products: {Products.Count}";
+
+                    foreach (var product in Products.ToArray())
+                        stack.Children.Add(new RFProductUi(product.Value));
+                });
+            }, true);
+        }
+    }
+    class RFProductUi : Panel
+    {
+        readonly UIRFProduct Product;
+
+        public RFProductUi(UIRFProduct product)
+        {
+            Product = product;
+
+            var grid = new StackPanel()
+            {
+                Orientation = Orientation.Vertical,
                 Children =
                 {
-                    amounttb,
-                    dg,
+                    new TextBox() { Text = $"ID: {product.Id}", IsReadOnly = true },
+                    new TextBox() { Text = $"Path: {product.Path}", IsReadOnly = true },
+                    new StackPanel()
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Children =
+                        {
+                            new MPButton()
+                            {
+                                Text = "Open directory",
+                                OnClick = () =>
+                                {
+                                    var target = product.Path;
+                                    if (!Directory.Exists(target))
+                                        target = Path.GetDirectoryName(target)!;
+
+                                    Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+                                },
+                            },
+                            new MPButton()
+                            {
+                                Text = "Delete from DB (no files deleted)",
+                                OnClickSelf = async (self) =>
+                                {
+                                    var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product.Id));
+                                    await self.Flash(result);
+                                },
+                            },
+                            new MPButton()
+                            {
+                                Text = "Upload to TurboSquid",
+                                OnClickSelf = async (self) =>
+                                {
+                                    var result = await LocalApi.Default.Post("upload3drfproduct", "Uploading 3d rfproduct to turbosquid",
+                                        ("target", "turbosquid"), ("id", product.Id)
+                                    );
+                                    await self.Flash(result);
+                                },
+                            },
+                            new MPButton()
+                            {
+                                Text = "Upload to TurboSquid using account from _Submit.json",
+                                OnClickSelf = async (self) =>
+                                {
+                                    var result = await LocalApi.Default.Post("upload3drfproductsubmitjson", "Uploading 3d rfproduct to turbosquid",
+                                        ("target", "turbosquid"), ("id", product.Id)
+                                    );
+                                    await self.Flash(result);
+                                },
+                            },
+                        },
+                    },
                 },
-            });
-
-
-            Products.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
-            {
-                amounttb.Text = $"Products: {Products.Count}";
-                dg.ItemsSource = Products.Select(k => k.Value).ToArray();
-            }, DispatcherPriority.Background), true);
-        }
-
-        DataGrid CreateDataGrid()
-        {
-            var data = new DataGrid() { AutoGenerateColumns = false, CanUserReorderColumns = true, CanUserResizeColumns = true, CanUserSortColumns = true };
-            data.BeginningEdit += (obj, e) => e.Cancel = true;
-
-            CreateColumns(data);
-            return data;
-        }
-        void CreateColumns(DataGrid data)
-        {
-            data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(UIRFProduct.Id)) });
-            data.Columns.Add(new DataGridTextColumn() { Header = "Path", Binding = new Binding(nameof(UIRFProduct.Path)) });
-
-            data.Columns.Add(new DataGridButtonColumn<UIRFProduct>()
-            {
-                Header = "Open directory",
-                Text = "Open directory",
-                SelfAction = async (product, self) =>
-                {
-                    var target = product.Path;
-                    if (!Directory.Exists(target))
-                        target = Path.GetDirectoryName(target)!;
-
-                    Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
-                },
-            });
-            data.Columns.Add(new DataGridButtonColumn<UIRFProduct>()
-            {
-                Header = "Delete from DB only",
-                Text = "Delete from DB only",
-                SelfAction = async (product, self) =>
-                {
-                    var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product.Id));
-                    await self.Flash(result);
-                },
-            });
-            data.Columns.Add(new DataGridButtonColumn<UIRFProduct>()
-            {
-                Header = "Upload 1",
-                Text = "Upload to TurboSquid using account from settings",
-                SelfAction = async (product, self) =>
-                {
-                    var result = await LocalApi.Default.Post("upload3drfproduct", "Uploading 3d rfproduct to turbosquid",
-                        ("target", "turbosquid"), ("id", product.Id)
-                    );
-                    await self.Flash(result);
-                },
-            });
-            data.Columns.Add(new DataGridButtonColumn<UIRFProduct>()
-            {
-                Header = "Upload 2",
-                Text = "Upload to TurboSquid using account from _Submit.json",
-                SelfAction = async (product, self) =>
-                {
-                    var result = await LocalApi.Default.Post("upload3drfproductsubmitjson", "Uploading 3d rfproduct to turbosquid",
-                        ("target", "turbosquid"), ("id", product.Id)
-                    );
-                    await self.Flash(result);
-                },
-            });
-        }
-
-
-        class DataGridButtonColumn<T> : DataGridColumn
-        {
-            public string? Text;
-            public Action<T>? Action;
-            public Action<T, MPButton>? SelfAction;
-            public Func<T, bool>? CreationRequirements;
-
-            protected override Control GenerateElement(DataGridCell cell, object dataItem)
-            {
-                if (dataItem is not T item) return new Control();
-
-                var btn = new MPButton()
-                {
-                    Text = Text ?? string.Empty,
-                    OnClick = () => Action?.Invoke(item),
-                    OnClickSelf = self => SelfAction?.Invoke(item, self),
-                };
-                btn.Bind(MPButton.IsVisibleProperty, new Binding("") { Converter = new FuncValueConverter<T, bool>(t => t is null ? false : CreationRequirements?.Invoke(t) ?? true) });
-
-                return btn;
-            }
-
-            protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out ICellEditBinding binding) => throw new NotImplementedException();
-            protected override object PrepareCellForEdit(Control editingElement, RoutedEventArgs editingEventArgs) => throw new NotImplementedException();
+            };
+            Children.Add(grid);
         }
     }
 }
+
