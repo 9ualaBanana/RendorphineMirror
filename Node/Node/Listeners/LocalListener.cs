@@ -213,7 +213,7 @@ public class LocalListener : ExecutableListenerBase
                             return await WriteJson(response, "Item is already published.".AsOpResult());
                     }
 
-                    Logger.Info($"Publishing {rfproduct}");
+                    Logger.Info($"Publishing {rfproduct.Path}");
                     await turbo.PublishAsync(rfproduct, ui, token);
                     return await WriteJson(response, "Item is successfully published.".AsOpResult());
                 }
@@ -247,7 +247,7 @@ public class LocalListener : ExecutableListenerBase
                         var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
                         var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
 
-                        Logger.Info($"Publishing to turbosquid: {rfproduct}");
+                        Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
                         Logger.Info($"using {username} {password}");
                         var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(username, password, token);
                         await turbo.PublishAsync(rfproduct, NodeGui, token);
