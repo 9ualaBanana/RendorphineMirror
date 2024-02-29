@@ -141,7 +141,7 @@ public class RFProductsTab : Panel
     }
     class RFProductListPanel : Panel
     {
-        readonly IReadOnlyBindableCollection<KeyValuePair<string, JObject>> Products;
+        readonly IReadOnlyBindableCollection<KeyValuePair<string, UIRFProduct>> Products;
 
         public RFProductListPanel()
         {
@@ -176,29 +176,29 @@ public class RFProductsTab : Panel
         }
         void CreateColumns(DataGrid data)
         {
-            data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(RFProduct.ID)) });
-            data.Columns.Add(new DataGridTextColumn() { Header = "Path", Binding = new Binding(nameof(RFProduct.Path)) });
+            data.Columns.Add(new DataGridTextColumn() { Header = "ID", Binding = new Binding(nameof(UIRFProduct.Id)) });
+            data.Columns.Add(new DataGridTextColumn() { Header = "Path", Binding = new Binding(nameof(UIRFProduct.Path)) });
 
-            data.Columns.Add(new DataGridButtonColumn<JObject>()
+            data.Columns.Add(new DataGridButtonColumn<UIRFProduct>()
             {
                 Header = "Open directory",
                 Text = "Open directory",
                 SelfAction = async (product, self) =>
                 {
-                    var target = product[nameof(RFProduct.Path)]!.Value<string>();
+                    var target = product.Path;
                     if (!Directory.Exists(target))
                         target = Path.GetDirectoryName(target)!;
 
                     Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
                 },
             });
-            data.Columns.Add(new DataGridButtonColumn<JObject>()
+            data.Columns.Add(new DataGridButtonColumn<UIRFProduct>()
             {
                 Header = "Delete from DB only",
                 Text = "Delete from DB only",
                 SelfAction = async (product, self) =>
                 {
-                    var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product[nameof(RFProduct.ID)]!.Value<string>()!));
+                    var result = await LocalApi.Default.Post("deleterfproduct", "Deleting an RF product", ("id", product.Id));
                     await self.Flash(result);
                 },
             });

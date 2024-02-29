@@ -21,7 +21,7 @@ public class NodeGlobalState
     public readonly BindableList<DbTaskFullState> PlacedTasks = new();
     public readonly BindableList<CompletedTask> CompletedTasks = new();
     public readonly BindableList<WatchingTask> WatchingTasks = new();
-    public readonly BindableDictionary<string, JObject> RFProducts = new();
+    public readonly BindableDictionary<string, UIRFProduct> RFProducts = new();
     public readonly Bindable<JObject?> BenchmarkResult = new();
     public readonly Bindable<uint> TaskAutoDeletionDelayDays = new();
     public readonly Bindable<OneClickTaskInfo?> OneClickTaskInfo = new();
