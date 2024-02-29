@@ -22,6 +22,16 @@ public partial record RFProduct
         {
         }
 
+        // Not all statuses might be supported, which might result in parsing exception.
+        public enum Status
+        {
+            none,
+            draft,
+            awaiting_review,
+            suspended_awaiting_review,
+            online
+        }
+
 
         new public record Idea_
             : RFProduct.Idea_
@@ -42,7 +52,12 @@ public partial record RFProduct
                     else { using var _ = File.Create($"{System.IO.Path.Combine(Path, System.IO.Path.GetFileNameWithoutExtension(Packages.First()))}_Sales.json"); return _.Name; }
                 }
             }
-            [JsonIgnore] public string Status
+            [JsonIgnore] public Status Status
+            {
+                get => Enum.TryParse<Status>(JObject.Parse(File.ReadAllText(StatusFile))["status"]?.Value<string>(), true, out var status) ? status : Status = Status.none;
+                set => File.WriteAllText(StatusFile, JsonConvert.SerializeObject(new { status = value.ToStringInvariant() }));
+            }
+            string StatusFile
             {
                 get
                 {

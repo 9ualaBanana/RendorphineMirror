@@ -2,6 +2,7 @@
 using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.Turbosquid.Upload;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
+using MarkTM.RFProduct;
 using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
@@ -9,7 +10,7 @@ namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 public partial record TurboSquid3DProductMetadata
 {
     public static async Task<TurboSquid3DProductMetadata> ProvideAsync(
-        Product.Status status,
+        RFProduct._3D.Status status,
         string title,
         string description,
         string category,
@@ -49,7 +50,7 @@ public partial record TurboSquid3DProductMetadata
 
 
     TurboSquid3DProductMetadata(
-        Product.Status status,
+        RFProduct._3D.Status status,
         string title,
         string description,
         string[] tags,
@@ -86,7 +87,7 @@ public partial record TurboSquid3DProductMetadata
         UnwrappedUVs = unwrappedUvs;
     }
 
-    public Product.Status Status { get; }
+    public RFProduct._3D.Status Status { get; }
     public string Title { get; }
     public string Description { get; }
     public string[] Tags
@@ -199,7 +200,7 @@ public partial record TurboSquid3DProductMetadata
         public int id { get; init; } = default!;
         public long? draft_id { get; init; } = default!;
         [JsonConverter(typeof(StringEnumConverter))]
-        public Status status { get; init; } = default!;
+        public RFProduct._3D.Status status { get; init; } = default!;
         public string name { get; init; } = default!;
         public string description { get; init; } = default!;
         //public string product_type { get; init; }
@@ -222,16 +223,6 @@ public partial record TurboSquid3DProductMetadata
         internal IEnumerable<File> models => files.Where(_ => _.type == "product_file");
         public List<Preview> previews { get; init; } = default!;
 
-
-        // Not all statuses might be supported, which might result in parsing exception.
-        public enum Status
-        {
-            none,
-            draft,
-            awaiting_review,
-            suspended_awaiting_review,
-            online
-        }
 
         public record File(
             long id,

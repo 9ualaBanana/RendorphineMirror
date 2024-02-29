@@ -53,10 +53,10 @@ public partial class TurboSquid : HttpClient
     {
         var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
         var rfProduct3D = await ConvertAsync(rfProduct, gui, cancellationToken);
-        await PublishAsync(rfProduct3D, cancellationToken, JObject.Parse(await File.ReadAllTextAsync(idea.Status, cancellationToken))["status"]?.Value<string>() == "draft");
+        await PublishAsync(rfProduct3D, cancellationToken, idea.Status is RFProduct._3D.Status.draft);
 
-        // Request the status from the server.
-        await File.WriteAllTextAsync(((RFProduct._3D.Idea_)rfProduct.Idea).Status, JsonConvert.SerializeObject(new { status = rfProduct3D.Metadata.Status.ToStringInvariant() }), cancellationToken);
+        // Request the status values from the server.
+        ((RFProduct._3D.Idea_)rfProduct.Idea).Status = rfProduct3D.Metadata.Status;
 
 
         static async Task<TurboSquid3DProduct> ConvertAsync(RFProduct rfProduct, INodeGui gui, CancellationToken cancellationToken)
@@ -68,7 +68,7 @@ public partial class TurboSquid : HttpClient
     }
     public async Task PublishAsync(TurboSquid3DProduct _3DProduct, CancellationToken cancellationToken, bool isDraft = false)
     {
-        if (_3DProduct.Metadata.Status is not TurboSquid3DProductMetadata.Product.Status.none)
+        if (_3DProduct.Metadata.Status is not RFProduct._3D.Status.none)
             await PublishAsync(await CreateDraftAsync(_3DProduct, isDraft, cancellationToken), cancellationToken);
         else return;
     }

@@ -5,6 +5,7 @@ using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 using _3DProductsPublish.Turbosquid.Upload.Requests;
+using MarkTM.RFProduct;
 using Microsoft.Net.Http.Headers;
 using System.Net.Mime;
 
@@ -210,7 +211,7 @@ public partial class TurboSquid
                     {
                         // Change to Poly retry policy.
                         await Task.Delay(3000);
-                        _session.Draft.LocalProduct.ID = _session.Draft.LocalProduct.Metadata.Status is TurboSquid3DProductMetadata.Product.Status.online ?
+                        _session.Draft.LocalProduct.ID = _session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online ?
                             await RequestPublishedProductIdAsync() : _session.Draft.ID;
                     }
                     TurboSquid3DProductMetadata.File.For(_session.Draft.LocalProduct).Write(_session.Draft.LocalProduct);
@@ -238,7 +239,7 @@ public partial class TurboSquid
                             name = string.Empty,
                             website = string.Empty
                         })));
-                    if (_session.Draft.LocalProduct.Metadata.Status is TurboSquid3DProductMetadata.Product.Status.online)
+                    if (_session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online)
                         productForm.Add("publish", string.Empty);
                     return productForm.ToJsonContent();
                 }

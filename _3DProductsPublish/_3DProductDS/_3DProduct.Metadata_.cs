@@ -1,5 +1,6 @@
 ﻿using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
+using MarkTM.RFProduct;
 
 namespace _3DProductsPublish._3DProductDS;
 
@@ -165,11 +166,11 @@ public static class _3DProductMetadataExtensions
         return _3DProduct.With(nodeGui, tuboSquidMetadata);
 
 
-        TurboSquid3DProductMetadata.Product.Status Status() => _.StatusSquid.ToLowerInvariant() switch
+        RFProduct._3D.Status Status() => _.StatusSquid.ToLowerInvariant() switch
         {
-            "draft" => TurboSquid3DProductMetadata.Product.Status.draft,
-            "online" => TurboSquid3DProductMetadata.Product.Status.online,
-            "none" => TurboSquid3DProductMetadata.Product.Status.none,
+            "draft" => RFProduct._3D.Status.draft,
+            "online" => RFProduct._3D.Status.online,
+            "none" => RFProduct._3D.Status.none,
             _ => throw new NotImplementedException()
         };
 
