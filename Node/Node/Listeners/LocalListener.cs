@@ -263,7 +263,7 @@ public class LocalListener : ExecutableListenerBase
             var mpcreds = new NetworkCredential(Settings.MPlusUsername.Value, Settings.MPlusUsername.Value);
             var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(Settings.TurboSquidUsername.Value.ThrowIfNull(), Settings.TurboSquidPassword.Value.ThrowIfNull(), default);
             await (await MPAnalytics.LoginAsync(mpcreds, default))
-                .SendAsync(turbo.SaleReports.ScanAsync(default), default);
+                .SendAsync((await turbo.SaleReports).ScanAsync(default), default);
 
             return await WriteSuccess(response).ConfigureAwait(false);
         }

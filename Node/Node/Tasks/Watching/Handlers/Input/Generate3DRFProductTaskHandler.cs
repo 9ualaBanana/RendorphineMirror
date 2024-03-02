@@ -151,7 +151,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
                 var turbo = await TurboSquidContainer.GetAsync(tsusername, tspassword, token);
 
-                var sales = await turbo.SaleReports.ScanAsync(token).ToArrayAsync(token);
+                var sales = await (await turbo.SaleReports).ScanAsync(token).ToArrayAsync(token);
                 foreach (var product in rfpgroup)
                     await product.UpdateSalesAsync(sales.SelectMany(s => s.SaleReports).ToArray(), token);
 
