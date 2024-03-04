@@ -21,6 +21,7 @@ public partial record RFProduct : AssetContainer
     string? _type;
     public string ID { get; }
     public Idea_ Idea { get; }
+    DirectoryInfo Assets => CreateAssetsDirectoryInside(this);
     public QSPreviews QSPreview { get; }
     public ImmutableHashSet<RFProduct> SubProducts { get; private set; } = [];
 
@@ -45,7 +46,7 @@ public partial record RFProduct : AssetContainer
                 idea.Path = container.Store(idea.Path, @as: Idea_.FileName, StoreMode.Copy);
 
             var previews = await QSPreviews.GenerateAsync(await GetPreviewInputAsync(idea), container, cancellationToken);
-            previews.MoveTo(container);
+            previews.MoveTo(CreateAssetsDirectoryInside(container).FullName);
 
             return Create(idea, await GenerateIDAsync(cancellationToken), previews, container);
 
@@ -116,6 +117,15 @@ public partial record RFProduct : AssetContainer
         SubProducts = subproducts.Select(_ => _.ToObject<RFProduct>()).ToImmutableHashSet()!;
     }
 
+    static DirectoryInfo CreateAssetsDirectoryInside(string container)
+        => Directory.CreateDirectory(System.IO.Path.Combine(container, "rfp-assets"));
+    public void Delete(bool recursive = true)
+    {
+        Assets.Delete(DeletionMode.Wipe);
+        if (recursive)
+            foreach (var subproduct in SubProducts)
+                new DirectoryInfo(subproduct).Delete(DeletionMode.Wipe);
+    }
 
     // Idea_.Generator might be necessary as soon as asynchronous operations needs to be performed for obtaining it. For now virtual properties suffice.
     public record Idea_
