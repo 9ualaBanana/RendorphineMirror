@@ -28,8 +28,14 @@ public partial record RFProduct
             }
             public record Recognizer : IRecognizer<Idea_>
             {
-                public Idea_? TryRecognize(string idea)
-                    => File.Exists(idea) && FileFormatExtensions.FromFilename(idea) is FileFormat.Jpeg or FileFormat.Png ? new(idea) : null;
+                public Idea_ Recognize(string idea) =>
+                    File.Exists(idea) ?
+                        FileFormatExtensions.FromFilename(idea) is FileFormat.Jpeg or FileFormat.Png ?
+
+                    new(idea)
+
+                        : throw new FormatException()
+                    : throw new FileNotFoundException(default, idea);
             }
         }
 

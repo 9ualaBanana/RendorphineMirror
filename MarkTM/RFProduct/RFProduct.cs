@@ -132,7 +132,7 @@ public partial record RFProduct : AssetContainer
 
         public interface IRecognizer<TIdea>
         {
-            TIdea? TryRecognize(string idea);
+            TIdea Recognize(string idea);
         }
     }
 
