@@ -54,7 +54,9 @@ public partial record RFProduct
             }
             [JsonIgnore] public Status Status
             {
-                get => Enum.TryParse<Status>(JObject.Parse(File.ReadAllText(StatusFile))["status"]?.Value<string>(), true, out var status) ? status : Status = Status.none;
+                get => File.ReadAllText(StatusFile) is string content && content.Length is not 0 
+                    && Enum.TryParse<Status>(JObject.Parse(content)["status"]?.Value<string>(), true, out var status) ?
+                    status : Status = Status.none;
                 set => File.WriteAllText(StatusFile, JsonConvert.SerializeObject(new { status = value.ToStringInvariant() }));
             }
             string StatusFile
