@@ -34,8 +34,12 @@ public partial record TurboSquid3DProductMetadata
 
         async Task<Category_> Category()
         {
+            var defaultCategory = new Category_("sculpture", 330);
             var httpClient = new HttpClient() { BaseAddress = TurboSquid.Origin};
-            while (true)
+            return await SuggestCategoryAsync(category) ?? defaultCategory;
+
+
+            async Task<Category_?> SuggestCategoryAsync(string category)
             {
                 var suggestions = JArray.Parse(
                     await httpClient.GetStringAsync($"features/suggestions?fields%5Btags_and_synonyms%5D={WebUtility.UrlEncode(category)}&assignable=true&assignable_restricted=false&ancestry=1%2F6&limit=25", cancellationToken)
@@ -43,7 +47,8 @@ public partial record TurboSquid3DProductMetadata
                 if (suggestions.FirstOrDefault() is JToken suggestion &&
                     suggestion["text"]?.Value<string>() is string category_ &&
                     suggestion["id"]?.Value<int>() is int id)
-                        return new(category_, id);
+                    return new(category_, id);
+                else return null;
             }
         }
     }
