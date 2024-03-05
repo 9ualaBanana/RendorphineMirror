@@ -1,5 +1,6 @@
 ﻿using _3DProductsPublish.Turbosquid.Api;
 using MarkTM.RFProduct;
+using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
@@ -28,6 +29,7 @@ public partial class TurboSquid
         public async IAsyncEnumerable<MonthlyScan> ScanAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
             using var salereports = new DbContext();
+            await salereports.Database.MigrateAsync(cancellationToken);
 
             var user = await GetUserAsyncWith(_turbosquid.Credential.UserName);
 
@@ -117,9 +119,9 @@ public partial class TurboSquid
             return new(
                 record.Value("Name"),
                 long.Parse(record.Value("ProductID")),
-                double.Parse(Digit().Match(record.Value("Price")).ValueSpan),
-                double.Parse(Digit().Match(record.Value("Rate")).ValueSpan),
-                double.Parse(Digit().Match(record.Value("Royalty")).ValueSpan),
+                double.Parse(Digit().Match(record.Value("Price")).Value.ToLowerInvariant()),
+                double.Parse(Digit().Match(record.Value("Rate")).Value.ToLowerInvariant()),
+                double.Parse(Digit().Match(record.Value("Royalty")).Value.ToLowerInvariant()),
                 DateTimeOffset.Parse(record.Value("Date").Split(["'", "\""], 3, default)[1]),
                 record.Value("OrderType"),
                 record.Value("Source"),

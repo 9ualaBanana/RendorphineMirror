@@ -79,17 +79,24 @@ public partial record RFProduct
 
             public record Recognizer : IRecognizer<Idea_>
             {
-                public Idea_? TryRecognize(string idea)
-                {
-                    if (AssetContainer.Exists(idea) && new AssetContainer(idea) is AssetContainer ideaContainer
-                        && AssetsInside(ideaContainer) is IEnumerable<string> assets
-                            && assets.Any(IsPackage)
-                            && assets.Single(IsMetadata) is not null
-                            && assets.Count(IsRender) >= 7)
-                            //&& assets.Any(IsSettings))
-                        return new(ideaContainer);
-                    return null;
-                }
+                public Idea_ Recognize(string idea) =>
+                    AssetContainer.Exists(idea) && new AssetContainer(idea) is AssetContainer ideaContainer
+                    && AssetsInside(ideaContainer) is IEnumerable<string> assets ?
+                        assets.Any(IsPackage) ?
+                        assets.SingleOrDefault(IsMetadata) is not null ?
+                        assets.Count(IsRender) is int count && count >= RequiredRendersCount ?
+                        assets.Any(IsWireframe) ?
+                        //assets.Any(IsSettings)
+
+                    new(ideaContainer)
+
+                        : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least 1 wireframe render with any of the following suffixes [{string.Join(',', _wireframeSuffixes)}]")
+                        : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least {RequiredRendersCount} renders and only {count} were found.")
+                        : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain metadata file [{_metadataSuffix}].")
+                        : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least 1 package.")
+                    : throw new InvalidDataException($"{idea} doesn't represent {typeof(_3D).FullName}.");
+
+                const int RequiredRendersCount = 7;
             }
 
             static IEnumerable<string> AssetsInside(AssetContainer container) => container.EnumerateEntries(EntryType.NonContainers);
@@ -103,7 +110,8 @@ public partial record RFProduct
             public static bool IsRender(string asset) => _renderSuffixes.Any(renderSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(renderSuffix));
             readonly static HashSet<string> _renderSuffixes = new(_wireframeSuffixes.Union(["_screenshot"]));
 
-            static bool IsMetadata(string asset) => asset.EndsWith("_Submit.json");
+            static bool IsMetadata(string asset) => asset.EndsWith(_metadataSuffix);
+            readonly static string _metadataSuffix = "_Submit.json";
 
             //static bool IsSettings(string asset) => asset.EndsWith("_Settings.ini");
         }

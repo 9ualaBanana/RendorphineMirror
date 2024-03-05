@@ -27,13 +27,18 @@ public partial record RFProduct
 
             try
             {
-                if (_3D.Recognizer.TryRecognize(idea) is _3D.Idea_ _3dIdea)
-                    return await CreateAsync<_3D.Idea_, _3D>(_3dIdea, container, cancellationToken);
-                else if (Video.Recognizer.TryRecognize(idea) is Video.Idea_ videoIdea)
-                    return await CreateAsync<Video.Idea_, Video>(videoIdea, container, cancellationToken);
-                else if (Image.Recognizer.TryRecognize(idea) is Image.Idea_ imageIdea)
-                    return await CreateAsync<Image.Idea_, Image>(imageIdea, container, cancellationToken);
-                else throw new NotImplementedException();
+                List<Exception> recognitionExceptions = [];
+                Idea_? idea_ = null;
+                try { idea_ = _3D.Recognizer.Recognize(idea); }
+                catch (Exception ex) { recognitionExceptions.Add(ex); }
+                try { idea_ = Video.Recognizer.Recognize(idea); }
+                catch (Exception ex) { recognitionExceptions.Add(ex); }
+                try { idea_ = Image.Recognizer.Recognize(idea); }
+                catch (Exception ex) { recognitionExceptions.Add(ex); }
+                
+                if (idea_ is not null)
+                    return await CreateAsync(idea_, container, cancellationToken);
+                else throw new AggregateException(recognitionExceptions);
             }
             catch
             {
@@ -41,10 +46,10 @@ public partial record RFProduct
                     File.Delete(qsPreview);
                 throw;
             }
+
+
         }
-        internal async Task<TProduct> CreateAsync<TIdea, TProduct>(TIdea idea, AssetContainer container, CancellationToken cancellationToken)
-            where TIdea : Idea_
-            where TProduct : RFProduct
+        internal async Task<RFProduct> CreateAsync(Idea_ idea, AssetContainer container, CancellationToken cancellationToken)
         {
             RFProduct product = idea switch
             {
@@ -56,7 +61,7 @@ public partial record RFProduct
 
             Storage.RFProducts.Add(product);
 
-            return product as TProduct ?? throw new TypeInitializationException(typeof(TProduct).FullName, null);
+            return product;
 
 
             async Task<ImmutableHashSet<RFProduct>> CreateSubProductsAsync<TIdea, TPreviews, TProduct>(

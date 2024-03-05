@@ -46,6 +46,7 @@ public class Auto3DPublishTab : Panel
         readonly TextBlock RFProducted;
         readonly TextBlock Published;
         readonly TextBlock Error;
+        string? TaskId;
 
         public Part()
         {
@@ -57,12 +58,34 @@ public class Auto3DPublishTab : Panel
                 Files = new TextBlock(),
                 RFProducted = new TextBlock(),
                 Published = new TextBlock(),
+                new MPButton()
+                {
+                    Text = "FULL RESTART",
+                    OnClickSelf = async self =>
+                    {
+                        if (TaskId is null) return;
+
+                        await new YesNoMessageBox(false)
+                        {
+                            Text = "Are you sure you want to do a full restart ???",
+                            OnClick = async doit =>
+                            {
+                                if (!doit) return;
+
+                                var result = await LocalApi.Default.Post("auto3drestart", "Restarting the auto 3d generator", ("taskid", TaskId));
+                                await self.Flash(result);
+                                State.Text = "waiting for timer (10sec)";
+                            }
+                        }.ShowDialog((Window) VisualRoot!);
+                    },
+                },
                 Error = new TextBlock() { Foreground = Colors.From(255, 0, 0), TextWrapping = TextWrapping.Wrap },
             ]);
         }
 
         public void SetInfo(AutoRFProductPublishInfo info)
         {
+            TaskId = info.TaskId;
             InputDir.Text = $"Input dir: {info.InputDirectory}";
 
             State.Text =

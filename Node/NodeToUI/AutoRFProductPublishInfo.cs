@@ -2,6 +2,7 @@ namespace NodeToUI;
 
 public record AutoRFProductPublishInfo
 {
+    public required string TaskId { get; init; }
     public required bool IsPaused { get; init; }
     public required string InputDirectory { get; init; }
 
@@ -11,6 +12,6 @@ public record AutoRFProductPublishInfo
     public int? RFProductedCount { get; init; }
     public int? PublishedCount { get; init; }
     public int FileCount { get; init; }
-    
+
     public string? Error { get; init; }
 }

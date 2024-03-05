@@ -8,6 +8,7 @@ using _3DProductsPublish.Turbosquid.Upload;
 using Node.Profiling;
 using Node.Tasks.Exec.Input;
 using Node.Tasks.Exec.Output;
+using Node.Tasks.Watching.Handlers.Input;
 
 namespace Node.Listeners;
 
@@ -168,6 +169,22 @@ public class LocalListener : ExecutableListenerBase
                 return await WriteSuccess(response).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
+
+        if (path == "auto3drestart")
+        {
+            return await TestPost(await CreateCached(request), response, "taskid", async (taskid) =>
+            {
+                Container.Resolve<TurboSquidContainer>().ClearCache();
+
+                var task = Container.Resolve<IWatchingTasksStorage>().WatchingTasks.GetValueOrDefault(taskid);
+                if (task is null)
+                    return await WriteErr(response, "No task with such id");
+
+                ((Generate3DRFProductTaskHandler) Container.Resolve<WatchingTasksHandler>().GetHandler(task)).FullRestart();
+                return await WriteSuccess(response).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+
 
         if (path == "3dupload")
         {

@@ -1,7 +1,7 @@
-using System.Net;
 using System.Text.RegularExpressions;
 using _3DProductsPublish.Turbosquid;
 using _3DProductsPublish.Turbosquid.Upload;
+using Node.Common.Models.GuiRequests;
 
 namespace Node.Tasks.Watching.Handlers.Input;
 
@@ -15,6 +15,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     public required TurboSquidContainer TurboSquidContainer { get; init; }
     public required NodeGlobalState GlobalState { get; init; }
     public required INodeSettings Settings { get; init; }
+    CancellationTokenSource? CurrentTask;
 
     public override void StartListening() => StartThreadRepeated(10_000, RunOnce);
 
@@ -24,6 +25,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         {
             state = new AutoRFProductPublishInfo()
             {
+                TaskId = Task.Id,
                 IsPaused = Task.IsPaused,
                 InputDirectory = Input.InputDirectory,
             };
@@ -33,8 +35,17 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         GlobalState.AutoRFProductPublishInfos[Task.Id] = state;
     }
 
+    public void FullRestart()
+    {
+        CurrentTask?.Cancel();
+        TurboSquidContainer.ClearCache();
+        Input.DirectoryStructure?.Clear();
+    }
+
     public async Task RunOnce()
     {
+        CurrentTask = new CancellationTokenSource();
+
         SetState(state =>
         {
             var products = RFProducts.RFProducts.Values
@@ -52,7 +63,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         try
         {
-            await GenerateQSProducts();
+            await GenerateQSProducts(CurrentTask.Token);
         }
         catch (Exception ex)
         {
@@ -65,7 +76,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         try
         {
-            await PublishRFProducts(default);
+            await PublishRFProducts(CurrentTask.Token);
         }
         catch (Exception ex)
         {
@@ -74,13 +85,15 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         finally
         {
             SetState(state => state with { CurrentPublishing = null, CurrentRFProducting = null });
+            CurrentTask = null;
         }
     }
 
-    async Task GenerateQSProducts()
+    async Task GenerateQSProducts(CancellationToken token)
     {
         foreach (var productDir in Directory.GetDirectories(Input.InputDirectory))
         {
+            token.ThrowIfCancellationRequested();
             if (File.Exists(Path.Combine(productDir, ".rfproducted"))) continue;
 
             try
@@ -88,7 +101,22 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 SetState(state => state with { CurrentRFProducting = productDir });
 
                 Logger.Info("Creating product " + productDir);
-                var rfp = await RFProductFactory.CreateAsync(productDir, productDir, default, false);
+                RFProduct rfp;
+                try
+                {
+                    rfp = await RFProductFactory.CreateAsync(productDir, productDir, token, false);
+                }
+                catch
+                {
+                    foreach (var assetsdir in Directory.GetDirectories(productDir, "rfp-assets", SearchOption.AllDirectories))
+                        Directory.Delete(assetsdir, true);
+
+                    foreach (var file in Directory.GetFiles(productDir, "idea.*", SearchOption.AllDirectories))
+                        File.Delete(file);
+
+                    rfp = await RFProductFactory.CreateAsync(productDir, productDir, token, false);
+                }
+
                 Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
                 File.Create(Path.Combine(productDir, ".rfproducted")).Dispose();
 
@@ -97,7 +125,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 try { File.Delete(Path.Combine(productDir, "publish_exception.txt")); }
                 catch { }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 SetState(state => state with { Error = $"Error RFPRODUCTING product {productDir}:\n{ex}", });
 
@@ -124,6 +152,23 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         var firstline = File.ReadLines(Path.Combine(dir, "turbosquid.meta")).FirstOrDefault();
         return firstline is not null && Regex.IsMatch(firstline, @"\[\d+\]");
     }
+    async Task<TurboSquid> GetTurboRetryOrSkip(string username, string password, CancellationToken token, bool force = false)
+    {
+        try
+        {
+            if (force)
+                return await TurboSquidContainer.ForceGetAsync(username, password, token);
+            return await TurboSquidContainer.GetAsync(username, password, token);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var retry = await NodeGui.Request<bool>(new RetryOrSkipRequest("Login failed. Retry?"), token);
+            if (!retry || !retry.Value)
+                throw new OperationCanceledException();
+
+            return await GetTurboRetryOrSkip(username, password, token, true);
+        }
+    }
     async Task PublishRFProducts(CancellationToken token)
     {
         var products = RFProducts.RFProducts.Values
@@ -134,6 +179,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]!.Value<string>().ThrowIfNull()))
         {
+            token.ThrowIfCancellationRequested();
+
             async Task updateSalesIfNeeded()
             {
                 if (Input.LastSalesFetch.AddHours(1) > DateTimeOffset.Now)
@@ -149,7 +196,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 var tsusername = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
                 var tspassword = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
 
-                var turbo = await TurboSquidContainer.GetAsync(tsusername, tspassword, token);
+                var turbo = await GetTurboRetryOrSkip(tsusername, tspassword, token);
 
                 var sales = await (await turbo.SaleReports).ScanAsync(token).ToArrayAsync(token);
                 foreach (var product in rfpgroup)
@@ -158,11 +205,21 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 //await (await MPAnalytics.LoginAsync(mpcreds, token)).SendAsync(sales.ToAsyncEnumerable(), token);
             }
 
-            await updateSalesIfNeeded();
+            try { await updateSalesIfNeeded(); }
+            catch (OperationCanceledException)
+            {
+                continue;
+            }
+            catch (Exception ex)
+            {
+                SetState(state => state with { Error = $"Error UPDATING the sales:\n{ex}", });
+            }
 
 
             foreach (var rfproduct in rfpgroup)
             {
+                token.ThrowIfCancellationRequested();
+
                 try
                 {
                     var submitJson = ReadSubmitJson(rfproduct.Idea.Path);
@@ -175,7 +232,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
                     try
                     {
-                        var turbo = await TurboSquidContainer.GetAsync(username, password, token);
+                        var turbo = await GetTurboRetryOrSkip(username, password, token);
                         await turbo.PublishAsync(rfproduct, NodeGui, token);
                     }
                     catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
@@ -187,7 +244,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     try { File.Delete(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt")); }
                     catch { }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     SetState(state => state with { Error = $"Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
 
@@ -203,6 +260,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 }
                 */
 
+                token.ThrowIfCancellationRequested();
                 SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
                 (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = GetDirectoryData(rfproduct.Idea.Path);
                 SaveTask();

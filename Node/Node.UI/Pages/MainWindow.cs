@@ -146,6 +146,7 @@ namespace Node.UI.Pages
                         {
                             CaptchaRequest req => new CaptchaWindow(req.Base64Image, v => sendResponse(v)),
                             InputRequest req => new InputWindow(req.Text, v => sendResponse(v)),
+                            RetryOrSkipRequest req => new RetryOrSkipWindow(req.Text, v => sendResponse(v)),
                             InputTurboSquidModelInfoRequest req => new TurboSquidModelInfoInputWindow(req, v => sendResponse(v)),
                             _ => throw new InvalidOperationException("Unknown request type " + request),
                         };
