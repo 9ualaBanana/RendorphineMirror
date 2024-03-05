@@ -11,6 +11,7 @@ public class NodeGui : INodeGui
         {
             ["captcharesponse"] = typeof(CaptchaRequest),
             ["inputresponse"] = typeof(InputRequest),
+            ["retryorskipresponse"] = typeof(RetryOrSkipRequest),
             ["tsmiresponse"] = typeof(InputTurboSquidModelInfoRequest),
         }.ToImmutableDictionary();
 

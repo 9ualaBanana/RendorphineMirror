@@ -139,7 +139,7 @@ public class RFProductsTab : Panel
     }
     class RFProductListPanel : Panel
     {
-        readonly IReadOnlyBindableCollection<KeyValuePair<string, UIRFProduct>> Products;
+        readonly BindableDictionary<string, UIRFProduct> Products;
 
         public RFProductListPanel()
         {
@@ -163,17 +163,25 @@ public class RFProductsTab : Panel
                 }
             });
 
-            Products.SubscribeChanged(() =>
+            var controls = new Dictionary<string, RFProductUi>();
+            Products.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
             {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    stack.Children.Clear();
-                    amounttb.Text = $"Products: {Products.Count}";
+                var products = Products.Value;
+                amounttb.Text = $"Products: {products.Count}";
 
-                    foreach (var product in Products.ToArray())
-                        stack.Children.Add(new RFProductUi(product.Value));
-                });
-            }, true);
+                foreach (var (key, control) in controls)
+                {
+                    if (!products.ContainsKey(key))
+                    {
+                        controls.Remove(key);
+                        stack.Children.Remove(control);
+                    }
+                }
+
+                foreach (var (key, product) in products.ToArray())
+                    if (!controls.ContainsKey(key))
+                        stack.Children.Add((controls[key] = new RFProductUi(product)));
+            }, DispatcherPriority.Background), true);
         }
     }
     class RFProductUi : Panel

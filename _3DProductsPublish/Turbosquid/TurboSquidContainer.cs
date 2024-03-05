@@ -20,8 +20,15 @@ public class TurboSquidContainer
     {
         _logger.LogInformation("Getting the turbo squidder thingamajig");
         if (_instances.TryGetValue(username, out var turbo) && (turbo.Credentials.UserName == username && turbo.Credentials.Password == password))
+        {
+            _logger.LogInformation("Using cached");
             return turbo.TurboSquid;
+        }
 
+        return await ForceGetAsync(username, password, token);
+    }
+    public async Task<TurboSquid> ForceGetAsync(string username, string password, CancellationToken token)
+    {
         _logger.LogInformation("Logging in...");
         var cred = new NetworkCredential(username, password);
         var instance = await TurboSquid.LogInAsyncUsing(cred, _gui, token);
@@ -29,6 +36,7 @@ public class TurboSquidContainer
 
         return instance;
     }
+    public void ClearCache() => _instances.Clear();
 
 
     record TurboSquidInstance(TurboSquid TurboSquid, NetworkCredential Credentials);
