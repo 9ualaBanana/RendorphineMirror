@@ -20,20 +20,23 @@ public partial class TurboSquid : HttpClient
 
     public required TurboSquidNetworkCredential Credential { get; init; }
 
-    public ValueTask<SaleReports_> SaleReports { get; }
+    // TODO: Implement lazy authentication.
+    public SaleReports_ SaleReports { get; private set; } = null!;
 
     public static async Task<TurboSquid> LogInAsyncUsing(NetworkCredential credential, INodeGui nodeGui, CancellationToken cancellationToken)
     {
         var handler = new SocketsHttpHandler();
         var authenticationApi = new TurboSquidAuthenticationApi(handler, nodeGui);
-        var client = new TurboSquid(handler, cancellationToken) { Credential = await authenticationApi.RequestTurboSquidNetworkCredentialAsync(credential, cancellationToken) };
+        var client = new TurboSquid(handler) { Credential = await authenticationApi.RequestTurboSquidNetworkCredentialAsync(credential, cancellationToken) };
         await authenticationApi._LoginAsyncUsing(client.Credential, cancellationToken);
         // client_uid header gets duplicated for two different domains: www.squid.io and auth.turbosquid.com.
+
+        client.SaleReports = await SaleReports_.LoginAsync(client, cancellationToken);
 
         return client;
     }
 
-    TurboSquid(SocketsHttpHandler handler, CancellationToken cancellationToken) : base(handler)
+    TurboSquid(SocketsHttpHandler handler) : base(handler)
     {
         Handler = handler;
         BaseAddress = Origin;
@@ -44,8 +47,6 @@ public partial class TurboSquid : HttpClient
             CookieContainer = handler.CookieContainer
         });
         _noAutoRedirectHttpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
-
-        SaleReports = new(SaleReports_.LoginAsync(this, cancellationToken));
     }
 
     public async Task PublishAsync(RFProduct rfProduct, INodeGui gui, CancellationToken cancellationToken)
