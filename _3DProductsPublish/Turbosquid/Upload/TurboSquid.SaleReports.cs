@@ -1,5 +1,6 @@
 ﻿using _3DProductsPublish.Turbosquid.Api;
 using MarkTM.RFProduct;
+using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
@@ -28,6 +29,7 @@ public partial class TurboSquid
         public async IAsyncEnumerable<MonthlyScan> ScanAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
             using var salereports = new DbContext();
+            await salereports.Database.MigrateAsync(cancellationToken);
 
             var user = await GetUserAsyncWith(_turbosquid.Credential.UserName);
 
