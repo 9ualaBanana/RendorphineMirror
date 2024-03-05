@@ -31,9 +31,6 @@ using Node;
 using Node.Services.Targets;
 using SevenZip;
 
-try { File.Delete("CefSharp.BrowserSubprocess.runtimeconfig.json"); }
-catch (Exception ex) { Console.WriteLine(ex); }
-
 if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
     foreach (var proc in FileList.GetAnotherInstances())
         proc.Kill(true);
