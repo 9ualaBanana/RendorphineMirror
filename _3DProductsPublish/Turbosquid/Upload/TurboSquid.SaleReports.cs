@@ -119,9 +119,9 @@ public partial class TurboSquid
             return new(
                 record.Value("Name"),
                 long.Parse(record.Value("ProductID")),
-                double.Parse(Digit().Match(record.Value("Price")).ValueSpan),
-                double.Parse(Digit().Match(record.Value("Rate")).ValueSpan),
-                double.Parse(Digit().Match(record.Value("Royalty")).ValueSpan),
+                double.Parse(Digit().Match(record.Value("Price")).Value.ToLowerInvariant()),
+                double.Parse(Digit().Match(record.Value("Rate")).Value.ToLowerInvariant()),
+                double.Parse(Digit().Match(record.Value("Royalty")).Value.ToLowerInvariant()),
                 DateTimeOffset.Parse(record.Value("Date").Split(["'", "\""], 3, default)[1]),
                 record.Value("OrderType"),
                 record.Value("Source"),
