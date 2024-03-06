@@ -40,6 +40,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         CurrentTask?.Cancel();
         TurboSquidContainer.ClearCache();
         Input.DirectoryStructure?.Clear();
+        SaveTask();
     }
 
     public async Task RunOnce()
