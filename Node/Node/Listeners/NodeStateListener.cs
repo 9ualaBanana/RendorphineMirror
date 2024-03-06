@@ -6,7 +6,7 @@ public class NodeStateListener : ListenerBase
 {
     public event Action<NodeStateSender.Instance>? OnReceive;
 
-    protected override ListenTypes ListenType => ListenTypes.Local;
+    protected override ListenTypes ListenType => ListenTypes.WebServer | ListenTypes.Local;
     protected override string Prefix => "getstate";
 
     public required NodeStateSender Sender { get; init; }
