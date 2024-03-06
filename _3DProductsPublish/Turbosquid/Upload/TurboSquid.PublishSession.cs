@@ -1,7 +1,6 @@
 ﻿#define ENABLE_PARALLELIZATION
 
 using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 using _3DProductsPublish.Turbosquid.Upload.Requests;
@@ -17,11 +16,11 @@ public partial class TurboSquid
     {
         static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-        internal readonly TurboSquid3DProductDraft Draft;
+        internal readonly TurboSquid._3DProduct.Draft Draft;
         internal readonly TurboSquid Client;
         internal readonly CancellationToken CancellationToken;
 
-        internal static async Task<PublishSession> InitializeAsync(TurboSquid3DProductDraft draft, TurboSquid client, CancellationToken cancellationToken)
+        internal static async Task<PublishSession> InitializeAsync(TurboSquid._3DProduct.Draft draft, TurboSquid client, CancellationToken cancellationToken)
         {
             try
             {
@@ -36,7 +35,7 @@ public partial class TurboSquid
         }
 
         PublishSession(
-            TurboSquid3DProductDraft draft,
+            TurboSquid._3DProduct.Draft draft,
             TurboSquid client,
             CancellationToken cancellationToken)
         {
@@ -158,13 +157,13 @@ public partial class TurboSquid
             {
                 if (Draft.LocalProduct.Textures is null) return null;
                 _logger.Trace("Starting 3D product textures upload and processing.");
-                var texturesProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>>();
+                var texturesProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProductDS._3DProduct.Texture_>>();
                 foreach (var texture in Draft.LocalProduct.Textures.EnumerateFiles())
                 {
                     string uploadKey = await UploadAssetAsync(texture.Path);
-                    texturesProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>.RunAsync(texture, uploadKey, this));
+                    texturesProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DProductDS._3DProduct.Texture_>.RunAsync(texture, uploadKey, this));
                 }
-                var processedTextures = (await TurboSquid3DProductAssetProcessing.Task_<_3DProduct.Texture_>.WhenAll(texturesProcessing)).Cast<TurboSquidProcessed3DProductTexture>();
+                var processedTextures = (await TurboSquid3DProductAssetProcessing.Task_<_3DProductDS._3DProduct.Texture_>.WhenAll(texturesProcessing)).Cast<TurboSquidProcessed3DProductTexture>();
                 _logger.Trace("3D product textures have been uploaded and processed.");
                 return processedTextures;
             }
@@ -207,14 +206,16 @@ public partial class TurboSquid
                     productPublishRequest.Headers.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
                     await _session.Client.SendAsync(productPublishRequest, _session.CancellationToken);
                     _logger.Trace($"{_session.Draft.LocalProduct.Metadata.Title} 3D product publish request has been sent.");
-                    if (_session.Draft.LocalProduct.ID is 0)
+
+                    //// Edit with Draft.ID will work only if it was uploaded as Draft and not published as Product and Product ID is unknow at this point.
+                    //var remote = _3DProduct.Remote.Parse(await _session.Client.EditAsync(_session.Draft.ID, isDraft: true, _session.CancellationToken));
+                    if (_session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online)
                     {
-                        // Change to Poly retry policy.
-                        await Task.Delay(3000);
-                        _session.Draft.LocalProduct.ID = _session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online ?
-                            await RequestPublishedProductIdAsync() : _session.Draft.ID;
+                        await Task.Delay(5000);
+                        _session.Draft.LocalProduct.ID = await RequestPublishedProductIdAsync();
                     }
-                    TurboSquid3DProductMetadata.File.For(_session.Draft.LocalProduct).Write(_session.Draft.LocalProduct);
+                    else _session.Draft.LocalProduct.ID = _session.Draft.ID;
+                    TurboSquid._3DProduct.Metadata__.File.For(_session.Draft.LocalProduct).Write(_session.Draft.LocalProduct);
                 }
                 catch (Exception ex)
                 { throw new HttpRequestException($"{_session.Draft.LocalProduct.Metadata.Title} 3D product publish request failed.", ex); }

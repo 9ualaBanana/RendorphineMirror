@@ -165,7 +165,7 @@ internal partial class TurboSquid3DProductAssetProcessing
         record Context(Payload Payload, HttpClient AssetsProcessor, int PollInterval, CancellationToken CancellationToken)
         {
             internal Context(Payload payload, HttpClient assetsProcessor, CancellationToken cancellationToken)
-                : this(payload, assetsProcessor, 1000, cancellationToken)
+                : this(payload, assetsProcessor, 3000, cancellationToken)
             {
             }
         }

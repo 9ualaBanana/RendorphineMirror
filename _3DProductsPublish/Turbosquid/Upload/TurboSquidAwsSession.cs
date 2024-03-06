@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish.Turbosquid.Upload.Requests;
-using AwsSignatureVersion4.Private;
+﻿using AwsSignatureVersion4.Private;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
@@ -54,16 +53,16 @@ internal record TurboSquidAwsSession
     {
         if (includeAcl) return new KeyValuePair<string, IEnumerable<string>>[]
         {
-            new KeyValuePair<string, IEnumerable<string>>("x-amz-acl", "private"._ToHeaderValue()),
-            new KeyValuePair<string, IEnumerable<string>>("x-amz-content-sha256", "UNSIGNED-PAYLOAD"._ToHeaderValue()),
-            new KeyValuePair<string, IEnumerable<string>>("x-amz-date", CurrentServerTime.ToIso8601BasicDateTime()._ToHeaderValue()),
-            new KeyValuePair<string, IEnumerable<string>>("x-amz-security-token", SessionToken._ToHeaderValue())
+            new("x-amz-acl", "private".ToHeaderValue()),
+            new("x-amz-content-sha256", "UNSIGNED-PAYLOAD".ToHeaderValue()),
+            new("x-amz-date", CurrentServerTime.ToIso8601BasicDateTime().ToHeaderValue()),
+            new("x-amz-security-token", SessionToken.ToHeaderValue())
         };
         else return new KeyValuePair<string, IEnumerable<string>>[]
         {
-            new KeyValuePair<string, IEnumerable<string>>("x-amz-content-sha256", "UNSIGNED-PAYLOAD"._ToHeaderValue()),
-            new KeyValuePair<string, IEnumerable<string>>("x-amz-date", CurrentServerTime.ToIso8601BasicDateTime()._ToHeaderValue()),
-            new KeyValuePair<string, IEnumerable<string>>("x-amz-security-token", SessionToken._ToHeaderValue())
+            new("x-amz-content-sha256", "UNSIGNED-PAYLOAD".ToHeaderValue()),
+            new("x-amz-date", CurrentServerTime.ToIso8601BasicDateTime().ToHeaderValue()),
+            new("x-amz-security-token", SessionToken.ToHeaderValue())
         };
     }
 
@@ -73,5 +72,5 @@ internal record TurboSquidAwsSession
 
 static class HeaderExtensions
 {
-    internal static IEnumerable<string> _ToHeaderValue(this string value) => new string[] { value };
+    internal static IEnumerable<string> ToHeaderValue(this string value) => new string[] { value };
 }

@@ -1,5 +1,5 @@
 ﻿using _3DProductsPublish.CGTrader._3DModelComponents;
-using _3DProductsPublish.Turbosquid._3DModelComponents;
+using _3DProductsPublish.Turbosquid.Upload;
 using MarkTM.RFProduct;
 
 namespace _3DProductsPublish._3DProductDS;
@@ -20,7 +20,7 @@ public partial record _3DProduct
             init
             {
                 if (value.Length < 1)
-                    throw new ArgumentOutOfRangeException(nameof(value.Length), value.Length, $"At least 5 tags are required.");
+                    throw new ArgumentOutOfRangeException(nameof(value.Length), value.Length, $"At least 1 tag is required.");
                 _tags = value;
             }
         }
@@ -141,9 +141,9 @@ public static class _3DProductMetadataExtensions
         };
     }
 
-    public static async Task<TurboSquid3DProduct> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
+    public static async Task<TurboSquid._3DProduct> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
     {
-        var tuboSquidMetadata = await TurboSquid3DProductMetadata.ProvideAsync(
+        var tuboSquidMetadata = await TurboSquid._3DProduct.Metadata__.ProvideAsync(
             Status(),
             _.Title,
             _.Description,
@@ -174,49 +174,49 @@ public static class _3DProductMetadataExtensions
             _ => throw new NotImplementedException()
         };
 
-        TurboSquid3DProductMetadata.License_ License() => _.License switch
+        TurboSquid._3DProduct.Metadata__.License_ License() => _.License switch
         {
-            _3DProduct.Metadata_.License_.RoyaltyFree => TurboSquid3DProductMetadata.License_.royalty_free_all_extended_uses,
-            _3DProduct.Metadata_.License_.Editorial => TurboSquid3DProductMetadata.License_.royalty_free_editorial_uses_only,
+            _3DProduct.Metadata_.License_.RoyaltyFree => TurboSquid._3DProduct.Metadata__.License_.royalty_free_all_extended_uses,
+            _3DProduct.Metadata_.License_.Editorial => TurboSquid._3DProduct.Metadata__.License_.royalty_free_editorial_uses_only,
             _ => throw new NotImplementedException()
         };
 
-        TurboSquid3DProductMetadata.Geometry_? Geometry() => _.Geometry switch
+        TurboSquid._3DProduct.Metadata__.Geometry_? Geometry() => _.Geometry switch
         {
-            _3DProduct.Metadata_.Geometry_.PolygonalQuadsOnly => TurboSquid3DProductMetadata.Geometry_.polygonal_quads_only,
-            _3DProduct.Metadata_.Geometry_.PolygonalQuadsTris => TurboSquid3DProductMetadata.Geometry_.polygonal_quads_tris,
-            _3DProduct.Metadata_.Geometry_.PolygonalTrisOnly => TurboSquid3DProductMetadata.Geometry_.polygonal_tris_only,
-            _3DProduct.Metadata_.Geometry_.PolygonalNgonsUsed => TurboSquid3DProductMetadata.Geometry_.polygonal_ngons_used,
-            _3DProduct.Metadata_.Geometry_.Polygonal => TurboSquid3DProductMetadata.Geometry_.polygonal,
-            _3DProduct.Metadata_.Geometry_.Subdivision => TurboSquid3DProductMetadata.Geometry_.subdivision,
-            _3DProduct.Metadata_.Geometry_.Nurbs => TurboSquid3DProductMetadata.Geometry_.nurbs,
-            _3DProduct.Metadata_.Geometry_.Unknown => TurboSquid3DProductMetadata.Geometry_.unknown,
+            _3DProduct.Metadata_.Geometry_.PolygonalQuadsOnly => TurboSquid._3DProduct.Metadata__.Geometry_.polygonal_quads_only,
+            _3DProduct.Metadata_.Geometry_.PolygonalQuadsTris => TurboSquid._3DProduct.Metadata__.Geometry_.polygonal_quads_tris,
+            _3DProduct.Metadata_.Geometry_.PolygonalTrisOnly => TurboSquid._3DProduct.Metadata__.Geometry_.polygonal_tris_only,
+            _3DProduct.Metadata_.Geometry_.PolygonalNgonsUsed => TurboSquid._3DProduct.Metadata__.Geometry_.polygonal_ngons_used,
+            _3DProduct.Metadata_.Geometry_.Polygonal => TurboSquid._3DProduct.Metadata__.Geometry_.polygonal,
+            _3DProduct.Metadata_.Geometry_.Subdivision => TurboSquid._3DProduct.Metadata__.Geometry_.subdivision,
+            _3DProduct.Metadata_.Geometry_.Nurbs => TurboSquid._3DProduct.Metadata__.Geometry_.nurbs,
+            _3DProduct.Metadata_.Geometry_.Unknown => TurboSquid._3DProduct.Metadata__.Geometry_.unknown,
             null => null,
             _ => throw new NotImplementedException()
         };
 
-        TurboSquid3DProductMetadata.UnwrappedUVs_? UnwrappedUVs() => _.UnwrappedUVs switch
+        TurboSquid._3DProduct.Metadata__.UnwrappedUVs_? UnwrappedUVs() => _.UnwrappedUVs switch
         {
-            _3DProduct.Metadata_.UnwrappedUVs_.NonOverlapping => TurboSquid3DProductMetadata.UnwrappedUVs_.yes_non_overlapping,
-            _3DProduct.Metadata_.UnwrappedUVs_.Overlapping => TurboSquid3DProductMetadata.UnwrappedUVs_.yes_overlapping,
-            _3DProduct.Metadata_.UnwrappedUVs_.Mixed => TurboSquid3DProductMetadata.UnwrappedUVs_.mixed,
-            _3DProduct.Metadata_.UnwrappedUVs_.No => TurboSquid3DProductMetadata.UnwrappedUVs_.no,
-            _3DProduct.Metadata_.UnwrappedUVs_.Unknown => TurboSquid3DProductMetadata.UnwrappedUVs_.unknown,
+            _3DProduct.Metadata_.UnwrappedUVs_.NonOverlapping => TurboSquid._3DProduct.Metadata__.UnwrappedUVs_.yes_non_overlapping,
+            _3DProduct.Metadata_.UnwrappedUVs_.Overlapping => TurboSquid._3DProduct.Metadata__.UnwrappedUVs_.yes_overlapping,
+            _3DProduct.Metadata_.UnwrappedUVs_.Mixed => TurboSquid._3DProduct.Metadata__.UnwrappedUVs_.mixed,
+            _3DProduct.Metadata_.UnwrappedUVs_.No => TurboSquid._3DProduct.Metadata__.UnwrappedUVs_.no,
+            _3DProduct.Metadata_.UnwrappedUVs_.Unknown => TurboSquid._3DProduct.Metadata__.UnwrappedUVs_.unknown,
             null => null,
             _ => throw new NotImplementedException()
         };
     }
 
-    static TurboSquid3DProduct With(this _3DProduct _3DProduct, INodeGui nodeGui, TurboSquid3DProductMetadata metadata)
+    static TurboSquid._3DProduct With(this _3DProduct _3DProduct, INodeGui nodeGui, TurboSquid._3DProduct.Metadata__ metadata)
     {
         var turboSquid3DProduct = _3DProduct.With_(metadata);
-        var turboSquidMetadataFile = TurboSquid3DProductMetadata.File.For(turboSquid3DProduct);
+        var turboSquidMetadataFile = TurboSquid._3DProduct.Metadata__.File.For(turboSquid3DProduct);
         if (!File.Exists(turboSquidMetadataFile.Path))
         {
             using var _ = File.Create(turboSquidMetadataFile.Path);
             //turboSquidMetadataFile.Populate(nodeGui);
         }
-        return new TurboSquid3DProduct(turboSquid3DProduct, turboSquidMetadataFile.Read());
+        return new TurboSquid._3DProduct(turboSquid3DProduct, turboSquidMetadataFile.Read());
     }
 
     public static _3DProduct<TMetadata> With_<TMetadata>(this _3DProduct _3DProduct, TMetadata metadata)

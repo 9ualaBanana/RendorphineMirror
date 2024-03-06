@@ -12,7 +12,7 @@ public partial record _3DModel(string Path) : I3DProductAsset, IDisposable
     string? _archived;
 
 
-    // Currently pre-archived _3DModels are not supported.
+    // Currently pre-archived _3DModels are not supported except `RFProduct._3D` packages.
     internal static IEnumerable<_3DModel> EnumerateAt(string directoryPath)
         => Directory.EnumerateFiles(directoryPath)
         .Where(_ => FileFormat_.Dictionary.ContainsKey(System.IO.Path.GetExtension(_).ToLowerInvariant()))
