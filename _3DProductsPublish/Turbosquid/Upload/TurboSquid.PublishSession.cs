@@ -214,8 +214,7 @@ public partial class TurboSquid
                         await Task.Delay(5000);
                         _session.Draft.LocalProduct.ID = await RequestPublishedProductIdAsync();
                     }
-                    else _session.Draft.LocalProduct.ID = _session.Draft.ID;
-                    TurboSquid._3DProduct.Metadata__.File.For(_session.Draft.LocalProduct).Write(_session.Draft.LocalProduct);
+                    TurboSquid._3DProduct.Metadata__.File.For(_session.Draft.LocalProduct).Write(_session.Draft);
                 }
                 catch (Exception ex)
                 { throw new HttpRequestException($"{_session.Draft.LocalProduct.Metadata.Title} 3D product publish request failed.", ex); }

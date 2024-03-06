@@ -135,21 +135,21 @@ public partial class TurboSquid
                     throw exception;
                 }
 
-                internal void Write(TurboSquid._3DProduct _3DProduct)
+                internal void Write(TurboSquid._3DProduct.Draft draft)
                 {
                     using var _file = System.IO.File.OpenWrite(Path);
                     using var file = new StreamWriter(_file);
 
-                    if (_3DProduct.ID is not 0)
-                        Write_(_3DProduct);
-                    foreach (var model in _3DProduct._3DModels)
+                    if (draft.LocalProduct.ID is not 0 || draft.ID is not 0)
+                        Write_(draft);
+                    foreach (var model in draft.LocalProduct._3DModels)
                         Write(model);
 
 
-                    void Write_(TurboSquid._3DProduct _3DProduct)
+                    void Write_(TurboSquid._3DProduct.Draft draft)
                     {
                         var document = new DocumentSyntax();
-                        document.Tables.Add(_3DProduct);
+                        document.Tables.Add(draft);
                         document.AddTrailingTriviaNewLine();
                         document.WriteTo(file);
                     }

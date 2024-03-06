@@ -125,6 +125,15 @@ public partial class TurboSquid
                     { throw new InvalidOperationException($"Local {nameof(_3DModel)}s were not synchronized."); }
                 }
             }
+
+            public static implicit operator TableSyntax(_3DProduct.Draft draft)
+            {
+                var table = new TableSyntax(draft.LocalProduct.ID is not 0 ? draft.LocalProduct.ID.ToString() : draft.ID.ToString());
+                table.Items.Add(draft.LocalProduct.Metadata.Category.Name, draft.LocalProduct.Metadata.Category.ID);
+                if (draft.LocalProduct.Metadata.SubCategory is Category_ subcategory)
+                    table.Items.Add(subcategory.Name, subcategory.ID);
+                return table;
+            }
         }
     }
 }
