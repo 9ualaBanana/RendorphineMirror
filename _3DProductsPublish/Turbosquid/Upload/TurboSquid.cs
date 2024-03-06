@@ -64,6 +64,7 @@ public partial class TurboSquid : HttpClient
         await PublishAsync(draft, cancellationToken);
 
         idea.Status = rfProduct3D.Metadata.Status;
+        // чтоб нахуй не дергал, похуй вообще
         //idea.Status = _3DProduct.Remote.Parse(await EditAsync(rfProduct3D, rfProduct3D.ID is not 0 ? null : draft.ID, cancellationToken)).status;
 
 

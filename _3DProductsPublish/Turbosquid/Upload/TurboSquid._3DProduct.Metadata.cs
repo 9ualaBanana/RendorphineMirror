@@ -75,9 +75,9 @@ public partial class TurboSquid
                 UnwrappedUVs_? unwrappedUvs = default)
             {
                 Status = status;
-                Title = title;
-                Description = description;
-                Tags = tags;
+                Title = title.Trim();
+                Description = description.Trim();
+                Tags = tags.Select(_ => _.Trim()).ToArray();
                 Category = category; Features.Add(category.Name, category.ID);
                 Polygons = polygons;
                 Vertices = vertices;
