@@ -260,6 +260,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
                         Logger.Error(ex);
                         File.WriteAllText(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt"), ex.ToString());
+                        continue;
                     }
 
                     /*
