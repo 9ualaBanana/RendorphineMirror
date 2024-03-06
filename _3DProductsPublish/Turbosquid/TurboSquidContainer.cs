@@ -16,6 +16,7 @@ public class TurboSquidContainer
         _logger = logger;
     }
 
+    public TurboSquid? GetCached(string username) => _instances.GetValueOrDefault(username)?.TurboSquid;
     public async Task<TurboSquid> GetAsync(string username, string password, CancellationToken token)
     {
         _logger.LogInformation("Getting the turbo squidder thingamajig");

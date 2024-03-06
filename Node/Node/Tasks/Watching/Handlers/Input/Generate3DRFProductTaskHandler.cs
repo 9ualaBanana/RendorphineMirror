@@ -63,7 +63,9 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         try
         {
+            Logger.Info("fgenerating ");
             await GenerateQSProducts(CurrentTask.Token);
+            Logger.Info("gen end ");
         }
         catch (Exception ex)
         {
@@ -76,7 +78,10 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         try
         {
+            Logger.Info("publishing ");
             await PublishRFProducts(CurrentTask.Token);
+            Logger.Info("publish end ");
+
         }
         catch (Exception ex)
         {
@@ -171,6 +176,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     }
     async Task PublishRFProducts(CancellationToken token)
     {
+        Logger.Info("IN PUBLISH");
         var products = RFProducts.RFProducts.Values
             .Where(p => p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
             .ToArray();
@@ -179,7 +185,26 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]!.Value<string>().ThrowIfNull()))
         {
+            Logger.Info("INGROUP " + rfpgroup.Key);
             token.ThrowIfCancellationRequested();
+
+            TurboSquid turbo;
+            {
+                var submitJson = ReadSubmitJson(rfpgroup.First().Idea.Path);
+                var tsusername = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
+                var tspassword = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
+
+                try
+                {
+                    turbo = await GetTurboRetryOrSkip(tsusername, tspassword, token);
+                    Logger.Info("logged in");
+                }
+                catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+                {
+                    Logger.Info($"Username {rfpgroup.Key} cancelled login, skipping.");
+                    break;
+                }
+            }
 
             async Task updateSalesIfNeeded()
             {
@@ -187,83 +212,69 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     return;
 
                 //if (Settings.MPlusUsername is null || Settings.MPlusPassword is null)
-
                 //    return;
 
                 //var mpcreds = new NetworkCredential(Settings.MPlusUsername, Settings.MPlusUsername);
 
-                var submitJson = ReadSubmitJson(rfpgroup.First().Idea.Path);
-                var tsusername = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
-                var tspassword = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
-
-                var turbo = await GetTurboRetryOrSkip(tsusername, tspassword, token);
-
+                Logger.Info("Getting turbo squid sales");
                 var sales = await turbo.SaleReports.ScanAsync(token).ToArrayAsync(token);
+
                 foreach (var product in rfpgroup)
                     await product.UpdateSalesAsync(sales.SelectMany(s => s.SaleReports).ToArray(), token);
 
                 //await (await MPAnalytics.LoginAsync(mpcreds, token)).SendAsync(sales.ToAsyncEnumerable(), token);
             }
 
-            try { await updateSalesIfNeeded(); }
-            catch (OperationCanceledException)
+            Logger.Info("beforesles");
+            System.Threading.Tasks.Task.Run(async () =>
             {
-                continue;
-            }
-            catch (Exception ex)
-            {
-                SetState(state => state with { Error = $"Error UPDATING the sales:\n{ex}", });
-            }
+                try { await updateSalesIfNeeded(); }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex);
+                    SetState(state => state with { Error = $"Error UPDATING the sales:\n{ex}", });
+                }
+            }, token).Consume();
 
-
+            Logger.Info("beforergfproduct");
             foreach (var rfproduct in rfpgroup)
             {
+                Logger.Info("hello " + rfproduct.Idea.Path);
                 token.ThrowIfCancellationRequested();
-
-                try
+                if (!IsSubmittedTurboSquid(rfproduct.Idea.Path))
                 {
-                    var submitJson = ReadSubmitJson(rfproduct.Idea.Path);
-                    SetState(state => state with { CurrentPublishing = rfproduct.Path });
-
-                    var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
-                    var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
-
-                    Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
+                    Logger.Info("INPRODUCT " + rfproduct.Idea.Path);
 
                     try
                     {
-                        var turbo = await GetTurboRetryOrSkip(username, password, token);
+                        SetState(state => state with { CurrentPublishing = rfproduct.Path });
+                        Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
                         await turbo.PublishAsync(rfproduct, NodeGui, token);
+
+                        try { File.Delete(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt")); }
+                        catch { }
                     }
-                    catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+                    catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        Logger.Info($"Username {rfpgroup.Key} cancelled login, skipping.");
-                        break;
+                        SetState(state => state with { Error = $"Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
+
+                        Logger.Error(ex);
+                        File.WriteAllText(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt"), ex.ToString());
                     }
 
-                    try { File.Delete(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt")); }
-                    catch { }
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    SetState(state => state with { Error = $"Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
+                    /*
+                    if ((submitJson["toSubmitTrader"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
+                    {
+                        var username = submitJson["LoginCGTrader"]!.ToObject<string>().ThrowIfNull();
+                        var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
+                    }
+                    */
 
-                    Logger.Error(ex);
-                    File.WriteAllText(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt"), ex.ToString());
+                    token.ThrowIfCancellationRequested();
+                    SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
+                    (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = GetDirectoryData(rfproduct.Idea.Path);
+                    SaveTask();
                 }
-
-                /*
-                if ((submitJson["toSubmitTrader"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
-                {
-                    var username = submitJson["LoginCGTrader"]!.ToObject<string>().ThrowIfNull();
-                    var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
-                }
-                */
-
-                token.ThrowIfCancellationRequested();
-                SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
-                (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = GetDirectoryData(rfproduct.Idea.Path);
-                SaveTask();
             }
         }
 
@@ -272,8 +283,10 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
     string? WasDirectoryChanged(string directory, out Dictionary<string, DirectoryStructurePart> data)
     {
+        Logger.Info("Wasdirectorychanged? " + directory);
         if (Input.DirectoryStructure is null || !Input.DirectoryStructure.TryGetValue(directory, out var prevdirstr))
         {
+            Logger.Info("yesnull " + directory);
             data = GetDirectoryData(directory);
             return null;
         }
@@ -281,7 +294,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         data = GetDirectoryData(directory);
         foreach (var (path, _) in data)
         {
-            if (path.Contains("_Submit.")) continue;
             if (path.Contains("_Status.")) continue;
             if (path.Contains("turbosquid.meta")) continue;
 
@@ -295,7 +307,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         foreach (var (path, info) in prevdirstr)
         {
             // submit file and turbosquid.meta are being updated so exclude them from the check
-            if (path.Contains("_Submit.")) continue;
             if (path.Contains("_Status.")) continue;
             if (path.Contains("turbosquid.meta")) continue;
 
