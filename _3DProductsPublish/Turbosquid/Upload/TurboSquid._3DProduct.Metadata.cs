@@ -1,5 +1,4 @@
 ﻿using MarkTM.RFProduct;
-using System.Net;
 using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
@@ -10,52 +9,7 @@ public partial class TurboSquid
     {
         public partial record Metadata__
         {
-            public static async Task<Metadata__> ProvideAsync(
-                RFProduct._3D.Status status,
-                string title,
-                string description,
-                string category,
-                string[] tags,
-                int polygons,
-                int vertices,
-                double price,
-                License_ license,
-                bool animated = false,
-                bool collection = false,
-                Geometry_? geometry = default,
-                bool materials = false,
-                bool rigged = false,
-                bool textures = false,
-                bool uvMapped = false,
-                UnwrappedUVs_? unwrappedUvs = default,
-                CancellationToken cancellationToken = default)
-            {
-                return new(status, title, description, tags, await Category(), polygons, vertices, price, license, animated, collection, geometry, materials, rigged, textures, uvMapped, unwrappedUvs);
-
-
-                async Task<Category_> Category()
-                {
-                    var defaultCategory = new Category_("sculpture", 330);
-                    var httpClient = new HttpClient() { BaseAddress = TurboSquid.Origin };
-                    return await SuggestCategoryAsync(category) ?? defaultCategory;
-
-
-                    async Task<Category_?> SuggestCategoryAsync(string category)
-                    {
-                        var suggestions = JArray.Parse(
-                            await httpClient.GetStringAsync($"features/suggestions?fields%5Btags_and_synonyms%5D={WebUtility.UrlEncode(category)}&assignable=true&assignable_restricted=false&ancestry=1%2F6&limit=25", cancellationToken)
-                            );
-                        if (suggestions.FirstOrDefault() is JToken suggestion &&
-                            suggestion["text"]?.Value<string>() is string category_ &&
-                            suggestion["id"]?.Value<int>() is int id)
-                            return new(category_, id);
-                        else return null;
-                    }
-                }
-            }
-
-
-            Metadata__(
+            internal Metadata__(
                 RFProduct._3D.Status status,
                 string title,
                 string description,
@@ -93,7 +47,6 @@ public partial class TurboSquid
                 UnwrappedUVs = unwrappedUvs;
             }
 
-            [JsonProperty("toSubmitSquid")]
             public RFProduct._3D.Status Status { get; }
             public string Title { get; }
             public string Description { get; }

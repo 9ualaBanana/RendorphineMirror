@@ -12,10 +12,13 @@ namespace _3DProductsPublish.Turbosquid.Upload;
 
 public partial class TurboSquid
 {
+    // Rename to UploadSession.
+    // Merge _3DProduct.Draft into PublishSession or vice versa.
     internal class PublishSession
     {
         static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
+        // Draft basically represents the target product for uploading.
         internal readonly TurboSquid._3DProduct.Draft Draft;
         internal readonly TurboSquid Client;
         internal readonly CancellationToken CancellationToken;
@@ -103,7 +106,7 @@ public partial class TurboSquid
                         new HttpRequestMessage(
                             HttpMethod.Patch,
 
-                            $"turbosquid/products/{Draft.ID}/product_files/{processedModel.FileId}")
+                            $"turbosquid/products/{Draft.LocalProduct.DraftID}/product_files/{processedModel.FileId}")
                         { Content = MetadataForm() },
                         cancellationToken);
                     _logger.Trace($"Metadata for {processedModel.Name} has been uploaded.");
@@ -118,7 +121,7 @@ public partial class TurboSquid
                     // Explicit conversions of numbers to strings are required (except `size`).
                     var metadataForm = new JObject(
                         new JProperty("authenticity_token", Client.Credential.AuthenticityToken),
-                        new JProperty("draft_id", Draft.ID.ToString()),
+                        new JProperty("draft_id", Draft.LocalProduct.DraftID.ToString()),
                         new JProperty("file_format", processedModel.Metadata.FileFormat),
                         new JProperty("format_version", processedModel.Metadata.FormatVersion.ToString()),
                         new JProperty("id", processedModel.FileId.ToString()),
@@ -197,6 +200,7 @@ public partial class TurboSquid
                 try
                 {
                     _logger.Trace($"Sending {_session.Draft.LocalProduct.Metadata.Title} 3D product publish request.");
+                    // If draft was not created, then draft_id = 0 in the request body.
                     var productPublishRequest = new HttpRequestMessage(
                         HttpMethod.Patch,
 
@@ -213,8 +217,9 @@ public partial class TurboSquid
                     {
                         await Task.Delay(5000);
                         _session.Draft.LocalProduct.ID = await RequestPublishedProductIdAsync();
+                        _session.Draft.LocalProduct.DraftID = 0;
                     }
-                    TurboSquid._3DProduct.Metadata__.File.For(_session.Draft.LocalProduct).Write(_session.Draft);
+                    TurboSquid._3DProduct.Metadata__.File.For(_session.Draft.LocalProduct).Update();
                 }
                 catch (Exception ex)
                 { throw new HttpRequestException($"{_session.Draft.LocalProduct.Metadata.Title} 3D product publish request failed.", ex); }
@@ -224,7 +229,7 @@ public partial class TurboSquid
                 {
                     var productForm = new JObject(
                         new JProperty("authenticity_token", _session.Client.Credential.AuthenticityToken),
-                        new JProperty("turbosquid_product_form", _session.Draft.LocalProduct.Metadata.ToProductForm(_session.Draft.ID)),
+                        new JProperty("turbosquid_product_form", _session.Draft.LocalProduct.Metadata.ToProductForm(_session.Draft.LocalProduct.DraftID)),
                         new JProperty("previews", new JObject(
                             _session.Draft.LocalProduct.Thumbnails.OfType<TurboSquidProcessed3DProductThumbnail>().Select(_ => new JProperty(
                                 _.FileId.ToString(), JObject.FromObject(new

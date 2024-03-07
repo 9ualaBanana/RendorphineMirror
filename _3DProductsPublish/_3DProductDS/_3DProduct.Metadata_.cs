@@ -1,11 +1,14 @@
 ﻿using _3DProductsPublish.CGTrader._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload;
 using MarkTM.RFProduct;
+using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
+using System.Net;
 
 namespace _3DProductsPublish._3DProductDS;
 
 public partial record _3DProduct
 {
+    // Base metadata type for deserialization from `_Submit.json`.
     public record Metadata_
     {
         [JsonProperty("toSubmitSquid")] public required string StatusSquid { get; init; }
@@ -115,55 +118,54 @@ public static class _3DProductMetadataExtensions
             _ => throw new NotImplementedException()
         };
 
-        Geometry_? Geometry() => _.Geometry switch
+        CGTrader._3DModelComponents.Geometry_? Geometry() => _.Geometry switch
         {
             _3DProduct.Metadata_.Geometry_.PolygonalQuadsOnly or
             _3DProduct.Metadata_.Geometry_.PolygonalQuadsTris or
             _3DProduct.Metadata_.Geometry_.PolygonalTrisOnly or
             _3DProduct.Metadata_.Geometry_.PolygonalNgonsUsed or
-            _3DProduct.Metadata_.Geometry_.Polygonal => Geometry_.polygonal_mesh,
-            _3DProduct.Metadata_.Geometry_.Subdivision => Geometry_.subdivision_ready,
-            _3DProduct.Metadata_.Geometry_.Nurbs => Geometry_.nurbs,
-            _3DProduct.Metadata_.Geometry_.Unknown => Geometry_.other,
+            _3DProduct.Metadata_.Geometry_.Polygonal => CGTrader._3DModelComponents.Geometry_.polygonal_mesh,
+            _3DProduct.Metadata_.Geometry_.Subdivision => CGTrader._3DModelComponents.Geometry_.subdivision_ready,
+            _3DProduct.Metadata_.Geometry_.Nurbs => CGTrader._3DModelComponents.Geometry_.nurbs,
+            _3DProduct.Metadata_.Geometry_.Unknown => CGTrader._3DModelComponents.Geometry_.other,
             null => null,
             _ => throw new NotImplementedException()
         };
 
-        UnwrappedUVs_? UnwrappedUVs() => _.UnwrappedUVs switch
+        CGTrader._3DModelComponents.UnwrappedUVs_? UnwrappedUVs() => _.UnwrappedUVs switch
         {
-            _3DProduct.Metadata_.UnwrappedUVs_.NonOverlapping => UnwrappedUVs_.non_overlapping,
-            _3DProduct.Metadata_.UnwrappedUVs_.Overlapping => UnwrappedUVs_.overlapping,
-            _3DProduct.Metadata_.UnwrappedUVs_.Mixed => UnwrappedUVs_.mixed,
-            _3DProduct.Metadata_.UnwrappedUVs_.No => UnwrappedUVs_.no,
-            _3DProduct.Metadata_.UnwrappedUVs_.Unknown => UnwrappedUVs_.unknown,
+            _3DProduct.Metadata_.UnwrappedUVs_.NonOverlapping => CGTrader._3DModelComponents.UnwrappedUVs_.non_overlapping,
+            _3DProduct.Metadata_.UnwrappedUVs_.Overlapping => CGTrader._3DModelComponents.UnwrappedUVs_.overlapping,
+            _3DProduct.Metadata_.UnwrappedUVs_.Mixed => CGTrader._3DModelComponents.UnwrappedUVs_.mixed,
+            _3DProduct.Metadata_.UnwrappedUVs_.No => CGTrader._3DModelComponents.UnwrappedUVs_.no,
+            _3DProduct.Metadata_.UnwrappedUVs_.Unknown => CGTrader._3DModelComponents.UnwrappedUVs_.unknown,
             null => null,
             _ => throw new NotImplementedException()
         };
     }
 
-    public static async Task<TurboSquid._3DProduct> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, INodeGui nodeGui, CancellationToken cancellationToken)
+    public static async Task<TurboSquid._3DProduct> AsyncWithTurboSquid(this _3DProduct _3DProduct, _3DProduct.Metadata_ _, CancellationToken cancellationToken)
     {
-        var tuboSquidMetadata = await TurboSquid._3DProduct.Metadata__.ProvideAsync(
-            Status(),
-            _.Title,
-            _.Description,
-            _.Category,
-            _.Tags,
-            _.Polygons,
-            _.Vertices,
-            _.PriceSquid,
-            License(),
-            _.Animated,
-            _.Collection,
-            Geometry(),
-            _.Materials,
-            _.Rigged,
-            _.Textures,
-            _.UVMapped,
-            UnwrappedUVs(),
-            cancellationToken
-        );
-        return _3DProduct.With(nodeGui, tuboSquidMetadata);
+        return new TurboSquid._3DProduct(_3DProduct,
+            new TurboSquid._3DProduct.Metadata__(
+                Status(),
+                _.Title,
+                _.Description,
+                _.Tags,
+                await Category(),
+                _.Polygons,
+                _.Vertices,
+                _.PriceSquid,
+                License(),
+                _.Animated,
+                _.Collection,
+                Geometry(),
+                _.Materials,
+                _.Rigged,
+                _.Textures,
+                _.UVMapped,
+                UnwrappedUVs()
+            ));
 
 
         RFProduct._3D.Status Status() => _.StatusSquid.ToLowerInvariant() switch
@@ -173,6 +175,26 @@ public static class _3DProductMetadataExtensions
             "none" => RFProduct._3D.Status.none,
             _ => throw new NotImplementedException()
         };
+
+        async Task<Category_> Category()
+        {
+            var defaultCategory = new Category_("sculpture", 330);
+            var httpClient = new HttpClient() { BaseAddress = TurboSquid.Origin };
+            return await SuggestCategoryAsync(_.Category) ?? defaultCategory;
+
+
+            async Task<Category_?> SuggestCategoryAsync(string category)
+            {
+                var suggestions = JArray.Parse(
+                    await httpClient.GetStringAsync($"features/suggestions?fields%5Btags_and_synonyms%5D={WebUtility.UrlEncode(category)}&assignable=true&assignable_restricted=false&ancestry=1%2F6&limit=25", cancellationToken)
+                    );
+                if (suggestions.FirstOrDefault() is JToken suggestion &&
+                    suggestion["text"]?.Value<string>() is string category_ &&
+                    suggestion["id"]?.Value<int>() is int id)
+                    return new(category_, id);
+                else return null;
+            }
+        }
 
         TurboSquid._3DProduct.Metadata__.License_ License() => _.License switch
         {
@@ -205,18 +227,6 @@ public static class _3DProductMetadataExtensions
             null => null,
             _ => throw new NotImplementedException()
         };
-    }
-
-    static TurboSquid._3DProduct With(this _3DProduct _3DProduct, INodeGui nodeGui, TurboSquid._3DProduct.Metadata__ metadata)
-    {
-        var turboSquid3DProduct = _3DProduct.With_(metadata);
-        var turboSquidMetadataFile = TurboSquid._3DProduct.Metadata__.File.For(turboSquid3DProduct);
-        if (!File.Exists(turboSquidMetadataFile.Path))
-        {
-            using var _ = File.Create(turboSquidMetadataFile.Path);
-            //turboSquidMetadataFile.Populate(nodeGui);
-        }
-        return new TurboSquid._3DProduct(turboSquid3DProduct, turboSquidMetadataFile.Read());
     }
 
     public static _3DProduct<TMetadata> With_<TMetadata>(this _3DProduct _3DProduct, TMetadata metadata)

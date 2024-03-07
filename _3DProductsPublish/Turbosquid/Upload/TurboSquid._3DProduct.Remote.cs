@@ -1,7 +1,6 @@
 ﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 using MarkTM.RFProduct;
-using _3DProductsPublish._3DProductDS;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
@@ -9,7 +8,7 @@ public partial class TurboSquid
 {
     public partial record _3DProduct
     {
-        public record Remote : IEquatable<_3DProduct<Metadata__, TurboSquid3DModelMetadata>>
+        public record Remote : IEquatable<_3DProduct>
         {
             internal static Remote Parse(string productPage)
             {
@@ -97,7 +96,8 @@ public partial class TurboSquid
                 //public bool search_background { get; init; }
             }
 
-            public bool Equals(_3DProduct<Metadata__, TurboSquid3DModelMetadata>? other) =>
+
+            public bool Equals(_3DProduct? other) =>
                 id != other?.ID ? throw new InvalidOperationException() :
                 name == other?.Metadata.Title &&
                 description == other.Metadata.Description &&

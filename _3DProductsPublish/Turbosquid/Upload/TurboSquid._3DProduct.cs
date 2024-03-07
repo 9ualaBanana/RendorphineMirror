@@ -1,19 +1,29 @@
 ﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
-using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
-using Tomlyn.Syntax;
 using _3DProductsPublish._3DProductDS;
-using static _3DProductsPublish.Turbosquid.Upload.TurboSquid._3DProduct;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
 public partial class TurboSquid
 {
-    public partial record _3DProduct : _3DProduct<Metadata__, TurboSquid3DModelMetadata>
+    public partial record _3DProduct : _3DProductDS._3DProduct
     {
-        internal _3DProduct(_3DProduct<Metadata__> _3DProduct, IEnumerable<TurboSquid3DModelMetadata> modelsMetadata)
-            : base(_3DProduct, modelsMetadata)
+        public long ID { get; internal set; } = default;
+        internal long DraftID { get; set; } = default!;
+        new public List<_3DModel<TurboSquid3DModelMetadata>> _3DModels { get; internal set; }
+        public readonly Metadata__ Metadata;
+
+        public _3DProduct(_3DProductDS._3DProduct _3DProduct, Metadata__ metadata)
+            : base(_3DProduct)
         {
+            // Metadata must be set befor messing with metadata file?
+            Metadata = metadata;
+            var turboSquidMetadataFile = Metadata__.File.For(this);
+            if (!File.Exists(turboSquidMetadataFile.Path))
+                File.Create(turboSquidMetadataFile.Path).Dispose();
+            var meta = turboSquidMetadataFile.Read();
+            ID = meta.ProductID;
+            DraftID = meta.DraftID;
         }
 
         // Remote asset data is matched to the local based on the file name which must remain the same from the moment it was assigned the remote ID.
@@ -84,25 +94,14 @@ public partial class TurboSquid
         { Thumbnails.Remove((_3DProductThumbnail)_.Asset); Thumbnails.Add((TurboSquidProcessed3DProductThumbnail)_); }
 
 
-        public static implicit operator TableSyntax(_3DProduct _3DProduct)
-        {
-            var table = new TableSyntax(_3DProduct.ID.ToString());
-            table.Items.Add(_3DProduct.Metadata.Category.Name, _3DProduct.Metadata.Category.ID);
-            if (_3DProduct.Metadata.SubCategory is Category_ subcategory)
-                table.Items.Add(subcategory.Name, subcategory.ID);
-            return table;
-        }
-
         internal record Draft
         {
-            internal long ID { get; set; }
             internal TurboSquidAwsSession AWS { get; init; }
             internal _3DProduct LocalProduct { get; init; }
             internal _3DProduct.Remote RemoteProduct { get; init; }
 
-            public Draft(long id, TurboSquidAwsSession awsSession, _3DProduct localProduct, _3DProduct.Remote remoteProduct)
+            public Draft(TurboSquidAwsSession awsSession, _3DProduct localProduct, _3DProduct.Remote remoteProduct)
             {
-                ID = id;
                 AWS = awsSession;
                 RemoteProduct = remoteProduct;
                 LocalProduct = remoteProduct is null ? localProduct : localProduct.SynchronizedWith(remoteProduct);
@@ -124,15 +123,6 @@ public partial class TurboSquid
                     catch (InvalidCastException)
                     { throw new InvalidOperationException($"Local {nameof(_3DModel)}s were not synchronized."); }
                 }
-            }
-
-            public static implicit operator TableSyntax(_3DProduct.Draft draft)
-            {
-                var table = new TableSyntax(draft.LocalProduct.ID is not 0 ? draft.LocalProduct.ID.ToString() : draft.ID.ToString());
-                table.Items.Add(draft.LocalProduct.Metadata.Category.Name, draft.LocalProduct.Metadata.Category.ID);
-                if (draft.LocalProduct.Metadata.SubCategory is Category_ subcategory)
-                    table.Items.Add(subcategory.Name, subcategory.ID);
-                return table;
             }
         }
     }
