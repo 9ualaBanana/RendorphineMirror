@@ -39,7 +39,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     {
         CurrentTask?.Cancel();
         TurboSquidContainer.ClearCache();
-        Input.DirectoryStructure?.Clear();
+        Input.DirectoryStructure2?.Clear();
         SaveTask();
     }
 
@@ -149,22 +149,52 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         return JObject.Parse(stateFile)?["status"]?.ToObject<RFProduct._3D.Status>();
     }
 
-    static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json"))));
+    void BumpSubmitJsonVersion(RFProduct rfproduct)
+    {
+        var submitJsonPath = GetSubmitJsonFile(rfproduct.Idea.Path);
+        JObject jobj;
+        try { jobj = JObject.Parse(File.ReadAllText(submitJsonPath)); }
+        catch { jobj = new(); }
+
+        var newversion = (jobj["Version"]?.ToObject<int>() ?? 0) + 1;
+        jobj["Version"] = newversion;
+        File.WriteAllText(submitJsonPath, jobj.ToString(Formatting.None));
+
+        Logger.Info($"Updating {rfproduct.Idea.Path} version to {newversion}");
+        (Input.DirectoryStructure2 ??= [])[rfproduct.Idea.Path] = new(true, GetDirectoryData(rfproduct.Idea.Path));
+    }
+
+    static string GetSubmitJsonFile(string dir) => Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json", StringComparison.Ordinal));
+    static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(GetSubmitJsonFile(dir)));
     bool NeedsTurboSquidPublish(RFProduct rfproduct)
     {
         if (!File.Exists(Path.Combine(rfproduct.Idea.Path, "turbosquid.meta")))
             return true;
 
-        var changed = WasDirectoryChanged(rfproduct.Idea.Path, out var newdata);
+        if (Input.DirectoryStructure2?.GetValueOrDefault(rfproduct.Idea.Path) is null)
+        {
+            BumpSubmitJsonVersion(rfproduct);
+            return true;
+        }
+        if (Input.DirectoryStructure2[rfproduct.Idea.Path].NeedsUploading)
+            return true;
+
+        var changed = WasDirectoryChanged(rfproduct.Idea.Path, out _);
         if (changed is not null)
         {
+            BumpSubmitJsonVersion(rfproduct);
             Logger.Info(changed + " CHANGED, reWOUDING");
-            (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = newdata;
-            SaveTask();
             return true;
         }
 
-        return ((RFProduct._3D.Idea_) rfproduct.Idea).Status == RFProduct._3D.Status.none;
+        var submitStatus = ((RFProduct._3D.Idea_) rfproduct.Idea).Status;
+        if (submitStatus == RFProduct._3D.Status.none)
+        {
+            Logger.Info(submitStatus + " submit status, reWOUDING");
+            return true;
+        }
+
+        return false;
     }
     async Task<TurboSquid> GetTurboRetryOrSkip(string username, string password, CancellationToken token, bool force = false)
     {
@@ -288,7 +318,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     SetState(state => state with { DraftedCount = state.DraftedCount + 1 });
                 else SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
 
-                (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = GetDirectoryData(rfproduct.Idea.Path);
+                (Input.DirectoryStructure2 ??= [])[rfproduct.Idea.Path] = new(false, GetDirectoryData(rfproduct.Idea.Path));
                 SaveTask();
             }
         }
@@ -299,30 +329,32 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     string? WasDirectoryChanged(string directory, out Dictionary<string, DirectoryStructurePart> data)
     {
         Logger.Info("Wasdirectorychanged? " + directory);
-        if (Input.DirectoryStructure is null || !Input.DirectoryStructure.TryGetValue(directory, out var prevdirstr))
+        if (Input.DirectoryStructure2 is null || !Input.DirectoryStructure2.TryGetValue(directory, out var prevdirstr))
         {
             data = GetDirectoryData(directory);
             return "no item in directorystructure";
         }
 
         data = GetDirectoryData(directory);
+        if (!Input.DirectoryStructure2.TryGetValue(directory, out var dirstr))
+            return "dirstructure no get value ";
+
         foreach (var (path, _) in data)
         {
             if (path.Contains("_Status.")) continue;
             if (path.Contains("turbosquid.meta")) continue;
+            if (path.Contains("publish_exception")) continue;
 
-            if (!Input.DirectoryStructure.TryGetValue(directory, out var dirstr))
-                return "dirstructure no get value ";
-
-            if (!dirstr.ContainsKey(path))
+            if (!dirstr.Parts.ContainsKey(path))
                 return "dirstr no get value";
         }
 
-        foreach (var (path, info) in prevdirstr)
+        foreach (var (path, info) in prevdirstr.Parts)
         {
             // submit file and turbosquid.meta are being updated so exclude them from the check
             if (path.Contains("_Status.")) continue;
             if (path.Contains("turbosquid.meta")) continue;
+            if (path.Contains("publish_exception")) continue;
 
             if (File.Exists(path))
             {

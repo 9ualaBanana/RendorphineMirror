@@ -1,5 +1,6 @@
 namespace NodeCommon.Tasks.Watching;
 
+public record DirectoryStructureHolder(bool NeedsUploading, Dictionary<string, DirectoryStructurePart> Parts);
 public record DirectoryStructurePart(DateTimeOffset LastChanged, long? Size);
 public class Generate3DRFProductTaskInputInfo : IWatchingTaskInputInfo
 {
@@ -9,7 +10,7 @@ public class Generate3DRFProductTaskInputInfo : IWatchingTaskInputInfo
     public string InputDirectory { get; }
 
     [Hidden]
-    public Dictionary<string, Dictionary<string, DirectoryStructurePart>>? DirectoryStructure { get; set; }
+    public Dictionary<string, DirectoryStructureHolder>? DirectoryStructure2 { get; set; }
 
     [Hidden]
     public DateTimeOffset LastSalesFetch { get; set; } = DateTimeOffset.MinValue;
