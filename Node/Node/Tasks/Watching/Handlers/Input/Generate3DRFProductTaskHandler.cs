@@ -133,7 +133,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                SetState(state => state with { Error = $"Error RFPRODUCTING product {productDir}:\n{ex}", });
+                SetState(state => state with { Error = $"{DateTimeOffset.Now} Error RFPRODUCTING product {productDir}:\n{ex}", });
 
                 Logger.Error(ex);
                 File.WriteAllText(Path.Combine(productDir, "publish_exception.txt"), ex.ToString());
@@ -233,7 +233,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 catch (Exception ex)
                 {
                     Logger.Error(ex);
-                    SetState(state => state with { Error = $"Error UPDATING the sales:\n{ex}", });
+                    // SetState(state => state with { Error = $"{DateTimeOffset.Now} Error UPDATING the sales:\n{ex}", });
                 }
             }, token).Consume();
 
@@ -257,7 +257,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        SetState(state => state with { Error = $"Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
+                        SetState(state => state with { Error = $"{DateTimeOffset.Now} Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
 
                         Logger.Error(ex);
                         File.WriteAllText(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt"), ex.ToString());
