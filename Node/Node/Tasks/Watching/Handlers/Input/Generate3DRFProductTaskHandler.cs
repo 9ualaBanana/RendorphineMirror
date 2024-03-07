@@ -288,9 +288,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         Logger.Info("Wasdirectorychanged? " + directory);
         if (Input.DirectoryStructure is null || !Input.DirectoryStructure.TryGetValue(directory, out var prevdirstr))
         {
-            Logger.Info("yesnull " + directory);
             data = GetDirectoryData(directory);
-            return null;
+            return "no item in directorystructure";
         }
 
         data = GetDirectoryData(directory);
