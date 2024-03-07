@@ -27,7 +27,7 @@ internal partial class TurboSquid3DProductAssetProcessing
                 };
 
             static Payload For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, TurboSquid.PublishSession session)
-                => Payload.For(_3DModel, uploadKey, session.Draft.ID, session.Client.Credential.AuthenticityToken);
+                => Payload.For(_3DModel, uploadKey, session.Draft.LocalProduct.DraftID, session.Client.Credential.AuthenticityToken);
             static Payload For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, long draftId, string authenticityToken)
             {
                 using var archived3DModel = File.OpenRead(_3DModel.Archived);
@@ -36,12 +36,12 @@ internal partial class TurboSquid3DProductAssetProcessing
             }
 
             static Payload For(_3DProductThumbnail thumbnail, string uploadKey, TurboSquid.PublishSession session)
-                => Payload.For(thumbnail, uploadKey, session.Draft.ID, session.Client.Credential.AuthenticityToken);
+                => Payload.For(thumbnail, uploadKey, session.Draft.LocalProduct.DraftID, session.Client.Credential.AuthenticityToken);
             static Payload For(_3DProductThumbnail thumbnail, string uploadKey, long draftId, string authenticityToken)
                 => new Payload.Thumbnail(uploadKey, draftId, thumbnail.FileName, thumbnail.Size, TurboSquidProcessed3DProductThumbnail.PreprocessedType(thumbnail).ToString(), authenticityToken);
 
             static Payload For(_3DProduct.Texture_ texture, string uploadKey, TurboSquid.PublishSession session)
-                => Payload.For(texture, uploadKey, session.Draft.ID, session.Client.Credential.AuthenticityToken);
+                => Payload.For(texture, uploadKey, session.Draft.LocalProduct.DraftID, session.Client.Credential.AuthenticityToken);
             static Payload For(_3DProduct.Texture_ texture, string uploadKey, long draftId, string authenticityToken)
                 => new Payload.Texture(uploadKey, draftId, texture.Name, texture.Size, authenticityToken);
 

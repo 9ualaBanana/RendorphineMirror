@@ -5,6 +5,7 @@ using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid;
 using _3DProductsPublish.Turbosquid.Upload;
+using MarkTM.RFProduct;
 using Node.Profiling;
 using Node.Tasks.Exec.Input;
 using Node.Tasks.Exec.Output;
@@ -196,7 +197,7 @@ public class LocalListener : ExecutableListenerBase
 
                 if (target == "turbosquid")
                 {
-                    var tsp = await product.AsyncWithTurboSquid(metadata, NodeGui, cancellationToken);
+                    var tsp = await product.AsyncWithTurboSquid(metadata, cancellationToken);
                     await (await Container.Resolve<TurboSquidContainer>().GetAsync(Settings.CGTraderUsername.Value.ThrowIfNull(), Settings.CGTraderPassword.Value.ThrowIfNull(), default)).PublishAsync(tsp, cancellationToken);
                     return await WriteSuccess(response).ConfigureAwait(false);
                 }
