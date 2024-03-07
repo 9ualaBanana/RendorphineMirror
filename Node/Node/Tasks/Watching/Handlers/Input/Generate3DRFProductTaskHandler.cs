@@ -141,22 +141,30 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         }
     }
 
-    static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json"))));
-    bool IsSubmittedTurboSquid(string dir)
+    static RFProduct._3D.Status? GetStatus(string productDir)
     {
-        if (!File.Exists(Path.Combine(dir, "turbosquid.meta"))) return false;
+        var stateFile = Directory.GetFiles(productDir).FirstOrDefault(d => d.Contains("_Status.json"));
+        if (stateFile is null) return null;
 
-        var changed = WasDirectoryChanged(dir, out var newdata);
+        return JObject.Parse(stateFile)?["status"]?.ToObject<RFProduct._3D.Status>();
+    }
+
+    static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json"))));
+    bool NeedsTurboSquidPublish(RFProduct rfproduct)
+    {
+        if (!File.Exists(Path.Combine(rfproduct.Idea.Path, "turbosquid.meta")))
+            return true;
+
+        var changed = WasDirectoryChanged(rfproduct.Idea.Path, out var newdata);
         if (changed is not null)
         {
             Logger.Info(changed + " CHANGED, reWOUDING");
-            (Input.DirectoryStructure ??= [])[dir] = newdata;
+            (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = newdata;
             SaveTask();
-            return false;
+            return true;
         }
 
-        var firstline = File.ReadLines(Path.Combine(dir, "turbosquid.meta")).FirstOrDefault();
-        return firstline is not null && Regex.IsMatch(firstline, @"\[\d+\]");
+        return ((RFProduct._3D.Idea_) rfproduct.Idea).Status == RFProduct._3D.Status.none;
     }
     async Task<TurboSquid> GetTurboRetryOrSkip(string username, string password, CancellationToken token, bool force = false)
     {
@@ -182,7 +190,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             .Where(p => p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
             .ToArray();
 
-        SetState(state => state with { PublishedCount = 0 });
+        SetState(state => state with { DraftedCount = 0, PublishedCount = 0 });
 
         foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]!.Value<string>().ThrowIfNull()))
         {
@@ -242,7 +250,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             {
                 Logger.Info("hello " + rfproduct.Idea.Path);
                 token.ThrowIfCancellationRequested();
-                if (!IsSubmittedTurboSquid(rfproduct.Idea.Path))
+                if (NeedsTurboSquidPublish(rfproduct))
                 {
                     Logger.Info("INPRODUCT " + rfproduct.Idea.Path);
 
@@ -271,12 +279,17 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                         var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
                     }
                     */
-
-                    token.ThrowIfCancellationRequested();
-                    SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
-                    (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = GetDirectoryData(rfproduct.Idea.Path);
-                    SaveTask();
                 }
+
+                token.ThrowIfCancellationRequested();
+
+                var submitStatus = ((RFProduct._3D.Idea_) rfproduct.Idea).Status;
+                if (submitStatus == RFProduct._3D.Status.draft)
+                    SetState(state => state with { DraftedCount = state.DraftedCount + 1 });
+                else SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
+
+                (Input.DirectoryStructure ??= [])[rfproduct.Idea.Path] = GetDirectoryData(rfproduct.Idea.Path);
+                SaveTask();
             }
         }
 

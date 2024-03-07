@@ -10,6 +10,7 @@ public record AutoRFProductPublishInfo
     public string? CurrentPublishing { get; init; }
 
     public int? RFProductedCount { get; init; }
+    public int? DraftedCount { get; init; }
     public int? PublishedCount { get; init; }
     public int FileCount { get; init; }
 

@@ -44,6 +44,7 @@ public class Auto3DPublishTab : Panel
         readonly TextBlock State;
         readonly TextBlock Files;
         readonly TextBlock RFProducted;
+        readonly TextBlock Drafted;
         readonly TextBlock Published;
         readonly TextBlock Error;
         string? TaskId;
@@ -57,6 +58,7 @@ public class Auto3DPublishTab : Panel
                 State = new TextBlock(),
                 Files = new TextBlock(),
                 RFProducted = new TextBlock(),
+                Drafted = new TextBlock(),
                 Published = new TextBlock(),
                 new MPButton()
                 {
@@ -95,6 +97,7 @@ public class Auto3DPublishTab : Panel
 
             Files.Text = $"Files: {info.FileCount}";
             RFProducted.Text = $"RFProducted: {info.RFProductedCount?.ToString() ?? "?"}";
+            Drafted.Text = $"Drafted: {info.DraftedCount?.ToString() ?? "?"}";
             Published.Text = $"Published: {info.PublishedCount?.ToString() ?? "?"}";
             Error.Text = info.Error;
         }
