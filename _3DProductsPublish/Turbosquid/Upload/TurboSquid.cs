@@ -53,17 +53,10 @@ public partial class TurboSquid : HttpClient
         var rfProduct3D = await ConvertAsync(rfProduct, gui, cancellationToken);
 
         if (rfProduct3D.Metadata.Status is RFProduct._3D.Status.none)
-        { _logger.Warn($"{rfProduct3D.Metadata.Title} 3D {nameof(RFProduct)} is not published due to its status being set to {RFProduct._3D.Status.none}."); return; }
-
-        // `_3DProduct.ID` here represents either the ID of the product if `_Status.json` is `online` or the ID of the draft if `_Status.json` is `draft`
-        // due to poorly implemented serialization.
-        if (idea.Status is RFProduct._3D.Status.draft)
-        { rfProduct3D.DraftID = rfProduct3D.ID; rfProduct3D.ID = default; }
+        { _logger.Warn($"{rfProduct3D.Metadata.Title} 3D {nameof(RFProduct)} is not uploaded due to its status being set to {RFProduct._3D.Status.none}."); return; }
 
         await PublishAsync(rfProduct3D, cancellationToken);
 
-        //idea.Status = rfProduct3D.Metadata.Status;
-        // чтоб нахуй не дергал, похуй вообще
         idea.Status = _3DProduct.Remote.Parse(await EditAsync(rfProduct3D, cancellationToken)).status;
 
 
@@ -107,17 +100,13 @@ public partial class TurboSquid : HttpClient
             else
             {
                 var remote = _3DProduct.Remote.Parse(await NewAsync());
-                draft = new _3DProduct.Draft(await RequestAwsStorageCredentialAsync(), _3DProduct with { DraftID = await CreateDraftAsync() }, remote);
+                _3DProduct.DraftID = await CreateDraftAsync();
+                draft = new _3DProduct.Draft(await RequestAwsStorageCredentialAsync(), _3DProduct, remote);
 
 
                 async Task<string> NewAsync()
                     => await this.GetStringAndUpdateAuthenticityTokenAsync("turbosquid/products/new", cancellationToken);
             }
-
-            // If there is a draft already, it will be deleted not to mess up synchronization.
-            //if (remote.draft_id is not (null or 0))
-            //{ await DeleteDraftAsync(); remote = TurboSquid3DProductMetadata.Product.Parse(await EditAsync()); }
-
             _logger.Trace($"3D product draft with {draft.LocalProduct.DraftID} ID has been created for {_3DProduct.Metadata.Title}.");
             return draft;
 
@@ -125,12 +114,6 @@ public partial class TurboSquid : HttpClient
             // Returns the ID of the newly created or already existing draft for the given `_3DProduct.ID`.
             async Task<long> CreateDraftAsync()
                 => JObject.Parse(await GetStringAsync($"turbosquid/products/{_3DProduct.ID}/create_draft", cancellationToken))["id"]!.Value<long>()!;
-
-            // Deletes the draft for the given `_3DProduct.ID`.
-            async Task DeleteDraftAsync()
-                => await SendAsync(new(HttpMethod.Delete, $"turbosquid/products/{_3DProduct.ID}/delete_draft")
-                { Content = JsonContent.Create(new { authenticity_token = Credential.AuthenticityToken }) },
-                cancellationToken);
 
             async Task<TurboSquidAwsSession> RequestAwsStorageCredentialAsync()
             {
@@ -159,4 +142,10 @@ public partial class TurboSquid : HttpClient
 
         return await this.GetStringAndUpdateAuthenticityTokenAsync($"turbosquid/{(isDraft ? "drafts" : "products")}/{id}/edit", cancellationToken);
     }
+
+    // Deletes the draft for the given `_3DProduct.ID`.
+    async Task DeleteDraftAsync(_3DProduct _3DProduct, CancellationToken cancellationToken)
+        => await SendAsync(new(HttpMethod.Delete, $"turbosquid/products/{_3DProduct.ID}/delete_draft")
+        { Content = JsonContent.Create(new { authenticity_token = Credential.AuthenticityToken }) },
+        cancellationToken);
 }
