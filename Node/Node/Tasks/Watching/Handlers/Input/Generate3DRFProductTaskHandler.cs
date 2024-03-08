@@ -168,7 +168,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(GetSubmitJsonFile(dir)));
     bool NeedsTurboSquidPublish(RFProduct rfproduct)
     {
-        if (!File.Exists(Path.Combine(rfproduct.Idea.Path, "turbosquid.meta")))
+        if (!File.Exists(Path.Combine(rfproduct.Idea.Path, "meta.json")))
             return true;
 
         if (Input.DirectoryStructure2?.GetValueOrDefault(rfproduct.Idea.Path) is null)
@@ -342,7 +342,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         foreach (var (path, _) in data)
         {
             if (path.Contains("_Status.")) continue;
-            if (path.Contains("turbosquid.meta")) continue;
+            if (path.Contains("meta.json")) continue;
             if (path.Contains("publish_exception")) continue;
 
             if (!dirstr.Parts.ContainsKey(path))
@@ -351,9 +351,9 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         foreach (var (path, info) in prevdirstr.Parts)
         {
-            // submit file and turbosquid.meta are being updated so exclude them from the check
+            // submit file and meta.json are being updated so exclude them from the check
             if (path.Contains("_Status.")) continue;
-            if (path.Contains("turbosquid.meta")) continue;
+            if (path.Contains("meta.json")) continue;
             if (path.Contains("publish_exception")) continue;
 
             if (File.Exists(path))
