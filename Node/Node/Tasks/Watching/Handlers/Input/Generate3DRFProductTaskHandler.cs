@@ -217,7 +217,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     {
         Logger.Info("IN PUBLISH");
         var products = RFProducts.RFProducts.Values
-            .Where(p => p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
+            .Where(p => Directory.Exists(p.Path) && p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
             .ToArray();
 
         SetState(state => state with { DraftedCount = 0, PublishedCount = 0 });
