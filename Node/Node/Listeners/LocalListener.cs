@@ -224,13 +224,6 @@ public class LocalListener : ExecutableListenerBase
                     var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(Settings.TurboSquidUsername.Value.ThrowIfNull(), Settings.TurboSquidPassword.Value.ThrowIfNull(), token);
                     var ui = Container.Resolve<INodeGui>();
 
-                    if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
-                    {
-                        Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault() ?? "<empty turbosquid.meta>");
-                        if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault()?.Contains(@"\[\d+\]") ?? false)
-                            return await WriteJson(response, "Item is already published.".AsOpResult());
-                    }
-
                     Logger.Info($"Publishing {rfproduct.Path}");
                     await turbo.PublishAsync(rfproduct, ui, token);
                     return await WriteJson(response, "Item is successfully published.".AsOpResult());
@@ -252,24 +245,15 @@ public class LocalListener : ExecutableListenerBase
                 if (target == "turbosquid")
                 {
                     var submitJson = JObject.Parse(await File.ReadAllTextAsync(Directory.GetFiles(rfproduct.Idea.Path).Single(f => f.EndsWith("_Submit.json"))));
+                    var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
+                    var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
 
-                    if ((submitJson["toSubmitSquid"]?.ToObject<string>() ?? "None") == "Submit")
-                    {
-                        if (File.Exists(Path.Combine(rfproduct, "turbosquid.meta")))
-                        {
-                            Logger.Info(File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault() ?? "<empty turbosquid.meta>");
-                            if (File.ReadLines(Path.Combine(rfproduct, "turbosquid.meta")).FirstOrDefault()?.Contains(@"\[\d+\]") ?? false)
-                                return await WriteJson(response, "Item is already published".AsOpResult());
-                        }
+                    Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
+                    Logger.Info($"using {username} {password}");
+                    var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(username, password, token);
+                    await turbo.PublishAsync(rfproduct, NodeGui, token);
 
-                        var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
-                        var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
-
-                        Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
-                        Logger.Info($"using {username} {password}");
-                        var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(username, password, token);
-                        await turbo.PublishAsync(rfproduct, NodeGui, token);
-                    }
+                    return await WriteJson(response, "Item is successfully published.".AsOpResult());
                 }
 
                 return await WriteErr(response, "Unknown target");
