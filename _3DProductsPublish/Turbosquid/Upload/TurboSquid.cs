@@ -52,6 +52,7 @@ public partial class TurboSquid : HttpClient
         var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
         var rfProduct3D = await ConvertAsync(rfProduct, gui, cancellationToken);
 
+        _logger.Debug($"{rfProduct3D.Metadata.Title} status from _Submit.json: {rfProduct3D.Metadata.Status}.");
         if (rfProduct3D.Metadata.Status is RFProduct._3D.Status.none)
         { _logger.Warn($"{rfProduct3D.Metadata.Title} 3D {nameof(RFProduct)} is not uploaded due to its status being set to {RFProduct._3D.Status.none}."); return; }
 

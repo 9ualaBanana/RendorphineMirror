@@ -208,7 +208,8 @@ public partial class TurboSquid
                     { Content = ProductForm() };
                     productPublishRequest.Headers.Add(HeaderNames.Origin, Origin.OriginalString);
                     productPublishRequest.Headers.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
-                    await _session.Client.SendAsync(productPublishRequest, _session.CancellationToken);
+                    var response = await _session.Client.SendAsync(productPublishRequest, _session.CancellationToken);
+                    _logger.Debug(await response.Content.ReadAsStringAsync());
                     _logger.Trace($"{_session.Draft.LocalProduct.Metadata.Title} 3D product publish request has been sent.");
 
                     //// Edit with Draft.ID will work only if it was uploaded as Draft and not published as Product and Product ID is unknow at this point.
@@ -246,6 +247,7 @@ public partial class TurboSquid
                         })));
                     if (_session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online)
                         productForm.Add("publish", string.Empty);
+                    _logger.Debug(productForm.ToString(Formatting.Indented));
                     return productForm.ToJsonContent();
                 }
 
@@ -255,11 +257,14 @@ public partial class TurboSquid
                     try
                     {
                         if (JObject.Parse(await _session.Client.GetStringAsync("/turbosquid/products.json?page=1", _session.CancellationToken))["data"] is JArray publishedProducts)
+                        {
+                            _logger.Debug(publishedProducts.ToString(Formatting.Indented));
                             if (publishedProducts.FirstOrDefault(_ => (string)_["name"]! == _session.Draft.LocalProduct.Metadata.Title) is JToken publishedProduct)
                                 if (publishedProduct[ID]?.Value<long>() is long id)
                                 { _logger.Trace($"{_session.Draft.LocalProduct.Metadata.Title} 3D product ID is obtained."); return id; }
                                 else throw new MissingFieldException("PublishedProduct", ID);
                             else throw new Exception($"{_session.Draft.LocalProduct.Metadata.Title} wasn't found among published 3D products.");
+                        }
                         else throw new InvalidDataException("Published products request failed.");
                     }
                     catch (Exception ex)
