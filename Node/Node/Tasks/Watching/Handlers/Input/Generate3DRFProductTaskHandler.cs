@@ -288,10 +288,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     {
                         SetState(state => state with { CurrentPublishing = rfproduct.Path });
                         Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
-                        await turbo.PublishAsync(rfproduct, NodeGui, token);
-
-                        try { File.Delete(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt")); }
-                        catch { }
+                        await turbo.UploadAsync(rfproduct, NodeGui, token);
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {

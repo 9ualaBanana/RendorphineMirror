@@ -86,19 +86,19 @@ public partial record RFProduct
                     && AssetsInside(ideaContainer) is IEnumerable<string> assets ?
                         assets.Any(IsPackage) ?
                         assets.SingleOrDefault(IsMetadata) is not null ?
-                        assets.Count(IsRender) is int count && count >= RequiredRendersCount ?
                         assets.Any(IsWireframe) ?
+                        assets.Count(IsProductShot) is int productShotsCount && productShotsCount >= RequiredProductShotsCount ?
                         //assets.Any(IsSettings)
 
                     new(ideaContainer)
 
-                        : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least 1 wireframe render with any of the following suffixes [{string.Join(',', _wireframeSuffixes)}]")
-                        : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least {RequiredRendersCount} renders and only {count} were found.")
+                        : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least {RequiredProductShotsCount} product shots with any of the following suffixes [{string.Join(',', _productShotSuffixes)}] and only {productShotsCount} were found.")
+                        : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least 1 wireframe image with any of the following suffixes [{string.Join(',', _wireframeSuffixes)}]")
                         : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain metadata file [{_metadataSuffix}].")
                         : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least 1 package.")
                     : throw new InvalidDataException($"{idea} doesn't represent {typeof(_3D).FullName}.");
 
-                const int RequiredRendersCount = 7;
+                const int RequiredProductShotsCount = 5;
             }
 
             static IEnumerable<string> AssetsInside(AssetContainer container) => container.EnumerateEntries(EntryType.NonContainers);
@@ -106,14 +106,18 @@ public partial record RFProduct
             public static bool IsPackage(string asset) => _packageExtensions.Contains(System.IO.Path.GetExtension(asset));
             readonly static HashSet<string> _packageExtensions = [".UnityPackage"];
 
+            static bool IsMetadata(string asset) => asset.EndsWith(_metadataSuffix);
+            readonly static string _metadataSuffix = "_Submit.json";
+
             public static bool IsWireframe(string asset) => _wireframeSuffixes.Any(wireframeSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(wireframeSuffix));
             readonly static HashSet<string> _wireframeSuffixes = ["_vp", "_wire"];
 
-            public static bool IsRender(string asset) => _renderSuffixes.Any(renderSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(renderSuffix));
-            readonly static HashSet<string> _renderSuffixes = new(_wireframeSuffixes.Union(["_screenshot"]));
+            static bool IsProductShot(string asset) => _productShotSuffixes.Any(productShotSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(productShotSuffix));
+            readonly static HashSet<string> _productShotSuffixes = ["_screenshot"];
 
-            static bool IsMetadata(string asset) => asset.EndsWith(_metadataSuffix);
-            readonly static string _metadataSuffix = "_Submit.json";
+            // Check if it's still relevant or more specific approach with product shots and wireframes can be used instead.
+            public static bool IsRender(string asset) => _renderSuffixes.Any(renderSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(renderSuffix));
+            readonly static HashSet<string> _renderSuffixes = new(_wireframeSuffixes.Union(_productShotSuffixes));
 
             //static bool IsSettings(string asset) => asset.EndsWith("_Settings.ini");
         }

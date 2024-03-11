@@ -3,6 +3,7 @@ using _3DProductsPublish.Turbosquid.Api;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using MarkTM.RFProduct;
 using Microsoft.Net.Http.Headers;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -47,18 +48,24 @@ public partial class TurboSquid : HttpClient
         _noAutoRedirectHttpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
     }
 
-    public async Task PublishAsync(RFProduct rfProduct, INodeGui gui, CancellationToken cancellationToken)
+    readonly ConcurrentDictionary<string, ManualResetEventSlim> _productsLocker = [];
+    public async Task UploadAsync(RFProduct rfProduct, INodeGui gui, CancellationToken cancellationToken)
     {
-        var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
-        var rfProduct3D = await ConvertAsync(rfProduct, gui, cancellationToken);
+        var productUploadEvent = _productsLocker.GetOrAdd(rfProduct.Name, new ManualResetEventSlim(true));
+        try
+        {
+            var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
+            productUploadEvent.Wait(TimeSpan.FromMinutes(10), cancellationToken); productUploadEvent.Reset();   // Acquire lock before metadata is read to detect its modifications.
+            var rfProduct3D = await ConvertAsync(rfProduct, gui, cancellationToken);
 
-        _logger.Debug($"{rfProduct3D.Metadata.Title} status from _Submit.json: {rfProduct3D.Metadata.Status}.");
-        if (rfProduct3D.Metadata.Status is RFProduct._3D.Status.none)
-        { _logger.Warn($"{rfProduct3D.Metadata.Title} 3D {nameof(RFProduct)} is not uploaded due to its status being set to {RFProduct._3D.Status.none}."); return; }
+            if (rfProduct3D.Metadata.Status is RFProduct._3D.Status.none)
+            { _logger.Warn($"{rfProduct3D.Metadata.Title} 3D {nameof(RFProduct)} is not uploaded due to its status being set to {RFProduct._3D.Status.none}."); return; }
 
-        await PublishAsync(rfProduct3D, cancellationToken);
+            await UploadAsync(rfProduct3D, cancellationToken);
 
-        idea.Status = _3DProduct.Remote.Parse(await EditAsync(rfProduct3D, cancellationToken)).status;
+            idea.Status = _3DProduct.Remote.Parse(await EditAsync(rfProduct3D, cancellationToken)).status;
+        }
+        finally { productUploadEvent.Set(); }
 
 
         static async Task<_3DProduct> ConvertAsync(RFProduct rfProduct, INodeGui gui, CancellationToken cancellationToken)
@@ -70,7 +77,7 @@ public partial class TurboSquid : HttpClient
             // _3DProduct is just a fucking data structure representing a 3D product on the file system.
         }
     }
-    public async Task PublishAsync(_3DProduct _3DProduct, CancellationToken cancellationToken)
+    public async Task UploadAsync(_3DProduct _3DProduct, CancellationToken cancellationToken)
     {
         try
         {
@@ -88,29 +95,23 @@ public partial class TurboSquid : HttpClient
 
     // Body part under <script> tag in the responses contains all the necessary information/references related to the product and *its manipulation*.
     // Refactor the code to use those.
+    /// <remarks>
+    /// Prioritazes <see cref="_3DProduct.DraftID"/> over <see cref="_3DProduct.ID"/>.
+    /// </remarks>
     async Task<_3DProduct.Draft> CreateDraftAsync(_3DProduct _3DProduct, CancellationToken cancellationToken)
     {
         try
         {
-            _3DProduct.Draft draft;
-            if (_3DProduct.DraftID is not 0 || _3DProduct.ID is not 0)
-            {
-                var remote = _3DProduct.Remote.Parse(await EditAsync(_3DProduct, cancellationToken));
-                draft = new _3DProduct.Draft(await RequestAwsStorageCredentialAsync(), _3DProduct, remote);
-            }
-            else
-            {
-                var remote = _3DProduct.Remote.Parse(await NewAsync());
+            _3DProduct.Remote remote = _3DProduct.Remote.Parse(_3DProduct.ID is 0 && _3DProduct.DraftID is 0 ? await NewAsync() : await EditAsync(_3DProduct, cancellationToken));
+            if ((_3DProduct.DraftID = remote.draft_id ?? 0) is 0)
                 _3DProduct.DraftID = await CreateDraftAsync();
-                draft = new _3DProduct.Draft(await RequestAwsStorageCredentialAsync(), _3DProduct, remote);
-
-
-                async Task<string> NewAsync()
-                    => await this.GetStringAndUpdateAuthenticityTokenAsync("turbosquid/products/new", cancellationToken);
-            }
+            var draft = new _3DProduct.Draft(await RequestAwsStorageCredentialAsync(), _3DProduct, remote);
             _logger.Trace($"3D product draft with {draft.LocalProduct.DraftID} ID has been created for {_3DProduct.Metadata.Title}.");
             return draft;
 
+
+            async Task<string> NewAsync()
+                => await this.GetStringAndUpdateAuthenticityTokenAsync("turbosquid/products/new", cancellationToken);
 
             // Returns the ID of the newly created or already existing draft for the given `_3DProduct.ID`.
             async Task<long> CreateDraftAsync()
