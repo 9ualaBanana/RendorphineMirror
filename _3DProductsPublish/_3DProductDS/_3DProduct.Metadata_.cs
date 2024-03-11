@@ -13,7 +13,7 @@ public partial record _3DProduct
     {
         [JsonProperty("toSubmitSquid")] public required string StatusSquid { get; init; }
         [JsonProperty("toSubmitTrader")] public required string StatusTrader { get; init; }
-        [JsonProperty("Name")] public required string Title { get; init; }
+        public required string Title { get; init; }
         public required string Description { get; init; }
         public required string Category { get; init; }
         public string? SubCategory { get; init; }
