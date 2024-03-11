@@ -233,7 +233,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     try
                     {
                         var turbo = await GetTurboRetryOrSkip(username, password, token);
-                        await turbo.PublishAsync(rfproduct, NodeGui, token);
+                        await turbo.UploadAsync(rfproduct, NodeGui, token);
                     }
                     catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
                     {

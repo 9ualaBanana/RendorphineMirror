@@ -198,7 +198,7 @@ public class LocalListener : ExecutableListenerBase
                 if (target == "turbosquid")
                 {
                     var tsp = await product.AsyncWithTurboSquid(metadata, cancellationToken);
-                    await (await Container.Resolve<TurboSquidContainer>().GetAsync(Settings.CGTraderUsername.Value.ThrowIfNull(), Settings.CGTraderPassword.Value.ThrowIfNull(), default)).PublishAsync(tsp, cancellationToken);
+                    await (await Container.Resolve<TurboSquidContainer>().GetAsync(Settings.CGTraderUsername.Value.ThrowIfNull(), Settings.CGTraderPassword.Value.ThrowIfNull(), default)).UploadAsync(tsp, cancellationToken);
                     return await WriteSuccess(response).ConfigureAwait(false);
                 }
                 if (target == "cgtrader")
@@ -232,7 +232,7 @@ public class LocalListener : ExecutableListenerBase
                     }
 
                     Logger.Info($"Publishing {rfproduct.Path}");
-                    await turbo.PublishAsync(rfproduct, ui, token);
+                    await turbo.UploadAsync(rfproduct, ui, token);
                     return await WriteJson(response, "Item is successfully published.".AsOpResult());
                 }
 
@@ -268,7 +268,7 @@ public class LocalListener : ExecutableListenerBase
                         Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
                         Logger.Info($"using {username} {password}");
                         var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(username, password, token);
-                        await turbo.PublishAsync(rfproduct, NodeGui, token);
+                        await turbo.UploadAsync(rfproduct, NodeGui, token);
                     }
                 }
 
