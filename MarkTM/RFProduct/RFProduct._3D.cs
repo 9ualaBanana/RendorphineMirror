@@ -103,8 +103,8 @@ public partial record RFProduct
 
             static IEnumerable<string> AssetsInside(AssetContainer container) => container.EnumerateEntries(EntryType.NonContainers);
 
-            public static bool IsPackage(string asset) => _packageExtensions.Contains(System.IO.Path.GetExtension(asset));
-            readonly static HashSet<string> _packageExtensions = [".UnityPackage"];
+            public static bool IsPackage(string asset) => _packageSuffixes.Any(asset.EndsWith);
+            readonly static HashSet<string> _packageSuffixes = [".UnityPackage", "_FBX.zip", "_FBX.rar"];
 
             static bool IsMetadata(string asset) => asset.EndsWith(_metadataSuffix);
             readonly static string _metadataSuffix = "_Submit.json";

@@ -1,3 +1,4 @@
+﻿using System.IO.Packaging;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
@@ -80,28 +81,36 @@ static class FileFormat_
     internal static string ToString_(this FileFormat fileFormat)
         => fileFormat.ToString().TrimStart('_');
 
-    internal static FileFormat ToEnum(string path)
-        => Dictionary.TryGetValue(Path.GetExtension(path).ToLowerInvariant(), out FileFormat fileFormat) ?
-        fileFormat : throw new FileFormatException();
+    public static bool IsKnown(string path) => TryToEnum(path) is not null;
 
-    internal static ImmutableDictionary<string, FileFormat> Dictionary { get; }
+    internal static FileFormat ToEnum(string path) => TryToEnum(path) ??
+        throw new FileFormatException($"Unknown {nameof(Package)} {nameof(FileFormat)}.");
+    static FileFormat? TryToEnum(string path) =>
+        System.IO.Path.GetFileName(path).ToLowerInvariant() is string nameWextension ?
+            Dictionary.TryGetValue(System.IO.Path.GetExtension(nameWextension).TrimStart('.'), out FileFormat fileFormat) ? fileFormat
+            : System.IO.Path.GetFileNameWithoutExtension(nameWextension) is string nameWOextension
+            && Dictionary.TryGetValue(nameWOextension[(nameWOextension.LastIndexOf('_') + 1)..], out fileFormat) ? fileFormat
+
+            : null
+        : throw new Exception($"Failed to turn {nameof(path)} into {nameof(nameWextension)}.");
+    static ImmutableDictionary<string, FileFormat> Dictionary { get; }
         = new Dictionary<string, FileFormat>
         {
-            [".unitypackage"] = FileFormat.unity,
-            [".blend"] = FileFormat.blender,
-            [".c4d"] = FileFormat.cinema_4d,
-            [".max"] = FileFormat._3ds_max,
-            [".dwg"] = FileFormat.autocad_drawing,
-            [".lwo"] = FileFormat.lightwave,
-            [".fbx"] = FileFormat.fbx,
-            [".ma"] = FileFormat.maya,
-            [".mb"] = FileFormat.maya,
-            [".hrc"] = FileFormat.softimage,
-            [".scn"] = FileFormat.softimage,
-            [".rfa"] = FileFormat.revit_family,
-            [".rvt"] = FileFormat.revit_family,
-            [".obj"] = FileFormat.obj,
-            [".mtl"] = FileFormat.obj
+            ["unitypackage"] = FileFormat.unity,
+            ["blend"] = FileFormat.blender,
+            ["c4d"] = FileFormat.cinema_4d,
+            ["max"] = FileFormat._3ds_max,
+            ["dwg"] = FileFormat.autocad_drawing,
+            ["lwo"] = FileFormat.lightwave,
+            ["fbx"] = FileFormat.fbx,
+            ["ma"] = FileFormat.maya,
+            ["mb"] = FileFormat.maya,
+            ["hrc"] = FileFormat.softimage,
+            ["scn"] = FileFormat.softimage,
+            ["rfa"] = FileFormat.revit_family,
+            ["rvt"] = FileFormat.revit_family,
+            ["obj"] = FileFormat.obj,
+            ["mtl"] = FileFormat.obj
         }.ToImmutableDictionary();
 }
 
