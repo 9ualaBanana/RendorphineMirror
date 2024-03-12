@@ -29,14 +29,6 @@ public record AssetContainer : IDisposable
         _disposeTemps = disposeTemps;
     }
 
-    /// <summary>
-    /// Creates a temporary archive to which the files are extracted if the <see cref="_3DModel"/>
-    /// is initialized from a directory (i.e. <see cref="Path"/> referes to a directory).
-    /// </summary>
-    /// <returns>Path to the archive where this <see cref="_3DModel"/> is stored.</returns>
-    public ValueTask<string> Archive()
-        => ValueTask.FromResult(_archivePath ??= Archive_.Pack(_directoryPath!));
-
     public string Store(string entry, string? @as = default, StoreMode mode = StoreMode.Move)
     {
         string name = @as ?? System.IO.Path.GetFileNameWithoutExtension(entry);
@@ -241,7 +233,7 @@ public record AssetContainer : IDisposable
             else throw new FileNotFoundException("Archive doesn't exist.", path);
         }
 
-        public static string Pack(string path, bool preserveName = false)
+        public static string Pack(string path, bool preserveName = true)
         {
             DirectoryInfo archiveBuffer = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), preserveName ? System.IO.Path.GetFileName(path) : System.IO.Path.GetRandomFileName()));
             try

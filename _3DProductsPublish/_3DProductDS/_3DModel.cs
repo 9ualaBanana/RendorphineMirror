@@ -8,7 +8,7 @@ public partial record _3DModel(string Path) : I3DProductAsset, IDisposable
     public static implicit operator string(_3DModel model) => model.Path;
     public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
 
-    internal string Archived => _archived ??= RFProduct._3D.Idea_.IsPackage(this) ? this : AssetContainer.Archive_.Pack(this, true);
+    internal string Archived => _archived ??= RFProduct._3D.Idea_.IsPackage(this) ? this : AssetContainer.Archive_.Pack(this);
     string? _archived;
 
 
