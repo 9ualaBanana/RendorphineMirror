@@ -44,7 +44,7 @@ public class DirectDownloadListener : ExecutableListenerBase
         var taskdir = Dirs.TaskOutputDirectory(taskid);
         if (!Directory.Exists(taskdir)) return HttpStatusCode.NotFound;
 
-        var dirfiles = Directory.GetFiles(taskdir);
+        var dirfiles = Directory.GetFiles(taskdir, "*", SearchOption.AllDirectories);
         if (dirfiles.Length == 0)
             throw new Exception($"No task result was found in the directory {taskdir}");
 
