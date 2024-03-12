@@ -53,6 +53,7 @@ public class DirectDownloadListener : ExecutableListenerBase
             var file = dirfiles[0];
 
             response.Headers.Add("Content-Disposition", $"form-data; name=file; filename={Path.GetFileName(file)}");
+            response.ContentLength64 = new FileInfo(file).Length;
             response.ContentType = MimeTypes.GetMimeType(file);
 
             using (var reader = File.OpenRead(file))
@@ -61,14 +62,15 @@ public class DirectDownloadListener : ExecutableListenerBase
             return HttpStatusCode.OK;
         }
 
-        response.Headers.Add("Content-Disposition", "form-data; name=\"file\"; filename=\"file.zip\"");
-        response.ContentType = "application/zip";
-
         var zipfile = Path.GetTempFileName();
         try
         {
             File.Delete(zipfile);
             ZipFile.CreateFromDirectory(taskdir, zipfile);
+
+            response.Headers.Add("Content-Disposition", "form-data; name=\"file\"; filename=\"file.zip\"");
+            response.ContentLength64 = new FileInfo(zipfile).Length;
+            response.ContentType = "application/zip";
 
             using (var reader = File.OpenRead(zipfile))
                 await reader.CopyToAsync(response.OutputStream);
