@@ -17,7 +17,7 @@ public partial record TurboSquid3DModelMetadata : _3DModel.IMetadata
 
     public TurboSquid3DModelMetadata(_3DModel _3DModel)
     {
-        Name = _3DModel.Name;
+        Name = _3DModel.Name();
         var fileFormat = FileFormat_.ToEnum(_3DModel);
         FileFormat = fileFormat.ToString_();
         IsNative = FileFormat_.IsNative(fileFormat);

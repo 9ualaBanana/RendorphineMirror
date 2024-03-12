@@ -101,7 +101,7 @@ public partial class TurboSquid
             {
                 try
                 {
-                    _logger.Trace($"Uploading {processedModel.Name} metadata");
+                    _logger.Trace($"Uploading {processedModel.Name()} metadata");
                     await Client.SendAsync(
                         new HttpRequestMessage(
                             HttpMethod.Patch,
@@ -109,10 +109,10 @@ public partial class TurboSquid
                             $"turbosquid/products/{Draft.LocalProduct.DraftID}/product_files/{processedModel.FileId}")
                         { Content = MetadataForm() },
                         cancellationToken);
-                    _logger.Trace($"Metadata for {processedModel.Name} has been uploaded.");
+                    _logger.Trace($"Metadata for {processedModel.Name()} has been uploaded.");
                 }
                 catch (Exception ex)
-                { throw new HttpRequestException($"{processedModel.Name} metadata upload failed.", ex); }
+                { throw new HttpRequestException($"{processedModel.Name()} metadata upload failed.", ex); }
 
 
                 StringContent MetadataForm()
@@ -146,7 +146,7 @@ public partial class TurboSquid
                 var thumbnailsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>>();
                 foreach (var thumbnail in Draft.LocalProduct.Thumbnails.Where(_ => _ is not ITurboSquidProcessed3DProductAsset))
                 {
-                    string uploadKey = await UploadAssetAsync(thumbnail.FilePath);
+                    string uploadKey = await UploadAssetAsync(thumbnail.Path);
                     thumbnailsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.RunAsync(thumbnail, uploadKey, this));
                 };
                 var processedThumbnails = (await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.WhenAll(thumbnailsProcessing)).Cast<TurboSquidProcessed3DProductThumbnail>();
@@ -156,17 +156,16 @@ public partial class TurboSquid
                 return processedThumbnails;
             }
 
-            async Task<IEnumerable<TurboSquidProcessed3DProductTexture>?> UploadTexturesAsync()
+            async Task<IEnumerable<TurboSquidProcessed3DProductTextures>?> UploadTexturesAsync()
             {
-                if (Draft.LocalProduct.Textures is null) return null;
                 _logger.Trace("Starting 3D product textures upload and processing.");
-                var texturesProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProductDS._3DProduct.Texture_>>();
-                foreach (var texture in Draft.LocalProduct.Textures.EnumerateFiles())
+                var texturesProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProductDS._3DProduct.Textures_>>();
+                foreach (var textures in Draft.LocalProduct.Textures.Where(_ => _ is not ITurboSquidProcessed3DProductAsset))
                 {
-                    string uploadKey = await UploadAssetAsync(texture.Path);
-                    texturesProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DProductDS._3DProduct.Texture_>.RunAsync(texture, uploadKey, this));
+                    string uploadKey = await UploadAssetAsync(textures.Path);
+                    texturesProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DProductDS._3DProduct.Textures_>.RunAsync(textures, uploadKey, this));
                 }
-                var processedTextures = (await TurboSquid3DProductAssetProcessing.Task_<_3DProductDS._3DProduct.Texture_>.WhenAll(texturesProcessing)).Cast<TurboSquidProcessed3DProductTexture>();
+                var processedTextures = (await TurboSquid3DProductAssetProcessing.Task_<_3DProductDS._3DProduct.Textures_>.WhenAll(texturesProcessing)).Cast<TurboSquidProcessed3DProductTextures>();
                 _logger.Trace("3D product textures have been uploaded and processed.");
                 return processedTextures;
             }
@@ -200,7 +199,6 @@ public partial class TurboSquid
                 try
                 {
                     _logger.Trace($"Sending {_session.Draft.LocalProduct.Metadata.Title} 3D product publish request.");
-                    // If draft was not created, then draft_id = 0 in the request body.
                     var productPublishRequest = new HttpRequestMessage(
                         HttpMethod.Patch,
 
@@ -211,8 +209,7 @@ public partial class TurboSquid
                     await _session.Client.SendAsync(productPublishRequest, _session.CancellationToken);
                     _logger.Trace($"{_session.Draft.LocalProduct.Metadata.Title} 3D product publish request has been sent.");
 
-                    //// Edit with Draft.ID will work only if it was uploaded as Draft and not published as Product and Product ID is unknow at this point.
-                    //var remote = _3DProduct.Remote.Parse(await _session.Client.EditAsync(_session.Draft.ID, isDraft: true, _session.CancellationToken));
+                    //var remote = _3DProduct.Remote.Parse(await _session.Client.EditAsync(_session.Draft.LocalProduct, _session.CancellationToken)).status;
                     if (_session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online)
                     {
                         await Task.Delay(5000);

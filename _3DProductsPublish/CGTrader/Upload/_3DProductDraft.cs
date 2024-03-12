@@ -20,7 +20,7 @@ public record _3DProductDraft<TMetadata>
         {
             Type type
             when type == typeof(CGTrader3DModelThumbnail) =>
-                thumbnail => (new CGTrader3DModelThumbnail(thumbnail.FilePath) as T)!,
+                thumbnail => (new CGTrader3DModelThumbnail(thumbnail.Path) as T)!,
             { } => thumbnail => (thumbnail as T)!
         };
         return Product.Thumbnails.Select(upcaster);

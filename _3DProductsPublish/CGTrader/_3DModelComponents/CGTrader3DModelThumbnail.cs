@@ -10,7 +10,7 @@ internal class CGTrader3DModelThumbnail : _3DProductThumbnail
         if (_checksum is null)
         {
             using var hasher = MD5.Create();
-            using var fileStream = File.OpenRead(FilePath);
+            using var fileStream = File.OpenRead(Path);
             _checksum = Convert.ToBase64String(
                 await hasher.ComputeHashAsync(fileStream, cancellationToken)
                 );

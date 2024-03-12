@@ -42,6 +42,7 @@ public partial record RFProduct
             [JsonIgnore] public IEnumerable<string> Packages => Assets.Where(IsPackage);
             [JsonIgnore] public string Metadata => Assets.Single(IsMetadata);
             [JsonIgnore] public IEnumerable<string> Renders => Assets.Where(IsRender);
+            [JsonIgnore] public IEnumerable<string> Textures => Assets.Where(IsTextures);
             [JsonIgnore] public string TSMeta => Assets.Single(_ => System.IO.Path.GetFileName(_) == "turbosquid.meta");
             [JsonIgnore] public string Sales
             {
@@ -118,6 +119,9 @@ public partial record RFProduct
             // Check if it's still relevant or more specific approach with product shots and wireframes can be used instead.
             public static bool IsRender(string asset) => _renderSuffixes.Any(renderSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(renderSuffix));
             readonly static HashSet<string> _renderSuffixes = new(_wireframeSuffixes.Union(_productShotSuffixes));
+
+            public static bool IsTextures(string asset) => _texturesSuffixes.Any(textureSuffix => System.IO.Path.GetFileName(asset).EndsWith(textureSuffix));
+            readonly static HashSet<string> _texturesSuffixes = ["_Textures.zip"];
 
             //static bool IsSettings(string asset) => asset.EndsWith("_Settings.ini");
         }

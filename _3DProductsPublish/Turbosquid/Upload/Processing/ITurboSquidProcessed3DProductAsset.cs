@@ -25,8 +25,8 @@ static class TurboSquidProcessed3DProductAssetFactory
                 new TurboSquidProcessed3DModel(_3DModel, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>,
             _3DProductThumbnail thumbnail =>
                 new TurboSquidProcessed3DProductThumbnail(thumbnail, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>,
-            _3DProduct.Texture_ texture =>
-                new TurboSquidProcessed3DProductTexture(texture, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>,
+            _3DProduct.Textures_ textures =>
+                new TurboSquidProcessed3DProductTextures(textures, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>,
             _ => throw new ArgumentException("Unsupported asset type.")
         } ?? throw new ArgumentNullException(nameof(asset));
 }
@@ -53,7 +53,7 @@ internal class TurboSquidProcessed3DProductThumbnail : _3DProductThumbnail,
     public _3DProductThumbnail Asset { get; }
 
     internal TurboSquidProcessed3DProductThumbnail(_3DProductThumbnail thumbnail, long fileId)
-        : base(thumbnail)
+        : base(thumbnail.Path)
     {
         FileId = fileId;
         Asset = thumbnail;
@@ -71,20 +71,20 @@ internal class TurboSquidProcessed3DProductThumbnail : _3DProductThumbnail,
 
     internal enum PreprocessedType_ { regular, wireframe }
     internal static PreprocessedType_ PreprocessedType(_3DProductThumbnail thumbnail)
-        => RFProduct._3D.Idea_.IsWireframe(thumbnail.FilePath) ?
+        => RFProduct._3D.Idea_.IsWireframe(thumbnail.Path) ?
         PreprocessedType_.wireframe : PreprocessedType_.regular;
 }
 
-internal record TurboSquidProcessed3DProductTexture : _3DProduct.Texture_,
-    ITurboSquidProcessed3DProductAsset<_3DProduct.Texture_>
+internal record TurboSquidProcessed3DProductTextures : _3DProduct.Textures_,
+    ITurboSquidProcessed3DProductAsset<_3DProduct.Textures_>
 {
     public long FileId { get; }
-    public _3DProduct.Texture_ Asset { get; }
+    public _3DProduct.Textures_ Asset { get; }
 
-    internal TurboSquidProcessed3DProductTexture(_3DProduct.Texture_ texture, long fileId)
-        : base(texture)
+    internal TurboSquidProcessed3DProductTextures(_3DProduct.Textures_ textures, long fileId)
+        : base(textures)
     {
         FileId = fileId;
-        Asset = texture;
+        Asset = textures;
     }
 }

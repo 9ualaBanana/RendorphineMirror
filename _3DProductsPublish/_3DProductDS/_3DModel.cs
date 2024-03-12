@@ -6,8 +6,8 @@ namespace _3DProductsPublish._3DProductDS;
 public partial record _3DModel(string Path) : I3DProductAsset, IDisposable
 {
     public static implicit operator string(_3DModel model) => model.Path;
-    public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
 
+    // _3DModel shall be initialized as archived.
     internal string Archived => _archived ??= RFProduct._3D.Idea_.IsPackage(this) ? this : AssetContainer.Archive_.Pack(this);
     string? _archived;
 

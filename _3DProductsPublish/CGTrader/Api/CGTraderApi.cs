@@ -212,13 +212,13 @@ public class CGTraderApi : IBaseAddressProvider
         {
             string uploadedFileId = await __UploadModelThumbnailAsync(modelThumbnail, modelDraft, cancellationToken);
             _logger.Debug("3D model thumbnail at {Path} was uploaded to {ModelDraftID} model draft with {UploadedFileID} ID.",
-                modelThumbnail.FilePath, modelDraft.ID, uploadedFileId
+                modelThumbnail.Path, modelDraft.ID, uploadedFileId
                 );
             return uploadedFileId;
         }
         catch (Exception ex)
         {
-            string errorMessage = $"3D model thumbnail at {modelThumbnail.FilePath} couldn't be uploaded to {modelDraft.ID} model draft.";
+            string errorMessage = $"3D model thumbnail at {modelThumbnail.Path} couldn't be uploaded to {modelDraft.ID} model draft.";
             _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
         }
     }
@@ -238,7 +238,7 @@ public class CGTraderApi : IBaseAddressProvider
         CGTrader3DModelThumbnail modelPreviewImage,
         CancellationToken cancellationToken)
     {
-        using var fileStream = File.OpenRead(modelPreviewImage.FilePath);
+        using var fileStream = File.OpenRead(modelPreviewImage.Path);
         using var request = new HttpRequestMessage(HttpMethod.Post,
             (this as IBaseAddressProvider).Endpoint("/api/internal/direct-uploads/item-images"))
         {
@@ -247,8 +247,8 @@ public class CGTraderApi : IBaseAddressProvider
                 blob = new
                 {
                     checksum = await modelPreviewImage.ChecksumAsync(cancellationToken),
-                    filename = modelPreviewImage.FileName,
-                    content_type = modelPreviewImage.MimeType.MediaType,
+                    filename = modelPreviewImage.Name(),
+                    content_type = modelPreviewImage.MimeType().MediaType,
                     byte_size = fileStream.Length
                 }
             })
@@ -258,7 +258,7 @@ public class CGTraderApi : IBaseAddressProvider
 
         return await CGTrader3DModelAssetUploadSessionData._ForModelThumbnailAsyncFrom(
             response,
-            modelPreviewImage.FilePath,
+            modelPreviewImage.Path,
             cancellationToken);
     }
 
