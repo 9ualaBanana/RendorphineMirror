@@ -1,5 +1,3 @@
-﻿using Tomlyn.Syntax;
-using static Tomlyn.Helpers.TomlNamingHelper;
 
 namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
@@ -126,16 +124,6 @@ abstract class NativeFileFormatMetadata<TRenderer> : NativeFileFormatMetadata wh
 {
     protected NativeFileFormatMetadata(FileFormat fileFormat, double formatVersion = 1.0, TRenderer? renderer = null, double? rendererVersion = null)
         : base(fileFormat, formatVersion, renderer?.ToString(), rendererVersion) { }
-}
-static class NativeFileFormatMetadataExtensions
-{
-    internal static void Add(this SyntaxList<KeyValueSyntax> tableItems, NativeFileFormatMetadata nativeFileFormatMetadata)
-    {
-        tableItems.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.FormatVersion)), nativeFileFormatMetadata.FormatVersion);
-        tableItems.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.Renderer)), nativeFileFormatMetadata.Renderer);
-        if (nativeFileFormatMetadata.RendererVersion is double rendererVersion)
-            tableItems.Add(PascalToSnakeCase(nameof(TurboSquid3DModelMetadata.RendererVersion)), rendererVersion);
-    }
 }
 
 // It doesn't even need to implement generic version of NativeFileFormatMetadata but due to some fucked up reflection wizardry in MetadataFile class it has to.
