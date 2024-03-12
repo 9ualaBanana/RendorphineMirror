@@ -17,7 +17,7 @@ public class DirectDownloadListener : ExecutableListenerBase
     public static async Task WaitForUpload(string taskid, CancellationToken token)
     {
         var taskcs = new TaskCompletionSource();
-        TasksToReceive.Add(taskid, taskcs);
+        TasksToReceive[taskid] = taskcs;
 
         var ttoken = new TimeoutCancellationToken(token, TimeSpan.FromHours(2));
 
