@@ -37,7 +37,7 @@ public partial class TurboSquid
 
             void Synchronize3DModels()
             {
-                foreach (var _3DModel in remote.files.Join(_3DModels,
+                foreach (var _3DModel in remote.models.Join(_3DModels,
                     _ => _.attributes.name,
                     _ => Path.GetFileName(_.Archived),
                     (remote, local) => new { _ = local, remote.id }))
@@ -51,7 +51,7 @@ public partial class TurboSquid
             {
                 foreach (var preview in remote.previews.Join(Thumbnails,
                     _ => _.filename,
-                    _ => _.FileName,
+                    _ => Path.GetFileName(_.Path),
                     (remote, local) => new { _ = local, remote.id }))
                 {
                     if (Thumbnails.IndexOf(preview._) is int index and not -1)
@@ -61,14 +61,14 @@ public partial class TurboSquid
 
             void SynchronizeTextures()
             {
-                //foreach (var texture in remoteProduct.files.Join(_3DProduct.Textures,
-                //    _ => _.,
-                //    _ => _.FileName,
-                //    (remote, local) => new { remote, local }))
-                //{
-                //    if (_3DProduct.Thumbnails.IndexOf(texture.local) is int index and not -1)
-                //        _3DProduct.Thumbnails[index] = new TurboSquidProcessed3DProductThumbnail(texture.local, texture.remote.id);
-                //}
+                foreach (var textures in remote.texture_files.Join(Textures,
+                    _ => _.attributes.name,
+                    _ => Path.GetFileName(_.Path),
+                    (remote, local) => new { _ = local, remote.id }))
+                {
+                    if (Textures.IndexOf(textures._) is int index and not -1)
+                        Textures[index] = new TurboSquidProcessed3DProductTextures(textures._, textures.id);
+                }
             }
         }
 
@@ -84,6 +84,9 @@ public partial class TurboSquid
                 case TurboSquidProcessed3DProductThumbnail thumbnail:
                     Synchronize(thumbnail);
                     break;
+                case TurboSquidProcessed3DProductTextures textures:
+                    Synchronize(textures);
+                    break;
                 default:
                     throw new ArgumentException($"Unsupported type of {nameof(ITurboSquidProcessed3DProductAsset)}: {asset}");
             }
@@ -92,6 +95,8 @@ public partial class TurboSquid
         { _3DModels.Remove((_3DModel<TurboSquid3DModelMetadata>)_.Asset); _3DModels.Add((TurboSquidProcessed3DModel)_); }
         void Synchronize(TurboSquidProcessed3DProductThumbnail _)
         { Thumbnails.Remove((_3DProductThumbnail)_.Asset); Thumbnails.Add((TurboSquidProcessed3DProductThumbnail)_); }
+        void Synchronize(TurboSquidProcessed3DProductTextures _)
+        { Textures.Remove((Textures_)_.Asset); Textures.Add((TurboSquidProcessed3DProductTextures)_); }
 
 
         internal record Draft

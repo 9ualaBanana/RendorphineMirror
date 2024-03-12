@@ -42,6 +42,7 @@ public partial record RFProduct
             [JsonIgnore] public IEnumerable<string> Packages => Assets.Where(IsPackage);
             [JsonIgnore] public string Metadata => Assets.Single(IsMetadata);
             [JsonIgnore] public IEnumerable<string> Renders => Assets.Where(IsRender);
+            [JsonIgnore] public IEnumerable<string> Textures => Assets.Where(IsTextures);
             [JsonIgnore] public string TSMeta => Assets.Single(_ => System.IO.Path.GetFileName(_) == "turbosquid.meta");
             [JsonIgnore] public string Sales
             {
@@ -103,8 +104,8 @@ public partial record RFProduct
 
             static IEnumerable<string> AssetsInside(AssetContainer container) => container.EnumerateEntries(EntryType.NonContainers);
 
-            public static bool IsPackage(string asset) => _packageExtensions.Contains(System.IO.Path.GetExtension(asset));
-            readonly static HashSet<string> _packageExtensions = [".UnityPackage"];
+            public static bool IsPackage(string asset) => _packageSuffixes.Any(asset.EndsWith);
+            readonly static HashSet<string> _packageSuffixes = [".UnityPackage", "_FBX.zip", "_FBX.rar"];
 
             static bool IsMetadata(string asset) => asset.EndsWith(_metadataSuffix);
             readonly static string _metadataSuffix = "_Submit.json";
@@ -118,6 +119,9 @@ public partial record RFProduct
             // Check if it's still relevant or more specific approach with product shots and wireframes can be used instead.
             public static bool IsRender(string asset) => _renderSuffixes.Any(renderSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(renderSuffix));
             readonly static HashSet<string> _renderSuffixes = new(_wireframeSuffixes.Union(_productShotSuffixes));
+
+            public static bool IsTextures(string asset) => _texturesSuffixes.Any(textureSuffix => System.IO.Path.GetFileName(asset).EndsWith(textureSuffix));
+            readonly static HashSet<string> _texturesSuffixes = ["_Textures.zip"];
 
             //static bool IsSettings(string asset) => asset.EndsWith("_Settings.ini");
         }

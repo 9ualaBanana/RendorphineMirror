@@ -22,7 +22,7 @@ internal partial class TurboSquid3DProductAssetProcessing
                 {
                     _3DModel<TurboSquid3DModelMetadata> _3DModel => Payload.For(_3DModel, uploadKey, session),
                     _3DProductThumbnail thumbnail => Payload.For(thumbnail, uploadKey, session),
-                    _3DProduct.Texture_ texture => Payload.For(texture, uploadKey, session),
+                    _3DProduct.Textures_ textures => Payload.For(textures, uploadKey, session),
                     _ => throw new NotImplementedException()
                 };
 
@@ -38,12 +38,12 @@ internal partial class TurboSquid3DProductAssetProcessing
             static Payload For(_3DProductThumbnail thumbnail, string uploadKey, TurboSquid.PublishSession session)
                 => Payload.For(thumbnail, uploadKey, session.Draft.LocalProduct.DraftID, session.Client.Credential.AuthenticityToken);
             static Payload For(_3DProductThumbnail thumbnail, string uploadKey, long draftId, string authenticityToken)
-                => new Payload.Thumbnail(uploadKey, draftId, thumbnail.FileName, thumbnail.Size, TurboSquidProcessed3DProductThumbnail.PreprocessedType(thumbnail).ToString(), authenticityToken);
+                => new Payload.Thumbnail(uploadKey, draftId, thumbnail.Name(), thumbnail.Size(), TurboSquidProcessed3DProductThumbnail.PreprocessedType(thumbnail).ToString(), authenticityToken);
 
-            static Payload For(_3DProduct.Texture_ texture, string uploadKey, TurboSquid.PublishSession session)
+            static Payload For(_3DProduct.Textures_ texture, string uploadKey, TurboSquid.PublishSession session)
                 => Payload.For(texture, uploadKey, session.Draft.LocalProduct.DraftID, session.Client.Credential.AuthenticityToken);
-            static Payload For(_3DProduct.Texture_ texture, string uploadKey, long draftId, string authenticityToken)
-                => new Payload.Texture(uploadKey, draftId, texture.Name, texture.Size, authenticityToken);
+            static Payload For(_3DProduct.Textures_ textures, string uploadKey, long draftId, string authenticityToken)
+                => new Payload.Texture(uploadKey, draftId, textures.Name(), textures.Size(), authenticityToken);
 
             internal Payload(
                 string uploadKey,

@@ -45,6 +45,7 @@ public partial class TurboSquid
             public bool? uv_mapped { get; init; } = default!;
             public List<File> files { get; init; } = default!;
             internal IEnumerable<File> models => files.Where(_ => _.type == "product_file");
+            internal IEnumerable<File> texture_files => files.Where(_ => _.type == "texture_file");
             public List<Preview> previews { get; init; } = default!;
 
 

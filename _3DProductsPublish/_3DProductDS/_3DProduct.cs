@@ -8,7 +8,7 @@ public partial record _3DProduct : IDisposable
     public readonly string ContainerPath;
     public List<_3DModel> _3DModels { get; }
     public List<_3DProductThumbnail> Thumbnails { get; internal set; }
-    public Textures_? Textures { get; }
+    public List<Textures_> Textures { get; }
 
     #region Initialization
 
@@ -16,13 +16,12 @@ public partial record _3DProduct : IDisposable
         directoryPath,
         _3DModel.EnumerateAt(directoryPath).ToList(),
         _3DProductThumbnail.EnumerateAt(directoryPath).ToList(),
-        Textures_.FindAt(directoryPath));
+        Textures_.EnumerateAt(directoryPath).ToList());
 
-    _3DProduct(
-        string containerPath,
+    _3DProduct(string containerPath,
         List<_3DModel> _3DModels,
         List<_3DProductThumbnail> thumbnails,
-        Textures_? textures = null)
+        List<Textures_> textures)
     {
         ContainerPath = containerPath;
         this._3DModels = _3DModels;
@@ -73,7 +72,7 @@ public record _3DProduct<TProductMetadata, TModelsMetadata> : _3DProduct<TProduc
         : base(_3DProduct)
     {
         _3DModels = _3DProduct._3DModels.Join(modelsMetadata,
-            _3DModel => _3DModel.Name,
+            _3DModel => _3DModel.Name(),
             metadata => metadata.Name,  // IMetadata.Name is used here.
             (_3DModel, metadata) => new _3DModel<TModelsMetadata>(_3DModel, metadata))
             .ToList();

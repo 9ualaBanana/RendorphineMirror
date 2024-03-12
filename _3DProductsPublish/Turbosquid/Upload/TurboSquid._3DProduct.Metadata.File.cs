@@ -44,7 +44,7 @@ public partial class TurboSquid
                     }
                     var meta = JsonConvert.DeserializeObject<Serialized>(content) ?? throw new InvalidDataException();
                     _3DProduct._3DModels = ((_3DProductDS._3DProduct)_3DProduct)._3DModels.Join(meta.Models,
-                        _3DModel => _3DModel.Name,
+                        _3DModel => _3DModel.Name(),
                         metadata => metadata.Name,  // IMetadata.Name is used here.
                         (_3DModel, metadata) => new _3DModel<TurboSquid3DModelMetadata>(_3DModel, metadata))
                         .ToList();
