@@ -93,7 +93,7 @@ public partial record RFProduct
 
                     new(ideaContainer)
 
-                        : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least {RequiredProductShotsCount} product shots with any of the following suffixes [{string.Join(',', _productShotSuffixes)}] and only {productShotsCount} were found.")
+                        : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least {RequiredProductShotsCount} product shots and only {productShotsCount} were found.")
                         : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least 1 wireframe image with any of the following suffixes [{string.Join(',', _wireframeSuffixes)}]")
                         : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain metadata file [{_metadataSuffix}].")
                         : throw new FileNotFoundException($"{typeof(_3D.Idea_).FullName} must contain at least 1 package.")
@@ -113,12 +113,14 @@ public partial record RFProduct
             public static bool IsWireframe(string asset) => _wireframeSuffixes.Any(wireframeSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(wireframeSuffix));
             readonly static HashSet<string> _wireframeSuffixes = ["_vp", "_wire"];
 
-            static bool IsProductShot(string asset) => _productShotSuffixes.Any(productShotSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(productShotSuffix));
-            readonly static HashSet<string> _productShotSuffixes = ["_screenshot"];
+            public static bool IsProductShot(string asset)
+                => System.IO.Path.GetExtension(asset).ToLowerInvariant() is ".png" or ".jpg" or ".jpeg"
+                && !System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith("_preview")
+                && _wireframeSuffixes.All(wireframeSuffix => !System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(wireframeSuffix));
+            //static bool IsProductShot(string asset) => _productShotSuffixes.Any(productShotSuffix => !System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith("_preview"));
+            //readonly static HashSet<string> _productShotSuffixes = ["_screenshot"];
 
-            // Check if it's still relevant or more specific approach with product shots and wireframes can be used instead.
-            public static bool IsRender(string asset) => _renderSuffixes.Any(renderSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(renderSuffix));
-            readonly static HashSet<string> _renderSuffixes = new(_wireframeSuffixes.Union(_productShotSuffixes));
+            public static bool IsRender(string asset) => IsWireframe(asset) || IsProductShot(asset);
 
             public static bool IsTextures(string asset) => _texturesSuffixes.Any(textureSuffix => System.IO.Path.GetFileName(asset).EndsWith(textureSuffix));
             readonly static HashSet<string> _texturesSuffixes = ["_Textures.zip"];
