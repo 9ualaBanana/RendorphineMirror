@@ -6,15 +6,17 @@ using _3DProductsPublish.Turbosquid.Upload.Processing;
 using _3DProductsPublish.Turbosquid.Upload.Requests;
 using MarkTM.RFProduct;
 using Microsoft.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Net.Mime;
+using System.Text.RegularExpressions;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
 public partial class TurboSquid
 {
-    // Rename to UploadSession.
+    // TODO: Refactor.
     // Merge _3DProduct.Draft into PublishSession or vice versa.
-    internal class PublishSession
+    internal partial class PublishSession
     {
         static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -65,6 +67,7 @@ public partial class TurboSquid
                 await UploadTexturesAsync();
 #endif
                 _logger.Trace("3D product assets have been uploaded.");
+                await OrderThumbnailsAsync();
                 return new PublishSession.Finished(this);
             }
             catch (Exception ex)
@@ -187,6 +190,80 @@ public partial class TurboSquid
             }
         }
 
+        internal async Task OrderThumbnailsAsync()
+        {
+            var remotePreviews = JObject.Parse(await (await SaveDraftAsync(false)).EnsureSuccessStatusCode().Content.ReadAsStringAsync(CancellationToken))
+                .SelectToken("product.previews").ToArray()
+                .Select(_ => _.ToObject<_3DProduct.Remote.DraftPreview>());
+            var orderedThumbnails = remotePreviews
+                .OrderBy(_ =>
+                {
+                    if (NumericallyOrdered().IsMatch(_.attributes.filename))
+                        return 1;
+                    else if (_.attributes.filename.EndsWith("_vp") || _.attributes.filename.EndsWith("_wire"))
+                        return 2;
+                    else return 3;
+                })
+                .Select((_, index) => _.ToOrdered(index));
+            (await Client.PutAsJsonAsync($"/turbosquid/products/{Draft.LocalProduct.DraftID}/thumbnails/order_thumbnails",
+                new
+                {
+                    authenticity_token = Client.Credential.AuthenticityToken,
+                    draft_id = Draft.LocalProduct.DraftID,
+                    data = orderedThumbnails
+                }, CancellationToken))
+                .EnsureSuccessStatusCode();
+        }
+        [GeneratedRegex(@"^\d+_")]
+        private static partial Regex NumericallyOrdered();
+
+        internal async Task<HttpResponseMessage> SaveDraftAsync(bool publish)
+        {
+            try
+            {
+                _logger.Trace($"Sending {Draft.LocalProduct.Metadata.Title} 3D product form.");
+                var productPublishRequest = new HttpRequestMessage(
+                    HttpMethod.Patch,
+
+                    $"turbosquid/products/{Draft.LocalProduct.ID}")
+                { Content = ProductForm() };
+                productPublishRequest.Headers.Add(HeaderNames.Origin, Origin.OriginalString);
+                productPublishRequest.Headers.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
+                var response = await Client.SendAsync(productPublishRequest, CancellationToken);
+                _logger.Debug(await response.Content.ReadAsStringAsync());
+                _logger.Trace($"{Draft.LocalProduct.Metadata.Title} 3D product form request has been sent.");
+                return response;
+            }
+            catch (Exception ex)
+            { throw new HttpRequestException($"{Draft.LocalProduct.Metadata.Title} 3D product publish request failed.", ex); }
+
+
+            StringContent ProductForm()
+            {
+                var productForm = new JObject(
+                    new JProperty("authenticity_token", Client.Credential.AuthenticityToken),
+                    new JProperty("turbosquid_product_form", Draft.LocalProduct.Metadata.ToProductForm(Draft.LocalProduct.DraftID)),
+                    new JProperty("previews", new JObject(
+                        Draft.LocalProduct.Thumbnails.OfType<TurboSquidProcessed3DProductThumbnail>().Select(_ => new JProperty(
+                            _.FileId.ToString(), JObject.FromObject(new
+                            {
+                                id = _.FileId.ToString(),
+                                image_type = _.Type.ToString()
+                            }))
+                        ))),
+                    new JProperty("feature_ids", Draft.LocalProduct.Metadata.Features.Values.ToArray()),
+                    new JProperty("missing_brand", JObject.FromObject(new
+                    {
+                        name = string.Empty,
+                        website = string.Empty
+                    })));
+                if (publish)
+                    productForm.Add("publish", string.Empty);
+                _logger.Debug(productForm.ToString(Formatting.Indented));
+                return productForm.ToJsonContent();
+            }
+        }
+
 
         internal class Finished
         {
@@ -196,57 +273,15 @@ public partial class TurboSquid
 
             internal async Task FinalizeAsync()
             {
-                try
+                await _session.SaveDraftAsync(publish: _session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online);
+                //var remote = _3DProduct.Remote.Parse(await _session.Client.EditAsync(_session.Draft.LocalProduct, _session.CancellationToken)).status;
+                if (_session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online)
                 {
-                    _logger.Trace($"Sending {_session.Draft.LocalProduct.Metadata.Title} 3D product publish request.");
-                    var productPublishRequest = new HttpRequestMessage(
-                        HttpMethod.Patch,
-
-                        $"turbosquid/products/{_session.Draft.LocalProduct.ID}")
-                    { Content = ProductForm() };
-                    productPublishRequest.Headers.Add(HeaderNames.Origin, Origin.OriginalString);
-                    productPublishRequest.Headers.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
-                    var response = await _session.Client.SendAsync(productPublishRequest, _session.CancellationToken);
-                    _logger.Debug(await response.Content.ReadAsStringAsync());
-                    _logger.Trace($"{_session.Draft.LocalProduct.Metadata.Title} 3D product publish request has been sent.");
-
-                    //var remote = _3DProduct.Remote.Parse(await _session.Client.EditAsync(_session.Draft.LocalProduct, _session.CancellationToken)).status;
-                    if (_session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online)
-                    {
-                        await Task.Delay(5000);
-                        _session.Draft.LocalProduct.ID = await RequestPublishedProductIdAsync();
-                        _session.Draft.LocalProduct.DraftID = 0;
-                    }
-                    TurboSquid._3DProduct.Metadata__.File.For(_session.Draft.LocalProduct).Update();
+                    await Task.Delay(5000);
+                    _session.Draft.LocalProduct.ID = await RequestPublishedProductIdAsync();
+                    _session.Draft.LocalProduct.DraftID = 0;
                 }
-                catch (Exception ex)
-                { throw new HttpRequestException($"{_session.Draft.LocalProduct.Metadata.Title} 3D product publish request failed.", ex); }
-
-
-                StringContent ProductForm()
-                {
-                    var productForm = new JObject(
-                        new JProperty("authenticity_token", _session.Client.Credential.AuthenticityToken),
-                        new JProperty("turbosquid_product_form", _session.Draft.LocalProduct.Metadata.ToProductForm(_session.Draft.LocalProduct.DraftID)),
-                        new JProperty("previews", new JObject(
-                            _session.Draft.LocalProduct.Thumbnails.OfType<TurboSquidProcessed3DProductThumbnail>().Select(_ => new JProperty(
-                                _.FileId.ToString(), JObject.FromObject(new
-                                {
-                                    id = _.FileId.ToString(),
-                                    image_type = _.Type.ToString()
-                                }))
-                            ))),
-                        new JProperty("feature_ids", _session.Draft.LocalProduct.Metadata.Features.Values.ToArray()),
-                        new JProperty("missing_brand", JObject.FromObject(new
-                        {
-                            name = string.Empty,
-                            website = string.Empty
-                        })));
-                    if (_session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online)
-                        productForm.Add("publish", string.Empty);
-                    _logger.Debug(productForm.ToString(Formatting.Indented));
-                    return productForm.ToJsonContent();
-                }
+                TurboSquid._3DProduct.Metadata__.File.For(_session.Draft.LocalProduct).Update();
 
                 async Task<long> RequestPublishedProductIdAsync()
                 {

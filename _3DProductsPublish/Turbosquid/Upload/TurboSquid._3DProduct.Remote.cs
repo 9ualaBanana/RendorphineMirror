@@ -83,18 +83,62 @@ public partial class TurboSquid
                 public long id { get; init; }
                 public string filename { get; init; }
                 public bool watermarked { get; init; }
-                //public string url_64 { get; init; }
-                //public string url_90 { get; init; }
-                //public string url_128 { get; init; }
-                //public string url_200 { get; init; }
+                public string url_64 { get; init; }
+                public string url_90 { get; init; }
+                public string url_128 { get; init; }
+                public string url_200 { get; init; }
                 //public string url_600 { get; init; }
                 //public string url_1480 { get; init; }
                 //public string url_1480_hq { get; init; }
                 //public string url_zoom { get; init; }
                 public string thumbnail_type { get; init; }
-                //public int source_width { get; init; }
-                //public int source_height { get; init; }
-                //public bool search_background { get; init; }
+                public int source_width { get; init; }
+                public int source_height { get; init; }
+                public bool search_background { get; init; }
+            }
+
+            public record DraftPreview
+            {
+                public string id { get; init; }
+                public string type { get; init; }
+                public Attributes attributes { get; init; }
+
+                public record Attributes
+                {
+                    public string filename { get; init; }
+                    //public bool watermarked { get; init; }
+                    public string url_64 { get; init; }
+                    public string url_90 { get; init; }
+                    public string url_128 { get; init; }
+                    public string url_200 { get; init; }
+                    //public string url_600 { get; init; }
+                    //public string url_1480 { get; init; }
+                    //public string url_1480_hq { get; init; }
+                    //public string url_zoom { get; init; }
+                    public string thumbnail_type { get; init; }
+                    public int source_width { get; init; }
+                    public int source_height { get; init; }
+                    public bool search_background { get; init; }
+                }
+
+                internal object ToOrdered(int index) => new
+                {
+                    id,
+                    index,
+                    type,
+                    attributes = new
+                    {
+                        attributes.filename,
+                        attributes.source_height,
+                        attributes.source_width,
+                        attributes.thumbnail_type,
+                        attributes.url_64,
+                        attributes.url_90,
+                        attributes.url_128,
+                        attributes.url_200,
+                        attributes.search_background
+                    }
+                };
             }
 
 
