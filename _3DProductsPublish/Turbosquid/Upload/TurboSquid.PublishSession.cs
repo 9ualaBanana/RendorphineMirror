@@ -85,7 +85,7 @@ public partial class TurboSquid
 #else
                 foreach (var _3DModel in Draft.LocalProduct._3DModels.Where(_ => _ is not ITurboSquidProcessed3DProductAsset))
                 {
-                    string uploadKey = await UploadAssetAsyncAt(await _3DModel.Archived);
+                    string uploadKey = await UploadAssetAsyncAt(_3DModel.Archived);
                     modelsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.RunAsync(_3DModel, uploadKey, this));
                 }
 #endif
