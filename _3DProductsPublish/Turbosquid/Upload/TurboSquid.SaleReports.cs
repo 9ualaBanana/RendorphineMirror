@@ -77,8 +77,8 @@ public partial class TurboSquid
                 .Split(["row=new Object();", "colArr.push(row);"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var records = recordDefinitions.Select(SaleReport.Parse).ToArray();
             // Avoid extra preview requests for the records describing the same product (they have the same preview cause refer to the same product with the same product ID).
-            foreach (var record in records)
-                try { record.ProductPreview = await RequestProductPreviewAsync(record.ProductID); } catch { }
+            //foreach (var record in records)
+            //    try { record.ProductPreview = await RequestProductPreviewAsync(record.ProductID); } catch { }
                 
             return records;
 
