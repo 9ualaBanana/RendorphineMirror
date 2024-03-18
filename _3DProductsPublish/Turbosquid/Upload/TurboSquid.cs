@@ -55,7 +55,9 @@ public partial class TurboSquid : HttpClient
         try
         {
             var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
-            productUploadEvent.Wait(TimeSpan.FromMinutes(10), cancellationToken); productUploadEvent.Reset();   // Acquire lock before metadata is read to detect its modifications.
+            if (!productUploadEvent.Wait(TimeSpan.FromMinutes(10), cancellationToken))
+                throw new OperationCanceledException("Timeout waiting for product upload is expired.");
+            productUploadEvent.Reset();   // Acquire lock before metadata is read to detect its modifications.
             var rfProduct3D = await rfProduct.ToTurboSquid3DProductAsync(cancellationToken);
 
             if (rfProduct3D.Metadata.Status is RFProduct._3D.Status.none)
