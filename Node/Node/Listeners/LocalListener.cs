@@ -260,7 +260,7 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "fetchturbosquidsales")
         {
-            var mpcreds = new NetworkCredential(Settings.MPlusUsername.Value, Settings.MPlusUsername.Value);
+            var mpcreds = new NetworkCredential(Settings.MPlusUsername.Value, Settings.MPlusPassword.Value);
             var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(Settings.TurboSquidUsername.Value.ThrowIfNull(), Settings.TurboSquidPassword.Value.ThrowIfNull(), default);
             await (await MPAnalytics.LoginAsync(mpcreds, default))
                 .SendAsync(turbo.SaleReports.ScanAsync(default), default);
