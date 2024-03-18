@@ -152,14 +152,13 @@ public static class StringExtensions
 
     public static async Task UpdateSalesAsync(this RFProduct rfProduct, IEnumerable<TurboSquid.SaleReport> saleReports, CancellationToken cancellationToken)
     {
-        var _3DProduct = (RFProduct._3D.Idea_)rfProduct.Idea;
-        // Assumes that the first line of the metadata file contains the product ID.
-        long productID = long.Parse(File.ReadLines(_3DProduct.TSMeta).First().Trim(['[', ']']));
-        var jSales = await File.ReadAllTextAsync(_3DProduct.Sales, cancellationToken) is string contents && contents.Length is not 0 ?
+        var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
+        var _3DProduct = await rfProduct.ToTurboSquid3DProductAsync(cancellationToken);
+        var productID = TurboSquid._3DProduct.Metadata__.File.For(_3DProduct).Read().ProductID;
+        var jSales = await File.ReadAllTextAsync(idea.Sales, cancellationToken) is string contents && contents.Length is not 0 ?
             JArray.Parse(contents) : [];
         foreach (var saleReport in saleReports.Where(_ => _.ProductID == productID))
             jSales.Add(JObject.FromObject(saleReport));
-        await File.WriteAllTextAsync(_3DProduct.Sales, jSales.ToString(), cancellationToken);
+        await File.WriteAllTextAsync(idea.Sales, jSales.ToString(), cancellationToken);
     }
-
 }
