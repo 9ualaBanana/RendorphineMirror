@@ -56,7 +56,7 @@ public partial class TurboSquid : HttpClient
         {
             var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
             productUploadEvent.Wait(TimeSpan.FromMinutes(10), cancellationToken); productUploadEvent.Reset();   // Acquire lock before metadata is read to detect its modifications.
-            var rfProduct3D = await ConvertAsync(rfProduct, gui, cancellationToken);
+            var rfProduct3D = await rfProduct.ToTurboSquid3DProductAsync(cancellationToken);
 
             if (rfProduct3D.Metadata.Status is RFProduct._3D.Status.none)
             { _logger.Warn($"{rfProduct3D.Metadata.Title} 3D {nameof(RFProduct)} is not uploaded due to its status being set to {RFProduct._3D.Status.none}."); return; }
@@ -66,16 +66,6 @@ public partial class TurboSquid : HttpClient
             idea.Status = _3DProduct.Remote.Parse(await EditAsync(rfProduct3D, cancellationToken)).status;
         }
         finally { productUploadEvent.Set(); }
-
-
-        static async Task<_3DProduct> ConvertAsync(RFProduct rfProduct, INodeGui gui, CancellationToken cancellationToken)
-        {
-            var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
-            var metadata = JObject.Parse(File.ReadAllText(idea.Metadata)).ToObject<_3DProductDS._3DProduct.Metadata_>()!;
-            return await _3DProductDS._3DProduct.FromDirectory(idea.Path)
-                .AsyncWithTurboSquid(metadata, cancellationToken);// Decouple that shit like metadata and bare _3DProduct.
-            // _3DProduct is just a fucking data structure representing a 3D product on the file system.
-        }
     }
     public async Task UploadAsync(_3DProduct _3DProduct, CancellationToken cancellationToken)
     {
@@ -150,4 +140,16 @@ public partial class TurboSquid : HttpClient
         => await SendAsync(new(HttpMethod.Delete, $"turbosquid/products/{_3DProduct.ID}/delete_draft")
         { Content = JsonContent.Create(new { authenticity_token = Credential.AuthenticityToken }) },
         cancellationToken);
+}
+
+static class TurboSquid3DProductExtensions
+{
+    internal static async Task<TurboSquid._3DProduct> ToTurboSquid3DProductAsync(this RFProduct rfProduct, CancellationToken cancellationToken)
+    {
+        var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
+        var metadata = JObject.Parse(File.ReadAllText(idea.Metadata)).ToObject<_3DProduct.Metadata_>()!;
+        return await _3DProduct.FromDirectory(idea.Path)
+            .AsyncWithTurboSquid(metadata, cancellationToken);// Decouple that shit like metadata and bare _3DProduct.
+            // _3DProduct is just a fucking data structure representing a 3D product on the file system.
+    }
 }
