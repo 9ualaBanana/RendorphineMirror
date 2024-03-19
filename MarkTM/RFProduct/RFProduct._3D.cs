@@ -43,7 +43,6 @@ public partial record RFProduct
             [JsonIgnore] public string Metadata => Assets.Single(IsMetadata);
             [JsonIgnore] public IEnumerable<string> Renders => Assets.Where(IsRender);
             [JsonIgnore] public IEnumerable<string> Textures => Assets.Where(IsTextures);
-            [JsonIgnore] public string TSMeta => Assets.Single(_ => System.IO.Path.GetFileName(_) == "turbosquid.meta");
             [JsonIgnore] public string Sales
             {
                 get
