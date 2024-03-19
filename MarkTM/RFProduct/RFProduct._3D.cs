@@ -101,7 +101,7 @@ public partial record RFProduct
                 const int RequiredProductShotsCount = 5;
             }
 
-            static IEnumerable<string> AssetsInside(AssetContainer container) => container.EnumerateEntries(EntryType.NonContainers);
+            static IEnumerable<string> AssetsInside(AssetContainer container) => container.EnumerateEntries();
 
             public static bool IsPackage(string asset) => _packageSuffixes.Any(asset.EndsWith);
             readonly static HashSet<string> _packageSuffixes = [".UnityPackage", ".zip"];
