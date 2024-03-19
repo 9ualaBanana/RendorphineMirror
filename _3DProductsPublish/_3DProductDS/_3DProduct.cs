@@ -18,7 +18,7 @@ public partial record _3DProduct : IDisposable
         _3DProductThumbnail.EnumerateAt(directoryPath).ToList(),
         Textures_.EnumerateAt(directoryPath).ToList());
 
-    _3DProduct(string containerPath,
+    internal _3DProduct(string containerPath,
         List<_3DModel> _3DModels,
         List<_3DProductThumbnail> thumbnails,
         List<Textures_> textures)

@@ -150,8 +150,12 @@ static class TurboSquid3DProductExtensions
     {
         var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
         var metadata = JObject.Parse(File.ReadAllText(idea.Metadata)).ToObject<_3DProduct.Metadata_>()!;
-        return await _3DProduct.FromDirectory(idea.Path)
-            .AsyncWithTurboSquid(metadata, cancellationToken);// Decouple that shit like metadata and bare _3DProduct.
-            // _3DProduct is just a fucking data structure representing a 3D product on the file system.
+        return await new _3DProduct(idea.Path,
+            idea.Packages.Select(_ => new _3DModel(_)).ToList(),
+            idea.Renders.Select(_ => new _3DProductThumbnail(_)).ToList(),
+            [])
+            .AsyncWithTurboSquid(metadata, cancellationToken);
+        // Decouple that shit like metadata and bare _3DProduct.
+        // _3DProduct is just a fucking data structure representing a 3D product on the file system.
     }
 }
