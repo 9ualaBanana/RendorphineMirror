@@ -81,17 +81,13 @@ static class FileFormat_
     internal static string ToString_(this FileFormat fileFormat)
         => fileFormat.ToString().TrimStart('_');
 
-    public static bool IsKnown(string path) => TryToEnum(path) is not null;
-
-    internal static FileFormat ToEnum(string path) => TryToEnum(path) ??
-        throw new FileFormatException($"Unknown {nameof(Package)} {nameof(FileFormat)}.");
-    static FileFormat? TryToEnum(string path) =>
+    internal static FileFormat ToEnum(string path) =>
         System.IO.Path.GetFileName(path).ToLowerInvariant() is string nameWextension ?
             Dictionary.TryGetValue(System.IO.Path.GetExtension(nameWextension).TrimStart('.'), out FileFormat fileFormat) ? fileFormat
             : System.IO.Path.GetFileNameWithoutExtension(nameWextension) is string nameWOextension
             && Dictionary.TryGetValue(nameWOextension[(nameWOextension.LastIndexOf('_') + 1)..], out fileFormat) ? fileFormat
 
-            : null
+            : FileFormat.other
         : throw new Exception($"Failed to turn {nameof(path)} into {nameof(nameWextension)}.");
     static ImmutableDictionary<string, FileFormat> Dictionary { get; }
         = new Dictionary<string, FileFormat>

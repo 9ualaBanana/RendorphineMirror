@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
-using MarkTM.RFProduct;
+﻿using MarkTM.RFProduct;
 
 namespace _3DProductsPublish._3DProductDS;
 
@@ -13,7 +12,7 @@ public partial record _3DModel(string Path) : I3DProductAsset, IDisposable
 
 
     internal static IEnumerable<_3DModel> EnumerateAt(string directoryPath)
-        => Directory.EnumerateFiles(directoryPath).Where(FileFormat_.IsKnown)
+        => Directory.EnumerateFiles(directoryPath).Where(RFProduct._3D.Idea_.IsPackage)
         .Select(_ => new _3DModel(_));
 
     #region IDisposable
