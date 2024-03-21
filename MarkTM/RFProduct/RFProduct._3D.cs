@@ -110,7 +110,9 @@ public partial record RFProduct
             static bool IsMetadata(string asset) => asset.EndsWith(_metadataSuffix);
             readonly static string _metadataSuffix = "_Submit.json";
 
-            public static bool IsWireframe(string asset) => _wireframeSuffixes.Any(wireframeSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(wireframeSuffix));
+            public static bool IsWireframe(string asset) =>
+                File.Exists(asset) &&
+                _wireframeSuffixes.Any(wireframeSuffix => System.IO.Path.GetFileNameWithoutExtension(asset).EndsWith(wireframeSuffix));
             readonly static HashSet<string> _wireframeSuffixes = ["_vp", "_wire"];
 
             public static bool IsProductShot(string asset)
