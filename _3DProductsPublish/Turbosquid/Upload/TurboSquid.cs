@@ -65,7 +65,7 @@ public partial class TurboSquid : HttpClient
 
             await UploadAsync(rfProduct3D, cancellationToken);
 
-            idea.Status = _3DProduct.Remote.Parse(await EditAsync(rfProduct3D, cancellationToken)).status;
+            idea.Status = (await CreateOrRequestRemoteAsync(rfProduct3D, cancellationToken)).status;
         }
         finally { productUploadEvent.Set(); }
     }
@@ -94,16 +94,13 @@ public partial class TurboSquid : HttpClient
     {
         try
         {
-            _3DProduct.Remote remote = _3DProduct.Remote.Parse(_3DProduct.ID is 0 && _3DProduct.DraftID is 0 ? await NewAsync() : await EditAsync(_3DProduct, cancellationToken));
+            _3DProduct.Remote remote = await CreateOrRequestRemoteAsync(_3DProduct, cancellationToken);
             if ((_3DProduct.DraftID = remote.draft_id ?? 0) is 0)
                 _3DProduct.DraftID = await CreateDraftAsync();
             var draft = new _3DProduct.Draft(await RequestAwsStorageCredentialAsync(), _3DProduct, remote);
             _logger.Trace($"3D product draft with {draft.LocalProduct.DraftID} ID has been created for {_3DProduct.Metadata.Title}.");
             return draft;
 
-
-            async Task<string> NewAsync()
-                => await this.GetStringAndUpdateAuthenticityTokenAsync("turbosquid/products/new", cancellationToken);
 
             // Returns the ID of the newly created or already existing draft for the given `_3DProduct.ID`.
             async Task<long> CreateDraftAsync()
@@ -129,12 +126,24 @@ public partial class TurboSquid : HttpClient
         { throw new Exception($"Failed to create a 3D product draft for {_3DProduct.Metadata.Title}.", ex); }
     }
 
-    async Task<string> EditAsync(_3DProduct _3DProduct, CancellationToken cancellationToken)
-    {
-        bool isDraft = _3DProduct.DraftID is not 0 && _3DProduct.ID is 0;
-        var id = isDraft ? _3DProduct.DraftID : _3DProduct.ID;
 
-        return await this.GetStringAndUpdateAuthenticityTokenAsync($"turbosquid/{(isDraft ? "drafts" : "products")}/{id}/edit", cancellationToken);
+    async Task<_3DProduct.Remote> CreateOrRequestRemoteAsync(_3DProduct _3DProduct, CancellationToken cancellationToken)
+    {
+        var response = await (_3DProduct.ID is 0 && _3DProduct.DraftID is 0 ? NewAsync() : EditAsync());
+        _logger.Debug($"Remote product response:\n{response}");
+        return _3DProduct.Remote.Parse(response);
+
+
+        async Task<string> NewAsync()
+            => await this.GetStringAndUpdateAuthenticityTokenAsync("turbosquid/products/new", cancellationToken);
+
+        async Task<string> EditAsync()
+        {
+            bool isDraft = _3DProduct.DraftID is not 0 && _3DProduct.ID is 0;
+            var id = isDraft ? _3DProduct.DraftID : _3DProduct.ID;
+
+            return await this.GetStringAndUpdateAuthenticityTokenAsync($"turbosquid/{(isDraft ? "drafts" : "products")}/{id}/edit", cancellationToken);
+        }
     }
 
     // Deletes the draft for the given `_3DProduct.ID`.
