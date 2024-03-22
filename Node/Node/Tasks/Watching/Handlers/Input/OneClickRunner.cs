@@ -21,6 +21,7 @@ public class OneClickRunner : OneClickRunnerInfo
 
     public async Task Run()
     {
+        Directory.CreateDirectory(OutputDir);
         await InstallOneClickIfNeeded();
 
         var archives = Directory.GetFiles(InputDir, "*.zip")
@@ -267,7 +268,7 @@ public class OneClickRunner : OneClickRunnerInfo
                 bool int int - render cameras (true\false) and frame width height (always should be specified)
                 (1.35+) bool - deploy importer from internal zip
                 */
-                "-mxs", $"oneclickexport.oc000 2 @\"{outputunitydir}\" 3 3 true 960 540 false",
+                "-mxs", $"oneclickexport.oc000 2 @\"{outputunitydir}\" 6 7 true 960 540 false",
 
                 // scene to export
                 maxSceneFile.Replace('\\', '/'),

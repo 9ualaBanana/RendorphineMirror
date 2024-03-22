@@ -67,7 +67,6 @@ public class MPAnalytics
         if (response["ok"]?.Value<int>() is int status and not 1)
             throw new HttpRequestException($"M+Analytics response doesn't indicate success ({response["errorcode"]?.Value<int>()}): {response["errormessage"]}");
     }
-    }
 
 
     static class SaleType

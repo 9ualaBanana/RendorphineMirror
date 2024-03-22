@@ -36,6 +36,7 @@ public partial record RFProduct
         new public record Idea_
             : RFProduct.Idea_
         {
+            string Name => System.IO.Path.GetFileName(Metadata[..Metadata.IndexOf(_metadataSuffix)]);
             internal AssetContainer Container => new(Path);
             [JsonIgnore] public IEnumerable<string> Assets => AssetsInside(Container);
 
@@ -49,7 +50,7 @@ public partial record RFProduct
                 {
                     if (Assets.SingleOrDefault(_ => _.EndsWith("_Sales.json")) is string sales)
                         return sales;
-                    else { using var _ = File.Create($"{System.IO.Path.Combine(Path, System.IO.Path.GetFileNameWithoutExtension(Packages.First()))}_Sales.json"); return _.Name; }
+                    else { using var _ = File.Create($"{System.IO.Path.Combine(Path, Name)}_Sales.json"); return _.Name; }
                 }
             }
             [JsonIgnore] public Status Status
@@ -65,7 +66,7 @@ public partial record RFProduct
                 {
                     if (Assets.SingleOrDefault(_ => _.EndsWith("_Status.json")) is string status)
                         return status;
-                    else { using var _ = File.Create($"{System.IO.Path.Combine(Path, System.IO.Path.GetFileNameWithoutExtension(Packages.First()))}_Status.json"); return _.Name; }
+                    else { using var _ = File.Create($"{System.IO.Path.Combine(Path, Name)}_Status.json"); return _.Name; }
                 }
             }
 

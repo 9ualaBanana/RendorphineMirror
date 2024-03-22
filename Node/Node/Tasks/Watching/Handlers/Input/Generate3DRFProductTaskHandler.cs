@@ -215,6 +215,20 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     }
     async Task PublishRFProducts(CancellationToken token)
     {
+        foreach (var product in RFProducts.RFProducts.Values.ToArray())
+        {
+            if (product.Type != nameof(RFProduct._3D))
+                continue;
+
+            if (!product.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
+                continue;
+
+            if (Directory.Exists(product.Path))
+                continue;
+
+            RFProducts.RFProducts.Remove(product.ID);
+        }
+
         Logger.Info("IN PUBLISH");
         var products = RFProducts.RFProducts.Values
             .Where(p => Directory.Exists(p.Path) && p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
@@ -222,14 +236,17 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         SetState(state => state with { DraftedCount = 0, PublishedCount = 0 });
 
-        foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]!.Value<string>().ThrowIfNull()))
+        foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]?.ToObject<string>()))
         {
             Logger.Info("INGROUP " + rfpgroup.Key);
             token.ThrowIfCancellationRequested();
 
             TurboSquid turbo;
             {
-                var submitJson = ReadSubmitJson(rfpgroup.First().Idea.Path);
+                var path = rfpgroup.FirstOrDefault(g => ReadSubmitJson(g)["LoginSquid"]?.ToObject<string>() is not null && ReadSubmitJson(g)["PasswordSquid"]?.ToObject<string>() is not null)?.Idea.Path;
+                if (path is null) continue;
+
+                var submitJson = ReadSubmitJson(path);
                 var tsusername = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
                 var tspassword = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
 
@@ -238,7 +255,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     turbo = await GetTurboRetryOrSkip(tsusername, tspassword, token);
                     Logger.Info("logged in");
                 }
-                catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+                catch (OperationCanceledException)
                 {
                     Logger.Info($"Username {rfpgroup.Key} cancelled login, skipping.");
                     break;
@@ -288,9 +305,12 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     {
                         SetState(state => state with { CurrentPublishing = rfproduct.Path });
                         Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
-                        await turbo.UploadAsync(rfproduct, NodeGui, token);
+
+                        var token2 = CancellationTokenSource.CreateLinkedTokenSource(token, new CancellationTokenSource().Token);
+                        token2.CancelAfter(TimeSpan.FromMinutes(20));
+                        await turbo.UploadAsync(rfproduct, NodeGui, token2.Token);
                     }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    catch (Exception ex)
                     {
                         SetState(state => state with { Error = $"{DateTimeOffset.Now} Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
 
