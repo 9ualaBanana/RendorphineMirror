@@ -21,6 +21,7 @@ public class OneClickRunner : OneClickRunnerInfo
 
     public async Task Run()
     {
+        Directory.CreateDirectory(OutputDir);
         await InstallOneClickIfNeeded();
 
         var archives = Directory.GetFiles(InputDir, "*.zip")
