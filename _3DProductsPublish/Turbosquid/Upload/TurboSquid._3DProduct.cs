@@ -26,7 +26,9 @@ public partial class TurboSquid
             DraftID = meta.DraftID;
         }
 
-        // Remote asset data is matched to the local based on the file name which must remain the same from the moment it was assigned the remote ID.
+        /// <summary>
+        /// Binds remote asset ID to the local asset with the same name.
+        /// </summary>
         internal _3DProduct SynchronizedWith(Remote remote)
         {
             Synchronize3DModels();
@@ -97,6 +99,11 @@ public partial class TurboSquid
         { Thumbnails.Remove((_3DProductThumbnail)_.Asset); Thumbnails.Add((TurboSquidProcessed3DProductThumbnail)_); }
         void Synchronize(TurboSquidProcessed3DProductTextures _)
         { Textures.Remove((Textures_)_.Asset); Textures.Add((TurboSquidProcessed3DProductTextures)_); }
+
+        internal void Desynchronize(TurboSquidProcessed3DModel _)
+        { _3DModels.Remove((TurboSquidProcessed3DModel)_); _3DModels.Add((_3DModel<TurboSquid3DModelMetadata>)_.Asset); }
+        internal void Desynchronize(TurboSquidProcessed3DProductThumbnail _)
+        { Thumbnails.Remove((TurboSquidProcessed3DProductThumbnail)_); Thumbnails.Add((_3DProductThumbnail)_.Asset); }
 
 
         internal record Draft

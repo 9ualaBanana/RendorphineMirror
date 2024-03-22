@@ -10,7 +10,8 @@ public partial class TurboSquid
     {
         public partial record Metadata__
         {
-            internal record Serialized(long ProductID, long DraftID, Category_ Category, Category_? SubCategory, IEnumerable<TurboSquid3DModelMetadata> Models);
+            internal record Serialized(long ProductID, long DraftID, Category_ Category, Category_? SubCategory, IEnumerable<TurboSquid3DModelMetadata> Models, IEnumerable<TurboSquidPreviewMetadata> Previews);
+            internal record TurboSquidPreviewMetadata(string Name, DateTime LastWriteTime);
 
             internal class File
             {
@@ -38,7 +39,8 @@ public partial class TurboSquid
                                 _3DProduct.DraftID,
                                 _3DProduct.Metadata.Category,
                                 _3DProduct.Metadata.SubCategory,
-                                ((_3DProductDS._3DProduct)_3DProduct)._3DModels.Select(_ => new TurboSquid3DModelMetadata(_))),
+                                ((_3DProductDS._3DProduct)_3DProduct)._3DModels.Select(_ => new TurboSquid3DModelMetadata(_)),
+                                _3DProduct.Thumbnails.Select(_ => new TurboSquidPreviewMetadata(_.Name(), System.IO.File.GetLastWriteTimeUtc(_.Path)))),
                             new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Formatting = Formatting.Indented }));
                         content = System.IO.File.ReadAllText(Path);
                     }
@@ -48,6 +50,11 @@ public partial class TurboSquid
                         metadata => metadata.Name,  // IMetadata.Name is used here.
                         (_3DModel, metadata) => new _3DModel<TurboSquid3DModelMetadata>(_3DModel, metadata))
                         .ToList();
+                    foreach (var _ in _3DProduct.Thumbnails.Join(meta.Previews,
+                        preview => preview.Name(),
+                        metadata => metadata.Name,
+                        (preview, metadata) => new { preview, metadata }))
+                            _.preview.LastWriteTime = _.metadata.LastWriteTime;
                     if (meta.Models.Count() == _3DProduct._3DModels.Count)
                         if (meta.Models.Count(_ => _.IsNative) is 1)
                             return meta;
@@ -65,7 +72,8 @@ public partial class TurboSquid
                             _3DProduct.DraftID,
                             _3DProduct.Metadata.Category,
                             _3DProduct.Metadata.SubCategory,
-                            _3DProduct._3DModels.Select(_ => _.Metadata)),
+                            _3DProduct._3DModels.Select(_ => _.Metadata),
+                            _3DProduct.Thumbnails.Select(_ => new TurboSquidPreviewMetadata(_.Name(), System.IO.File.GetLastWriteTimeUtc(_.Path)))),
                         new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Formatting = Formatting.Indented }));
             }
         }

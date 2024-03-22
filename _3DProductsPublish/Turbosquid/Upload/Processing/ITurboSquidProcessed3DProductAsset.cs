@@ -57,6 +57,7 @@ internal class TurboSquidProcessed3DProductThumbnail : _3DProductThumbnail,
     {
         FileId = fileId;
         Asset = thumbnail;
+        LastWriteTime = thumbnail.LastWriteTime;
     }
 
     // Type posted in the final product form request.

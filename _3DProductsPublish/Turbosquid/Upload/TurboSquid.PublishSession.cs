@@ -77,6 +77,7 @@ public partial class TurboSquid
             async IAsyncEnumerable<TurboSquidProcessed3DModel> UploadModelsAsync()
             {
                 _logger.Trace("Starting 3D models upload and processing.");
+                await DeleteObosoleteModelsAsync();
                 var modelsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>>();
 #if ENABLE_PARALLELIZATION
                 await Parallel.ForEachAsync(Draft.LocalProduct._3DModels.Where(_ => _ is not ITurboSquidProcessed3DProductAsset),
@@ -97,6 +98,21 @@ public partial class TurboSquid
                 _logger.Trace("3D models have been uploaded and processed.");
                 foreach (var processedModel in processedModels.Concat(Draft.Edited3DModels))
                     yield return processedModel;
+
+
+                async Task DeleteObosoleteModelsAsync()
+                {
+                    await Parallel.ForEachAsync(Draft.LocalProduct._3DModels.OfType<TurboSquidProcessed3DModel>()
+                        .Where(_ => File.GetLastWriteTimeUtc(_.Archived) > _.Metadata.LastWriteTime),
+                        async (_3DModel, _) =>
+                        {
+                            await DeleteAssetAsync(_3DModel, CancellationToken);
+                            Draft.LocalProduct.Desynchronize(_3DModel);
+                            _3DModel.Metadata.LastWriteTime = File.GetLastWriteTimeUtc(_3DModel.Archived);
+                            _3DModel.Metadata.ID = null;
+                            TurboSquid._3DProduct.Metadata__.File.For(Draft.LocalProduct).Update();
+                        });
+                }
             }
 
             // _3DModel itself either exists or doesn't exist and thus modified (deleted on the turbosquid servers) only if it's not present locally but still exists remotely (i.e. has been deserialized to `Product`).
@@ -146,6 +162,7 @@ public partial class TurboSquid
             async Task<IEnumerable<TurboSquidProcessed3DProductThumbnail>> UploadThumbnailsAsync()
             {
                 _logger.Trace("Starting 3D product thumbnails upload and processing.");
+                await DeleteObosoletePreviewsAsync();
                 var thumbnailsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>>();
                 foreach (var thumbnail in Draft.LocalProduct.Thumbnails.Where(_ => _ is not ITurboSquidProcessed3DProductAsset))
                 {
@@ -157,6 +174,20 @@ public partial class TurboSquid
                     Draft.LocalProduct.Synchronize(processedThumbnail);
                 _logger.Trace("3D product thumbnails have been uploaded and processed.");
                 return processedThumbnails;
+
+
+                async Task DeleteObosoletePreviewsAsync()
+                {
+                    await Parallel.ForEachAsync(Draft.LocalProduct.Thumbnails.OfType<TurboSquidProcessed3DProductThumbnail>()
+                        .Where(_ => File.GetLastWriteTimeUtc(_.Path) > _.LastWriteTime),
+                        async (preview, _) =>
+                        {
+                            await DeleteAssetAsync(preview, CancellationToken);
+                            Draft.LocalProduct.Desynchronize(preview);
+                            preview.LastWriteTime = File.GetLastWriteTimeUtc(preview.Path);
+                            TurboSquid._3DProduct.Metadata__.File.For(Draft.LocalProduct).Update();
+                        });
+                }
             }
 
             async Task<IEnumerable<TurboSquidProcessed3DProductTextures>?> UploadTexturesAsync()
@@ -172,21 +203,64 @@ public partial class TurboSquid
                 _logger.Trace("3D product textures have been uploaded and processed.");
                 return processedTextures;
             }
+        }
 
-
-
-            async Task<string> UploadAssetAsync(string assetPath)
+        async Task<string> UploadAssetAsync(string assetPath)
+        {
+            try
             {
-                try
-                {
-                    _logger.Trace($"Uploading asset at {assetPath}.");
-                    using var asset = File.OpenRead(assetPath);
-                    string uploadKey = await (await AssetUploadRequest.CreateAsyncFor(asset, this)).SendAsync();
-                    _logger.Trace($"Asset at {assetPath} has been uploaded.");
-                    return uploadKey;
-                }
-                catch (Exception ex)
-                { throw new HttpRequestException($"{assetPath} asset upload failed.", ex); }
+                _logger.Trace($"Uploading asset at {assetPath}.");
+                using var asset = File.OpenRead(assetPath);
+                string uploadKey = await (await AssetUploadRequest.CreateAsyncFor(asset, this)).SendAsync();
+                _logger.Trace($"Asset at {assetPath} has been uploaded.");
+                return uploadKey;
+            }
+            catch (Exception ex)
+            { throw new HttpRequestException($"{assetPath} asset upload failed.", ex); }
+        }
+
+        async Task DeleteAssetAsync(ITurboSquidProcessed3DProductAsset asset, CancellationToken cancellationToken)
+        {
+            switch (asset)
+            {
+                case TurboSquidProcessed3DModel model:
+                    await DeleteAssetAsync(model, "product_files", "product_file", cancellationToken); break;
+                case TurboSquidProcessed3DProductThumbnail preview:
+                    await DeleteAssetAsync(preview, "thumbnails", "thumbnail", cancellationToken); break;
+                case TurboSquidProcessed3DProductTextures textures:
+                    await DeleteAssetAsync(textures, "associated_files", "texture_file", cancellationToken); break;
+            };
+        }
+        async Task DeleteAssetAsync<TAsset>(ITurboSquidProcessed3DProductAsset<TAsset> processedModel, string resource, string type, CancellationToken cancellationToken)
+            where TAsset : I3DProductAsset
+        {
+            try
+            {
+                _logger.Trace($"Deleting {processedModel.Name()}.");
+                await Client.SendAsync(
+                    new HttpRequestMessage(
+                        HttpMethod.Delete,
+
+                        $"turbosquid/products/{Draft.LocalProduct.ID}/{resource}/{processedModel.FileId}")
+                    { Content = MetadataForm() },
+                    cancellationToken);
+                _logger.Trace($"{processedModel.Name()} model has been deleted.");
+            }
+            catch (Exception ex)
+            { throw new HttpRequestException($"{processedModel.Name()} deletion failed.", ex); }
+
+
+            StringContent MetadataForm()
+            {
+                // Explicit conversions of numbers to strings are required.
+                var metadataForm = new JObject(
+                    new JProperty("authenticity_token", Client.Credential.AuthenticityToken),
+                    new JProperty("draft_id", Draft.LocalProduct.DraftID.ToString()),
+                    new JProperty("id", processedModel.FileId.ToString()),
+                    new JProperty("product_id", Draft.LocalProduct.ID.ToString()),
+                    new JProperty("type", type));
+
+                return metadataForm.ToJsonContent();
             }
         }
 

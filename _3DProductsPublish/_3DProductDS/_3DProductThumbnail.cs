@@ -5,6 +5,7 @@ namespace _3DProductsPublish._3DProductDS;
 public class _3DProductThumbnail(string path) : I3DProductAsset, IEquatable<_3DProductThumbnail>
 {
     public string Path { get; init; } = path;
+    public DateTimeOffset LastWriteTime { get; set; } = File.GetLastWriteTimeUtc(path);
 
     internal static IEnumerable<_3DProductThumbnail> EnumerateAt(string _3DProductDirectory) =>
         Directory.EnumerateFiles(_3DProductDirectory)

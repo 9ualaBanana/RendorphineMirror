@@ -5,11 +5,12 @@ namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 // Shall be different for Native and Non-Native file formats.
 public partial record TurboSquid3DModelMetadata : _3DModel.IMetadata
 {
-    public long? ID { get; internal set; } = default!;
+    public long? ID { get; set; } = default!;
     public string Name { get; init; } = default!;
     public string FileFormat { get; init; } = default!;
     public double FormatVersion { get; init; } = 1.0;
     public bool IsNative { get; init; } = false;
+    public DateTimeOffset LastWriteTime { get; set; } = default!;
     public string Renderer { get; init; } = "other"!;
     public double? RendererVersion { get; init; } = default;
 
@@ -21,5 +22,6 @@ public partial record TurboSquid3DModelMetadata : _3DModel.IMetadata
         var fileFormat = FileFormat_.ToEnum(_3DModel);
         FileFormat = fileFormat.ToString_();
         IsNative = FileFormat_.IsNative(fileFormat);
+        LastWriteTime = File.GetLastWriteTimeUtc(_3DModel.Archived);
     }
 }
