@@ -9,6 +9,8 @@ global using NodeCommon;
 global using NodeCommon.Tasks;
 global using NodeCommon.Tasks.Model;
 global using Telegram.Bot.Types;
+global using SixLabors.ImageSharp;
+global using SixLabors.ImageSharp.Processing;
 using NLog.Web;
 using Telegram.Bot.Types.Enums;
 using Telegram.Commands;
