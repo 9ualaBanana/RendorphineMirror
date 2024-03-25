@@ -19,8 +19,6 @@ public partial class TurboSquid
             // Metadata must be set befor messing with metadata file?
             Metadata = metadata;
             var turboSquidMetadataFile = Metadata__.File.For(this);
-            if (!File.Exists(turboSquidMetadataFile.Path))
-                File.Create(turboSquidMetadataFile.Path).Dispose();
             var meta = turboSquidMetadataFile.Read();
             ID = meta.ProductID;
             DraftID = meta.DraftID;

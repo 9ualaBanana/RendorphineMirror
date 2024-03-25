@@ -24,8 +24,8 @@ public partial class TurboSquid
                 File(_3DProduct _3DProduct)
                 {
                     this._3DProduct = _3DProduct;
-                    if (!System.IO.File.Exists(Path))
-                        System.IO.File.Create(Path).Dispose();
+                    if (new FileInfo(Path) is FileInfo file && !file.Exists)
+                        file.Create().Dispose();
                 }
 
                 internal Serialized Read()
