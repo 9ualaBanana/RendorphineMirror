@@ -11,7 +11,23 @@ public partial class TurboSquid
         public partial record Metadata__
         {
             internal record Serialized(long ProductID, long DraftID, Category_ Category, Category_? SubCategory, IEnumerable<TurboSquid3DModelMetadata> Models, IEnumerable<TurboSquidPreviewMetadata> Previews);
-            internal record TurboSquidPreviewMetadata(string Name, DateTime LastWriteTime);
+
+            public record TurboSquidPreviewMetadata
+            {
+                public string Name { get; init; }
+                public DateTime LastWriteTime { get; init; }
+
+                public TurboSquidPreviewMetadata(_3DProductThumbnail thumbnail)
+                    : this(thumbnail.Name(), thumbnail.LastWriteTime)
+                {
+                }
+                [JsonConstructor]
+                public TurboSquidPreviewMetadata(string name, DateTime lastWriteTime)
+                {
+                    Name = name;
+                    LastWriteTime = lastWriteTime;
+                }
+            }
 
             internal class File
             {
@@ -30,37 +46,15 @@ public partial class TurboSquid
 
                 internal Serialized Read()
                 {
-                    var content = System.IO.File.ReadAllText(Path)/*.Trim()*/;
+                    var content = System.IO.File.ReadAllText(Path).Trim();
                     if (content.Length is 0)
-                    {
-                        System.IO.File.WriteAllText(Path, JsonConvert.SerializeObject(
-                            new Serialized(
-                                _3DProduct.ID,
-                                _3DProduct.DraftID,
-                                _3DProduct.Metadata.Category,
-                                _3DProduct.Metadata.SubCategory,
-                                ((_3DProductDS._3DProduct)_3DProduct)._3DModels.Select(_ => new TurboSquid3DModelMetadata(_)),
-                                _3DProduct.Thumbnails.Select(_ => new TurboSquidPreviewMetadata(_.Name(), System.IO.File.GetLastWriteTimeUtc(_.Path)))),
-                            new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Formatting = Formatting.Indented }));
-                        content = System.IO.File.ReadAllText(Path);
-                    }
+                    { Update(); content = System.IO.File.ReadAllText(Path).Trim(); }
+
                     var meta = JsonConvert.DeserializeObject<Serialized>(content) ?? throw new InvalidDataException();
-                    _3DProduct._3DModels = ((_3DProductDS._3DProduct)_3DProduct)._3DModels.Join(meta.Models,
-                        _3DModel => _3DModel.Name(),
-                        metadata => metadata.Name,  // IMetadata.Name is used here.
-                        (_3DModel, metadata) => new _3DModel<TurboSquid3DModelMetadata>(_3DModel, metadata))
-                        .ToList();
-                    foreach (var _ in _3DProduct.Thumbnails.Join(meta.Previews,
-                        preview => preview.Name(),
-                        metadata => metadata.Name,
-                        (preview, metadata) => new { preview, metadata }))
-                            _.preview.LastWriteTime = _.metadata.LastWriteTime;
-                    if (meta.Models.Count() == _3DProduct._3DModels.Count)
+                    if (meta.Models.Count() == ((_3DProductDS._3DProduct)_3DProduct)._3DModels.Count)
                         if (meta.Models.Count(_ => _.IsNative) is 1)
                             return meta;
-                        else throw new InvalidDataException($"Metadata file must mark one {nameof(_3DModel)} as native.");
-                    else if (meta.Models.Count() is 0 && _3DProduct._3DModels.Count is 1)
-                        return meta with { Models = _3DProduct._3DModels.Select(_ => new TurboSquid3DModelMetadata(_)) };
+                        else throw new InvalidDataException($"Metadata file must mark exactly one {nameof(_3DModel)} as native.");
                     else
                     { System.IO.File.Delete(Path); throw new InvalidDataException($"Metadata file doesn't describe every model of {nameof(_3DProduct)} ({Path})."); }
                 }
@@ -72,8 +66,9 @@ public partial class TurboSquid
                             _3DProduct.DraftID,
                             _3DProduct.Metadata.Category,
                             _3DProduct.Metadata.SubCategory,
-                            _3DProduct._3DModels.Select(_ => _.Metadata),
-                            _3DProduct.Thumbnails.Select(_ => new TurboSquidPreviewMetadata(_.Name(), System.IO.File.GetLastWriteTimeUtc(_.Path)))),
+                            // Default TurboSquid3DModelMetadata might mark multiple models as native if their format is appropriate.
+                            _3DProduct._3DModels?.Select(_ => _.Metadata) ?? ((_3DProductDS._3DProduct)_3DProduct)._3DModels.Select(_ => new TurboSquid3DModelMetadata(_)),
+                            _3DProduct.Thumbnails.Select(_ => new TurboSquidPreviewMetadata(_))),
                         new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Formatting = Formatting.Indented }));
             }
         }

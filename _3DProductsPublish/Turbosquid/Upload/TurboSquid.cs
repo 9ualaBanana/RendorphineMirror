@@ -76,7 +76,7 @@ public partial class TurboSquid : HttpClient
             _logger.Info($"Publishing {_3DProduct.Metadata.Title} 3D product contained inside {_3DProduct.ContainerPath}.");
             await
                 (await
-                    (await PublishSession.InitializeAsync(await CreateDraftAsync(_3DProduct, cancellationToken), this, cancellationToken))
+                    PublishSession.Initialize(await CreateDraftAsync(_3DProduct, cancellationToken), this, cancellationToken)
                 .StartAsync())
             .FinalizeAsync();
             _logger.Info($"{_3DProduct.Metadata.Title} 3D product has been published.");

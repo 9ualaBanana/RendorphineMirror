@@ -21,11 +21,12 @@ public partial class TurboSquid
         static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         // Draft basically represents the target product for uploading.
-        internal readonly TurboSquid._3DProduct.Draft Draft;
-        internal readonly TurboSquid Client;
+        internal _3DProduct.Draft Draft { get; }
+        internal TurboSquid Client { get; }
+        SynchronizationContext_ SynchronizationContext { get; }
         internal readonly CancellationToken CancellationToken;
 
-        internal static async Task<PublishSession> InitializeAsync(TurboSquid._3DProduct.Draft draft, TurboSquid client, CancellationToken cancellationToken)
+        internal static PublishSession Initialize(_3DProduct.Draft draft, TurboSquid client, CancellationToken cancellationToken)
         {
             try
             {
@@ -47,6 +48,7 @@ public partial class TurboSquid
             Draft = draft;
             Client = client;
             CancellationToken = cancellationToken;
+            SynchronizationContext = new(this);
         }
 
         internal async Task<PublishSession.Finished> StartAsync()
@@ -77,41 +79,32 @@ public partial class TurboSquid
             async IAsyncEnumerable<TurboSquidProcessed3DModel> UploadModelsAsync()
             {
                 _logger.Trace("Starting 3D models upload and processing.");
-                await DeleteObosoleteModelsAsync();
-                var modelsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>>();
-#if ENABLE_PARALLELIZATION
-                await Parallel.ForEachAsync(Draft.LocalProduct._3DModels.Where(_ => _ is not ITurboSquidProcessed3DProductAsset),
-                    async (_3DModel, _) =>
-                    {
-                        string uploadKey = await UploadAssetAsync(_3DModel.Archived);
-                        modelsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.RunAsync(_3DModel, uploadKey, this));
-                    });
-#else
-                foreach (var _3DModel in Draft.LocalProduct._3DModels.Where(_ => _ is not ITurboSquidProcessed3DProductAsset))
-                {
-                    string uploadKey = await UploadAssetAsyncAt(_3DModel.Archived);
-                    modelsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.RunAsync(_3DModel, uploadKey, this));
-                }
-#endif
-                var processedModels = (await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.WhenAll(modelsProcessing)).Cast<TurboSquidProcessed3DModel>();
-                Draft.LocalProduct.Synchronize(processedModels);
+                await SynchronizationContext.DesynchronizeOutdatedAssetsAsync<TurboSquidProcessed3DModel>();
+                var processedModels = await UploadModelsAsyncCore();
+                SynchronizationContext.Synchronize(processedModels);
                 _logger.Trace("3D models have been uploaded and processed.");
                 foreach (var processedModel in processedModels.Concat(Draft.Edited3DModels))
                     yield return processedModel;
 
 
-                async Task DeleteObosoleteModelsAsync()
+                async Task<IEnumerable<TurboSquidProcessed3DModel>> UploadModelsAsyncCore()
                 {
-                    await Parallel.ForEachAsync(Draft.LocalProduct._3DModels.OfType<TurboSquidProcessed3DModel>()
-                        .Where(_ => File.GetLastWriteTimeUtc(_.Archived) > _.Metadata.LastWriteTime),
+                    var modelsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>>();
+#if ENABLE_PARALLELIZATION
+                    await Parallel.ForEachAsync(Draft.LocalProduct._3DModels.Where(_ => _ is not ITurboSquidProcessed3DProductAsset),
                         async (_3DModel, _) =>
                         {
-                            await DeleteAssetAsync(_3DModel, CancellationToken);
-                            Draft.LocalProduct.Desynchronize(_3DModel);
-                            _3DModel.Metadata.LastWriteTime = File.GetLastWriteTimeUtc(_3DModel.Archived);
-                            _3DModel.Metadata.ID = null;
-                            TurboSquid._3DProduct.Metadata__.File.For(Draft.LocalProduct).Update();
+                            string uploadKey = await UploadAssetAsync(_3DModel.Archived);
+                            modelsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.RunAsync(_3DModel, uploadKey, this));
                         });
+#else
+                    foreach (var _3DModel in Draft.LocalProduct._3DModels.Where(_ => _ is not ITurboSquidProcessed3DProductAsset))
+                    {
+                        string uploadKey = await UploadAssetAsyncAt(_3DModel.Archived);
+                        modelsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.RunAsync(_3DModel, uploadKey, this));
+                    }
+#endif
+                    return (await TurboSquid3DProductAssetProcessing.Task_<_3DModel<TurboSquid3DModelMetadata>>.WhenAll(modelsProcessing)).Cast<TurboSquidProcessed3DModel>();
                 }
             }
 
@@ -162,35 +155,26 @@ public partial class TurboSquid
             async Task<IEnumerable<TurboSquidProcessed3DProductThumbnail>> UploadThumbnailsAsync()
             {
                 _logger.Trace("Starting 3D product thumbnails upload and processing.");
-                await DeleteObosoletePreviewsAsync();
-                var thumbnailsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>>();
-                foreach (var thumbnail in Draft.LocalProduct.Thumbnails.Where(_ => _ is not ITurboSquidProcessed3DProductAsset))
-                {
-                    string uploadKey = await UploadAssetAsync(thumbnail.Path);
-                    thumbnailsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.RunAsync(thumbnail, uploadKey, this));
-                };
-                var processedThumbnails = (await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.WhenAll(thumbnailsProcessing)).Cast<TurboSquidProcessed3DProductThumbnail>();
-                foreach (var processedThumbnail in processedThumbnails)
-                    Draft.LocalProduct.Synchronize(processedThumbnail);
+                await SynchronizationContext.DesynchronizeOutdatedAssetsAsync<TurboSquidProcessed3DProductThumbnail>();
+                var processedThumbnails = await UploadThumbnailsAsyncCore();
+                SynchronizationContext.Synchronize(processedThumbnails);
                 _logger.Trace("3D product thumbnails have been uploaded and processed.");
                 return processedThumbnails;
 
 
-                async Task DeleteObosoletePreviewsAsync()
+                async Task<IEnumerable<TurboSquidProcessed3DProductThumbnail>> UploadThumbnailsAsyncCore()
                 {
-                    await Parallel.ForEachAsync(Draft.LocalProduct.Thumbnails.OfType<TurboSquidProcessed3DProductThumbnail>()
-                        .Where(_ => File.GetLastWriteTimeUtc(_.Path) > _.LastWriteTime),
-                        async (preview, _) =>
-                        {
-                            await DeleteAssetAsync(preview, CancellationToken);
-                            Draft.LocalProduct.Desynchronize(preview);
-                            preview.LastWriteTime = File.GetLastWriteTimeUtc(preview.Path);
-                            TurboSquid._3DProduct.Metadata__.File.For(Draft.LocalProduct).Update();
-                        });
+                    var thumbnailsProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>>();
+                    foreach (var thumbnail in Draft.LocalProduct.Thumbnails.Where(_ => _ is not ITurboSquidProcessed3DProductAsset))
+                    {
+                        string uploadKey = await UploadAssetAsync(thumbnail.Path);
+                        thumbnailsProcessing.Add(await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.RunAsync(thumbnail, uploadKey, this));
+                    };
+                    return (await TurboSquid3DProductAssetProcessing.Task_<_3DProductThumbnail>.WhenAll(thumbnailsProcessing)).Cast<TurboSquidProcessed3DProductThumbnail>();
                 }
             }
 
-            async Task<IEnumerable<TurboSquidProcessed3DProductTextures>?> UploadTexturesAsync()
+            async Task<IEnumerable<TurboSquidProcessed3DProductTextures>> UploadTexturesAsync()
             {
                 _logger.Trace("Starting 3D product textures upload and processing.");
                 var texturesProcessing = new List<TurboSquid3DProductAssetProcessing.Task_<_3DProductDS._3DProduct.Textures_>>();
@@ -217,51 +201,6 @@ public partial class TurboSquid
             }
             catch (Exception ex)
             { throw new HttpRequestException($"{assetPath} asset upload failed.", ex); }
-        }
-
-        async Task DeleteAssetAsync(ITurboSquidProcessed3DProductAsset asset, CancellationToken cancellationToken)
-        {
-            switch (asset)
-            {
-                case TurboSquidProcessed3DModel model:
-                    await DeleteAssetAsync(model, "product_files", "product_file", cancellationToken); break;
-                case TurboSquidProcessed3DProductThumbnail preview:
-                    await DeleteAssetAsync(preview, "thumbnails", "thumbnail", cancellationToken); break;
-                case TurboSquidProcessed3DProductTextures textures:
-                    await DeleteAssetAsync(textures, "associated_files", "texture_file", cancellationToken); break;
-            };
-        }
-        async Task DeleteAssetAsync<TAsset>(ITurboSquidProcessed3DProductAsset<TAsset> processedModel, string resource, string type, CancellationToken cancellationToken)
-            where TAsset : I3DProductAsset
-        {
-            try
-            {
-                _logger.Trace($"Deleting {processedModel.Name()}.");
-                await Client.SendAsync(
-                    new HttpRequestMessage(
-                        HttpMethod.Delete,
-
-                        $"turbosquid/products/{Draft.LocalProduct.ID}/{resource}/{processedModel.FileId}")
-                    { Content = MetadataForm() },
-                    cancellationToken);
-                _logger.Trace($"{processedModel.Name()} model has been deleted.");
-            }
-            catch (Exception ex)
-            { throw new HttpRequestException($"{processedModel.Name()} deletion failed.", ex); }
-
-
-            StringContent MetadataForm()
-            {
-                // Explicit conversions of numbers to strings are required.
-                var metadataForm = new JObject(
-                    new JProperty("authenticity_token", Client.Credential.AuthenticityToken),
-                    new JProperty("draft_id", Draft.LocalProduct.DraftID.ToString()),
-                    new JProperty("id", processedModel.FileId.ToString()),
-                    new JProperty("product_id", Draft.LocalProduct.ID.ToString()),
-                    new JProperty("type", type));
-
-                return metadataForm.ToJsonContent();
-            }
         }
 
         internal async Task OrderThumbnailsAsync()

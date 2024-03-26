@@ -11,17 +11,26 @@ public partial class TurboSquid
         public long ID { get; internal set; } = default;
         internal long DraftID { get; set; } = default!;
         new public List<_3DModel<TurboSquid3DModelMetadata>> _3DModels { get; internal set; }
-        public readonly Metadata__ Metadata;
+        public Metadata__ Metadata { get; }
 
         public _3DProduct(_3DProductDS._3DProduct _3DProduct, Metadata__ metadata)
             : base(_3DProduct)
         {
             // Metadata must be set befor messing with metadata file?
             Metadata = metadata;
-            var turboSquidMetadataFile = Metadata__.File.For(this);
-            var meta = turboSquidMetadataFile.Read();
+            var meta = Metadata__.File.For(this).Read();
             ID = meta.ProductID;
             DraftID = meta.DraftID;
+            _3DModels = base._3DModels.Join(meta.Models,
+                _3DModel => _3DModel.Name(),
+                metadata => metadata.Name,  // IMetadata.Name is used here.
+                (_3DModel, metadata) => new _3DModel<TurboSquid3DModelMetadata>(_3DModel, metadata))
+                .ToList();
+            foreach (var _ in _3DProduct.Thumbnails.Join(meta.Previews,
+                preview => preview.Name(),
+                metadata => metadata.Name,
+                (preview, metadata) => new { preview, metadata }))
+                _.preview.LastWriteTime = _.metadata.LastWriteTime;
         }
 
         /// <summary>
@@ -71,37 +80,6 @@ public partial class TurboSquid
                 }
             }
         }
-
-        internal void Synchronize(IEnumerable<ITurboSquidProcessed3DProductAsset> assets)
-        { foreach (var asset in assets) Synchronize(asset); }
-        internal void Synchronize(ITurboSquidProcessed3DProductAsset asset)
-        {
-            switch (asset)
-            {
-                case TurboSquidProcessed3DModel model:
-                    Synchronize(model);
-                    break;
-                case TurboSquidProcessed3DProductThumbnail thumbnail:
-                    Synchronize(thumbnail);
-                    break;
-                case TurboSquidProcessed3DProductTextures textures:
-                    Synchronize(textures);
-                    break;
-                default:
-                    throw new ArgumentException($"Unsupported type of {nameof(ITurboSquidProcessed3DProductAsset)}: {asset}");
-            }
-        }
-        void Synchronize(TurboSquidProcessed3DModel _)
-        { _3DModels.Remove((_3DModel<TurboSquid3DModelMetadata>)_.Asset); _3DModels.Add((TurboSquidProcessed3DModel)_); }
-        void Synchronize(TurboSquidProcessed3DProductThumbnail _)
-        { Thumbnails.Remove((_3DProductThumbnail)_.Asset); Thumbnails.Add((TurboSquidProcessed3DProductThumbnail)_); }
-        void Synchronize(TurboSquidProcessed3DProductTextures _)
-        { Textures.Remove((Textures_)_.Asset); Textures.Add((TurboSquidProcessed3DProductTextures)_); }
-
-        internal void Desynchronize(TurboSquidProcessed3DModel _)
-        { _3DModels.Remove((TurboSquidProcessed3DModel)_); _3DModels.Add((_3DModel<TurboSquid3DModelMetadata>)_.Asset); }
-        internal void Desynchronize(TurboSquidProcessed3DProductThumbnail _)
-        { Thumbnails.Remove((TurboSquidProcessed3DProductThumbnail)_); Thumbnails.Add((_3DProductThumbnail)_.Asset); }
 
 
         internal record Draft

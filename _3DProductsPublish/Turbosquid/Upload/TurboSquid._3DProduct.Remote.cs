@@ -54,9 +54,11 @@ public partial class TurboSquid
                 string type,
                 File.Attributes attributes) : IEquatable<TurboSquidProcessed3DModel>
             {
-                public bool Equals(TurboSquidProcessed3DModel? other) =>
-                    id != other?.FileId ? throw new InvalidDataException() :
+                public bool Equals(TurboSquidProcessed3DModel? other)
+                    => id != other?.FileId ? throw new InvalidDataException() :
                     attributes.Equals(other.Metadata);
+                // If the size has changed, it will be detected by SynchronizationContext through LastWriteTime and thus the asset will be reuploaded completely.
+
 
                 public record Attributes(
                     string name,
@@ -68,7 +70,7 @@ public partial class TurboSquid
                     bool is_native) : IEquatable<TurboSquid3DModelMetadata>
                 {
                     public bool Equals(TurboSquid3DModelMetadata? other) =>
-                        Path.GetFileNameWithoutExtension(name) == other?.Name &&
+                        name == other?.Name &&
                         file_format == other.FileFormat &&
                         format_version == other.FormatVersion &&
                         is_native == other.IsNative &&
