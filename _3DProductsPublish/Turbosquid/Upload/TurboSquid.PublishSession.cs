@@ -235,14 +235,15 @@ public partial class TurboSquid
             try
             {
                 _logger.Trace($"Sending {Draft.LocalProduct.Metadata.Title} 3D product form.");
-                var productPublishRequest = new HttpRequestMessage(
+                var request = new HttpRequestMessage(
                     HttpMethod.Patch,
 
                     $"turbosquid/products/{Draft.LocalProduct.ID}")
                 { Content = ProductForm() };
-                productPublishRequest.Headers.Add(HeaderNames.Origin, Origin.OriginalString);
-                productPublishRequest.Headers.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
-                var response = await Client.SendAsync(productPublishRequest, CancellationToken);
+                request.Headers.Add(HeaderNames.Origin, Origin.OriginalString);
+                request.Headers.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
+
+                var response = await Client.SendAsync(request, CancellationToken);
                 _logger.Debug(await response.Content.ReadAsStringAsync());
                 _logger.Trace($"{Draft.LocalProduct.Metadata.Title} 3D product form request has been sent.");
                 return response;
@@ -288,13 +289,13 @@ public partial class TurboSquid
             {
                 await _session.SaveDraftAsync(publish: _session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online);
                 //var remote = _3DProduct.Remote.Parse(await _session.Client.EditAsync(_session.Draft.LocalProduct, _session.CancellationToken)).status;
-                if (_session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online)
+                if (_session.Draft.LocalProduct.Metadata.Status is RFProduct._3D.Status.online && _session.Draft.LocalProduct.ID is 0)
                 {
                     await Task.Delay(5000);
                     _session.Draft.LocalProduct.ID = await RequestPublishedProductIdAsync();
                     _session.Draft.LocalProduct.DraftID = 0;
                 }
-                TurboSquid._3DProduct.Metadata__.File.For(_session.Draft.LocalProduct).Update();
+                _3DProduct.Metadata__.File.For(_session.Draft.LocalProduct).Update();
 
                 async Task<long> RequestPublishedProductIdAsync()
                 {
