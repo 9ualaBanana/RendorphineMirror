@@ -1,6 +1,7 @@
 ﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 using _3DProductsPublish._3DProductDS;
+using MarkTM.RFProduct;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
@@ -16,7 +17,6 @@ public partial class TurboSquid
         public _3DProduct(_3DProductDS._3DProduct _3DProduct, Metadata__ metadata)
             : base(_3DProduct)
         {
-            // Metadata must be set befor messing with metadata file?
             Metadata = metadata;
             var meta = Metadata__.File.For(this).Read();
             ID = meta.ProductID;
@@ -87,12 +87,14 @@ public partial class TurboSquid
             internal TurboSquidAwsSession AWS { get; init; }
             internal _3DProduct LocalProduct { get; init; }
             internal _3DProduct.Remote RemoteProduct { get; init; }
+            internal RFProduct RFProduct { get; init; }
 
-            public Draft(TurboSquidAwsSession awsSession, _3DProduct localProduct, _3DProduct.Remote remoteProduct)
+            public Draft(TurboSquidAwsSession awsSession, _3DProduct localProduct, _3DProduct.Remote remoteProduct, RFProduct rfProduct)
             {
                 AWS = awsSession;
                 RemoteProduct = remoteProduct;
                 LocalProduct = remoteProduct is null ? localProduct : localProduct.SynchronizedWith(remoteProduct);
+                RFProduct = rfProduct;
             }
 
             internal IEnumerable<TurboSquidProcessed3DModel> Edited3DModels

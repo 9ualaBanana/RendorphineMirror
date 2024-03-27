@@ -187,30 +187,6 @@ public class LocalListener : ExecutableListenerBase
         }
 
 
-        if (path == "3dupload")
-        {
-            return await TestPost(await CreateCached(request), response, "target", "meta", "dir", async (target, jmeta, dir) =>
-            {
-                var cancellationToken = CancellationToken.None;
-                var metadata = JsonConvert.DeserializeObject<_3DProduct.Metadata_>(jmeta).ThrowIfNull();
-                var product = _3DProduct.FromDirectory(dir);
-
-                if (target == "turbosquid")
-                {
-                    var tsp = await product.AsyncWithTurboSquid(metadata, cancellationToken);
-                    await (await Container.Resolve<TurboSquidContainer>().GetAsync(Settings.CGTraderUsername.Value.ThrowIfNull(), Settings.CGTraderPassword.Value.ThrowIfNull(), default)).UploadAsync(tsp, cancellationToken);
-                    return await WriteSuccess(response).ConfigureAwait(false);
-                }
-                if (target == "cgtrader")
-                {
-                    var cgtrader = Container.Resolve<CGTrader3DProductPublisher>();
-                    await cgtrader.PublishAsync(product.WithCGTrader(metadata), new NetworkCredential(Settings.CGTraderUsername.Value, Settings.CGTraderPassword.Value), cancellationToken);
-                    return await WriteSuccess(response).ConfigureAwait(false);
-                }
-
-                return await WriteErr(response, "Invalid target");
-            }).ConfigureAwait(false);
-        }
         if (path == "upload3drfproduct")
         {
             return await TestPost(await CreateCached(request), response, "target", "id", async (target, id) =>

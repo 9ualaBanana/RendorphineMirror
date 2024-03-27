@@ -295,7 +295,17 @@ public partial class TurboSquid
                     _session.Draft.LocalProduct.ID = await RequestPublishedProductIdAsync();
                     _session.Draft.LocalProduct.DraftID = 0;
                 }
-                _3DProduct.Metadata__.File.For(_session.Draft.LocalProduct).Update();
+                var meta = _3DProduct.Metadata__.File.For(_session.Draft.LocalProduct);
+                meta.Update();
+
+                var sumbitjsonpath = ((RFProduct._3D.Idea_)_session.Draft.RFProduct.Idea).Metadata;
+                var submitjson = JObject.Parse(await File.ReadAllTextAsync(sumbitjsonpath));
+                var metajson = JObject.Parse(JsonConvert.SerializeObject(meta.Read(), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Formatting = Formatting.Indented }));
+                metajson["TSCategory"] = metajson["Category"]; metajson.Remove("Category");
+                metajson["TSSubCategory"] = metajson["SubCategory"]; metajson.Remove("SubCategory");
+                submitjson.Merge(metajson);
+                await File.WriteAllTextAsync(sumbitjsonpath, JsonConvert.SerializeObject(submitjson, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Formatting = Formatting.Indented }));
+
 
                 async Task<long> RequestPublishedProductIdAsync()
                 {

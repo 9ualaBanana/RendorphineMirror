@@ -63,20 +63,20 @@ public partial class TurboSquid : HttpClient
             if (rfProduct3D.Metadata.Status is RFProduct._3D.Status.none)
             { _logger.Warn($"{rfProduct3D.Metadata.Title} 3D {nameof(RFProduct)} is not uploaded due to its status being set to {RFProduct._3D.Status.none}."); return; }
 
-            await UploadAsync(rfProduct3D, cancellationToken);
+            await UploadAsync(rfProduct3D, rfProduct, cancellationToken);
 
             idea.Status = (await CreateOrRequestRemoteAsync(rfProduct3D, cancellationToken)).status;
         }
         finally { productUploadEvent.Set(); }
     }
-    public async Task UploadAsync(_3DProduct _3DProduct, CancellationToken cancellationToken)
+    public async Task UploadAsync(_3DProduct _3DProduct, RFProduct rfProduct, CancellationToken cancellationToken)
     {
         try
         {
             _logger.Info($"Publishing {_3DProduct.Metadata.Title} 3D product contained inside {_3DProduct.ContainerPath}.");
             await
                 (await
-                    PublishSession.Initialize(await CreateDraftAsync(_3DProduct, cancellationToken), this, cancellationToken)
+                    PublishSession.Initialize(await CreateDraftAsync(_3DProduct, rfProduct, cancellationToken), this, cancellationToken)
                 .StartAsync())
             .FinalizeAsync();
             _logger.Info($"{_3DProduct.Metadata.Title} 3D product has been published.");
@@ -90,14 +90,14 @@ public partial class TurboSquid : HttpClient
     /// <remarks>
     /// Prioritazes <see cref="_3DProduct.DraftID"/> over <see cref="_3DProduct.ID"/>.
     /// </remarks>
-    async Task<_3DProduct.Draft> CreateDraftAsync(_3DProduct _3DProduct, CancellationToken cancellationToken)
+    async Task<_3DProduct.Draft> CreateDraftAsync(_3DProduct _3DProduct, RFProduct rFProduct, CancellationToken cancellationToken)
     {
         try
         {
             _3DProduct.Remote remote = await CreateOrRequestRemoteAsync(_3DProduct, cancellationToken);
             if ((_3DProduct.DraftID = remote.draft_id ?? 0) is 0)
                 _3DProduct.DraftID = await CreateDraftAsync();
-            var draft = new _3DProduct.Draft(await RequestAwsStorageCredentialAsync(), _3DProduct, remote);
+            var draft = new _3DProduct.Draft(await RequestAwsStorageCredentialAsync(), _3DProduct, remote, rFProduct);
             _logger.Trace($"3D product draft with {draft.LocalProduct.DraftID} ID has been created for {_3DProduct.Metadata.Title}.");
             return draft;
 
@@ -158,7 +158,7 @@ static class TurboSquid3DProductExtensions
     internal static async Task<TurboSquid._3DProduct> ToTurboSquid3DProductAsync(this RFProduct rfProduct, CancellationToken cancellationToken)
     {
         var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
-        var metadata = JObject.Parse(File.ReadAllText(idea.Metadata)).ToObject<_3DProduct.Metadata_>()!;
+        var metadata = JObject.Parse(File.ReadAllText(idea.Metadata)).ToObject<_3DProduct.Metadata_>(JsonSerializer.CreateDefault(new() { MissingMemberHandling = MissingMemberHandling.Ignore}))!;
         return await new _3DProduct(idea.Path,
             idea.Packages.Select(_ => new _3DModel(_)).ToList(),
             idea.Renders.Select(_ => new _3DProductThumbnail(_)).ToList(),
