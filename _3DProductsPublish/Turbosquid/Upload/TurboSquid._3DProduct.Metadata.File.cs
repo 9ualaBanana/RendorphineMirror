@@ -10,7 +10,10 @@ public partial class TurboSquid
     {
         public partial record Metadata__
         {
-            internal record Serialized(long ProductID, long DraftID, Category_ Category, Category_? SubCategory, IEnumerable<TurboSquid3DModelMetadata> Models, IEnumerable<TurboSquidPreviewMetadata> Previews);
+            internal record Serialized(long ProductID, long DraftID, Category_ Category, Category_? SubCategory, IEnumerable<TurboSquid3DModelMetadata> Models, IEnumerable<TurboSquidPreviewMetadata> Previews)
+            {
+                public string? Product => ProductID is not 0 ? $"https://www.turbosquid.com/FullPreview/{ProductID}" : null;
+            }
 
             public record TurboSquidPreviewMetadata
             {
