@@ -90,7 +90,7 @@ public partial class TurboSquid
             public UnwrappedUVs_? UnwrappedUVs { get; }
             internal Dictionary<string, int> Features { get; } = [];
 
-            public JObject ToProductForm(long draftId)
+            public JObject ToProductForm(long draftId, string status)
             {
                 var productForm = JObject.FromObject(new
                 {
@@ -113,7 +113,7 @@ public partial class TurboSquid
                     polygons = Polygons.ToString(),
                     price = Price.ToString("0.00"),
                     rigged = Rigged,
-                    status = "draft",
+                    status,
                     textures = Textures,
                     tileable = false,
                     uv_mapped = UVMapped,

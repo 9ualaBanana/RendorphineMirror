@@ -234,7 +234,7 @@ public partial class TurboSquid
         {
             try
             {
-                _logger.Trace($"Sending {Draft.LocalProduct.Metadata.Title} 3D product form.");
+                _logger.Trace($"Sending {Draft.LocalProduct.Metadata.Title} ({Draft.LocalProduct.ID}) 3D product form.");
                 var request = new HttpRequestMessage(
                     HttpMethod.Patch,
 
@@ -256,7 +256,7 @@ public partial class TurboSquid
             {
                 var productForm = new JObject(
                     new JProperty("authenticity_token", Client.Credential.AuthenticityToken),
-                    new JProperty("turbosquid_product_form", Draft.LocalProduct.Metadata.ToProductForm(Draft.LocalProduct.DraftID)),
+                    new JProperty("turbosquid_product_form", Draft.LocalProduct.Metadata.ToProductForm(Draft.LocalProduct.DraftID, Draft.RemoteProduct.status.ToString())),
                     new JProperty("previews", new JObject(
                         Draft.LocalProduct.Thumbnails.OfType<TurboSquidProcessed3DProductThumbnail>().Select(_ => new JProperty(
                             _.FileId.ToString(), JObject.FromObject(new
