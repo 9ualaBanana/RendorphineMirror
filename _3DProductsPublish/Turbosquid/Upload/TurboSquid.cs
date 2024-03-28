@@ -130,7 +130,6 @@ public partial class TurboSquid : HttpClient
     async Task<_3DProduct.Remote> CreateOrRequestRemoteAsync(_3DProduct _3DProduct, CancellationToken cancellationToken)
     {
         var response = await (_3DProduct.ID is 0 && _3DProduct.DraftID is 0 ? NewAsync() : EditAsync());
-        _logger.Debug($"Remote product response:\n{response}");
         return _3DProduct.Remote.Parse(response);
 
 

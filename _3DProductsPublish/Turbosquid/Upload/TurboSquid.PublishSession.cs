@@ -244,7 +244,6 @@ public partial class TurboSquid
                 request.Headers.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
 
                 var response = await Client.SendAsync(request, CancellationToken);
-                _logger.Debug(await response.Content.ReadAsStringAsync());
                 _logger.Trace($"{Draft.LocalProduct.Metadata.Title} 3D product form request has been sent.");
                 return response;
             }
@@ -273,7 +272,6 @@ public partial class TurboSquid
                     })));
                 if (publish)
                     productForm.Add("publish", string.Empty);
-                _logger.Debug(productForm.ToString(Formatting.Indented));
                 return productForm.ToJsonContent();
             }
         }
