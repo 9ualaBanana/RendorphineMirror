@@ -300,8 +300,11 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             {
                 Logger.Info("hello " + rfproduct.Idea.Path);
                 token.ThrowIfCancellationRequested();
+                Dictionary<string, DirectoryStructurePart>? dirdata = null;
+
                 if (NeedsTurboSquidPublish(rfproduct))
                 {
+                    dirdata = GetDirectoryData(rfproduct.Idea.Path);
                     Logger.Info("INPRODUCT " + rfproduct.Idea.Path);
 
                     try
@@ -341,7 +344,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     SetState(state => state with { DraftedCount = state.DraftedCount + 1 });
                 else SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
 
-                (Input.DirectoryStructure2 ??= [])[rfproduct.Idea.Path] = new(false, GetDirectoryData(rfproduct.Idea.Path));
+                (Input.DirectoryStructure2 ??= [])[rfproduct.Idea.Path] = new(false, dirdata ?? GetDirectoryData(rfproduct.Idea.Path));
                 SaveTask();
             }
         }
