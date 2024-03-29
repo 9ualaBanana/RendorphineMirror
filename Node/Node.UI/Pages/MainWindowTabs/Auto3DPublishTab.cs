@@ -15,25 +15,29 @@ public class Auto3DPublishTab : Panel
 
         Infos.SubscribeChanged(() => Dispatcher.UIThread.Post(() =>
         {
-            var infos = Infos.Value;
-
-            foreach (var (key, part) in parts)
+            try
             {
-                if (!infos.ContainsKey(key))
+                var infos = Infos.Value.ToDictionary(); // copy
+
+                foreach (var (key, part) in parts)
                 {
-                    parts.Clear();
-                    stack.Children.Clear();
-                    break;
+                    if (!infos.ContainsKey(key))
+                    {
+                        parts.Clear();
+                        stack.Children.Clear();
+                        break;
+                    }
+                }
+
+                foreach (var (key, info) in infos)
+                {
+                    if (!parts.TryGetValue(key, out var part))
+                        stack.Children.Add((parts[key] = part = new Part()).Named(key));
+
+                    part.SetInfo(info);
                 }
             }
-
-            foreach (var (key, info) in infos.ToArray())
-            {
-                if (!parts.TryGetValue(key, out var part))
-                    stack.Children.Add((parts[key] = part = new Part()).Named(key));
-
-                part.SetInfo(info);
-            }
+            catch { }
         }, DispatcherPriority.Background), true);
     }
 
