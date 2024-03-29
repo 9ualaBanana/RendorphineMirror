@@ -156,8 +156,11 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
 
 static class RedirectHttpResponseMessageExtensions
 {
+    static Logger _logger = LogManager.GetCurrentClassLogger();
+
     internal static HttpResponseMessage _EnsureRedirectStatusCode(this HttpResponseMessage response)
     {
+        _logger.Debug($"{response.StatusCode} {response.Content}");
         if ((int) response.StatusCode < 300 || (int) response.StatusCode >= 400)
             throw new HttpRequestException("Response status code does not indicate redirect:", inner: null, response.StatusCode);
         else return response;
