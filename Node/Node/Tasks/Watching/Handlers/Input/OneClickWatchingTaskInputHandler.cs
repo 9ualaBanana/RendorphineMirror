@@ -135,11 +135,11 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
 
             return await base.ExecuteGet(path, context);
         }
-        protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
+        protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context, Stream inputStream)
         {
             if (path.StartsWith("JobCompleted", StringComparison.Ordinal))
             {
-                var productJson = (await JObject.LoadAsync(new JsonTextReader(new StreamReader(context.Request.InputStream)))).ToObject<ProductJson>().ThrowIfNull();
+                var productJson = (await JObject.LoadAsync(new JsonTextReader(new StreamReader(inputStream)))).ToObject<ProductJson>().ThrowIfNull();
                 Completion.ThrowIfNull("No products waiting to be received.")
                     .SetResult(productJson);
 
@@ -148,12 +148,12 @@ public class OneClickWatchingTaskInputHandler : WatchingTaskInputHandler<OneClic
             if (path.StartsWith("JobError", StringComparison.Ordinal))
             {
                 Completion.ThrowIfNull("No products waiting to be errored.")
-                    .SetException(new Exception(await new StreamReader(context.Request.InputStream).ReadToEndAsync()));
+                    .SetException(new Exception(await new StreamReader(inputStream).ReadToEndAsync()));
 
                 Completion = null;
             }
 
-            return await base.ExecutePost(path, context);
+            return await base.ExecutePost(path, context, inputStream);
         }
     }
 

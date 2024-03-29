@@ -124,16 +124,14 @@ public class LocalListener : ExecutableListenerBase
 
         return HttpStatusCode.NotFound;
     }
-    protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
+    protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context, Stream inputStream)
     {
-        var request = context.Request;
         var response = context.Response;
-
-        var query = request.QueryString;
+        var query = context.Request.QueryString;
 
         if (path == "login")
         {
-            return await TestPost(await CreateCached(request), response, "login", "password", async (login, password) =>
+            return await TestPost(await CreateCached(inputStream), response, "login", "password", async (login, password) =>
             {
                 var resp = await SessionManager.AuthAsync(login, password);
                 return await WriteJson(response, resp).ConfigureAwait(false);
@@ -141,7 +139,7 @@ public class LocalListener : ExecutableListenerBase
         }
         if (path == "autologin")
         {
-            return await TestPost(await CreateCached(request), response, "login", async login =>
+            return await TestPost(await CreateCached(inputStream), response, "login", async login =>
             {
                 var resp = await SessionManager.AutoAuthAsync(login);
                 return await WriteJson(response, resp).ConfigureAwait(false);
@@ -155,7 +153,7 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "setsetting")
         {
-            return await TestPost(await CreateCached(request), response, "key", "value", async (key, value) =>
+            return await TestPost(await CreateCached(inputStream), response, "key", "value", async (key, value) =>
             {
                 var field = new[] { typeof(Settings), typeof(NodeSettingsInstance) }
                     .SelectMany(type => type.GetFields(BindingFlags.Public | BindingFlags.Static))
@@ -173,7 +171,7 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "auto3drestart")
         {
-            return await TestPost(await CreateCached(request), response, "taskid", async (taskid) =>
+            return await TestPost(await CreateCached(inputStream), response, "taskid", async (taskid) =>
             {
                 Container.Resolve<TurboSquidContainer>().ClearCache();
 
@@ -189,7 +187,7 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "upload3drfproduct")
         {
-            return await TestPost(await CreateCached(request), response, "target", "id", async (target, id) =>
+            return await TestPost(await CreateCached(inputStream), response, "target", "id", async (target, id) =>
             {
                 if (!RFProducts.RFProducts.TryGetValue(id, out var rfproduct))
                     return await WriteErr(response, "Product not found");
@@ -212,7 +210,7 @@ public class LocalListener : ExecutableListenerBase
         }
         if (path == "upload3drfproductsubmitjson")
         {
-            return await TestPost(await CreateCached(request), response, "target", "id", async (target, id) =>
+            return await TestPost(await CreateCached(inputStream), response, "target", "id", async (target, id) =>
             {
                 if (!RFProducts.RFProducts.TryGetValue(id, out var rfproduct))
                     return await WriteErr(response, "Product not found");
@@ -246,7 +244,7 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "unsetcreds")
         {
-            return await TestPost(await CreateCached(request), response, "target", async (target) =>
+            return await TestPost(await CreateCached(inputStream), response, "target", async (target) =>
             {
                 if (target == "MPlus")
                     Settings.MPlusPassword.Value = Settings.MPlusUsername.Value = null;
@@ -261,7 +259,7 @@ public class LocalListener : ExecutableListenerBase
         }
         if (path == "setcreds")
         {
-            return await TestPost(await CreateCached(request), response, "target", "creds", async (target, credsstr) =>
+            return await TestPost(await CreateCached(inputStream), response, "target", "creds", async (target, credsstr) =>
             {
                 var creds = JsonConvert.DeserializeObject<NetworkCredential>(credsstr);
                 if (creds is null) return await WriteErr(response, "Could not parse creds");
@@ -290,7 +288,7 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "createrfproduct")
         {
-            return await TestPost(await CreateCached(request), response, "idea", "container", async (idea, container) =>
+            return await TestPost(await CreateCached(inputStream), response, "idea", "container", async (idea, container) =>
             {
                 var product = await RFProductFactory.CreateAsync(idea, container, default);
                 return await WriteJson(response, product.AsOpResult()).ConfigureAwait(false);
@@ -298,7 +296,7 @@ public class LocalListener : ExecutableListenerBase
         }
         if (path == "deleterfproduct")
         {
-            return await TestPost(await CreateCached(request), response, "id", async (id) =>
+            return await TestPost(await CreateCached(inputStream), response, "id", async (id) =>
             {
                 RFProducts.RFProducts.Remove(id);
                 return await WriteSuccess(response).ConfigureAwait(false);
@@ -307,7 +305,7 @@ public class LocalListener : ExecutableListenerBase
 
         if (path == "tasktopaz")
         {
-            return await TestPost(await CreateCached(request), response, "file", "info", async (file, info) =>
+            return await TestPost(await CreateCached(inputStream), response, "file", "info", async (file, info) =>
             {
                 var input = new TaskFileInput(new ReadOnlyTaskFileList([FileWithFormat.FromFile(file)]), Dirs.TaskOutputDirectory($"local_{Guid.NewGuid()}"));
                 var data = JObject.Parse(info).WithProperty("type", TaskAction.Topaz.ToString());
@@ -321,7 +319,7 @@ public class LocalListener : ExecutableListenerBase
 
         if (NodeToUI.NodeGui.GuiRequestTypes.ContainsKey(path) && query["reqid"] is { } reqid && NodeGlobalState.Instance.Requests.TryGetValue(reqid, out var guirequest))
         {
-            using var reader = new StreamReader(request.InputStream);
+            using var reader = new StreamReader(inputStream);
             var value = await reader.ReadToEndAsync();
 
             var obj = JObject.Parse(value);

@@ -46,21 +46,20 @@ public class TaskListener : ExecutableListenerBase
 
         public void Set(double progress) => Logger.Trace($"Task progress: {progress}");
     }
-    protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
+    protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context, Stream inputStream)
     {
-        var request = context.Request;
         var response = context.Response;
 
         if (path == "start")
         {
-            var task = new JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
+            var task = new JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(inputStream)))!;
             var taskid = await TaskRegistration.TaskRegisterAsync(task);
 
             return await WriteJson(response, taskid.Next(task => task.Id.AsOpResult())).ConfigureAwait(false);
         }
         if (path == "startwatching")
         {
-            var task = new JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(request.InputStream)))!;
+            var task = new JsonSerializer().Deserialize<TaskCreationInfo>(new JsonTextReader(new StreamReader(inputStream)))!;
             var input = TaskModels.DeserializeWatchingInput(task.Input);
             var output = TaskModels.DeserializeWatchingOutput(task.Output);
 

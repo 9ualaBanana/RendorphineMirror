@@ -320,14 +320,13 @@ namespace Node.Listeners
             return HttpStatusCode.NotFound;
         }
 
-        protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context)
+        protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context, Stream inputStream)
         {
-            var request = context.Request;
             var response = context.Response;
 
             if (path == "loginas")
             {
-                return await TestPost(await CachedHttpListenerRequest.Create(request), response, "email", "password", async (email, password) =>
+                return await TestPost(await CreateCached(inputStream), response, "email", "password", async (email, password) =>
                 {
                     var result = await Api.Api.ApiPost<SessionManager.LoginResult>($"{(global::Common.Api.TaskManagerEndpoint)}/login", null, "Logging in", ("email", email), ("password", password), ("lifetime", TimeSpan.FromDays(1).TotalMilliseconds.ToString()), ("guid", Guid.NewGuid().ToString()));
 
@@ -366,12 +365,12 @@ namespace Node.Listeners
             }
             if (path == "loginassid")
             {
-                return await TestPost(await CachedHttpListenerRequest.Create(request), response, "sid", async (sid) =>
+                return await TestPost(await CreateCached(inputStream), response, "sid", async (sid) =>
                     await WriteJson(response, sid.AsOpResult())
                 );
             }
 
-            return await base.ExecutePost(path, context);
+            return await base.ExecutePost(path, context,inputStream);
         }
     }
 }

@@ -133,6 +133,12 @@ public abstract class ListenerBase : IServiceTarget
                     if (StartIndex != idx) return;
 
                     var context = Listener.GetContext();
+                    if (context.Response.ContentLength64 != 0)
+                    {
+                        // listener automatically answered with something
+                        continue;
+                    }
+
                     LogRequest(context.Request);
 
                     _ = Task.Run(async () =>
@@ -304,6 +310,7 @@ public abstract class ListenerBase : IServiceTarget
         });
 
     protected static ValueTask<CachedHttpListenerRequest> CreateCached(HttpListenerRequest request) => CachedHttpListenerRequest.Create(request);
+    protected static ValueTask<CachedHttpListenerRequest> CreateCached(Stream stream) => CachedHttpListenerRequest.Create(stream);
     protected static Task<HttpStatusCode> TestPost(CachedHttpListenerRequest request, HttpListenerResponse response, string c1, Func<string, Task<HttpStatusCode>> func)
     {
         var c1v = request.Data[c1];
@@ -337,22 +344,19 @@ public abstract class ListenerBase : IServiceTarget
         });
     public readonly struct CachedHttpListenerRequest
     {
-        public readonly NameValueCollection Data;
-        readonly HttpListenerRequest Request;
-
-        public static async ValueTask<CachedHttpListenerRequest> Create(HttpListenerRequest request)
+        public static async ValueTask<CachedHttpListenerRequest> Create(HttpListenerRequest request) => await Create(request.InputStream);
+        public static async ValueTask<CachedHttpListenerRequest> Create(Stream stream)
         {
-            using var reader = new StreamReader(request.InputStream);
+            using var reader = new StreamReader(stream);
             var inputstr = await reader.ReadToEndAsync();
             var data = HttpUtility.ParseQueryString(inputstr);
 
-            return new(request, data);
+            return new(data);
         }
-        public CachedHttpListenerRequest(HttpListenerRequest request, NameValueCollection data)
-        {
-            Request = request;
-            Data = data;
-        }
+
+        public readonly NameValueCollection Data;
+
+        public CachedHttpListenerRequest(NameValueCollection data) => Data = data;
     }
 
 
