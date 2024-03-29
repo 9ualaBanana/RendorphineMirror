@@ -1,6 +1,6 @@
 namespace NodeCommon.Tasks.Watching;
 
-public record DirectoryStructureHolder(bool NeedsUploading, Dictionary<string, DirectoryStructurePart> Parts);
+public record DirectoryStructureHolder(bool NeedsUploading, string NodeVersion, Dictionary<string, DirectoryStructurePart> Parts);
 public record DirectoryStructurePart(DateTimeOffset LastChanged, long? Size);
 public class Generate3DRFProductTaskInputInfo : IWatchingTaskInputInfo
 {

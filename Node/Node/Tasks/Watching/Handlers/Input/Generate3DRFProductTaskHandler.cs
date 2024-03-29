@@ -15,6 +15,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     public required TurboSquidContainer TurboSquidContainer { get; init; }
     public required NodeGlobalState GlobalState { get; init; }
     public required INodeSettings Settings { get; init; }
+    public required Init Init { get; init; }
     CancellationTokenSource? CurrentTask;
 
     public override void StartListening() => StartThreadRepeated(10_000, RunOnce);
@@ -161,7 +162,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         File.WriteAllText(submitJsonPath, jobj.ToString(Formatting.None));
 
         Logger.Info($"Updating {rfproduct.Idea.Path} version to {newversion}");
-        (Input.DirectoryStructure2 ??= [])[rfproduct.Idea.Path] = new(true, GetDirectoryData(rfproduct.Idea.Path));
+        (Input.DirectoryStructure2 ??= [])[rfproduct.Idea.Path] = new(true, Init.Version, GetDirectoryData(rfproduct.Idea.Path));
     }
 
     static string GetSubmitJsonFile(string dir) => Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json", StringComparison.Ordinal));
@@ -176,6 +177,9 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             BumpSubmitJsonVersion(rfproduct);
             return true;
         }
+
+        if (Input.DirectoryStructure2[rfproduct.Idea.Path].NodeVersion != Init.Version)
+            return true;
         if (Input.DirectoryStructure2[rfproduct.Idea.Path].NeedsUploading)
             return true;
 
@@ -344,7 +348,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     SetState(state => state with { DraftedCount = state.DraftedCount + 1 });
                 else SetState(state => state with { PublishedCount = state.PublishedCount + 1 });
 
-                (Input.DirectoryStructure2 ??= [])[rfproduct.Idea.Path] = new(false, dirdata ?? GetDirectoryData(rfproduct.Idea.Path));
+                (Input.DirectoryStructure2 ??= [])[rfproduct.Idea.Path] = new(false, Init.Version, dirdata ?? GetDirectoryData(rfproduct.Idea.Path));
                 SaveTask();
             }
         }
@@ -354,7 +358,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
     string? WasDirectoryChanged(string directory, out Dictionary<string, DirectoryStructurePart> data)
     {
-        Logger.Info("Wasdirectorychanged? " + directory);
         if (Input.DirectoryStructure2 is null || !Input.DirectoryStructure2.TryGetValue(directory, out var prevdirstr))
         {
             data = GetDirectoryData(directory);
