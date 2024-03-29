@@ -312,6 +312,9 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                         var token2 = CancellationTokenSource.CreateLinkedTokenSource(token, new CancellationTokenSource().Token);
                         token2.CancelAfter(TimeSpan.FromMinutes(20));
                         await turbo.UploadAsync(rfproduct, NodeGui, token2.Token);
+
+                        try { File.Delete(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt")); }
+                        catch { }
                     }
                     catch (Exception ex)
                     {
