@@ -71,7 +71,8 @@ public class TasksTab2 : Panel
             Tasks = (IBindableCollection<T>) (await Load()).GetBoundCopy();
             Tasks.SubscribeChanged(() =>
             {
-                Dispatcher.UIThread.Post(() => grid.ItemsSource = Tasks.ToArray());
+                var items = Tasks.ToArray();
+                Dispatcher.UIThread.Post(() => grid.ItemsSource = items);
             }, true);
         }
 
