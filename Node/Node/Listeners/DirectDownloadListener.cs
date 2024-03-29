@@ -32,6 +32,36 @@ public class DirectDownloadListener : ExecutableListenerBase
         }
     }
 
+    protected override async Task<HttpStatusCode> ExecuteHead(string path, HttpListenerContext context)
+    {
+        var response = context.Response;
+        var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
+
+        if (!TasksToReceive.TryGetValue(taskid, out var taskcs))
+            return HttpStatusCode.NotFound;
+
+        // TODO: fix uploading FSOutputDirectory instead of outputfiles
+        var taskdir = Dirs.TaskOutputDirectory(taskid);
+        if (!Directory.Exists(taskdir))
+            return HttpStatusCode.NotFound;
+
+        var dirfiles = Directory.GetFiles(taskdir, "*", SearchOption.AllDirectories);
+        if (dirfiles.Length == 0)
+            return HttpStatusCode.NotFound;
+
+        if (dirfiles.Length == 1)
+        {
+            var file = dirfiles[0];
+
+            response.Headers.Add("Content-Disposition", $"form-data; name=file; filename={Path.GetFileName(file)}");
+            response.ContentLength64 = new FileInfo(file).Length;
+            response.ContentType = MimeTypes.GetMimeType(file);
+
+            return HttpStatusCode.OK;
+        }
+
+        return await base.ExecuteHead(path, context);
+    }
     protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
     {
         var response = context.Response;

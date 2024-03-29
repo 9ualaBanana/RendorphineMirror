@@ -16,6 +16,21 @@ public class LocalTests
     {
         Logger.LogInformation("Running tests...");
 
+        static async Task test(string url)
+        {
+            var normalDownload = await new HttpClient().GetByteArrayAsync(new Uri(url));
+
+            var chunkedDownload = new MemoryStream();
+            await new ParallelDownloader() { Dirs = new DataDirs("renderfin"), HttpClient = new(), Logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<ParallelDownloader>(), ProgressSetter = new ConsoleProgressSetter() { Logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<ConsoleProgressSetter>() } }.Download(new Uri(url), chunkedDownload, default);
+            chunkedDownload.Position = 0;
+
+            chunkedDownload.ToArray().Should().BeEquivalentTo(normalDownload);
+        }
+
+        await test("https://singapore.downloadtestfile.com/50MB.zip");
+
+        return;
+
         // await ElevenLabsTest();
         await LaunchTask();
         //await PluginTest();

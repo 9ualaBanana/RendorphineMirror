@@ -13,6 +13,7 @@ public abstract class ExecutableListenerBase : ListenerBase
         var exec =
             context.Request.HttpMethod == "GET" ? await ExecuteGet(path, context)
             : context.Request.HttpMethod == "POST" ? await ExecutePost(path, context)
+            : context.Request.HttpMethod == "HEAD" ? await ExecuteHead(path, context)
             : HttpStatusCode.NotFound;
 
         context.Response.StatusCode = (int) exec;
@@ -21,4 +22,5 @@ public abstract class ExecutableListenerBase : ListenerBase
 
     protected virtual Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context) => Task.FromResult(HttpStatusCode.NotFound);
     protected virtual Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context) => Task.FromResult(HttpStatusCode.NotFound);
+    protected virtual Task<HttpStatusCode> ExecuteHead(string path, HttpListenerContext context) => Task.FromResult(HttpStatusCode.NotFound);
 }

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 
 namespace NodeCommon;
 
@@ -163,7 +164,7 @@ public static class ApiExtensions
     /// <summary> Send current task progress to the server </summary>
     public static ValueTask<OperationResult> SendTaskProgressAsync(this Apis api, IRegisteredTaskApi task, TaskState curstate, double progress) =>
         api.ShardGet(task, "mytaskprogress", "Sending task progress",
-            api.AddSessionId(("taskid", task.Id), ("curstate", curstate.ToString().ToLowerInvariant()), ("progress", progress.ToString())));
+            api.AddSessionId(("taskid", task.Id), ("curstate", curstate.ToString().ToLowerInvariant()), ("progress", progress.ToString("0.00", CultureInfo.InvariantCulture))));
 
 
 

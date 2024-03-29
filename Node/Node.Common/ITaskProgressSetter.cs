@@ -1,3 +1,3 @@
-namespace Node.Tasks;
+namespace Node.Common;
 
 public interface ITaskProgressSetter : IProgressSetter { }

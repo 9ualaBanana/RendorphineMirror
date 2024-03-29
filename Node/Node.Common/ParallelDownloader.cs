@@ -7,6 +7,7 @@ public class ParallelDownloader
 {
     public required HttpClient HttpClient { get; init; }
     public required DataDirs Dirs { get; init; }
+    public required ITaskProgressSetter ProgressSetter { get; init; }
     public required ILogger<ParallelDownloader> Logger { get; init; }
 
     public Task Download(Uri uri, Stream destination, CancellationToken token) => Download(uri, destination, 4, token);
@@ -16,15 +17,14 @@ public class ParallelDownloader
 
         long fileSize;
         {
-            using var fileSizeResponse = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, uri), HttpCompletionOption.ResponseHeadersRead, token);
+            using var fileSizeResponse = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, uri), HttpCompletionOption.ResponseHeadersRead, token);
             Logger.LogInformation("File size HEAD request response returned: " + string.Join(", ", fileSizeResponse.Headers.Select(h => $"{h.Key}: {string.Join(" | ", h.Value)}")));
             Logger.LogInformation("and http " + fileSizeResponse.StatusCode);
             if (!fileSizeResponse.IsSuccessStatusCode || fileSizeResponse.Content.Headers.ContentLength is null)
             {
                 Logger.LogWarning($"Could not fetch file size, downloading normally...");
-                using var downloadResponse = await HttpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, token);
-                downloadResponse.EnsureSuccessStatusCode();
-                await downloadResponse.Content.CopyToAsync(destination, token);
+                fileSizeResponse.EnsureSuccessStatusCode();
+                await fileSizeResponse.Content.CopyToAsync(destination, token);
 
                 return;
             }
@@ -61,13 +61,26 @@ public class ParallelDownloader
         await download();
         async Task download()
         {
+            long progress = 0;
             await Task.WhenAll(ranges.Select(async range =>
             {
                 using var response = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, uri) { Headers = { Range = new(range.Start, range.End) } }, HttpCompletionOption.ResponseHeadersRead, token);
                 response.EnsureSuccessStatusCode();
 
                 using var fileStream = File.Create(range.ChunkFile);
-                await response.Content.CopyToAsync(fileStream, token);
+                var buffer = new byte[1024 * 1024];
+                using var stream = await response.Content.ReadAsStreamAsync(token);
+
+                while (true)
+                {
+                    var length = await stream.ReadAsync(buffer, token);
+                    if (length == 0) break;
+
+                    Interlocked.Add(ref progress, length);
+                    ProgressSetter.Set((double) progress / fileSize);
+
+                    await fileStream.WriteAsync(buffer.AsMemory(0, length), token);
+                }
             }));
         }
 

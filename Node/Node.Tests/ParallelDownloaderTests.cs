@@ -13,11 +13,11 @@ public class ParallelDownloaderTests
             var normalDownload = await new HttpClient().GetByteArrayAsync(new Uri(url));
 
             var chunkedDownload = new MemoryStream();
-            await new ParallelDownloader() { Dirs = new DataDirs("renderfin"), HttpClient = new(), Logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<ParallelDownloader>() }.Download(new Uri(url), chunkedDownload, default);
+            await new ParallelDownloader() { Dirs = new DataDirs("renderfin"), HttpClient = new(), Logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<ParallelDownloader>(), ProgressSetter = new ConsoleProgressSetter() { Logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<ConsoleProgressSetter>() } }.Download(new Uri(url), chunkedDownload, default);
             chunkedDownload.Position = 0;
 
             var inmemChunkedDownload = new MemoryStream();
-            await new ParallelDownloader() { Dirs = new DataDirs("renderfin"), HttpClient = new(), Logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<ParallelDownloader>() }.DownloadInMemoryAsync(url, inmemChunkedDownload, default);
+            await new ParallelDownloader() { Dirs = new DataDirs("renderfin"), HttpClient = new(), Logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<ParallelDownloader>(), ProgressSetter = new ConsoleProgressSetter() { Logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<ConsoleProgressSetter>() } }.DownloadInMemoryAsync(url, inmemChunkedDownload, default);
             inmemChunkedDownload.Position = 0;
 
 

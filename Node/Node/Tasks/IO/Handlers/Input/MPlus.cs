@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace Node.Tasks.IO.Handlers.Input;
 
 public static class MPlus
@@ -8,18 +10,43 @@ public static class MPlus
 
         public required IRegisteredTaskApi ApiTask { get; init; }
         public required Apis Api { get; init; }
-        public required IComponentContext ComponentContext { get; init; }
-        public required ParallelDownloader ParallelDownloader { get; init; }
+        public required ILifetimeScope ComponentContext { get; init; }
 
+        class MinProgressSetter : ITaskProgressSetter
+        {
+            readonly ITaskProgressSetter ProgressSetter;
+            readonly ConcurrentDictionary<ITaskProgressSetter, double> Progresses;
+            readonly int Index, AllCount;
+
+            public MinProgressSetter(ITaskProgressSetter progressSetter, ConcurrentDictionary<ITaskProgressSetter, double> progresses, int index, int allCount)
+            {
+                ProgressSetter = progressSetter;
+                Progresses = progresses;
+                Index = index;
+                AllCount = allCount;
+            }
+
+            public void Set(double progress)
+            {
+                lock (Progresses)
+                {
+                    Progresses.TryRemove(this, out _);
+                    Progresses.TryAdd(this, progress);
+
+                    ProgressSetter.Set(Progresses.Values.Sum() / Progresses.Count);
+                }
+            }
+        }
         protected override async Task<ReadOnlyTaskFileList> DownloadImpl(MPlusTaskInputInfo input, TaskObject obj, CancellationToken tokenn)
         {
             var files = new TaskFileList(TaskDirectoryProvider.InputDirectory);
             var lastex = null as Exception;
             var firstaction = (IFilePluginActionInfo) ComponentContext.ResolveKeyed<IPluginActionInfo>(TaskExecutorByData.GetTaskName(((ReceivedTask) ApiTask).Info.Data));
+            var progressbag = new ConcurrentDictionary<ITaskProgressSetter, double>();
 
             var formatUrls = new Dictionary<FileFormat, string>();
 
-            foreach (var inputformats in firstaction.InputFileFormats.OrderByDescending(fs => fs.Sum(f => (int) f + 1)))
+            foreach (var (i, inputformats) in firstaction.InputFileFormats.OrderByDescending(fs => fs.Sum(f => (int) f + 1)).Select((x, i) => (i, x)))
             {
                 if (inputformats.Count == 0)
                     return files;
@@ -29,7 +56,7 @@ public static class MPlus
 
                 try
                 {
-                    await Task.WhenAll(inputformats.Select(f => download(f, CancellationTokenSource.CreateLinkedTokenSource(tokenn, token.Token).Token)));
+                    await Task.WhenAll(inputformats.Select(f => download(f, i, inputformats.Count, CancellationTokenSource.CreateLinkedTokenSource(tokenn, token.Token).Token)));
                     return files;
                 }
                 catch (Exception ex)
@@ -43,7 +70,7 @@ public static class MPlus
             throw new TaskFailedException("Could not download any input files") { FullError = lastex?.Message };
 
 
-            async Task download(FileFormat format, CancellationToken token)
+            async Task download(FileFormat format, int index, int allcount, CancellationToken token)
             {
                 while (true)
                 {
@@ -76,7 +103,11 @@ public static class MPlus
                     try
                     {
                         using var file = File.Open(fwf.Path, FileMode.Create, FileAccess.Write);
-                        await ParallelDownloader.Download(new Uri(link), file, token);
+
+                        using var scope = ComponentContext.BeginLifetimeScope(builder =>
+                            builder.RegisterDecorator<ITaskProgressSetter>((ctx, parameters, instance) => new MinProgressSetter(instance, progressbag, index, allcount))
+                        );
+                        await scope.Resolve<ParallelDownloader>().Download(new Uri(link), file, token);
                     }
                     catch (Exception ex)
                     {

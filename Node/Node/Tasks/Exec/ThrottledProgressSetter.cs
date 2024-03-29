@@ -15,7 +15,7 @@ public class ThrottledProgressSetter : ITaskProgressSetter
     public void Set(double progress)
     {
         var now = DateTime.Now;
-        if (progress >= .98 || ProgressWriteTime < now)
+        if (progress == 1 || ProgressWriteTime < now)
         {
             Progress.Set(progress);
             ProgressWriteTime = DateTime.Now + ProgressSendDelay;
