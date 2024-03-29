@@ -236,14 +236,17 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         SetState(state => state with { DraftedCount = 0, PublishedCount = 0 });
 
-        foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]?.ToObject<string>()))
+        foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]?.ToObject<string>() ?? string.Empty))
         {
+            if (string.IsNullOrWhiteSpace(rfpgroup.Key))
+                continue;
+
             Logger.Info("INGROUP " + rfpgroup.Key);
             token.ThrowIfCancellationRequested();
 
             TurboSquid turbo;
             {
-                var path = rfpgroup.FirstOrDefault(g => ReadSubmitJson(g)["LoginSquid"]?.ToObject<string>() is not null && ReadSubmitJson(g)["PasswordSquid"]?.ToObject<string>() is not null)?.Idea.Path;
+                var path = rfpgroup.FirstOrDefault(g => !string.IsNullOrWhiteSpace(ReadSubmitJson(g)["LoginSquid"]?.ToObject<string>()) && !string.IsNullOrEmpty(ReadSubmitJson(g)["PasswordSquid"]?.ToObject<string>()))?.Idea.Path;
                 if (path is null) continue;
 
                 var submitJson = ReadSubmitJson(path);
