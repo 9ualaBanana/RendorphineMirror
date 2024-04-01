@@ -153,6 +153,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     void BumpSubmitJsonVersion(RFProduct rfproduct)
     {
         var submitJsonPath = GetSubmitJsonFile(rfproduct.Idea.Path);
+        if (submitJsonPath is null) return;
+
         JObject jobj;
         try { jobj = JObject.Parse(File.ReadAllText(submitJsonPath)); }
         catch { jobj = new(); }
@@ -165,8 +167,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         (Input.DirectoryStructure2 ??= [])[rfproduct.Idea.Path] = new(true, Init.Version, GetDirectoryData(rfproduct.Idea.Path));
     }
 
-    static string GetSubmitJsonFile(string dir) => Directory.GetFiles(dir).Single(f => f.EndsWith("_Submit.json", StringComparison.Ordinal));
-    static JObject ReadSubmitJson(string dir) => JObject.Parse(File.ReadAllText(GetSubmitJsonFile(dir)));
+    static string? GetSubmitJsonFile(string dir) => Directory.GetFiles(dir).SingleOrDefault(f => f.EndsWith("_Submit.json", StringComparison.Ordinal));
+    static JObject? ReadSubmitJson(string dir) => GetSubmitJsonFile(dir) is string jf ? JObject.Parse(File.ReadAllText(jf)) : null;
     bool NeedsTurboSquidPublish(RFProduct rfproduct)
     {
         if (!File.Exists(Path.Combine(rfproduct.Idea.Path, "meta.json")))
@@ -237,10 +239,11 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         var products = RFProducts.RFProducts.Values
             .Where(p => Directory.Exists(p.Path) && p.Type == nameof(RFProduct._3D) && p.Path.StartsWith(Path.GetFullPath(Input.InputDirectory)))
             .ToArray();
+        Logger.Info("PUBLISHING ~" + products.Length + " PRODUCTS");
 
         SetState(state => state with { DraftedCount = 0, PublishedCount = 0 });
 
-        foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)["LoginSquid"]?.ToObject<string>() ?? string.Empty))
+        foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)?["LoginSquid"]?.ToObject<string>() ?? string.Empty))
         {
             if (string.IsNullOrWhiteSpace(rfpgroup.Key))
                 continue;
@@ -250,10 +253,12 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
             TurboSquid turbo;
             {
-                var path = rfpgroup.FirstOrDefault(g => !string.IsNullOrWhiteSpace(ReadSubmitJson(g)["LoginSquid"]?.ToObject<string>()) && !string.IsNullOrEmpty(ReadSubmitJson(g)["PasswordSquid"]?.ToObject<string>()))?.Idea.Path;
+                var path = rfpgroup.FirstOrDefault(g => !string.IsNullOrWhiteSpace(ReadSubmitJson(g)?["LoginSquid"]?.ToObject<string>()) && !string.IsNullOrEmpty(ReadSubmitJson(g)?["PasswordSquid"]?.ToObject<string>()))?.Idea.Path;
                 if (path is null) continue;
 
                 var submitJson = ReadSubmitJson(path);
+                if (submitJson is null) continue;
+
                 var tsusername = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
                 var tspassword = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
 
