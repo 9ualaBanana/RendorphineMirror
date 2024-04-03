@@ -16,42 +16,21 @@ public class LocalTests
     {
         Logger.LogInformation("Running tests...");
 
-        static async Task test(string url)
-        {
-            var normalDownload = await new HttpClient().GetByteArrayAsync(new Uri(url));
-
-            var chunkedDownload = new MemoryStream();
-            await new ParallelDownloader() { Dirs = new DataDirs("renderfin"), HttpClient = new(), Logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<ParallelDownloader>(), ProgressSetter = new ConsoleProgressSetter() { Logger = new NLog.Extensions.Logging.NLogLoggerFactory().CreateLogger<ConsoleProgressSetter>() } }.Download(new Uri(url), chunkedDownload, default);
-            chunkedDownload.Position = 0;
-
-            chunkedDownload.ToArray().Should().BeEquivalentTo(normalDownload);
-        }
-
-        await test("https://singapore.downloadtestfile.com/50MB.zip");
-
-        return;
-
         // await ElevenLabsTest();
-        await LaunchTask();
+        //await LaunchTask();
         //await PluginTest();
         //await GenericTasksTests.RunAsync(Context);
+        await LaunchQSPreview(Context);
     }
 
     async Task LaunchQSPreview(ILifetimeScope container)
     {
-        using var ctx = container.BeginLifetimeScope(builder =>
-        {
-            builder.RegisterType<ConsoleProgressSetter>()
-                .AsImplementedInterfaces()
-                .SingleInstance();
-        });
-
-        var result = await ctx.Resolve<GenerateQSPreview>()
-            .Execute(
-                ctx,
-                new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile(@"C:\mp4.mp4"), FileWithFormat.FromFile(@"C:\png.png") }), @"c:\resultdir\"),
-                new QSPreviewInfo("qwertystockfileid")
-            );
+        await ExecuteSingle(
+            Context,
+            new GenerateQSPreview(),
+            new TaskFileInput(new ReadOnlyTaskFileList(new[] { FileWithFormat.FromFile(@"/temp/file.mov"), FileWithFormat.FromFile(@"/temp/file.jpg") }), @"/temp/resultdir"),
+            new QSPreviewInfo("qwertystockfileid")
+        );
     }
 
     async Task LaunchTask()

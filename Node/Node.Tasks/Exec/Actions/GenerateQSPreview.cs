@@ -2,6 +2,7 @@ using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using ZXing;
@@ -51,6 +52,32 @@ public class GenerateQSPreview : FilePluginActionInfo<TaskFileInput, QSPreviewOu
 
             var img = input.Files.TryFirst(FileFormat.Jpeg) ?? input.Files.TryFirst(FileFormat.Png);
             var mov = input.Files.TryFirst(FileFormat.Mov);
+
+            await rotateImageToMov();
+            async Task rotateImageToMov()
+            {
+                if (img is null || mov is null)
+                    return;
+
+                using var image = Image.Load<Rgba32>(img);
+
+                var imageAspectRatio = image.Size.Width / (double) image.Size.Height;
+                var videoProbe = await FFProbe.Get(mov, Logger);
+                var videoAspectRatio = videoProbe.VideoStream.Width / (double) videoProbe.VideoStream.Height;
+
+                // if aspect ratios are the same, or at least in the same orientation, do nothing
+                if (imageAspectRatio == videoAspectRatio) return;
+                if (imageAspectRatio >= 1 && videoAspectRatio >= 1) return;
+                if (imageAspectRatio <= 1 && videoAspectRatio <= 1) return;
+
+                image.Mutate(ctx => ctx.Rotate(RotateMode.Rotate90));
+
+                if (img.Format == FileFormat.Jpeg)
+                    image.Save(img, new JpegEncoder() { Quality = 100 });
+                else if (img.Format == FileFormat.Png)
+                    image.Save(img, new PngEncoder());
+                else throw new Exception($"Unknown image format {img.Format}");
+            }
 
             var qrtext = $"https://qwertystock.com/{id}";
 
