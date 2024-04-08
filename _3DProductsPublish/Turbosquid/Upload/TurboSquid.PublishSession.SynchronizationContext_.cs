@@ -1,7 +1,6 @@
 ﻿#define ENABLE_PARALLELIZATION
 
 using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.Turbosquid._3DModelComponents;
 using _3DProductsPublish.Turbosquid.Upload.Processing;
 using static _3DProductsPublish._3DProductDS._3DProduct;
 
@@ -22,16 +21,15 @@ public partial class TurboSquid
                 _logger.Trace($"Desynchronizing outdated {typeof(TAsset).Name} assets.");
                 await Parallel.ForEachAsync((typeof(TAsset) switch
                 {
-                    _ when typeof(TAsset) == typeof(TurboSquidProcessed3DModel) => Session.Draft.LocalProduct._3DModels.OfType<TAsset>(),
-                    _ when typeof(TAsset) == typeof(TurboSquidProcessed3DProductThumbnail) => Session.Draft.LocalProduct.Thumbnails.OfType<TAsset>(),
-                    _ when typeof(TAsset) == typeof(TurboSquidProcessed3DProductTextures) => Session.Draft.LocalProduct.Textures.OfType<TAsset>(),
+                    _ when typeof(TAsset) == typeof(TurboSquidProcessed3DModel) => Session._3DProduct._3DModels.OfType<TAsset>(),
+                    _ when typeof(TAsset) == typeof(TurboSquidProcessed3DProductThumbnail) => Session._3DProduct.Thumbnails.OfType<TAsset>(),
+                    _ when typeof(TAsset) == typeof(TurboSquidProcessed3DProductTextures) => Session._3DProduct.Textures.OfType<TAsset>(),
                     _ => throw new NotImplementedException()
                 })
-                // Pass LastWriteTime with .Select to simplify logic (and avoid race conditions?)
                 .Where(asset => asset switch 
                 {
-                    TurboSquidProcessed3DModel _3DModel => File.GetLastWriteTimeUtc(_3DModel.Archived) > _3DModel.Metadata.LastWriteTime,
-                    TurboSquidProcessed3DProductThumbnail thumbnail => File.GetLastWriteTimeUtc(thumbnail.Path) > thumbnail.LastWriteTime,
+                    TurboSquidProcessed3DModel _3DModel => File.GetLastWriteTimeUtc(_3DModel.Archived) > Session._3DProduct.Tracker.Model(_3DModel).LastWriteTime,
+                    TurboSquidProcessed3DProductThumbnail thumbnail => File.GetLastWriteTimeUtc(thumbnail.Path) > Session._3DProduct.Tracker.Preview(thumbnail).LastWriteTime,
                     _ => throw new NotImplementedException()
                 }),
 
@@ -43,17 +41,7 @@ public partial class TurboSquid
                 {
                     await DeleteAssetAsync(asset);
                     Desynchronize(asset);
-                    switch (asset)
-                    {
-                        case TurboSquidProcessed3DModel _3DModel:
-                            _3DModel.Asset.Metadata.LastWriteTime = File.GetLastWriteTimeUtc(_3DModel.Archived);
-                            _3DModel.Asset.Metadata.ID = null;
-                            break;
-                        case TurboSquidProcessed3DProductThumbnail preview:
-                            preview.Asset.LastWriteTime = File.GetLastWriteTimeUtc(preview.Path);
-                            break;
-                    }
-                    _3DProduct.Metadata__.File.For(Session.Draft.LocalProduct).Update();
+                    Session._3DProduct.Tracker.Write();
                 }
             }
 
@@ -74,15 +62,15 @@ public partial class TurboSquid
             {
                 try
                 {
-                    _logger.Trace($"Deleting {processedModel.Name()} from remote.");
+                    _logger.Debug($"Deleting {processedModel.Name()} from remote.");
                     await Session.Client.SendAsync(
                         new HttpRequestMessage(
                             HttpMethod.Delete,
 
-                            $"turbosquid/products/{Session.Draft.LocalProduct.ID}/{resource}/{processedModel.FileId}")
+                            $"turbosquid/products/{Session._3DProduct.Tracker.Data.ProductID}/{resource}/{processedModel.FileId}")
                         { Content = MetadataForm() },
                         Session.CancellationToken);
-                    _logger.Trace($"{processedModel.Name()} model has been deleted from remote.");
+                    _logger.Debug($"{processedModel.Name()} model has been deleted from remote.");
                 }
                 catch (Exception ex)
                 { throw new HttpRequestException($"{processedModel.Name()} deletion from remote failed.", ex); }
@@ -93,9 +81,9 @@ public partial class TurboSquid
                     // Explicit conversions of numbers to strings are required.
                     var metadataForm = new JObject(
                         new JProperty("authenticity_token", Session.Client.Credential.AuthenticityToken),
-                        new JProperty("draft_id", Session.Draft.LocalProduct.DraftID.ToString()),
+                        new JProperty("draft_id", Session._3DProduct.Tracker.Data.DraftID.ToString()),
                         new JProperty("id", processedModel.FileId.ToString()),
-                        new JProperty("product_id", Session.Draft.LocalProduct.ID.ToString()),
+                        new JProperty("product_id", Session._3DProduct.Tracker.Data.ProductID.ToString()),
                         new JProperty("type", type));
 
                     return metadataForm.ToJsonContent();
@@ -122,11 +110,17 @@ public partial class TurboSquid
                 }
             }
             void Synchronize(TurboSquidProcessed3DModel _)
-            { Session.Draft.LocalProduct._3DModels.Remove((_3DModel<TurboSquid3DModelMetadata>)_.Asset); Session.Draft.LocalProduct._3DModels.Add((TurboSquidProcessed3DModel)_); }
+            {
+                Session._3DProduct._3DModels.Remove((_3DModel)_.Asset); Session._3DProduct._3DModels.Add((TurboSquidProcessed3DModel)_);
+                Session._3DProduct.Tracker.Model(_).Update(_.FileId);
+            }
             void Synchronize(TurboSquidProcessed3DProductThumbnail _)
-            { Session.Draft.LocalProduct.Thumbnails.Remove((_3DProductThumbnail)_.Asset); Session.Draft.LocalProduct.Thumbnails.Add((TurboSquidProcessed3DProductThumbnail)_); }
+            {
+                Session._3DProduct.Thumbnails.Remove((_3DProductThumbnail)_.Asset); Session._3DProduct.Thumbnails.Add((TurboSquidProcessed3DProductThumbnail)_);
+                Session._3DProduct.Tracker.Preview(_).Update(_.FileId);
+            }
             void Synchronize(TurboSquidProcessed3DProductTextures _)
-            { Session.Draft.LocalProduct.Textures.Remove((Textures_)_.Asset); Session.Draft.LocalProduct.Textures.Add((TurboSquidProcessed3DProductTextures)_); }
+            { Session._3DProduct.Textures.Remove((Textures_)_.Asset); Session._3DProduct.Textures.Add((TurboSquidProcessed3DProductTextures)_); }
 
             internal void Desynchronize(ITurboSquidProcessed3DProductAsset asset)
             {
@@ -145,12 +139,18 @@ public partial class TurboSquid
                         throw new ArgumentException($"Unsupported type of {nameof(ITurboSquidProcessed3DProductAsset)}: {asset}");
                 }
             }
-            internal void Desynchronize(TurboSquidProcessed3DModel _)
-            { Session.Draft.LocalProduct._3DModels.Remove((TurboSquidProcessed3DModel)_); Session.Draft.LocalProduct._3DModels.Add((_3DModel<TurboSquid3DModelMetadata>)_.Asset); }
-            internal void Desynchronize(TurboSquidProcessed3DProductThumbnail _)
-            { Session.Draft.LocalProduct.Thumbnails.Remove((TurboSquidProcessed3DProductThumbnail)_); Session.Draft.LocalProduct.Thumbnails.Add((_3DProductThumbnail)_.Asset); }
+            void Desynchronize(TurboSquidProcessed3DModel _)
+            { 
+                Session._3DProduct._3DModels.Remove((TurboSquidProcessed3DModel)_); Session._3DProduct._3DModels.Add((_3DModel)_.Asset);
+                Session._3DProduct.Tracker.Model(_).Update(id: default);
+            }
+            void Desynchronize(TurboSquidProcessed3DProductThumbnail _)
+            {
+                Session._3DProduct.Thumbnails.Remove((TurboSquidProcessed3DProductThumbnail)_); Session._3DProduct.Thumbnails.Add((_3DProductThumbnail)_.Asset);
+                Session._3DProduct.Tracker.Preview(_).Update(id: default);
+            }
             void Desynchronize(TurboSquidProcessed3DProductTextures _)
-            { Session.Draft.LocalProduct.Textures.Remove((TurboSquidProcessed3DProductTextures)_); Session.Draft.LocalProduct.Textures.Add((Textures_)_.Asset); }
+            { Session._3DProduct.Textures.Remove((TurboSquidProcessed3DProductTextures)_); Session._3DProduct.Textures.Add((Textures_)_.Asset); }
         }
     }
 }

@@ -12,7 +12,7 @@ internal abstract class AssetUploadRequest
     internal static async Task<AssetUploadRequest> CreateAsyncFor(FileStream asset, TurboSquid.PublishSession session)
     {
         int partsCount = (int)Math.Ceiling(asset.Length / (double)MultipartAssetUploadRequest.MaxPartSize);
-        var endpoint = session.Draft.AWS.UploadEndpointFor(asset, DateTime.UtcNow.AsUnixTimestamp());
+        var endpoint = session.AWS.UploadEndpointFor(asset, DateTime.UtcNow.AsUnixTimestamp());
         return partsCount == 1 ?
             await SinglepartAssetUploadRequest.CreateAsyncFor(asset, endpoint, session) :
             await MultipartAssetUploadRequest.CreateAsyncFor(asset, endpoint, session, partsCount);
@@ -38,7 +38,7 @@ internal abstract class AssetUploadRequest
         var requestUri = new UriBuilder(new Uri(UploadEndpoint, assetName)) { Query = request.RequestUri.Query }.Uri;
 
         var optionsRequest = new HttpRequestMessage(HttpMethod.Options, requestUri);
-        optionsRequest.Headers.Add("Access-Control-Request-Headers", string.Join(',', new List<string>(Session.Draft.AWS.ToHeaders().Select(header => header.Key))
+        optionsRequest.Headers.Add("Access-Control-Request-Headers", string.Join(',', new List<string>(Session.AWS.ToHeaders().Select(header => header.Key))
         { HeaderNames.Authorization.ToLower() }
         .OrderBy(h => h)));
         optionsRequest.Headers.Add("Access-Control-Request-Method", request.Method.Method);

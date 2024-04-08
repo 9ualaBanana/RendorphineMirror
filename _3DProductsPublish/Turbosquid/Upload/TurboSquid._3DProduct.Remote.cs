@@ -1,6 +1,4 @@
-﻿using _3DProductsPublish.Turbosquid._3DModelComponents;
-using _3DProductsPublish.Turbosquid.Upload.Processing;
-using MarkTM.RFProduct;
+﻿using MarkTM.RFProduct;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
@@ -8,6 +6,11 @@ public partial class TurboSquid
 {
     public partial record _3DProduct
     {
+#pragma warning disable IDE1006 // Naming Styles
+        /// <remarks>
+        /// Currently required only for posting previous status inside the product form.
+        /// Might be necessary for binding of local & remote assets to their IDs.
+        /// </remarks>
         public record Remote : IEquatable<_3DProduct>
         {
             internal static Remote Parse(string productPage)
@@ -52,14 +55,8 @@ public partial class TurboSquid
             public record File(
                 long id,
                 string type,
-                File.Attributes attributes) : IEquatable<TurboSquidProcessed3DModel>
+                File.Attributes attributes)
             {
-                public bool Equals(TurboSquidProcessed3DModel? other)
-                    => id != other?.FileId ? throw new InvalidDataException() :
-                    attributes.Equals(other.Metadata);
-                // If the size has changed, it will be detected by SynchronizationContext through LastWriteTime and thus the asset will be reuploaded completely.
-
-
                 public record Attributes(
                     string name,
                     long size,
@@ -67,16 +64,7 @@ public partial class TurboSquid
                     double? format_version,
                     string renderer,
                     double? renderer_version,
-                    bool is_native) : IEquatable<TurboSquid3DModelMetadata>
-                {
-                    public bool Equals(TurboSquid3DModelMetadata? other) =>
-                        name == other?.Name &&
-                        file_format == other.FileFormat &&
-                        format_version == other.FormatVersion &&
-                        is_native == other.IsNative &&
-                        renderer == other.Renderer &&
-                        renderer_version == other.RendererVersion;
-                }
+                    bool is_native);
             }
 
             public record Preview
@@ -145,7 +133,7 @@ public partial class TurboSquid
 
 
             public bool Equals(_3DProduct? other) =>
-                id != other?.ID ? throw new InvalidOperationException() :
+                id != other?.Tracker.Data.ProductID ? throw new InvalidOperationException() :
                 name == other?.Metadata.Title &&
                 description == other.Metadata.Description &&
                 tags.SequenceEqual(other.Metadata.Tags) &&
@@ -161,5 +149,6 @@ public partial class TurboSquid
                 uv_mapped == other.Metadata.UVMapped &&
                 license == other.Metadata.License;
         }
+#pragma warning restore IDE1006 // Naming Styles
     }
 }

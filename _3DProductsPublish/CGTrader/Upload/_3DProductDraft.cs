@@ -14,32 +14,6 @@ public record _3DProductDraft<TMetadata>
         ID = id;
     }
 
-    internal IEnumerable<T> UpcastThumbnailsTo<T>() where T : _3DProductThumbnail
-    {
-        Func<_3DProductThumbnail, T> upcaster = typeof(T) switch
-        {
-            Type type
-            when type == typeof(CGTrader3DModelThumbnail) =>
-                thumbnail => (new CGTrader3DModelThumbnail(thumbnail.Path) as T)!,
-            { } => thumbnail => (thumbnail as T)!
-        };
-        return Product.Thumbnails.Select(upcaster);
-    }
-}
-
-public record _3DProductDraft<TProductMetadata, TModelMetadata>
-    : _3DProductDraft<TProductMetadata>
-    where TModelMetadata : _3DModel.IMetadata
-{
-    new public _3DProduct<TProductMetadata, TModelMetadata> Product;
-
-    public _3DProductDraft(_3DProduct<TProductMetadata, TModelMetadata> product, int id)
-    : this(product, id.ToString())
-    {
-    }
-    internal _3DProductDraft(_3DProduct<TProductMetadata, TModelMetadata> product, string id)
-        : base(product, id)
-    {
-        Product = product;
-    }
+    internal IEnumerable<CGTrader3DModelThumbnail> UpcastThumbnails()
+        =>  Product.Thumbnails.Cast<CGTrader3DModelThumbnail>();
 }

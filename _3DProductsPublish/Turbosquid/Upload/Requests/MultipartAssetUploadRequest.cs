@@ -19,7 +19,7 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
         => new(
             asset,
             await new HttpRequestMessage(HttpMethod.Post, new UriBuilder(endpoint) { Query = "uploads" }.Uri)
-            .SignedAsyncWith(session.Draft.AWS, includeAcl: true),
+            .SignedAsyncWith(session.AWS, includeAcl: true),
             endpoint, session, partsCount);
 
     MultipartAssetUploadRequest(
@@ -39,7 +39,7 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
         string uploadId = await RequestUploadIDAsync();
 
         var assetPartsUploadRequests = await
-            CreateAssetPartsUploadRequestsAsyncFor(_asset, UploadEndpoint, Session.Draft.AWS, uploadId, _partsCount, Session.CancellationToken);
+            CreateAssetPartsUploadRequestsAsyncFor(_asset, UploadEndpoint, Session.AWS, uploadId, _partsCount, Session.CancellationToken);
         var multipartAssetUploadResult = await UploadAssetPartsAsyncUsing(assetPartsUploadRequests);
 
         await CompleteMultipartUploadAsync(uploadId, multipartAssetUploadResult);
@@ -98,7 +98,7 @@ internal class MultipartAssetUploadRequest : AssetUploadRequest, IDisposable
     {
         var multipartUploadCompletionRequest = await new HttpRequestMessage(HttpMethod.Post, $"{UploadEndpoint}?uploadId={uploadId}")
         { Content = new StringContent(assetMultipartUploadResult._ToXML()) }
-        .SignedAsyncWith(Session.Draft.AWS);
+        .SignedAsyncWith(Session.AWS);
 
         (await Session.Client.SendAsync(OptionsRequestFor(multipartUploadCompletionRequest), Session.CancellationToken))
             .EnsureSuccessStatusCode();

@@ -53,28 +53,3 @@ public partial record _3DProduct : IDisposable
 
     #endregion
 }
-
-public record _3DProduct<TMetadata> : _3DProduct
-{
-    public long ID { get; internal set; } = default;
-    internal _3DProduct(_3DProduct _3DProduct, TMetadata metadata)
-        : base(_3DProduct)
-    { Metadata = metadata; }
-    public readonly TMetadata Metadata;
-}
-
-public record _3DProduct<TProductMetadata, TModelsMetadata> : _3DProduct<TProductMetadata>
-    where TModelsMetadata : _3DModel.IMetadata
-{
-    new public List<_3DModel<TModelsMetadata>> _3DModels { get; }
-
-    internal _3DProduct(_3DProduct<TProductMetadata> _3DProduct, IEnumerable<TModelsMetadata> modelsMetadata)
-        : base(_3DProduct)
-    {
-        _3DModels = _3DProduct._3DModels.Join(modelsMetadata,
-            _3DModel => _3DModel.Name(),
-            metadata => metadata.Name,  // IMetadata.Name is used here.
-            (_3DModel, metadata) => new _3DModel<TModelsMetadata>(_3DModel, metadata))
-            .ToList();
-    }
-}

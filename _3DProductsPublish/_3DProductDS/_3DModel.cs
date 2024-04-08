@@ -36,24 +36,4 @@ public partial record _3DModel(string Path) : I3DProductAsset, IDisposable
     bool _isDisposed;
 
     #endregion
-
-    public interface IMetadata { string Name { get; } }
-}
-
-public partial record _3DModel<TMetadata> : _3DModel
-    where TMetadata : _3DModel.IMetadata
-{
-    internal readonly TMetadata Metadata;
-
-    internal _3DModel(_3DModel _3DModel, TMetadata metadata)
-        : base(_3DModel)
-    {
-        Metadata = metadata;
-    }
-
-    protected _3DModel(_3DModel<TMetadata> _3DModel)
-        : base(_3DModel)
-    {
-        Metadata = _3DModel.Metadata;
-    }
 }
