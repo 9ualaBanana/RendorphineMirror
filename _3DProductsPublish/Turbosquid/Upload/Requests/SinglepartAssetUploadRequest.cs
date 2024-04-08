@@ -9,7 +9,7 @@ internal class SinglepartAssetUploadRequest : AssetUploadRequest
         => new(
             await new HttpRequestMessage(HttpMethod.Put, endpoint)
             { Content = new StreamContent(asset) }
-            .SignedAsyncWith(session.Draft.AWS, includeAcl: true),
+            .SignedAsyncWith(session.AWS, includeAcl: true),
             endpoint, session);
 
     SinglepartAssetUploadRequest(HttpRequestMessage assetUploadRequest, Uri endpoint, TurboSquid.PublishSession session)

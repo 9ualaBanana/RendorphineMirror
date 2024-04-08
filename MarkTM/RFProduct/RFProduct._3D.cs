@@ -29,7 +29,8 @@ public partial record RFProduct
             draft,
             awaiting_review,
             suspended_awaiting_review,
-            online
+            online,
+            deleted
         }
 
 

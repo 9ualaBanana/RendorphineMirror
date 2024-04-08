@@ -150,11 +150,11 @@ public static class StringExtensions
         return value == "null" ? null : value;
     }
 
-    public static async Task UpdateSalesAsync(this RFProduct rfProduct, IEnumerable<TurboSquid.SaleReport> saleReports, CancellationToken cancellationToken)
+    public static async Task UpdateSalesAsync(this RFProduct rfProduct, IEnumerable<TurboSquid.SaleReport> saleReports, TurboSquid client, CancellationToken cancellationToken)
     {
         var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
-        var _3DProduct = await rfProduct.ToTurboSquid3DProductAsync(cancellationToken);
-        var productID = TurboSquid._3DProduct.Metadata__.File.For(_3DProduct).Read().ProductID;
+        var _3DProduct = await rfProduct.ToTurboSquid3DProductAsync(client, cancellationToken);
+        var productID = _3DProduct.Tracker.Data.ProductID;
         var jSales = await File.ReadAllTextAsync(idea.Sales, cancellationToken) is string contents && contents.Length is not 0 ?
             JArray.Parse(contents) : [];
         foreach (var saleReport in saleReports.Where(_ => _.ProductID == productID))

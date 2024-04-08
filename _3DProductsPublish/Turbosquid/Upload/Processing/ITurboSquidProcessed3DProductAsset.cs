@@ -1,10 +1,15 @@
 ﻿using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.Turbosquid._3DModelComponents;
 using MarkTM.RFProduct;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Processing;
 
 internal interface ITurboSquidProcessed3DProductAsset : I3DProductAsset;
+/// <summary>
+/// <see cref="I3DProductAsset"/> associated with the unique <see cref="FileId"/>.
+/// </summary>
+/// <remarks>
+/// <see cref="FileId"/> is assigned after the asset has been uploaded and processed by turbosquid.
+/// </remarks>
 internal interface ITurboSquidProcessed3DProductAsset<TAsset> : ITurboSquidProcessed3DProductAsset
     where TAsset : I3DProductAsset
 {
@@ -21,7 +26,7 @@ static class TurboSquidProcessed3DProductAssetFactory
         where TAsset : I3DProductAsset
         => asset switch
         {
-            _3DModel<TurboSquid3DModelMetadata> _3DModel =>
+            _3DModel _3DModel =>
                 new TurboSquidProcessed3DModel(_3DModel, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>,
             _3DProductThumbnail thumbnail =>
                 new TurboSquidProcessed3DProductThumbnail(thumbnail, fileId) as ITurboSquidProcessed3DProductAsset<TAsset>,
@@ -31,18 +36,17 @@ static class TurboSquidProcessed3DProductAssetFactory
         } ?? throw new ArgumentNullException(nameof(asset));
 }
 
-public record TurboSquidProcessed3DModel : _3DModel<TurboSquid3DModelMetadata>,
-    ITurboSquidProcessed3DProductAsset<_3DModel<TurboSquid3DModelMetadata>>
+public record TurboSquidProcessed3DModel : _3DModel,
+    ITurboSquidProcessed3DProductAsset<_3DModel>
 {
     public long FileId { get; }
-    public _3DModel<TurboSquid3DModelMetadata> Asset { get; }
+    public _3DModel Asset { get; }
 
-    internal TurboSquidProcessed3DModel(_3DModel<TurboSquid3DModelMetadata> _3DModel, long fileId)
+    internal TurboSquidProcessed3DModel(_3DModel _3DModel, long fileId)
         : base(_3DModel)
     {
         FileId = fileId;
         Asset = _3DModel;
-        _3DModel.Metadata.ID = fileId;
     }
 }
 

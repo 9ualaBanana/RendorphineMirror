@@ -90,41 +90,38 @@ public partial class TurboSquid
             public UnwrappedUVs_? UnwrappedUVs { get; }
             internal Dictionary<string, int> Features { get; } = [];
 
-            public JObject ToProductForm(long draftId, string status)
-            {
-                var productForm = JObject.FromObject(new
-                {
-                    alpha_channel = false,
-                    animated = Animated,
-                    biped = false,
-                    certifications = Array.Empty<string>(),
-                    color_depth = 0,
-                    description = Description,
-                    display_tags = string.Join(' ', Tags),
-                    draft_id = draftId.ToString(),
-                    frame_rate = 0,
-                    height = (string?)null,
-                    length = (string?)null,
-                    license = License.ToString(),
-                    loopable = false,
-                    materials = Materials,
-                    multiple_layers = false,
-                    name = Title,
-                    polygons = Polygons.ToString(),
-                    price = Price.ToString("0.00"),
-                    rigged = Rigged,
-                    status,
-                    textures = Textures,
-                    tileable = false,
-                    uv_mapped = UVMapped,
-                    vertices = Vertices.ToString(),
-                    width = (string?)null
-                });
-                productForm.Add("geometry", Geometry is not null ? new JValue(Geometry.ToString()) : new JValue(0));
-                productForm.Add("unwrapped_u_vs", UnwrappedUVs is not null ? new JValue(UnwrappedUVs.ToString()) : new JValue(0));
-
-                return productForm;
-            }
+            internal JObject ToProductForm(_3DProduct _3DProduct)
+                => JObject.FromObject(
+                    new
+                    {
+                        alpha_channel = false,
+                        animated = Animated,
+                        biped = false,
+                        certifications = Array.Empty<string>(),
+                        color_depth = 0,
+                        description = Description,
+                        display_tags = string.Join(' ', Tags),
+                        draft_id = _3DProduct.Tracker.Data.DraftID.ToString(),
+                        frame_rate = 0,
+                        height = (string?)null,
+                        length = (string?)null,
+                        license = License.ToString(),
+                        loopable = false,
+                        materials = Materials,
+                        multiple_layers = false,
+                        name = Title,
+                        polygons = Polygons.ToString(),
+                        price = Price.ToString("0.00"),
+                        rigged = Rigged,
+                        status = _3DProduct.Tracker.Data.Status.ToString(),
+                        textures = Textures,
+                        tileable = false,
+                        uv_mapped = UVMapped,
+                        vertices = Vertices.ToString(),
+                        width = (string?)null,
+                        geometry = Geometry is not null ? new JValue(Geometry.ToString()) : new JValue(0),
+                        unwrapped_u_vs = UnwrappedUVs is not null ? new JValue(UnwrappedUVs.ToString()) : new JValue(0),
+                    });
 
 
             public enum License_

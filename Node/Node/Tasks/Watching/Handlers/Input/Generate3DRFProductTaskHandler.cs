@@ -288,7 +288,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                 var sales = await turbo.SaleReports.ScanAsync(token).ToArrayAsync(token);
 
                 foreach (var product in rfpgroup)
-                    await product.UpdateSalesAsync(sales.SelectMany(s => s.SaleReports).ToArray(), token);
+                    await product.UpdateSalesAsync(sales.SelectMany(s => s.SaleReports).ToArray(), turbo, token);
 
                 //await (await MPAnalytics.LoginAsync(mpcreds, token)).SendAsync(sales.ToAsyncEnumerable(), token);
             }

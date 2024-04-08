@@ -20,29 +20,29 @@ internal partial class TurboSquid3DProductAssetProcessing
             internal static Payload For(I3DProductAsset asset, string uploadKey, TurboSquid.PublishSession session)
                 => asset switch
                 {
-                    _3DModel<TurboSquid3DModelMetadata> _3DModel => Payload.For(_3DModel, uploadKey, session),
+                    _3DProductDS._3DModel _3DModel => Payload.For(_3DModel, uploadKey, session),
                     _3DProductThumbnail thumbnail => Payload.For(thumbnail, uploadKey, session),
                     _3DProduct.Textures_ textures => Payload.For(textures, uploadKey, session),
                     _ => throw new NotImplementedException()
                 };
 
-            static Payload For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, TurboSquid.PublishSession session)
-                => Payload.For(_3DModel, uploadKey, session.Draft.LocalProduct.DraftID, session.Client.Credential.AuthenticityToken);
-            static Payload For(_3DModel<TurboSquid3DModelMetadata> _3DModel, string uploadKey, long draftId, string authenticityToken)
+            static Payload._3DModel For(_3DProductDS._3DModel _3DModel, string uploadKey, TurboSquid.PublishSession session)
+                => Payload.For(_3DModel, session._3DProduct.Tracker.Model(_3DModel)._, uploadKey, session._3DProduct.Tracker.Data.DraftID, session.Client.Credential.AuthenticityToken);
+            static Payload._3DModel For(_3DProductDS._3DModel _3DModel, TurboSquid3DModelMetadata metadata, string uploadKey, long draftId, string authenticityToken)
             {
                 using var archived3DModel = File.OpenRead(_3DModel.Archived);
                 return new Payload._3DModel(uploadKey, draftId, archived3DModel.Name, archived3DModel.Length, authenticityToken,
-                    _3DModel.Metadata.FileFormat, _3DModel.Metadata.FormatVersion, _3DModel.Metadata.Renderer, _3DModel.Metadata.RendererVersion, _3DModel.Metadata.IsNative);
+                    metadata.FileFormat, metadata.FormatVersion, metadata.Renderer, metadata.RendererVersion, metadata.IsNative);
             }
 
-            static Payload For(_3DProductThumbnail thumbnail, string uploadKey, TurboSquid.PublishSession session)
-                => Payload.For(thumbnail, uploadKey, session.Draft.LocalProduct.DraftID, session.Client.Credential.AuthenticityToken);
-            static Payload For(_3DProductThumbnail thumbnail, string uploadKey, long draftId, string authenticityToken)
+            static Payload.Thumbnail For(_3DProductThumbnail thumbnail, string uploadKey, TurboSquid.PublishSession session)
+                => Payload.For(thumbnail, uploadKey, session._3DProduct.Tracker.Data.DraftID, session.Client.Credential.AuthenticityToken);
+            static Payload.Thumbnail For(_3DProductThumbnail thumbnail, string uploadKey, long draftId, string authenticityToken)
                 => new Payload.Thumbnail(uploadKey, draftId, thumbnail.Name(), thumbnail.Size(), TurboSquidProcessed3DProductThumbnail.PreprocessedType(thumbnail).ToString(), authenticityToken);
 
-            static Payload For(_3DProduct.Textures_ texture, string uploadKey, TurboSquid.PublishSession session)
-                => Payload.For(texture, uploadKey, session.Draft.LocalProduct.DraftID, session.Client.Credential.AuthenticityToken);
-            static Payload For(_3DProduct.Textures_ textures, string uploadKey, long draftId, string authenticityToken)
+            static Payload.Texture For(_3DProduct.Textures_ texture, string uploadKey, TurboSquid.PublishSession session)
+                => Payload.For(texture, uploadKey, session._3DProduct.Tracker.Data.DraftID, session.Client.Credential.AuthenticityToken);
+            static Payload.Texture For(_3DProduct.Textures_ textures, string uploadKey, long draftId, string authenticityToken)
                 => new Payload.Texture(uploadKey, draftId, textures.Name(), textures.Size(), authenticityToken);
 
             internal Payload(
