@@ -193,7 +193,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             return true;
         }
 
-        var submitStatus = ((RFProduct._3D.Idea_) rfproduct.Idea).Status;
+        var submitStatus = ((RFProduct._3D.Idea_)rfproduct.Idea).Status;
+        //var submitStatus = rfproduct.ToTurboSquid3DProductAsync(null, default).GetAwaiter().GetResult().Tracker.Data.Status;
         if (submitStatus == RFProduct._3D.Status.none)
         {
             Logger.Info(submitStatus + " submit status, reWOUDING");

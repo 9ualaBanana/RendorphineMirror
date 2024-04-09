@@ -130,9 +130,9 @@ public partial class TurboSquid : HttpClient
     }
 }
 
-static class TurboSquid3DProductExtensions
+public static class TurboSquid3DProductExtensions
 {
-    internal static async Task<TurboSquid._3DProduct> ToTurboSquid3DProductAsync(this RFProduct rfProduct, TurboSquid client, CancellationToken cancellationToken)
+    public static async Task<TurboSquid._3DProduct> ToTurboSquid3DProductAsync(this RFProduct rfProduct, TurboSquid client, CancellationToken cancellationToken)
     {
         var idea = (RFProduct._3D.Idea_)rfProduct.Idea;
         var metadata = JObject.Parse(File.ReadAllText(idea.Metadata)).ToObject<_3DProduct.Metadata_>(JsonSerializer.CreateDefault(new() { MissingMemberHandling = MissingMemberHandling.Ignore}))!;
