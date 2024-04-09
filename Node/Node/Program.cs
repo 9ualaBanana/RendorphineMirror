@@ -31,6 +31,9 @@ using Node;
 using Node.Services.Targets;
 using SevenZip;
 
+if (OperatingSystem.IsWindows())
+    CefInitializer.Initialize();
+
 if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
     foreach (var proc in FileList.GetAnotherInstances())
         proc.Kill(true);

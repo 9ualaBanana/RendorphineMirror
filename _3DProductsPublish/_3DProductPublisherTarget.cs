@@ -4,7 +4,6 @@ using _3DProductsPublish.Turbosquid;
 using Autofac;
 using Autofac.Builder;
 using Autofac.Core;
-using CefSharp.OffScreen;
 
 namespace _3DProductsPublish;
 
@@ -14,12 +13,6 @@ public class _3DProductPublisherTarget : IDelayedServiceTarget
 
     public required CGTraderTarget CGTrader { get; init; }
     public required TurboSquidTarget TurboSquid { get; init; }
-
-    public void Activated()
-    {
-        if (OperatingSystem.IsWindows())
-            CefSharp.Cef.Initialize(new CefSettings { PersistSessionCookies = true, CachePath = Path.GetFullPath("cef_cache") });
-    }
 
 
     public class CGTraderTarget : IDelayedServiceTarget
