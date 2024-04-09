@@ -64,7 +64,7 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
                 string captchaVerifiedTokenResponse = TurboSquidCaptchaVerifiedToken.Response.GetAsync(cancellationToken).Result;
                 string captchaVerifiedToken = TurboSquidCaptchaVerifiedToken._Parse(captchaVerifiedTokenResponse);
 
-                browser._DumpCookiesTo(_socketsHttpHandler.CookieContainer);
+                browser.DumpCookiesTo(_socketsHttpHandler.CookieContainer);
 
                 credential_ = new(credential, csrfToken, applicationUserId, captchaVerifiedToken);
             });
@@ -156,7 +156,7 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
 
 static class RedirectHttpResponseMessageExtensions
 {
-    static Logger _logger = LogManager.GetCurrentClassLogger();
+    readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
     internal static HttpResponseMessage _EnsureRedirectStatusCode(this HttpResponseMessage response)
     {
@@ -166,10 +166,8 @@ static class RedirectHttpResponseMessageExtensions
         else return response;
     }
 
-    internal static async Task<HttpResponseMessage> _FollowRedirectWith(
-        this HttpResponseMessage response,
-        HttpClient httpClient,
-        CancellationToken cancellationToken) => await httpClient.GetAsync(response.Headers.Location!, cancellationToken);
+    internal static async Task<HttpResponseMessage> _FollowRedirectWith(this HttpResponseMessage response, HttpClient httpClient, CancellationToken cancellationToken)
+        => await httpClient.GetAsync(response.Headers.Location!, cancellationToken);
 
     internal static HttpResponseMessage SetCookies(this HttpResponseMessage response, SocketsHttpHandler handler)
     {

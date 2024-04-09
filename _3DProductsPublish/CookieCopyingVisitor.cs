@@ -30,6 +30,6 @@ internal class CookieCopyingVisitor : ICookieVisitor
 
 internal static class CookieHelperExtensions
 {
-    internal static void _DumpCookiesTo(this ChromiumWebBrowser browser, CookieContainer cookieContainer) =>
+    internal static void DumpCookiesTo(this ChromiumWebBrowser browser, CookieContainer cookieContainer) =>
         browser.GetCookieManager().VisitAllCookies(new CookieCopyingVisitor(cookieContainer));
 }
