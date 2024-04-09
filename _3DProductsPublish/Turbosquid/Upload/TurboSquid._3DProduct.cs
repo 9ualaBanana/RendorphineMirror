@@ -7,7 +7,7 @@ public partial class TurboSquid
     public partial record _3DProduct : _3DProductDS._3DProduct
     {
         public Metadata__ Metadata { get; }
-        internal Tracker_ Tracker { get; init; }
+        public Tracker_ Tracker { get; init; }
 
         public _3DProduct(_3DProductDS._3DProduct _3DProduct, Metadata__ metadata)
             : base(_3DProduct)
