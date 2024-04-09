@@ -27,12 +27,10 @@ global using NodeToUI;
 global using Logger = NLog.Logger;
 global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
-using CefSharp.OffScreen;
 using Node;
 using Node.Services.Targets;
 using SevenZip;
 
-CefSharp.Cef.Initialize(new CefSettings { PersistSessionCookies = true, CachePath = Path.GetFullPath("cef_cache") });
 if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
     foreach (var proc in FileList.GetAnotherInstances())
         proc.Kill(true);
