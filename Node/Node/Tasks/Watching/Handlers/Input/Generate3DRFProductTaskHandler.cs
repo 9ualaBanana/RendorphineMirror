@@ -144,10 +144,10 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
     static RFProduct._3D.Status? GetStatus(string productDir)
     {
-        var stateFile = Directory.GetFiles(productDir).FirstOrDefault(d => d.Contains("_Status.json"));
-        if (stateFile is null) return null;
+        var metafile = Path.Combine(productDir, "meta.json");
+        if (!File.Exists(metafile)) return null;
 
-        return JObject.Parse(stateFile)?["status"]?.ToObject<RFProduct._3D.Status>();
+        return JObject.Parse(metafile)?["Status"]?.ToObject<RFProduct._3D.Status>();
     }
 
     void BumpSubmitJsonVersion(RFProduct rfproduct)
@@ -193,9 +193,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             return true;
         }
 
-        var submitStatus = ((RFProduct._3D.Idea_)rfproduct.Idea).Status;
-        //var submitStatus = rfproduct.ToTurboSquid3DProductAsync(null, default).GetAwaiter().GetResult().Tracker.Data.Status;
-        if (submitStatus == RFProduct._3D.Status.none)
+        var submitStatus = GetStatus(rfproduct.Idea.Path);
+        if (submitStatus is null or RFProduct._3D.Status.none)
         {
             Logger.Info(submitStatus + " submit status, reWOUDING");
             return true;
@@ -376,7 +375,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         foreach (var (path, _) in data)
         {
-            if (path.Contains("_Status.")) continue;
             if (path.Contains("meta.json")) continue;
             if (path.Contains("publish_exception")) continue;
 
@@ -387,7 +385,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         foreach (var (path, info) in prevdirstr.Parts)
         {
             // submit file and meta.json are being updated so exclude them from the check
-            if (path.Contains("_Status.")) continue;
             if (path.Contains("meta.json")) continue;
             if (path.Contains("publish_exception")) continue;
 
