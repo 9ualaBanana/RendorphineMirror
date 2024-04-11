@@ -58,7 +58,7 @@ public partial class TurboSquid
             {
                 var file = new FileInfo(Path);
                 file.Delete();
-                file.Create();
+                file.Create().Dispose();
                 Data = Read();
             }
 
