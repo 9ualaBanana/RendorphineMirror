@@ -58,7 +58,7 @@ public partial class TurboSquid
             {
                 var file = new FileInfo(Path);
                 file.Delete();
-                file.Create();
+                file.Create().Dispose();
                 Data = Read();
             }
 
@@ -79,6 +79,7 @@ public partial class TurboSquid
                 [JsonConverter(typeof(StringEnumConverter))]
                 public Status Status { get; set; }
                 public string? Product => ProductID is not 0 ? $"https://www.turbosquid.com/FullPreview/{ProductID}" : null;
+                public string Artist { get; set; }
                 public long ProductID { get; set; }
                 public long DraftID { get; set; }
                 public Category_? Category { get; set; }
