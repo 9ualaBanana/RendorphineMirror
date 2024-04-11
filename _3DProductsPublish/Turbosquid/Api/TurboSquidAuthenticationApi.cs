@@ -75,12 +75,13 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
         }
     }
 
-    internal async Task _LoginAsyncUsing(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
+    internal async Task<HttpResponseMessage> LoginAsync(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
     {
         try
         {
-            await _LoginAsyncCoreUsing(credential, cancellationToken);
+            var response = await LoginAsyncCore();
             _logger.Debug("{User} is successfully logged in.", credential.UserName);
+            return response;
         }
         catch (Exception ex)
         {
@@ -88,63 +89,69 @@ internal class TurboSquidAuthenticationApi : IBaseAddressProvider
             _logger.Error(ex, errorMessage);
             throw new Exception(errorMessage, ex);
         }
+
+
+        async Task<HttpResponseMessage> LoginAsyncCore()
+        {
+            var loginResponse = await _socketsHttpHandler.CookieContainer
+                .RememberCookieAndRemoveAsyncAfter(async () => await SignInAsync(),
+                "_keymaster_session");
+
+            return (await (_IsRedirectTo2FA(loginResponse) ? SignInWith2FAAsync() :
+                (await _socketsHttpHandler.CookieContainer.RememberCookieAndRemoveAsyncAfter(async ()
+                    => await (await loginResponse.FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken)).FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken),
+                    "_turbosquid_artist_session"))
+                    .FollowRedirectWith(_httpClient, cancellationToken)))
+                .EnsureSuccessStatusCode();
+
+
+            async Task<HttpResponseMessage> SignInAsync() =>
+                (await _noAutoRedirectHttpClient.PostAsync(
+                    (this as IBaseAddressProvider).Endpoint("/users/sign_in?locale=en"),
+                    credential._ToLoginMultipartFormData(),
+                    cancellationToken))
+                .EnsureRedirectStatusCode();
+
+            async Task<HttpResponseMessage> SignInWith2FAAsync()
+            {
+                var _2faForm = await Get2FAFormAsync();
+                var updatedCsrfToken = AuthenticityToken.ParseFromMetaTag(_2faForm);
+                string verificationCode = (await _nodeGui.Request<string>(new InputRequest($"Please input the code for TurboSquid from your e-mail ({credential.UserName})"), cancellationToken)).Result;
+
+                return await SignInWith2FAAsyncCore(verificationCode, credential.WithUpdated(updatedCsrfToken), cancellationToken);
+
+
+                async Task<string> Get2FAFormAsync() => await
+                    (await _httpClient.GetAsync(
+                        (this as IBaseAddressProvider).Endpoint("/users/two_factor_authentication?locale=en"),
+                        cancellationToken))
+                    .EnsureSuccessStatusCode()
+                    .Content.ReadAsStringAsync(cancellationToken);
+
+                async Task<HttpResponseMessage> SignInWith2FAAsyncCore(string verificationCode, TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
+                {
+                    var redirectingResponse = await Send2FAVerificationCodeFromEmailAsync(verificationCode);
+                    redirectingResponse = (await redirectingResponse.FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken))
+                        .EnsureRedirectStatusCode();
+
+                    redirectingResponse = (await _socketsHttpHandler.CookieContainer.RememberCookieAndRemoveAsyncAfter(
+                        async () => await redirectingResponse.FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken),
+                        "_turbosquid_artist_session"))
+                    .EnsureRedirectStatusCode();
+
+                    return (await redirectingResponse.FollowRedirectWith(_httpClient, cancellationToken)).EnsureSuccessStatusCode();
+
+
+                    async Task<HttpResponseMessage> Send2FAVerificationCodeFromEmailAsync(string verificationCode)
+                        => (await _noAutoRedirectHttpClient.PostAsync(
+                            (this as IBaseAddressProvider).Endpoint("/users/two_factor_authentication.user?locale=en"),
+                            credential._To2FAFormUrlEncodedContentWith(verificationCode),
+                            cancellationToken))
+                        .EnsureRedirectStatusCode();
+                }
+            }
+        }
     }
-
-    async Task _LoginAsyncCoreUsing(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
-    {
-        var loginResponse = await _socketsHttpHandler.CookieContainer._RememberCookieAndRemoveAsyncAfter(
-            async () => await _SignInAsync(credential, cancellationToken),
-            "_keymaster_session");
-
-        if (_IsRedirectTo2FA(loginResponse)) await _SignInWith2FAAsync(credential, cancellationToken);
-        else await loginResponse._FollowRedirectWith(_httpClient, cancellationToken);
-    }
-
-    async Task<HttpResponseMessage> _SignInAsync(TurboSquidNetworkCredential credential, CancellationToken cancellationToken) =>
-        (await _noAutoRedirectHttpClient.PostAsync(
-            (this as IBaseAddressProvider).Endpoint("/users/sign_in?locale=en"),
-            credential._ToLoginMultipartFormData(),
-            cancellationToken))
-        ._EnsureRedirectStatusCode();
-
-    async Task _SignInWith2FAAsync(TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
-    {
-        var _2faForm = await _Get2FAFormAsync(cancellationToken);
-        var updatedCsrfToken = AuthenticityToken.ParseFromMetaTag(_2faForm);
-        string verificationCode = (await _nodeGui.Request<string>(new InputRequest($"Please input the code for TurboSquid from your e-mail ({credential.UserName})"), cancellationToken)).Result;
-
-        await _SignInWith2FAAsyncCore(verificationCode, credential.WithUpdated(updatedCsrfToken), cancellationToken);
-    }
-
-    async Task<string> _Get2FAFormAsync(CancellationToken cancellationToken) => await
-        (await _httpClient.GetAsync(
-            (this as IBaseAddressProvider).Endpoint("/users/two_factor_authentication?locale=en"),
-            cancellationToken))
-        .EnsureSuccessStatusCode()
-        .Content.ReadAsStringAsync(cancellationToken);
-
-    async Task _SignInWith2FAAsyncCore(string verificationCode, TurboSquidNetworkCredential credential, CancellationToken cancellationToken)
-    {
-        var redirectingResponse = await _Send2FAVerificationCodeFromEmailAsync(verificationCode, credential, cancellationToken);
-        redirectingResponse = (await redirectingResponse._FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken))
-            ._EnsureRedirectStatusCode();
-
-        redirectingResponse = (await _socketsHttpHandler.CookieContainer._RememberCookieAndRemoveAsyncAfter(
-            async () => await redirectingResponse._FollowRedirectWith(_noAutoRedirectHttpClient, cancellationToken),
-            "_turbosquid_artist_session"))
-        ._EnsureRedirectStatusCode();
-
-        (await redirectingResponse._FollowRedirectWith(_httpClient, cancellationToken)).EnsureSuccessStatusCode();
-    }
-
-    async Task<HttpResponseMessage> _Send2FAVerificationCodeFromEmailAsync(
-        string verificationCode,
-        TurboSquidNetworkCredential credential,
-        CancellationToken cancellationToken) => (await _noAutoRedirectHttpClient.PostAsync(
-            (this as IBaseAddressProvider).Endpoint("/users/two_factor_authentication.user?locale=en"),
-            credential._To2FAFormUrlEncodedContentWith(verificationCode),
-            cancellationToken))
-        ._EnsureRedirectStatusCode();
 
     #region Helpers
 
@@ -158,7 +165,7 @@ static class RedirectHttpResponseMessageExtensions
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-    internal static HttpResponseMessage _EnsureRedirectStatusCode(this HttpResponseMessage response)
+    internal static HttpResponseMessage EnsureRedirectStatusCode(this HttpResponseMessage response)
     {
         _logger.Debug($"{response.StatusCode} {response.Content}");
         if ((int) response.StatusCode < 300 || (int) response.StatusCode >= 400)
@@ -166,7 +173,7 @@ static class RedirectHttpResponseMessageExtensions
         else return response;
     }
 
-    internal static async Task<HttpResponseMessage> _FollowRedirectWith(this HttpResponseMessage response, HttpClient httpClient, CancellationToken cancellationToken)
+    internal static async Task<HttpResponseMessage> FollowRedirectWith(this HttpResponseMessage response, HttpClient httpClient, CancellationToken cancellationToken)
         => await httpClient.GetAsync(response.Headers.Location!, cancellationToken);
 
     internal static HttpResponseMessage SetCookies(this HttpResponseMessage response, SocketsHttpHandler handler)
@@ -197,7 +204,7 @@ static class RedirectHttpResponseMessageExtensions
     /// <param name="request">The request after which the cookie with <paramref name="cookieName"/> should be removed.</param>
     /// <param name="cookieName">The name of the cookie that should be removed after the <paramref name="request"/>.</param>
     /// <returns>The response received from the <paramref name="request"/>.</returns>
-    internal static async Task<HttpResponseMessage> _RememberCookieAndRemoveAsyncAfter(
+    internal static async Task<HttpResponseMessage> RememberCookieAndRemoveAsyncAfter(
         this CookieContainer cookieContainer,
         Func<Task<HttpResponseMessage>> request,
         string cookieName)

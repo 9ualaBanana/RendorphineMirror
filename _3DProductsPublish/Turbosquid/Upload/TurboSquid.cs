@@ -2,7 +2,6 @@
 using _3DProductsPublish.Turbosquid.Api;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using MarkTM.RFProduct;
-using Microsoft.Net.Http.Headers;
 using System.Collections.Concurrent;
 using System.Net;
 using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
@@ -18,6 +17,7 @@ public partial class TurboSquid : HttpClient
     internal readonly HttpClient _noAutoRedirectHttpClient;
 
     public required TurboSquidNetworkCredential Credential { get; init; }
+    internal Uri ArtistPortfolio { get; set; }
 
     // TODO: Implement lazy authentication.
     public SaleReports_ SaleReports { get; private set; } = null!;
@@ -26,26 +26,40 @@ public partial class TurboSquid : HttpClient
     {
         var handler = new SocketsHttpHandler();
         var authenticationApi = new TurboSquidAuthenticationApi(handler, nodeGui);
-        var client = new TurboSquid(handler) { Credential = await authenticationApi.RequestTurboSquidNetworkCredentialAsync(credential, cancellationToken) };
-        await authenticationApi._LoginAsyncUsing(client.Credential, cancellationToken);
+        var tscredential = await authenticationApi.RequestTurboSquidNetworkCredentialAsync(credential, cancellationToken);
+        var loginResponse = await authenticationApi.LoginAsync(tscredential, cancellationToken);
+        var client = new TurboSquid(handler) { Credential = tscredential };
+        var dashboard = loginResponse.RequestMessage.RequestUri.AbsolutePath.EndsWith("dashboard") ?
+            await loginResponse.Content.ReadAsStringAsync(cancellationToken) :
+            await client.Dashboard(cancellationToken);
+        client.ArtistPortfolio = ParseArtistPortfolioUri(await loginResponse.Content.ReadAsStringAsync(cancellationToken));
         // client_uid header gets duplicated for two different domains: www.squid.io and auth.turbosquid.com.
 
         client.SaleReports = await SaleReports_.LoginAsync(client, cancellationToken);
 
         return client;
+
+
+        static Uri ParseArtistPortfolioUri(string dashboardPage)
+        {
+            var index = dashboardPage.EndIndexOf(";gon.turbosquid_artist_search_url=");
+            var portfolio = dashboardPage[index..dashboardPage.IndexOf(';', index)].Trim('"');
+            return new(portfolio);
+        }
     }
+
+    internal async Task<string> Dashboard(CancellationToken cancellationToken)
+        => await this.GetStringAndUpdateAuthenticityTokenAsync("turbosquid/dashboard", cancellationToken);
 
     TurboSquid(SocketsHttpHandler handler) : base(handler)
     {
         Handler = handler;
         BaseAddress = Origin;
-        DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
         _noAutoRedirectHttpClient = new HttpClient(new SocketsHttpHandler()
         {
             AllowAutoRedirect = false,
             CookieContainer = handler.CookieContainer
         });
-        _noAutoRedirectHttpClient.DefaultRequestHeaders.Add(HeaderNames.UserAgent, "gualabanana");
     }
 
     readonly ConcurrentDictionary<string, ManualResetEventSlim> _productsLocker = [];
@@ -140,7 +154,7 @@ public static class TurboSquid3DProductExtensions
                 idea.Packages.Select(_ => new _3DModel(_)).ToList(),
                 idea.Renders.Select(_ => new _3DProductThumbnail(_)).ToList(),
                 []);
-        return new TurboSquid._3DProduct(
+        var ts3DProduct = new TurboSquid._3DProduct(
             _3DProduct,
             new TurboSquid._3DProduct.Metadata__(
                 Status(),
@@ -161,7 +175,9 @@ public static class TurboSquid3DProductExtensions
                 metadata.UVMapped,
                 UnwrappedUVs())
             );
-
+        ts3DProduct.Tracker.Data.Artist = client.ArtistPortfolio.ToString();
+        ts3DProduct.Tracker.Write();
+        return ts3DProduct;
 
 
         RFProduct._3D.Status Status() => metadata.StatusSquid.ToLowerInvariant() switch
