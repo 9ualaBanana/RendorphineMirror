@@ -32,7 +32,7 @@ public partial class TurboSquid : HttpClient
         var dashboard = loginResponse.RequestMessage.RequestUri.AbsolutePath.EndsWith("dashboard") ?
             await loginResponse.Content.ReadAsStringAsync(cancellationToken) :
             await client.Dashboard(cancellationToken);
-        client.ArtistPortfolio = ParseArtistPortfolioUri(await loginResponse.Content.ReadAsStringAsync(cancellationToken));
+        client.ArtistPortfolio = ParseArtistPortfolioUri(dashboard);
         // client_uid header gets duplicated for two different domains: www.squid.io and auth.turbosquid.com.
 
         client.SaleReports = await SaleReports_.LoginAsync(client, cancellationToken);
