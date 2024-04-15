@@ -1,14 +1,13 @@
-﻿using _3DProductsPublish._3DProductDS;
-using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
+﻿using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
 
 namespace _3DProductsPublish.CGTrader._3DModelComponents;
 
 public record CGTrader3DProductCategory
 {
-    public readonly _3DProduct.Metadata_.Category_ Category;
-    public readonly _3DProduct.Metadata_.Category_ SubCategory;
+    public readonly Category_ Category;
+    public readonly Category_ SubCategory;
 
-    CGTrader3DProductCategory(_3DProduct.Metadata_.Category_ category, _3DProduct.Metadata_.Category_ subCategory) =>
+    CGTrader3DProductCategory(Category_ category, Category_ subCategory) =>
         (Category, SubCategory) = (category, subCategory);
 
     public static CGTrader3DProductCategory Aircraft(AircraftSubCategory subCategory) => new(new Category_(nameof(Aircraft), 1), new Category_(Enum.GetName(subCategory)!, (int)subCategory));

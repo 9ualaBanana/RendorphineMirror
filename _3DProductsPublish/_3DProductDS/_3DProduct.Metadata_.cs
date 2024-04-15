@@ -1,6 +1,4 @@
-﻿using _3DProductsPublish.CGTrader._3DModelComponents;
-
-namespace _3DProductsPublish._3DProductDS;
+﻿namespace _3DProductsPublish._3DProductDS;
 
 public partial record _3DProduct
 {
@@ -77,66 +75,5 @@ public partial record _3DProduct
             No,
             Unknown
         }
-    }
-}
-
-public static class _3DProductMetadataExtensions
-{
-    public static _3DProduct<CGTrader3DProductMetadata> WithCGTrader(this _3DProduct _3DProduct, _3DProduct.Metadata_ _)
-    {
-        var cgTraderMetadata = CGTrader3DProductMetadata.ForCG(
-            _.Title,
-            _.Description,
-            _.Tags,
-            Category(),
-            License(),
-            _.PriceTrader,
-            _.GameReady,
-            _.Animated,
-            _.Rigged,
-            _.PhysicallyBasedRendering,
-            _.AdultContent,
-            new(_.Polygons, _.Vertices, Geometry(), _.Collection, _.Textures, _.Materials, _.PluginsUsed, _.UVMapped, UnwrappedUVs())
-            );
-        return new _3DProduct<CGTrader3DProductMetadata>(_3DProduct, cgTraderMetadata);
-
-
-        CGTrader3DProductCategory Category()
-        {
-            return CGTrader3DProductCategory.Electoronics(ElectronicsSubCategory.Computer);
-            throw new NotImplementedException();
-        }
-
-        NonCustomCGTraderLicense License() => _.License switch
-        {
-            _3DProduct.Metadata_.License_.RoyaltyFree => NonCustomCGTraderLicense.royalty_free,
-            _3DProduct.Metadata_.License_.Editorial => NonCustomCGTraderLicense.editorial,
-            _ => throw new NotImplementedException()
-        };
-
-        Geometry_? Geometry() => _.Geometry switch
-        {
-            _3DProduct.Metadata_.Geometry_.PolygonalQuadsOnly or
-            _3DProduct.Metadata_.Geometry_.PolygonalQuadsTris or
-            _3DProduct.Metadata_.Geometry_.PolygonalTrisOnly or
-            _3DProduct.Metadata_.Geometry_.PolygonalNgonsUsed or
-            _3DProduct.Metadata_.Geometry_.Polygonal => Geometry_.polygonal_mesh,
-            _3DProduct.Metadata_.Geometry_.Subdivision => Geometry_.subdivision_ready,
-            _3DProduct.Metadata_.Geometry_.Nurbs => Geometry_.nurbs,
-            _3DProduct.Metadata_.Geometry_.Unknown => Geometry_.other,
-            null => null,
-            _ => throw new NotImplementedException()
-        };
-
-        UnwrappedUVs_? UnwrappedUVs() => _.UnwrappedUVs switch
-        {
-            _3DProduct.Metadata_.UnwrappedUVs_.NonOverlapping => UnwrappedUVs_.non_overlapping,
-            _3DProduct.Metadata_.UnwrappedUVs_.Overlapping => UnwrappedUVs_.overlapping,
-            _3DProduct.Metadata_.UnwrappedUVs_.Mixed => UnwrappedUVs_.mixed,
-            _3DProduct.Metadata_.UnwrappedUVs_.No => UnwrappedUVs_.no,
-            _3DProduct.Metadata_.UnwrappedUVs_.Unknown => UnwrappedUVs_.unknown,
-            null => null,
-            _ => throw new NotImplementedException()
-        };
     }
 }
