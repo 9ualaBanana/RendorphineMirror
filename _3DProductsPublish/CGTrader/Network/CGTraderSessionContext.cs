@@ -22,12 +22,11 @@ internal record CGTraderSessionContext
     internal static async Task<CGTraderSessionContext> _CreateAsyncUsing(
         CGTraderApi api,
         CGTraderNetworkCredential credential,
-        CancellationToken cancellationToken
-        ) => await api._RequestSessionContextAsync(credential, cancellationToken);
+        CancellationToken cancellationToken)
+            => await api.RequestSessionContextAsync(credential, cancellationToken);
 
-    internal MultipartFormDataContent _LoginMultipartFormDataWith(string captchaSolution)
-    {
-        return _asMultipartFormDataContent ??= new()
+    internal MultipartFormDataContent LoginMultipartFormDataWith(string captchaSolution)
+        => _asMultipartFormDataContent ??= new()
         {
             { new StringContent(CsrfToken), "authenticity_token" },
             { new StringContent(captchaSolution), "user[MTCaptchaToken]" },
@@ -37,6 +36,5 @@ internal record CGTraderSessionContext
             { new StringContent(Credential._RememberMe), "user[remember_me]" },
             { new StringContent(captchaSolution), "mtcaptcha-verifiedtoken" }
         };
-    }
     MultipartFormDataContent? _asMultipartFormDataContent;
 }

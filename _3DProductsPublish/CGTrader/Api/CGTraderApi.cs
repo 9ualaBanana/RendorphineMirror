@@ -9,32 +9,26 @@ using System.Net.Http.Json;
 
 namespace _3DProductsPublish.CGTrader.Api;
 
-public class CGTraderApi : IBaseAddressProvider
+public class CGTraderApi(HttpClient httpClient, CGTraderCaptchaApi captchaService) : IBaseAddressProvider
 {
     readonly static Logger _logger = LogManager.GetCurrentClassLogger();
 
-    readonly HttpClient _httpClient;
-    readonly CGTraderCaptchaApi _captchaService;
+    readonly HttpClient _httpClient = httpClient;
+    readonly CGTraderCaptchaApi _captchaService = captchaService;
 
     string IBaseAddressProvider.BaseAddress => CGTraderUri.Https;
-
-    public CGTraderApi(HttpClient httpClient, CGTraderCaptchaApi captchaService)
-    {
-        _httpClient = httpClient;
-        _captchaService = captchaService;
-    }
 
     #region Login
 
     #region SessionCredentials
 
-    internal async Task<CGTraderSessionContext> _RequestSessionContextAsync(
+    internal async Task<CGTraderSessionContext> RequestSessionContextAsync(
         CGTraderNetworkCredential credential,
         CancellationToken cancellationToken)
     {
         try
         {
-            var sessionContext = await _RequestSessionContextAsyncCore(credential, cancellationToken);
+            var sessionContext = await RequestSessionContextAsyncCore();
             _logger.Debug("Session context was received.");
             return sessionContext;
         }
@@ -43,32 +37,31 @@ public class CGTraderApi : IBaseAddressProvider
             const string errorMessage = "Session context request failed.";
             _logger.Error(ex, errorMessage); throw new Exception(errorMessage, ex);
         }
-    }
 
-    async Task<CGTraderSessionContext> _RequestSessionContextAsyncCore(
-        CGTraderNetworkCredential credential,
-        CancellationToken cancellationToken)
-    {
-        string documentWithSessionCredentials = (await _httpClient.GetStringAsync(
-            (this as IBaseAddressProvider).Endpoint("/load-services.js"), cancellationToken)
-            ).ReplaceLineEndings(string.Empty);
 
-        string csrfToken = AuthenticityToken._ParseFromJS(documentWithSessionCredentials);
-        string siteKey = CGTraderCaptchaSiteKey._Parse(documentWithSessionCredentials);
-        var captcha = await _captchaService._RequestCaptchaAsync(siteKey, cancellationToken);
+        async Task<CGTraderSessionContext> RequestSessionContextAsyncCore()
+        {
+            string documentWithSessionCredentials = (await _httpClient.GetStringAsync(
+                (this as IBaseAddressProvider).Endpoint("/load-services.js"), cancellationToken)
+                ).ReplaceLineEndings(string.Empty);
 
-        _httpClient.DefaultRequestHeaders._AddOrReplaceCsrfToken(csrfToken);
+            string csrfToken = AuthenticityToken._ParseFromJS(documentWithSessionCredentials);
+            string siteKey = CGTraderCaptchaSiteKey._Parse(documentWithSessionCredentials);
+            var captcha = await _captchaService._RequestCaptchaAsync(siteKey, cancellationToken);
 
-        return new CGTraderSessionContext(credential, csrfToken, captcha);
+            _httpClient.DefaultRequestHeaders._AddOrReplaceCsrfToken(csrfToken);
+
+            return new CGTraderSessionContext(credential, csrfToken, captcha);
+        }
     }
 
     #endregion
 
-    internal async Task _LoginAsync(CGTraderSessionContext sessionContext, CancellationToken cancellationToken)
+    internal async Task LoginAsync(CGTraderSessionContext sessionContext, CancellationToken cancellationToken)
     {
         try
         {
-            await _LoginAsyncCore(sessionContext, cancellationToken);
+            await LoginAsyncCore();
             _logger.Debug("{User} is successfully logged in.", sessionContext.Credential.UserName);
         }
         catch (HttpRequestException ex)
@@ -77,23 +70,24 @@ public class CGTraderApi : IBaseAddressProvider
             _logger.Error(ex, errorMessage);
             throw new HttpRequestException(errorMessage, ex, ex.StatusCode);
         }
-    }
 
-    async Task _LoginAsyncCore(CGTraderSessionContext sessionContext, CancellationToken cancellationToken)
-    {
-        string verifiedToken = await _captchaService._SolveCaptchaAsync(sessionContext.Captcha, cancellationToken);
-        using var _ = (await _httpClient.PostAsync(
-            (this as IBaseAddressProvider).Endpoint("/users/2fa-or-login.json"),
-            sessionContext._LoginMultipartFormDataWith(verifiedToken), cancellationToken))
-            ._EnsureSuccessStatusCodeAsync(cancellationToken);
+
+        async Task LoginAsyncCore()
+        {
+            string verifiedToken = await _captchaService._SolveCaptchaAsync(sessionContext.Captcha, cancellationToken);
+            using var _ = (await _httpClient.PostAsync(
+                (this as IBaseAddressProvider).Endpoint("/users/2fa-or-login.json"),
+                sessionContext.LoginMultipartFormDataWith(verifiedToken), cancellationToken))
+                ._EnsureSuccessStatusCodeAsync(cancellationToken);
+        }
     }
 
     #endregion
 
     #region DraftCreation
 
-    /// <inheritdoc cref="__CreateNewModelDraftAsync(CancellationToken)"/>
-    internal async Task<_3DProductDraft<CGTrader3DProductMetadata>> _CreateNewModelDraftAsyncFor(
+    /// <inheritdoc cref="__CreateNewModelDraftAsync(CGTraderSessionContext, CancellationToken)"/>
+    internal async Task<_3DProductDraft<CGTrader3DProductMetadata>> CreateNewModelDraftAsyncFor(
         _3DProduct<CGTrader3DProductMetadata> composite3DModel,
         CGTraderSessionContext sessionContext,
         CancellationToken cancellationToken)
@@ -134,7 +128,7 @@ public class CGTraderApi : IBaseAddressProvider
     {
         string requestUri = QueryHelpers.AddQueryString(
             (this as IBaseAddressProvider).Endpoint($"/api/internal/items/current-draft"), new Dictionary<string, string>()
-            { { "nocache", CaptchaRequestArguments.rt } }
+            { { "nocache", CaptchaRequestArguments.rt } }!
 );
         return (string)JObject.Parse(
             await _httpClient.GetStringAsync(requestUri, cancellationToken)
