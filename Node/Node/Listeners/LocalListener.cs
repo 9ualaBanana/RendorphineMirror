@@ -1,11 +1,7 @@
 using System.Net;
 using System.Reflection;
-using _3DProductsPublish;
-using _3DProductsPublish._3DProductDS;
 using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid;
-using _3DProductsPublish.Turbosquid.Upload;
-using MarkTM.RFProduct;
 using Node.Profiling;
 using Node.Tasks.Exec.Input;
 using Node.Tasks.Exec.Output;
@@ -202,6 +198,16 @@ public class LocalListener : ExecutableListenerBase
                     await turbo.UploadAsync(rfproduct, ui, token);
                     return await WriteJson(response, "Item is successfully published.".AsOpResult());
                 }
+                if (target == "cgtrader")
+                {
+                    if (Settings.CGTraderUsername.Value is null || Settings.CGTraderPassword.Value is null)
+                        return await WriteErr(response, "Login or password is empty");
+
+                    Logger.Info($"Publishing {rfproduct.Path}");
+                    var cgtrader = Container.Resolve<CGTrader3DProductPublisher>();
+                    await cgtrader.PublishAsync(rfproduct, new NetworkCredential(Settings.CGTraderUsername.Value, Settings.CGTraderPassword.Value), token);
+                    return await WriteJson(response, "Item is successfully published.".AsOpResult());
+                }
 
                 return await WriteErr(response, "Unknown target");
 
@@ -226,6 +232,22 @@ public class LocalListener : ExecutableListenerBase
                     Logger.Info($"using {username} {password}");
                     var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(username, password, token);
                     await turbo.UploadAsync(rfproduct, NodeGui, token);
+
+                    return await WriteSuccess(response);
+                }
+                if (target == "cgtrader")
+                {
+                    var submitJson = JObject.Parse(await File.ReadAllTextAsync(Directory.GetFiles(rfproduct.Idea.Path).Single(f => f.EndsWith("_Submit.json"))));
+                    var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
+                    var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
+
+                    Logger.Info($"Publishing to cgtrader: {rfproduct.Path}");
+                    Logger.Info($"using {username} {password}");
+
+                    var cgtrader = Container.Resolve<CGTrader3DProductPublisher>();
+                    await cgtrader.PublishAsync(rfproduct, new NetworkCredential(username, password), token);
+
+                    return await WriteSuccess(response);
                 }
 
                 return await WriteErr(response, "Unknown target");

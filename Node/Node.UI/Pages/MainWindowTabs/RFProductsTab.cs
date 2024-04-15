@@ -247,6 +247,28 @@ public class RFProductsTab : Panel
                                     await self.Flash(result);
                                 },
                             },
+                            new MPButton()
+                            {
+                                Text = "Upload to CGTrader",
+                                OnClickSelf = async (self) =>
+                                {
+                                    var result = await LocalApi.Default.Post("upload3drfproduct", "Uploading 3d rfproduct to cgtrader",
+                                        ("target", "cgtrader"), ("id", product.Id)
+                                    );
+                                    await self.Flash(result);
+                                },
+                            },
+                            new MPButton()
+                            {
+                                Text = "Upload to CGTrader using account from _Submit.json",
+                                OnClickSelf = async (self) =>
+                                {
+                                    var result = await LocalApi.Default.Post("upload3drfproductsubmitjson", "Uploading 3d rfproduct to cgtrader",
+                                        ("target", "cgtrader"), ("id", product.Id)
+                                    );
+                                    await self.Flash(result);
+                                },
+                            },
                         },
                     },
                 },
