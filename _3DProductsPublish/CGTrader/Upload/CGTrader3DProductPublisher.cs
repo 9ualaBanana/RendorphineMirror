@@ -76,7 +76,7 @@ static class CGTrader3DProductExtensions
             _3DProduct.Metadata_.Geometry_.PolygonalQuadsTris or
             _3DProduct.Metadata_.Geometry_.PolygonalTrisOnly or
             _3DProduct.Metadata_.Geometry_.PolygonalNgonsUsed or
-            _3DProduct.Metadata_.Geometry_.Polygonal => Geometry_.polygonal_mesh,
+            _3DProduct.Metadata_.Geometry_.Polygonal => Geometry_.polygon_mesh,
             _3DProduct.Metadata_.Geometry_.Subdivision => Geometry_.subdivision_ready,
             _3DProduct.Metadata_.Geometry_.Nurbs => Geometry_.nurbs,
             _3DProduct.Metadata_.Geometry_.Unknown => Geometry_.other,

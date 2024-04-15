@@ -15,7 +15,7 @@ public record CGTrader3DModelAdditionalMetadata(
 
 public enum Geometry_
 {
-    polygonal_mesh,
+    polygon_mesh,
     subdivision_ready,
     nurbs,
     other

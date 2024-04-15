@@ -230,7 +230,7 @@ public record CGTrader3DProductMetadata
                 {
                     adult_content = AdultContent.ToString(),
                     animated = Animated.ToString(),
-                    category_id = Category,
+                    category_id = Category.ID,
                     custom_license = CustomLicense ?? string.Empty,
                     description = Description,
                     draft = true.ToString(),
@@ -248,7 +248,7 @@ public record CGTrader3DProductMetadata
                     price = Price,
                     removed_image_ids = string.Empty,
                     rigged = Rigged.ToString(),
-                    sub_category_id = SubCategory,
+                    sub_category_id = SubCategory.ID,
                     tags = Tags,
                     textures = Info?.Textures.ToString() ?? false.ToString(),
                     title = Title,
