@@ -21,7 +21,7 @@ public partial class TurboSquid
 
             public Data_ Data { get; private set; }
             readonly _3DProductDS._3DProduct _3DProduct;
-            internal const string Name = "meta.json";
+            internal const string Name = "turbosquid.json";
             internal string Path => _path ??= System.IO.Path.Combine(_3DProduct.ContainerPath, Name);
             string? _path;
 
