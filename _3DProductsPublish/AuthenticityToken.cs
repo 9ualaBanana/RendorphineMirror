@@ -1,10 +1,11 @@
 ﻿using _3DProductsPublish.Turbosquid.Upload;
-using System.Net.Http.Headers;
 
 namespace _3DProductsPublish;
 
 internal static class AuthenticityToken
 {
+    internal const string Header = "X-CSRF-Token";
+
     internal static async Task<string> GetStringAndUpdateAuthenticityTokenAsync(this TurboSquid turbosquid, string? requestUri, CancellationToken cancellationToken)
     {
         try
@@ -17,7 +18,7 @@ internal static class AuthenticityToken
         catch (Exception ex)
         { throw new Exception("Authenticity token request failed.", ex); }
     }
-    internal static string _ParseFromJS(string document)
+    internal static string ParseFromJS(string document)
     {
         string CsrfTokenMetaContentKey = $"meta.content = '";
         int csrfTokenStartIndex = document.IndexOf(CsrfTokenMetaContentKey) + CsrfTokenMetaContentKey.Length;
@@ -31,16 +32,5 @@ internal static class AuthenticityToken
         int csrfTokenStartIndex = document.IndexOf(CsrfTokenMeta) + CsrfTokenMeta.Length;
         int csrfTokenEndIndex = document.IndexOf('"', csrfTokenStartIndex);
         return document[csrfTokenStartIndex..csrfTokenEndIndex];
-    }
-}
-
-internal static class CsrfTokenExtensions
-{
-    internal static void _AddOrReplaceCsrfToken(this HttpRequestHeaders headers, string csrfToken)
-    {
-        const string Header = "X-CSRF-Token";
-
-        headers.Remove(Header);
-        headers.Add(Header, csrfToken);
     }
 }

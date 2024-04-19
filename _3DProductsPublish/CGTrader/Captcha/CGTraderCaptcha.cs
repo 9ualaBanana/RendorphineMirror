@@ -1,4 +1,4 @@
-﻿namespace _3DProductsPublish.CGTrader.Network.Captcha;
+﻿namespace _3DProductsPublish.CGTrader.Captcha;
 
 public sealed class CGTraderCaptcha
 {
@@ -6,8 +6,6 @@ public sealed class CGTraderCaptcha
 
     public readonly string SiteKey;
     public readonly CGTraderCaptchaConfiguration Configuration;
-
-    #region Initialization
 
     internal static CGTraderCaptcha _FromBase64String(string? captcha, string siteKey, CGTraderCaptchaConfiguration configuration) =>
         new(captcha ?? string.Empty, siteKey, configuration);
@@ -19,11 +17,5 @@ public sealed class CGTraderCaptcha
         Configuration = configuration;
     }
 
-    #endregion
-
-    #region Casts
-
     public static implicit operator string(CGTraderCaptcha captcha) => captcha._asBase64;
-
-    #endregion
 }

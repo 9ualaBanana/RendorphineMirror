@@ -1,8 +1,7 @@
-﻿using _3DProductsPublish.CGTrader.Network;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Web;
 
-namespace _3DProductsPublish.CGTrader.Upload.SessionData;
+namespace _3DProductsPublish.CGTrader.Upload;
 
 internal record CGTrader3DModelPreviewImageUploadSessionData : CGTrader3DModelAssetUploadSessionData
 {
@@ -21,16 +20,14 @@ internal record CGTrader3DModelPreviewImageUploadSessionData : CGTrader3DModelAs
         string modelPreviewImageFilePath,
         CancellationToken cancellationToken)
     {
-        var previewImageUploadSessionDataJson = JObject.Parse
-            (await response.Content.ReadAsStringAsync(cancellationToken)
-            )["data"]!["attributes"]!;
+        var previewImageUploadSessionDataJson = JObject.Parse(await response.Content.ReadAsStringAsync(cancellationToken))["data"]!["attributes"]!;
         string storageLocation = (string)previewImageUploadSessionDataJson["url"]!;
         var parsedQueryString = HttpUtility.ParseQueryString(storageLocation);
 
         return new CGTrader3DModelPreviewImageUploadSessionData(
             modelPreviewImageFilePath,
             storageLocation,
-            (string)previewImageUploadSessionDataJson["blobId"]!,
+            (long)previewImageUploadSessionDataJson["blobId"]!,
             (string)previewImageUploadSessionDataJson["signedBlobId"]!,
             (string)previewImageUploadSessionDataJson["headers"]!["Content-Type"]!,
             (string)previewImageUploadSessionDataJson["headers"]!["Content-MD5"]!,
@@ -45,7 +42,7 @@ internal record CGTrader3DModelPreviewImageUploadSessionData : CGTrader3DModelAs
     CGTrader3DModelPreviewImageUploadSessionData(
         string modelPreviewImageFilePath,
         string storageLocation,
-        string fileId,
+        long fileId,
         string signedFileId,
         string contentType,
         string contentMd5,
@@ -68,7 +65,7 @@ internal record CGTrader3DModelPreviewImageUploadSessionData : CGTrader3DModelAs
         _XAmzSignature = xAmzSignature;
     }
 
-    internal override async Task _UseToUploadWith(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken)
+    internal override async Task UseToUploadWith(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken)
     {
         if (httpMethod == HttpMethod.Options) (await httpClient.SendAsync(
             new HttpRequestMessage(httpMethod, _StorageLocation)._ConfiguredAsModelPreviewImageUploadOptions(), cancellationToken))
@@ -89,7 +86,7 @@ static class Extensions
 {
     internal static HttpRequestMessage _ConfiguredAsModelPreviewImageUploadOptions(this HttpRequestMessage request)
     {
-        request.Headers.Add("Origin", CGTraderUri.Https);
+        request.Headers.Add("Origin", CGTrader.Origin.AbsoluteUri.TrimEnd('/'));
         request.Headers.Host = "images-cgtrader-com.s3.amazonaws.com";
         request.Headers.Add("Access-Control-Request-Headers", "content-md5,content-type");
         request.Headers.Add("Access-Control-Request-Method", "PUT");

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Reflection;
+using _3DProductsPublish.CGTrader;
 using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid;
 using Node.Profiling;
@@ -204,8 +205,8 @@ public class LocalListener : ExecutableListenerBase
                         return await WriteErr(response, "Login or password is empty");
 
                     Logger.Info($"Publishing {rfproduct.Path}");
-                    var cgtrader = Container.Resolve<CGTrader3DProductPublisher>();
-                    await cgtrader.PublishAsync(rfproduct, new NetworkCredential(Settings.CGTraderUsername.Value, Settings.CGTraderPassword.Value), token);
+                    var cgtrader = await Container.Resolve<CGTraderContainer>().GetAsync(Settings.CGTraderUsername.Value.ThrowIfNull(), Settings.CGTraderPassword.Value.ThrowIfNull(), token);
+                    await cgtrader.UploadAsync(rfproduct, token);
                     return await WriteJson(response, "Item is successfully published.".AsOpResult());
                 }
 
@@ -244,8 +245,8 @@ public class LocalListener : ExecutableListenerBase
                     Logger.Info($"Publishing to cgtrader: {rfproduct.Path}");
                     Logger.Info($"using {username} {password}");
 
-                    var cgtrader = Container.Resolve<CGTrader3DProductPublisher>();
-                    await cgtrader.PublishAsync(rfproduct, new NetworkCredential(username, password), token);
+                    var cgtrader = await Container.Resolve<CGTraderContainer>().GetAsync(username, password, token);
+                    await cgtrader.UploadAsync(rfproduct, token);
 
                     return await WriteSuccess(response);
                 }

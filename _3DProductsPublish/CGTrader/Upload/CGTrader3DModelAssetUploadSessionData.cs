@@ -1,15 +1,15 @@
-﻿namespace _3DProductsPublish.CGTrader.Upload.SessionData;
+﻿namespace _3DProductsPublish.CGTrader.Upload;
 
 internal abstract record CGTrader3DModelAssetUploadSessionData
 {
     internal readonly string _FilePath;
     internal readonly string _StorageLocation;
-    internal readonly string _FileID;
+    internal readonly long _FileID;
 
     protected CGTrader3DModelAssetUploadSessionData(
         string filePath,
         string storageLocation,
-        string fileId)
+        long fileId)
     {
         _FilePath = filePath;
         _FileID = fileId;
@@ -28,5 +28,5 @@ internal abstract record CGTrader3DModelAssetUploadSessionData
         CancellationToken cancellationToken) =>
             await CGTrader3DModelPreviewImageUploadSessionData._AsyncFrom(response, modelPreviewImageFilePath, cancellationToken);
 
-    internal abstract Task _UseToUploadWith(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken);
+    internal abstract Task UseToUploadWith(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken);
 }

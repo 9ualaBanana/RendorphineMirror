@@ -1,6 +1,4 @@
-﻿using System.IO.Packaging;
-
-namespace _3DProductsPublish.Turbosquid._3DModelComponents;
+﻿namespace _3DProductsPublish.Turbosquid._3DModelComponents;
 
 enum FileFormat
 {

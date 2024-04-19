@@ -1,5 +1,4 @@
-using _3DProductsPublish.CGTrader.Api;
-using _3DProductsPublish.CGTrader.Upload;
+using _3DProductsPublish.CGTrader;
 using _3DProductsPublish.Turbosquid;
 using Autofac;
 using Autofac.Builder;
@@ -19,15 +18,7 @@ public class _3DProductPublisherTarget : IDelayedServiceTarget
     {
         public static IEnumerable<IComponentRegistration> CreateRegistrations()
         {
-            yield return RegistrationBuilder.ForType<CGTraderApi>()
-                .InstancePerDependency()
-                .CreateRegistration();
-
-            yield return RegistrationBuilder.ForType<CGTraderCaptchaApi>()
-                .InstancePerDependency()
-                .CreateRegistration();
-
-            yield return RegistrationBuilder.ForType<CGTrader3DProductPublisher>()
+            yield return RegistrationBuilder.ForType<CGTraderContainer>()
                 .AsSelf()
                 .AsImplementedInterfaces()
                 .InstancePerDependency()

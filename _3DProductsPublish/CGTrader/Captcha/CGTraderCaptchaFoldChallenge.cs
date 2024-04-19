@@ -1,4 +1,4 @@
-﻿namespace _3DProductsPublish.CGTrader.Network.Captcha;
+﻿namespace _3DProductsPublish.CGTrader.Captcha;
 
 public record CGTraderCaptchaFoldChallenge(string Seed, int Slots, int Depth)
 {

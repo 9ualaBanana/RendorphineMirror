@@ -1,12 +1,18 @@
-﻿namespace _3DProductsPublish._3DProductDS;
+﻿using static MarkTM.RFProduct.RFProduct._3D;
+
+namespace _3DProductsPublish._3DProductDS;
 
 public partial record _3DProduct
 {
     // Base metadata type for deserialization from `_Submit.json`.
     public record Metadata_
     {
-        [JsonProperty("toSubmitSquid")] public required string StatusSquid { get; init; }
-        [JsonProperty("toSubmitTrader")] public required string StatusTrader { get; init; }
+        [JsonProperty("toSubmitSquid")]
+        [JsonConverter(typeof(StringEnumConverter))] 
+        public required Status StatusSquid { get; init; }
+        [JsonProperty("toSubmitTrader")]
+        [JsonConverter(typeof(StringEnumConverter))] 
+        public required Status StatusTrader { get; init; }
         public required string Title { get; init; }
         public required string Description { get; init; }
         public required string Category { get; init; }

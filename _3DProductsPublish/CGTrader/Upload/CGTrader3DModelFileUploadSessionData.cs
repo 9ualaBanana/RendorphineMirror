@@ -1,4 +1,4 @@
-﻿namespace _3DProductsPublish.CGTrader.Upload.SessionData;
+﻿namespace _3DProductsPublish.CGTrader.Upload;
 
 internal record CGTrader3DModelFileUploadSessionData : CGTrader3DModelAssetUploadSessionData
 {
@@ -24,7 +24,7 @@ internal record CGTrader3DModelFileUploadSessionData : CGTrader3DModelAssetUploa
         return new(
             modelFilePath,
             (string)modelFileUploadSessionDataJson["storageLocation"]!,
-            (string)modelFileUploadSessionDataJson["id"]!,
+            (long)modelFileUploadSessionDataJson["id"]!,
             (string)modelFileUploadReceiverStorageDataJson["key"]!,
             (string)modelFileUploadReceiverStorageDataJson["awsAccessKeyId"]!,
             (string)modelFileUploadReceiverStorageDataJson["acl"]!,
@@ -36,7 +36,7 @@ internal record CGTrader3DModelFileUploadSessionData : CGTrader3DModelAssetUploa
     CGTrader3DModelFileUploadSessionData(
         string modelFilePath,
         string storageLocation,
-        string fileId,
+        long fileId,
         string key,
         string awsAccessKeyId,
         string acl,
@@ -59,7 +59,7 @@ internal record CGTrader3DModelFileUploadSessionData : CGTrader3DModelAssetUploa
     CGTrader3DModelFileUploadSessionData(
         FileStream modelFileStream,
         string storageLocation,
-        string fileId,
+        long fileId,
         string key,
         string awsAccessKeyId,
         string acl,
@@ -74,27 +74,26 @@ internal record CGTrader3DModelFileUploadSessionData : CGTrader3DModelAssetUploa
         _Signature = signature;
         _SuccessActionStatus = successActionStatus;
 
-
         modelFileStream.Close();
     }
 
-    internal override async Task _UseToUploadWith(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken)
+    internal override async Task UseToUploadWith(HttpClient httpClient, HttpMethod httpMethod, CancellationToken cancellationToken)
     {
         using var modelFileStream = File.OpenRead(_FilePath);
         (await httpClient.SendAsync(
-            new HttpRequestMessage(httpMethod, _StorageLocation) { Content = _MultipartFormDataForUploadFor(modelFileStream) }, cancellationToken)
+            new HttpRequestMessage(httpMethod, _StorageLocation) { Content = MultipartFormDataForUploadFor(modelFileStream) }, cancellationToken)
         ).EnsureSuccessStatusCode();
     }
 
-    internal HttpContent _MultipartFormDataForUploadFor(FileStream modelFileStream) => _httpContent ??= new MultipartFormDataContent()
-    {
-        { new StringContent(_Key), "key" },
-        { new StringContent(_AwsAccessKeyID), "awsAccessKeyId" },
-        { new StringContent(_Acl), "acl" },
-        { new StringContent(_Policy), "policy" },
-        { new StringContent(_Signature), "signature" },
-        { new StringContent(_SuccessActionStatus), "success_action_status" },
-        { new StreamContent(modelFileStream), "file", Path.GetFileName(modelFileStream.Name) }
-    };
-    HttpContent? _httpContent;
+    internal HttpContent MultipartFormDataForUploadFor(FileStream modelFileStream)
+        => new MultipartFormDataContent()
+        {
+            { new StringContent(_Key), "key" },
+            { new StringContent(_AwsAccessKeyID), "awsAccessKeyId" },
+            { new StringContent(_Acl), "acl" },
+            { new StringContent(_Policy), "policy" },
+            { new StringContent(_Signature), "signature" },
+            { new StringContent(_SuccessActionStatus), "success_action_status" },
+            { new StreamContent(modelFileStream), "file", Path.GetFileName(modelFileStream.Name) }
+        };
 }

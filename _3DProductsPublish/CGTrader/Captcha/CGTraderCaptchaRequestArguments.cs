@@ -1,12 +1,10 @@
-﻿using _3DProductsPublish.CGTrader.Network;
+﻿namespace _3DProductsPublish.CGTrader.Captcha;
 
-namespace _3DProductsPublish.CGTrader.Api;
-
-internal static class CaptchaRequestArguments
+internal static class CGTraderCaptchaRequestArguments
 {
     // Unknown stub value.
     internal const string act = "$";
-    internal const string bd = CGTraderUri.www;
+    internal static string bd => CGTrader.Origin.Host;
     // Unknown stub value.
     internal const string kt = "ApQXr3vpUvPSza6Qk3hJhsWpxZ8Y1n5Rg2_E7RJ2YHZakEYjREQVrCxCSKXdXZM6";
     // Unknown stub value.

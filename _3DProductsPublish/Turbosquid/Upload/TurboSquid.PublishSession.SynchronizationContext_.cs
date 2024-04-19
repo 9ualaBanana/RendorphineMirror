@@ -57,23 +57,23 @@ public partial class TurboSquid
                         await DeleteAssetAsync(textures, "associated_files", "texture_file"); break;
                 };
             }
-            async Task DeleteAssetAsync<TAsset>(ITurboSquidProcessed3DProductAsset<TAsset> processedModel, string resource, string type)
+            async Task DeleteAssetAsync<TAsset>(ITurboSquidProcessed3DProductAsset<TAsset> processedAsset, string resource, string type)
                 where TAsset : I3DProductAsset
             {
                 try
                 {
-                    _logger.Debug($"Deleting {processedModel.Name()} from remote.");
+                    _logger.Debug($"Deleting {processedAsset.Name()} from remote.");
                     await Session.Client.SendAsync(
                         new HttpRequestMessage(
                             HttpMethod.Delete,
 
-                            $"turbosquid/products/{Session._3DProduct.Tracker.Data.ProductID}/{resource}/{processedModel.FileId}")
+                            $"turbosquid/products/{Session._3DProduct.Tracker.Data.ProductID}/{resource}/{processedAsset.FileId}")
                         { Content = MetadataForm() },
                         Session.CancellationToken);
-                    _logger.Debug($"{processedModel.Name()} model has been deleted from remote.");
+                    _logger.Debug($"{processedAsset.Name()} asset has been deleted from remote.");
                 }
                 catch (Exception ex)
-                { throw new HttpRequestException($"{processedModel.Name()} deletion from remote failed.", ex); }
+                { throw new HttpRequestException($"{processedAsset.Name()} asset deletion from remote failed.", ex); }
 
 
                 StringContent MetadataForm()
@@ -82,7 +82,7 @@ public partial class TurboSquid
                     var metadataForm = new JObject(
                         new JProperty("authenticity_token", Session.Client.Credential.AuthenticityToken),
                         new JProperty("draft_id", Session._3DProduct.Tracker.Data.DraftID.ToString()),
-                        new JProperty("id", processedModel.FileId.ToString()),
+                        new JProperty("id", processedAsset.FileId.ToString()),
                         new JProperty("product_id", Session._3DProduct.Tracker.Data.ProductID.ToString()),
                         new JProperty("type", type));
 

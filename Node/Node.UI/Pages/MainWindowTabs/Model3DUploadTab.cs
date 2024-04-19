@@ -19,8 +19,8 @@ public class Model3DUploadTab : Panel
                 Vertices = 321654,
                 PriceSquid = 727,
                 PriceTrader = 727,
-                StatusSquid = "none",
-                StatusTrader = "none",
+                StatusSquid = RFProduct._3D.Status.none,
+                StatusTrader = RFProduct._3D.Status.none
             },
             JsonSettings.LowercaseS
         );

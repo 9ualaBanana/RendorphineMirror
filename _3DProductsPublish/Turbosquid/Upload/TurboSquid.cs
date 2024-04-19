@@ -157,7 +157,7 @@ public static class TurboSquid3DProductExtensions
         var ts3DProduct = new TurboSquid._3DProduct(
             _3DProduct,
             new TurboSquid._3DProduct.Metadata__(
-                Status(),
+                metadata.StatusSquid,
                 metadata.Title,
                 metadata.Description,
                 metadata.Tags,
@@ -179,14 +179,6 @@ public static class TurboSquid3DProductExtensions
         ts3DProduct.Tracker.Write();
         return ts3DProduct;
 
-
-        RFProduct._3D.Status Status() => metadata.StatusSquid.ToLowerInvariant() switch
-        {
-            "draft" => RFProduct._3D.Status.draft,
-            "online" => RFProduct._3D.Status.online,
-            "none" => RFProduct._3D.Status.none,
-            _ => throw new NotImplementedException()
-        };
 
         async Task<Category_> Category()
         {
