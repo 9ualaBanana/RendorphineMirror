@@ -8,7 +8,7 @@ using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
 
 namespace _3DProductsPublish.Turbosquid.Upload;
 
-public partial class TurboSquid : HttpClient
+public partial class TurboSquid : HttpClient, I3DStock<TurboSquid>
 {
     internal static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 

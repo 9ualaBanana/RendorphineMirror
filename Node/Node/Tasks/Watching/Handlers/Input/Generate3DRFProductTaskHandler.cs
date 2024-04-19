@@ -1,5 +1,6 @@
-using System.Text.RegularExpressions;
-using _3DProductsPublish.Turbosquid;
+using System.Net;
+using _3DProductsPublish;
+using _3DProductsPublish.CGTrader;
 using _3DProductsPublish.Turbosquid.Upload;
 using Node.Common.Models.GuiRequests;
 
@@ -12,11 +13,15 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     public required RFProduct.Factory RFProductFactory { get; init; }
     public required IRFProductStorage RFProducts { get; init; }
     public required INodeGui NodeGui { get; init; }
-    public required TurboSquidContainer TurboSquidContainer { get; init; }
+    public required TurboSquidUploader TurboSquid { get; init; }
+    public required CGTraderUploader CGTrader { get; init; }
     public required NodeGlobalState GlobalState { get; init; }
     public required INodeSettings Settings { get; init; }
     public required Init Init { get; init; }
     CancellationTokenSource? CurrentTask;
+
+    ImmutableArray<IUploader>? _Uploaders;
+    ImmutableArray<IUploader> Uploaders => _Uploaders ??= [TurboSquid, CGTrader];
 
     public override void StartListening() => StartThreadRepeated(10_000, RunOnce);
 
@@ -39,7 +44,9 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
     public void FullRestart()
     {
         CurrentTask?.Cancel();
-        TurboSquidContainer.ClearCache();
+        foreach (var uploader in Uploaders)
+            uploader.ClearLoginCache();
+
         Input.DirectoryStructure2?.Clear();
         SaveTask();
     }
@@ -142,14 +149,6 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         }
     }
 
-    static RFProduct._3D.Status? GetStatus(string productDir)
-    {
-        var metafile = Path.Combine(productDir, "meta.json");
-        if (!File.Exists(metafile)) return null;
-
-        return JObject.Parse(metafile)?["Status"]?.ToObject<RFProduct._3D.Status>();
-    }
-
     void BumpSubmitJsonVersion(RFProduct rfproduct)
     {
         var submitJsonPath = GetSubmitJsonFile(rfproduct.Idea.Path);
@@ -169,9 +168,9 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
     static string? GetSubmitJsonFile(string dir) => Directory.GetFiles(dir).SingleOrDefault(f => f.EndsWith("_Submit.json", StringComparison.Ordinal));
     static JObject? ReadSubmitJson(string dir) => GetSubmitJsonFile(dir) is string jf ? JObject.Parse(File.ReadAllText(jf)) : null;
-    bool NeedsTurboSquidPublish(RFProduct rfproduct)
+    bool NeedsPublish(IUploader uploader, RFProduct rfproduct)
     {
-        if (!File.Exists(Path.Combine(rfproduct.Idea.Path, "meta.json")))
+        if (!File.Exists(Path.Combine(rfproduct.Idea.Path, uploader.MetaJsonName)))
             return true;
 
         if (Input.DirectoryStructure2?.GetValueOrDefault(rfproduct.Idea.Path) is null)
@@ -193,7 +192,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             return true;
         }
 
-        var submitStatus = GetStatus(rfproduct.Idea.Path);
+        var submitStatus = uploader.GetStatus(rfproduct);
         if (submitStatus is null or RFProduct._3D.Status.none)
         {
             Logger.Info(submitStatus + " submit status, reWOUDING");
@@ -202,21 +201,22 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         return false;
     }
-    async Task<TurboSquid> GetTurboRetryOrSkip(string username, string password, CancellationToken token, bool force = false)
+
+    static async Task<T> GetStockRetryOrSkip<T>(StockCredentialContainer<T> container, string username, string password, INodeGui nodeGui, CancellationToken token, bool force = false) where T : class, I3DStock<T>
     {
         try
         {
             if (force)
-                return await TurboSquidContainer.ForceGetAsync(username, password, token);
-            return await TurboSquidContainer.GetAsync(username, password, token);
+                return await container.ForceGetAsync(username, password, token);
+            return await container.GetAsync(username, password, token);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            var retry = await NodeGui.Request<bool>(new RetryOrSkipRequest("Login failed. Retry?"), token);
+            var retry = await nodeGui.Request<bool>(new RetryOrSkipRequest("Login failed. Retry?"), token);
             if (!retry || !retry.Value)
                 throw new OperationCanceledException();
 
-            return await GetTurboRetryOrSkip(username, password, token, true);
+            return await GetStockRetryOrSkip(container, username, password, nodeGui, token, true);
         }
     }
     async Task PublishRFProducts(CancellationToken token)
@@ -243,38 +243,13 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         SetState(state => state with { DraftedCount = 0, PublishedCount = 0 });
 
-        foreach (var rfpgroup in products.GroupBy(r => ReadSubmitJson(r.Idea.Path)?["LoginSquid"]?.ToObject<string>() ?? string.Empty))
+        var skippedLogins = new Dictionary<IUploader, List<string>>();
+
+        token.ThrowIfCancellationRequested();
+
+        foreach (var uploader in Uploaders)
         {
-            if (string.IsNullOrWhiteSpace(rfpgroup.Key))
-                continue;
-
-            Logger.Info("INGROUP " + rfpgroup.Key);
-            token.ThrowIfCancellationRequested();
-
-            TurboSquid turbo;
-            {
-                var path = rfpgroup.FirstOrDefault(g => !string.IsNullOrWhiteSpace(ReadSubmitJson(g)?["LoginSquid"]?.ToObject<string>()) && !string.IsNullOrEmpty(ReadSubmitJson(g)?["PasswordSquid"]?.ToObject<string>()))?.Idea.Path;
-                if (path is null) continue;
-
-                var submitJson = ReadSubmitJson(path);
-                if (submitJson is null) continue;
-
-                var tsusername = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
-                var tspassword = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
-
-                try
-                {
-                    turbo = await GetTurboRetryOrSkip(tsusername, tspassword, token);
-                    Logger.Info("logged in");
-                }
-                catch (OperationCanceledException)
-                {
-                    Logger.Info($"Username {rfpgroup.Key} cancelled login, skipping.");
-                    break;
-                }
-            }
-
-            async Task updateSalesIfNeeded()
+            /*async Task updateSalesIfNeeded()
             {
                 if (Input.LastSalesFetch.AddHours(1) > DateTimeOffset.Now)
                     return;
@@ -302,48 +277,54 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                     Logger.Error(ex);
                     // SetState(state => state with { Error = $"{DateTimeOffset.Now} Error UPDATING the sales:\n{ex}", });
                 }
-            }, token).Consume();
+            }, token).Consume();*/
 
             Logger.Info("beforergfproduct");
-            foreach (var rfproduct in rfpgroup)
+            foreach (var rfproduct in products)
             {
                 Logger.Info("hello " + rfproduct.Idea.Path);
                 token.ThrowIfCancellationRequested();
                 Dictionary<string, DirectoryStructurePart>? dirdata = null;
 
-                if (NeedsTurboSquidPublish(rfproduct))
+                if (NeedsPublish(uploader, rfproduct))
                 {
                     dirdata = GetDirectoryData(rfproduct.Idea.Path);
-                    Logger.Info("INPRODUCT " + rfproduct.Idea.Path);
+                    Logger.Info($"INPRODUCT {uploader} {rfproduct.Idea.Path}");
 
                     try
                     {
                         SetState(state => state with { CurrentPublishing = rfproduct.Path });
-                        Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
+                        Logger.Info($"Publishing to {uploader}: {rfproduct.Path}");
 
                         var token2 = CancellationTokenSource.CreateLinkedTokenSource(token, new CancellationTokenSource().Token);
                         token2.CancelAfter(TimeSpan.FromMinutes(20));
-                        await turbo.UploadAsync(rfproduct, NodeGui, token2.Token);
+
+                        var creds = uploader.ReadCredentials(rfproduct);
+                        if (creds is null) continue;
+
+                        var login = await uploader.TryLogin(creds, token);
+                        if (!login)
+                        {
+                            if (!skippedLogins.TryGetValue(uploader, out var list))
+                                skippedLogins[uploader] = (list = []);
+                            list.Add(creds.UserName);
+
+                            continue;
+                        }
+
+                        var success = await uploader.TryUpload(rfproduct, token2.Token);
 
                         try { File.Delete(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt")); }
                         catch { }
                     }
                     catch (Exception ex)
                     {
-                        SetState(state => state with { Error = $"{DateTimeOffset.Now} Error PUBLISHING product {rfproduct.Path}:\n{ex}", });
+                        SetState(state => state with { Error = $"{DateTimeOffset.Now} Error PUBLISHING product {uploader} {rfproduct.Path}:\n{ex}", });
 
                         Logger.Error(ex);
                         File.WriteAllText(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt"), ex.ToString());
                         continue;
                     }
-
-                    /*
-                    if ((submitJson["toSubmitTrader"]?.ToObject<ToSubmit>() ?? ToSubmit.None) == ToSubmit.Submit)
-                    {
-                        var username = submitJson["LoginCGTrader"]!.ToObject<string>().ThrowIfNull();
-                        var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
-                    }
-                    */
                 }
 
                 token.ThrowIfCancellationRequested();
@@ -375,7 +356,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
         foreach (var (path, _) in data)
         {
-            if (path.Contains("meta.json")) continue;
+            foreach (var uploader in Uploaders)
+                if (path.Contains(uploader.MetaJsonName)) continue;
             if (path.Contains("publish_exception")) continue;
 
             if (!dirstr.Parts.ContainsKey(path))
@@ -385,7 +367,8 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
         foreach (var (path, info) in prevdirstr.Parts)
         {
             // submit file and meta.json are being updated so exclude them from the check
-            if (path.Contains("meta.json")) continue;
+            foreach (var uploader in Uploaders)
+                if (path.Contains(uploader.MetaJsonName)) continue;
             if (path.Contains("publish_exception")) continue;
 
             if (File.Exists(path))
@@ -415,5 +398,123 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             dirs[dir] = new(new DateTimeOffset(new DirectoryInfo(dir).LastWriteTimeUtc), null);
 
         return dirs;
+    }
+
+
+    public interface IUploader
+    {
+        string MetaJsonName { get; }
+
+        void ClearLoginCache();
+
+        NetworkCredential? ReadCredentials(RFProduct rfproduct);
+        Task<bool> TryLogin(RFProduct rfproduct, CancellationToken token);
+        Task<bool> TryLogin(NetworkCredential creds, CancellationToken token);
+
+        /// <returns> False if the login was cancelled. </returns>
+        Task<bool> TryUpload(RFProduct rfproduct, CancellationToken token);
+        RFProduct._3D.Status? GetStatus(RFProduct rfproduct);
+    }
+
+    [AutoRegisteredService(false)]
+    public abstract class Uploader<T> : IUploader where T : class, I3DStock<T>
+    {
+        public abstract string MetaJsonName { get; }
+        public required StockCredentialContainer<T> Container { get; init; }
+        public required Init Init { get; init; }
+        public required INodeGui NodeGui { get; init; }
+        public required ILogger<Uploader<T>> Logger { get; init; }
+
+        public void ClearLoginCache() => Container.ClearCache();
+        public async Task<bool> TryUpload(RFProduct rfproduct, CancellationToken token)
+        {
+            var stock = await TryLogin(rfproduct, token);
+            if (stock is null) return false;
+
+            await Upload(stock, rfproduct, token);
+            return true;
+        }
+
+        protected abstract NetworkCredential? ReadCredentials(JObject submitJson);
+        public NetworkCredential? ReadCredentials(RFProduct rfproduct)
+        {
+            var submitJson = ReadSubmitJson(rfproduct.Idea.Path);
+            if (submitJson is null) return null;
+
+            return ReadCredentials(submitJson);
+        }
+
+        async Task<bool> IUploader.TryLogin(RFProduct rfproduct, CancellationToken token) => (await TryLogin(rfproduct, token)) is not null;
+        async Task<bool> IUploader.TryLogin(NetworkCredential creds, CancellationToken token) => (await TryLogin(creds, token)) is not null;
+        protected async Task<T?> TryLogin(NetworkCredential creds, CancellationToken token)
+        {
+            try
+            {
+                var stock = await GetStockRetryOrSkip(Container, creds.UserName, creds.Password, NodeGui, token);
+                Logger.Info($"logged in to {this} with {creds.UserName}");
+
+                return stock;
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.Info($"Username {creds.UserName} cancelled login, skipping.");
+                return null;
+            }
+        }
+        protected async Task<T?> TryLogin(RFProduct rfproduct, CancellationToken token)
+        {
+            var submitJson = ReadSubmitJson(rfproduct.Idea.Path);
+            if (submitJson is null) return null;
+
+            var creds = ReadCredentials(submitJson);
+            if (creds is null) return null;
+
+            return await TryLogin(creds, token);
+        }
+
+        public RFProduct._3D.Status? GetStatus(RFProduct rfproduct)
+        {
+            var metafile = Path.Combine(rfproduct.Idea.Path, MetaJsonName);
+            if (!File.Exists(metafile)) return null;
+
+            return JObject.Parse(metafile)?["Status"]?.ToObject<RFProduct._3D.Status>();
+        }
+        protected abstract Task Upload(T stock, RFProduct rfproduct, CancellationToken token);
+    }
+    public sealed class TurboSquidUploader : Uploader<TurboSquid>
+    {
+        public override string MetaJsonName => "turbosquid.json";
+
+        protected override NetworkCredential? ReadCredentials(JObject submitJson)
+        {
+            var username = submitJson["LoginSquid"]?.ToObject<string>();
+            if (string.IsNullOrEmpty(username)) return null;
+
+            var password = submitJson["PasswordSquid"]?.ToObject<string>();
+            if (string.IsNullOrEmpty(password)) return null;
+
+            return new NetworkCredential(username, password);
+        }
+
+        protected override async Task Upload(TurboSquid stock, RFProduct rfproduct, CancellationToken token) =>
+            await stock.UploadAsync(rfproduct, NodeGui, token);
+    }
+    public sealed class CGTraderUploader : Uploader<CGTrader>
+    {
+        public override string MetaJsonName => "cgtrader.json";
+
+        protected override NetworkCredential? ReadCredentials(JObject submitJson)
+        {
+            var username = submitJson["LoginCGTrader"]?.ToObject<string>();
+            if (string.IsNullOrEmpty(username)) return null;
+
+            var password = submitJson["PasswordCGTrader"]?.ToObject<string>();
+            if (string.IsNullOrEmpty(password)) return null;
+
+            return new NetworkCredential(username, password);
+        }
+
+        protected override async Task Upload(CGTrader stock, RFProduct rfproduct, CancellationToken token) =>
+            await stock.UploadAsync(rfproduct, token);
     }
 }

@@ -8,7 +8,7 @@ using _3DProductsPublish.CGTrader.Captcha;
 
 namespace _3DProductsPublish.CGTrader;
 
-public partial class CGTrader : HttpClient
+public partial class CGTrader : HttpClient, I3DStock<CGTrader>
 {
     // Use Tracker for manipulating asset synchronization status (local, online, updated).
     // local - exists in local storage, not uploaded
