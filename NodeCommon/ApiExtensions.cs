@@ -147,7 +147,7 @@ public static class ApiExtensions
         var result = await api.ShardGet(task, "mytaskstatechanged", "Changing task state", data).ConfigureAwait(false);
 
 
-        result.LogIfError($"Error while changing task {task.Id} state: {0}");
+        result.LogIfError($"Error while changing task {task.Id} state: {{0}}");
         if (result.Success && task is TaskBase rtask)
         {
             rtask.State = state;
