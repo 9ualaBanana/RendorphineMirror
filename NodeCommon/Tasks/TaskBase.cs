@@ -25,7 +25,7 @@ public abstract record TaskBase(string Id, TaskInfo Info) : IMPlusTask
             TaskState.Input => Times with { Input = Times.Input ?? time },
             TaskState.Active => Times with { Active = Times.Active ?? time },
             TaskState.Output => Times with { Output = Times.Output ?? time },
-            TaskState.Validation => Times with { Output = Times.Validation ?? time },
+            TaskState.Validation => Times with { Validation = Times.Validation ?? time },
             TaskState.Finished => Times with { Finished = Times.Finished ?? time },
             TaskState.Failed => Times with { Failed = Times.Failed ?? time },
             TaskState.Canceled => Times with { Canceled = Times.Canceled ?? time },
