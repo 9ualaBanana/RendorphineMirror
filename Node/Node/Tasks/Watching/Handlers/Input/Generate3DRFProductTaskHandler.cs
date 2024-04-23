@@ -313,6 +313,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
                         }
 
                         var success = await uploader.TryUpload(rfproduct, token2.Token);
+                        if (!success) continue;
 
                         try { File.Delete(Path.Combine(rfproduct.Idea.Path, "publish_exception.txt")); }
                         catch { }
@@ -431,8 +432,7 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             var stock = await TryLogin(rfproduct, token);
             if (stock is null) return false;
 
-            await Upload(stock, rfproduct, token);
-            return true;
+            return await Upload(stock, rfproduct, token);
         }
 
         protected abstract NetworkCredential? ReadCredentials(JObject submitJson);
@@ -479,11 +479,12 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
 
             return JObject.Parse(metafile)?["Status"]?.ToObject<RFProduct._3D.Status>();
         }
-        protected abstract Task Upload(T stock, RFProduct rfproduct, CancellationToken token);
+        protected abstract Task<bool> Upload(T stock, RFProduct rfproduct, CancellationToken token);
     }
     public sealed class TurboSquidUploader : Uploader<TurboSquid>
     {
         public override string MetaJsonName => "turbosquid.json";
+        readonly RateLimiter RateLimiter = new RateLimiter(100, TimeSpan.FromDays(1));
 
         protected override NetworkCredential? ReadCredentials(JObject submitJson)
         {
@@ -496,8 +497,13 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             return new NetworkCredential(username, password);
         }
 
-        protected override async Task Upload(TurboSquid stock, RFProduct rfproduct, CancellationToken token) =>
+        protected override async Task<bool> Upload(TurboSquid stock, RFProduct rfproduct, CancellationToken token)
+        {
+            if (!RateLimiter.TryUse()) return false;
+
             await stock.UploadAsync(rfproduct, NodeGui, token);
+            return true;
+        }
     }
     public sealed class CGTraderUploader : Uploader<CGTrader>
     {
@@ -514,7 +520,41 @@ public class Generate3DRFProductTaskHandler : WatchingTaskInputHandler<Generate3
             return new NetworkCredential(username, password);
         }
 
-        protected override async Task Upload(CGTrader stock, RFProduct rfproduct, CancellationToken token) =>
+        protected override async Task<bool> Upload(CGTrader stock, RFProduct rfproduct, CancellationToken token)
+        {
             await stock.UploadAsync(rfproduct, token);
+            return true;
+        }
+    }
+
+
+    class RateLimiter
+    {
+        readonly int MaxPerInterval;
+        int Used;
+
+        public RateLimiter(int maxPerInterval, TimeSpan interval)
+        {
+            MaxPerInterval = maxPerInterval;
+
+            new Thread(() =>
+            {
+                while (true)
+                {
+                    Thread.Sleep(interval);
+                    Used = 0;
+                }
+            })
+            { IsBackground = true }.Start();
+        }
+
+        public bool TryUse()
+        {
+            if (Used >= MaxPerInterval)
+                return false;
+
+            Used++;
+            return true;
+        }
     }
 }
