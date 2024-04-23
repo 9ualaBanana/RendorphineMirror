@@ -23,8 +23,8 @@ public static class HardwareLoadSupplier
 
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
         {
-            cpuload = CPU.Info.First().LoadPercentage / 100d;
-            gpuload = GPU.Info.First().LoadPercentage / 100d;
+            cpuload = CPU.Info.Select(p => p.LoadPercentage / 100d).Average();
+            gpuload = GPU.Info.Select(p => p.LoadPercentage / 100d).Average();
             freeram = RAM.Info.Aggregate(0L, (freeMemory, ramUnit) => freeMemory += (long) ramUnit.FreeMemory);
         }
 
