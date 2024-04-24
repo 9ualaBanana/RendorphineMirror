@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.Extensions.Logging;
+using Node.Common;
 
 namespace _3DProductsPublish;
 
@@ -7,6 +8,7 @@ public interface I3DStock<T> where T : I3DStock<T>
 {
     static abstract Task<T> LogInAsyncUsing(NetworkCredential credential, INodeGui nodeGui, CancellationToken cancellationToken);
 }
+[AutoRegisteredService(false)]
 public class StockCredentialContainer<T> where T : class, I3DStock<T>
 {
     readonly INodeGui _gui;
