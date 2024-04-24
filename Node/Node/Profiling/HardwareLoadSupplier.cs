@@ -6,6 +6,7 @@ public static class HardwareLoadSupplier
 {
     static long TotalBytesSent = 0;
     static long TotalBytesReceived = 0;
+    static DateTimeOffset LastCheck = DateTimeOffset.UtcNow;
 
     static HardwareLoadSupplier()
     {
@@ -34,9 +35,13 @@ public static class HardwareLoadSupplier
 
         internetup = interfaces.Sum(i => i.BytesSent) - TotalBytesSent;
         internetdown = interfaces.Sum(i => i.BytesReceived) - TotalBytesReceived;
-
         TotalBytesSent += internetup;
         TotalBytesReceived += internetdown;
+
+        var now = DateTimeOffset.UtcNow;
+        internetup = (long) (internetup / (now - LastCheck).TotalSeconds);
+        internetdown = (long) (internetdown / (now - LastCheck).TotalSeconds);
+        LastCheck = now;
 
         return new HardwareLoadPartial(cpuload, gpuload, freeram, internetup, internetdown);
     }
