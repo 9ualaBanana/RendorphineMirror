@@ -1,5 +1,4 @@
-﻿using _3DProductsPublish.Turbosquid.Api;
-using MarkTM.RFProduct;
+﻿using MarkTM.RFProduct;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
