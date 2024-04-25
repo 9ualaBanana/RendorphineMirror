@@ -1,5 +1,4 @@
 ﻿using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.Turbosquid._3DModelComponents;
 using System.Net.Http.Json;
 
 namespace _3DProductsPublish.Turbosquid.Upload.Processing;

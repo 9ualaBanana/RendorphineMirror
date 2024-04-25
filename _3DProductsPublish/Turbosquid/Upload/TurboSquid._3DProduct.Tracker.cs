@@ -1,5 +1,4 @@
 ﻿using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.Turbosquid._3DModelComponents;
 using static _3DProductsPublish._3DProductDS._3DProduct.Metadata_;
 using static MarkTM.RFProduct.RFProduct._3D;
 
