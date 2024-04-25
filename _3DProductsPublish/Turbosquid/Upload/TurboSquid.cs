@@ -1,5 +1,4 @@
 ﻿using _3DProductsPublish._3DProductDS;
-using _3DProductsPublish.Turbosquid.Api;
 using _3DProductsPublish.Turbosquid.Network.Authenticity;
 using MarkTM.RFProduct;
 using System.Collections.Concurrent;
@@ -25,7 +24,7 @@ public partial class TurboSquid : HttpClient
     public static async Task<TurboSquid> LogInAsyncUsing(NetworkCredential credential, INodeGui nodeGui, CancellationToken cancellationToken)
     {
         var handler = new SocketsHttpHandler();
-        var authenticationApi = new TurboSquidAuthenticationApi(handler, nodeGui);
+        var authenticationApi = new TurboSquid.AuthenticationApi(handler, nodeGui);
         var tscredential = await authenticationApi.RequestTurboSquidNetworkCredentialAsync(credential, cancellationToken);
         var loginResponse = await authenticationApi.LoginAsync(tscredential, cancellationToken);
         var client = new TurboSquid(handler) { Credential = tscredential };
