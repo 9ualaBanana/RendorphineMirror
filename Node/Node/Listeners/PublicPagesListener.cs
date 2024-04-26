@@ -317,6 +317,10 @@ namespace Node.Listeners
                 });
             }
 
+            var call = await Api.Api.Client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5336/" + path));
+            await call.Content.CopyToAsync(response.OutputStream);
+            return call.StatusCode;
+
             return HttpStatusCode.NotFound;
         }
 
@@ -370,7 +374,14 @@ namespace Node.Listeners
                 );
             }
 
-            return await base.ExecutePost(path, context,inputStream);
+            using var message = new HttpRequestMessage(HttpMethod.Post, "http://localhost:5336/" + path);
+            message.Content = new StreamContent(inputStream);
+
+            var call = await Api.Api.Client.SendAsync(message);
+            await call.Content.CopyToAsync(response.OutputStream);
+            return call.StatusCode;
+
+            return await base.ExecutePost(path, context, inputStream);
         }
     }
 }

@@ -25,6 +25,15 @@ global using NodeToUI;
 global using Logger = NLog.Logger;
 global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
+using System.Text;
+using Autofac.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Node;
 using Node.Services.Targets;
 using SevenZip;
@@ -36,14 +45,56 @@ if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
     foreach (var proc in FileList.GetAnotherInstances())
         proc.Kill(true);
 
-var builder = Init.CreateContainer(new("renderfin"), typeof(Program).Assembly);
 
+
+/*var logfactory = LogManager.Setup()
+    .SetupLogFactory(config => config
+        .SetAutoShutdown(true)
+        .SetGlobalThreshold(NLog.LogLevel.Trace)
+        .SetTimeSourcAccurateUtc()
+    )
+    .LoadConfiguration(rule => rule.ForLogger()
+        .FilterMinLevel(true ? NLog.LogLevel.Trace : NLog.LogLevel.Info)
+        .WriteTo(new ColoredConsoleTarget()
+        {
+            Layout = "${time:universalTime=true} [${level:uppercase=true} @ ${logger:shortName=true} @ ${scopenested:separator= @ }] ${message:withException=true:exceptionSeparator=\n\n}",
+            AutoFlush = true,
+            DetectConsoleAvailable = true,
+            UseDefaultRowHighlightingRules = true,
+        })
+    ).LogFactory;*/
+
+var builder = WebApplication.CreateBuilder();
+builder.Logging.ClearProviders();
+builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder =>
+{
+    Init.InitializeContainer(builder, new("renderfin"), [typeof(Program).Assembly]);
+}));
+
+builder.Services.AddControllers();
+
+builder.WebHost.UseKestrel((ctx, o) =>
+    o.ListenLocalhost(5336, o =>
+    {
+        // o.Protocols = HttpProtocols.Http2;
+    })
+);
+
+await using var app = builder.Build();
+app.MapControllers();
+app.UseWebSockets();
+
+app.MapGet("/test", () => "helloworld");
+app.MapPost("/testpost", async (HttpContext context) => "helloworld " + await new StreamReader(context.Request.Body).ReadToEndAsync());
+
+await app.StartAsync();
+
+var container = app.Services.GetRequiredService<IComponentContext>();
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
-using var container = builder.Build(Autofac.Builder.ContainerBuildOptions.None);
 var notifier = container.Resolve<Notifier>();
 notifier.Notify("Starting node");
-initializeDotTracer(container);
+// initializeDotTracer(container);
 
 if (OperatingSystem.IsWindows())
     SevenZipBase.SetLibraryPath(Path.GetFullPath("assets/7z.dll"));
@@ -56,8 +107,9 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
 };
 
 notifier.Notify("Started node");
-Thread.Sleep(-1);
+await app.WaitForShutdownAsync();
 GC.KeepAlive(main);
+
 
 
 [Conditional("DEBUG")]
