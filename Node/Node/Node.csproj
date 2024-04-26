@@ -17,12 +17,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\MarkTM.RFProduct\MarkTM.RFProduct.csproj" />
     <ProjectReference Include="..\..\NodeCommon\NodeCommon.csproj" />
     <ProjectReference Include="..\..\Benchmark\Benchmark.csproj" />
     <ProjectReference Include="..\..\Machine\Machine.csproj" />
     <ProjectReference Include="..\..\Transport\Transport.csproj" />
     <ProjectReference Include="..\..\_3DProductsPublish\_3DProductsPublish.csproj" />
-    <ProjectReference Include="..\..\MarkTM\MarkTM.csproj" />
+    <ProjectReference Include="..\..\MarkTM\MarkTM.RFProduct.csproj" />
 
     <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
     <ProjectReference Include="..\Node.Tasks\Node.Tasks.csproj" />

@@ -4,7 +4,7 @@
     <ProjectReference Include="..\Node.Tasks.Models\Node.Tasks.Models.csproj" />
     <ProjectReference Include="..\Node.Plugins.Models\Node.Plugins.Models.csproj" />
     <ProjectReference Include="..\..\NodeCommon\NodeCommon.csproj" />
-    <ProjectReference Include="..\..\MarkTM\MarkTM.csproj" />
+    <ProjectReference Include="..\..\MarkTM\MarkTM.RFProduct.csproj" />
   </ItemGroup>
 
 </Project>
