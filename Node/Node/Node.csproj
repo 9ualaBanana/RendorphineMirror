@@ -27,7 +27,6 @@
     <ProjectReference Include="..\..\Machine\Machine.csproj" />
     <ProjectReference Include="..\..\Transport\Transport.csproj" />
     <ProjectReference Include="..\..\_3DProductsPublish\_3DProductsPublish.csproj" />
-    <ProjectReference Include="..\..\MarkTM\MarkTM.RFProduct.csproj" />
 
     <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
     <ProjectReference Include="..\Node.Tasks\Node.Tasks.csproj" />
