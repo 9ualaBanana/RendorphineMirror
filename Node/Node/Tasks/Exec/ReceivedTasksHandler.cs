@@ -22,7 +22,7 @@ public class ReceivedTasksHandler
                 if (QueuedTasks.QueuedTasks.Count == 0) continue;
                 if (!Settings.Instance.ProcessTasks.Value) continue;
 
-                foreach (var task in QueuedTasks.QueuedTasks.Values.ToArray())
+                foreach (var task in QueuedTasks.QueuedTasks.Values.OrderBy(t => t.Info.Registered).ToArray())
                     HandleAsync(task).Consume();
             }
         })

@@ -50,8 +50,8 @@ public class Benchmark
 
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
         {
-            result.CPU.Load = CPU.Info.First().LoadPercentage / 100d;
-            result.GPU.Load = GPU.Info.First().LoadPercentage / 100d;
+            result.CPU.Load = CPU.Info.Select(i => i.LoadPercentage / 100d).Average();
+            result.GPU.Load = GPU.Info.Select(i => i.LoadPercentage / 100d).Average();
             result.RAM.Free = RAM.Info.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory);
 
             var drives = new MultiList<Drive>()
