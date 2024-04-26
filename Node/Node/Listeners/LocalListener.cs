@@ -1,8 +1,10 @@
 using System.Net;
 using System.Reflection;
+using _3DProductsPublish;
 using _3DProductsPublish.CGTrader;
 using _3DProductsPublish.CGTrader.Upload;
 using _3DProductsPublish.Turbosquid;
+using _3DProductsPublish.Turbosquid.Upload;
 using Node.Profiling;
 using Node.Tasks.Exec.Input;
 using Node.Tasks.Exec.Output;
@@ -170,7 +172,8 @@ public class LocalListener : ExecutableListenerBase
         {
             return await TestPost(await CreateCached(inputStream), response, "taskid", async (taskid) =>
             {
-                Container.Resolve<TurboSquidContainer>().ClearCache();
+                Container.Resolve<StockCredentialContainer<TurboSquid>>().ClearCache();
+                Container.Resolve<StockCredentialContainer<CGTrader>>().ClearCache();
 
                 var task = Container.Resolve<IWatchingTasksStorage>().WatchingTasks.GetValueOrDefault(taskid);
                 if (task is null)
@@ -192,7 +195,7 @@ public class LocalListener : ExecutableListenerBase
                 var token = CancellationToken.None;
                 if (target == "turbosquid")
                 {
-                    var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(Settings.TurboSquidUsername.Value.ThrowIfNull(), Settings.TurboSquidPassword.Value.ThrowIfNull(), token);
+                    var turbo = await Container.Resolve<StockCredentialContainer<TurboSquid>>().GetAsync(Settings.TurboSquidUsername.Value.ThrowIfNull(), Settings.TurboSquidPassword.Value.ThrowIfNull(), token);
                     var ui = Container.Resolve<INodeGui>();
 
                     Logger.Info($"Publishing {rfproduct.Path}");
@@ -205,7 +208,7 @@ public class LocalListener : ExecutableListenerBase
                         return await WriteErr(response, "Login or password is empty");
 
                     Logger.Info($"Publishing {rfproduct.Path}");
-                    var cgtrader = await Container.Resolve<CGTraderContainer>().GetAsync(Settings.CGTraderUsername.Value.ThrowIfNull(), Settings.CGTraderPassword.Value.ThrowIfNull(), token);
+                    var cgtrader = await Container.Resolve<StockCredentialContainer<CGTrader>>().GetAsync(Settings.CGTraderUsername.Value.ThrowIfNull(), Settings.CGTraderPassword.Value.ThrowIfNull(), token);
                     await cgtrader.UploadAsync(rfproduct, token);
                     return await WriteJson(response, "Item is successfully published.".AsOpResult());
                 }
@@ -231,7 +234,7 @@ public class LocalListener : ExecutableListenerBase
 
                     Logger.Info($"Publishing to turbosquid: {rfproduct.Path}");
                     Logger.Info($"using {username} {password}");
-                    var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(username, password, token);
+                    var turbo = await Container.Resolve<StockCredentialContainer<TurboSquid>>().GetAsync(username, password, token);
                     await turbo.UploadAsync(rfproduct, NodeGui, token);
 
                     return await WriteSuccess(response);
@@ -239,13 +242,13 @@ public class LocalListener : ExecutableListenerBase
                 if (target == "cgtrader")
                 {
                     var submitJson = JObject.Parse(await File.ReadAllTextAsync(Directory.GetFiles(rfproduct.Idea.Path).Single(f => f.EndsWith("_Submit.json"))));
-                    var username = submitJson["LoginSquid"]!.ToObject<string>().ThrowIfNull();
-                    var password = submitJson["PasswordSquid"]!.ToObject<string>().ThrowIfNull();
+                    var username = submitJson["LoginCGTrader"]!.ToObject<string>().ThrowIfNull();
+                    var password = submitJson["PasswordCGTrader"]!.ToObject<string>().ThrowIfNull();
 
                     Logger.Info($"Publishing to cgtrader: {rfproduct.Path}");
                     Logger.Info($"using {username} {password}");
 
-                    var cgtrader = await Container.Resolve<CGTraderContainer>().GetAsync(username, password, token);
+                    var cgtrader = await Container.Resolve<StockCredentialContainer<CGTrader>>().GetAsync(username, password, token);
                     await cgtrader.UploadAsync(rfproduct, token);
 
                     return await WriteSuccess(response);
@@ -258,7 +261,7 @@ public class LocalListener : ExecutableListenerBase
         if (path == "fetchturbosquidsales")
         {
             var mpcreds = new NetworkCredential(Settings.MPlusUsername.Value, Settings.MPlusPassword.Value);
-            var turbo = await Container.Resolve<TurboSquidContainer>().GetAsync(Settings.TurboSquidUsername.Value.ThrowIfNull(), Settings.TurboSquidPassword.Value.ThrowIfNull(), default);
+            var turbo = await Container.Resolve<StockCredentialContainer<TurboSquid>>().GetAsync(Settings.TurboSquidUsername.Value.ThrowIfNull(), Settings.TurboSquidPassword.Value.ThrowIfNull(), default);
             await (await MPAnalytics.LoginAsync(mpcreds, default))
                 .SendAsync(turbo.SaleReports.ScanAsync(default), default);
 

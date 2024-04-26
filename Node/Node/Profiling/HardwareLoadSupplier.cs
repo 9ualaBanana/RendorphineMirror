@@ -6,6 +6,7 @@ public static class HardwareLoadSupplier
 {
     static long TotalBytesSent = 0;
     static long TotalBytesReceived = 0;
+    static DateTimeOffset LastCheck = DateTimeOffset.UtcNow;
 
     static HardwareLoadSupplier()
     {
@@ -23,8 +24,8 @@ public static class HardwareLoadSupplier
 
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
         {
-            cpuload = CPU.Info.First().LoadPercentage / 100d;
-            gpuload = GPU.Info.First().LoadPercentage / 100d;
+            cpuload = CPU.Info.Select(p => p.LoadPercentage / 100d).Average();
+            gpuload = GPU.Info.Select(p => p.LoadPercentage / 100d).Average();
             freeram = RAM.Info.Aggregate(0L, (freeMemory, ramUnit) => freeMemory += (long) ramUnit.FreeMemory);
         }
 
@@ -34,9 +35,13 @@ public static class HardwareLoadSupplier
 
         internetup = interfaces.Sum(i => i.BytesSent) - TotalBytesSent;
         internetdown = interfaces.Sum(i => i.BytesReceived) - TotalBytesReceived;
-
         TotalBytesSent += internetup;
         TotalBytesReceived += internetdown;
+
+        var now = DateTimeOffset.UtcNow;
+        internetup = (long) (internetup / (now - LastCheck).TotalSeconds);
+        internetdown = (long) (internetdown / (now - LastCheck).TotalSeconds);
+        LastCheck = now;
 
         return new HardwareLoadPartial(cpuload, gpuload, freeram, internetup, internetdown);
     }
