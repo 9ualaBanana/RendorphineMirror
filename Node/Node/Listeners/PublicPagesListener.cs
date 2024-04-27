@@ -265,6 +265,9 @@ namespace Node.Listeners
                 });
             }
 
+            if (path == "")
+                path = "index.html";
+
             var call = await Api.Api.Client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5336/" + path));
             await call.Content.CopyToAsync(response.OutputStream);
             return call.StatusCode;

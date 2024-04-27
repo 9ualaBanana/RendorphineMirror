@@ -16,7 +16,7 @@ const App = () => {
 
   useEffect(() => {
     // Fetch the images from the /rfpreview/{id} endpoint
-    const fetchImage = async (id) => {
+    const fetchImage = async (id: string) => {
       const response = await fetch(`http://localhost:5336/rfpreview/${id}`);
       const imageData = await response.blob();
       setImages((prevImages) => ({ ...prevImages, [id]: imageData }));

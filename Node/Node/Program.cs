@@ -30,6 +30,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Node;
 using Node.Services.Targets;
@@ -78,6 +79,19 @@ builder.WebHost.UseKestrel((ctx, o) =>
 );
 
 await using var app = builder.Build();
+static string FindFirstExistingDirectory(params string[] directories) => directories.First(Directory.Exists);
+
+app.UseStaticFiles(new StaticFileOptions()
+{
+    FileProvider = new PhysicalFileProvider(
+        FindFirstExistingDirectory(
+            Path.Combine(builder.Environment.ContentRootPath, "dist"),
+            Path.GetFullPath("dist"),
+            Path.GetFullPath("marktm.client/dist")
+        )
+    )
+});
+app.UseDefaultFiles();
 app.MapControllers();
 app.UseWebSockets();
 app.UseCors(_ => _.WithOrigins("https://localhost:5173").AllowAnyHeader().AllowAnyMethod());
