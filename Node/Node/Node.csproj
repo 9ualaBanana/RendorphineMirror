@@ -37,10 +37,4 @@
     </ProjectReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="../../marktm.client/dist/**">
-      <CopyToOutputDirectory>always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>

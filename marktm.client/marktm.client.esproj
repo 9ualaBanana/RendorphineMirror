@@ -8,4 +8,10 @@
     <!-- Folder where production build objects will be placed -->
     <PublishAssetsDirectory>$(MSBuildProjectDirectory)\dist</PublishAssetsDirectory>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="dist/**">
+      <CopyToOutputDirectory>always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
