@@ -25,13 +25,10 @@ global using NodeToUI;
 global using Logger = NLog.Logger;
 global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
-using System.Text;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Node;
@@ -83,9 +80,13 @@ builder.WebHost.UseKestrel((ctx, o) =>
 await using var app = builder.Build();
 app.MapControllers();
 app.UseWebSockets();
+app.UseCors(_ => _.WithOrigins("https://localhost:5173").AllowAnyHeader().AllowAnyMethod());
 
-app.MapGet("/test", () => "helloworld");
-app.MapPost("/testpost", async (HttpContext context) => "helloworld " + await new StreamReader(context.Request.Body).ReadToEndAsync());
+app.MapGet("/ids", (IRFProductStorage products) => new { ids = products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => _.Key) });
+app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
+    => new FileInfo(products.RFProducts[id].QSPreview.First().Path) is var file && file.Exists
+        ? Results.File(file.FullName, $"image/png")
+        : Results.NotFound());
 
 await app.StartAsync();
 

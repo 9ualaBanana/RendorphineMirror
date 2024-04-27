@@ -73,6 +73,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StatusNotifier", "StatusNot
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MarkTM.RFProduct", "MarkTM.RFProduct\MarkTM.RFProduct.csproj", "{84229A43-E40C-4831-B4D3-061A6552775B}"
 EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "marktm.client", "marktm.client\marktm.client.esproj", "{7745C409-C0E2-44EA-8775-1789A2F1F386}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -211,6 +213,12 @@ Global
 		{84229A43-E40C-4831-B4D3-061A6552775B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84229A43-E40C-4831-B4D3-061A6552775B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84229A43-E40C-4831-B4D3-061A6552775B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7745C409-C0E2-44EA-8775-1789A2F1F386}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7745C409-C0E2-44EA-8775-1789A2F1F386}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7745C409-C0E2-44EA-8775-1789A2F1F386}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{7745C409-C0E2-44EA-8775-1789A2F1F386}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7745C409-C0E2-44EA-8775-1789A2F1F386}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7745C409-C0E2-44EA-8775-1789A2F1F386}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
