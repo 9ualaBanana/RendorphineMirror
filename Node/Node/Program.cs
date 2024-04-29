@@ -74,11 +74,19 @@ builder.Services.AddControllers();
 builder.WebHost.UseKestrel((ctx, o) =>
     o.ListenLocalhost(5336, o =>
     {
+        o.UseHttps();
         // o.Protocols = HttpProtocols.Http2;
     })
 );
 
 await using var app = builder.Build();
+
+await WriteNodeSocketToClientConfig();
+async Task WriteNodeSocketToClientConfig()
+{
+    string path = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\..\\..\\..\\marktm.client\\.env"));
+    File.WriteAllText(path, $"VITE_SERVER_SOCKET={await PortForwarding.GetPublicIPAsync()}:{app.Services.GetService<INodeSettings>()!.UPnpServerPort}");
+}
 static string FindFirstExistingDirectory(params string[] directories) => directories.First(Directory.Exists);
 
 app.UseStaticFiles(new StaticFileOptions()
@@ -94,7 +102,8 @@ app.UseStaticFiles(new StaticFileOptions()
 app.UseDefaultFiles();
 app.MapControllers();
 app.UseWebSockets();
-app.UseCors(_ => _.WithOrigins("https://localhost:5173").AllowAnyHeader().AllowAnyMethod());
+app.UseHttpsRedirection();
+app.UseCors(_ => _.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
 app.MapGet("/ids", (IRFProductStorage products) => new { ids = products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => _.Key) });
 app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
