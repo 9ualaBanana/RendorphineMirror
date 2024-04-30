@@ -81,20 +81,6 @@ builder.WebHost.UseKestrel((ctx, o) =>
 );
 
 await using var app = builder.Build();
-
-static string FindFirstExistingDirectory(params string[] directories) => directories.First(Directory.Exists);
-
-app.UseStaticFiles(new StaticFileOptions()
-{
-    FileProvider = new PhysicalFileProvider(
-        FindFirstExistingDirectory(
-            Path.Combine(builder.Environment.ContentRootPath, "dist"),
-            Path.GetFullPath("dist"),
-            Path.GetFullPath("marktm.client/dist")
-        )
-    )
-});
-app.UseDefaultFiles();
 app.MapControllers();
 app.UseWebSockets();
 
