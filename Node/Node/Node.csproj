@@ -31,10 +31,6 @@
     <ProjectReference Include="..\NodeToUI\NodeToUI.csproj" />
     <ProjectReference Include="..\Node.Tasks\Node.Tasks.csproj" />
     <ProjectReference Include="..\Node.Plugins\Node.Plugins.csproj" />
-     
-    <ProjectReference Include="..\..\marktm.client\marktm.client.esproj">
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
 
 </Project>
