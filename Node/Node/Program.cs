@@ -73,11 +73,7 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder
 builder.Services.AddControllers();
 
 builder.WebHost.UseKestrel((ctx, o) =>
-    o.ListenLocalhost(5336, o =>
-    {
-        // o.Protocols = HttpProtocols.Http2;
-    })
-    
+    o.ListenAnyIP(5336)
 );
 
 await using var app = builder.Build();
@@ -129,7 +125,7 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
 
-notifier.Notify("Started node");
+notifier.Notify("Started nod");
 await app.WaitForShutdownAsync();
 GC.KeepAlive(main);
 

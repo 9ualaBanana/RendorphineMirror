@@ -33,6 +33,7 @@ public class SettingsInstance : INodeSettings
     public readonly DatabaseValue<uint> TaskAutoDeletionDelayDays;
     public readonly DatabaseValue<BenchmarkInfo?> BenchmarkResult;
     public readonly DatabaseValue<string?> TaskProcessingDirectory;
+    public readonly DatabaseValue<ImmutableArray<string>> RFProductSourceDirectories;
 
     public readonly DatabaseValue<string?> MPlusUsername;
     public readonly DatabaseValue<string?> MPlusPassword;
@@ -62,6 +63,7 @@ public class SettingsInstance : INodeSettings
         TaskAutoDeletionDelayDays = new(db, nameof(TaskAutoDeletionDelayDays), 4);
         BenchmarkResult = new(db, nameof(BenchmarkResult), default);
         TaskProcessingDirectory = new(db, nameof(TaskProcessingDirectory), default);
+        RFProductSourceDirectories = new(db, nameof(RFProductSourceDirectories), []);
 
         MPlusUsername = new(db, nameof(MPlusUsername), default);
         MPlusPassword = new(db, nameof(MPlusPassword), default);
