@@ -8,7 +8,7 @@ public class PublicListenersTarget : IServiceTarget
 
     public required DownloadListener DownloadListener { get; init; }
     public required PublicListener PublicListener { get; init; }
-    public required PublicPagesListener PublicPagesListener { get; init; }
+    // public required PublicPagesListener PublicPagesListener { get; init; }
     public required StatsListener StatsListener { get; init; }
     public required DirectoryDiffListener DirectoryDiffListener { get; init; }
 

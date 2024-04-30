@@ -1,6 +1,4 @@
-﻿using System.DirectoryServices;
-using System.IO.Compression;
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Web;
 
@@ -8,11 +6,7 @@ namespace Node.Listeners
 {
     public class PublicPagesListener : ExecutableListenerBase
     {
-        protected override ListenTypes ListenType => ListenTypes.WebServer
-#if DEBUG
-            | ListenTypes.Local
-#endif
-            ;
+        protected override ListenTypes ListenType => ListenTypes.WebServer;
 
         public required Apis Api { get; init; }
         public required ICompletedTasksStorage CompletedTasks { get; init; }
@@ -216,56 +210,6 @@ namespace Node.Listeners
                         .Next(nodes => nodes.Select(n => $"{n.Info.Ip}:{n.Info.Port}").ToArray().AsOpResult());
 
                     return await WriteJson(response, result);
-                });
-            }
-
-            if (path == "logs")
-            {
-                return await CheckSendAuthentication(context, async () =>
-                {
-                    string logDir = Path.GetFullPath("logs");
-                    string? q = context.Request.QueryString["id"];
-                    string info = "";
-
-                    if (q == null)
-                    {
-                        addFolder(logDir);
-
-
-                        void addFolder(string folder)
-                        {
-                            string[] files = Directory.GetFiles(folder);
-                            info += $"<b style='font-size: 32px'>{Path.GetFileName(folder)}</b></br>";
-                            foreach (string file in files)
-                            {
-                                info += $"<a href='/logs?id={Path.GetRelativePath(logDir, file)}'>{Path.GetFileName(file)}</a></br>";
-                            }
-
-                            info += "<div style=\"margin-left:4px\">";
-                            foreach (string f in Directory.GetDirectories(folder))
-                                addFolder(f);
-                            info += "</div>";
-                        }
-                    }
-                    else
-                    {
-                        string filepath = Path.Combine(logDir, q);
-                        if (!Path.GetFullPath(filepath).StartsWith(logDir, StringComparison.Ordinal))
-                            return HttpStatusCode.NotFound;
-
-                        response.Headers["Content-Encoding"] = "gzip";
-
-                        using Stream file = File.Open(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                        using var gzip = new GZipStream(response.OutputStream, CompressionLevel.Optimal);
-                        await file.CopyToAsync(gzip);
-
-                        return HttpStatusCode.OK;
-                    }
-
-                    using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
-                    writer.Write(info);
-
-                    return HttpStatusCode.OK;
                 });
             }
 
