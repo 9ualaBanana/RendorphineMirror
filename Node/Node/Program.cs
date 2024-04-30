@@ -111,7 +111,7 @@ app.MapGet("/marktm", (IRFProductStorage products) =>
     </head>
     <body>
     """);
-    sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src=http://localhost:5336/rfpreview/{_.Key} />"));
+    sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src=http://localhost:5336/rfpreview/{_.Key} class=rfpreview/>"));
     sb.Append(
     """    
     </body>
