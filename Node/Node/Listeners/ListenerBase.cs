@@ -109,8 +109,10 @@ public abstract class ListenerBase : IServiceTarget
             _Start(1);
             return;
         }
-        catch (Exception) when (time == 1)
+        catch (Exception ex) when (time == 1)
         {
+            Logger.Error($"Could not start HttpListener: {ex.Message} at time {time}");
+
             if (ListenType.HasFlag(ListenTypes.Local))
                 Settings.LocalListenPort++;
             if (ListenType.HasFlag(ListenTypes.Public))

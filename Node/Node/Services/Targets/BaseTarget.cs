@@ -1,4 +1,3 @@
-using _3DProductsPublish;
 using Node.Listeners;
 using Node.Profiling;
 
@@ -30,6 +29,7 @@ public class BaseTarget : IServiceTarget
     public required DatabaseTarget Database { get; init; }
     public required TaskExecutorTarget TaskExecutor { get; init; }
     public required PluginUpdaterTarget PluginUpdater { get; init; }
+    public required AutoRFProductGenerationTarget AutoRFProductGeneration { get; init; }
     public required TaskListener TaskListener { get; init; }
     public required SystemLoadStoreService SystemLoadStoreService { get; init; }
 
