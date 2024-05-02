@@ -31,7 +31,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Node;
 using Node.Services.Targets;
@@ -80,9 +79,16 @@ await using var app = builder.Build();
 app.MapControllers();
 app.UseWebSockets();
 
-app.MapGet("/marktm", (IRFProductStorage products) =>
+app.MapGet("/marktm", (string[] sources, SettingsInstance settings, IRFProductStorage products) =>
 {
-    var sb = new StringBuilder("""
+    if (sources.Length is not 0)
+    {
+        settings.RFProductSourceDirectories.Value = [..sources];
+        return Results.Created();
+    }
+    else
+    {
+        var sb = new StringBuilder("""
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -93,13 +99,14 @@ app.MapGet("/marktm", (IRFProductStorage products) =>
     </head>
     <body>
     """);
-    sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src=http://localhost:5336/rfpreview/{_.Key} class=rfpreview/>"));
-    sb.Append(
-    """    
+        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src=http://localhost:5336/rfpreview/{_.Key} class=rfpreview/>"));
+        sb.Append(
+        """    
     </body>
     </html>
     """);
-    return Results.Content(sb.ToString(), "text/html");
+        return Results.Content(sb.ToString(), "text/html");
+    }
 });
 app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
     => new FileInfo(products.RFProducts[id].QSPreview.First().Path) is var file && file.Exists
