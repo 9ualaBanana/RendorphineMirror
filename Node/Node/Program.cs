@@ -79,6 +79,7 @@ await using var app = builder.Build();
 app.MapControllers();
 app.UseWebSockets();
 
+app.MapGet("/restart", () => Environment.Exit(0));
 app.MapGet("/marktm", (string[] sources, SettingsInstance settings, IRFProductStorage products) =>
 {
     if (sources.Length is not 0)
