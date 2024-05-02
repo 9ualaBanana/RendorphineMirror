@@ -79,6 +79,28 @@ await using var app = builder.Build();
 app.MapControllers();
 app.UseWebSockets();
 
+app.MapGet("/", () => Results.Content(@"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Your Page Title</title>
+</head>
+<body>
+    <form action=""/marktm"" method=""get"">
+        <button type=""submit"">Marktm</button>
+    </form>
+    <form action=""/reset_rating"" method=""get"">
+        <button type=""submit"">Reset Rating</button>
+    </form>
+    <form action=""/restart"" method=""get"">
+        <button type=""submit"">Restart</button>
+    </form>
+</body>
+</html>
+", "text/html"));
 app.MapGet("/marktm", (string[] sources, SettingsInstance settings, IRFProductStorage products) =>
 {
     if (sources.Length is not 0)
