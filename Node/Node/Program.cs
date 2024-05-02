@@ -79,7 +79,6 @@ await using var app = builder.Build();
 app.MapControllers();
 app.UseWebSockets();
 
-app.MapGet("/restart", () => Environment.Exit(0));
 app.MapGet("/marktm", (string[] sources, SettingsInstance settings, IRFProductStorage products) =>
 {
     if (sources.Length is not 0)
@@ -113,6 +112,8 @@ app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
     => new FileInfo(products.RFProducts[id].QSPreview.First().Path) is var file && file.Exists
         ? Results.File(file.FullName, $"image/png")
         : Results.NotFound());
+app.MapGet("/reset_rating", (SettingsInstance settings) => settings.BenchmarkResult.Value = null);
+app.MapGet("/restart", () => Environment.Exit(0));
 
 await app.StartAsync();
 
