@@ -213,14 +213,9 @@ namespace Node.Listeners
                 });
             }
 
-            if (path == "")
-                path = "index.html";
-
             var call = await Api.Api.Client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5336/" + path));
             await call.Content.CopyToAsync(response.OutputStream);
             return call.StatusCode;
-
-            return HttpStatusCode.NotFound;
         }
 
         protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context, Stream inputStream)
@@ -279,8 +274,6 @@ namespace Node.Listeners
             var call = await Api.Api.Client.SendAsync(message);
             await call.Content.CopyToAsync(response.OutputStream);
             return call.StatusCode;
-
-            return await base.ExecutePost(path, context, inputStream);
         }
     }
 }
