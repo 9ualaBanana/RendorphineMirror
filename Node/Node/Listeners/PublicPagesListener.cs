@@ -213,7 +213,12 @@ namespace Node.Listeners
                 });
             }
 
-            var call = await Api.Api.Client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "http://localhost:5336/" + path));
+            using var message = new HttpRequestMessage(HttpMethod.Get, "http://localhost:5336/" + path);
+            foreach (var header in request.Headers.AllKeys)
+                if (header is not null)
+                    message.Headers.Add(header, request.Headers[header]);
+
+            var call = await Api.Api.Client.SendAsync(message);
             await call.Content.CopyToAsync(response.OutputStream);
             return call.StatusCode;
         }
