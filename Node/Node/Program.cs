@@ -156,7 +156,7 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
 
-notifier.Notify("Started nod");
+notifier.Notify("Started node");
 await app.WaitForShutdownAsync();
 GC.KeepAlive(main);
 
