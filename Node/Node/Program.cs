@@ -90,7 +90,13 @@ app.MapGet("/", () => Results.Content(@"
 </head>
 <body>
     <form action=""/marktm"" method=""get"">
-        <button type=""submit"">Marktm</button>
+        <button type=""submit"">MarkTM</button>
+    </form>
+    <form action=""/marktm/sell"" method=""get"">
+        <button type=""submit"">Upload</button>
+    </form>
+    <form action=""/marktm/sources"" method=""get"">
+        <button type=""submit"">RFProduct Sources</button>
     </form>
     <form action=""/reset_rating"" method=""get"">
         <button type=""submit"">Reset Rating</button>
@@ -101,6 +107,7 @@ app.MapGet("/", () => Results.Content(@"
 </body>
 </html>
 ", "text/html"));
+
 app.MapGet("/marktm", (string[] sources, SettingsInstance settings, IRFProductStorage products) =>
 {
     if (sources.Length is not 0)
