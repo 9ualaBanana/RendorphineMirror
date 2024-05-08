@@ -26,12 +26,6 @@ public class EditVideo : FFMpegMediaEditAction<EditVideoInfo>
         {
             base.AddFilters(data, output, input, ffprobe, launcher);
 
-            launcher.Outputs.Add(new FFmpegLauncherOutput()
-            {
-                Codec = FFmpegLauncher.CodecFromStream(ffprobe.VideoStream),
-                Output = output.New().New(input.Format).Path,
-            });
-
             if (data.CutFramesAt is not (null or { Length: 0 }))
             {
                 /*
@@ -56,7 +50,6 @@ public class EditVideo : FFMpegMediaEditAction<EditVideoInfo>
                 }
 
                 launcher.VideoFilters.Add(filters);
-                launcher.Outputs.Clear();
 
                 for (int i = 0; i < data.CutFramesAt.Length; i++)
                 {
@@ -79,7 +72,6 @@ public class EditVideo : FFMpegMediaEditAction<EditVideoInfo>
 
             if (data.CutFrameAt is not (null or -1))
             {
-                launcher.Outputs.Clear();
                 launcher.Outputs.Add(new FFmpegLauncherOutput()
                 {
                     Codec = new JpegFFmpegCodec(),
@@ -93,6 +85,12 @@ public class EditVideo : FFMpegMediaEditAction<EditVideoInfo>
 
                 return;
             }
+
+            launcher.Outputs.Add(new FFmpegLauncherOutput()
+            {
+                Codec = FFmpegLauncher.CodecFromStream(ffprobe.VideoStream),
+                Output = output.New().New(input.Format).Path,
+            });
 
             if (data.Speed is not null)
             {
