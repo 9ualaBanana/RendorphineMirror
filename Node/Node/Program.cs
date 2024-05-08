@@ -134,7 +134,8 @@ app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
     => new FileInfo(products.RFProducts[id].QSPreview.First().Path) is var file && file.Exists
         ? Results.File(file.FullName, $"image/png")
         : Results.NotFound());
-app.MapGet("/reset_rating", (SettingsInstance settings) => settings.BenchmarkResult.Value = null);
+
+app.MapGet("/reset_rating", (SettingsInstance settings) => { settings.BenchmarkResult.Value = null; Results.Ok(); });
 app.MapGet("/restart", () => Environment.Exit(0));
 
 await app.StartAsync();
