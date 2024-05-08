@@ -40,7 +40,10 @@ public class TaskFileList : ReadOnlyTaskFileList
         var extension = Path.GetExtension(filename ?? "file");
         if (extension.Length == 0) extension = format.AsExtension();
 
-        filename = Directories.RandomNameInDirectory(directory) + extension;
+        if (filename is not null)
+            filename = Path.Combine(directory, Path.ChangeExtension(filename, extension));
+        else filename = Directories.RandomNameInDirectory(directory) + extension;
+
         return new FileWithFormat(format, filename);
     }
 }

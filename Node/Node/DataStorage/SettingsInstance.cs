@@ -51,7 +51,7 @@ public class SettingsInstance : INodeSettings
         BServerUrl = new(db, nameof(ServerUrl), "https://t.microstock.plus:8443");
         BLocalListenPort = new(db, nameof(LocalListenPort), randomized(5123));
         BUPnpPort = new(db, nameof(UPnpPort), randomized(5223));
-        BUPnpServerPort = new(db, nameof(UPnpServerPort), randomized(5323));
+        BUPnpServerPort = new(db, nameof(UPnpServerPort), randomized(5337));
         BDhtPort = new(db, nameof(DhtPort), randomized(6223));
         BTorrentPort = new(db, nameof(TorrentPort), randomized(6323));
         BAuthInfo = new(db, nameof(AuthInfo), default);
