@@ -130,6 +130,43 @@ app.MapGet("/marktm", (string[] sources, SettingsInstance settings, IRFProductSt
         return Results.Content(sb.ToString(), "text/html");
     }
 });
+
+app.MapGet("/marktm/sources", (SettingsInstance settings) => Results.Content($@"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Your Page Title</title>
+    <style>
+        .input-container {{
+            display: flex;
+            flex-direction: column;
+        }}
+    </style>
+    <script>
+        function addInput() {{
+            const form = document.getElementById('form');
+            const inputContainer = document.createElement('div');
+            inputContainer.className = 'input-container';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = 'sources';
+            inputContainer.appendChild(input);
+            form.insertBefore(inputContainer, form.lastElementChild.previousElementSibling);
+        }}
+    </script>
+</head>
+<body>
+    <form id='form' action='/marktm' method='get'>
+        {string.Join("\n", settings.RFProductSourceDirectories.Value.Select(directory => $"<div class='input-container'><input type='text' name='sources' value='{directory}' /></div>"))}
+        <button type='button' onclick='addInput()'>Add Source</button>
+        <button type='submit'>Change</button>
+    </form>
+</body>
+</html>", "text/html"));
+
 app.MapGet("/marktm/sell", () => Results.Content(@"
 <!DOCTYPE html>
 <html lang=""en"">
