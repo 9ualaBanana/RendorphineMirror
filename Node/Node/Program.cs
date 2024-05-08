@@ -130,6 +130,37 @@ app.MapGet("/marktm", (string[] sources, SettingsInstance settings, IRFProductSt
         return Results.Content(sb.ToString(), "text/html");
     }
 });
+app.MapGet("/marktm/sell", () => Results.Content(@"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Your Page Title</title>
+</head>
+<body>
+    <form action=""/marktm"" method=""post"" enctype=""multipart/form-data"">
+        <input type=""file"" name=""files"" multiple>
+        <button type=""submit"">Submit</button>
+    </form>
+</body>
+</html>
+", "text/html"));
+
+app.MapPost("/marktm", async (IFormFileCollection files, SettingsInstance settings, IRFProductStorage products, RFProduct.Factory factory, CancellationToken cancellationToken) =>
+{
+    // Will get auto-generated.
+    var Ccontainer = settings.RFProductSourceDirectories.Value.First();
+    foreach (var file in files)
+    {
+        var CcontainedFile = new FileStream(Path.Combine(Ccontainer, file.FileName), FileMode.Create);
+        await file.OpenReadStream().CopyToAsync(CcontainedFile, cancellationToken);
+    }
+    return Results.Created();
+})
+    .DisableAntiforgery();
+
 app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
     => new FileInfo(products.RFProducts[id].QSPreview.First().Path) is var file && file.Exists
         ? Results.File(file.FullName, $"image/png")
