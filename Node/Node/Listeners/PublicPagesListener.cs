@@ -215,7 +215,7 @@ namespace Node.Listeners
 
             using var message = new HttpRequestMessage(HttpMethod.Get, "http://localhost:5336" + request.RawUrl);
             foreach (var header in request.Headers.AllKeys)
-                if (header is not null)
+                if (header is not (null or "Content-Length" or "Content-Type"))
                     message.Headers.Add(header, request.Headers[header]);
 
             var call = await Api.Api.Client.SendAsync(message);
@@ -277,7 +277,7 @@ namespace Node.Listeners
             using var message = new HttpRequestMessage(HttpMethod.Post, "http://localhost:5336" + request.RawUrl);
             message.Content = new StreamContent(inputStream);
             foreach (var header in request.Headers.AllKeys)
-                if (header is not null)
+                if (header is not (null or "Content-Length" or "Content-Type"))
                     message.Headers.Add(header, request.Headers[header]);
 
             var call = await Api.Api.Client.SendAsync(message);

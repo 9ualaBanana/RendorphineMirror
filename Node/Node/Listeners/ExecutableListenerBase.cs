@@ -36,9 +36,12 @@ public abstract class ExecutableListenerBase : ListenerBase
 
             try
             {
-                var poststr = await new StreamReader(new MemoryStream(data)).ReadToEndAsync();
-                if (!string.IsNullOrWhiteSpace(poststr))
-                    Logger.Trace($"{context.Request.RemoteEndPoint} POST data:\n{poststr}");
+                if (context.Request.ContentType is ("plain/text" or "application/json"))
+                {
+                    var poststr = await new StreamReader(new MemoryStream(data)).ReadToEndAsync();
+                    if (!string.IsNullOrWhiteSpace(poststr))
+                        Logger.Trace($"{context.Request.RemoteEndPoint} {context.Request.ContentType} POST data:\n{poststr}");
+                }
             }
             catch { }
 
