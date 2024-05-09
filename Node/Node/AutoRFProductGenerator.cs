@@ -41,32 +41,39 @@ public class AutoRFProductGenerator
     {
         if (!Directory.Exists(directory)) return;
 
-        foreach (var productDir in Directory.GetDirectories(directory))
+        foreach (var product in Directory.GetDirectories(directory).Concat(Directory.GetFiles(directory)).Select(Path.GetFullPath))
         {
             token.ThrowIfCancellationRequested();
-            if (File.Exists(Path.Combine(productDir, ".rfproducted"))) continue;
+            if (File.Exists(Path.Combine(product, ".rfproducted"))) continue;
+            if (RFProducts.RFProducts.Any(p => p.Value.Idea.Path == product)) continue;
+
+            var container = Directory.Exists(product) ? product : Path.Combine(product, "..");
 
             try
             {
-                Logger.Info("Creating product " + productDir);
+                Logger.Info("Creating product " + product);
                 RFProduct rfp;
                 try
                 {
-                    rfp = await RFProductFactory.CreateAsync(productDir, productDir, token, false);
+                    rfp = await RFProductFactory.CreateAsync(product, container, token, false);
                 }
                 catch
                 {
-                    foreach (var assetsdir in Directory.GetDirectories(productDir, "rfp-assets", SearchOption.AllDirectories))
-                        Directory.Delete(assetsdir, true);
+                    if (Directory.Exists(product))
+                    {
+                        foreach (var assetsdir in Directory.GetDirectories(product, "rfp-assets", SearchOption.AllDirectories))
+                            Directory.Delete(assetsdir, true);
 
-                    foreach (var file in Directory.GetFiles(productDir, "idea.*", SearchOption.AllDirectories))
-                        File.Delete(file);
+                        foreach (var file in Directory.GetFiles(product, "idea.*", SearchOption.AllDirectories))
+                            File.Delete(file);
+                    }
 
-                    rfp = await RFProductFactory.CreateAsync(productDir, productDir, token, false);
+                    rfp = await RFProductFactory.CreateAsync(product, container, token, false);
                 }
 
                 Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
-                File.Create(Path.Combine(productDir, ".rfproducted")).Dispose();
+                if (Directory.Exists(product))
+                    File.Create(Path.Combine(product, ".rfproducted")).Dispose();
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
