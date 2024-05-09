@@ -5,6 +5,7 @@ public class AutoRFProductGenerator
     public required IRFProductStorage RFProducts { get; init; }
     public required RFProduct.Factory RFProductFactory { get; init; }
     public required SettingsInstance Settings { get; init; }
+    public required DataDirs Dirs { get; init; }
     public required ILogger<AutoRFProductGenerator> Logger { get; init; }
 
     public AutoRFProductGenerator() => StartThread(ProcessOnce);
@@ -29,7 +30,8 @@ public class AutoRFProductGenerator
     async Task ProcessOnce()
     {
         var dirs = Settings.RFProductSourceDirectories.Value;
-        if (dirs.Length == 0) return;
+        if (dirs.Length == 0)
+            Settings.RFProductSourceDirectories.Value = [Dirs.DataDir("autorfp")];
 
         foreach (var dir in dirs)
             await GenerateRFProducts(dir, default);
