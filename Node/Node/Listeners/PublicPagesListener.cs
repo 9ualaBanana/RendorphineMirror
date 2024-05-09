@@ -276,6 +276,8 @@ namespace Node.Listeners
 
             using var message = new HttpRequestMessage(HttpMethod.Post, "http://localhost:5336" + request.RawUrl);
             message.Content = new StreamContent(inputStream);
+            message.Content.Headers.TryAddWithoutValidation("Content-Type", request.ContentType);
+
             foreach (var header in request.Headers.AllKeys)
                 if (header is not (null or "Content-Length" or "Content-Type"))
                     message.Headers.Add(header, request.Headers[header]);
