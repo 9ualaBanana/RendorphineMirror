@@ -213,7 +213,7 @@ namespace Node.Listeners
                 });
             }
 
-            using var message = new HttpRequestMessage(HttpMethod.Get, "http://localhost:5336/" + path);
+            using var message = new HttpRequestMessage(HttpMethod.Get, "http://localhost:5336" + request.RawUrl);
             foreach (var header in request.Headers.AllKeys)
                 if (header is not null)
                     message.Headers.Add(header, request.Headers[header]);
@@ -225,6 +225,7 @@ namespace Node.Listeners
 
         protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context, Stream inputStream)
         {
+            var request = context.Request;
             var response = context.Response;
 
             if (path == "loginas")
@@ -273,8 +274,11 @@ namespace Node.Listeners
                 );
             }
 
-            using var message = new HttpRequestMessage(HttpMethod.Post, "http://localhost:5336/" + path);
+            using var message = new HttpRequestMessage(HttpMethod.Post, "http://localhost:5336" + request.RawUrl);
             message.Content = new StreamContent(inputStream);
+            foreach (var header in request.Headers.AllKeys)
+                if (header is not null)
+                    message.Headers.Add(header, request.Headers[header]);
 
             var call = await Api.Api.Client.SendAsync(message);
             await call.Content.CopyToAsync(response.OutputStream);
