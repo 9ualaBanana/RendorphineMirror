@@ -130,7 +130,7 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
     </head>
     <body>
     """);
-        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src=https://{ip}/rfpreview/{_.Key} class=rfpreview/>"));
+        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src=http://{ip}:{settings.UPnpServerPort}/rfpreview/{_.Key} class=rfpreview/>"));
         sb.Append(
         """    
     </body>
