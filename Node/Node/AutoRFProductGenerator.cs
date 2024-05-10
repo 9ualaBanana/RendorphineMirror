@@ -51,13 +51,27 @@ public class AutoRFProductGenerator
 
             var container = isdir ? product : Path.ChangeExtension(product, null);
 
+            async Task<RFProduct> create()
+            {
+                Logger.Info($"Auto-creating rfp {product} @ {container}");
+                var rfp = await RFProductFactory.CreateAsync(product, container, token, false);
+
+                if (!isdir)
+                {
+                    Logger.Info($"Deleting original file {product}");
+                    File.Delete(product);
+                }
+
+                return rfp;
+            }
+
             try
             {
                 Logger.Info("Creating product " + product);
                 RFProduct rfp;
                 try
                 {
-                    rfp = await RFProductFactory.CreateAsync(product, container, token, false);
+                    rfp = await create();
                 }
                 catch
                 {
@@ -70,13 +84,7 @@ public class AutoRFProductGenerator
                             File.Delete(file);
                     }
 
-                    Logger.Info($"Auto-creating rfp {product} @ {container}");
-                    rfp = await RFProductFactory.CreateAsync(product, container, token, false);
-                    if (!isdir)
-                    {
-                        Logger.Info($"Deleting original file {product}");
-                        File.Delete(product);
-                    }
+                    rfp = await create();
                 }
 
                 Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
