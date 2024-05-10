@@ -43,11 +43,13 @@ public class AutoRFProductGenerator
 
         foreach (var product in Directory.GetDirectories(directory).Concat(Directory.GetFiles(directory)).Select(Path.GetFullPath))
         {
+            var isdir = Directory.Exists(product);
+
             token.ThrowIfCancellationRequested();
             if (File.Exists(Path.Combine(product, ".rfproducted"))) continue;
             if (RFProducts.RFProducts.Any(p => p.Value.Idea.Path == product)) continue;
 
-            var container = Directory.Exists(product) ? product : Path.Combine(product, "..");
+            var container = isdir ? product : Path.ChangeExtension(product, null);
 
             try
             {
@@ -59,7 +61,7 @@ public class AutoRFProductGenerator
                 }
                 catch
                 {
-                    if (Directory.Exists(product))
+                    if (isdir)
                     {
                         foreach (var assetsdir in Directory.GetDirectories(product, "rfp-assets", SearchOption.AllDirectories))
                             Directory.Delete(assetsdir, true);
@@ -68,12 +70,17 @@ public class AutoRFProductGenerator
                             File.Delete(file);
                     }
 
+                    Logger.Info($"Auto-creating rfp {product} @ {container}");
                     rfp = await RFProductFactory.CreateAsync(product, container, token, false);
+                    if (!isdir)
+                    {
+                        Logger.Info($"Deleting original file {product}");
+                        File.Delete(product);
+                    }
                 }
 
                 Logger.Info($"Auto-created rfproduct {rfp.ID} @ {rfp.Idea.Path}");
-                if (Directory.Exists(product))
-                    File.Create(Path.Combine(product, ".rfproducted")).Dispose();
+                File.Create(Path.Combine(container, ".rfproducted")).Dispose();
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
