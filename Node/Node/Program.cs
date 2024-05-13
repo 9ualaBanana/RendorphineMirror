@@ -25,6 +25,7 @@ global using NodeToUI;
 global using Logger = NLog.Logger;
 global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
+using System.Net;
 using System.Text;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
@@ -34,6 +35,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Node;
+using Node.Listeners;
 using Node.Services.Targets;
 using SevenZip;
 
@@ -232,6 +234,8 @@ await app.StartAsync();
 var container = app.Services.GetRequiredService<IComponentContext>();
 _ = new ProcessesingModeSwitch().StartMonitoringAsync();
 
+var pl = container.Resolve<ProxyListener>();
+
 var notifier = container.Resolve<Notifier>();
 notifier.Notify("Starting node");
 // initializeDotTracer(container);
@@ -245,6 +249,8 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (true, true) => container.Resolve<ReleaseMainTarget>(),
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
+
+pl.Listeners.Add(container.Resolve<PublicPagesListener>());
 
 notifier.Notify("Started node");
 await app.WaitForShutdownAsync();
@@ -279,4 +285,83 @@ static void initializeDotTracer(IContainer container)
         catch { }
     };
     container.SubscribeToDiagnostics(tracer);
+}
+
+
+// temporary while ASP isn't the front facing listener
+[AutoRegisteredService(true)]
+class ProxyListener : ListenerBase
+{
+    protected override ListenTypes ListenType => ListenTypes.WebServer;
+
+    public required HttpClient Client { get; init; }
+    public List<IPublicListener> Listeners { get; } = [];
+
+    public ProxyListener(ILogger<ProxyListener> logger) : base(logger) { }
+
+    protected override async ValueTask Execute(HttpListenerContext context)
+    {
+        var stream = await readStream(context);
+
+        foreach (var listener in Listeners)
+        {
+            var result = await listener.Execute(context, stream);
+            if (result is not null)
+            {
+                context.Response.StatusCode = (int) result;
+                context.Response.Close();
+
+                return;
+            }
+        }
+
+        var exec = await execute(context);
+        context.Response.StatusCode = (int) exec;
+        context.Response.Close();
+
+
+        async Task<HttpStatusCode> execute(HttpListenerContext context)
+        {
+            var request = context.Request;
+            var response = context.Response;
+
+            using var message = new HttpRequestMessage(HttpMethod.Parse(context.Request.HttpMethod), "http://localhost:5336" + request.RawUrl);
+            message.Content = new StreamContent(stream);
+            message.Content.Headers.TryAddWithoutValidation("Content-Type", request.ContentType);
+
+            foreach (var header in request.Headers.AllKeys)
+                if (header is not (null or "Content-Length" or "Content-Type"))
+                    message.Headers.Add(header, request.Headers[header]);
+
+            var call = await Client.SendAsync(message);
+            await call.Content.CopyToAsync(response.OutputStream);
+            return call.StatusCode;
+        }
+        async Task<Stream> readStream(HttpListenerContext context)
+        {
+            var data = new byte[context.Request.ContentLength64];
+            var span = data.AsMemory();
+
+            while (true)
+            {
+                var read = await context.Request.InputStream.ReadAsync(span);
+                if (read == 0) break;
+
+                span = span.Slice(read);
+            }
+
+            try
+            {
+                if (context.Request.ContentType is ("plain/text" or "application/json"))
+                {
+                    var poststr = await new StreamReader(new MemoryStream(data)).ReadToEndAsync();
+                    if (!string.IsNullOrWhiteSpace(poststr))
+                        Logger.Trace($"{context.Request.RemoteEndPoint} {context.Request.ContentType} POST data:\n{poststr}");
+                }
+            }
+            catch { }
+
+            return new MemoryStream(data);
+        }
+    }
 }

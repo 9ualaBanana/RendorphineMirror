@@ -4,7 +4,11 @@ using System.Web;
 
 namespace Node.Listeners
 {
-    public class PublicPagesListener : ExecutableListenerBase
+    public interface IPublicListener
+    {
+        Task<HttpStatusCode?> Execute(HttpListenerContext context, Stream inputStream);
+    }
+    public class PublicPagesListener : ExecutableListenerBase, IPublicListener
     {
         protected override ListenTypes ListenType => ListenTypes.WebServer;
 
@@ -16,7 +20,20 @@ namespace Node.Listeners
 
         public PublicPagesListener(ILogger<PublicPagesListener> logger) : base(logger) { }
 
-        protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context)
+        public override void Start() { }
+
+        public async Task<HttpStatusCode?> Execute(HttpListenerContext context, Stream inputStream)
+        {
+            var path = GetPath(context);
+            if (context.Request.HttpMethod == "GET")
+                return await Get(path, context);
+            if (context.Request.HttpMethod == "POST")
+                return await Post(path, context, inputStream);
+
+            return null;
+        }
+
+        async Task<HttpStatusCode?> Get(string path, HttpListenerContext context)
         {
             var source = WatchingTasks.WatchingTasks.Values
                 .Select(d => d.Source)
@@ -213,17 +230,9 @@ namespace Node.Listeners
                 });
             }
 
-            using var message = new HttpRequestMessage(HttpMethod.Get, "http://localhost:5336" + request.RawUrl);
-            foreach (var header in request.Headers.AllKeys)
-                if (header is not (null or "Content-Length" or "Content-Type"))
-                    message.Headers.Add(header, request.Headers[header]);
-
-            var call = await Api.Api.Client.SendAsync(message);
-            await call.Content.CopyToAsync(response.OutputStream);
-            return call.StatusCode;
+            return null;
         }
-
-        protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context, Stream inputStream)
+        async Task<HttpStatusCode?> Post(string path, HttpListenerContext context, Stream inputStream)
         {
             var request = context.Request;
             var response = context.Response;
@@ -274,17 +283,12 @@ namespace Node.Listeners
                 );
             }
 
-            using var message = new HttpRequestMessage(HttpMethod.Post, "http://localhost:5336" + request.RawUrl);
-            message.Content = new StreamContent(inputStream);
-            message.Content.Headers.TryAddWithoutValidation("Content-Type", request.ContentType);
-
-            foreach (var header in request.Headers.AllKeys)
-                if (header is not (null or "Content-Length" or "Content-Type"))
-                    message.Headers.Add(header, request.Headers[header]);
-
-            var call = await Api.Api.Client.SendAsync(message);
-            await call.Content.CopyToAsync(response.OutputStream);
-            return call.StatusCode;
+            return null;
         }
+
+        protected override async Task<HttpStatusCode> ExecuteGet(string path, HttpListenerContext context) =>
+            await Get(path, context) ?? await base.ExecuteGet(path, context);
+        protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context, Stream inputStream) =>
+            await Post(path, context, inputStream) ?? await base.ExecutePost(path, context, inputStream);
     }
 }

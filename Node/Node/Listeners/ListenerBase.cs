@@ -30,7 +30,7 @@ public abstract class ListenerBase : IServiceTarget
     static void IServiceTarget.CreateRegistrations(ContainerBuilder builder) { }
     async Task IServiceTarget.ExecuteAsync() => Start();
 
-    public void Start() => _Start(0);
+    public virtual void Start() => _Start(0);
     void _Start(int time)
     {
         if (!Listeners.Contains(this))
@@ -353,6 +353,7 @@ public abstract class ListenerBase : IServiceTarget
             var inputstr = await reader.ReadToEndAsync();
             var data = HttpUtility.ParseQueryString(inputstr);
 
+            if (stream is MemoryStream ms) ms.Position = 0;
             return new(data);
         }
 
