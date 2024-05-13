@@ -30,6 +30,7 @@ using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Node;
@@ -114,7 +115,7 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
 
     if (sources.Length is not 0)
     {
-        settings.RFProductSourceDirectories.Value = [..sources];
+        settings.RFProductSourceDirectories.Value = [.. sources];
         return Results.Created();
     }
     else
@@ -214,6 +215,17 @@ app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
 
 app.MapGet("/reset_rating", (SettingsInstance settings) => { settings.BenchmarkResult.Value = null; Results.Ok(); });
 app.MapGet("/restart", () => Environment.Exit(0));
+
+app.MapPost("/login", async ([FromForm] string login, [FromForm] string password, [FromServices] SessionManager sessionManager) =>
+{
+    if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.");
+    return JsonApi.JsonFromOpResult(await sessionManager.AuthAsync(login, password));
+});
+app.MapPost("/autologin", async ([FromForm] string login, [FromServices] SessionManager sessionManager) =>
+{
+    if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.");
+    return JsonApi.JsonFromOpResult(await sessionManager.AutoAuthAsync(login));
+});
 
 await app.StartAsync();
 

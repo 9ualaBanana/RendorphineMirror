@@ -10,6 +10,11 @@ public class SessionManager
     public required Api Api { get; init; }
     public required ILogger<SessionManager> Logger { get; init; }
 
+    public bool IsLoggedIn() =>
+        Settings.SessionId is not null
+        && Settings.NodeName is not null
+        && Settings.Guid is not null
+        && Settings.UserId is not null;
 
     public ValueTask<OperationResult> RenameServerAsync(string newname, string oldname) =>
         Api.ApiPost($"{Endpoint}/renameserver", "Renaming the node", ("sessionid", Settings.SessionId), ("oldname", oldname), ("newname", newname));

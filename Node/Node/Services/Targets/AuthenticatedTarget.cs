@@ -53,10 +53,8 @@ public class AuthenticatedTarget : IServiceTarget
                 return;
             }
 
-            if (Settings.SessionId is null) continue;
-            if (Settings.NodeName is null) continue;
-            if (Settings.Guid is null) continue;
-            if (Settings.UserId is null) continue;
+            if (!SessionManager.IsLoggedIn())
+                continue;
 
             return;
         }
