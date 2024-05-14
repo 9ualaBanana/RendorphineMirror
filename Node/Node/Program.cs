@@ -79,6 +79,26 @@ builder.WebHost.UseKestrel((ctx, o) =>
 );
 
 await using var app = builder.Build();
+app.UseStaticFiles(new StaticFileOptions
+{
+    ServeUnknownFileTypes = true, // Allow unknown file types
+    DefaultContentType = "application/octet-stream", // Default MIME type for unrecognized files
+    OnPrepareResponse = ctx =>
+    {
+        var path = ctx.File.PhysicalPath;
+        if (path.EndsWith(".wasm.br"))
+        {
+            ctx.Context.Response.Headers["Content-Encoding"] = "br"; // Specify Brotli encoding
+            ctx.Context.Response.ContentType = "application/wasm"; // Correct MIME type for WebAssembly files
+        }
+        else if (path.EndsWith(".br"))
+        {
+            ctx.Context.Response.Headers["Content-Encoding"] = "br"; // Specify Brotli encoding
+                                                                     // Use application/javascript or appropriate type based on the file being served
+            ctx.Context.Response.ContentType = "application/javascript";
+        }
+    }
+});
 app.MapControllers();
 app.UseWebSockets();
 
