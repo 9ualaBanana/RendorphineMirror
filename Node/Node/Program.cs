@@ -111,7 +111,7 @@ app.MapGet("/", () => Results.Content(@"
 </html>
 ", "text/html"));
 
-app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFProductStorage products) =>
+app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFProductStorage products, HttpContext context) =>
 {
     var ip = await PortForwarding.GetPublicIPAsync();
 
@@ -133,7 +133,7 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
     </head>
     <body>
     """);
-        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src=http://{ip}:{settings.UPnpServerPort}/rfpreview/{_.Key} class=rfpreview/>"));
+        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src={(context.Request.Host.Host == "localhost" ? $"http://localhost:5336" : $"https://{ip}:{settings.UPnpServerPort}")}/rfpreview/{_.Key} class=rfpreview/>"));
         sb.Append(
         """    
     </body>
