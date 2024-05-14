@@ -7,7 +7,7 @@ namespace Machine;
 internal static class WindowsRAM
 {
 
-    internal static List<RAM> Info
+    internal static IReadOnlyList<RAM> Info
     {
         get
         {
@@ -46,4 +46,6 @@ internal static class WindowsRAM
             return availableMemory * 1024;
         }
     }
+
+    public record RAM(uint Speed, ulong Capacity, ulong FreeMemory, string DeviceLocator, string SerialNumber) : Machine.RAM(Capacity, FreeMemory);
 }
