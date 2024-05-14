@@ -81,7 +81,7 @@ builder.WebHost.UseKestrel((ctx, o) =>
 
 await using var app = builder.Build();
 
-app.UseStaticFiles(new StaticFileOptions() { FileProvider = new PhysicalFileProvider(app.Services.GetRequiredService<DataDirs>().DataDir("wwwroot")) });
+app.UseStaticFiles(new StaticFileOptions() { FileProvider = new PhysicalFileProvider(new DataDirs("renderfin").DataDir("wwwroot")) });
 app.UseDefaultFiles();
 app.MapControllers();
 app.UseWebSockets();
