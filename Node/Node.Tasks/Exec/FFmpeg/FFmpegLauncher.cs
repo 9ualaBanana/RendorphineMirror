@@ -108,7 +108,8 @@ public class FFmpegLauncher
                 if (line.Contains("10 bit encode not supported", StringComparison.Ordinal)
                     || line.Contains("No capable devices found", StringComparison.Ordinal)
                     || line.Contains("Cannot load nvcuda.dll", StringComparison.Ordinal)
-                    || line.Contains("Driver does not support the required nvenc API version."))
+                    || line.Contains("Driver does not support the required nvenc API version.", StringComparison.Ordinal)
+                    || (line.Contains("h264_nvenc", StringComparison.Ordinal) && line.Contains("Cannot load libcuda.so", StringComparison.Ordinal)))
                 {
                     fallbackCodec = true;
                     throw new Exception(line);
