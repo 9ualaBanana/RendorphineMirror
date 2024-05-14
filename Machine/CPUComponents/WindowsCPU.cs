@@ -31,4 +31,7 @@ internal static class WindowsCPU
 
         return new(name, coreCount, threadCount, currentClockSpeed, maxClockSpeed, loadPercentage);
     }
+
+
+    public record CPU(string Name, uint CoreCount, uint ThreadCount, ulong CurrentClockSpeed, ulong MaxClockSpeed, uint LoadPercentage) : Machine.CPU(LoadPercentage);
 }

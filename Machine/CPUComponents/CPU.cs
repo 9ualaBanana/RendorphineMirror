@@ -1,18 +1,13 @@
 ﻿namespace Machine;
 
-public record CPU(
-    string Name,
-    uint CoreCount,
-    uint ThreadCount,
-    ulong CurrentClockSpeed,
-    ulong MaxClockSpeed,
-    uint LoadPercentage)
+public record CPU(uint LoadPercentage)
 {
-    public static List<CPU> Info
+    public static IReadOnlyList<CPU> Info
     {
         get
         {
             if (OperatingSystem.IsWindows()) return WindowsCPU.Info;
+            if (OperatingSystem.IsLinux()) return LinuxCPU.Info;
             //if (OperatingSystem.IsLinux()) return await LinuxGetForAll();
             throw new PlatformNotSupportedException();
         }
