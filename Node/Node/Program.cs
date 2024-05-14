@@ -33,6 +33,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Node;
 using Node.Listeners;
@@ -79,6 +80,9 @@ builder.WebHost.UseKestrel((ctx, o) =>
 );
 
 await using var app = builder.Build();
+
+app.UseStaticFiles(new StaticFileOptions() { FileProvider = new PhysicalFileProvider(app.Services.GetRequiredService<DataDirs>().DataDir("wwwroot")) });
+app.UseDefaultFiles();
 app.MapControllers();
 app.UseWebSockets();
 
