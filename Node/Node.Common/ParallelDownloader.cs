@@ -1,3 +1,4 @@
+using System.Net;
 using System.Runtime.CompilerServices;
 
 namespace Node.Common;
@@ -5,31 +6,39 @@ namespace Node.Common;
 [AutoRegisteredService(false)]
 public class ParallelDownloader
 {
-    public required HttpClient HttpClient { get; init; }
     public required DataDirs Dirs { get; init; }
     public required ITaskProgressSetter ProgressSetter { get; init; }
     public required ILogger<ParallelDownloader> Logger { get; init; }
+    public required HttpClient HttpClient { get; init; }
 
     public Task Download(Uri uri, Stream destination, CancellationToken token) => Download(uri, destination, 4, token);
     async Task Download(Uri uri, Stream destination, int parallelDownloads, CancellationToken token)
     {
         using var _logscope = Logger.BeginScope($"Downloading {uri}");
 
-        long fileSize;
+        var fs = await getSizeOrDownload(uri);
+        if (fs is null) return;
+        var fileSize = fs.Value;
+
+        async Task<long?> getSizeOrDownload(Uri uri)
         {
             using var fileSizeResponse = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, uri), HttpCompletionOption.ResponseHeadersRead, token);
             Logger.LogInformation("File size HEAD request response returned: " + string.Join(", ", fileSizeResponse.Headers.Select(h => $"{h.Key}: {string.Join(" | ", h.Value)}")));
             Logger.LogInformation("and http " + fileSizeResponse.StatusCode);
+
+            if (fileSizeResponse.StatusCode == HttpStatusCode.Found)
+                return await getSizeOrDownload(fileSizeResponse.Headers.Location.ThrowIfNull());
+
             if (!fileSizeResponse.IsSuccessStatusCode || fileSizeResponse.Content.Headers.ContentLength is null)
             {
                 Logger.LogWarning($"Could not fetch file size, downloading normally...");
                 fileSizeResponse.EnsureSuccessStatusCode();
                 await fileSizeResponse.Content.CopyToAsync(destination, token);
 
-                return;
+                return null;
             }
 
-            fileSize = fileSizeResponse.Content.Headers.ContentLength.Value;
+            return fileSizeResponse.Content.Headers.ContentLength.Value;
         }
 
         Logger.LogTrace($"File size: {fileSize / 1024f / 1024f} MB");

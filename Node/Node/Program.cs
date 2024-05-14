@@ -33,6 +33,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Node;
 using Node.Listeners;
@@ -81,24 +82,26 @@ builder.WebHost.UseKestrel((ctx, o) =>
 await using var app = builder.Build();
 app.UseStaticFiles(new StaticFileOptions
 {
+    FileProvider = new PhysicalFileProvider(new DataDirs("renderfin").DataDir("wwwroot")), // Serve files from the wwwroot directory
     ServeUnknownFileTypes = true, // Allow unknown file types
     DefaultContentType = "application/octet-stream", // Default MIME type for unrecognized files
-    OnPrepareResponse = ctx =>
+    OnPrepareResponse = _ =>
     {
-        var path = ctx.File.PhysicalPath;
+        var path = _.File.PhysicalPath;
         if (path.EndsWith(".wasm.br"))
         {
-            ctx.Context.Response.Headers["Content-Encoding"] = "br"; // Specify Brotli encoding
-            ctx.Context.Response.ContentType = "application/wasm"; // Correct MIME type for WebAssembly files
+            _.Context.Response.Headers["Content-Encoding"] = "br"; // Specify Brotli encoding
+            _.Context.Response.ContentType = "application/wasm"; // Correct MIME type for WebAssembly files
         }
         else if (path.EndsWith(".br"))
         {
-            ctx.Context.Response.Headers["Content-Encoding"] = "br"; // Specify Brotli encoding
+            _.Context.Response.Headers["Content-Encoding"] = "br"; // Specify Brotli encoding
                                                                      // Use application/javascript or appropriate type based on the file being served
-            ctx.Context.Response.ContentType = "application/javascript";
+            _.Context.Response.ContentType = "application/javascript";
         }
     }
 });
+app.UseDefaultFiles();
 app.MapControllers();
 app.UseWebSockets();
 
