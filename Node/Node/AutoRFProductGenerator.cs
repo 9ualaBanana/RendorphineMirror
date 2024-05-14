@@ -50,6 +50,13 @@ public class AutoRFProductGenerator
             if (RFProducts.RFProducts.Any(p => p.Value.Idea.Path == product)) continue;
 
             var container = isdir ? product : Path.ChangeExtension(product, null);
+            {
+                var origc = container;
+                var num = 0;
+
+                while (Directory.Exists(container))
+                    container = origc + num;
+            }
 
             async Task<RFProduct> create()
             {
