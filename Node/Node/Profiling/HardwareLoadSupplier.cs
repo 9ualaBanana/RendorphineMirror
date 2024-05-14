@@ -28,6 +28,12 @@ public static class HardwareLoadSupplier
             gpuload = GPU.Info.Select(p => p.LoadPercentage / 100d).Average();
             freeram = RAM.Info.Aggregate(0L, (freeMemory, ramUnit) => freeMemory += (long) ramUnit.FreeMemory);
         }
+        else
+        {
+            cpuload = CPU.Info.Select(p => p.LoadPercentage / 100d).Average();
+            // TODO: GPU
+            freeram = RAM.Info.Aggregate(0L, (freeMemory, ramUnit) => freeMemory += (long) ramUnit.FreeMemory);
+        }
 
         var interfaces = NetworkInterface.GetAllNetworkInterfaces()
             .Select(i => i.GetIPv4Statistics())
