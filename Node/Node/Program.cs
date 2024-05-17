@@ -75,20 +75,10 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder
 
 builder.Services.AddControllers();
 
-const int httpsPort = 5336;
-const int httpPort = 5337;
+const int aspPort = 5336;
 builder.WebHost.UseKestrel((ctx, o) =>
 {
-    if (builder.Environment.IsDevelopment())
-        o.ListenAnyIP(httpsPort, _ => _.UseHttps());
-    else
-    {
-        var certificate = new FileInfo("/etc/nginx/qwertystock.com.crt");
-        var key = new FileInfo("/etc/nginx/qwertystock.com.key");
-        if (certificate.Exists && key.Exists)
-            o.ListenAnyIP(httpsPort, _ => _.UseHttps(certificate.FullName, key.FullName));
-    }
-    o.ListenAnyIP(httpPort);
+    o.ListenLocalhost(aspPort);
 });
 
 await using var app = builder.Build();
@@ -148,8 +138,6 @@ app.MapGet("/", () => Results.Content(@"
 
 app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFProductStorage products, HttpContext context) =>
 {
-    var ip = await PortForwarding.GetPublicIPAsync();
-
     if (sources.Length is not 0)
     {
         settings.RFProductSourceDirectories.Value = [.. sources];
@@ -168,7 +156,7 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
     </head>
     <body>
     """);
-        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src={(context.Request.Host.Host == "localhost" ? $"http://localhost:{httpPort}" : $"https://{ip}:{settings.UPnpServerPort}")}/rfpreview/{_.Key} class=rfpreview/>"));
+        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(async _ => $"<img src={(context.Request.Host.Host == "localhost" ? $"http://localhost:{aspPort}" : $"https://{await PortForwarding.GetPublicIPAsync()}:{settings.UPnpServerPort}")}/rfpreview/{_.Key} class=rfpreview/>"));
         sb.Append(
         """    
     </body>
