@@ -138,6 +138,7 @@ app.MapGet("/", () => Results.Content(@"
 
 app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFProductStorage products, HttpContext context) =>
 {
+    var host = context.Request.Host.Host;
     if (sources.Length is not 0)
     {
         settings.RFProductSourceDirectories.Value = [.. sources];
@@ -156,7 +157,7 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
     </head>
     <body>
     """);
-        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(async _ => $"<img src={(context.Request.Host.Host == "localhost" ? $"http://localhost:{aspPort}" : $"https://{await PortForwarding.GetPublicIPAsync()}:{settings.UPnpServerPort}")}/rfpreview/{_.Key} class=rfpreview/>"));
+        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src={(host == "localhost" ? $"http://{host}:{aspPort}" : $"https://{host}")}/rfpreview/{_.Key} class=rfpreview/>"));
         sb.Append(
         """    
     </body>
