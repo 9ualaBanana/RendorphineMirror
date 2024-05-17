@@ -17,18 +17,28 @@ public class DirectDownloadListener : ExecutableListenerBase
     public static async Task WaitForUpload(string taskid, CancellationToken token)
     {
         var taskcs = new TaskCompletionSource();
-        TasksToReceive[taskid] = taskcs;
+        lock (TasksToReceive)
+            TasksToReceive[taskid] = taskcs;
 
         var ttoken = new TimeoutCancellationToken(token, TimeSpan.FromHours(2));
 
-        while (true)
-        {
-            if (taskcs.Task.IsCompleted)
-                break;
 
-            ttoken.ThrowIfCancellationRequested();
-            ttoken.ThrowIfStuck($"Could not upload result");
-            await Task.Delay(2000, token);
+        try
+        {
+            while (true)
+            {
+                if (taskcs.Task.IsCompleted)
+                    break;
+
+                ttoken.ThrowIfCancellationRequested();
+                ttoken.ThrowIfStuck($"Could not upload result");
+                await Task.Delay(2000, token);
+            }
+        }
+        finally
+        {
+            lock (TasksToReceive)
+                TasksToReceive.Remove(taskid);
         }
     }
 
@@ -37,8 +47,9 @@ public class DirectDownloadListener : ExecutableListenerBase
         var response = context.Response;
         var taskid = ReadQueryString(context.Request.QueryString, "taskid").ThrowIfError();
 
-        if (!TasksToReceive.TryGetValue(taskid, out var taskcs))
-            return HttpStatusCode.NotFound;
+        lock (TasksToReceive)
+            if (!TasksToReceive.ContainsKey(taskid))
+                return HttpStatusCode.NotFound;
 
         // TODO: fix uploading FSOutputDirectory instead of outputfiles
         var taskdir = Dirs.TaskOutputDirectory(taskid);
@@ -89,6 +100,7 @@ public class DirectDownloadListener : ExecutableListenerBase
             using (var reader = File.OpenRead(file))
                 await reader.CopyToAsync(response.OutputStream);
 
+            taskcs.SetResult();
             return HttpStatusCode.OK;
         }
 
