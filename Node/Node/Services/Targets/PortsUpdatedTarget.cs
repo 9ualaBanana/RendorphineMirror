@@ -38,16 +38,6 @@ public static class PortsUpdatedTarget
         public override async Task ExecuteAsync() =>
             await UpdatePort("127.0.0.1", Settings.BLocalListenPort, "Local");
     }
-    public class PublicPortsUpdatedTarget : PortsUpdatedTargetBase
-    {
-        public PublicPortsUpdatedTarget(ILogger<PublicPortsUpdatedTarget> logger) : base(logger) { }
-
-        public override async Task ExecuteAsync()
-        {
-            var ip = await PortForwarding.GetPublicIPAsync();
-            await UpdatePort(ip.ToString(), Settings.BUPnpPort, "Public");
-        }
-    }
     public class WebPortsUpdatedTarget : PortsUpdatedTargetBase
     {
         public WebPortsUpdatedTarget(ILogger<WebPortsUpdatedTarget> logger) : base(logger) { }
@@ -55,7 +45,7 @@ public static class PortsUpdatedTarget
         public override async Task ExecuteAsync()
         {
             var ip = await PortForwarding.GetPublicIPAsync();
-            await UpdatePort(ip.ToString(), Settings.BUPnpServerPort, "Server");
+            await UpdatePort(ip.ToString(), Settings.BUPnpPort, "Public/Server");
         }
     }
 }

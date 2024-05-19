@@ -16,7 +16,7 @@ public abstract class WatchingTaskInputHandler<TInput> : IWatchingTaskInputHandl
     public required WatchingTask Task { get; init; }
     public required ILogger<WatchingTaskInputHandler<TInput>> Logger { get; init; }
 
-    protected TInput Input => (TInput) Task.Source;
+    public TInput Input => (TInput) Task.Source;
 
     protected void StartThreadRepeated(int msrepeat, Func<Task> action)
     {

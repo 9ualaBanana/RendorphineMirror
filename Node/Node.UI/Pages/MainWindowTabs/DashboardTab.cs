@@ -105,21 +105,20 @@ public class DashboardTab : Panel
                         {string.Join(Environment.NewLine, state.CompletedTasks.GroupBy(t => t.TaskInfo.FirstAction).Select(t => $"    {t.Key}: {t.Count()}"))}
                         """;
 
-                    webserveruritb1.Text = $"http://{(await PortForwarding.GetPublicIPAsync())}:{state.UPnpServerPort.Value}";
-                    webserveruritb2.Text = $"http://127.0.0.1:{state.UPnpServerPort.Value}";
+                    webserveruritb1.Text = $"http://{(await PortForwarding.GetPublicIPAsync())}:{state.UPnpPort.Value}";
+                    webserveruritb2.Text = $"http://127.0.0.1:{state.UPnpPort.Value}";
 
                     configtb.Text = $"""
                         Ui start time: {starttime}
 
                         webserver:
-                        http://{(await PortForwarding.GetPublicIPAsync())}:{state.UPnpServerPort.Value}
-                        http://127.0.0.1:{state.UPnpServerPort.Value}
+                        http://{(await PortForwarding.GetPublicIPAsync())}:{state.UPnpPort.Value}
+                        http://127.0.0.1:{state.UPnpPort.Value}
 
                         Ports: {JsonConvert.SerializeObject(new
                     {
                         LocalListenPort = state.LocalListenPort.Value,
                         UPnpPort = state.UPnpPort.Value,
-                        UPnpServerPort = state.UPnpServerPort.Value,
                         DhtPort = state.DhtPort.Value,
                         TorrentPort = state.TorrentPort.Value,
                     })}

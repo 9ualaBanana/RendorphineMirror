@@ -104,23 +104,6 @@ public class LocalListener : ExecutableListenerBase
             }).ConfigureAwait(false);
         }
 
-        if (path == "updateports")
-        {
-            return await Test(request, response, "port", "webport", "torrentport", "dhtport", async (port, webport, torrentport, dhtport) =>
-            {
-                Settings.UPnpPort = ushort.Parse(port);
-                Settings.UPnpServerPort = ushort.Parse(webport);
-                Settings.TorrentPort = ushort.Parse(torrentport);
-                Settings.DhtPort = ushort.Parse(dhtport);
-
-                var changed = new { port = Settings.UPnpPort, webport = Settings.UPnpServerPort, torrentport = Settings.TorrentPort, dhtport = Settings.DhtPort };
-                Logger.Info($"Settings changed: {JsonConvert.SerializeObject(changed)}");
-
-                _ = Task.Delay(500).ContinueWith(_ => ListenerBase.RestartAll());
-                return await WriteSuccess(response).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-
         return HttpStatusCode.NotFound;
     }
     protected override async Task<HttpStatusCode> ExecutePost(string path, HttpListenerContext context, Stream inputStream)

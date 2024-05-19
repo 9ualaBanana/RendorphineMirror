@@ -14,7 +14,7 @@ public static class DirectUpload
         public required IDirectUploadTaskServerProvider DirectUploadTaskServerProvider { get; init; }
 
         protected override async Task<ReadOnlyTaskFileList> DownloadImpl(DirectUploadTaskInputInfo input, TaskObject obj, CancellationToken token) =>
-            await Listeners.DirectUploadListener.WaitForFiles(TaskDirectoryProvider.InputDirectory, ApiTask.Id, obj, token);
+            await Listeners.DirectUploadController.WaitForFiles(TaskDirectoryProvider.InputDirectory, ApiTask.Id, obj, token);
     }
     public class TaskObjectProvider : LocalFileTaskObjectProvider<DirectUploadTaskInputInfo>, ITypedTaskInput
     {

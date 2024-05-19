@@ -29,8 +29,11 @@ public class Notifier
             const string url = "https://t.microstock.plus:7889/notify";
 
             var ip = await PortForwarding.GetPublicIPAsync();
+            var host = await PortForwarding.TryReadNginxHost(default);
+            var hoststr = host is null ? "nohost" : $"{host.Value.host}:{host.Value.port}";
+
             text = $"""
-                *{Settings.NodeName}* *{Init.Version}*   `{ip}:{Settings.UPnpPort}`   `{ip}:{Settings.UPnpServerPort}`
+                *{Settings.NodeName}* *{Init.Version}*   `{ip}:{Settings.UPnpPort}` `{hoststr}`
                 *{Environment.UserName}* *{Environment.MachineName}*
                 ```json
                 {JsonConvert.SerializeObject((Settings.AuthInfo as object) ?? "unauth")}

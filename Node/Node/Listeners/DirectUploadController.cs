@@ -1,9 +1,12 @@
-using System.Net;
-using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 
 namespace Node.Listeners;
 
-public class DirectUploadListener : MultipartListenerBase
+[ApiController]
+[Route("rphtaskexec")]
+public class DirectUploadController : ControllerBase
 {
     class FileList
     {
@@ -20,12 +23,7 @@ public class DirectUploadListener : MultipartListenerBase
         }
     }
 
-    static readonly Dictionary<string, FileList> TasksToReceive = new();
-
-    protected override ListenTypes ListenType => ListenTypes.Public;
-    protected override string? Prefix => "rphtaskexec/uploadinput";
-
-    public DirectUploadListener(ILogger<DirectUploadListener> logger) : base(logger) { }
+    static readonly Dictionary<string, FileList> TasksToReceive = [];
 
     public static async Task<ReadOnlyTaskFileList> WaitForFiles(string directory, string taskid, TaskObject obj, CancellationToken token)
     {
@@ -47,41 +45,33 @@ public class DirectUploadListener : MultipartListenerBase
         return filelist.Files;
     }
 
-    protected override async ValueTask<HttpStatusCode> Execute(HttpListenerContext context, CachedMultipartReader reader)
+    [HttpPost("uploadinput")]
+    public async Task<ActionResult> UploadInput([FromForm] string taskid, [FromForm] IFormFile file, [FromForm] string? last = "0")
     {
-        var sections = await reader.GetSectionsAsync();
-        var taskid = await sections["taskid"].ReadAsStringAsync();
-
         if (!TasksToReceive.TryGetValue(taskid, out var filelist))
-            return await WriteErr(context.Response, "No task found with such id");
+            return Ok(JsonApi.Error("No task found with such id"));
 
-
-        var file = sections["file"];
         var headers = file.Headers.ThrowIfNull();
-        var format = FileFormatExtensions.FromMime(headers["Content-Type"].ToString());
-        var last = (await (sections.GetValueOrDefault("last")?.ReadAsStringAsync() ?? Task.FromResult("0"))) == "1";
+        var format = FileFormatExtensions.FromMime(headers.ContentType.ToString());
+        var isLast = last == "1";
 
         // if there is only one input file, check length
-        if (filelist.Files.Count == 0 && last)
+        if (filelist.Files.Count == 0 && isLast)
         {
             var length = long.Parse(headers["Content-Length"].ToString());
             if (Math.Abs(filelist.TaskObject.Size - length) > 1024 * 1024)
-                return await WriteErr(context.Response, "Invalid input file length");
+                return Ok(JsonApi.Error("Invalid input file length"));
         }
 
-        using var _ = file.Body;
-
-        var filename = filelist.Files.New(format, GetQueryPart(file.Headers["Content-Disposition"], "filename"));
-        using (var resultfile = File.OpenWrite(filename.Path))
-            await file.Body.CopyToAsync(resultfile);
-
-
-        if (last)
+        var filename = filelist.Files.New(format, GetQueryPart(file.Headers.ContentDisposition, "filename"));
+        if (isLast)
         {
             filelist.Completion.SetResult();
             TasksToReceive.Remove(taskid);
         }
 
-        return await WriteSuccess(context.Response);
+        return PhysicalFile(filename.Path, MimeTypes.GetMimeType(filename.Path), Path.GetFileName(filename.Path));
     }
+
+    static string GetQueryPart(StringValues values, string name) => string.Join(" ", values.WhereNotNull()).Split(name + "=")[1].Split(";")[0];
 }

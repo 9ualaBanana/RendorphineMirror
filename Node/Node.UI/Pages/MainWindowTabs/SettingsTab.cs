@@ -14,7 +14,6 @@ public class SettingsTab : Panel
                 {
                     CreateNick(),
                     CreateOthers(),
-                    CreatePorts(),
                     CreateTasksDir(),
                 },
             },
@@ -104,51 +103,6 @@ public class SettingsTab : Panel
                 nicktb.WithRow(0),
                 nicksbtn.WithRow(1),
             }
-        };
-    }
-    Control CreatePorts()
-    {
-        var jsonpanel = new Panel();
-        var setting = null as JsonUISetting.Setting;
-
-        var json = new JObject();
-        NodeGlobalState.Instance.AnyChanged.Subscribe(this, _ => Dispatcher.UIThread.Post(updatecontrol));
-        updatecontrol();
-        void updatecontrol()
-        {
-            var obj = new
-            {
-                port = NodeGlobalState.Instance.UPnpPort.Value,
-                webport = NodeGlobalState.Instance.UPnpServerPort.Value,
-                torrentport = NodeGlobalState.Instance.TorrentPort.Value,
-                dhtport = NodeGlobalState.Instance.DhtPort.Value,
-            };
-
-            json = JObject.FromObject(obj);
-            jsonpanel.Children.Clear();
-            jsonpanel.Children.Add(setting = JsonEditorList.Default.Create(new JProperty("ae", json), FieldDescriber.Create(obj.GetType())));
-        }
-
-
-        return new StackPanel()
-        {
-            Orientation = Orientation.Vertical,
-            Children =
-            {
-                jsonpanel,
-                new MPButton()
-                {
-                    Text = new("Save ports"),
-                    OnClickSelf = async self =>
-                    {
-                        setting!.UpdateValue();
-
-                        var data = new[] { "port", "webport", "torrentport", "dhtport" }.Select(x => (x, json[x]!.Value<ushort>().ToString())).ToArray();
-                        var update = await LocalApi.Default.Get("updateports", "Updating ports config", data);
-                        await self.Flash(update);
-                    },
-                },
-            },
         };
     }
     Control CreateTasksDir()

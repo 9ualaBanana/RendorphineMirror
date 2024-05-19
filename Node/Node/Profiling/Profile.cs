@@ -7,6 +7,7 @@ public record Profile(
     string Guid,
     string Version,
     string Ip,
+    string? Domain,
     Dictionary<TaskInputType, int> AllowedInputs,
     Dictionary<TaskOutputType, int> AllowedOutputs,
     Dictionary<string, int> AllowedTypes,

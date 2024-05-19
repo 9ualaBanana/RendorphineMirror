@@ -30,7 +30,6 @@ public class NodeGlobalState
     public readonly Bindable<string> ServerUrl = new();
     public readonly Bindable<ushort> LocalListenPort = new();
     public readonly Bindable<ushort> UPnpPort = new();
-    public readonly Bindable<ushort> UPnpServerPort = new();
     public readonly Bindable<ushort> DhtPort = new();
     public readonly Bindable<ushort> TorrentPort = new();
     public readonly Bindable<string?> NodeName = new();
