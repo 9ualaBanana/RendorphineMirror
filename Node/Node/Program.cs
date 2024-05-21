@@ -107,7 +107,7 @@ app.UseDefaultFiles();
 app.MapControllers();
 app.UseWebSockets();
 
-var dashboard = Results.Content(@"
+app.MapGet("/", (SessionManager manager) => Results.Content($@"
 <!DOCTYPE html>
 <html lang=""en"">
 <head>
@@ -116,7 +116,7 @@ var dashboard = Results.Content(@"
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
     <title>Node Dashboard</title>
     <style>
-        body {
+        body {{
             margin: 0;
             font-family: Arial, sans-serif;
             background-size: cover;
@@ -126,9 +126,9 @@ var dashboard = Results.Content(@"
             justify-content: center;
             height: 100vh;
             color: white;
-        }
+        }}
 
-        .header {
+        .header {{
             position: absolutet;
             top: 0;
             width: 100%;
@@ -137,17 +137,17 @@ var dashboard = Results.Content(@"
             background: rgba(0, 0, 0, 0.5);
             font-size: 18px;
             z-index: 100;
-        }
+        }}
 
-        .button-container {
+        .button-container {{
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             animation: fadeIn 1s;
-        }
+        }}
 
-        .button {
+        .button {{
             background: rgba(0, 0, 0, 0.8);
             border: none;
             border-radius: 10px;
@@ -157,34 +157,33 @@ var dashboard = Results.Content(@"
             font-size: 18px;
             cursor: pointer;
             transition: background 0.3s;
-        }
+        }}
 
-        .button:hover {
+        .button:hover {{
             background: rgba(0, 0, 139, 0.8);
-        }
+        }}
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
+        @keyframes fadeIn {{
+            from {{ opacity: 0; }}
 
-            to {
-                opacity: 1;
-            }
-        }
+            to {{ opacity: 1; }}
+        }}
     </style>
     <link rel=""stylesheet"" href=""Dashboard.css"" />
 </head>
 <body>
     <div class=""button-container"">
+        {
+        (manager.IsLoggedIn() ? "" : @"
         <form action=""/login"" method=""get"">
             <button class=""button"" type=""submit"">Login</button>
         </form>
         <form action=""/autologin"" method=""get"">
             <button class=""button"" type=""submit"">Auto Login</button>
-        </form>
+        </form>")
+        }
         <form action=""/marktm"" method=""get"">
-            <button class=""button"" type=""submit"">MarkTM</button>
+            <button class=""button"" type=""submit"">Gallery</button>
         </form>
         <form action=""/marktm/sell"" method=""get"">
             <button class=""button"" type=""submit"">Upload</button>
@@ -201,8 +200,7 @@ var dashboard = Results.Content(@"
     </div>
 </body>
 </html>
-", "text/html");
-app.MapGet("/", () => dashboard);
+", "text/html"));
 
 app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFProductStorage products, HttpContext context) =>
 {
@@ -221,7 +219,7 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Your Page Title</title>
+        <title>Gallery</title>
     </head>
     <body>
     """);
@@ -242,11 +240,32 @@ app.MapGet("/marktm/sources", (SettingsInstance settings) => Results.Content($@"
     <meta charset=""UTF-8"">
     <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>Your Page Title</title>
+    <title>Sources</title>
     <style>
         .input-container {{
             display: flex;
             flex-direction: column;
+        }}
+        .button {{
+            background: rgba(0, 0, 0, 0.8);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            margin: 10px;
+            color: white;
+            font-size: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }}
+
+        .button:hover {{
+            background: rgba(0, 0, 139, 0.8);
+        }}
+
+        @keyframes fadeIn {{
+            from {{ opacity: 0; }}
+
+            to {{ opacity: 1; }}
         }}
     </style>
     <script>
@@ -265,8 +284,8 @@ app.MapGet("/marktm/sources", (SettingsInstance settings) => Results.Content($@"
 <body>
     <form id='form' action='/marktm' method='get'>
         {string.Join("\n", settings.RFProductSourceDirectories.Value.Select(directory => $"<div class='input-container'><input type='text' name='sources' value='{directory}' /></div>"))}
-        <button type='button' onclick='addInput()'>Add Source</button>
-        <button type='submit'>Change</button>
+        <button type='button' onclick='addInput()' class=""button"">Add Source</button>
+        <button type='submit' class=""button"">Change</button>
     </form>
 </body>
 </html>", "text/html"));
@@ -278,12 +297,35 @@ app.MapGet("/marktm/sell", () => Results.Content(@"
     <meta charset=""UTF-8"">
     <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>Your Page Title</title>
+    <title>Sell</title>
+    <style>
+        .button {
+            background: rgba(0, 0, 0, 0.8);
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            margin: 10px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .button:hover {
+            background: rgba(0, 0, 139, 0.8);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+
+            to { opacity: 1; }
+        }
+    </style>
 </head>
 <body>
     <form action=""/marktm"" method=""post"" enctype=""multipart/form-data"">
         <input type=""file"" name=""files"" multiple>
-        <button type=""submit"">Submit</button>
+        <button type=""submit"" class=""button"">Submit</button>
     </form>
 </body>
 </html>
