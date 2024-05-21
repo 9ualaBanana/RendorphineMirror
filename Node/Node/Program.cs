@@ -331,14 +331,14 @@ app.MapGet("/autologin", () => Results.Content(@"
 ", "text/html"));
 app.MapPost("/login", async ([FromForm] string login, [FromForm] string password, [FromServices] SessionManager sessionManager) =>
 {
-    if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.");
-    return JsonApi.JsonFromOpResult(await sessionManager.AuthAsync(login, password));
+    if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.").ToString();
+    return JsonApi.JsonFromOpResult(await sessionManager.AuthAsync(login, password)).ToString();
 })
     .DisableAntiforgery();
 app.MapPost("/autologin", async ([FromForm] string login, [FromServices] SessionManager sessionManager) =>
 {
-    if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.");
-    return JsonApi.JsonFromOpResult(await sessionManager.AutoAuthAsync(login));
+    if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.").ToString();
+    return JsonApi.JsonFromOpResult(await sessionManager.AutoAuthAsync(login)).ToString();
 })
     .DisableAntiforgery();
 
