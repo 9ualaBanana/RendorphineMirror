@@ -73,7 +73,7 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder
     Init.InitializeContainer(builder, new("renderfin"), [typeof(Program).Assembly]);
 }));
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson();
 
 const int aspPort = PortForwarding.ASPPort;
 builder.WebHost.UseKestrel((ctx, o) =>
