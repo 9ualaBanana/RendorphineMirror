@@ -117,6 +117,12 @@ app.MapGet("/", () => Results.Content(@"
     <title>Your Page Title</title>
 </head>
 <body>
+    <form action=""/login"" method=""get"">
+        <button type=""submit"">Login</button>
+    </form>
+    <form action=""/autologin"" method=""get"">
+        <button type=""submit"">Auto Login</button>
+    </form>
     <form action=""/marktm"" method=""get"">
         <button type=""submit"">MarkTM</button>
     </form>
@@ -242,6 +248,47 @@ app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
 app.MapGet("/reset_rating", (SettingsInstance settings) => { settings.BenchmarkResult.Value = null; Results.Ok(); });
 app.MapGet("/restart", () => Environment.Exit(0));
 
+app.MapGet("/login", () => Results.Content(@"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Login</title>
+</head>
+<body>
+    <h1>Login</h1>
+    <form action=""/login"" method=""post"">
+        <label for=""login"">Username:</label>
+        <input type=""text"" id=""login"" name=""login""><br><br>
+        <label for=""password"">Password:</label>
+        <input type=""password"" id=""password"" name=""password""><br><br>
+        <input type=""submit"" value=""Login"">
+    </form>
+</body>
+</html>
+", "text/html"));
+
+app.MapGet("/autologin", () => Results.Content(@"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Auto Login</title>
+</head>
+<body>
+    <h1>Auto Login</h1>
+    <form action=""/autologin"" method=""post"">
+        <label for=""login"">Username:</label>
+        <input type=""text"" id=""login"" name=""login""><br><br>
+        <input type=""submit"" value=""Auto Login"">
+    </form>
+</body>
+</html>
+", "text/html"));
 app.MapPost("/login", async ([FromForm] string login, [FromForm] string password, [FromServices] SessionManager sessionManager) =>
 {
     if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.");
