@@ -107,40 +107,102 @@ app.UseDefaultFiles();
 app.MapControllers();
 app.UseWebSockets();
 
-app.MapGet("/", () => Results.Content(@"
+var dashboard = Results.Content(@"
 <!DOCTYPE html>
 <html lang=""en"">
 <head>
     <meta charset=""UTF-8"">
     <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>Your Page Title</title>
+    <title>Node Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-size: cover;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: white;
+        }
+
+        .header {
+            position: absolutet;
+            top: 0;
+            width: 100%;
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            font-size: 18px;
+            z-index: 100;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 1s;
+        }
+
+        .button {
+            background: rgba(0, 0, 0, 0.8);
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            margin: 10px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .button:hover {
+            background: rgba(0, 0, 139, 0.8);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+    <link rel=""stylesheet"" href=""Dashboard.css"" />
 </head>
 <body>
-    <form action=""/login"" method=""get"">
-        <button type=""submit"">Login</button>
-    </form>
-    <form action=""/autologin"" method=""get"">
-        <button type=""submit"">Auto Login</button>
-    </form>
-    <form action=""/marktm"" method=""get"">
-        <button type=""submit"">MarkTM</button>
-    </form>
-    <form action=""/marktm/sell"" method=""get"">
-        <button type=""submit"">Upload</button>
-    </form>
-    <form action=""/marktm/sources"" method=""get"">
-        <button type=""submit"">RFProduct Sources</button>
-    </form>
-    <form action=""/reset_rating"" method=""get"">
-        <button type=""submit"">Reset Rating</button>
-    </form>
-    <form action=""/restart"" method=""get"">
-        <button type=""submit"">Restart</button>
-    </form>
+    <div class=""button-container"">
+        <form action=""/login"" method=""get"">
+            <button class=""button"" type=""submit"">Login</button>
+        </form>
+        <form action=""/autologin"" method=""get"">
+            <button class=""button"" type=""submit"">Auto Login</button>
+        </form>
+        <form action=""/marktm"" method=""get"">
+            <button class=""button"" type=""submit"">MarkTM</button>
+        </form>
+        <form action=""/marktm/sell"" method=""get"">
+            <button class=""button"" type=""submit"">Upload</button>
+        </form>
+        <form action=""/marktm/sources"" method=""get"">
+            <button class=""button"" type=""submit"">RFProduct Sources</button>
+        </form>
+        <form action=""/reset_rating"" method=""get"">
+            <button class=""button"" type=""submit"">Reset Rating</button>
+        </form>
+        <form action=""/restart"" method=""get"">
+            <button class=""button"" type=""submit"">Restart</button>
+        </form>
+    </div>
 </body>
 </html>
-", "text/html"));
+", "text/html");
+app.MapGet("/", () => dashboard);
 
 app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFProductStorage products, HttpContext context) =>
 {
