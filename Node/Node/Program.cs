@@ -155,9 +155,6 @@ app.MapGet("/", (SessionManager manager) => Results.Content($@"
         (manager.IsLoggedIn() ? "" : @"
         <form action=""/login"" method=""get"">
             <button class=""button"" type=""submit"">Login</button>
-        </form>
-        <form action=""/autologin"" method=""get"">
-            <button class=""button"" type=""submit"">Auto Login</button>
         </form>")
         }
         <form action=""/marktm"" method=""get"">
@@ -330,6 +327,7 @@ app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
 app.MapGet("/reset_rating", (SettingsInstance settings) => { settings.BenchmarkResult.Value = null; Results.Ok(); });
 app.MapGet("/restart", () => Environment.Exit(0));
 
+bool loggedIn = false;
 app.MapGet("/login", () => Results.Content(@"
 <!DOCTYPE html>
 <html lang=""en"">
@@ -341,7 +339,7 @@ app.MapGet("/login", () => Results.Content(@"
 </head>
 <body>
     <h1>Login</h1>
-    <form action=""/login"" method=""post"">
+    <form action=""/cplogin"" method=""post"">
         <label for=""login"">Username:</label>
         <input type=""text"" id=""login"" name=""login""><br><br>
         <label for=""password"">Password:</label>
@@ -352,25 +350,17 @@ app.MapGet("/login", () => Results.Content(@"
 </html>
 ", "text/html"));
 
-app.MapGet("/autologin", () => Results.Content(@"
-<!DOCTYPE html>
-<html lang=""en"">
-<head>
-    <meta charset=""UTF-8"">
-    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>Auto Login</title>
-</head>
-<body>
-    <h1>Auto Login</h1>
-    <form action=""/autologin"" method=""post"">
-        <label for=""login"">Username:</label>
-        <input type=""text"" id=""login"" name=""login""><br><br>
-        <input type=""submit"" value=""Auto Login"">
-    </form>
-</body>
-</html>
-", "text/html"));
+app.MapPost("/cplogin", async (string login, string password, SessionManager sessionManager) =>
+{
+    if (Settings.IsSlave is bool isSlave && !isSlave)
+        if (true) // check login.
+        {
+            loggedIn = true;
+            return Results.Redirect("/");
+        }
+    return Results.Content("Login failed", "text/html");
+})
+    .DisableAntiforgery();
 app.MapPost("/login", async ([FromForm] string login, [FromForm] string password, [FromServices] SessionManager sessionManager) =>
 {
     if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.").ToString();
