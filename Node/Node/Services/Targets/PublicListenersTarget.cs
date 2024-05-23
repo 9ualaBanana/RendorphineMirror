@@ -1,15 +1,8 @@
-using Node.Listeners;
-
 namespace Node.Services.Targets;
 
 public class PublicListenersTarget : IServiceTarget
 {
     public static void CreateRegistrations(ContainerBuilder builder) { }
-
-    public required DownloadListener DownloadListener { get; init; }
-    public required PublicListener PublicListener { get; init; }
-    public required StatsListener StatsListener { get; init; }
-    public required DirectoryDiffListener DirectoryDiffListener { get; init; }
 
     public required SettingsInstance Settings { get; init; }
     public required ILogger<PublicListenersTarget> Logger { get; init; }
@@ -19,9 +12,9 @@ public class PublicListenersTarget : IServiceTarget
         PortForwarding.GetPublicIPAsync().ContinueWith(async t =>
         {
             var ip = t.Result.ToString();
-            Logger.LogInformation($"Public IP: {ip}; Public port: {Settings.UPnpPort}; Web server port: {Settings.UPnpServerPort}");
+            Logger.LogInformation($"Public IP: {ip}; Public port: {Settings.UPnpPort}");
 
-            var ports = new[] { Settings.UPnpPort, Settings.UPnpServerPort };
+            var ports = new[] { Settings.UPnpPort };
             foreach (var port in ports)
             {
                 var open = await PortForwarding.IsPortOpenAndListening(ip, port).ConfigureAwait(false);

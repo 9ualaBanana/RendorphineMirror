@@ -73,37 +73,15 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder
     Init.InitializeContainer(builder, new("renderfin"), [typeof(Program).Assembly]);
 }));
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson();
 
-const int aspPort = 5336;
+const int aspPort = PortForwarding.ASPPort;
 builder.WebHost.UseKestrel((ctx, o) =>
 {
     o.ListenLocalhost(aspPort);
 });
 
 await using var app = builder.Build();
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(new DataDirs("renderfin").DataDir("wwwroot")), // Serve files from the wwwroot directory
-    ServeUnknownFileTypes = true, // Allow unknown file types
-    DefaultContentType = "application/octet-stream", // Default MIME type for unrecognized files
-    OnPrepareResponse = _ =>
-    {
-        var path = _.File.PhysicalPath;
-        if (path.EndsWith(".wasm.br"))
-        {
-            _.Context.Response.Headers["Content-Encoding"] = "br"; // Specify Brotli encoding
-            _.Context.Response.ContentType = "application/wasm"; // Correct MIME type for WebAssembly files
-        }
-        else if (path.EndsWith(".br"))
-        {
-            _.Context.Response.Headers["Content-Encoding"] = "br"; // Specify Brotli encoding
-                                                                     // Use application/javascript or appropriate type based on the file being served
-            _.Context.Response.ContentType = "application/javascript";
-        }
-    }
-});
-app.UseDefaultFiles();
 app.MapControllers();
 app.UseWebSockets();
 
@@ -395,14 +373,14 @@ app.MapGet("/autologin", () => Results.Content(@"
 ", "text/html"));
 app.MapPost("/login", async ([FromForm] string login, [FromForm] string password, [FromServices] SessionManager sessionManager) =>
 {
-    if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.");
-    return JsonApi.JsonFromOpResult(await sessionManager.AuthAsync(login, password));
+    if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.").ToString();
+    return JsonApi.JsonFromOpResult(await sessionManager.AuthAsync(login, password)).ToString();
 })
     .DisableAntiforgery();
 app.MapPost("/autologin", async ([FromForm] string login, [FromServices] SessionManager sessionManager) =>
 {
-    if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.");
-    return JsonApi.JsonFromOpResult(await sessionManager.AutoAuthAsync(login));
+    if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.").ToString();
+    return JsonApi.JsonFromOpResult(await sessionManager.AutoAuthAsync(login)).ToString();
 })
     .DisableAntiforgery();
 
@@ -426,8 +404,6 @@ IServiceTarget main = (container.Resolve<Init>().IsDebug, args.Contains("release
     (true, true) => container.Resolve<ReleaseMainTarget>(),
     (false, _) => container.Resolve<PublishMainTarget>(),
 };
-
-pl.Listeners.Add(container.Resolve<PublicPagesListener>());
 
 notifier.Notify("Started node");
 await app.WaitForShutdownAsync();
@@ -465,6 +441,68 @@ static void initializeDotTracer(IContainer container)
 }
 
 
+/* not working
+[AutoRegisteredService(true)]
+class TcpRedirector
+{
+    readonly TcpListener Listener;
+    readonly string TargetAddress;
+    readonly int TargetPort;
+
+    public TcpRedirector(INodeSettings settings, ILogger<TcpRedirector> logger)
+    {
+        Listener = new TcpListener(IPAddress.Any, settings.UPnpPort);
+        logger.Info("Listening redirector on " + settings.UPnpPort);
+
+        TargetAddress = "127.0.0.1";
+        TargetPort = PortForwarding.ASPPort;
+    }
+
+    public void Start() => new Thread(_Start) { IsBackground = true }.Start();
+    void _Start()
+    {
+        Listener.Start();
+
+        while (true)
+        {
+            var client = Listener.AcceptTcpClient();
+            Task.Run(() => Redirect(client)).Consume();
+        }
+    }
+
+    async Task Redirect(TcpClient client)
+    {
+        using var _ = client;
+        using var clientStream = client.GetStream();
+
+        using var targetClient = new TcpClient(TargetAddress, TargetPort);
+        using var targetStream = targetClient.GetStream();
+
+        var t1 = Task.Run(async () =>
+        {
+            var buffer = new byte[1024];
+            int read;
+
+            while (client.Connected && ((read = await clientStream.ReadAsync(buffer)) != 0))
+                await targetStream.WriteAsync(buffer.AsMemory(0, read));
+        });
+
+        var t2 = Task.Run(async () =>
+        {
+            var buffer = new byte[1024];
+            int read;
+
+            while (client.Connected && ((read = await targetStream.ReadAsync(buffer)) != 0))
+                await clientStream.WriteAsync(buffer.AsMemory(0, read));
+        });
+
+        await Task.WhenAll(t1, t2);
+    }
+}
+
+
+*/
+
 // temporary while ASP isn't the front facing listener
 [AutoRegisteredService(true)]
 class ProxyListener : ListenerBase
@@ -472,25 +510,12 @@ class ProxyListener : ListenerBase
     protected override ListenTypes ListenType => ListenTypes.WebServer;
 
     public required HttpClient Client { get; init; }
-    public List<IPublicListener> Listeners { get; } = [];
 
     public ProxyListener(ILogger<ProxyListener> logger) : base(logger) { }
 
     protected override async ValueTask Execute(HttpListenerContext context)
     {
         var stream = await readStream(context);
-
-        foreach (var listener in Listeners)
-        {
-            var result = await listener.Execute(context, stream);
-            if (result is not null)
-            {
-                context.Response.StatusCode = (int) result;
-                context.Response.Close();
-
-                return;
-            }
-        }
 
         var exec = await execute(context);
         context.Response.StatusCode = (int) exec;
@@ -502,7 +527,7 @@ class ProxyListener : ListenerBase
             var request = context.Request;
             var response = context.Response;
 
-            using var message = new HttpRequestMessage(HttpMethod.Parse(context.Request.HttpMethod), "http://localhost:5336" + request.RawUrl);
+            using var message = new HttpRequestMessage(HttpMethod.Parse(context.Request.HttpMethod), "http://127.0.0.1:" + PortForwarding.ASPPort + request.RawUrl);
             message.Content = new StreamContent(stream);
             message.Content.Headers.TryAddWithoutValidation("Content-Type", request.ContentType);
 

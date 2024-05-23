@@ -4,7 +4,7 @@ namespace Node.Listeners;
 
 public class TaskListener : ExecutableListenerBase
 {
-    protected override ListenTypes ListenType => ListenTypes.Local | ListenTypes.Public;
+    protected override ListenTypes ListenType => ListenTypes.Local;
     protected override bool RequiresAuthentication => true;
     protected override string? Prefix => "tasks";
 

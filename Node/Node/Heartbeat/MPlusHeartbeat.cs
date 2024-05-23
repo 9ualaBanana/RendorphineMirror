@@ -29,7 +29,7 @@ public class MPlusHeartbeat : Heartbeat
         var payloadContent = new Dictionary<string, string>()
         {
             ["sessionid"] = Settings.SessionId!,
-            ["info"] = JsonConvert.SerializeObject(profile, JsonSettings.Lowercase),
+            ["info"] = JsonConvert.SerializeObject(profile, JsonSettings.LowercaseIgnoreNull),
         };
 
         using var content = new FormUrlEncodedContent(payloadContent);

@@ -17,7 +17,7 @@ public class MachineInfoProvider
             Settings.Guid,
             Init.Version,
             Settings.UPnpPort.ToStringInvariant(),
-            Settings.UPnpServerPort.ToStringInvariant(),
+            Settings.UPnpPort.ToStringInvariant(),
             (await PortForwarding.GetPublicIPAsync()).ToString(),
             (await PluginManager.GetInstalledPluginsAsync()).ToImmutableArray()
         );

@@ -17,13 +17,12 @@ public class SettingsInstance : INodeSettings
     public string ServerUrl { get => BServerUrl.Value; set => BServerUrl.Value = value; }
     public ushort LocalListenPort { get => BLocalListenPort.Value; set => BLocalListenPort.Value = value; }
     public ushort UPnpPort { get => BUPnpPort.Value; set => BUPnpPort.Value = value; }
-    public ushort UPnpServerPort { get => BUPnpServerPort.Value; set => BUPnpServerPort.Value = value; }
     public ushort DhtPort { get => BDhtPort.Value; set => BDhtPort.Value = value; }
     public ushort TorrentPort { get => BTorrentPort.Value; set => BTorrentPort.Value = value; }
     public string NodeName { get => BNodeName.Value!; set => BNodeName.Value = value!; }
 
     public readonly DatabaseValue<string> BServerUrl;
-    public readonly DatabaseValue<ushort> BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort;
+    public readonly DatabaseValue<ushort> BLocalListenPort, BUPnpPort, BDhtPort, BTorrentPort;
     public readonly DatabaseValue<string?> BNodeName;
     public readonly DatabaseValue<AuthInfo?> BAuthInfo;
 
@@ -51,7 +50,6 @@ public class SettingsInstance : INodeSettings
         BServerUrl = new(db, nameof(ServerUrl), "https://t.microstock.plus:8443");
         BLocalListenPort = new(db, nameof(LocalListenPort), randomized(5123));
         BUPnpPort = new(db, nameof(UPnpPort), randomized(5223));
-        BUPnpServerPort = new(db, nameof(UPnpServerPort), randomized(5337));
         BDhtPort = new(db, nameof(DhtPort), randomized(6223));
         BTorrentPort = new(db, nameof(TorrentPort), randomized(6323));
         BAuthInfo = new(db, nameof(AuthInfo), default);
@@ -73,7 +71,7 @@ public class SettingsInstance : INodeSettings
         CGTraderPassword = new(db, nameof(CGTraderPassword), default);
 
 
-        foreach (var bindable in new[] { BLocalListenPort, BUPnpPort, BUPnpServerPort, BDhtPort, BTorrentPort })
+        foreach (var bindable in new[] { BLocalListenPort, BUPnpPort, BDhtPort, BTorrentPort })
             bindable.Save();
     }
 

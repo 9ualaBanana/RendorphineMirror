@@ -98,7 +98,7 @@ public class OneClickRunner : OneClickRunnerInfo
                         var ip = await PortForwarding.GetPublicIPAsync();
 
                         header += "\nUnity logs:";
-                        header += string.Join(string.Empty, logfiles.Select(log => $"\nhttp://{ip}:{Settings.UPnpServerPort}/oc/unitylog?file={Path.GetFileNameWithoutExtension(log)}"));
+                        header += string.Join(string.Empty, logfiles.Select(log => $"\nhttp://{ip}:{Settings.UPnpPort}/oc/unitylog?file={Path.GetFileNameWithoutExtension(log)}"));
                     }
                 }
             }

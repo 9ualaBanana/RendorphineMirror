@@ -65,7 +65,6 @@ public class NodeGlobalStateInitializedTarget : IServiceTarget
         Settings.BServerUrl.Bindable.SubscribeChanged(() => state.ServerUrl.Value = Settings.BServerUrl.Bindable.Value, true);
         Settings.BLocalListenPort.Bindable.SubscribeChanged(() => state.LocalListenPort.Value = Settings.BLocalListenPort.Bindable.Value, true);
         Settings.BUPnpPort.Bindable.SubscribeChanged(() => state.UPnpPort.Value = Settings.BUPnpPort.Bindable.Value, true);
-        Settings.BUPnpServerPort.Bindable.SubscribeChanged(() => state.UPnpServerPort.Value = Settings.BUPnpServerPort.Bindable.Value, true);
         Settings.BDhtPort.Bindable.SubscribeChanged(() => state.DhtPort.Value = Settings.BDhtPort.Bindable.Value, true);
         Settings.BTorrentPort.Bindable.SubscribeChanged(() => state.TorrentPort.Value = Settings.BTorrentPort.Bindable.Value, true);
         Settings.BNodeName.Bindable.SubscribeChanged(() => state.NodeName.Value = Settings.BNodeName.Bindable.Value, true);
