@@ -272,7 +272,7 @@ public class OCPublicListenerController : ControllerBase
     [SessionIdAuthorization]
     public async Task<ActionResult> LoginAs([FromForm] string email, [FromForm] string password, [FromServices] Apis api)
     {
-        var result = await api.Api.ApiPost<SessionManager.LoginResult>($"{(global::Common.Api.TaskManagerEndpoint)}/login", null, "Logging in", ("email", email), ("password", password), ("lifetime", TimeSpan.FromDays(1).TotalMilliseconds.ToString()), ("guid", Guid.NewGuid().ToString()));
+        var result = await api.Api.ApiPost<LoginResult>($"{(global::Common.Api.TaskManagerEndpoint)}/login", null, "Logging in", ("email", email), ("password", password), ("lifetime", TimeSpan.FromDays(1).TotalMilliseconds.ToString()), ("guid", Guid.NewGuid().ToString()));
 
         // sessionid of another account
         if (result.Success && result.Value.UserId != Settings.UserId)
