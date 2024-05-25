@@ -147,7 +147,6 @@ app.MapGet("/", (SessionManager manager) => Results.Content($@"
             to {{ opacity: 1; }}
         }}
     </style>
-    <link rel=""stylesheet"" href=""Dashboard.css"" />
 </head>
 <body>
     <div class=""button-container"">
