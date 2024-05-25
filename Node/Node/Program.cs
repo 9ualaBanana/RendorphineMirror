@@ -26,14 +26,16 @@ global using Logger = NLog.Logger;
 global using LogLevel = NLog.LogLevel;
 global using LogManager = NLog.LogManager;
 using System.Net;
+using System.Security.Claims;
 using System.Text;
 using Autofac.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Node;
 using Node.Listeners;
@@ -74,6 +76,7 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder
 }));
 
 builder.Services.AddControllers().AddNewtonsoftJson();
+builder.Services.AddAuthentication().AddCookie(_ => { _.LoginPath = "/login"; });
 
 const int aspPort = PortForwarding.ASPPort;
 builder.WebHost.UseKestrel((ctx, o) =>
@@ -84,6 +87,10 @@ builder.WebHost.UseKestrel((ctx, o) =>
 await using var app = builder.Build();
 app.MapControllers();
 app.UseWebSockets();
+app.UseAuthentication();
+app.UseAuthorization();
+if (app.Environment.IsDevelopment())
+    app.UseDeveloperExceptionPage();
 
 app.MapGet("/", (SessionManager manager) => Results.Content($@"
 <!DOCTYPE html>
@@ -150,12 +157,6 @@ app.MapGet("/", (SessionManager manager) => Results.Content($@"
 </head>
 <body>
     <div class=""button-container"">
-        {
-        (manager.IsLoggedIn() ? "" : @"
-        <form action=""/login"" method=""get"">
-            <button class=""button"" type=""submit"">Login</button>
-        </form>")
-        }
         <form action=""/marktm"" method=""get"">
             <button class=""button"" type=""submit"">Gallery</button>
         </form>
@@ -174,7 +175,8 @@ app.MapGet("/", (SessionManager manager) => Results.Content($@"
     </div>
 </body>
 </html>
-", "text/html"));
+", "text/html"))
+    .RequireAuthorization();
 
 app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFProductStorage products, HttpContext context) =>
 {
@@ -205,7 +207,8 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
     """);
         return Results.Content(sb.ToString(), "text/html");
     }
-});
+})
+    .RequireAuthorization();
 
 app.MapGet("/marktm/sources", (SettingsInstance settings) => Results.Content($@"
 <!DOCTYPE html>
@@ -238,7 +241,6 @@ app.MapGet("/marktm/sources", (SettingsInstance settings) => Results.Content($@"
 
         @keyframes fadeIn {{
             from {{ opacity: 0; }}
-
             to {{ opacity: 1; }}
         }}
     </style>
@@ -262,7 +264,8 @@ app.MapGet("/marktm/sources", (SettingsInstance settings) => Results.Content($@"
         <button type='submit' class=""button"">Change</button>
     </form>
 </body>
-</html>", "text/html"));
+</html>", "text/html"))
+    .RequireAuthorization();
 
 app.MapGet("/marktm/sell", () => Results.Content(@"
 <!DOCTYPE html>
@@ -303,7 +306,8 @@ app.MapGet("/marktm/sell", () => Results.Content(@"
     </form>
 </body>
 </html>
-", "text/html"));
+", "text/html"))
+    .RequireAuthorization();
 
 app.MapPost("/marktm", async (IFormFileCollection files, SettingsInstance settings, IRFProductStorage products, RFProduct.Factory factory, CancellationToken cancellationToken) =>
 {
@@ -316,6 +320,7 @@ app.MapPost("/marktm", async (IFormFileCollection files, SettingsInstance settin
     }
     return Results.Created();
 })
+    .RequireAuthorization()
     .DisableAntiforgery();
 
 app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
@@ -323,10 +328,11 @@ app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
         ? Results.File(file.FullName, $"image/png")
         : Results.NotFound());
 
-app.MapGet("/reset_rating", (SettingsInstance settings) => { settings.BenchmarkResult.Value = null; Results.Ok(); });
-app.MapGet("/restart", () => Environment.Exit(0));
+app.MapGet("/reset_rating", (SettingsInstance settings) => { settings.BenchmarkResult.Value = null; Results.Ok(); })
+    .RequireAuthorization();
+app.MapGet("/restart", () => Environment.Exit(0))
+    .RequireAuthorization();
 
-bool loggedIn = false;
 app.MapGet("/login", () => Results.Content(@"
 <!DOCTYPE html>
 <html lang=""en"">
@@ -347,17 +353,24 @@ app.MapGet("/login", () => Results.Content(@"
     </form>
 </body>
 </html>
-", "text/html"));
+", "text/html"))
+    .DisableAntiforgery();
 
-app.MapPost("/cplogin", async (string login, string password, SessionManager sessionManager) =>
+app.MapPost("/cplogin", async ([FromForm] string login, [FromForm] string password, Api api, SettingsInstance settings, HttpContext context) =>
 {
-    if (Settings.IsSlave is bool isSlave && !isSlave)
-        if (true) // check login.
+    if (Settings.IsSlave is false)
+    {
+        var result = await api.LoginAsync(login, password);
+        if (result.Success && result.Value.UserId == settings.UserId)
         {
-            loggedIn = true;
+            var principal = new ClaimsPrincipal(
+                new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, login) },
+                CookieAuthenticationDefaults.AuthenticationScheme));
+            await context.SignInAsync(principal);
             return Results.Redirect("/");
         }
-    return Results.Content("Login failed", "text/html");
+    }
+    return Results.Content("Login failed", "text/html", statusCode: 400);
 })
     .DisableAntiforgery();
 app.MapPost("/login", async ([FromForm] string login, [FromForm] string password, [FromServices] SessionManager sessionManager) =>
