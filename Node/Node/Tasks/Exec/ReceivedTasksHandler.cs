@@ -22,7 +22,12 @@ public class ReceivedTasksHandler
                 if (QueuedTasks.QueuedTasks.Count == 0) continue;
                 if (!Settings.Instance.ProcessTasks.Value) continue;
 
-                foreach (var task in QueuedTasks.QueuedTasks.Values.OrderBy(t => t.Info.Registered).ToArray())
+                var tasks = QueuedTasks.QueuedTasks.Values
+                    .OrderBy(t => Enum.Parse<TaskAction>(t.FirstAction) is (TaskAction.GenerateQSPreview) ? 1 : 0)
+                    .ThenBy(t => t.Info.Registered)
+                    .ToArray();
+
+                foreach (var task in tasks)
                     HandleAsync(task).Consume();
             }
         })
