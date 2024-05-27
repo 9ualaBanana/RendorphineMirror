@@ -18,11 +18,12 @@ public class ReceivedTasksHandler
         {
             while (true)
             {
-                await Task.Delay(2_000);
+                await Task.Delay(1_000);
                 if (QueuedTasks.QueuedTasks.Count == 0) continue;
                 if (!Settings.Instance.ProcessTasks.Value) continue;
 
                 var tasks = QueuedTasks.QueuedTasks.Values
+                    .Where(t => !NodeGlobalState.ExecutingTasks.Contains(t))
                     .OrderBy(t => Enum.Parse<TaskAction>(t.FirstAction) is (TaskAction.GenerateQSPreview) ? 1 : 0)
                     .ThenBy(t => t.Info.Registered)
                     .ToArray();
