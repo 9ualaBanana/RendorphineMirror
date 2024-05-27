@@ -15,16 +15,16 @@ public class IndexModel : PageModel
     public IndexModel(NotificationDbContext context) => this.context = context;
 
 
-    public async Task OnGetAsync(string searchString, string? sortOrder, bool sortDesc, int? pageNumber)
+    public async Task OnGetAsync(string? searchString, string? sortOrder, bool? sortDesc, int? pageNumber)
     {
-        CurrentFilter = searchString;
-
-        SortOrder = sortOrder ?? "time";
-        SortDesc = sortDesc;
+        if (searchString is not null) CurrentFilter = searchString;
+        if (sortOrder is not null) SortOrder = sortOrder;
+        if (sortDesc is not null) SortDesc = sortDesc ?? true;
 
         var notificationsIQ = context.Notifications.AsQueryable();
         if (!string.IsNullOrEmpty(searchString))
         {
+            // ToLower() calls because EF doesn't understand StrignComparison.OrdinalIgnoreCase
             notificationsIQ = notificationsIQ.Where(n =>
                 n.Content.ToLower().Contains(searchString.ToLower())
                 || n.Username.ToLower().Contains(searchString.ToLower())
@@ -62,7 +62,7 @@ public class IndexModel : PageModel
             _ => notificationsIQ.OrderBy(n => n.Username),
         };
 
-        var pageSize = 100;
+        var pageSize = 200;
         Notifications = await PaginatedList<Notification>.CreateAsync(notificationsIQ.AsNoTracking(), pageNumber ?? 1, pageSize);
     }
 

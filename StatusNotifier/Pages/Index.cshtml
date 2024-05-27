@@ -58,6 +58,10 @@
     </tbody>
 </table>
 
+@if (Model.Notifications.HasPreviousPage)
+{
+    <a asp-page="./Index" asp-route-pageNumber="@(Model.Notifications.PageIndex - 1)">Prev</a>
+}
 @if (Model.Notifications.HasNextPage)
 {
     <a asp-page="./Index" asp-route-pageNumber="@(Model.Notifications.PageIndex + 1)">Next</a>
