@@ -26,14 +26,15 @@ public class IndexModel : PageModel
         if (!string.IsNullOrEmpty(searchString))
         {
             notificationsIQ = notificationsIQ.Where(n =>
-                n.Username.Contains(searchString)
-                || n.Nickname.Contains(searchString)
-                || n.NodeVersion.Contains(searchString)
-                || n.Ip.Contains(searchString)
-                || n.Host.Contains(searchString)
-                || n.Username.Contains(searchString)
-                || n.MachineName.Contains(searchString)
-                || n.AuthInfo.Contains(searchString)
+                n.Content.ToLower().Contains(searchString.ToLower())
+                || n.Username.ToLower().Contains(searchString.ToLower())
+                || n.Nickname.ToLower().Contains(searchString.ToLower())
+                || n.NodeVersion.ToLower().Contains(searchString.ToLower())
+                || n.Ip.ToLower().Contains(searchString.ToLower())
+                || n.Host.ToLower().Contains(searchString.ToLower())
+                || n.Username.ToLower().Contains(searchString.ToLower())
+                || n.MachineName.ToLower().Contains(searchString.ToLower())
+                || n.AuthInfo.ToLower().Contains(searchString.ToLower())
             );
         }
 
