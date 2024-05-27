@@ -11,18 +11,10 @@ public class ConnectedToMPlusTarget : IServiceTarget
     {
         builder.RegisterType<MPlusHeartbeat>()
             .SingleInstance();
-
-        builder.RegisterType<TelegramBotHeartbeat>()
-            .SingleInstance();
     }
 
     public required ReconnectTarget Reconnect { get; init; }
     public required MPlusHeartbeat MPlusHeartbeat { get; init; }
-    public required TelegramBotHeartbeat TelegramBotHeartbeat { get; init; }
 
-    void IServiceTarget.Activated()
-    {
-        MPlusHeartbeat.Start();
-        TelegramBotHeartbeat.Start();
-    }
+    void IServiceTarget.Activated() => MPlusHeartbeat.Start();
 }
