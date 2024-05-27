@@ -1,0 +1,78 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<style>
+    .collapsible {
+        max-width: 1900px;
+        display: block;
+        white-space: pre-wrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    td, th {
+        vertical-align: top;
+        padding: 0 10px;
+    }
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+</style>
+
+<h1>@ViewData["Title"]</h1>
+
+<form method="get">
+    <input type="text" name="SearchString" placeholder="Search" value="@Model.CurrentFilter" />
+    <input type="submit" value="Search" />
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            @foreach(var key in new[] { "Time", "Nickname", "NodeVersion", "IP", "PublicPort", "Host", "Username", "MachineName", "Content" })
+            {
+                <th><a asp-page="Index" asp-route-sortOrder="@key.ToLower()" asp-route-sortDesc="@(Model.SortDesc == false)">@key</a></th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Notifications)
+        {
+            <tr>
+                <td>@DateTimeOffset.FromUnixTimeMilliseconds(item.Time).ToOffset(TimeSpan.FromHours(7))</td>
+                <td>@item.Nickname</td>
+                <td>@item.NodeVersion</td>
+
+                <td>@item.Ip</td>
+                <td>@item.PublicPort</td>
+                <td>@item.Host</td>
+
+                <td>@item.Username</td>
+                <td>@item.MachineName</td>
+
+                <td><span class="collapsible" data-full-content="@item.Content"></span></td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (Model.Notifications.HasNextPage)
+{
+    <a asp-page="./Index" asp-route-pageNumber="@(Model.Notifications.PageIndex + 1)">Next</a>
+}
+
+<script>
+    document.querySelectorAll('.collapsible').forEach(function (element) {
+        const update = () => {
+            const fullContent = element.getAttribute('data-full-content');
+            element.textContent = (!element.textContent || element.textContent === fullContent)
+                ? fullContent.substring(0, fullContent.indexOf('\n') > 0 ? fullContent.indexOf('\n') : fullContent.length) + "…"
+                : fullContent;
+        };
+
+        element.addEventListener('click', update);
+        update();
+    });
+</script>
