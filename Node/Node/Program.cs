@@ -78,10 +78,9 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddAuthentication().AddCookie(_ => { _.LoginPath = "/login"; });
 
-const int aspPort = PortForwarding.ASPPort;
 builder.WebHost.UseKestrel((ctx, o) =>
 {
-    o.ListenLocalhost(aspPort);
+    o.ListenLocalhost(PortForwarding.ASPPort);
 });
 
 await using var app = builder.Build();
@@ -89,6 +88,7 @@ app.MapControllers();
 app.UseWebSockets();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseCors();
 if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 
@@ -199,7 +199,7 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
     </head>
     <body>
     """);
-        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src={(host == "localhost" ? $"http://{host}:{aspPort}" : $"https://{host}")}/rfpreview/{_.Key} class=rfpreview/>"));
+        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src={(host == "localhost" ? $"http://{host}:{PortForwarding.ASPPort}" : $"https://{host}")}/rfpreview/{_.Key} class=rfpreview/>"));
         sb.Append(
         """    
     </body>
@@ -327,6 +327,33 @@ app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
     => new FileInfo(products.RFProducts[id].QSPreview.First().Path) is var file && file.Exists
         ? Results.File(file.FullName, $"image/png")
         : Results.NotFound());
+
+
+app.MapMethods("/savewebglsettings", [HttpMethod.Options.ToString()], (HttpContext context) =>
+{
+    context.Response.Headers.AccessControlAllowOrigin = "*";
+    context.Response.Headers.AccessControlAllowMethods = "POST";
+    context.Response.Headers.AccessControlAllowHeaders = "*";
+    return Results.Ok();
+});
+app.MapPost("/savewebglsettings", ([FromBody] object settings, HttpContext context) =>
+{
+    if (context.Request.Headers.Referer.First() is string referrer && referrer.Contains("webgl")
+    && Path.GetDirectoryName(new Uri(referrer).LocalPath) is string directory)
+    {
+        directory = Path.Combine("/var/www", directory.TrimStart('\\')).Replace('\\', '/');
+        if (Directory.Exists(directory))
+        {
+            var file = Path.Combine(directory, "settings.json");
+            File.WriteAllTextAsync(file, settings.ToString(), context.RequestAborted);
+            return Results.Created(new Uri(file), settings);
+        }
+        else return Results.NotFound(directory);
+    }
+    else return Results.BadRequest(context.Request.Headers.Referer);
+})
+    .RequireCors(_ => _.AllowAnyOrigin().WithMethods(HttpMethod.Post.ToString()).AllowAnyHeader())
+    .DisableAntiforgery();
 
 app.MapGet("/reset_rating", (SettingsInstance settings) => { settings.BenchmarkResult.Value = null; Results.Ok(); })
     .RequireAuthorization();
