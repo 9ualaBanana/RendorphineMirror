@@ -29,9 +29,12 @@ public class ParallelDownloader
             if (fileSizeResponse.StatusCode == HttpStatusCode.Found)
                 return await getSizeOrDownload(fileSizeResponse.Headers.Location.ThrowIfNull());
 
-            if (!fileSizeResponse.IsSuccessStatusCode || fileSizeResponse.Content.Headers.ContentLength is null)
+            if (!fileSizeResponse.IsSuccessStatusCode || fileSizeResponse.Content.Headers.ContentLength is (null or < 50 * 1024 * 1024))
             {
-                Logger.LogWarning($"Could not fetch file size, downloading normally...");
+                if (fileSizeResponse.Content.Headers.ContentLength is not { } filesize)
+                    Logger.LogWarning($"Could not fetch file size, downloading normally...");
+                else Logger.LogWarning($"File size is just {filesize / 1024} KB, downloading normally...");
+
                 fileSizeResponse.EnsureSuccessStatusCode();
                 await fileSizeResponse.Content.CopyToAsync(destination, token);
 
