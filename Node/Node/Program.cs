@@ -29,6 +29,7 @@ using System.Net;
 using System.Security.Claims;
 using System.Text;
 using Autofac.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
@@ -76,7 +77,18 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder
 }));
 
 builder.Services.AddControllers().AddNewtonsoftJson();
-builder.Services.AddAuthentication().AddCookie(_ => { _.LoginPath = "/login"; });
+builder.Services.AddAuthentication().AddCookie(_ =>
+{
+    _.LoginPath = "/login";
+    _.Cookie.Name = "node-cp-auth";
+    _.ReturnUrlParameter = "redirect";
+});
+builder.Services.AddAntiforgery(_ =>
+{
+    _.Cookie.Name = "node-cp-csrf";
+    _.FormFieldName = "node-cp-csrf";
+    _.HeaderName = "node-cp-csrf";
+});
 
 builder.WebHost.UseKestrel((ctx, o) =>
 {
@@ -88,9 +100,52 @@ app.MapControllers();
 app.UseWebSockets();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 app.UseCors();
 if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
+
+app.MapGet("/login", (HttpContext context, IAntiforgery antiforgery, string? redirect = default) => Results.Content($@"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Login</title>
+</head>
+<body>
+    <h1>Login</h1>
+    <form action=""/cplogin?redirect={redirect}"" method=""post"">
+        <input type=""hidden"" name=""{antiforgery.GetAndStoreTokens(context).FormFieldName}"" value=""{antiforgery.GetAndStoreTokens(context).RequestToken}"">
+        <label for=""login"">Username:</label>
+        <input type=""text"" id=""login"" name=""login""><br><br>
+        <label for=""password"">Password:</label>
+        <input type=""password"" id=""password"" name=""password""><br><br>
+        <input type=""submit"" value=""Login"">
+    </form>
+</body>
+</html>
+",
+"text/html"))
+    .DisableAntiforgery();
+
+app.MapPost("/cplogin", async (Api api, SettingsInstance settings, HttpContext context, [FromForm] string login, [FromForm] string password, string? redirect = default) =>
+{
+    if (Settings.IsSlave is false)
+    {
+        var result = await api.LoginAsync(login, password);
+        if (result.Success && result.Value.UserId == settings.UserId)
+        {
+            var principal = new ClaimsPrincipal(
+                new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, login) },
+                CookieAuthenticationDefaults.AuthenticationScheme));
+            await context.SignInAsync(principal);
+            return string.IsNullOrWhiteSpace(redirect) ? Results.Redirect("/") : Results.LocalRedirect(redirect);
+        }
+    }
+    return Results.Text("Login failed", statusCode: 400);
+});
 
 app.MapGet("/", (SessionManager manager) => Results.Content($@"
 <!DOCTYPE html>
@@ -175,7 +230,8 @@ app.MapGet("/", (SessionManager manager) => Results.Content($@"
     </div>
 </body>
 </html>
-", "text/html"))
+",
+"text/html"))
     .RequireAuthorization();
 
 app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFProductStorage products, HttpContext context) =>
@@ -205,7 +261,7 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
     </body>
     </html>
     """);
-        return Results.Content(sb.ToString(), "text/html");
+        return Results.Text(sb.ToString());
     }
 })
     .RequireAuthorization();
@@ -264,10 +320,11 @@ app.MapGet("/marktm/sources", (SettingsInstance settings) => Results.Content($@"
         <button type='submit' class=""button"">Change</button>
     </form>
 </body>
-</html>", "text/html"))
+</html>",
+"text/html"))
     .RequireAuthorization();
 
-app.MapGet("/marktm/sell", () => Results.Content(@"
+app.MapGet("/marktm/sell", (HttpContext context, IAntiforgery antiforgery) => Results.Content($@"
 <!DOCTYPE html>
 <html lang=""en"">
 <head>
@@ -276,7 +333,7 @@ app.MapGet("/marktm/sell", () => Results.Content(@"
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
     <title>Sell</title>
     <style>
-        .button {
+        .button {{
             background: rgba(0, 0, 0, 0.8);
             border: none;
             border-radius: 10px;
@@ -286,27 +343,28 @@ app.MapGet("/marktm/sell", () => Results.Content(@"
             font-size: 18px;
             cursor: pointer;
             transition: background 0.3s;
-        }
+        }}
 
-        .button:hover {
+        .button:hover {{
             background: rgba(0, 0, 139, 0.8);
-        }
+        }}
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-
-            to { opacity: 1; }
-        }
+        @keyframes fadeIn {{
+            from {{ opacity: 0; }}
+            to {{ opacity: 1; }}
+        }}
     </style>
 </head>
 <body>
     <form action=""/marktm"" method=""post"" enctype=""multipart/form-data"">
+        <input type=""hidden"" name=""{antiforgery.GetAndStoreTokens(context).FormFieldName}"" value=""{antiforgery.GetAndStoreTokens(context).RequestToken}"">
         <input type=""file"" name=""files"" multiple>
         <button type=""submit"" class=""button"">Submit</button>
     </form>
 </body>
 </html>
-", "text/html"))
+",
+"text/html"))
     .RequireAuthorization();
 
 app.MapPost("/marktm", async (IFormFileCollection files, SettingsInstance settings, IRFProductStorage products, RFProduct.Factory factory, CancellationToken cancellationToken) =>
@@ -320,8 +378,7 @@ app.MapPost("/marktm", async (IFormFileCollection files, SettingsInstance settin
     }
     return Results.Created();
 })
-    .RequireAuthorization()
-    .DisableAntiforgery();
+    .RequireAuthorization();
 
 app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
     => new FileInfo(products.RFProducts[id].QSPreview.First().Path) is var file && file.Exists
@@ -360,46 +417,6 @@ app.MapGet("/reset_rating", (SettingsInstance settings) => { settings.BenchmarkR
 app.MapGet("/restart", () => Environment.Exit(0))
     .RequireAuthorization();
 
-app.MapGet("/login", () => Results.Content(@"
-<!DOCTYPE html>
-<html lang=""en"">
-<head>
-    <meta charset=""UTF-8"">
-    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>Login</title>
-</head>
-<body>
-    <h1>Login</h1>
-    <form action=""/cplogin"" method=""post"">
-        <label for=""login"">Username:</label>
-        <input type=""text"" id=""login"" name=""login""><br><br>
-        <label for=""password"">Password:</label>
-        <input type=""password"" id=""password"" name=""password""><br><br>
-        <input type=""submit"" value=""Login"">
-    </form>
-</body>
-</html>
-", "text/html"))
-    .DisableAntiforgery();
-
-app.MapPost("/cplogin", async ([FromForm] string login, [FromForm] string password, Api api, SettingsInstance settings, HttpContext context) =>
-{
-    if (Settings.IsSlave is false)
-    {
-        var result = await api.LoginAsync(login, password);
-        if (result.Success && result.Value.UserId == settings.UserId)
-        {
-            var principal = new ClaimsPrincipal(
-                new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, login) },
-                CookieAuthenticationDefaults.AuthenticationScheme));
-            await context.SignInAsync(principal);
-            return Results.Redirect("/");
-        }
-    }
-    return Results.Content("Login failed", "text/html", statusCode: 400);
-})
-    .DisableAntiforgery();
 app.MapPost("/login", async ([FromForm] string login, [FromForm] string password, [FromServices] SessionManager sessionManager) =>
 {
     if (sessionManager.IsLoggedIn()) return JsonApi.Error("Already authenticated.").ToString();
