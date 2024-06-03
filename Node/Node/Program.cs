@@ -472,7 +472,8 @@ app.MapPost("/savewebglsettings", ([FromBody] object settings, HttpContext conte
     }
     else return Results.BadRequest(context.Request.Headers.Referer);
 })
-    .RequireCors(_ => _.AllowAnyOrigin().WithMethods(HttpMethod.Post.ToString()).AllowAnyHeader())
+    .RequireAuthorization()
+    .RequireCors(_ => _.SetIsOriginAllowed(_ => true).WithMethods(HttpMethod.Post.ToString()).AllowAnyHeader())
     .DisableAntiforgery();
 
 app.MapGet("/reset_rating", (SettingsInstance settings) => { settings.BenchmarkResult.Value = null; Results.Ok(); })
