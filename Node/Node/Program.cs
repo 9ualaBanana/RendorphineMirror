@@ -187,6 +187,13 @@ app.MapPost("/cplogin", async (Api api, SettingsInstance settings, HttpContext c
     return Results.Text("Login failed", statusCode: 400);
 });
 
+app.MapPost("/cplogout", async (HttpContext context) =>
+{
+    await context.SignOutAsync();
+    return Results.LocalRedirect("/login");
+})
+    .RequireAuthorization();
+
 app.MapGet("/", (SessionManager manager) => Results.Content($@"
 <!DOCTYPE html>
 <html lang=""en"">
@@ -266,6 +273,8 @@ app.MapGet("/", (SessionManager manager) => Results.Content($@"
         <form action=""/restart"" method=""get"">
             <button class=""button"" type=""submit"">Restart</button>
         </form>
+        <form action=""/cplogout"" method=""post"">
+            <button class=""button"" type=""submit"">Logout</button>
     </div>
 </body>
 </html>
