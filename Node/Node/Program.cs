@@ -261,7 +261,7 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
     </body>
     </html>
     """);
-        return Results.Text(sb.ToString());
+        return Results.Content(sb.ToString(), "text/html");
     }
 })
     .RequireAuthorization();
