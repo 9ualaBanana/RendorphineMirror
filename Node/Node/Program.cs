@@ -446,7 +446,8 @@ app.MapPost("/marktm", async (IFormFileCollection files, SettingsInstance settin
 app.MapGet("/rfpreview/{id}", (IRFProductStorage products, string id)
     => new FileInfo(products.RFProducts[id].QSPreview.First().Path) is var file && file.Exists
         ? Results.File(file.FullName, $"image/png")
-        : Results.NotFound());
+        : Results.NotFound())
+    .RequireAuthorization();
 
 
 app.MapMethods("/savewebglsettings", [HttpMethod.Options.ToString()], (HttpContext context) =>
