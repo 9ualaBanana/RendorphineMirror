@@ -113,17 +113,57 @@ app.MapGet("/login", (HttpContext context, IAntiforgery antiforgery, string? red
     <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
     <title>Login</title>
+    <style>
+        html, body {{
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }}
+
+        .button-container {{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 1s;
+        }}
+
+        .button {{
+            background: rgba(0, 0, 0, 0.8);
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            margin: 10px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }}
+
+        .button:hover {{
+            background: rgba(0, 0, 139, 0.8);
+        }}
+
+        @keyframes fadeIn {{
+            from {{ opacity: 0; }}
+            to {{ opacity: 1; }}
+        }}
+    </style>
 </head>
 <body>
-    <h1>Login</h1>
-    <form action=""/cplogin?redirect={redirect}"" method=""post"">
-        <input type=""hidden"" name=""{antiforgery.GetAndStoreTokens(context).FormFieldName}"" value=""{antiforgery.GetAndStoreTokens(context).RequestToken}"">
-        <label for=""login"">Username:</label>
-        <input type=""text"" id=""login"" name=""login""><br><br>
-        <label for=""password"">Password:</label>
-        <input type=""password"" id=""password"" name=""password""><br><br>
-        <input type=""submit"" value=""Login"">
-    </form>
+    <div class=""button-container"">
+        <form action=""/cplogin?redirect={redirect}"" method=""post"">
+            <input type=""hidden"" name=""{antiforgery.GetAndStoreTokens(context).FormFieldName}"" value=""{antiforgery.GetAndStoreTokens(context).RequestToken}"">
+            <label for=""login"">Username</label>
+            <input type=""text"" name=""login""><br><br>
+            <label for=""password"">Password</label>
+            <input type=""password"" name=""password""><br><br>
+            <div class=""button-container"">
+                <input class='button' type=""submit"" value=""Login"">
+            </div>
+        </form>
+    </div>
 </body>
 </html>
 ",
@@ -205,7 +245,6 @@ app.MapGet("/", (SessionManager manager) => Results.Content($@"
 
         @keyframes fadeIn {{
             from {{ opacity: 0; }}
-
             to {{ opacity: 1; }}
         }}
     </style>
@@ -275,6 +314,13 @@ app.MapGet("/marktm/sources", (SettingsInstance settings) => Results.Content($@"
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
     <title>Sources</title>
     <style>
+        html, body {{
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }}
+
         .input-container {{
             display: flex;
             flex-direction: column;
@@ -333,14 +379,29 @@ app.MapGet("/marktm/sell", (HttpContext context, IAntiforgery antiforgery) => Re
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
     <title>Sell</title>
     <style>
+        html, body {{
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }}
+
+        .button-container {{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 1s;
+        }}
+
         .button {{
             background: rgba(0, 0, 0, 0.8);
             border: none;
             border-radius: 10px;
-            padding: 15px 30px;
+            padding: 10px 20px;
             margin: 10px;
             color: white;
-            font-size: 18px;
+            font-size: 14px;
             cursor: pointer;
             transition: background 0.3s;
         }}
@@ -356,10 +417,12 @@ app.MapGet("/marktm/sell", (HttpContext context, IAntiforgery antiforgery) => Re
     </style>
 </head>
 <body>
-    <form action=""/marktm"" method=""post"" enctype=""multipart/form-data"">
+    <form class=""button-container"" action=""/marktm"" method=""post"" enctype=""multipart/form-data"">
+    <div>
         <input type=""hidden"" name=""{antiforgery.GetAndStoreTokens(context).FormFieldName}"" value=""{antiforgery.GetAndStoreTokens(context).RequestToken}"">
         <input type=""file"" name=""files"" multiple>
-        <button type=""submit"" class=""button"">Submit</button>
+    </div>
+    <button type=""submit"" class=""button"">Submit</button>
     </form>
 </body>
 </html>
