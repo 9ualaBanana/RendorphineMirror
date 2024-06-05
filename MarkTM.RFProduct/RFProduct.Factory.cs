@@ -8,6 +8,7 @@ public partial record RFProduct
     public class Factory
     {
         public required _3D.Constructor _3D { get; init; }
+        public required WebGL.Constructor WebGL { get; init; }
         public required Video.Constructor Video { get; init; }
         public required Image.Constructor Image { get; init; }
         public required IRFProductStorage Storage { get; init; }
@@ -30,6 +31,8 @@ public partial record RFProduct
                 List<Exception> recognitionExceptions = [];
                 Idea_? idea_ = null;
                 try { idea_ = _3D.Recognizer.Recognize(idea); }
+                catch (Exception ex) { recognitionExceptions.Add(ex); }
+                try { idea_ = WebGL.Recognizer.Recognize(idea); }
                 catch (Exception ex) { recognitionExceptions.Add(ex); }
                 try { idea_ = Video.Recognizer.Recognize(idea); }
                 catch (Exception ex) { recognitionExceptions.Add(ex); }
@@ -54,6 +57,7 @@ public partial record RFProduct
             RFProduct product = idea switch
             {
                 _3D.Idea_ idea_ => (await _3D.CreateAsync(idea_, container, cancellationToken)) with { SubProducts = await CreateSubProductsAsync(idea_, _3D, cancellationToken) },
+                WebGL.Idea_ idea_ => (await WebGL.CreateAsync(idea_, container, cancellationToken)) with { SubProducts = await CreateSubProductsAsync(idea_, WebGL, cancellationToken) },
                 Video.Idea_ idea_ => await Video.CreateAsync(idea_, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Video, cancellationToken) },
                 Image.Idea_ idea_ => await Image.CreateAsync(idea_, container, cancellationToken) with { SubProducts = await CreateSubProductsAsync(idea_, Image, cancellationToken) },
                 _ => throw new NotImplementedException()

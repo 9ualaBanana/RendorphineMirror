@@ -44,6 +44,14 @@ public class TaskExecutorTarget : IServiceTarget
             .AsSelf()
             .SingleInstance();
 
+        builder.RegisterType<RFProduct.WebGL.Constructor>()
+            .AsSelf()
+            .SingleInstance();
+        builder.RegisterType<RFProduct.WebGL.Idea_.Recognizer>()
+            .As<RFProduct.Idea_.IRecognizer<RFProduct.WebGL.Idea_>>()
+            .AsSelf()
+            .SingleInstance();
+
         builder.RegisterType<RFProduct.Image.QSPreviews.Generator>()
             .As<RFProduct.QSPreviews.Generator<RFProduct.Image.QSPreviews>>()
             .AsSelf()
@@ -56,6 +64,11 @@ public class TaskExecutorTarget : IServiceTarget
 
         builder.RegisterType<RFProduct._3D.QSPreviews.Generator>()
             .As<RFProduct.QSPreviews.Generator<RFProduct._3D.QSPreviews>>()
+            .AsSelf()
+            .SingleInstance();
+
+        builder.RegisterType<RFProduct.WebGL.QSPreviews.Generator>()
+            .As<RFProduct.QSPreviews.Generator<RFProduct.WebGL.QSPreviews>>()
             .AsSelf()
             .SingleInstance();
     }
