@@ -19,14 +19,16 @@ public class Profiler
         var ip = PortForwarding.GetPublicIPAsync();
         var software = BuildSoftwarePayloadAsync();
         var types = BuildDefaultAllowedTypes();
+        var domain = await PortForwarding.TryReadNginxHost(default);
 
         return new(
-            Settings.UPnpPort,
-            Settings.UPnpServerPort,
+            domain?.port ?? Settings.UPnpPort,
+            domain?.port ?? Settings.UPnpPort,
             Settings.NodeName,
             Settings.Guid,
             Init.Version,
             (await ip).ToString(),
+            domain?.host,
             ComponentContext.GetAllRegisteredKeys<TaskInputType>().ToDictionary(x => x, _ => 1),
             ComponentContext.GetAllRegisteredKeys<TaskOutputType>().ToDictionary(x => x, _ => 1),
             await types,
@@ -45,13 +47,16 @@ public class Profiler
     }
     public static async Task<Profile> CreateDummyAsync(string version, SettingsInstance settings)
     {
+        var domain = await PortForwarding.TryReadNginxHost(default);
+
         return new Profile(
-            settings.UPnpPort,
-            settings.UPnpServerPort,
+            domain?.port ?? settings.UPnpPort,
+            domain?.port ?? settings.UPnpPort,
             settings.NodeName,
             settings.Guid,
             version,
             (await PortForwarding.GetPublicIPAsync()).ToString(),
+            domain?.host,
             new Dictionary<TaskInputType, int>(),
             new Dictionary<TaskOutputType, int>(),
             new Dictionary<string, int>(),

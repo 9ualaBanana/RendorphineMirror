@@ -64,6 +64,12 @@ public class Benchmark
             foreach (var disk in result.Disks)
                 disk.FreeSpace = drives.FirstOrDefault(x => x.Id == disk.Id)?.FreeSpace ?? disk.FreeSpace;
         }
+        if (OperatingSystem.IsLinux())
+        {
+            result.CPU.Load = CPU.Info.Select(i => i.LoadPercentage / 100d).Average();
+            // result.GPU.Load = GPU.Info.Select(i => i.LoadPercentage / 100d).Average();
+            result.RAM.Free = RAM.Info.Aggregate(0ul, (freeMemory, ramUnit) => freeMemory += ramUnit.FreeMemory);
+        }
 
         Logger.Trace($"Updated hardware values: cpu load {result.CPU.Load}; gpu load {result.GPU.Load}; ram free {result.RAM.Free}; disks free {string.Join(", ", result.Disks.Select(x => x.FreeSpace))};");
     }

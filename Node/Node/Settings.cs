@@ -12,7 +12,6 @@ public static class Settings
     public static string ServerUrl { get => BServerUrl.Value; set => BServerUrl.Value = value; }
     public static ushort LocalListenPort { get => BLocalListenPort.Value; set => BLocalListenPort.Value = value; }
     public static ushort UPnpPort { get => BUPnpPort.Value; set => BUPnpPort.Value = value; }
-    public static ushort UPnpServerPort { get => BUPnpServerPort.Value; set => BUPnpServerPort.Value = value; }
     public static ushort DhtPort { get => BDhtPort.Value; set => BDhtPort.Value = value; }
     public static ushort TorrentPort { get => BTorrentPort.Value; set => BTorrentPort.Value = value; }
     public static string NodeName { get => BNodeName.Value!; set => BNodeName.Value = value!; }
@@ -20,7 +19,6 @@ public static class Settings
     public static DatabaseValue<string> BServerUrl => Instance.BServerUrl;
     public static DatabaseValue<ushort> BLocalListenPort => Instance.BLocalListenPort;
     public static DatabaseValue<ushort> BUPnpPort => Instance.BUPnpPort;
-    public static DatabaseValue<ushort> BUPnpServerPort => Instance.BUPnpServerPort;
     public static DatabaseValue<ushort> BDhtPort => Instance.BDhtPort;
     public static DatabaseValue<ushort> BTorrentPort => Instance.BTorrentPort;
     public static DatabaseValue<string?> BNodeName => Instance.BNodeName;

@@ -94,7 +94,7 @@ public class TaskExecutor
 
         if (task.State <= TaskState.Output)
         {
-            using var _ = await WaitDisposed(OutputSemaphore);
+            // using var _ = await WaitDisposed(OutputSemaphore);
 
             var outputhandler = ResultUploaders[task.Output.Type];
             var result = task.Result2.ThrowIfNull("No task result");

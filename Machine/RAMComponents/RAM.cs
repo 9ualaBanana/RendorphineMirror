@@ -1,18 +1,13 @@
 ﻿namespace Machine;
 
-public record RAM(
-    uint Speed,
-    ulong Capacity,
-    ulong FreeMemory,
-    string DeviceLocator,
-    string SerialNumber)
+public record RAM(ulong Capacity, ulong FreeMemory)
 {
-    public static List<RAM> Info
+    public static IReadOnlyList<RAM> Info
     {
         get
         {
             if (OperatingSystem.IsWindows()) return WindowsRAM.Info;
-            //if (OperatingSystem.IsLinux()) return LinuxGetForAll();
+            if (OperatingSystem.IsLinux()) return LinuxRAM.Info;
             throw new PlatformNotSupportedException();
         }
     }

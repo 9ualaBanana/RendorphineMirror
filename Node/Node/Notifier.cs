@@ -14,6 +14,7 @@ public class Notifier
     }
 
     public required Init Init { get; init; }
+    public required ILogger<Notifier> Logger { get; init; }
 
     readonly SemaphoreSlim Semaphore = new(1, 1);
     readonly NotifyApi Api = new(new HttpClient());
@@ -26,24 +27,36 @@ public class Notifier
 
         try
         {
-            const string url = "https://t.microstock.plus:7889/notify";
+            const string url = "https://t.microstock.plus:7889/send";
+            //const string url = "http://127.0.0.1:5014/send";
 
             var ip = await PortForwarding.GetPublicIPAsync();
-            text = $"""
-                *{Settings.NodeName}* *{Init.Version}*   `{ip}:{Settings.UPnpPort}`   `{ip}:{Settings.UPnpServerPort}`
-                *{Environment.UserName}* *{Environment.MachineName}*
-                ```json
-                {JsonConvert.SerializeObject((Settings.AuthInfo as object) ?? "unauth")}
-                ```
+            var host = await PortForwarding.TryReadNginxHost(default);
+            var hoststr = host is null ? "nohost" : $"{host.Value.host}:{host.Value.port}";
 
-                {text}
-                """;
+            var notif2 = new[]
+            {
+                ("Time", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToStringInvariant()),
+                ("Content", text),
 
-            await Api.ApiPost(url, "Notifying the bot", ("text", text.ToString()));
-            //var pc = Api.Default.ToPostContent(new[] { ("text", text) });
-            //(await new HttpClient().PostAsync(url, pc)).Dispose();
+                ("Nickname", Settings.NodeName),
+                ("NodeVersion", Init.Version),
+
+                ("Ip", ip.ToString()),
+                ("PublicPort", Settings.UPnpPort.ToStringInvariant()),
+                ("Host", hoststr),
+
+                ("Username", Environment.UserName),
+                ("MachineName", Environment.MachineName),
+
+                ("AuthInfo", JsonConvert.SerializeObject((Settings.AuthInfo as object) ?? "unauth")),
+            };
+            await Api.ApiPost(url, "Notifying the bot2", notif2).ThrowIfError();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Error notifying");
+        }
     }
 
 

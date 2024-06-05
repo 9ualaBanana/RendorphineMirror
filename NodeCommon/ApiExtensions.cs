@@ -3,10 +3,23 @@ using System.Globalization;
 
 namespace NodeCommon;
 
+public record LoginResult(string SessionId, string UserId, AccessLevel AccessLevel);
+public enum AccessLevel { User, Level1, Level2, Leve3, Level4, Level5 }
 public static class ApiExtensions
 {
     const string RegistryUrl = Apis.RegistryUrl;
     static string TaskManagerEndpoint => Api.TaskManagerEndpoint;
+
+
+    public static ValueTask<OperationResult<LoginResult>> LoginAsync(this Api api, string email, string password) =>
+        api.LoginAsync(email, password, Guid.NewGuid().ToString());
+    public static ValueTask<OperationResult<LoginResult>> LoginAsync(this Api api, string email, string password, string guid) =>
+        api.ApiPost<LoginResult>($"{TaskManagerEndpoint}/login", null, "Logging in", ("email", email), ("password", password), ("guid", guid));
+
+    public static ValueTask<OperationResult<LoginResult>> AutoLoginAsync(this Api api, string email) =>
+        api.AutoLoginAsync(email, Guid.NewGuid().ToString());
+    public static ValueTask<OperationResult<LoginResult>> AutoLoginAsync(this Api api, string email, string guid) =>
+        api.ApiPost<LoginResult>($"{TaskManagerEndpoint}/autologin", null, "Logging in", ("email", email), ("guid", guid));
 
 
     /// <summary> Updates <see cref="task.HostShard"/> values. Does NOT guarantee that all tasks provided will have shards </summary>

@@ -21,11 +21,30 @@ public class MainController : ControllerBase
         [FromForm] string text
     )
     {
-        foreach (var target in botTargets)
+        foreach (var t in text.Chunk(3000))
         {
-            await BotClient.SendTextMessageAsync(new ChatId(target), text, parseMode: ParseMode.Markdown);
+            var str = new string(t);
+
+            foreach (var target in botTargets)
+                await BotClient.SendTextMessageAsync(new ChatId(target), str, parseMode: ParseMode.Markdown);
         }
 
         return "{ \"ok\": 1 }";
+    }
+
+
+    [HttpPost("/send")]
+    public async Task<ActionResult> Send(
+        [FromForm] Notification notification,
+        [FromServices] NotificationDbContext context
+    )
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        context.Notifications.Add(notification);
+        await context.SaveChangesAsync();
+
+        return Ok("{ \"ok\": 1 }");
     }
 }

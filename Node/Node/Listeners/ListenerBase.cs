@@ -30,7 +30,7 @@ public abstract class ListenerBase : IServiceTarget
     static void IServiceTarget.CreateRegistrations(ContainerBuilder builder) { }
     async Task IServiceTarget.ExecuteAsync() => Start();
 
-    public void Start() => _Start(0);
+    public virtual void Start() => _Start(0);
     void _Start(int time)
     {
         if (!Listeners.Contains(this))
@@ -42,15 +42,10 @@ public abstract class ListenerBase : IServiceTarget
             ComponentContext.Resolve<PortsUpdatedTarget.LocalPortsUpdatedTarget>();
             addprefix($"127.0.0.1:{Settings.LocalListenPort}");
         }
-        if (ListenType.HasFlag(ListenTypes.Public))
-        {
-            ComponentContext.Resolve<PortsUpdatedTarget.PublicPortsUpdatedTarget>();
-            addprefix($"+:{Settings.UPnpPort}");
-        }
         if (ListenType.HasFlag(ListenTypes.WebServer))
         {
             ComponentContext.Resolve<PortsUpdatedTarget.WebPortsUpdatedTarget>();
-            addprefix($"+:{Settings.UPnpServerPort}");
+            addprefix($"+:{Settings.UPnpPort}");
         }
 
         updateWindowsFirewall();
@@ -69,7 +64,7 @@ public abstract class ListenerBase : IServiceTarget
                 return;
 
             runAsAdmin("netsh advfirewall firewall delete rule name=renderfin");
-            runAsAdmin($"netsh advfirewall firewall add rule name=renderfin dir=in action=allow protocol=tcp localport={string.Join(',', new[] { Settings.UPnpPort, Settings.UPnpServerPort })}");
+            runAsAdmin($"netsh advfirewall firewall add rule name=renderfin dir=in action=allow protocol=tcp localport={string.Join(',', new[] { Settings.UPnpPort })}");
         }
         void runAsAdmin(string args)
         {
@@ -115,10 +110,8 @@ public abstract class ListenerBase : IServiceTarget
 
             if (ListenType.HasFlag(ListenTypes.Local))
                 Settings.LocalListenPort++;
-            if (ListenType.HasFlag(ListenTypes.Public))
-                Settings.UPnpPort++;
             if (ListenType.HasFlag(ListenTypes.WebServer))
-                Settings.UPnpServerPort++;
+                Settings.UPnpPort++;
 
             _Start(2);
             return;
@@ -353,6 +346,7 @@ public abstract class ListenerBase : IServiceTarget
             var inputstr = await reader.ReadToEndAsync();
             var data = HttpUtility.ParseQueryString(inputstr);
 
+            if (stream is MemoryStream ms) ms.Position = 0;
             return new(data);
         }
 
@@ -388,8 +382,7 @@ public abstract class ListenerBase : IServiceTarget
     protected enum ListenTypes
     {
         Local = 1 << 0,
-        Public = 1 << 1,
-        WebServer = 1 << 2,
+        WebServer = 1 << 1,
     }
 
     protected class CachedMultipartReader : IAsyncEnumerable<MultipartSection>, IDisposable

@@ -61,7 +61,7 @@ public class PublicPagesController : ControllerBase
     [HttpPost("loginas")]
     public async Task<ActionResult> LoginAs([FromForm] string email, [FromForm] string password)
     {
-        var result = await Api.Api.ApiPost<SessionManager.LoginResult>($"{(global::Common.Api.TaskManagerEndpoint)}/login", null, "Logging in", ("email", email), ("password", password), ("lifetime", TimeSpan.FromDays(1).TotalMilliseconds.ToString()), ("guid", Guid.NewGuid().ToString()));
+        var result = await Api.Api.ApiPost<LoginResult>($"{(global::Common.Api.TaskManagerEndpoint)}/login", null, "Logging in", ("email", email), ("password", password), ("lifetime", TimeSpan.FromDays(1).TotalMilliseconds.ToString()), ("guid", Guid.NewGuid().ToString()));
 
         // sessionid of another account
         if (!result.Success | result.Value.UserId == Settings.UserId)
@@ -91,5 +91,57 @@ public class PublicPagesController : ControllerBase
             return Ok(JsonApi.Error("No online nodes found on that account"));
 
         return Redirect($"http://{node.Ip}:{node.Info.WebPort}/loginas");
+    }
+
+    [HttpGet("getcontents")]
+    [SessionIdAuthorization]
+    public async Task<ActionResult> GetContents([FromQuery] string? path = null)
+    {
+        DirectoryContents contents;
+
+        if (path is (null or ""))
+        {
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                contents = new DirectoryContents("", DriveInfo.GetDrives().Select(x => x.RootDirectory.FullName).ToImmutableArray());
+            else contents = new DirectoryContents("/", Directory.GetDirectories("/").Select(x => Path.GetRelativePath("/", x)).ToImmutableArray());
+        }
+        else
+        {
+            if (!Directory.Exists(path))
+                return Ok(JsonApi.Error("Directory does not exists"));
+
+            contents = new DirectoryContents(path, Directory.GetDirectories(path).Select(x => Path.GetRelativePath(path, x)).ToImmutableArray());
+        }
+
+        return Ok(JsonApi.Success(contents));
+    }
+
+    [HttpGet("getfile")]
+    [SessionIdAuthorization]
+    public async Task<ActionResult> GetFile([FromQuery] string path)
+    {
+        if (!System.IO.File.Exists(path))
+            return Ok(JsonApi.Error("File does not exists"));
+
+        var temp = Path.GetTempFileName();
+        System.IO.File.Copy(path, temp, true);
+
+        return new DeletedPhysicalFileResult(temp, MimeTypes.GetMimeType(path)) { FileName = Path.GetFileName(path) };
+    }
+
+    [HttpGet("stats/getloadbetween")]
+    public async Task<ActionResult> GetLoadBetween([FromQuery] long start, [FromQuery] long end, [FromQuery] long stephours, [FromServices] SystemLoadStoreService loadService) =>
+        Ok(JsonApi.Success(await loadService.Load(start, end, stephours)));
+
+
+    class DeletedPhysicalFileResult : PhysicalFileResult
+    {
+        public DeletedPhysicalFileResult(string fileName, string contentType) : base(fileName, contentType) { }
+
+        public override async Task ExecuteResultAsync(ActionContext context)
+        {
+            try { await base.ExecuteResultAsync(context); }
+            finally { System.IO.File.Delete(FileName); }
+        }
     }
 }

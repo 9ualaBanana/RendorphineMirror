@@ -36,8 +36,8 @@ public abstract class FFMpegMediaEditAction<TData> : FilePluginActionInfo<TData>
         {
             var filters = launcher.VideoFilters;
 
-            if (data.Crop is not null) filters.Add($"crop={data.Crop.W.ToString(NumberFormat)}:{data.Crop.H.ToString(NumberFormat)}:{data.Crop.X.ToString(NumberFormat)}:{data.Crop.Y.ToString(NumberFormat)}");
-            if (data.Scale is not null) filters.Add($"scale={data.Scale.W.ToString(NumberFormat)}:{data.Scale.H.ToString(NumberFormat)}");
+            if (data.Crop is not null) filters.Add($"crop={(data.Crop.W - (data.Crop.W % 2)).ToString(NumberFormat)}:{(data.Crop.H - (data.Crop.H % 2)).ToString(NumberFormat)}:{data.Crop.X.ToString(NumberFormat)}:{data.Crop.Y.ToString(NumberFormat)}");
+            if (data.Scale is not null) filters.Add($"scale={(data.Scale.W - (data.Scale.W % 2)).ToString(NumberFormat)}:{(data.Scale.H - (data.Scale.H % 2)).ToString(NumberFormat)}");
 
             var eq = new List<string>();
             if (data.Brightness is not null) eq.Add($"brightness={data.Brightness.Value.ToString(NumberFormat)}");

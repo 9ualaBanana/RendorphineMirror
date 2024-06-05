@@ -69,7 +69,6 @@ public class PortsForwardedTarget : IServiceTarget
                 */
 
                 await mapPort(device, "renderphine", Settings.BUPnpPort);
-                await mapPort(device, "renderphine-srv", Settings.BUPnpServerPort);
                 await mapPort(device, "renderphine-dht", Settings.BDhtPort);
                 await mapPort(device, "renderphine-trt", Settings.BTorrentPort);
 

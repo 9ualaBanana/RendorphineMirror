@@ -10,18 +10,24 @@ public class SessionManager
     public required Api Api { get; init; }
     public required ILogger<SessionManager> Logger { get; init; }
 
+    public bool IsLoggedIn() =>
+        Settings.SessionId is not null
+        && Settings.NodeName is not null
+        && Settings.Guid is not null
+        && Settings.UserId is not null;
 
     public ValueTask<OperationResult> RenameServerAsync(string newname, string oldname) =>
         Api.ApiPost($"{Endpoint}/renameserver", "Renaming the node", ("sessionid", Settings.SessionId), ("oldname", oldname), ("newname", newname));
 
-    public ValueTask<OperationResult> AutoAuthAsync(string email) => AutoAuthAsync(email, Guid.NewGuid().ToString());
+    public ValueTask<OperationResult> AutoAuthAsync(string email) =>
+        AutoAuthAsync(email, Guid.NewGuid().ToString());
     public ValueTask<OperationResult> AutoAuthAsync(string email, string guid) =>
-        Api.ApiPost<LoginResult>($"{Endpoint}/autologin", null, "Autologging in", ("email", email), ("guid", guid))
+        Api.AutoLoginAsync(email, guid)
         .Next(res => LoginSuccess(res.SessionId, email, guid, res.UserId, true));
 
     public ValueTask<OperationResult> AuthAsync(string email, string password) => AuthAsync(email, password, Guid.NewGuid().ToString());
     public ValueTask<OperationResult> AuthAsync(string email, string password, string guid) =>
-        Api.ApiPost<LoginResult>($"{Endpoint}/login", null, "Logging in", ("email", email), ("password", password), ("guid", guid))
+        Api.LoginAsync(email, password, guid)
         .Next(res => LoginSuccess(res.SessionId, email, guid, res.UserId, false));
 
     public async ValueTask<OperationResult> WebAuthAsync(CancellationToken token = default)
@@ -78,8 +84,4 @@ public class SessionManager
 
         return true;
     }
-
-
-    public record LoginResult(string SessionId, string UserId, AccessLevel AccessLevel);
-    public enum AccessLevel { User, Level1, Level2, Leve3, Level4, Level5 }
 }

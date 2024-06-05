@@ -75,7 +75,11 @@ public class UpdateChecker
                 dir = string.Join('-', dir.Split('-')[..^1]);
 
             var folder = (UseAdminRights && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ? Environment.SpecialFolder.ProgramFiles : Environment.SpecialFolder.LocalApplicationData;
-            targetdirectory = Path.Combine(Environment.GetFolderPath(folder), dir);
+            var folderpath = Environment.GetFolderPath(folder);
+            if (string.IsNullOrEmpty(folderpath))
+                folderpath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share");
+
+            targetdirectory = Path.Combine(folderpath, dir);
         }
         targetdirectory = Path.GetFullPath(targetdirectory);
         TargetDirectory = targetdirectory;
