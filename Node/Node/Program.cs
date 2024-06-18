@@ -69,6 +69,8 @@ if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!) != "dotnet")
         })
     ).LogFactory;*/
 
+const string ngingxWebRoot = "/var/www";
+
 var builder = WebApplication.CreateBuilder();
 builder.Logging.ClearProviders();
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory(builder =>
@@ -167,8 +169,7 @@ app.MapGet("/login", (HttpContext context, IAntiforgery antiforgery, string? red
 </body>
 </html>
 ",
-"text/html"))
-    .DisableAntiforgery();
+"text/html"));
 
 app.MapPost("/cplogin", async (Api api, SettingsInstance settings, HttpContext context, [FromForm] string login, [FromForm] string password, string? redirect = default) =>
 {
@@ -282,9 +283,10 @@ app.MapGet("/", (SessionManager manager) => Results.Content($@"
 "text/html"))
     .RequireAuthorization();
 
-app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFProductStorage products, HttpContext context) =>
+app.MapGet("/marktm", (string[] sources, SettingsInstance settings, IRFProductStorage products, HttpContext context) =>
 {
     var host = context.Request.Host.Host;
+    var origin = host == "localhost" ? $"http://{host}:{PortForwarding.ASPPort}" : $"https://{host}";
     if (sources.Length is not 0)
     {
         settings.RFProductSourceDirectories.Value = [.. sources];
@@ -303,7 +305,8 @@ app.MapGet("/marktm", async (string[] sources, SettingsInstance settings, IRFPro
     </head>
     <body>
     """);
-        sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<img src={(host == "localhost" ? $"http://{host}:{PortForwarding.ASPPort}" : $"https://{host}")}/rfpreview/{_.Key} class=rfpreview/>"));
+        // Cast RFProduct.Idea (_.Value.Idea) to its concrete Type.
+        //sb.AppendJoin('\n', products.RFProducts.Where(_ => File.Exists(_.Value.QSPreview.First().Path)).Select(_ => $"<a href='{_.Value.}'><img src={origin}/rfpreview/{_.Key} class=rfpreview /></a>"));
         sb.Append(
         """    
     </body>
@@ -471,7 +474,7 @@ app.MapPost("/savewebglsettings", ([FromBody] object settings, HttpContext conte
     if (context.Request.Headers.Referer.First() is string referrer && referrer.Contains("webgl")
     && Path.GetDirectoryName(new Uri(referrer).LocalPath) is string directory)
     {
-        directory = Path.Combine("/var/www", directory.TrimStart('\\')).Replace('\\', '/');
+        directory = Path.Combine(ngingxWebRoot, directory.TrimStart('\\')).Replace('\\', '/');
         if (Directory.Exists(directory))
         {
             var file = Path.Combine(directory, "settings.json");

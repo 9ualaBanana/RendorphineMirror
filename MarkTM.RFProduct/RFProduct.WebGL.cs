@@ -24,6 +24,7 @@ public partial record RFProduct
         new public record Idea_
             : RFProduct.Idea_
         {
+            // Add properties specific to WebGL Idea_. to display index.html upon preview click from MarkTM gallery.
             Idea_(string path)
                 : base(path)
             {
